@@ -93,6 +93,9 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
 .ev.result details, .ev.call details { min-width: 0 }
 .ev.result summary, .ev.call summary { cursor: pointer; color: var(--muted); font-size: 12.5px }
 .ev.hook .b { color: var(--faint); font-size: 12px; font-family: var(--mono); white-space: pre-wrap; word-break: break-word }
+.ev.refusal .b { border: 1px solid var(--fail-soft); border-left: 3px solid var(--fail); border-radius: 6px; padding: 8px 10px; display: grid; gap: 6px; min-width: 0 }
+.ev.refusal pre, .ev.keepalive pre { white-space: pre-wrap; word-break: break-word; margin: 0 }
+.ev.keepalive .b { border-left: 3px solid var(--flag); padding: 2px 10px; color: var(--muted); font-size: 12.5px; display: grid; gap: 4px; min-width: 0 }
 .sections { display: grid; gap: 4px }
 .sec { display: grid; grid-template-columns: minmax(0, 1fr) 90px 160px; gap: 10px; align-items: center; font-size: 12.5px }
 .sec .bar { height: 8px }
@@ -245,7 +248,9 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     const scripts = Object.keys(s.flags).filter((f) => f.startsWith("defines-script:")).map((f) => f.split(":")[1]);
     if (scripts.length) notes.push(`The model wrote its own drivers for ShipLoop: <span class="mono">${scripts.map(esc).join(", ")}</span>.`);
     if (run.events_source !== "claude") notes.push(`This host's stream gives tool calls only; model text, results and the printed heads are not available.`);
-    if (run.packets_source !== "archive") notes.push(`Packets come from run/packets, which keeps only the last copy of each packet.`);
+    if (String(run.packets_source || "").startsWith("trace")) notes.push(`Packets, reprints, refusals and keepalive continuations come from ShipLoop's run trace (<span class="mono">trace.jsonl</span>): each packet as sent, each refusal with its text.${run.packets_source !== "trace" ? " Stages the trace never printed (seeded by the harness) show their " + (run.packets_source === "trace+archive" ? "archived" : "last") + " copy." : ""}`);
+    else if (run.packets_source !== "archive") notes.push(`Packets come from run/packets, which keeps only the last copy of each packet; this run has no trace, so refusals are not marked and reprints are not counted.`);
+    if (run.trace && run.trace.file && !run.trace.error) notes.push(`ShipLoop's trace counted <b>${run.trace.refusals}</b> refusal${run.trace.refusals === 1 ? "" : "s"}${run.trace.checks_failed ? ` and ${run.trace.checks_failed} failed check${run.trace.checks_failed === 1 ? "" : "s"}` : ""}, <b>${run.trace.packets}</b> packet prints (${run.trace.reprints} reprint${run.trace.reprints === 1 ? "" : "s"}) and <b>${run.trace.continuations}</b> keepalive continuation${run.trace.continuations === 1 ? "" : "s"}.${run.trace.covers ? "" : " It does not cover the whole run: " + esc(run.trace.partial || "") + "."}`);
 
     // The row each clear belongs to: the action whose events straddle the stop line, else (a clear at a stage boundary)
     // the first action of the stage the run stopped in. A flow written before several clears per slice holds an object
@@ -273,6 +278,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
       const said = phases.flatMap((p) => p.events).find((e) => e.kind === "say");
       const span = phases.reduce((n, p) => n + (p.span_seconds || 0), 0);
       const improve = phases.some((p) => p.kind === "improve");
+      const refused = phases.reduce((n, p) => n + (p.refusals || 0), 0);
       const clearedHere = clearRows.has(a.index);
       const clearedBefore = false;
       const expanded = open === a.index;
@@ -292,6 +298,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
           <div class="line"><span class="num">${phases.reduce((n, p) => n + p.calls, 0)} call${phases.reduce((n, p) => n + p.calls, 0) === 1 ? "" : "s"}</span>
             <span class="muted num">${span ? secs(span) : ""}</span>
             ${phases.some((p) => p.reads.length) ? `<span class="pill quiet">opened packet</span>` : ""}
+            ${refused ? `<span class="pill fail">${refused} refused</span>` : ""}
             ${flags.map((f) => `<span class="pill flag">${esc(flagText(f))}</span>`).join("")}</div>
           ${said ? `<div class="said" title="${esc(said.body.text)}">“${esc(said.body.text)}”</div>` : ""}
         </div></div>`;
@@ -369,7 +376,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
           <span class="num muted">${k(x.chars)} chars</span><span class="bar"><span class="w" style="width:${(100 * x.chars) / maxSec}%"></span></span></div>`).join("")}</div>`;
       return `<div class="phase" data-p="${pi}">
         <div class="phase-head"><h3>${p.kind === "improve" ? "Improve review" : "Producer"} packet</h3>
-          <span class="muted num">${k(p.packet.chars)} chars written · head ${k(p.head_chars)} · ${p.packet.emissions} emission${p.packet.emissions === 1 ? "" : "s"} · ${p.packet.skill_references ?? 0} skill references</span>
+          <span class="muted num">${k(p.packet.chars)} chars written · head ${k(p.head_chars)} · ${p.packet.emissions} emission${p.packet.emissions === 1 ? "" : "s"}${p.packet.prints ? ` · printed ${p.packet.prints}× (${p.packet.reprints} reprint${p.packet.reprints === 1 ? "" : "s"})` : ""} · ${p.packet.skill_references ?? 0} skill references</span>
           <span class="muted">${reads}</span></div>
         <div class="tabs" role="tablist">
           <button role="tab" data-tab="seen" aria-selected="${tab === "seen"}">Seen by the model (after any head pipe)</button>
@@ -384,12 +391,16 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
   }
 
   function renderEvent(e) {
-    const t = `<span class="t">${e.t}s</span>`;
+    const t = `<span class="t">${e.t == null ? "" : e.t + "s"}</span>`;
     const more = e.body.clipped ? ` <span class="muted">(first ${k(e.body.text.length)} of ${k(e.body.chars)} chars)</span>` : "";
     if (e.kind === "say") return `<div class="ev say">${t}<div class="b">${esc(e.body.text)}</div></div>`;
     if (e.kind === "hook") return `<div class="ev hook">${t}<div class="b">${esc(e.body.text)}</div></div>`;
     // Text the host put into the conversation (a skill body Claude injects after a Skill call): never the model's words.
     if (e.kind === "injected") return `<div class="ev hook">${t}<div class="b"><span class="pill quiet">host-injected</span>${more}<details><summary>${esc(e.body.text.split("\n")[0].slice(0, 140))}</summary><pre>${esc(e.body.text)}</pre></details></div></div>`;
+    // ShipLoop's own events, from its run trace: a refused command with its text, a keepalive stop decision with its text.
+    if (e.kind === "refusal") return `<div class="ev refusal">${t}<div class="b"><div><span class="pill ${e.check_only ? "quiet" : "fail"}">${e.check_only ? "check failed" : "refused"}</span>
+      <span class="mono">${esc(e.verb)} → exit ${esc(e.exit)}</span> <span class="muted">${esc(e.stage || "")} · trace</span></div><pre>${esc(e.body.text)}</pre>${more}</div></div>`;
+    if (e.kind === "keepalive") return `<div class="ev keepalive">${t}<div class="b"><div><span class="pill flag">keepalive ${esc(e.decision || "")}</span> <span class="muted">${esc(e.why || "")} · trace</span></div>${e.body.text ? `<pre>${esc(e.body.text)}</pre>` : ""}</div></div>`;
     if (e.kind === "call") {
       const flags = (e.flags || []).map((f) => `<span class="pill flag">${esc(flagText(f))}</span>`).join(" ");
       const first = e.body.text.split("\n")[0];

@@ -26,6 +26,7 @@ import re
 import shlex
 
 import metrics
+import run_trace
 
 SCHEMA = "shiploop-e2e-fidelity/v1"
 # Files the engine keeps beside a run (shiploop_workspace.MANIFEST, RETURN_PLAN, RETURN_RECEIPT): script-owned, and named in a
@@ -45,6 +46,11 @@ RUN_KIND = {"lint-gate": "lint", "test-base": "verify", "test-loop": "verify", "
 REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the "
                   "refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second "
                   "failed try); a result the host saved to a file is not read")
+TRACE_REFUSAL_LIMITS = ("read from ShipLoop's run trace: every command that named the run and exited non-zero, a --check-only failure "
+                        "flagged, a routed verb's (lint, red-check) with no text; a command that named no run (a workspace verb on "
+                        "--workspace) or did not parse is read from the stream (source events.jsonl), so one a pipe hid is missing, "
+                        "as is a command on a wrong --run-dir; a repeat is the same whole first line in the same stage as the "
+                        "refusal just before it, neutral about cause")
 EDIT_LIMITS = ("a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git "
                "apply, a kill by numeric pid or by port, and a relative path after cd other than the three workspace files, matched by "
                "name, are not seen) and a hit can be quoted text read as a command (a quoted > word reads as a redirect)")
@@ -580,7 +586,11 @@ def refusals(tools, out: Path, run_dir: Path | None, state: dict) -> dict:
     """Each ShipLoop refusal, from the same list as ``shiploop_failures`` (one count), with the stage it came in and whether it is a
     repeat: the refusal just before it has the same whole first line (not the 200-character cut) in the same known stage. A repeat
     with an unknown stage is not flagged. The same line twice is a pointer, neutral about cause (a remedy that misled, or an honest
-    second failed try)."""
+    second failed try). A run whose trace covers it (run_trace.covers) reads them as metrics.collect does (metrics.traced_failures):
+    a traced item names its trace line (``trace_line``) instead of an events.jsonl line and its stage is the one the run was in."""
+    traced = run_trace.read(run_dir)
+    if run_trace.covers(traced):
+        return trace_refusals(traced, tools, out, run_dir, state)
     if tools is None or not tools.sequence:
         raise Unmeasured(NO_TOOL_CALLS)
     stamps = metrics.timeline(Path(out) / "timeline.jsonl")
@@ -599,6 +609,33 @@ def refusals(tools, out: Path, run_dir: Path | None, state: dict) -> dict:
     return {"count": len(tools.failures),
             "repeated": None if items and not staged else sum(item["repeat_of"] is not None for item in items),
             "unstaged": len(items) - staged, "limits": REFUSAL_LIMITS, "items": items}
+
+
+def trace_refusals(traced: dict, tools, out: Path, run_dir: Path | None, state: dict) -> dict:
+    """``refusals`` of a run whose trace covers it, from the list metrics.collect writes (metrics.traced_failures): a traced
+    refusal's stage is the one the run was in, never a join; a refusal only the stream shows (a command that named no run, a
+    usage error) gets its stage from the stage windows, as ``refusals`` gives it."""
+    stamps = metrics.timeline(Path(out) / "timeline.jsonl")
+    merged = metrics.traced_failures(traced, tools if tools is not None else metrics.ToolLog(), stamps)
+    if any(row["source"] != "trace" for row in merged):
+        accepted = metrics.stage_results(run_dir, state)
+        pending = metrics.pending_stage(state)
+        labels = [row["stage"] for row in accepted] + ([pending] if pending else [])
+        windows = metrics.stage_windows(accepted, stamps, pending)
+    items, previous = [], None
+    for index, failure in enumerate(merged):
+        traced_row = failure["source"] == "trace"
+        stage = failure["stage"] if traced_row else stage_of(failure["event"], stamps, labels, windows)
+        whole = run_trace.first_line(failure["text"], None)
+        repeat = previous is not None and stage is not None and previous == (whole, stage)
+        items.append({"event": None if traced_row else failure["event"], "trace_line": failure["i"] if traced_row else None,
+                      "verb": failure["verb"], "exit": failure["exit"], "stage": stage, "line": failure["line"],
+                      "repeat_of": index - 1 if repeat else None, "source": "trace" if traced_row else "events.jsonl",
+                      **({"check_only": True} if failure["check_only"] else {})})
+        previous = (whole, stage)
+    staged = sum(item["stage"] is not None for item in items)
+    return {"count": len(items), "repeated": None if items and not staged else sum(item["repeat_of"] is not None for item in items),
+            "unstaged": len(items) - staged, "limits": TRACE_REFUSAL_LIMITS, "source": f"<run>/{run_trace.FILE}", "items": items}
 
 
 # --- end state ----------------------------------------------------------------------------------------------------------

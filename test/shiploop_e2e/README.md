@@ -207,7 +207,11 @@ Grok events carry no time) and ShipLoop's run directory:
   builds name both, null where the host's events do not carry it; also in `result.json`'s `metrics`). Two runs of
   one prompt on different builds are not a controlled pair: the Sonnet runs of 2026-10-06 and 2026-10-07 ran on
   2.1.291 and 2.1.292, which no record named before;
-- every `shiploop` command that exited non-zero, with its failing line;
+- every `shiploop` command that exited non-zero, with its failing line (`shiploop_failures`), and per named gate how many
+  refusals fired and how many the run then got past (`gate_counts`): from ShipLoop's run trace when the run has one that
+  covers it, else from the host stream. `failures_source` names which file they came from (and why the trace was not
+  used), and `run_trace` keeps the trace's own counts beside the stream's (`stream_failures`). See "ShipLoop's run trace"
+  below;
 - which `docs/shiploop/` files the model read;
 - `fidelity` (SPEC, 2026-10-09), a record-only block of what the run's own records show about how ShipLoop was
   carried: "The fidelity block" below. It is in `metrics.json` only, never in `result.json` or a baseline row.
@@ -251,6 +255,50 @@ no longer active. A resumed or seeded run, a run left active (a deadline, a stop
 resume budget) and a run whose host the deadline or a stop killed before ShipLoop wrote any state
 write none: their turns, cost and stages are a fragment. A host that ends on its own, even with no
 ShipLoop state, still writes its row.
+
+### ShipLoop's run trace (`run_trace.py`)
+
+Since shiploop 1.12.0 every run appends `RUN/trace.jsonl` (`skills/shiploop/scripts/shiploop_trace.py`). It holds each
+command that named the run, with its exit code and refusal text; each packet printed, with the copy kept as sent
+(`packets/sent/<sha>.md`); and each keepalive stop decision, with the text it put into the turn. `run_trace.py` reads it
+through that script's own reader (`shiploop_trace.build`), so the harness attributes events the way `shiploop trace` does.
+The host stream stays the source of what the model did: its text, calls, results and turns. The trace replaces the stream
+only where the stream reconstructed ShipLoop's side of the run:
+
+| Figure | Run with a trace that covers it | Run before 1.12.0 |
+|---|---|---|
+| `shiploop_failures`, `gate_counts`, the fidelity block's `refusals` (`metrics.json`) | `<run>/trace.jsonl`: every command on the run that exited non-zero, a failed `--check-only` flagged `check_only`, the stage the one the run was in; plus the stream's failures the trace cannot hold (below), each marked `source: events.jsonl`, all in time order | `events.jsonl` (`metrics.ToolLog`'s heuristic: a pipe can hide a refusal) |
+| packet texts (`flow.json`, `packets.py`) | `packets/sent/`: each distinct text as sent, with every print and reprint | `packet-archive/` (a slice) or `run/packets/` (the last copy) |
+| refusals and keepalive decisions in `flow.json` | events of kind `refusal` and `keepalive`, with their text | a refusal is an unmarked result; keepalive decisions not recorded |
+| refusals on the owner page's Read first panel | the trace, failed checks counted apart, plus the stream's refusal lines the trace cannot hold; the stream's own count beside it | the stream's refusal lines |
+
+The Run Review exporter reads `shiploop_failures` and the fidelity block from `metrics.json`, so its refusal count follows
+the same source without a change of its own.
+
+**Coverage.** A trace covers a run when every step the model accepted was accepted by a traced command and the trace did not
+reach its 32 MB cap. A step the harness seeded (a synthetic result) is not the model's, so a step slice's trace still covers
+it. A trace that does not cover the run (it began after an upgrade in the middle of a run) leaves the counts on the stream,
+and `failures_source.why` says why.
+
+**What the trace cannot hold.** It records only commands that loaded the run. A command that named no run, such as
+`workspace plan-return --workspace W` (its refusal reads `ShipLoop workspace blocked:`), and one whose command line did not
+parse (`shiploop complete: error: ...`) are in the host stream only. `run_trace.outside_trace` tells them apart: the call
+names no `--run-dir`, or its text is an argparse error. The harness adds them to the trace's failures, so a traced run
+loses none the stream saw; one a pipe hid is still missing, as is a command on a wrong `--run-dir`. The first traced E2E
+run (2026-10-25, `trace-verify-4fd9f1`, still running when read) had one such refusal, a stale return plan at
+`plan-return`. The routed verbs (`lint`, `red-check`, `chain`) are traced with their exit but without refusal text, so they
+read "no refusal text recorded".
+
+**Two instruments.** A refusal count from the trace and one from the stream measure different things. On the test fixture
+the stream sees 3 failures (a failed check, a `workspace` refusal and a usage error, none piped) and misses a refusal
+behind `| tail -1`; the harness's list holds all 4. On the first traced live run the stream saw 6 and the harness's list
+holds 8. `arms.py` therefore gates on refusals only when both arms counted them from the same source
+(`refusals_source` in each summary); otherwise the gate is unmeasured and the decision stays open. Read `failures_source`
+before reading a refusal difference between a run before 1.12.0 and a later one.
+
+The check is `test/shiploop-e2e-run-trace.test.py`. It builds one real CLI run in a temporary E2E folder, with a Claude
+stream written around its calls, and reads it three ways: with the trace, without it, and with a trace that does not
+cover the run.
 
 ### Delivered quality (`quality`)
 
@@ -412,7 +460,11 @@ is the one reader of that.
   null without a timeline) and `repeat_of`, the index of the refusal just before it when its whole first line (not the
   200-character cut) is the same in the same known stage. `repeated` is null, with `unmeasured["refusals.repeated"]`, when no
   refusal could be given a stage, and `unmeasured["refusals.stage"]` says how many have none when only some do. The same line twice is a pointer, neutral about cause: a remedy that misled or an honest
-  second failed try; `limits` says what it cannot see;
+  second failed try; `limits` says what it cannot see. A run whose trace covers it reads them from the trace, as
+  `shiploop_failures` does: `event` is null, `trace_line` is the trace's line, `stage` is the stage the run was in (no
+  timeline join), a failed check carries `check_only`, and the block's `source` is `<run>/trace.jsonl`. A refusal only the
+  stream shows (a command that named no run, a usage error) keeps its `event` and stream stage and has `source`
+  `events.jsonl`;
 - `end_state`: the engine's `status`, `stage`, the stage it never accepted, its `status_reason`, and for a run that ended on a
   blocked result the last accepted entry's `blocked_by` and `awaiting` (its `kind`, and whether `no_default` states why no
   default would do), read through `metrics.blocked_detail`, the one reader `termination`'s `engine_blocked_by` and
@@ -903,7 +955,9 @@ the record expected: a record that accepts red and ran green is a green pass.
   are heuristic, not exact: read the listed commands. `shiploop_failures` can over-count a
   compound command (the exit of the whole command is the ShipLoop call's) and under-count a
   loop, a result the host saved to a file or a variable it could not expand; `model_glue` and
-  the script run counts are lower bounds.
+  the script run counts are lower bounds. On a run whose trace covers it, `shiploop_failures`
+  and `gate_counts` come from the trace instead ("ShipLoop's run trace" above), and this
+  classifier's count stays in `run_trace.stream_failures`.
   - A ShipLoop failure is one tool result, counted once. Either its text has a line that
     begins `ShipLoop navigator: `, `ShipLoop blocked: ` or `ShipLoop workspace blocked: `
     (whatever exit the host showed: the model pipes the CLI through `head`, `grep` or `sed`,
@@ -1560,8 +1614,9 @@ Release, system tests and the report are not reached, by design. ShipLoop comman
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
 host is ended before it writes its `result` event; there is no spend cap unless `--max-budget-usd` sets one.
 
-**The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a
-full run, only the last copy of each packet is available.
+**The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a run
+with a trace (shiploop 1.12.0 and later), each packet's distinct texts as sent come from `packets/sent/`. On a full run
+before the trace, only the last copy of each packet is available. `emissions_source` says which.
 - **Per packet:**
   - stage, kind (producer or Improve) and outcome;
   - characters, and an estimate of tokens (characters ÷ 4);
@@ -1610,6 +1665,14 @@ out the doctype, for publishing the bundle as an Artifact.
 received. This is exact, because every `complete` prints the next head. On Grok and Codex, the stream gives tool
 calls only, attributed by acceptance time.
 
+**ShipLoop's own events (a run with a trace).** Each refused command is an event of kind `refusal` with its text, and
+each keepalive stop decision is an event of kind `keepalive` with the text it put into the turn. Each belongs to the
+action the trace gives it. It sits among the host's events by arrival time (both clocks are epoch seconds, compared
+unrounded), so a refusal the model piped away shows right after the call that caused it. Each packet's `prints` and
+`reprints` count every time ShipLoop printed it, and `sends` lists them. `sources` in `flow.json` names the file each
+part came from, and `trace` holds the trace's counts. A run before the trace shows no such events. Its `sources` say why,
+and the page notes that refusals are not marked.
+
 **Flags, all found by script in the model's calls:**
 - a script it wrote to drive ShipLoop (`defines-script`), and each run of that script (`runs-script`);
 - a review file written by such a script (`scripted-review`): the review text was fixed before anything was
@@ -1641,8 +1704,11 @@ python3 test/shiploop_e2e/owner_page.py <output> --earlier <earlier output> --ht
 - **Read first:** ShipLoop commands run, literal, variable-built (any variable, and by the run directory), piped, cut
   by a head pipe with the median N, status displays fired (Claude only); per producer stage the characters written and
   those seen after any pipe, and whether the packet file was opened (whole, slice, none); per stage seconds, turns,
-  tool calls and context peak; gates run and skipped (`metrics.skipped_gates`); refusals by stage and cause; the item
-  commit; skills invoked and the Improve stages that invoked the improve skill. Each figure links its file.
+  tool calls and context peak; gates run and skipped (`metrics.skipped_gates`); refusals by stage and cause (from the run
+  trace when it covers the run, with each cause's first refusal text, failed checks counted apart, the refusal lines only the
+  stream shows added, and the stream's count beside it; otherwise from the stream's refusal lines); the trace's packet
+  prints, reprints and keepalive continuations; the
+  item commit; skills invoked and the Improve stages that invoked the improve skill. Each figure links its file.
 - **Sizes:** packet characters per stage before and now, both on disk from `packets.py` (seeded stages left out),
   then the comparison text exactly as `packets.py <output> --compare <earlier>` writes it.
 - **Time and turns** are shown only with n and the A/A spread: `--control A B` names two runs of one arm, whose
@@ -1666,7 +1732,7 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 | `metrics.reading_path(OUT)`, or `python3 test/shiploop_e2e/metrics.py reading-path OUT [--limit-events N]` | Where the characters the model took in came from: ShipLoop prints, files by class (entry card, packet file, Improve card, ADAPTER, references, knowledge, scripts), an Improve child's handoff, the Until Loop runtime. Cold (the first 12 calls after a break: the start, a compaction, a fresh session) against warm. How each ShipLoop command was typed (`piped_shiploop_calls`, `variable_built_shiploop_calls`, what the status display could read), prints a pipe cut (`shiploop_print_cut`, with N), packet files opened (`packet_file_opens`: whole, slice or none per producer stage), symbolic pointers followed, gates a run skipped (`skipped_gates`, including "no mutants"), `warm_next_calls`, the Improve skill invoked per Improve stage (Claude only), quoted knowledge that reached the model by file. `--limit-events N` reads the first N lines of the stream, which is how a snapshot taken while a run was live is read again. |
 | `metrics.stage_share(OUT)` | What a planning stage takes of the planning window: the stage's authoring time (accept to accept less its Improve child) and the span of its calls that name Backchain, as shares of the window on the engine clock. |
 | `clear.orientation(events, clear_line)` | What a fresh session read before its first state-changing call, by class, and how long that took. The S-6 verdict still counts only redone state-changing calls. Claude's stream only. |
-| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from: no common slice, a slice one arm lacks, or a hard-gate field not measured on both arms (since build step 2; a measured gate failure still rejects). |
+| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread (refusals only when both arms counted them from the same source, `refusals_source`), a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from: no common slice, a slice one arm lacks, or a hard-gate field not measured on both arms (since build step 2; a measured gate failure still rejects). |
 | `seeded_defects.py verify` / `score OUT` | The three planted-defect cases (`node-seeded-*`): a request whose obvious implementation carries a defect the case's own checks do not exercise. `verify` proves each probe fails on the unreviewed tree and passes on the fixed one; `score` runs the probes on a slice's graded export (`OUT/export`). A record, never a verdict. |
 | `obligations.py` with `packet_obligations.json` | The packet obligation ledger: what every packet must carry, in the printed head or the packet file, checked on the 33-packet dry-run walk and the offline step slice on both routes. `--arm-checks DIR` writes the rows a checkout loses to `DIR/arm-checks.json` for `arms.py`. Its suite is `test/shiploop-packet-obligations.test.py`. |
 | `home_fixtures.py [long\|small\|empty]` | Generated, neutral knowledge homes (about 16/14/6 KB, and a few hundred characters) and the per-stage packet sizes over them, with `fingerprints` to show a change left a home's packets byte-identical. |

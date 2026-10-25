@@ -297,12 +297,88 @@ filters. The test now runs git and the CLI with `GIT_CONFIG_NOSYSTEM=1` and `GIT
 `test/shiploop-workspace.test.py` does; a simulated global lfs filter reproduces the failure without it. No product
 change, so neither live run above is affected.
 
+## 2026-10-25: the E2E harness reads the trace (firm, built)
+
+Question: the E2E harness predates the trace and rebuilds ShipLoop's side of a run from the host stream: refusals from
+tool results (`metrics.ToolLog`; on Claude a refusal piped through `head` or `tail` shows neither its exit nor its refusal
+line), packet texts from `packet-archive/` or the last copy in `run/packets/`, and no keepalive decisions at all. Where a
+run has `trace.jsonl`, can the harness take those facts from the trace, keep the stream for what the model did, keep older
+runs working, and say which source each figure came from?
+
+Design (built, all in `test/shiploop_e2e/`; no skill file changed, so no change note and no release):
+
+- **One reader, `run_trace.py`**, over `shiploop_trace.build`, so the harness attributes events as `shiploop trace` does.
+  It gives `failures` (every traced command that exited non-zero, with the stage the run was in, the action, the refusal
+  text screened line by line, its first line), `completes`, `packets` per action (each print as sent, `repeat` for a
+  reprint), `hooks` (decision and text), and `covers`.
+- **Coverage rule.** The trace covers a run when every step the model accepted was accepted by a traced command and the
+  trace is not capped. A step the harness seeded (summary `Synthetic…`) is not the model's: step slices seed with
+  `navigator.apply`, outside the trace, and still read as covered. A partial trace leaves every count on the stream and
+  says why.
+- **What only the stream holds.** The trace records only commands that loaded the run. A command that names no run
+  (`workspace plan-return --workspace W`) or does not parse is in the stream only; `run_trace.outside_trace` tells such a
+  stream failure (no `--run-dir` in the call, or an argparse error in its text), and `metrics.traced_failures` adds it to
+  the trace's, marked `source: events.jsonl`, ordered by epoch stamps. Found on the first live traced run (below), not
+  foreseen: the first design dropped them.
+- **`metrics.json`**: `shiploop_failures` and `gate_counts` come from the trace when it covers the run; `failures_source`
+  names the file (and why not); `run_trace` keeps the trace's counts beside the stream's own (`stream_failures`). The
+  item shape stays `{verb, exit, line}`, plus `check_only` on a failed check. A failed `--check-only` stays in the list
+  because the stream counted it too ("every command that exited non-zero"); the trace's own `refusals` excludes it.
+  The fidelity block's `refusals` reads the same list (one count), with the exact stage instead of a timeline join.
+  The Run Review exporter reads both from `metrics.json`, so it follows with no change of its own.
+- **`flow.py`**: packets as sent (`packets.emissions` prefers `packets/sent/`; `prints`, `reprints`, `sends` per phase),
+  refusals and keepalive decisions as events of kinds `refusal` and `keepalive` merged among the host's events on the
+  unrounded epoch stamps (rounded to 0.1 s, a fast refusal tied with the next call and landed after it, seen on the test
+  fixture), and `sources` naming each part's file. The Read first panel takes refusals by stage and cause from the trace,
+  counts failed checks apart, keeps the stream's count beside it, adds a `trace` block (prints, reprints,
+  continuations, stops) and takes producer sizes from the packet as last sent. A run without a trace reports per-phase
+  refusals and prints as None, not 0.
+- **`arms.py`**: a refusal count from the trace and one from the stream are two instruments, so the refusals gate is
+  unmeasured (the decision stays open) unless both arms counted from the same source (`refusals_source`).
+
+Not changed: the stream stays the source of the model's calls, text, turns, tool-call windows (`failure_of` in the
+reorientation readers) and retired-term counts (`nomenclature` reads refusal lines the model saw).
+
+What the trace cannot see: a ShipLoop command that never loaded the run. Measured on the 211 recorded runs under
+`~/e2e-runs` with a `metrics.json` before 1.12.0: 2 of 316 recorded failures were usage errors (both v1161 Luna,
+`unrecognized arguments`). A first design left these out (interim, superseded the same day): the first live traced run
+showed a `workspace blocked` refusal at `plan-return` that only the stream had, and such a refusal ends every run that
+returns its workspace. They are now merged from the stream by the rule above, which needs no time join to find them (only
+to order them). Still missing: such a refusal behind a pipe, and a command on a wrong `--run-dir`.
+
+Live evidence (read-only, `~/e2e-runs/20261025/trace-verify-4fd9f1/hello`, Claude, shiploop 1.12.0, read while the
+sibling live-E2E session was still running it): the stream counts 6 failures, the trace 7 (5 refusals, 2 failed checks),
+the harness's list 8 (the 7 and the workspace refusal). The stream named the step-proof refusal's verb `lint` (its
+command ran `lint` too); the trace says `complete`. Two of the trace's 7 are routed verbs (`lint` and `red-check`, exit
+3) recorded with no refusal text: `shiploop_protocol._main` hands `chain`, `lint` and `red-check` to their own modules,
+which return an exit code without setting the refusal text (`_TRACE["error"]`) the trace records, a ShipLoop gap for a
+later change. `gate_counts` classifies every line `other` on both
+readings (no signature fires on this run), and catches 6 of 8 by the trace's accepted `complete` against 3 of 6 by the
+stream's. A second traced run (`gate-212-8a49cf-grok-hello`, Grok) has no failures; its `research` packet was printed 3
+times (2 reprints), which no stream reading counted.
+
+Evidence: `test/shiploop-e2e-run-trace.test.py`, 14 tests, 1.9 s. The fixture is a real CLI run in a temporary E2E
+folder with a Claude stream written around its calls: a reprinted intake packet, a failed `--check-only` shown to the
+stream, a `workspace plan-return --workspace` refusal and a usage error (neither loads the run), a refusal piped through
+`| tail -1`, a keepalive continuation, the accepted intake and a reprinted discovery packet. On it the stream counts 3
+failures and misses the refusal; the trace counts 1 refusal, 1 failed check, 4 prints (2 reprints) and 1 continuation;
+`shiploop_failures` holds all 4 failures in order, and the refusal's text appears in `flow.json` right after the call
+that caused it. The same folder without its trace reads exactly as before (stream counts, `retained` packets, None for unrecorded
+counts), and a trace stripped of its accepting command reads as partial and falls back with its reason. Checked in the
+browser: the viewer shows the refused and check-failed events with their text, the keepalive text, and "printed 2× (1
+reprint)" on each phase. Neighbouring suites pass unchanged: owner page, fidelity, efficiency, commit counters, Run
+Review, test groups (suite count 101 → 102 ShipLoop, 156 → 157 in all).
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a
   `note` event, and the next packet quoting unread notes. Needs a packet change, so it waits for the owner.
-- **E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
-  `trace.jsonl` instead for refusals, reprints and hook text once a released run has one. Released runs have one since
-  1.13.1, and the 1.13.1 rerun shows the gain: flow missed W1's step-plan packet (redirected to a file, read in slices)
-  that the trace recorded, and counted a heredoc script as `init` on 1.12.0.
+- ~~**E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
+  `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.~~ Superseded 2026-10-25: built,
+  see "the E2E harness reads the trace" above; the exporter follows through `metrics.json`. The 1.13.1 rerun shows
+  the gain: flow missed W1's step-plan packet (redirected to a file, read in slices) that the trace recorded, and
+  counted a heredoc script as `init` on 1.12.0.
+- **First live check of the harness's trace reading**: no released E2E run with a trace has been regraded through
+  `run.py --resume-run <output> --grade-only` yet; the two traced runs of 2026-10-25 under `~/e2e-runs/20261025/` had no
+  refusals or hook decisions to compare.
 - **Hosts other than Claude Code** record Skill calls nowhere; the trace does not change that.

@@ -93,6 +93,10 @@ def summarise(out: Path, run_dir: Path | None = None) -> dict:
                    for c in clears],
         "redone": sum(len(c.get("redone") or []) for c in clears) if clears else None,
         "refusals": sum(1 for f in failures if f.get("verb") == "complete") if isinstance(failures, list) else None,
+        # Where metrics.json counted them: ShipLoop's run trace (shiploop 1.12.0 and later) or the host stream (earlier, and a
+        # metrics.json written before the field existed).
+        "refusals_source": ((recorded.get("failures_source") or {}).get("file") or "events.jsonl")
+                           if isinstance(failures, list) else None,
         "warm_next_calls": _count(path["warm_next_calls"]),
         "piped_shiploop_calls": _count(path["piped_shiploop_calls"]),
         "variable_built_shiploop_calls": _count(path["variable_built_shiploop_calls"]),
@@ -153,9 +157,15 @@ def _gates(name: str, control: dict, candidate: dict, aa: dict | None) -> tuple[
         fail("seeded_defect", "the control's final tree is free of the planted defect and the candidate's is not")
     for key in SPREAD_GATES:
         c, a = control.get(key), candidate.get(key)
+        sources = (control.get(f"{key}_source") or "events.jsonl", candidate.get(f"{key}_source") or "events.jsonl")
         if not isinstance(c, (int, float)) or not isinstance(a, (int, float)):
             notes.append(f"{name}: {key} not measured on both arms")
             failed.append({"slice": name, "gate": key, "why": "not measured on both arms", "unmeasured": True})
+        elif sources[0] != sources[1]:
+            # The trace counts refusals a pipe hid from the stream: two instruments, so the difference measures nothing.
+            notes.append(f"{name}: {key} counted from {sources[0]} on control and {sources[1]} on candidate")
+            failed.append({"slice": name, "gate": key, "why": "counted from different sources on the two arms",
+                           "unmeasured": True})
         elif aa is None or key not in aa:
             notes.append(f"{name}: {key} is descriptive here (control {c}, candidate {a}): no A/A spread for this slice")
         elif a > c + aa[key]:

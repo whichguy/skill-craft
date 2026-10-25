@@ -6,10 +6,13 @@
 
 `flow.json` (schema `FLOW_VERSION`) is built from the run's files only:
 - state.md history, which gives the actions in the order the graph took them;
-- the packet archive (slice.py) or run/packets (a full run keeps only each packet's last copy);
-- the host's event stream.
+- ShipLoop's run trace (RUN/trace.jsonl, shiploop 1.12.0 and later): every packet as sent (packets/sent/), each print and
+  reprint, each refused command with its text, each keepalive stop decision with the text it put into the turn;
+- for a run before the trace, the packet archive (slice.py) or run/packets (a full run keeps only each packet's last copy);
+- the host's event stream, for what the model did: its text, calls, results and turns.
 
-The packet archive and run/packets supply the text of each packet.
+`sources` in flow.json names the file each of those came from, so a run read from the trace and one read from the stream
+are never mistaken for each other.
 
 Each action has one phase. The Improve stage is an action of its own (stage `improve`, its own id and packet file), listed
 after the action it reviews and linked to it (`reviewed`, `reviewed_stage`); its phase has kind `improve`. A saved run of
@@ -22,7 +25,10 @@ phases, the producer and the Improve child. A phase holds:
 
 On Claude, the events are its text, tool calls and tool results, and hook messages. An event belongs to the action
 named by the last packet head the model had received, which is exact, because each `complete` call prints the next
-head. Other hosts' streams give tool calls only (metrics.ToolLog), attributed by ShipLoop's acceptance times.
+head. Other hosts' streams give tool calls only (metrics.ToolLog), attributed by ShipLoop's acceptance times. A traced run
+adds ShipLoop's own events, attributed by the trace (the action the command named, or the one current when it ran): each
+refusal (kind `refusal`, with its text) and each keepalive stop decision (kind `keepalive`), placed among the host's events
+by time (both clocks are epoch seconds), or at the end of their phase when the stream has no times.
 
 Text the host put into the conversation (Claude writes an invoked skill's body as a `user` message) is an event of kind
 `injected`, never the model's `say`.
@@ -30,8 +36,9 @@ Text the host put into the conversation (Claude writes an invoked skill's body a
 `--read-first <output>` prints the owner page's "Read first" panel as JSON (``read_first``): ShipLoop commands run (literal,
 variable-built, piped, cut by a pipe with the median N kept, status displays fired), per producer stage the characters written
 against those seen after any pipe and whether the packet file was opened, per stage seconds, turns and context, gates run
-against skipped, refusals by stage and cause, whether the item was committed, skills invoked, the staleness of the recording
-against the repository, and what the run cannot show. Each figure names the file it comes from. It writes nothing;
+against skipped, refusals by stage and cause (from the trace where it covers the run, else from the stream's refusal lines),
+the trace's packets, reprints and keepalive continuations, whether the item was committed, skills invoked, the staleness of the
+recording against the repository, and what the run cannot show. Each figure names the file it comes from. It writes nothing;
 `owner_page.py` turns it into the page.
 
 Calls are flagged by script, never by a model:
@@ -57,6 +64,7 @@ sys.path.insert(0, str(HERE.parents[1] / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import metrics  # noqa: E402
 import packets  # noqa: E402
+import run_trace  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -125,9 +133,47 @@ def call_flags(body: str, scripts: dict[str, bool]) -> list[str]:
 
 
 def packet_texts(out: Path, run_dir: Path) -> tuple[dict[str, str], dict[str, int], str]:
-    texts, archived = packets.emissions(out, run_dir)
-    source = "archive" if archived else "retained"
+    texts, source = packets.emissions(out, run_dir)
     return {k: v[-1] for k, v in texts.items()}, {k: len(v) for k, v in texts.items()}, source
+
+
+def trace_items(traced: dict, short: Shortener, started: float | None) -> list[dict]:
+    """ShipLoop's own events from its run trace, as flow items: each refused command (kind `refusal`, with its text) and each
+    keepalive stop decision (kind `keepalive`), on the host stream's clock when it has one (`t` None otherwise). `ts` is the
+    trace's own epoch stamp."""
+    def at(ts) -> float | None:
+        return round(ts - started, 1) if started is not None and isinstance(ts, (int, float)) else None
+
+    items = []
+    for failure in traced["failures"]:
+        items.append({"kind": "refusal", "source": "trace", "t": at(failure["ts"]), "ts": failure["ts"], "line": None,
+                      "trace_line": failure["i"],
+                      "action": failure["action"], "improve": False, "verb": failure["verb"], "exit": failure["exit"],
+                      "check_only": failure["check_only"], "stage": failure["stage"],
+                      "body": clip(failure["text"] or run_trace.NO_TEXT, TEXT_LIMIT, short)})
+    for hook in traced["hooks"]:
+        items.append({"kind": "keepalive", "source": "trace", "t": at(hook["ts"]), "ts": hook["ts"], "line": None,
+                      "trace_line": hook["i"],
+                      "action": hook["action"], "improve": False, "decision": hook["decision"], "why": hook["why"],
+                      "body": clip(hook["text"] or "", TEXT_LIMIT, short)})
+    return items
+
+
+def by_time(items: list[dict], extra: list[dict], epoch) -> list[dict]:
+    """``items`` (the host's, in stream order) with ``extra`` (trace items) placed among them: each before the first stream item
+    stamped later than it, an untimed one at the end. ``epoch(item)`` is a stream item's arrival stamp (None when unknown);
+    the comparison is on the unrounded stamps, since a command, its trace line and its result often fall within 0.1 s. The
+    stream's own order is never changed."""
+    known = [e["t"] is not None and isinstance(e.get("ts"), (int, float)) for e in extra]
+    timed = sorted((e for e, ok in zip(extra, known) if ok), key=lambda e: e["ts"])
+    merged, j = [], 0
+    for item in items:
+        stamp = epoch(item)
+        while j < len(timed) and stamp is not None and timed[j]["ts"] < stamp:
+            merged.append(timed[j])
+            j += 1
+        merged.append(item)
+    return merged + timed[j:] + [e for e, ok in zip(extra, known) if not ok]
 
 
 def claude_items(out: Path, short: Shortener, first_action: str | None) -> tuple[list[dict], dict, dict, float | None]:
@@ -192,8 +238,10 @@ def claude_items(out: Path, short: Shortener, first_action: str | None) -> tuple
     return items, heads, reads, (t0 if stamps else None)
 
 
-def toollog_items(out: Path, run_dir: Path, short: Shortener, order: list[str], accepted_t: dict) -> list[dict]:
-    """Other hosts: calls only, each attributed to the first action accepted at or after it."""
+def toollog_items(out: Path, run_dir: Path, short: Shortener, order: list[str],
+                  accepted_t: dict) -> tuple[list[dict], float | None]:
+    """Other hosts: calls only, each attributed to the first action accepted at or after it; and the epoch their times count
+    from (None when no call has a time)."""
     log = metrics.ToolLog()
     metrics.collect(out, run_dir, tools=log)
     timed = [(accepted_t.get(a), a) for a in order if accepted_t.get(a) is not None]
@@ -207,7 +255,7 @@ def toollog_items(out: Path, run_dir: Path, short: Shortener, order: list[str], 
         items.append({"kind": "call", "t": round((t or t0) - t0, 1), "action": owner, "improve": False,
                       "tool": row.get("tool"), "body": clip(body, CALL_LIMIT, short), "flags": call_flags(body, scripts),
                       "reads_packets": sorted(set(PACKET_FILE.findall(body)))})
-    return items
+    return items, (t0 if starts else None)
 
 
 def build(out: Path) -> dict:
@@ -237,6 +285,9 @@ def build(out: Path) -> dict:
     by_action = {h["action"]: h for h in history}
     stamps = {row["action"]: row["t"] for row in metrics.stage_results(run_dir, state) if row.get("action")}
     texts, emissions, source = packet_texts(out, run_dir)
+    traced = run_trace.read(run_dir)
+    traced_ok = bool(traced) and "error" not in traced
+    sends = traced["packets"] if traced_ok else {}
     claude = (out / "events.jsonl").is_file() and '"tool_use"' in (out / "events.jsonl").read_text()[:2_000_000]
     try:
         pending = str(navigator.current_action(state)["id"]) if state.get("status") == "active" else None
@@ -252,9 +303,14 @@ def build(out: Path) -> dict:
     first_live = next((a for a in order if not seeded(a)), pending)
     if claude:
         items, heads, reads, started = claude_items(out, short, first_live)
+        clock = started
     else:
-        items, heads, reads = toollog_items(out, run_dir, short, order, stamps), {}, {}
+        (items, clock), heads, reads = toollog_items(out, run_dir, short, order, stamps), {}, {}
         started = metrics.span(out / "timeline.jsonl").get("started") if (out / "timeline.jsonl").is_file() else None
+    if traced_ok and (traced["failures"] or traced["hooks"]):
+        arrived = metrics.timeline(out / "timeline.jsonl")
+        items = by_time(items, trace_items(traced, short, clock), lambda item: arrived.get(item["line"]) if claude else (
+            clock + item["t"] if clock is not None and item.get("t") is not None else None))
     # The action the run stopped in is named by a head (or an event), not yet in history.
     # A head the model cut short (it piped `complete` through tail) names nothing, so the ledger's current action is added too.
     for action in [*(i["action"] for i in items), *(k.removesuffix("-improve") for k in heads), pending]:
@@ -279,17 +335,26 @@ def build(out: Path) -> dict:
         for key, kind, legacy in candidates:
             mine = [i for i in items if i["action"] == action and i["improve"] == legacy]
             text_key = key if key in texts else f"{key}-bind" if f"{key}-bind" in texts else key
-            if text_key not in texts and not mine:
+            if text_key not in texts and not mine and not (sends.get(action) and not legacy):
                 continue
             text = texts.get(text_key, "")
-            times = [i["t"] for i in mine]
+            times = [i["t"] for i in mine if i["t"] is not None]
+            sent = [] if legacy else sends.get(action, [])
             phases.append({
                 "kind": kind, "key": key,
                 "packet": {"text": short(text), "chars": len(text), "emissions": emissions.get(text_key, 0),
+                           # Each print of this packet, from the trace (None where it recorded none, as for a run before it):
+                           # a reprint repeats an earlier text.
+                           "prints": len(sent) if sent else None,
+                           "reprints": sum(1 for x in sent if x.get("repeat")) if sent else None,
+                           "sends": [{k: x.get(k) for k in ("at", "rev", "chars", "printed", "whole", "repeat", "file")}
+                                     for x in sent],
                            "sections": packets.sections(text, top=12), **packets.references(text)},
                 "head": heads.get(key) or heads.get(f"{key}-bind"), "head_chars": len(heads.get(key) or heads.get(f"{key}-bind") or ""),
                 "reads": [*reads.get(key, []), *reads.get(f"{key}-bind", [])],
                 "events": mine, "calls": sum(1 for i in mine if i["kind"] == "call"),
+                # None for a run before the trace: there a refusal is an unmarked result, so 0 would be a guess.
+                "refusals": sum(1 for i in mine if i["kind"] == "refusal" and not i["check_only"]) if traced_ok else None,
                 "span_seconds": round(max(times) - min(times), 1) if times else None,
                 "flags": sorted({f for i in mine if i["kind"] == "call" for f in i["flags"]}),
             })
@@ -319,7 +384,9 @@ def build(out: Path) -> dict:
         "seconds": sum(s.get("elapsed_seconds") or 0 for s in sessions) or None,
         "pass": result.get("pass"), "verdicts": result.get("verdicts") or {},
         "run_status": state.get("status"), "prompt": prompt, "events_source": "claude" if claude else "toollog",
-        "packets_source": source, "paths": short.legend(), "totals": report.get("totals") or {},
+        "packets_source": source, "sources": sources(source, claude, traced, run_dir, out),
+        "trace": run_trace.summary(traced),
+        "paths": short.legend(), "totals": report.get("totals") or {},
         "stages": report.get("stages") or [], "actions": actions,
         "case_details": {
             "expect_paths": invocation.get("expect_paths") or [],
@@ -336,6 +403,29 @@ def build(out: Path) -> dict:
                    "redone": c.get("redone"), "pass": c.get("pass")}
                   for c in (result.get("clear") if isinstance(result.get("clear"), list) else []) if isinstance(c, dict)],
         "unattributed": [i for i in items if not i["action"]],
+    }
+
+
+def sources(packet_source: str, claude: bool, traced: dict | None, run_dir: Path, out: Path) -> dict:
+    """Which file each part of flow.json came from, relative to the output directory."""
+    run = str(run_dir.relative_to(out)) if run_dir.is_relative_to(out) else str(run_dir)
+    trace_file = f"{run}/{run_trace.FILE}"
+    ok = bool(traced) and "error" not in traced
+    return {
+        "actions": f"{run}/state.md (history)",
+        "packets": {"trace": f"{trace_file} and {run}/packets/sent/ (each packet as sent)",
+                    "trace+archive": f"{trace_file} and {run}/packets/sent/; packet-archive/ for stages the trace never printed",
+                    "trace+retained": f"{trace_file} and {run}/packets/sent/; {run}/packets/ (last copy) for stages the trace never printed",
+                    "archive": "packet-archive/ (each distinct text a 2-s poll saw)",
+                    "retained": f"{run}/packets/ (the last copy of each packet)"}[packet_source],
+        "model": "events.jsonl (text, calls, results, hook messages)" if claude else "events.jsonl (tool calls only)",
+        "refusals": (f"{trace_file} (each refused command on the run, with its text); a refusal of a command that named no run "
+                     "or did not parse shows only as its result in events.jsonl"
+                     + ("" if traced["covers"] else f"; partial: {traced['partial']}") if ok else
+                     "events.jsonl (not marked: a refusal is a result event, and one a pipe hid is missing); "
+                     + run_trace.why_not(traced)),
+        "keepalive": f"{trace_file} (each stop decision, with the text put into the turn)" if ok else
+                     "not recorded: " + run_trace.why_not(traced),
     }
 
 
@@ -416,12 +506,15 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
     claude = reading.get("host") == "claude"
     # One pass over the stream: each ShipLoop verb a command ran, the status displays, the skills called, the refusals by stage.
     invocations, displays, skills, refusals, answered = [], 0, {}, {}, set()
+    # The refusals the trace cannot hold (run_trace.outside_trace), each with its first text, for a run whose trace covers it.
+    commands_by_call, outside = {}, {}
     stage = None
     for _number, event in metrics.event_range(out / "events.jsonl"):
         if event.get("type") == "system" and event.get("subtype") == "informational" \
                 and STATUS_DISPLAY.search(str(event.get("content") or "")):
             displays += 1
         for _call, tool, arg in metrics.tool_call_events(event):
+            commands_by_call[_call] = str(arg.get("command") or "")
             if arg.get("command"):
                 invocations += metrics.shiploop_invocations(str(arg["command"]))
             if tool in metrics.SKILL_TOOLS:
@@ -437,9 +530,15 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
                 cause = cause.split(": ", 1)[-1].split("; ")[0][:110]
                 key = f"{stage or '?'}\t{cause}"
                 refusals[key] = refusals.get(key, 0) + 1
+                if run_trace.outside_trace(commands_by_call.get(call, ""), shown[refused.start():]):
+                    row = outside.setdefault(key, {"stage": stage or "?", "cause": cause, "count": 0,
+                                                   "text": shown[refused.start():][:1200], "source": "events.jsonl"})
+                    row["count"] += 1
             header = metrics.PACKET_STAGE.search(shown)
             if header:
                 stage = header.group("stage")
+    traced = run_trace.read(run_dir)
+    sends = traced["packets"] if traced and "error" not in traced else {}
     # The lines a pipe kept: `| head` and `| tail` with no count keep 10.
     cut = sorted(i["cut"]["lines"] or (10 if i["cut"]["into"] in ("head", "tail") else 0) for i in invocations if i.get("cut"))
     cut = [n for n in cut if n]
@@ -487,9 +586,13 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
             seen_count[entry["stage"]] = n + 1
             mine = (visits.get(entry["stage"]) or [])
             group = mine[n] if n < len(mine) else []
-            producers.append({"stage": entry["stage"], "action": entry["action"], "written": len(text),
+            # Written: the packet as last sent when the trace kept it (packets/<action>.md is rewritten in place), else that file.
+            last = next((x for x in reversed(sends.get(entry["action"]) or []) if x.get("file")), None)
+            producers.append({"stage": entry["stage"], "action": entry["action"],
+                              "written": last["chars"] if last else len(text),
                               "seen": sum(r["chars"] for r in group), "cut_by": [r["cut_by"] for r in group if r["cut_by"]],
-                              "opened": entry["mode"], "file": rel(path)})
+                              "opened": entry["mode"], "prints": len(sends.get(entry["action"]) or []) if sends else None,
+                              "file": f"{run}/{last['file']}" if last else rel(path)})
     gates = reading.get("skipped_gates") or {"measured": False}
     commit_gate = next((g for g in gates.get("gates") or [] if g["gate"] == "item_commit"), None)
     result = {}
@@ -532,6 +635,12 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
               "a time or turn difference between runs: one run per side (n=1); the page shows it only beside an A/A spread"]
     if not claude:
         cannot += ["the status display, the model's own text and the printed heads: this host's stream holds tool calls only"]
+    if run_trace.covers(traced):
+        cannot.append("a refusal of a command that named no run (a workspace verb on --workspace) or did not parse, when a pipe "
+                      "hid it: the trace records only commands on the run, so those come from the stream's refusal lines")
+    else:
+        cannot.append("refusals a pipe hid from the host, every reprint and the keepalive's continuations: "
+                      + run_trace.why_not(traced))
     if seeded:
         cannot.append(f"the stages the harness recorded without the model ({', '.join(seeded)}): their packets were never run")
     if not stages:
@@ -545,14 +654,53 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
                       "rows": producers, "reason": opens.get("reason"), "file": f"{run}/packets"},
         "steps": {"measured": stages is not None, "rows": steps, "file": stage_file},
         "gates": {**gates, "ran": sum(g["records"] - g["skipped"] for g in gates.get("gates") or []), "file": f"{run}/tests"},
-        "refusals": {"count": sum(refusals.values()),
-                     "rows": [{"stage": k.split("\t")[0], "cause": k.split("\t")[1], "count": v} for k, v in refusals.items()],
-                     "file": "events.jsonl"},
+        "refusals": trace_refusals(traced, run, sum(refusals.values()), list(outside.values())) if run_trace.covers(traced) else {
+            "count": sum(refusals.values()), "source": "events.jsonl",
+            "rows": [{"stage": k.split("\t")[0], "cause": k.split("\t")[1], "count": v} for k, v in refusals.items()],
+            "file": "events.jsonl"},
+        "trace": trace_block(traced, run),
         "item_commit": item_commit,
         "skills": {"calls": skills if claude else None, "improve_invoked": improve.get("count"), "improve_stages": improve.get("of"),
                    "file": "events.jsonl"},
         "seeded": seeded, "cannot_show": cannot,
     }
+
+
+def trace_cause(text: str | None) -> str:
+    """A traced refusal's cause as the panel groups it: its first line, paths replaced, up to the first `; `."""
+    return ABSOLUTE_PATH.sub("<path>", run_trace.first_line(text, None)).split("; ")[0][:110]
+
+
+def trace_refusals(traced: dict, run: str, stream_count: int, outside: list[dict] = ()) -> dict:
+    """The panel's refusals from the run trace: every refused command (a failed --check-only is a check, counted apart), by the
+    stage the run was in and the cause, with the first refusal's text of each row, then the ``outside`` rows: refusals only the
+    stream shows (a command that named no run, a usage error; run_trace.outside_trace). ``stream_count`` is what events.jsonl
+    showed in all."""
+    rows: dict[tuple, dict] = {}
+    checks = 0
+    for failure in traced["failures"]:
+        if failure["check_only"]:
+            checks += 1
+            continue
+        key = (failure["stage"] or "?", trace_cause(failure["text"]))
+        row = rows.setdefault(key, {"stage": key[0], "cause": key[1], "count": 0,
+                                    "text": (failure["text"] or run_trace.NO_TEXT)[:1200], "trace_line": failure["i"],
+                                    "source": "trace"})
+        row["count"] += 1
+    found = [*rows.values(), *outside]
+    return {"count": sum(r["count"] for r in found), "checks_failed": checks, "stream_count": stream_count,
+            "source": "trace", "rows": found, "file": f"{run}/{run_trace.FILE}",
+            "outside_file": "events.jsonl" if outside else None}
+
+
+def trace_block(traced: dict | None, run: str) -> dict:
+    """What the run trace counted: packets printed, reprints, keepalive continuations and stops, failed checks."""
+    if not traced or "error" in traced:
+        return {"measured": False, "reason": run_trace.why_not(traced)}
+    counts = traced["counts"]
+    return {"measured": True, "covers": traced["covers"], "partial": traced["partial"], "packets": counts.get("packets"),
+            "reprints": counts.get("reprints"), "continuations": counts.get("continuations"), "stops": counts.get("stops"),
+            "checks_failed": counts.get("checks_failed"), "file": f"{run}/{run_trace.FILE}"}
 
 
 STANDALONE_HEAD = ('<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n'
