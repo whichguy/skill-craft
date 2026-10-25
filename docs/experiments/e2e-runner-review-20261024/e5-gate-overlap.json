@@ -1,0 +1,173 @@
+{
+ "question": "E5: what do the release-gate runs' overlap records say under the old rule, the runs-root default, and the suite rule (a suite case reads its suite folder's root)?",
+ "measured": "2026-10-24 ~21:15 PDT, wave 1 branch",
+ "rows": [
+  {
+   "run": "20261024/gate-290-b60ed7-claude-batch/hello",
+   "old_rule": [],
+   "runs_root_default": {
+    "root": "~/e2e-runs/20261024",
+    "runs": [
+     "chess-sf-full-12a23d",
+     "gate-290-b60ed7-codex-hello"
+    ]
+   },
+   "runs_root_with_suite_rule": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-codex-hello",
+     "e6-r1-20261024/E6-K5/B/2/slice",
+     "e6-r1-20261024/E6-K5/B/3/slice",
+     "e6-r1-20261024/E6-K5/C/1/slice",
+     "e6-r1-20261024/E6-K5/C/2/slice",
+     "e6-r1-20261024/E6-K5/T/3/slice",
+     "e6-r1-20261024/E6-K5/T/4/slice"
+    ]
+   }
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+   "old_rule": [
+    "battleship"
+   ],
+   "runs_root_default": {
+    "root": "~/e2e-runs/20261024",
+    "runs": [
+     "chess-sf-full-12a23d",
+     "gate-290-b60ed7-claude-batch/battleship",
+     "gate-290-b60ed7-codex-hello"
+    ]
+   },
+   "runs_root_with_suite_rule": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-claude-batch/battleship",
+     "20261024/gate-290-b60ed7-codex-hello",
+     "e6-r1-20261024/E6-K5/B/3/slice",
+     "e6-r1-20261024/E6-K5/C/2/slice",
+     "e6-r1-20261024/E6-K5/C/3/slice",
+     "e6-r1-20261024/E6-K5/T/4/slice"
+    ]
+   }
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-batch/battleship",
+   "old_rule": [
+    "seat-reservations"
+   ],
+   "runs_root_default": {
+    "root": "~/e2e-runs/20261024",
+    "runs": [
+     "chess-sf-full-12a23d",
+     "gate-290-b60ed7-claude-batch/seat-reservations",
+     "gate-290-b60ed7-codex-hello"
+    ]
+   },
+   "runs_root_with_suite_rule": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+     "20261024/gate-290-b60ed7-codex-hello",
+     "e6-r1-20261024/E6-K5/B/3/slice",
+     "e6-r1-20261024/E6-K5/C/2/slice",
+     "e6-r1-20261024/E6-K5/C/3/slice",
+     "e6-r1-20261024/E6-K5/T/4/slice"
+    ]
+   }
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-csv-report",
+   "old_rule": [
+    "chess-sf-full-12a23d",
+    "gate-290-b60ed7-codex-hello"
+   ],
+   "runs_root_default": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-codex-hello",
+     "e6-r1-20261024/E6-K5/B/4/slice",
+     "e6-r1-20261024/E6-K5/C/3/slice",
+     "e6-r1-20261024/E6-K5/C/4/slice",
+     "effort-eeff1-r1b/control-hello",
+     "effort-eeff1-r1b/control-hello-failed-no-session-id",
+     "effort-eeff1-r1b/treatment-hello"
+    ]
+   },
+   "runs_root_with_suite_rule": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-codex-hello",
+     "e6-r1-20261024/E6-K5/B/4/slice",
+     "e6-r1-20261024/E6-K5/C/3/slice",
+     "e6-r1-20261024/E6-K5/C/4/slice",
+     "effort-eeff1-r1b/control-hello",
+     "effort-eeff1-r1b/control-hello-failed-no-session-id",
+     "effort-eeff1-r1b/treatment-hello"
+    ]
+   }
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-codex-hello",
+   "old_rule": [
+    "chess-sf-full-12a23d",
+    "gate-290-b60ed7-claude-csv-report"
+   ],
+   "runs_root_default": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-claude-batch/battleship",
+     "20261024/gate-290-b60ed7-claude-batch/hello",
+     "20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+     "20261024/gate-290-b60ed7-claude-csv-report",
+     "e6-r1-20261024/E6-K1/Cg/1/slice",
+     "e6-r1-20261024/E6-K3/Cg/1/slice",
+     "e6-r1-20261024/E6-K5/B/2/slice",
+     "e6-r1-20261024/E6-K5/B/3/slice",
+     "e6-r1-20261024/E6-K5/B/4/slice",
+     "e6-r1-20261024/E6-K5/C/1/slice",
+     "e6-r1-20261024/E6-K5/C/2/slice",
+     "e6-r1-20261024/E6-K5/C/3/slice",
+     "e6-r1-20261024/E6-K5/C/4/slice",
+     "e6-r1-20261024/E6-K5/Cg/1/slice",
+     "e6-r1-20261024/E6-K5/T/3/slice",
+     "e6-r1-20261024/E6-K5/T/4/slice",
+     "effort-eeff1-r1b/control-hello",
+     "effort-eeff1-r1b/control-hello-failed-no-session-id",
+     "effort-eeff1-r1b/treatment-hello"
+    ]
+   },
+   "runs_root_with_suite_rule": {
+    "root": "~/e2e-runs",
+    "runs": [
+     "20261024/chess-sf-full-12a23d",
+     "20261024/gate-290-b60ed7-claude-batch/battleship",
+     "20261024/gate-290-b60ed7-claude-batch/hello",
+     "20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+     "20261024/gate-290-b60ed7-claude-csv-report",
+     "e6-r1-20261024/E6-K1/Cg/1/slice",
+     "e6-r1-20261024/E6-K3/Cg/1/slice",
+     "e6-r1-20261024/E6-K5/B/2/slice",
+     "e6-r1-20261024/E6-K5/B/3/slice",
+     "e6-r1-20261024/E6-K5/B/4/slice",
+     "e6-r1-20261024/E6-K5/C/1/slice",
+     "e6-r1-20261024/E6-K5/C/2/slice",
+     "e6-r1-20261024/E6-K5/C/3/slice",
+     "e6-r1-20261024/E6-K5/C/4/slice",
+     "e6-r1-20261024/E6-K5/Cg/1/slice",
+     "e6-r1-20261024/E6-K5/T/3/slice",
+     "e6-r1-20261024/E6-K5/T/4/slice",
+     "effort-eeff1-r1b/control-hello",
+     "effort-eeff1-r1b/control-hello-failed-no-session-id",
+     "effort-eeff1-r1b/treatment-hello"
+    ]
+   }
+  }
+ ],
+ "finding": "the old rule saw 0-2 neighbours; the runs-root default saw 8 and 20 for the cases run alone but only the day folder for the suite cases (2-3); with the suite rule the suite cases see 7-8, E6 slices included"
+}

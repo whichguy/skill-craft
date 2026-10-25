@@ -559,7 +559,8 @@ each fails open (a part that cannot be made says so, with its reason, and the ru
 - `overlap`: which neighbouring runs had host events while this one did, read-only, at the end of the run, from the first and last
   `timeline.jsonl` stamp of this run and of each run folder under the runs root (`root` in the record:
   `$SHIPLOOP_E2E_RUNS_ROOT`, else the output's grandparent, else its parent where the grandparent is the home folder, the
-  temporary folder or `/`; so `~/e2e-runs/<day>/<run>` reads every day's runs). The walk does not enter a run folder or a hidden
+  temporary folder or `/`; so `~/e2e-runs/<day>/<run>` reads every day's runs; a suite sets the variable for its cases to
+  the suite folder's root, so `~/e2e-runs/<day>/<suite>/<case>` reads every day's runs too). The walk does not enter a run folder or a hidden
   folder, and a timeline last written before this run began is counted in `ended_before` and not read. Each entry has `folder`
   (its path under the root), `case`,
   `hosts` (null with `hosts_reason` where its launch records cannot be read), `overlapped_seconds` and

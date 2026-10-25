@@ -3660,7 +3660,21 @@ def refuse_stale_listeners(own: Path | None) -> None:
 
 
 def run_suite(args, argv: list[str]) -> int:
-    """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
+    """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed.
+
+    A case's neighbours are its suite's: its overlap record and its concurrent line read the runs root of the suite folder,
+    not of the case folder one level deeper (2026-10-24: the release-gate batch under <runs>/<day>/<suite>/<case> saw only
+    its day's runs, while a case run alone beside it saw the experiment slices in another folder). A root the caller
+    named in the environment is kept, and the environment is restored when the suite ends."""
+    named = os.environ.get(environment.RUNS_ROOT_ENV)
+    try:
+        return _run_suite(args, argv)
+    finally:
+        if named is None:
+            os.environ.pop(environment.RUNS_ROOT_ENV, None)
+
+
+def _run_suite(args, argv: list[str]) -> int:
     suites = json.loads(SUITES.read_text())
     if args.suite not in suites or args.suite.startswith("_"):
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
@@ -3669,6 +3683,7 @@ def run_suite(args, argv: list[str]) -> int:
     # the running chains finish, with no suite-result.json. Its cases skip their own check (--suite-name).
     refuse_stale_listeners(None)
     base = new_output_dir(args.output, "suite-" + args.suite)
+    os.environ.setdefault(environment.RUNS_ROOT_ENV, str(environment.runs_root(base)))
     passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
     it = iter(argv)
     for token in it:

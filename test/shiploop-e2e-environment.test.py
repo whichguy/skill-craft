@@ -1093,6 +1093,31 @@ class OverlapTest(unittest.TestCase):
         self.assertFalse(record["observed"])
         self.assertIn("is not a folder", record["reason"])
 
+    def test_a_suite_case_reads_its_neighbours_under_the_suite_folders_runs_root_and_the_variable_is_restored(self):
+        name = self.environment.RUNS_ROOT_ENV
+        seen = []
+
+        def case(argv):
+            seen.append(os.environ.get(name))
+            out = Path(argv[argv.index("--output") + 1])
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "result.json").write_text(json.dumps({"pass": True}))
+            return 0
+
+        for named, expected in ((None, str(self.parent / "runs")), (str(self.parent / "mine"), str(self.parent / "mine"))):
+            seen.clear()
+            suite = self.parent / "runs" / ("day" if named is None else "day2") / "batch"
+            args = run.parser().parse_args(["--suite", "smoke", "--output", str(suite), "--source", "checkout"])
+            with self.subTest(named=named), mock.patch.dict(os.environ), mock.patch.object(run, "main", side_effect=case), \
+                    mock.patch.object(run, "refuse_stale_listeners"):
+                os.environ.pop(name, None)
+                if named:
+                    os.environ[name] = named
+                run.run_suite(args, ["--suite", "smoke", "--output", str(suite), "--source", "checkout"])
+                self.assertEqual([os.path.realpath(path) for path in seen], [os.path.realpath(expected)],
+                                 "the grandparent of the suite folder, not of the case folder")
+                self.assertEqual(os.environ.get(name), named, "restored as the caller had it")
+
     def test_alive_runs_lists_the_other_folders_whose_harness_holds_its_lock(self):
         me = self.write_run("runs/day/me", 1000, 2000)
         live = self.write_run("runs/day/live", 1000, 2000)
