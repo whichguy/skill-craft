@@ -852,7 +852,7 @@ the run directory or Improve receipts, hand-built loop contracts), listed with
 the reason so a reviewer can confirm them. Both are defined by ShipLoop's own
 paths and verbs, never by a case's tools. `script_verifications` also counts
 `could_not_run`: attempts where no command reached a verdict about the product (a
-timeout, a command that could not be spawned, or one skipped when the invocation's
+timeout, a command that could not be spawned, or, in runs before 2026-10-24, one skipped when the invocation's
 budget ran out). They refuse their stage without counting as product failures. A
 non-zero count means the run could not tell, because of an environment problem or a
 product hang; it does not say the product is wrong. It also counts `red`: the records in

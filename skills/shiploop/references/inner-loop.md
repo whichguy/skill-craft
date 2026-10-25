@@ -110,9 +110,8 @@ A fixable problem is never `blocked`. When a work item's goal proves wrong or
 unachievable while it is being built, from `test-spec` through
 `verify`, the stage reports `send-back`: the item goes back to
 `step-plan` with that result as evidence, and its earlier results from the step
-plan on stop counting as current. Each work item may be sent back twice; after that
-ShipLoop refuses `send-back` and the stage reports `blocked` with `awaiting` a decision
-and a question. A script-run loop has no iteration limit: it runs until its
+plan on stop counting as current. No count of send-backs stops an item;
+state.md `revisions` records how many there were. A script-run loop has no iteration limit: it runs until its
 exit condition holds. One that stops blocked because the item's goal proved wrong
 reports `send-back`; a cancelled loop is refused, because a user's stop is the
 packet's `pause` command. The per-item

@@ -106,11 +106,11 @@ ShipLoop's checks at `complete` and the graph advances; every `implement` step, 
 finding; `test` is not accepted until ShipLoop's base run finds no new test ID passing on the
 item's base and its candidate run passes every recorded command at its floor; and `verify` is not
 accepted until ShipLoop has rerun every recorded command and each exited 0. The outer
-`system-test` and `release-verify` rerun their own recorded commands the same way. After 11
-refused runs `done` is no longer accepted and the stage takes its own remedy: `send-back` back to
-`step-plan` at an INNER stage, or `add-work` with corrective work items at the two outer stages,
-which have no step plan to revise. A command that times out, cannot start, or is skipped on
-budget refuses the stage but is recorded `could-not-run` and does not spend one of the 11; the
+`system-test` and `release-verify` rerun their own recorded commands the same way. No count of
+refused runs stops `done`: a failing command is fixed and resubmitted, or, when the plan is what
+is wrong, the stage takes its own remedy: `send-back` back to `step-plan` at an INNER stage, or
+`add-work` with corrective work items at the two outer stages, which have no step plan to revise.
+A command that times out or cannot start refuses the stage but is recorded `could-not-run`; the
 stage's remedy is accepted after it on ShipLoop's own record, without a new loop packet. Each
 inner stage loops inside its bound Until Loop until its exit condition holds or the step reports
 `send-back` (or `blocked` for what only the user, an access grant or an outside dependency can
@@ -120,7 +120,7 @@ resolve).
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
 | Improve stages | `step-plan`, `test-spec` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`), at most twice per destination |
+| Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
 

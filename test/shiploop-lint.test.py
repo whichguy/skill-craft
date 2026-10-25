@@ -480,16 +480,20 @@ class LintPassTests(Fixture):
         self.assertIn("timed out (process group killed)", payload["block"])
         self.assertEqual(payload["counts"]["timeouts"], 1)
 
-    def test_whole_pass_budget_reports_skipped_work(self):
-        self.commit({"a.py": "x = 1\n"})
+    def test_a_pass_has_no_budget_and_no_file_cap_so_every_changed_file_is_read(self):
+        # Owner 2026-10-24: no run caps.  The 120-second pass budget and the 200-file cap are gone: 205 changed files
+        # (more than the old cap) are all in scope, and nothing says a budget ran out.
+        self.assertFalse(hasattr(lint, "BUDGET_SECONDS") or hasattr(lint, "MAX_FILES"))
+        names = ["m" + str(number) + ".py" for number in range(205)]
+        self.commit({name: "x = 1\n" for name in names})
         self.base()
-        self.edit({"a.py": "y = 2  # lint\n"})
-        payload = self.run_pass(budget=0.0)
-        self.assertIn("Skipped because the " + str(int(lint.BUDGET_SECONDS)) + "-second pass budget ran out: reading a.py", payload["block"])
-        self.assertIn("- a.py: not in scope: the pass budget ran out before this file was read", payload["block"])
-        self.assertEqual(payload["counts"]["uncovered"], 1)
+        self.edit({name: "y = 2\n" for name in names})
+        payload = self.run_pass(mode="report")
+        self.assertNotIn("budget", payload["block"])
+        self.assertNotIn("-file cap", payload["block"])
+        self.assertEqual(payload["counts"]["uncovered"], 0)
 
-    def test_git_plumbing_is_bounded_by_the_remaining_budget(self):
+    def test_git_plumbing_is_bounded_by_its_own_hang_guards(self):
         seen = []
         real = lint._git
 
@@ -501,9 +505,10 @@ class LintPassTests(Fixture):
         self.base()
         self.edit({"a.py": "y = 2\n", "README.md": "two\n"})
         with mock.patch.object(lint, "_git", spy):
-            self.run_pass(mode="report", budget=3.0)
+            self.run_pass(mode="report")
         self.assertTrue(seen)
-        self.assertTrue(all(timeout <= 3.0 for _verb, timeout in seen), seen)
+        guards = (lint.GIT_TIMEOUT_SECONDS, lint.SNAPSHOT_TIMEOUT_SECONDS)
+        self.assertTrue(all(timeout in guards for _verb, timeout in seen), seen)
         # Every changed text file reads its base blob: discovered linters gate on changed lines.
         self.assertEqual([verb for verb, _timeout in seen].count("cat-file"), 2)
 
@@ -822,7 +827,7 @@ class LintPassTests(Fixture):
         item = lint._File({"status": "M", "path": "a.py", "old": "a.py"})
         item.data = b"x = 1\n"
         timeout = {"status": "timeout", "exit": None}
-        for after, before in ((timeout, None), (timeout, timeout), (None, None)):
+        for after, before in ((timeout, None), (timeout, timeout)):
             invoker = mock.Mock()
             invoker.run.side_effect = [after, before]
             with self.subTest(after=after, before=before):
@@ -1548,7 +1553,7 @@ class InvokerLogTests(unittest.TestCase):
 
     def run_tool(self, logs: Path, **kw):
         runner = lambda argv, cwd, timeout, input_bytes=b"", env=None: ("ok", 0, b"out\n", b"")  # noqa: E731
-        invoker = lint._Invoker(logs, logs, "t", {}, budget=60.0, tool_timeout=10.0, clock=time.monotonic, runner=runner)
+        invoker = lint._Invoker(logs, logs, "t", {}, tool_timeout=10.0, clock=time.monotonic, runner=runner)
         invoker.run(["tool"], what="x", **kw)
         return sorted(path.name for path in logs.iterdir())
 
