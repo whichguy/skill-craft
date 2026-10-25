@@ -204,3 +204,26 @@ the gate as tested, or the prose alone, since the gate never fired. Option (b): 
 coarse threshold left K1 inconclusive. Option (c): R3 downstream to price the extra steps; it needs the owner's go, and
 K1 and K3 need org `de`. Separately, F32 is a small generic navigator fix with its own change note. Grok stays with
 E-EFF1 until it reports its R2 finished.
+
+## 6. 2026-10-25: the bound ported into ShipLoop
+
+**Decision.** Owner, 2026-10-25: "Port Cg's sizing prose into ShipLoop's step-plan template (generic wording, no gate
+since it never fired), with a change note and tests; no release yet."
+
+**Change.** Commit `7cf4bb90` on branch `feat/step-size-bound-9227d2` (worktree
+`.claude/worktrees/step-size-bound-9227d2`), cut from origin/main `ed07b3bb`, which contains `9ed4ec24` (arm T). It is
+not pushed and not released. The quick group (`run-all.sh --group quick --changed-from origin/main`) passed 50 suites,
+and `check-release-boundary.py --base origin/main` passed. `DUTIES["step-plan"]` in `shiploop_prompts.py` takes
+Cg's three prose edits, which are also Bg's: the countable bound (at most 4 criteria and 3 product files, with the
+companion-file clause), `paths` naming every changed file, and the shared proof script on a remote-only target. Main
+renamed a step's `check` to `proof` in `92339292`, so the ported text says "proof" where the arm said "check"; the
+meaning is unchanged. Cg's fourth edit, the `_check_step_sizing` refusal, is not ported (F28: it never fired). The
+unused `STEP_SIZING` constant (F9) is removed, because its text contradicted the bound. The change note is
+`changes/shiploop/step-size-bound.md` (minor). The new test,
+`test_the_step_plan_packet_bounds_each_step_by_criteria_and_product_files` in `shiploop-packet-completeness.test.py`,
+reads the rendered step-plan producer packet; it would fail on origin/main, where the text is absent.
+
+**What the port carries from the evidence.** Cg = prose and gate, the gate never refused, so the shipped text is the
+one every Cg sample planned under (F28). The verdicts it rests on: K2 supports (F25), K1 inconclusive (F21, F23), and no
+harm on the five other cases (F27). The open questions travel with it: count against text (F29), many tiny steps
+(F30), and the downstream cost (R3, not run).
