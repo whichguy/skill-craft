@@ -12,8 +12,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 E2E = ROOT / "test" / "shiploop_e2e"
@@ -468,6 +471,113 @@ class PlanSizing(unittest.TestCase):
         self.assertIn("4 product files", got["four product files"])
         self.assertIn("5 criteria", got["five criteria"])
         self.assertEqual(got["three files, a sidecar and its proof script"], "accepted")
+
+
+class RoundSpeedups(unittest.TestCase):
+    """E6 R2 (2026-10-25) spent half of each shape slice in the step-plan Improve child, which changed no step count in
+    80 samples, ran in fixed lanes whose slowest set the end, and ran every sample after a verdict could no longer
+    change. A shape round can now skip the planning Improve children, runs as one queue, and stops a settled case."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-round-")
+        self.addCleanup(self.temp.cleanup)
+        self.tmp = Path(self.temp.name)
+
+    def _seed(self, **options):
+        spec = step_slice.load_step_case("node-fix-bug")
+        work = self.tmp / "work"
+        work.mkdir()
+        return run.seed_run(CLI, work, self.tmp, spec["prompt"], "step-plan", fixture=step_slice.FIXTURES / spec["fixture"],
+                            work_item=spec["work_item"], delegation="inline", checks=spec["checks"],
+                            records=step_slice.merged_records(spec, None), **options)
+
+    def test_a_slice_seeded_with_planning_review_none_starts_no_step_plan_review_and_needs_the_card(self):
+        with self.assertRaisesRegex(SystemExit, "--planning-review none needs --improve-skill"):
+            self._seed(planning_review="none")
+        shutil.rmtree(self.tmp / "work")
+        seeded = self._seed(planning_review="none", improve_skill=str(ROOT / "skills" / "improve" / "SKILL.md"))
+        state = store.read_record(Path(seeded["run_dir"]) / "state.md")
+        self.assertEqual(nav.recorded_planning_review(state), "none")
+        self.assertNotIn("step-plan", nav.stage_spec.reviewed_stages(nav.recorded_planning_review(state)))
+        self.assertIn("step-plan", nav.stage_spec.reviewed_stages("stage"))
+
+    def test_a_verdict_is_settled_only_when_every_completion_of_the_missing_samples_gives_it(self):
+        def rows(values):
+            return [{"sample": n, "value": v} for n, v in enumerate(values, 1)]
+        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([1]), 4), {"supports"})
+        self.assertEqual(experiment.possible_verdicts(rows([1, 1, 1, 1]), rows([0, 0]), 4), {"contradicts"})
+        self.assertGreater(len(experiment.possible_verdicts(rows([0, 1, 0, 0]), rows([1, 0]), 4)), 1)  # R1g K1 midway
+        full = experiment.possible_verdicts(rows([0, 1, 0, 1]), rows([0, 1, 1, 1]), 4)  # R2's K2
+        self.assertEqual(full, {experiment.judge(rows([0, 1, 0, 1]), rows([0, 1, 1, 1]))["verdict"]})
+
+    def _fake(self, values):
+        """A binary experiment Q whose sample of arm A scores values[A]; the runner records what ran and when."""
+        from types import SimpleNamespace  # noqa: PLC0415
+        exp = {"arms": {"T": {}, "Cg": {}}, "samples": 4, "evaluator": "unused.py", "case": "fake", "claim": "fake"}
+        ran, live, peak, guard = [], [0], [0], threading.Lock()
+
+        def runner(exp_id, arm, count, host, out, extra, n):
+            with guard:
+                live[0] += 1
+                peak[0] = max(peak[0], live[0])
+                ran.append((exp_id, arm, n))
+            time.sleep(0.05)
+            folder = out / exp_id / arm / str(n) / "slice"
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / "value.json").write_text(json.dumps({"value": values[arm]}))
+            (folder / "slice-result.json").write_text(json.dumps({"pass": True}))
+            with guard:
+                live[0] -= 1
+            return 0
+
+        module = SimpleNamespace(BINARY=True, score=lambda folder: json.loads((folder / "value.json").read_text()))
+        patches = [mock.patch.object(experiment, "load", side_effect=lambda exp_id=None: exp),
+                   mock.patch.object(experiment, "evaluator", return_value=module)]
+        return runner, ran, peak, patches
+
+    def test_the_queue_runs_each_open_sample_once_at_most_jobs_at_a_time(self):
+        runner, ran, peak, patches = self._fake({"T": 1, "Cg": 1})
+        done = self.tmp / "Q" / "T" / "2" / "slice"
+        done.mkdir(parents=True)
+        (done / "slice-result.json").write_text("{}")
+        with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
+            status = experiment.queue(["Q"], ["T", "Cg"], 4, 3, "grok", self.tmp, [], early_stop=False, runner=runner)
+        self.assertEqual(status, 0)
+        self.assertEqual(sorted(ran), sorted((("Q", a, n) for n in range(1, 5) for a in ("T", "Cg") if (a, n) != ("T", 2))))
+        self.assertEqual(len(ran), len(set(ran)))
+        self.assertTrue(1 < peak[0] <= 3, peak[0])
+        self.assertFalse((self.tmp / ".queue.lock").exists())
+
+    def test_the_queue_stops_an_experiment_once_its_verdict_cannot_change(self):
+        runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
+        printed = io.StringIO()
+        with patches[0], patches[1], contextlib.redirect_stdout(printed):
+            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
+        # After T 1-4 all 0 and Cg 1-3 all 1, Cg 4 can only leave "supports": it is skipped.
+        self.assertEqual(ran, [("Q", "T", 1), ("Q", "Cg", 1), ("Q", "T", 2), ("Q", "Cg", 2), ("Q", "T", 3), ("Q", "Cg", 3),
+                               ("Q", "T", 4)])
+        self.assertIn("Q/Cg/4: skipped, the verdict cannot change", printed.getvalue())
+        self.assertIn("Q: stopped early, T vs Cg: supports", printed.getvalue())
+
+    def test_a_second_queue_in_the_same_folder_is_refused(self):
+        import os  # noqa: PLC0415
+        (self.tmp / ".queue.lock").write_text(f"{os.getppid()} now\n")
+        with self.assertRaisesRegex(SystemExit, "another queue"):
+            experiment.queue(["E6-K5"], ["T", "Cg"], 4, 2, "grok", self.tmp, [], runner=lambda *a: 0)
+
+    def test_decide_refuses_arms_run_under_different_planning_review_options(self):
+        for arm, mode in (("T", "stage"), ("Cg", "none")):
+            sample = self.tmp / "E6-K5" / arm / "1"
+            sample.mkdir(parents=True)
+            (sample / "score.json").write_text(json.dumps({"sample": 1, "value": 1, "planning_review": mode}))
+            (sample / "command.json").write_text(json.dumps({"argv": ["slice.py", "--planning-review", mode]}))
+            self.assertEqual(experiment._sample_planning_review(sample), mode)
+        with self.assertRaisesRegex(SystemExit, "different planning-review options"):
+            experiment.decide("E6-K5", "T", "Cg", self.tmp, journal=self.tmp / "journal.md")
+        (self.tmp / "x").mkdir()
+        (self.tmp / "x" / "command.json").write_text(json.dumps({"argv": ["slice.py", "--planning-review=none"]}))
+        self.assertEqual(experiment._sample_planning_review(self.tmp / "x"), "none")
+        self.assertEqual(experiment._sample_planning_review(self.tmp / "missing"), "stage")
 
 
 class ProgressCard(unittest.TestCase):

@@ -149,6 +149,13 @@ manifest, and asked for no Grok runs while its R1 pair runs and a word before an
 main. The templates-branch session (`feat/shiploop-templates-6d625a`, shipping as 2.9.0) renames a step's `check` to
 `proof` after `9ed4ec24`: a winning arm ported there uses `proof`.
 
+**Faster rounds** (2026-10-25, journal entry 7). A shape round runs as one queue, with
+`experiment.py queue <ids> --arms T,Cg --jobs 4 --planning-review none`. `--planning-review none` skips the planning
+stages' Improve children, about half of each slice (F34); its samples are compared only with samples run the same way.
+The queue runs at most `--jobs` slices at once and stops an experiment once its verdict cannot change (F35: rarely
+before the last sample, since a ceiling is never settled early). This branch's `slice.py` and `run.py` changes need
+the word to E-EFF1 before they reach main.
+
 ## 5. Rounds
 
 - **R0, harness** (done 2026-10-24): section 4, plus one smoke sample of E6-K1 arm T on Claude Sonnet 5.5 (journal

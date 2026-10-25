@@ -240,3 +240,39 @@ ran on it.
 one every Cg sample planned under (F28). The verdicts it rests on: K2 supports (F25), K1 inconclusive (F21, F23), and no
 harm on the five other cases (F27). The open questions travel with it: count against text (F29), many tiny steps
 (F30), and the downstream cost (R3, not run).
+
+## 7. 2026-10-25: faster rounds (harness, no Grok run)
+
+**Question.** Owner, 2026-10-25: "These are taking far too long. I need some way to get more efficient validation of
+these things"; then "Build the E6 harness speedups on exp/plan-sizing-1b1e33: slice.py --planning-review none for
+shape rounds, early stop when a verdict can't change, and one shared job queue instead of fixed lanes, with hermetic
+tests; no Grok runs until E-EFF1 frees it."
+
+**Harness changes** (this commit):
+- `slice.py --planning-review stage|none` passes ShipLoop's run option, through `run.seed_run`, to `workspace start`.
+  With `none` it names the build's Improve card (`--improve-skill`), which `none` requires. Under `none` no Improve
+  child starts after spec, test-strategy, plan, step-plan or test-spec (`stage_spec.reviewed_stages`). The invocation
+  records the option, and so does each sample's `score.json`, read from its `command.json`. `decide` refuses arms
+  whose samples ran under different options, because the packets differ: under `none` they no longer direct an Improve
+  stage.
+- `experiment.py queue <ids> --arms T,Cg --jobs N` runs a round as one ordered list: sample 1 of every experiment and
+  arm, then sample 2, and so on. It runs at most N slices at once, skips finished samples, and refuses a second queue
+  in the same output folder (`.queue.lock`). It replaces the hand-run lanes of R2, whose slowest lane set the end and
+  whose rebalancing had to avoid cutting a running sample.
+- Early stop, on by default in `queue`: before each launch, `possible_verdicts` enumerates every 0-or-1 outcome of
+  the missing samples. When each pair (the control against an arm) has one possible verdict left, the experiment's
+  remaining samples are skipped. It needs a binary value (`BINARY = True` in `e6_step_size.py`) and no gate.
+- Tests: `RoundSpeedups` in `test/shiploop-e2e-experiments.test.py`. It covers a real seed under `none` and its refusal
+  without the card, settled and open verdicts (including R2's K2), the queue's concurrency cap and finished-sample
+  skip, the early stop, the lock refusal, and `decide`'s mixed-option refusal. It makes no host call and no Grok run.
+
+**Findings.**
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F34 | Skipping the step-plan Improve child removes about half of each shape slice. Across 80 slices the child took a median 8.2 of 17.1 minutes (51% of all slice time) and changed no step count (F31). A `none` round therefore needs its own control samples: its packets differ from the `stage` rounds', and `decide` refuses to mix them. | firm (timing); the halving is a forecast until a `none` round runs | `start.json` and `slice-result.json` times over the run folder |
+| F35 | The strict early stop that was asked for, where no completion can change the verdict, would have saved 1 of 104 recorded slices (1%). Eight of the 13 pairs end at the ceiling, and a ceiling (every sample in band) is never settled before the last sample. A looser rule, stopping once supports is certain or impossible, would save 46 of 104 (44%). It does so by cutting every guard case (K3 to K7) to 3 slices, because a control already at the ceiling makes supports impossible from the start. That removes the evidence the guard cases exist for, that the arm does no harm, so the looser rule is not built. | firm (replay of r2-results through possible_verdicts) | replay over `r2-results-2026-10-25.json`, sample order T1, Cg1, T2, ... |
+| F36 | Forecast for a round like R2 (32 slices, 4 at a time): about 8.5 minutes per slice under `none`, with the queue removing the lane tail. That is roughly 70 to 80 minutes, against 2 h 35 min (08:47 to 11:22). | exploratory (forecast) | F34; R2's timeline (entry 5) |
+
+**Next.** Grok stays with E-EFF1. The first round to use these is R3, the downstream round, or a `none` re-baseline
+of K1 and K2; the owner chooses which.

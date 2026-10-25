@@ -401,6 +401,9 @@ def parser() -> argparse.ArgumentParser:
                    help="the stage the host starts at (default step-plan); the earlier stages are recorded from the case")
     p.add_argument("--stop-after", choices=stage_spec.STAGES, metavar="STAGE",
                    help="end the host once STAGE is accepted and the run moved past it, instead of after the item")
+    p.add_argument("--planning-review", choices=stage_spec.PLANNING_REVIEW_MODES,
+                   help="the run's planning review option (default: the engine's, stage); none starts no Improve child "
+                        "after a planning stage (step-plan included) and names the build's Improve card for the rest")
     p.add_argument("--ref", help="build the plugin from this git ref (a read-only temporary worktree), not the working tree")
     p.add_argument("--overlay", type=Path, help="a prompt overlay (overlay.py) applied to the plugin build copy")
     p.add_argument("--seed-records", type=Path, metavar="JSON",
@@ -464,11 +467,14 @@ def main(argv: list[str] | None = None) -> int:
     plugin_dir = (args.plugin_dir.expanduser().resolve() if args.plugin_dir
                   else overlays.build_ref(args.ref, out) if args.ref else run.build_candidate(out))
     applied = overlays.apply_to_plugin(args.overlay.resolve(), plugin_dir) if args.overlay else None
+    run.require_improve_card(args.planning_review, plugin_dir)
     plugin = host.install_plugin(env, plugin_dir)
     cli = run.run_cli(host.name, out, plugin_dir)
     seeded = run.seed_run(cli, work, out, case["prompt"], args.seed_at, fixture=FIXTURES / case["fixture"],
                           work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
-                          home=not args.seed_without_home, records=merged_records(case, args.seed_records))
+                          home=not args.seed_without_home, records=merged_records(case, args.seed_records),
+                          planning_review=args.planning_review,
+                          improve_skill=str(run.improve_card(plugin_dir)) if args.planning_review == "none" else "")
     target = seed_state(case, out, env)
     shim = fake_sf(case, out, env)
     run_dir = Path(seeded["run_dir"])
@@ -483,7 +489,8 @@ def main(argv: list[str] | None = None) -> int:
                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
                   "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt,
                   "seed_at": args.seed_at, "stop_after": args.stop_after, "ref": args.ref, "overlay": applied,
-                  "opening_note": note or None, "seed_state": target, "fake_sf": shim}
+                  "opening_note": note or None, "seed_state": target, "fake_sf": shim,
+                  "planning_review": args.planning_review or stage_spec.DEFAULT_PLANNING_REVIEW}
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     (out / "prompt.txt").write_text(case["prompt"] + "\n")
     if not args.quiet:

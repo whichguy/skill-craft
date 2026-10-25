@@ -31,6 +31,7 @@ sys.path.insert(0, str(common.E2E.parents[1] / "skills" / "shiploop" / "scripts"
 import shiploop_item_scope as item_scope  # noqa: E402
 
 RECORDS = Path(__file__).resolve().parent / "e6_records"
+BINARY = True  # every value is 0 or 1, so experiment.py's queue can tell when a verdict can no longer change
 REQUIREMENT = re.compile(r"\b(?:NFR|R)-\d+\b")
 NOT_PRODUCT = ("test", "docs", "config")
 

@@ -2,6 +2,7 @@
 """Template-field experiments: run arms as step slices, score them with a script, decide between two arms.
 
     python3 test/shiploop_e2e/experiment.py run E1 --arm A [--samples 4 | --sample N] [--host grok] [--out DIR]
+    python3 test/shiploop_e2e/experiment.py queue E6-K2 E6-K4 --arms T,Cg [--jobs 4] [--samples 4] [--no-early-stop]
     python3 test/shiploop_e2e/experiment.py score E1 [--out DIR]
     python3 test/shiploop_e2e/experiment.py verify E1                 # the evaluator (and the case) tell bad from good
     python3 test/shiploop_e2e/experiment.py decide E1 A T [--out DIR] # also: decide E1 T B; default A B, else A T
@@ -23,18 +24,31 @@ on their means), the only threshold, so X needs scored samples 1-4 and every exp
   inconclusive  Y is better by no more than the spread, or X lacks scored samples 1-4 (the reason says which).
 It writes ``<out>/<id>/decision-<X>-<Y>.json`` (and ``decision.json``, the latest) and appends one line to
 docs/shiploop-template-experiments-journal.md. Default out: $SHIPLOOP_EXPERIMENTS_OUT, else ~/e2e-runs/experiments.
+
+``queue`` runs a round as one ordered list of slices (sample 1 of every experiment and arm, then sample 2, ...), at most
+``--jobs`` at a time, so no slot idles while another lane has work and no two runners ever take the same sample (a
+lock file in ``<out>`` refuses a second queue there). Before it launches a sample it checks the experiment: when every
+way the missing samples could still come out gives the first arm and each other arm the same verdict, the verdict cannot
+change and the experiment's remaining samples are skipped (``--no-early-stop`` runs them all). That check needs a binary
+value (the evaluator's ``BINARY``) and no gate; other experiments run every sample. Options ``run`` does not know (for
+example ``--planning-review none``, which skips the planning stages' Improve children in a shape round) go to slice.py;
+each sample records them, and ``decide`` refuses arms whose samples ran under different planning-review options.
 """
 from __future__ import annotations
 
 import argparse
 import importlib.util
+import itertools
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from collections import deque
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -119,6 +133,28 @@ def _sample_commit(sample: Path) -> str | None:
         return None
 
 
+def _sample_planning_review(sample: Path) -> str:
+    """The planning-review option a sample's slice ran under (slice.py --planning-review; unset is the engine's stage)."""
+    try:
+        argv = json.loads((sample / "command.json").read_text()).get("argv") or []
+    except (OSError, ValueError):
+        return "stage"
+    for number, word in enumerate(argv):
+        if word == "--planning-review" and number + 1 < len(argv):
+            return argv[number + 1]
+        if word.startswith("--planning-review="):
+            return word.split("=", 1)[1]
+    return "stage"
+
+
+def _check_one_planning_review(rows: list[dict], exp_id: str, what: str) -> None:
+    """Refuse to compare samples that ran under different planning-review options: the packets differ."""
+    modes = {r.get("planning_review") or "stage" for r in rows}
+    if len(modes) > 1:
+        raise SystemExit(f"{exp_id} {what}: samples ran under different planning-review options ({', '.join(sorted(modes))});"
+                         " compare arms run the same way, or move the other samples aside")
+
+
 def _distinct_commits(rows: list[dict]) -> set[str]:
     return {r["commit"] for r in rows if r.get("commit")}
 
@@ -183,7 +219,7 @@ def score(exp_id: str, out: Path) -> dict:
             commit = _sample_commit(sample)
             record = {"experiment": exp_id, "arm": arm_name, "sample": int(sample.name), **found,
                       "slice_pass": result.get("pass"), "slice_verdicts": result.get("verdicts"), "seconds": seconds,
-                      "commit": commit}
+                      "commit": commit, "planning_review": _sample_planning_review(sample)}
             (sample / "score.json").write_text(json.dumps(record, indent=2, default=str) + "\n")
             rows.append({"sample": int(sample.name), "value": found.get("value"), "commit": commit,
                         "slice_pass": result.get("pass"), "seconds": seconds})
@@ -250,6 +286,121 @@ def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
     return report
 
 
+def possible_verdicts(x: list[dict], y: list[dict], count: int) -> set[str]:
+    """Every verdict ``judge`` could still give Y against X once each arm has samples 1..``count``, a missing sample's
+    value being 0 or 1 (a binary evaluator's only values); a scored sample keeps its value."""
+    known_x = {r["sample"]: r.get("value") for r in x if 1 <= r["sample"] <= count}
+    known_y = {r["sample"]: r.get("value") for r in y if 1 <= r["sample"] <= count}
+    missing = [(known_x, n) for n in range(1, count + 1) if n not in known_x] + \
+              [(known_y, n) for n in range(1, count + 1) if n not in known_y]
+    found = set()
+    for values in itertools.product((0, 1), repeat=len(missing)):
+        full_x, full_y = dict(known_x), dict(known_y)
+        for (known, n), value in zip(missing, values):
+            (full_x if known is known_x else full_y)[n] = value
+        found.add(judge([{"sample": n, "value": v} for n, v in full_x.items()],
+                        [{"sample": n, "value": v} for n, v in full_y.items()])["verdict"])
+    return found
+
+
+def settled(exp_id: str, out: Path, arm_names: list[str], count: int) -> str | None:
+    """The verdicts of ``exp_id``'s round when no remaining sample can change them, else None.
+
+    Only for a binary value and no gate (the module doc); the first arm is the control. It scores the finished samples
+    (score.json) and reads the rest as unknown."""
+    exp = load(exp_id)
+    if exp.get("gate") or not getattr(evaluator(exp), "BINARY", False) or len(arm_names) < 2:
+        return None
+    score(exp_id, out)
+    control = read_scores(out, exp_id, arm_names[0])
+    verdicts = []
+    for arm in arm_names[1:]:
+        found = possible_verdicts(control, read_scores(out, exp_id, arm), count)
+        if len(found) != 1:
+            return None
+        verdicts.append(f"{arm_names[0]} vs {arm}: {next(iter(found))}")
+    return "; ".join(verdicts)
+
+
+def _lock(out: Path) -> Path:
+    """A queue's lock in ``out``: refuse while another live queue holds it, take over a stale one."""
+    out.mkdir(parents=True, exist_ok=True)
+    lock = out / ".queue.lock"
+    try:
+        holder = int(lock.read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        holder = None
+    if holder and holder != os.getpid():
+        try:
+            os.kill(holder, 0)
+        except ProcessLookupError:
+            holder = None
+        except PermissionError:
+            pass
+        if holder:
+            raise SystemExit(f"another queue (pid {holder}) is running in {out}; one queue per output folder")
+    lock.write_text(f"{os.getpid()} {time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
+    return lock
+
+
+def queue(exp_ids: list[str], arm_names: list[str], count: int, jobs: int, host: str, out: Path, extra: list[str],
+          early_stop: bool = True, runner=None) -> int:
+    """Run every sample of ``exp_ids`` × ``arm_names`` as one queue, ``jobs`` at a time (the module doc)."""
+    for exp_id in exp_ids:
+        missing = [a for a in arm_names if a not in load(exp_id)["arms"]]
+        if missing:
+            raise SystemExit(f"{exp_id} has no arm {', '.join(missing)}; arms: {', '.join(load(exp_id)['arms'])}")
+    if jobs < 1:
+        raise SystemExit(f"--jobs must be 1 or more, not {jobs}")
+    runner = runner or run
+    lock = _lock(out)
+    pending = deque((e, a, n) for n in range(1, count + 1) for e in exp_ids for a in arm_names
+                    if not finished(out / e / a / str(n)))
+    stopped: dict[str, str] = {}
+    printing = threading.Lock()
+    status = 0
+
+    def say(text: str) -> None:
+        with printing:
+            print(text, flush=True)
+
+    def check(exp_id: str) -> None:
+        if early_stop and exp_id not in stopped:
+            verdict = settled(exp_id, out, arm_names, count)
+            if verdict:
+                stopped[exp_id] = verdict
+                say(f"{exp_id}: settled ({verdict}); its remaining samples are skipped")
+
+    try:
+        for exp_id in exp_ids:
+            check(exp_id)
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            running: dict = {}
+            while pending or running:
+                while pending and len(running) < jobs:
+                    exp_id, arm, n = pending.popleft()
+                    if exp_id in stopped:
+                        say(f"{exp_id}/{arm}/{n}: skipped, the verdict cannot change")
+                        continue
+                    running[pool.submit(runner, exp_id, arm, count, host, out, extra, n)] = (exp_id, arm, n)
+                if not running:
+                    break
+                done, _ = wait(running, return_when=FIRST_COMPLETED)
+                for future in done:
+                    exp_id, arm, n = running.pop(future)
+                    try:
+                        status = status or future.result()
+                    except (Exception, SystemExit) as exc:  # one sample's failure never stops the others
+                        say(f"{exp_id}/{arm}/{n}: failed: {exc}")
+                        status = 1
+                    check(exp_id)
+    finally:
+        lock.unlink(missing_ok=True)
+    for exp_id, verdict in stopped.items():
+        say(f"{exp_id}: stopped early, {verdict}")
+    return status
+
+
 def journal_line(exp_id: str, exp: dict, x: str, y: str, report: dict, record: Path) -> str:
     def arm_text(name):
         arm = exp["arms"][name]
@@ -272,6 +423,7 @@ def decide(exp_id: str, x: str, y: str, out: Path, journal: Path = JOURNAL) -> d
     rows_x, rows_y = read_scores(out, exp_id, x), read_scores(out, exp_id, y)
     _check_single_commit(rows_x, exp_id, x)
     _check_single_commit(rows_y, exp_id, y)
+    _check_one_planning_review(rows_x + rows_y, exp_id, f"{x} and {y}")
     report = {"experiment": exp_id, "claim": exp["claim"], "arms": [x, y],
               "arm_specs": {x: exp["arms"][x], y: exp["arms"][y]},
               **judge(rows_x, rows_y, exp.get("gate"))}
@@ -316,10 +468,14 @@ def _overlay_problems(overlay, path: Path, ref: str | None) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=("run", "score", "verify", "decide", "list"))
+    p.add_argument("command", choices=("run", "queue", "score", "verify", "decide", "list"))
     p.add_argument("id", nargs="?")
-    p.add_argument("pair", nargs="*", help="decide: the two arms, control first (default A B, else A T)")
+    p.add_argument("pair", nargs="*", help="decide: the two arms, control first (default A B, else A T); "
+                                          "queue: more experiment ids")
     p.add_argument("--arm")
+    p.add_argument("--arms", help="queue: comma-separated, control first (default: the first experiment's arms)")
+    p.add_argument("--jobs", type=int, default=4, help="queue: slices at a time (default 4)")
+    p.add_argument("--no-early-stop", action="store_true", help="queue: run every sample even once a verdict is settled")
     p.add_argument("--samples", type=int, default=None, help="run: samples 1..N (default: the experiment's samples)")
     p.add_argument("--sample", type=int, default=None, help="run: exactly this one sample (its own background task)")
     p.add_argument("--host", default="grok")
@@ -339,6 +495,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.sample is not None and args.samples is not None:
             p.error("run takes --samples or --sample, not both")
         return run(args.id, args.arm, args.samples or load(args.id).get("samples", 4), args.host, out, extra, args.sample)
+    if args.command == "queue":
+        if args.sample is not None:
+            p.error("queue runs samples 1..--samples, not one --sample")
+        ids = [args.id, *args.pair]
+        names = args.arms.split(",") if args.arms else list(load(args.id)["arms"])
+        return queue(ids, names, args.samples or load(args.id).get("samples", 4), args.jobs, args.host, out, extra,
+                     early_stop=not args.no_early_stop)
     if args.command == "score":
         print(json.dumps(score(args.id, out), indent=2))
         return 0
