@@ -393,10 +393,33 @@ tier on `133f3e63` (changed from `0a4fe0a6`) passes all 37 suites in 212.1 s. Be
 (40 upstream commits, among them the new `shiploop-e2e-experiments` suite, so the catalog now counts 103 ShipLoop suites
 and 158 in all): the quick tier passes all 38 selected suites in 355.8 s.
 
+## 2026-10-25: owner notes during a run, design proposed (interim)
+
+Question: how can the owner leave feedback on a running run that the model reliably sees at its next step, given that
+context is cleared between stages? The design, with options and the packet text it would add, is in
+[shiploop-owner-notes-design-2026-10.md](shiploop-owner-notes-design-2026-10.md). It recommends:
+
+- each note in its own file, `RUN/owner-notes/N<k>.md`. Not in the trace, which may drop a line by design. Not in
+  `RUN/notes/`, which is the model's;
+- the next packet quotes undelivered notes as a required block after `answered`;
+- a `complete` is held once when a note arrives in the middle of a step;
+- a note counts as delivered only when the script accepts a step whose packet showed it. That is recorded in an
+  optional `owner_notes` state key, never by the model;
+- trace.html builds the `note` command for the owner to copy. The page cannot write.
+
+Evidence ([head-room.txt](shiploop-owner-notes-evidence/head-room.txt), from
+[head-room.py](shiploop-owner-notes-evidence/head-room.py) on the head-order fixture at `5485b896`): the room a
+required block has in a printed head at the normal install is 240 characters at plan, 1,715 at step-plan, 3,151 at
+implement, and at least 4,541 everywhere else. So the notes block must shrink to a one-line pointer in the plan head.
+A finding on the side: at a 163-character run directory, the plan head is already 20,160 characters, 160 past Grok's
+cut (design follow-up F1).
+
+Status: waiting for the owner to choose D1 to D5. No packet, verb or test has changed.
+
 ## Open (exploratory)
 
-- **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a
-  `note` event, and the next packet quoting unread notes. Needs a packet change, so it waits for the owner.
+- **Owner feedback during a run** (the "nice to have"): design proposed (entry above); the build waits for the owner's
+  choice.
 - ~~**E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
   `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.~~ Superseded 2026-10-25: built,
   see "the E2E harness reads the trace" above; the exporter follows through `metrics.json`. The 1.13.1 rerun shows

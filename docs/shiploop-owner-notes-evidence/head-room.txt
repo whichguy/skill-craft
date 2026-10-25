@@ -1,0 +1,29 @@
+stage                  room  worst row (route, packet, printed characters, printed as a head)
+plan                    240  inline, 08-plan, 19760, True
+step-plan              1715  ask-agent, 24-step-plan, 19577, True
+implement              3151  ask-agent, 16-implement, 19413, True
+test                   4541  inline, 20-test, 19037, True
+carry-forward          5123  inline, 34-carry-forward, 18058, True
+verify                 5299  ask-agent, 22-verify, 18134, True
+test-strategy          6752  inline, 06-test-strategy, 16068, True
+test-spec              8676  inline, 13-test-spec, 14246, True
+spec                   8752  inline, 04-spec, 14356, True
+discovery              9369  inline, 02-discovery, 15813, False
+release-plan           9382  inline, 40-release-plan, 16022, False
+system-test-author     9795  inline, 36-system-test-author, 15753, False
+release-verify         9802  inline, 44-release-verify, 15439, False
+system-test           10398  inline, 38-system-test, 14495, False
+product-acceptance    10462  inline, 39-product-acceptance, 14520, True
+validate-existing     10520  inline, 15-validate-existing, 15238, False
+document              11452  inline, 23-document, 13947, False
+research              11738  inline, 03-research, 13113, False
+prepare               12111  inline, 10-prepare, 12780, False
+release-check         12135  inline, 42-release-check, 12709, False
+handoff               12158  inline, 46-handoff, 13143, False
+release               12712  inline, 43-release, 12135, False
+operations            13010  inline, 45-operations, 11808, False
+intake                13730  inline, 01-intake, 10674, False
+
+plan head printed characters by run directory length (no notes; HOST_CUT 20,000):
+  run dir 83: [19760]
+  run dir 163: [20160]
