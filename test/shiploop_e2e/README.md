@@ -1272,6 +1272,32 @@ Credentials: every command output the harness stores or prints goes through `run
 itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it; `guard_coverage` (above) tells a model that never reached the wrapper and a command that starts sf by a path outside it, not every other way round. A harness that is killed with SIGKILL
 cannot clean up: run the cleanup command printed at the start, then resume (or, with its host stopped, `--resume-run <output> --grade-only`, which finds the pending record and cleans).
 
+#### A run's own prefix (`--platform-prefix`)
+
+A hosted-platform case names everything it creates with its catalog prefix (`SLBattle`, `SLChess`). Its preflight, guard,
+checks and cleanup act only on that prefix. So a kept app blocks the next run of the same case: the preflight finds it,
+and `--platform-existing update` would deploy over it.
+
+`--platform-prefix P` gives one run its own prefix. `run.py` renames each spelling of the catalog's prefix everywhere the
+case names it: in the prompt, the checks, the platform commands and the guard. Salesforce spells a prefix two ways:
+classes, tabs, apps and permission sets use `SLBattle`, and a component uses `slBattle` (`chess_salesforce.lwc_prefix`).
+The rules oracles rename the classes in their anonymous Apex the same way (`chess_salesforce.renamed`). An example:
+
+```sh
+python3 test/shiploop_e2e/run.py --case battleship-salesforce --platform-prefix SLBtlHk7f3a --keep-platform --output <dir> ...
+```
+
+That run deploys `SLBtlHk7f3aEngine`, `slBtlHk7f3aBoard`, `SLBtlHk7f3a_Board`, `SLBtlHk7f3a` and `SLBtlHk7f3a_Access`.
+It leaves a kept `SLBattle` app alone.
+
+The rules:
+- P is a capital letter and then 3 to 19 letters or digits.
+- P shares no beginning with any case's prefix, ignoring case, because the preflight, guard and cleanup match by a
+  case-insensitive beginning. Add a random suffix to make it unique.
+- `invocation.json` and `result.json` record `platform_prefix`, and a resume keeps it.
+- It does not go with `--suite` or `--seed-at`.
+- `boundary.case` is the digest of the renamed entry.
+
 #### Keeping what a run made (`--keep-platform`)
 
 The cleanup is the default and stays the default: a run leaves the platform as it found it. `--keep-platform` is the one option that

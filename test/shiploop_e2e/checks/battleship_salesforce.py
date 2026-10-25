@@ -463,12 +463,12 @@ def grade(outputs: dict[str, tuple[str, dict[str, str]]]) -> list[tuple[str, boo
     return verdicts
 
 
-def do_rules(org: str, raw_dir: Path | None = None) -> tuple[bool, list[str]]:
+def do_rules(org: str, raw_dir: Path | None = None, prefix: str = PREFIX) -> tuple[bool, list[str]]:
     outputs, raw = {}, ""
     work = Path(tempfile.mkdtemp(prefix="battleship-sf-rules-"))
     try:
         for name, script in scenarios():
-            err, seen, logs = sfc.run_apex(org, work, name, script)
+            err, seen, logs = sfc.run_apex(org, work, name, sfc.renamed(script, PREFIX, prefix))
             outputs[name] = (err, seen)
             if (err or not seen) and not raw:
                 raw = "case %s: %s\n%s" % (name, err or "no RESULT line", scrub(logs)[:1024])
@@ -837,7 +837,7 @@ def main(argv: list[str]) -> int:
             msg = "\n".join(lines)
         elif args.cmd == "rules":
             raw_dir = args.platform_dir or os.environ.get("E2E_PLATFORM_DIR")
-            ok, lines = do_rules(args.org, Path(raw_dir) if raw_dir else None)
+            ok, lines = do_rules(args.org, Path(raw_dir) if raw_dir else None, args.prefix)
             msg = "\n".join(lines)
         else:
             if args.keep and not args.reference:

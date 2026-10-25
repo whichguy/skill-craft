@@ -109,7 +109,9 @@ from collections import Counter
 import contextlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import functools
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -235,7 +237,7 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
     """Name, prompt, checks and the case it follows (None for a fresh start)."""
     if args.prompt:
         return "custom", args.prompt, args.check or [], None
-    cases = json.loads(CASES.read_text())
+    cases = catalog()
     if args.case not in cases:
         raise SystemExit(f"unknown case {args.case!r}; known: {', '.join(sorted(cases))}")
     case = cases[args.case]
@@ -248,11 +250,79 @@ def case_quality(name: str) -> dict:
     """The quality measures a case declares: its own entry, else the one of the case it follows (a follow-on is measured by its
     followed case's declaration unless it names its own). ``{}`` for a case that declares none, and for a name that is not a
     case. Kept apart from load_case, whose four values callers unpack."""
-    cases = json.loads(CASES.read_text())
+    cases = catalog()
     case = cases.get(name) or {}
     own, earlier = case.get("quality") or {}, (cases.get(case.get("follows")) or {}).get("quality") or {}
     found = {key: own.get(key) or earlier.get(key) for key in ("mutation", "acceptance", "refuse_ports")}
     return {key: value for key, value in found.items() if value}
+
+
+# The platform prefix this run uses in place of its case's (--platform-prefix): (case name, prefix), or None. _main sets it once for
+# the run it starts or resumes and main clears it, so every reader of the case (catalog) sees the same renamed text.
+RUN_PREFIX: tuple[str, str] | None = None
+PLATFORM_PREFIX_SHAPE = re.compile(r"[A-Z][A-Za-z0-9]{3,19}")
+
+
+def catalog() -> dict:
+    """cases.json as this run reads it: with --platform-prefix, the run's case renamed (with_prefix)."""
+    cases = json.loads(CASES.read_text())
+    if RUN_PREFIX and RUN_PREFIX[0] in cases:
+        cases[RUN_PREFIX[0]] = with_prefix(cases[RUN_PREFIX[0]], RUN_PREFIX[1])
+    return cases
+
+
+@functools.cache
+def salesforce_library():
+    """checks/chess_salesforce.py, the Salesforce library both platform cases share, loaded by path (it is an oracle, not a module
+    of this folder)."""
+    spec = importlib.util.spec_from_file_location("shiploop_e2e_chess_salesforce", HERE / "checks" / "chess_salesforce.py")
+    library = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(library)
+    return library
+
+
+def prefix_spellings(kind: str, prefix: str) -> tuple[str, ...]:
+    """Every spelling a platform kind gives a prefix in a case's text. Salesforce names Apex classes, tabs, apps and permission
+    sets with it as it is (SLBattle) and a component with its leading capitals lowered (slBattle: lwc_prefix)."""
+    if kind == "salesforce":
+        return prefix, salesforce_library().lwc_prefix(prefix)
+    raise SystemExit(f"--platform-prefix: a {kind!r} platform does not say how its items spell a prefix")
+
+
+def with_prefix(case: dict, prefix: str) -> dict:
+    """The case with its platform prefix renamed everywhere its text names it (the prompt, the checks, every platform command and
+    the guard): each spelling of the catalog's prefix becomes the same spelling of `prefix` (SPEC: a hosted-platform run's prefix)."""
+    platform = case["platform"]
+    text = json.dumps(case)
+    for old, new in zip(prefix_spellings(platform["kind"], platform["prefix"]), prefix_spellings(platform["kind"], prefix)):
+        text = text.replace(old, new)
+    return json.loads(text)
+
+
+def run_prefix(asked: str | None, name: str, cases: dict, *, resuming: bool = False, earlier: str | None = None) -> str | None:
+    """The prefix a run uses in place of its case's, or None for the case's own; `cases` is the catalog as written.
+
+    A resume keeps the prefix its run started with (invocation.json). A new prefix must be a capital letter and 3 to 19 letters or
+    digits, for a case whose platform has a prefix, and must share no beginning with any case's prefix, ignoring case: the preflight,
+    the guard and the cleanup match items by a case-insensitive beginning, so either run would take the other's items for its own."""
+    if resuming:
+        if asked and asked != earlier:
+            raise SystemExit(f"--platform-prefix {asked}: this run started with "
+                             + (f"prefix {earlier}" if earlier else "its case's own prefix") + ", and a resume keeps its run's prefix")
+        return earlier
+    if not asked:
+        return None
+    if not ((cases.get(name) or {}).get("platform") or {}).get("prefix"):
+        raise SystemExit(f"--platform-prefix: case {name!r} has no platform prefix to rename")
+    if not PLATFORM_PREFIX_SHAPE.fullmatch(asked):
+        raise SystemExit(f"--platform-prefix {asked}: a prefix is a capital letter and 3 to 19 letters or digits (it begins class "
+                         "and component names)")
+    for other, spec in sorted(cases.items()):
+        theirs = str(((spec.get("platform") or {}).get("prefix") if isinstance(spec, dict) else None) or "")
+        if theirs and (asked.lower().startswith(theirs.lower()) or theirs.lower().startswith(asked.lower())):
+            raise SystemExit(f"--platform-prefix {asked}: it shares a beginning with case {other!r}'s prefix {theirs}, so that "
+                             "case's preflight, guard and cleanup would take this run's items for its own, or the reverse")
+    return asked
 
 
 def quality_stop(stop_file: Path) -> str | None:
@@ -708,7 +778,7 @@ def display_held() -> bool:
 def declared_needs(name: str, args, earlier: dict | None = None) -> list[str]:
     """The needs this launch declares (SPEC: a record exists only where something declares its need): the case's, the
     ``--need`` flags', and those the run's own first launch recorded. A custom prompt declares none by itself."""
-    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    case = catalog().get(name, {}) if name != "custom" else {}
     found = [*case.get("needs", []), *(args.need or []), *((earlier or {}).get("needs") or [])]
     return list(dict.fromkeys(found))
 
@@ -1268,7 +1338,7 @@ def seed_materials(name: str, stage: str | None) -> dict | None:
     if name == "custom":
         raise SystemExit(f"--seed-at {stage} starts after the build and needs a case that declares its built product "
                          "(seed_product, seed_home and seed_release in cases.json): a custom --prompt has none")
-    return release_slice.materials(name, json.loads(CASES.read_text()).get(name) or {}, stage)
+    return release_slice.materials(name, catalog().get(name) or {}, stage)
 
 
 def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent", stage: str = "step-plan") -> str:
@@ -1673,7 +1743,7 @@ def case_platform(name: str) -> dict | None:
     """The validated `platform` object of a named case, None for a case without one (and for a custom prompt)."""
     if name == "custom":
         return None
-    spec = (json.loads(CASES.read_text()).get(name) or {}).get("platform")
+    spec = (catalog().get(name) or {}).get("platform")
     if spec is None:
         return None
     return validate_platform(name, spec)
@@ -2511,6 +2581,11 @@ def parser() -> argparse.ArgumentParser:
                         "run kept (--keep-platform): the items already there are the baseline, the snapshot records them, and the "
                         "cleanup removes only what the run adds beyond it (with --keep-platform nothing is removed). A resume keeps "
                         "its run's mode. Not with --suite")
+    p.add_argument("--platform-prefix", metavar="PREFIX",
+                   help="a case with a platform: name everything this run creates there with PREFIX instead of the case's own "
+                        "prefix, renamed everywhere the case names it (the prompt, the checks, the platform commands and the guard), "
+                        "so a kept app of the same case is left alone. A capital letter and 3 to 19 letters or digits, sharing no "
+                        "beginning with any case's prefix. A resume keeps its run's prefix. Not with --suite or --seed-at")
     p.add_argument("--keep-platform", action="store_true",
                    help="a case with a platform: when the run ends normally with a finished delivery (ShipLoop done, every "
                         "case check passed), do not run the platform cleanup; keep what the run made there for a person to "
@@ -3788,6 +3863,7 @@ def main(argv: list[str] | None = None) -> int:
     """Run one case (or a suite) and return the exit code; see _main."""
     held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
     guard = PlatformGuard()  # a case's platform cleanup, armed inside once the model may start, run here whatever happens
+    global RUN_PREFIX
     try:
         return _main(argv, held, guard)
     finally:
@@ -3795,9 +3871,11 @@ def main(argv: list[str] | None = None) -> int:
         guard.print_kept()  # last, so it ends the log: when --keep-platform kept a finished delivery, what is still there and how to remove it
         for handle in held:
             handle.close()
+        RUN_PREFIX = None  # one run's: the next run in this process (a suite's, iterate's) reads the catalog as written
 
 
 def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = None) -> int:
+    global RUN_PREFIX
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
@@ -3810,6 +3888,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.platform_existing and (args.suite or args.baseline_report):
         raise SystemExit("--platform-existing is the mode of one run of a case with a platform: it does not go with --suite or "
                          "--baseline-report")
+    if args.platform_prefix and (args.suite or args.baseline_report or args.seed_at):
+        raise SystemExit("--platform-prefix renames the prefix of one run of a case with a platform: it does not go with --suite "
+                         "or --baseline-report, nor with --seed-at, whose seeded product carries the case's own names")
     if args.baseline_report:
         return baseline_report_main(args)
     if args.runs or args.json or args.release_gate:
@@ -3821,6 +3902,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         for line in problems:
             print(f"refused: {line}", flush=True)
         refused = bool(problems)
+        prefix = None if args.prompt else run_prefix(args.platform_prefix, args.case, json.loads(CASES.read_text()))
+        RUN_PREFIX = (args.case, prefix) if prefix else None
         spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
         existing = platform_existing_mode(args.platform_existing, args.case, spec)
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
@@ -3864,6 +3947,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        prefix = run_prefix(args.platform_prefix, name, json.loads(CASES.read_text()), resuming=True,
+                            earlier=earlier.get("platform_prefix"))
+        RUN_PREFIX = (name, prefix) if prefix else None  # the checks, prompt and platform it recorded are renamed already
         planning_review = planning_review_choice(args.planning_review, earlier)
         # The platform the run started with (invocation.json), not whatever cases.json says now: its cleanup is what undoes it.
         seed_built = None  # a resume continues the run the seed made
@@ -3933,6 +4019,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                    "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
+        if args.platform_prefix and args.prompt:
+            raise SystemExit("--platform-prefix: a custom --prompt has no case prefix to rename")
+        prefix = run_prefix(args.platform_prefix, args.case, json.loads(CASES.read_text()))
+        RUN_PREFIX = (args.case, prefix) if prefix else None
         name, prompt, checks, follows = load_case(args)
         seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
@@ -4163,6 +4253,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment,
+                  **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
                   "planning_review": planning_review, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
@@ -4376,7 +4467,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
-    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    case = catalog().get(name, {}) if name != "custom" else {}
     # A release slice starts without the product in the source checkout: the checks that read it wait for the return.
     sliced = bool(seeded) and release_slice.delivered(seeded.get("stage"))
     release_spec = release_slice.release_spec(case)
@@ -4518,6 +4609,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               # What graded this run (SPEC: the evaluator boundary): the harness's code, its checks/ and the case entry read
               # above. A regrade records its own; promotion.py compares a case only across equal digests.
               "boundary": boundary.fingerprint(HERE, case),
+              **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),  # the case digest above is of the renamed entry
               "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
               "span": run_metrics["span"],
               "identity_unmeasured": identity_unmeasured,
@@ -4548,7 +4640,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
     print(f"  flow      {flow_record(out)}")
-    style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
+    style = catalog().get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
     # A baseline measures one host running a case from the start to its end; a resumed run is not one, and neither is
     # a run the harness ended: its engine still active (a deadline, a requested stop, a spent resume budget) or its host

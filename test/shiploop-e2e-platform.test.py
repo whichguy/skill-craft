@@ -2513,6 +2513,86 @@ class CheckTimeoutTest(PlatformCase):
         self.assertEqual([call.kwargs["timeout"] for call in spy.call_args_list], [900])
 
 
+class PlatformPrefixTest(PlatformCase):
+    """run.py --platform-prefix (SPEC: a hosted-platform run's prefix, 2026-10-25): one run renames its case's prefix everywhere
+    the case names it, so a kept app of the same case stays untouched."""
+
+    def prefixed_case(self) -> str:
+        spec = self.platform(kind="salesforce", prefix="SLPlat",
+                             **{verb: self.command(verb) + " --prefix SLPlat" for verb in ("preflight", "before", "cleanup")})
+        name = self.use_case(spec)
+        cases = json.loads(run.CASES.read_text())
+        cases[name].update(prompt="Create hello.py, then a class SLPlatEngine and a component slPlatBoard.",
+                           checks=["echo SLPlat slPlatBoard"])
+        run.CASES.write_text(json.dumps(cases))
+        return name
+
+    def test_the_run_names_the_new_prefix_everywhere_and_records_it(self):
+        self.prefixed_case()
+        code, result, _ = self.invoke("grok", "done", "--platform-prefix", "SLOther1")
+        self.assertEqual(code, 0, result)
+        out = Path(result["output"])
+        self.assertEqual((out / "prompt.txt").read_text().strip(),
+                         "Create hello.py, then a class SLOther1Engine and a component slOther1Board.")
+        invocation = json.loads((out / "invocation.json").read_text())
+        self.assertEqual(invocation["platform_prefix"], "SLOther1")
+        spec = invocation["platform"]["spec"]
+        self.assertEqual(spec["prefix"], "SLOther1")
+        for verb in ("preflight", "before", "cleanup"):
+            self.assertTrue(spec[verb].endswith(f"{verb} --prefix SLOther1"), spec[verb])
+        self.assertEqual([check["command"] for check in result["checks"]], ["echo SLOther1 slOther1Board"])
+        self.assertEqual(result["platform_prefix"], "SLOther1")
+        self.assertNotIn("SLPlat", json.dumps({"prompt": (out / "prompt.txt").read_text(), "spec": spec, "checks": result["checks"]}))
+        self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
+        self.assertIsNone(run.RUN_PREFIX, "one run's: the next run in this process reads the catalog as written")
+        _, plain, _ = self.invoke("grok", "done", tag="b")
+        self.assertNotIn("platform_prefix", plain)
+        self.assertNotEqual(plain["boundary"]["case"], result["boundary"]["case"], "the case digest is of the renamed entry")
+
+    def test_a_resume_keeps_its_runs_prefix_and_refuses_another(self):
+        self.prefixed_case()
+        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--platform-prefix", "SLOther1")
+        out = Path(first["output"])
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.resume("grok", out, "done", "--platform-prefix", "SLOther2")
+        self.assertIn("a resume keeps its run's prefix", str(refused.exception))
+        resumed, _ = self.resume("grok", out, "done")
+        self.assertEqual(resumed["platform_prefix"], "SLOther1")
+        self.assertEqual([check["command"] for check in resumed["checks"]], ["echo SLOther1 slOther1Board"])
+
+    def test_a_prefix_that_overlaps_any_case_or_does_not_fit_is_refused_before_anything_runs(self):
+        self.prefixed_case()
+        for asked, reason in (("SLPlatform", "shares a beginning with case 'plat''s prefix SLPlat"),
+                              ("SLPla", "shares a beginning"), ("slOther1", "a capital letter"), ("SLO", "a capital letter"),
+                              ("SLOther-1", "a capital letter")):
+            with self.subTest(asked=asked), self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+                self.invoke("grok", "done", "--platform-prefix", asked)
+            self.assertIn(reason, str(refused.exception))
+        for extra, reason in ((("--suite", "smoke"), "does not go with --suite"),
+                              (("--seed-at", "release-plan"), "nor with --seed-at")):
+            with self.subTest(extra=extra), self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--case", "plat", "--platform-prefix", "SLOther1", *extra])
+            self.assertIn(reason, str(refused.exception))
+        self.assertEqual(self.verbs(), [], "nothing ran on the platform")
+        self.use_case(self.platform())
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            self.invoke("grok", "done", "--platform-prefix", "SLOther1")
+        self.assertIn("has no platform prefix to rename", str(refused.exception))
+
+    def test_both_salesforce_cases_rename_completely(self):
+        cases = json.loads((Path(run.HERE) / "cases.json").read_text())
+        for name, new in (("battleship-salesforce", "SLBtlHk7f3a"), ("chess-salesforce", "SLChsHk7f3a")):
+            with self.subTest(name=name):
+                old = cases[name]["platform"]["prefix"]
+                renamed = json.dumps(run.with_prefix(cases[name], new))
+                for spelling in run.prefix_spellings("salesforce", old):
+                    self.assertNotIn(spelling, renamed)
+                for spelling in run.prefix_spellings("salesforce", new):
+                    self.assertIn(spelling, renamed)
+                self.assertTrue(all(f"--prefix {new}" in check for check in run.with_prefix(cases[name], new)["checks"]
+                                    if "_salesforce.py" in check), "every org check names the prefix")
+
+
 class UnchangedCaseTest(PlatformCase):
     def test_a_case_without_a_platform_gains_nothing_from_any_of_this(self):
         self.use_case(None)
