@@ -396,7 +396,8 @@ design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R1 and R16, Astr
 quality first, then tokens, then time.
 
 A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
-`promotion/1`. It reads scorecards (`scorecard.py`) of a control arm and a candidate arm. Changing the rule takes a new id,
+`promotion/2` (it was `promotion/1` until build step 2). It reads scorecards (`scorecard.py`, `scorecard/2`) of a control
+arm and a candidate arm. Changing the rule takes a new id,
 and two decisions are compared only under the same id.
 
 - **Pre-registered.** Before the runs, a registration file names:
@@ -422,6 +423,25 @@ and two decisions are compared only under the same id.
   - The candidate is PROMOTE when it is lower beyond the tolerance, and DROP when it is higher beyond it.
   - Otherwise it is UNDECIDED: an inconclusive optimisation is neither shipped nor discarded on this evidence.
 - **No model judgement enters** (S-9). A judge's findings may propose checks, never a decision.
+- **Required evidence and validity (amended 2026-10-25, build step 2; R2 and R3 of the final verdict).** The contract is now
+  `promotion/2`, reading `scorecard/2`. Unobserved required evidence never passes. Contamination voids only the claims it
+  touches.
+  - *Floors.* Each floor is `pass`, `fail`, `unobserved` or `not_applicable`. **Requiredness belongs to the case**
+    (`cases.json`): a case that declares hidden acceptance requires it. A declared acceptance that was not observed makes
+    the accuracy floor `unobserved`, not a pass, as `scorecard/1` had it. Mutation stays a record until its own step.
+    Enterprise is `not_applicable` until its rubric exists.
+  - *Validity.* There are three dimensions, each `valid` true, false or null, where null means not observed and is never
+    valid:
+    - **correctness** is false when a check changed the delivered tree. It is null when the run overlapped others while
+      writing shared `/tmp` names, since shared state can't be ruled out, or when the delivered tree can no longer be read.
+    - **attribution** is false when hosts or host builds were mixed.
+    - **timing** is false when the run overlapped other runs, was resumed, mixed hosts or builds, or left listeners alive.
+      It is null when any of those was not observed.
+  - *Coverage.* A registration may name how many attempts each case expects. An arm with fewer is missing evidence, and
+    the decision is UNDECIDED.
+  - *What the decision reads.* A case's quality is taken only from cards whose correctness is valid; any other card
+    leaves that case's quality unknown. Efficiency is compared only on cards whose timing and attribution are both valid.
+    So a run that overlapped others still counts as evidence of quality, and never as evidence of speed.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
