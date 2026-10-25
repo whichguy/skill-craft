@@ -223,6 +223,19 @@ unused `STEP_SIZING` constant (F9) is removed, because its text contradicted the
 `test_the_step_plan_packet_bounds_each_step_by_criteria_and_product_files` in `shiploop-packet-completeness.test.py`,
 reads the rendered step-plan producer packet; it would fail on origin/main, where the text is absent.
 
+**Released, 2026-10-25** (owner: "release as well"; then "Fold the Improve size-limit fix (F32) into this release"):
+skill-craft 2.11.0 with ShipLoop 1.11.0, release commit `5d3628b0` on main, pushed through `scripts/release-push.py`.
+It ships four notes: `step-size-bound` (the port, `f23cdb20`), `improve-final-result-bounds` (the F32 fix, `b8630f41`:
+the Improve import now calls `_check_producer_bounds`; its test failed before the fix), and two from other sessions
+already on main (`no-run-caps`, `judge-zero-exit-masked-failure`). A wider quick-group selection then failed
+`shiploop-step-packets` and `shiploop-packet-recut`. When a Test layers block sits at its gate limit, the ask-agent
+step-plan head had 140 characters of headroom under the 20,000 host cut (19,860 on main), and the port added about
+330, so the head dropped its References block. `58a8f2eb` shortened the wording, keeping every obligation: the
+remote-only sentence keeps only "steps share one proof script", the bound drops the implied "More criteria or files",
+and two clauses that repeated others go. The at-limit head is now 19,925, and the normal heads grew by 65, recorded in
+`head_table.json`. So the shipped text is the tested Cg prose, shortened; the shortening changes no rule, and no slice
+ran on it.
+
 **What the port carries from the evidence.** Cg = prose and gate, the gate never refused, so the shipped text is the
 one every Cg sample planned under (F28). The verdicts it rests on: K2 supports (F25), K1 inconclusive (F21, F23), and no
 harm on the five other cases (F27). The open questions travel with it: count against text (F29), many tiny steps
