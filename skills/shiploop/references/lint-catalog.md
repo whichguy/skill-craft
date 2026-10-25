@@ -84,6 +84,18 @@ both the fix candidate and, when withheld, the report diff. A row without
 the `fixable` mark (tsc, mypy, markdownlint-cli2, yamllint, actionlint,
 ktlint, phpcs, rubocop) only ever reports.
 
+Every fixable row but `terraform fmt` also needs its own marker (a config
+file the repository itself placed) before it fixes anything, confirming the
+repository actually opted into that tool's style — the same reason `gofmt`
+still needs `go.mod` even though Go formatting, like Terraform's, has no
+project-level configuration to respect. `terraform fmt` is the deliberate
+exception (`require_marker: false`, like `actionlint`'s): reaching this row
+at all already means the work item is editing a `.tf`/`.tfvars` file, which
+is unambiguous evidence of deliberate Terraform work in a way a stray `.go`
+or `.js` file is not, and `terraform fmt`'s own output is a fixed, purely
+whitespace-level canonical style with no way to disagree with it beyond not
+running it.
+
 | Linter | Files | Configured by | Output |
 | --- | --- | --- | --- |
 | eslint (fixable) | JS/TS, Vue | `eslint.config.*`, `.eslintrc*`, `package.json` `eslintConfig` | JSON |
@@ -639,8 +651,7 @@ recommendations naming the searched `PATH`. ShipLoop never installs anything.
       "ok": [
         0,
         1,
-        2,
-        3
+        2
       ],
       "fix_hint": "phpcbf"
     },

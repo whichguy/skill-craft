@@ -195,6 +195,14 @@ if any(arg.startswith("--require") for arg in sys.argv[1:]):
 sys.exit(0)
 '''
 
+# A controllable "syntax check": fails only on a planted marker, never real JS parsing.
+NODE_CHECK_STUB = r'''
+import json, os, sys
+with open(os.environ["STUB_LOG"], "a") as log:
+    log.write(json.dumps(["node"] + sys.argv[1:]) + "\n")
+sys.exit(1 if "SYNTAXERR" in open(sys.argv[-1]).read() else 0)
+'''
+
 
 def write_stub(directory: Path, name: str) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
@@ -230,6 +238,8 @@ if name in ("prettier", "black", "gofmt", "clang-format", "terraform"):
     sys.stdout.write("".join(line.rstrip() + "\n" for line in text.splitlines()))
     sys.exit(0)
 if name in ("ktlint", "phpcs", "rubocop"):
+    if os.environ.get("STUB_EXIT_OVERRIDE"):
+        sys.exit(int(os.environ["STUB_EXIT_OVERRIDE"]))
     suffix = {"ktlint": (".kt", ".kts"), "phpcs": (".php",), "rubocop": (".rb",)}[name]
     found = False
     for path in [arg for arg in argv if arg.endswith(suffix)]:
@@ -1387,6 +1397,17 @@ class DiscoveredLinterTests(Fixture):
         payload = self.run_pass(mode="report")
         self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.php", 2)])
 
+    def test_phpcs_fatal_exit_is_a_tool_failure_not_silently_clean(self):
+        """PHPCS 3.x's exit 3 is a processing error (bad ruleset, uncaught exception), not a clean scan; it
+        must never be read as "no findings"."""
+        self.commit({"phpcs.xml": "<ruleset></ruleset>\n", "a.php": "<?php\n"})
+        write_tool(self.bin, "phpcs")
+        self.base()
+        self.edit({"a.php": "<?php\n$x = 1;\n"})
+        payload = self.run_pass(mode="report", env=self.env(STUB_EXIT_OVERRIDE="3"))
+        self.assertIn("phpcs exited 3", payload["block"])
+        self.assertEqual(payload["gating"], [])
+
     def test_rubocop_reports_findings(self):
         self.commit({".rubocop.yml": "\n", "a.rb": "puts 1\n"})
         write_tool(self.bin, "rubocop")
@@ -1402,8 +1423,10 @@ class DiscoveredLinterTests(Fixture):
         self.edit({"a.py": "x = 1  # fixme\ny = 2   \n"})
         payload = self.run_pass()
         self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
-        self.assertEqual(payload["applied"].count("a.py"), 2)  # ruff's own fix, then black's
+        # One applied entry for a.py, not one per fixer -- a path two fixers both touch must revert once.
+        self.assertEqual(payload["applied"].count("a.py"), 1)
         self.assertEqual(payload["patch"].count("--- a/a.py"), 1)  # one consolidated journal entry
+        self.assertEqual(payload["block"].count("Revert this file's fix: "), 1)
 
     def test_eslint_fix_is_applied_via_fix_dry_run(self):
         self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
@@ -1429,6 +1452,20 @@ class DiscoveredLinterTests(Fixture):
         self.assertIn("NOT APPLIED (would change a line this work item did not touch; whole file withheld): "
                       "a.js", payload["block"])
 
+    def test_eslint_fix_is_not_blocked_by_a_pre_existing_syntax_error(self):
+        """Mirrors ruff's own baseline comparison: a file node already can't parse never has its otherwise-safe
+        eslint fix blamed and withheld for that pre-existing condition."""
+        (self.bin / "node").write_text("#!" + sys.executable + "\n" + NODE_CHECK_STUB)
+        (self.bin / "node").chmod(0o755)
+        self.commit({"eslint.config.js": "export default []\n",
+                     "a.js": "// SYNTAXERR already broken\nvar z = 1\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "// SYNTAXERR already broken\nvar z = 1\nvar x = 1 FIXME\n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "// SYNTAXERR already broken\nvar z = 1\nvar x = 1\n")
+        self.assertIn("a.js", payload["applied"])
+
     def test_eslint_fix_is_not_attempted_in_report_mode(self):
         self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
         write_tool(self.bin, "eslint")
@@ -1447,8 +1484,10 @@ class DiscoveredLinterTests(Fixture):
         self.edit({"a.js": "one\nvar x = 1 FIXME\nvar y = 2   \n"})
         payload = self.run_pass()
         self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\nvar y = 2\n")
-        self.assertEqual(payload["applied"].count("a.js"), 2)  # eslint's own fix, then prettier's
+        # One applied entry for a.js, not one per fixer -- a path two fixers both touch must revert once.
+        self.assertEqual(payload["applied"].count("a.js"), 1)
         self.assertEqual(payload["patch"].count("--- a/a.js"), 1)  # one consolidated journal entry
+        self.assertEqual(payload["block"].count("Revert this file's fix: "), 1)
 
     def test_tsc_project_findings_count_only_in_changed_files(self):
         self.commit({"tsconfig.json": "{}\n", "src/a.ts": "let a = 1;\n", "src/b.ts": "let b = TSBAD;\n"})

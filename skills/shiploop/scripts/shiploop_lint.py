@@ -846,8 +846,7 @@ class _File:
         self.old = row["old"]
         self.data = b""
         self.text: Optional[str] = None
-        self.pass_data = b""         # content when this pass started; never mutated by a fixer (journal diffs from here)
-        self.pass_text: Optional[str] = None
+        self.pass_text: Optional[str] = None  # text when this pass started; never mutated (journal diffs from here)
         self.base: Optional[bytes] = None
         self.base_text: Optional[str] = None
         self.kind = ""
@@ -1017,7 +1016,6 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
                      if re.search(r"\d+\.\d+", line)]
             versions.append(name + " (" + (found[0] if found else "version unknown") + "; " + cquote(path) + ")")
 
-    applied: List[Tuple[_File, str]] = []
     not_applied: List[Tuple[_File, str, str]] = []
     fix_notes: List[str] = []
     python = [item for item in active if item.kind == "python"]
@@ -1033,20 +1031,22 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     else:
         withheld = ""
     if python and tools["ruff"][0]:
-        applied, not_applied, fix_notes, journal = _ruff_fix(
+        not_applied, fix_notes, journal = _ruff_fix(
             invoker, top, python, tools["ruff"][0], fixing=fixing, withheld=withheld,
-            pending_path=pending_path)
+            pending_path=pending_path, before=journal)
         _ruff_check(invoker, top, python, tools["ruff"][0])
     if shell and tools["shellcheck"][0]:
         _shellcheck(invoker, top, shell, tools["shellcheck"][0])
     _tier0(invoker, top, run_dir, active, tools, base_tree, current_tree, catalog)
-    missing, disc_applied, disc_not_applied, journal = _discover(
+    missing, disc_not_applied, journal = _discover(
         invoker, catalog, top, project, active, base_env, shim_dirs, roots,
         fixing=fixing, withheld=withheld, pending_path=pending_path, before=journal,
         node_tool=tools["node"][0])
-    applied += disc_applied
     not_applied += disc_not_applied
     exact_patch = "".join(journal.values()).encode("utf-8")
+    # One applied entry per path, straight from the journal -- never once per fixer (a path two fixers both
+    # touched in this pass must show, and revert, exactly once).
+    applied = _applied_from_journal(active, journal)
     for item in active:
         if item.linted_by:
             linted = "linted by " + ", ".join(item.linted_by)
@@ -1240,7 +1240,7 @@ def _load_file(invoker: _Invoker, top: Path, item: _File, base_entries: Mapping[
     except UnicodeDecodeError:
         item.text = item.data.decode("utf-8", "replace")
         item.check_only.append("not UTF-8")
-    item.pass_data, item.pass_text = item.data, item.text
+    item.pass_text = item.text
     item.kind = _classify(item.path, item.data[:256], catalog)
     old = base_entries.get(item.old if item.status in ("R", "C") else item.path)
     if old is not None and item.status != "A":
@@ -1333,8 +1333,7 @@ def _ruff_flags(top: Path, item: _File) -> Tuple[Tuple[str, ...], str]:
 
 
 def _apply_fixes(invoker: _Invoker, top: Path, planned: List[Tuple[_File, bytes, str]], pending_path: Path,
-                 before: Optional[Mapping[str, str]] = None) -> Tuple[List[Tuple[_File, str]],
-                                                                       List[Tuple[_File, str, str]], Dict[str, str]]:
+                 before: Optional[Mapping[str, str]] = None) -> Tuple[List[Tuple[_File, str, str]], Dict[str, str]]:
     """Apply every planned ``(item, fixed_bytes, diff)`` fix, tool-agnostically: journal-first, then per file
     re-stat + re-read + sha256-staleness check, atomic temp-file + ``os.replace``, and update
     ``item.data``/``text``/``sha``/``changed`` in place.
@@ -1342,16 +1341,17 @@ def _apply_fixes(invoker: _Invoker, top: Path, planned: List[Tuple[_File, bytes,
     The journal is a path -> diff mapping, not raw bytes: a path an earlier fixer in this pass already applied
     gets its entry REPLACED here, diffed from ``item.pass_text`` (the content when this pass started) to this
     fix's result -- never from the earlier fixer's own output -- so one path never ends up with two sections in
-    one pass's patch. ``diff`` in ``planned`` is each fixer's own incremental before/after text and is kept as
-    the human-facing report line (``applied``/``not_applied``); only the journal uses the cumulative diff.
-    ``before`` is the mapping this pass has already written to ``pending_path`` (``None``/``{}`` for the pass's
-    first fixer). Returns (applied, race failures, the updated mapping).
+    one pass's patch. The caller derives the pass's one-entry-per-path "applied" list straight from this
+    mapping (``_applied_from_journal``), never from a per-call list: a path two fixers both touch must show,
+    and revert, exactly once, not once per fixer. ``diff`` in ``planned`` is each fixer's own incremental
+    before/after text, kept only for ``not_applied``'s withheld-fix report line. ``before`` is the mapping this
+    pass has already written to ``pending_path`` (``None``/``{}`` for the pass's first fixer). Returns (race
+    failures, the updated mapping).
     """
-    applied: List[Tuple[_File, str]] = []
     not_applied: List[Tuple[_File, str, str]] = []
     mapping: Dict[str, str] = dict(before) if before else {}
     if not planned:
-        return applied, not_applied, mapping
+        return not_applied, mapping
     # Journal first, in the consolidated form every planned write would produce if none were refused: the
     # pending patch exists before any product file changes. A leftover journal was already adopted at the
     # start of the pass.
@@ -1381,7 +1381,6 @@ def _apply_fixes(invoker: _Invoker, top: Path, planned: List[Tuple[_File, bytes,
         finally:
             if temporary.exists():
                 temporary.unlink()
-        applied.append((item, diff))
         mapping[item.path] = prospective[item.path]
         item.data = fixed
         item.text = fixed_text_of[item.path]
@@ -1396,18 +1395,26 @@ def _apply_fixes(invoker: _Invoker, top: Path, planned: List[Tuple[_File, bytes,
             _write_private(pending_path, "".join(mapping.values()).encode("utf-8"))
         else:
             pending_path.unlink()
-    return applied, not_applied, mapping
+    return not_applied, mapping
+
+
+def _applied_from_journal(files: Sequence[_File], journal: Mapping[str, str]) -> List[Tuple[_File, str]]:
+    """The pass's one "applied" entry per journal path, each paired with its already-consolidated
+    (pass-start-to-final) diff -- never one entry per fixer. A path two fixers both touched in this pass would
+    otherwise show, and revert, twice: the second revert of the same already-reverted hunk fails.
+    """
+    by_path = {item.path: item for item in files}
+    return [(by_path[path], diff) for path, diff in journal.items() if path in by_path]
 
 
 def _ruff_fix(invoker: _Invoker, top: Path, files: List[_File], ruff: str, *, fixing: bool, withheld: str,
               pending_path: Path,
-              before: Optional[Mapping[str, str]] = None) -> Tuple[List[Tuple[_File, str]],
-                                                                    List[Tuple[_File, str, str]], List[str],
+              before: Optional[Mapping[str, str]] = None) -> Tuple[List[Tuple[_File, str, str]], List[str],
                                                                     Dict[str, str]]:
-    """Plan ruff autofixes per file and, when ``fixing``, apply them via ``_apply_fixes``; returns the applied
-    and unapplied fixes, notes and the updated path -> journal-diff mapping (``before`` plus this call's own).
+    """Plan ruff autofixes per file and, when ``fixing``, apply them via ``_apply_fixes``; returns the unapplied
+    fixes, notes and the updated path -> journal-diff mapping (``before`` plus this call's own). The caller
+    derives the pass's "applied" list from the mapping (``_applied_from_journal``), not from a per-call list.
     """
-    applied: List[Tuple[_File, str]] = []
     not_applied: List[Tuple[_File, str, str]] = []
     notes: List[str] = []
     planned: List[Tuple[_File, bytes, str]] = []
@@ -1463,10 +1470,10 @@ def _ruff_fix(invoker: _Invoker, top: Path, files: List[_File], ruff: str, *, fi
             continue
         planned.append((item, fixed, diff))
     if not planned:
-        return applied, not_applied, notes, (dict(before) if before else {})
-    applied, race, mapping = _apply_fixes(invoker, top, planned, pending_path, before=before)
+        return not_applied, notes, (dict(before) if before else {})
+    race, mapping = _apply_fixes(invoker, top, planned, pending_path, before=before)
     not_applied += race
-    return applied, not_applied, notes, mapping
+    return not_applied, notes, mapping
 
 
 def _forced_safe(text: str) -> Optional[List[str]]:
@@ -1889,24 +1896,40 @@ def _eslint_fix_syntax_guard(invoker: _Invoker, top: Path, item: _File, fixed: b
     logic, not only formatting, closer in risk to ruff's than to a pure reformatter's); the scratch copy is
     written BESIDE the real file, same directory and extension, unlike ``_syntax_tool``'s own scratch file under
     a separate tmp directory -- so Node's package.json-``type``-based and extension-based module resolution
-    still matches the real file's, which a copy elsewhere could get wrong. '' when it passes, there is no real
-    ``node``, or the file's kind has no cheap check (ts/tsx/jsx/vue rely on scope and line-ending guards alone).
+    still matches the real file's, which a copy elsewhere could get wrong. A failure counts only when the
+    pre-fix content (``item.data``) actually passed the same check -- mirroring ruff's own
+    ``_syntax_regression`` -- so a file this host's ``node`` already can't parse (for example newer syntax than
+    its version supports) never gets its eslint fix blamed and withheld for a pre-existing condition. '' when
+    it passes, there is no real ``node``, or the file's kind has no cheap check (ts/tsx/jsx/vue rely on scope
+    and line-ending guards alone).
     """
     if not node or item.kind != "javascript":
         return ""
     path = top / item.path
-    temporary = path.with_name("." + path.stem + ".shiploop-lintfix-" + uuid.uuid4().hex[:8] + path.suffix)
-    try:
-        _write_private(temporary, fixed)
-        call = invoker.run([node, "--check", os.fspath(temporary)],
-                           what="node --check (fix guard) for " + item.path, ok_codes=None)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+
+    def _check(content: bytes, suffix: str) -> Optional[Dict[str, Any]]:
+        temporary = path.with_name("." + path.stem + ".shiploop-lintfix-" + suffix + "-"
+                                   + uuid.uuid4().hex[:8] + path.suffix)
+        try:
+            _write_private(temporary, content)
+            return invoker.run([node, "--check", os.fspath(temporary)],
+                               what="node --check (fix guard" + (" baseline" if suffix == "base" else "")
+                               + ") for " + item.path, ok_codes=None)
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+
+    call = _check(fixed, "fix")
     if call is None or call["status"] == "timeout" or call["exit"] is None:
         return "syntax guard did not complete; fix withheld"
-    if call["exit"] != 0:
+    if call["exit"] == 0:
+        return ""
+    before = _check(item.data, "base")
+    if before is None or before["status"] == "timeout" or before["exit"] is None:
+        return "syntax guard did not complete; fix withheld"
+    if before["exit"] == 0:
         return "the fixed file no longer parses as JavaScript (syntax guard); fix withheld"
+    # The file did not parse before the fix either: the fix is no regression.
     return ""
 
 
@@ -1967,29 +1990,29 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
               active: Sequence[_File], base_env: Mapping[str, str], shim_dirs: Sequence[str],
               roots: Sequence[str], *, fixing: bool, withheld: str, pending_path: Path,
               before: Optional[Mapping[str, str]] = None,
-              node_tool: Optional[str] = None) -> Tuple[List[str], List[Tuple[_File, str]],
-                                                         List[Tuple[_File, str, str]],
-                                                         Dict[str, str]]:
+              node_tool: Optional[str] = None) -> Tuple[List[str], List[Tuple[_File, str, str]], Dict[str, str]]:
     """Run every catalogued linter the repository declares for a changed file type.
 
     Phase A applies every ``fixable`` row's fix to completion -- acquire, ``_plan_discovered_fix``,
     ``_apply_fixes`` -- one row at a time, in the catalog's own row order, before moving to the next row. A
     later row's acquisition call for a path an earlier row already fixed therefore reads that already-applied
     content (composing, never clobbering); the catalog lists eslint before prettier, the only two fixable rows
-    that share any suffixes. Phase B (the report loop) runs only after Phase A has fully finished every row,
-    re-invoking each tool fresh against final content -- simpler and strictly correct, at the cost of one
-    extra bounded call per already-fixed file, versus caching Phase A's own output.
+    that share any suffixes. Phase B (the report loop) runs only after Phase A has fully finished every row.
 
-    Returns (recommendation lines for linters the repository configures but this host lacks, applied fixes,
-    fix attempts this call refused, the updated path -> journal-diff mapping). Findings, coverage and tool
-    notes go onto the files.
+    Returns (recommendation lines for linters the repository configures but this host lacks, fix attempts this
+    call refused, the updated path -> journal-diff mapping). The caller derives the pass's "applied" list from
+    the mapping (``_applied_from_journal``), not from a per-call list. Findings, coverage and tool notes go
+    onto the files.
     """
     search = [project] if project == top else [project, top]
     path_env = base_env.get("PATH", "")
     missing: List[str] = []
-    applied: List[Tuple[_File, str]] = []
     not_applied: List[Tuple[_File, str, str]] = []
     journal: Dict[str, str] = dict(before) if before else {}
+    # Phase A's stdin-diff acquisition call already produces exactly what Phase B needs to report; cache it by
+    # path (no two stdin-diff rows share a suffix, so one entry per path is always the right one) so Phase B
+    # never re-invokes the same tool with the same stdin a second time.
+    stdin_cache: Dict[str, bytes] = {}
     rows = list(catalog.get("discovered", ()))
 
     for row in rows:
@@ -2044,6 +2067,7 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
                 if _record_tool_failure(call, [item], name, ok):
                     continue
                 formatted = call["stdout"]
+                stdin_cache[item.path] = formatted
                 if not formatted or formatted == item.data:
                     continue
                 try:
@@ -2057,8 +2081,7 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
                     not_applied.append((item, reason, diff))
                     continue
                 planned.append((item, formatted, diff))
-        row_applied, row_race, journal = _apply_fixes(invoker, top, planned, pending_path, before=journal)
-        applied += row_applied
+        row_race, journal = _apply_fixes(invoker, top, planned, pending_path, before=journal)
         not_applied += row_race
 
     for row in rows:
@@ -2088,12 +2111,16 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
 
         if fmt == "stdin-diff":
             for item in files:
-                call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
-                                   what=name + " " + item.path, stdin=item.data, cwd=project,
-                                   stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
-                if _record_tool_failure(call, [item], name, ok):
-                    continue
-                formatted = _decode(call["stdout"])
+                if item.path in stdin_cache:
+                    formatted_bytes = stdin_cache[item.path]
+                else:
+                    call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
+                                       what=name + " " + item.path, stdin=item.data, cwd=project,
+                                       stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
+                    if _record_tool_failure(call, [item], name, ok):
+                        continue
+                    formatted_bytes = call["stdout"]
+                formatted = _decode(formatted_bytes)
                 if formatted != (item.text or ""):
                     _format_findings(item, name, formatted, hint + " " + item.path)
                 item.linted_by.append(label)
@@ -2115,7 +2142,7 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
             _parse_tool_lines(text, by_path, name, project, top)
         for item in files:
             item.linted_by.append(label)
-    return missing, applied, not_applied, journal
+    return missing, not_applied, journal
 
 
 def _project_scripts(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
