@@ -517,6 +517,9 @@ def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
 # ``_main``, read by ``main`` once the command has finished.  A command on a retired or unloadable run, or one whose
 # command line did not parse, records nothing: it must leave that directory as it was.
 _TRACE: dict[str, Any] = {}
+# How many ``main`` calls are running.  A command another one runs (``workspace start`` runs init, or next on an
+# identical re-entry) is part of that command line: only the outermost is recorded, with the run the inner one loaded.
+_DEPTH = [0]
 
 
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
@@ -524,7 +527,10 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     import shiploop_trace
 
     raw_argv = list(sys.argv[1:] if argv is None else argv)
-    _TRACE.clear()
+    outermost = not _DEPTH[0]
+    if outermost:
+        _TRACE.clear()
+    _DEPTH[0] += 1
     started = time.monotonic()
     code = 2
     try:
@@ -534,8 +540,10 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         code = exc.code if isinstance(exc.code, int) else 2
         raise
     finally:
-        shiploop_trace.ACTIVE = False
-        _record_command(raw_argv, code, started)
+        _DEPTH[0] -= 1
+        if outermost:  # an inner command's packets stay in the trace until the command line that ran it ends
+            shiploop_trace.ACTIVE = False
+            _record_command(raw_argv, code, started)
 
 
 def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:

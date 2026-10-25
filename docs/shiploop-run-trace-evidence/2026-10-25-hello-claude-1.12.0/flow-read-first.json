@@ -1,0 +1,665 @@
+{
+ "output": "<OUT>",
+ "run_dir": ".shiploop-runs/work-20261025-225710-c57c36/run",
+ "host": "claude",
+ "case": "hello",
+ "versions": {
+  "source": "marketplace",
+  "installed_by": "origin/main export",
+  "plugin_version": "2.12.0",
+  "shiploop_version": "1.12.0",
+  "plugin_sha256": "ef4bf05c794b",
+  "released": {
+   "origin_main": "5485b8963c8f385d6a8216cc202bdca8612db9e4",
+   "local_head": "5485b8963c8f385d6a8216cc202bdca8612db9e4",
+   "local_behind_main": true,
+   "catalog_version": "2.12.0",
+   "shiploop_version": "1.12.0",
+   "unreleased": [],
+   "ci": "pending"
+  },
+  "gate": []
+ },
+ "delegation": "inline",
+ "staleness": {
+  "recorded": "2026-10-25",
+  "sha": null,
+  "branch": "main",
+  "tip": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "generator_commits": null,
+  "text": "recorded 2026-10-25 on an unrecorded commit, main 98983fa2, packet-generator commits since: not measured (no commit was recorded)",
+  "file": "invocation.json"
+ },
+ "commands": {
+  "invocations": 88,
+  "literal": 10,
+  "variable_built": 77,
+  "variable_run_dir": 66,
+  "piped": 59,
+  "by_verb": {
+   "workspace": {
+    "invocations": 10,
+    "piped": 8
+   },
+   "complete": {
+    "invocations": 56,
+    "piped": 33
+   },
+   "improve-pass": {
+    "invocations": 16,
+    "piped": 13
+   },
+   "init": {
+    "invocations": 1,
+    "piped": 1
+   },
+   "lint": {
+    "invocations": 5,
+    "piped": 4
+   }
+  },
+  "cut_by_pipe": 35,
+  "median_n": 6.0,
+  "status_displays": 6,
+  "status_displays_reason": null,
+  "file": "events.jsonl"
+ },
+ "producers": {
+  "measured": true,
+  "count_opened": 13,
+  "of": 27,
+  "rows": [
+   {
+    "stage": "intake",
+    "action": "nav-a66fd9269fc445a38d3355945e09728f",
+    "written": 11267,
+    "seen": 11571,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-a66fd9269fc445a38d3355945e09728f.md"
+   },
+   {
+    "stage": "discovery",
+    "action": "nav-4a06155e4a2d4f1d8898d94f3b848b1c",
+    "written": 17918,
+    "seen": 13745,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-4a06155e4a2d4f1d8898d94f3b848b1c.md"
+   },
+   {
+    "stage": "research",
+    "action": "nav-c5c8e7d821d44b4ca024c363a326cc52",
+    "written": 14561,
+    "seen": 14587,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-c5c8e7d821d44b4ca024c363a326cc52.md"
+   },
+   {
+    "stage": "spec",
+    "action": "nav-0769f93b936e45dc8ce2214b02fe4971",
+    "written": 18301,
+    "seen": 14969,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-0769f93b936e45dc8ce2214b02fe4971.md"
+   },
+   {
+    "stage": "test-strategy",
+    "action": "nav-24e8ec2ffb124af3bd5a0ac288140e52",
+    "written": 19871,
+    "seen": 16783,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-24e8ec2ffb124af3bd5a0ac288140e52.md"
+   },
+   {
+    "stage": "plan",
+    "action": "nav-a1467405f2024899839e837198086e52",
+    "written": 30844,
+    "seen": 19977,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-a1467405f2024899839e837198086e52.md"
+   },
+   {
+    "stage": "prepare",
+    "action": "nav-0304b03ab8cb49be90856c1e62c10db6",
+    "written": 14795,
+    "seen": 14821,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-0304b03ab8cb49be90856c1e62c10db6.md"
+   },
+   {
+    "stage": "step-plan",
+    "action": "nav-e4757176d4e94460a558837bb8fe3935",
+    "written": 27149,
+    "seen": 20967,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-e4757176d4e94460a558837bb8fe3935.md"
+   },
+   {
+    "stage": "test-spec",
+    "action": "nav-9a86b122942f4f549ae3c4a572d3629e",
+    "written": 24893,
+    "seen": 15754,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-9a86b122942f4f549ae3c4a572d3629e.md"
+   },
+   {
+    "stage": "implement",
+    "action": "nav-7d0f97f9fb5642d1a3a4d25505c33de2",
+    "written": 32341,
+    "seen": 19538,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-7d0f97f9fb5642d1a3a4d25505c33de2.md"
+   },
+   {
+    "stage": "step-plan",
+    "action": "nav-8ca9429092194575b020e892cbb6d668",
+    "written": 28467,
+    "seen": 19818,
+    "cut_by": [],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-8ca9429092194575b020e892cbb6d668.md"
+   },
+   {
+    "stage": "test-spec",
+    "action": "nav-6a55e8827801496b993a99627a9c518f",
+    "written": 26348,
+    "seen": 9149,
+    "cut_by": [
+     "head -60"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-6a55e8827801496b993a99627a9c518f.md"
+   },
+   {
+    "stage": "implement",
+    "action": "nav-cadab6f1dc3b4e90bbb973b0e6465476",
+    "written": 33743,
+    "seen": 6824,
+    "cut_by": [
+     "head -30"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-cadab6f1dc3b4e90bbb973b0e6465476.md"
+   },
+   {
+    "stage": "test",
+    "action": "nav-bacfd97471dc4c0593f90f501c33e5c9",
+    "written": 29561,
+    "seen": 6425,
+    "cut_by": [],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-bacfd97471dc4c0593f90f501c33e5c9.md"
+   },
+   {
+    "stage": "document",
+    "action": "nav-e027accb45974048a0024d2504930278",
+    "written": 20553,
+    "seen": 2301,
+    "cut_by": [],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-e027accb45974048a0024d2504930278.md"
+   },
+   {
+    "stage": "verify",
+    "action": "nav-10530dcb4c074f7c82c2258467188e22",
+    "written": 31216,
+    "seen": 1358,
+    "cut_by": [
+     "head -6"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-10530dcb4c074f7c82c2258467188e22.md"
+   },
+   {
+    "stage": "carry-forward",
+    "action": "nav-9b704cbec0bf4712b7bf33e5ef174af4",
+    "written": 22076,
+    "seen": 1450,
+    "cut_by": [
+     "head -8"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-9b704cbec0bf4712b7bf33e5ef174af4.md"
+   },
+   {
+    "stage": "system-test-author",
+    "action": "nav-efc9b664eb5a4f1db214da34a567d96f",
+    "written": 19731,
+    "seen": 2962,
+    "cut_by": [
+     "head -14"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-efc9b664eb5a4f1db214da34a567d96f.md"
+   },
+   {
+    "stage": "system-test",
+    "action": "nav-1a70f051b90946a495e17286f4805b45",
+    "written": 17772,
+    "seen": 2216,
+    "cut_by": [
+     "head -14"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-1a70f051b90946a495e17286f4805b45.md"
+   },
+   {
+    "stage": "product-acceptance",
+    "action": "nav-ea6339ad77b7470fa62f9498ac6617bb",
+    "written": 20128,
+    "seen": 1914,
+    "cut_by": [
+     "head -12"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-ea6339ad77b7470fa62f9498ac6617bb.md"
+   },
+   {
+    "stage": "release-plan",
+    "action": "nav-f5c7908ab5744d9a9e4f23cb1518d12a",
+    "written": 22010,
+    "seen": 1336,
+    "cut_by": [
+     "head -6"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-f5c7908ab5744d9a9e4f23cb1518d12a.md"
+   },
+   {
+    "stage": "release-check",
+    "action": "nav-0238a89412de4129affd281213ac004e",
+    "written": 18465,
+    "seen": 1548,
+    "cut_by": [
+     "head -6"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-0238a89412de4129affd281213ac004e.md"
+   },
+   {
+    "stage": "release",
+    "action": "nav-e030df7f944a411f934c985a2fffe972",
+    "written": 18353,
+    "seen": 1062,
+    "cut_by": [
+     "head -4"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-e030df7f944a411f934c985a2fffe972.md"
+   },
+   {
+    "stage": "release-verify",
+    "action": "nav-292aa17240b84603b273614a746ff6db",
+    "written": 20082,
+    "seen": 1175,
+    "cut_by": [
+     "head -5"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-292aa17240b84603b273614a746ff6db.md"
+   },
+   {
+    "stage": "operations",
+    "action": "nav-d66bd30cb0644a2688c94d57fef36a5d",
+    "written": 15829,
+    "seen": 2136,
+    "cut_by": [
+     "head -10"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-d66bd30cb0644a2688c94d57fef36a5d.md"
+   },
+   {
+    "stage": "handoff",
+    "action": "nav-e8c8a358262340b483e52bb65683f71c",
+    "written": 20979,
+    "seen": 1658,
+    "cut_by": [
+     "head -8"
+    ],
+    "opened": "slice",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-e8c8a358262340b483e52bb65683f71c.md"
+   },
+   {
+    "stage": "done",
+    "action": "nav-5767c9b874344e6abb7c6303e35d6875",
+    "written": 10224,
+    "seen": 2798,
+    "cut_by": [
+     "head -30"
+    ],
+    "opened": "none",
+    "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets/nav-5767c9b874344e6abb7c6303e35d6875.md"
+   }
+  ],
+  "reason": null,
+  "file": ".shiploop-runs/work-20261025-225710-c57c36/run/packets"
+ },
+ "steps": {
+  "measured": true,
+  "rows": [
+   {
+    "stage": "intake",
+    "seconds": 22.1,
+    "turns": 9,
+    "tool_calls": 5,
+    "context_peak": 56776,
+    "incomplete": false
+   },
+   {
+    "stage": "discovery",
+    "seconds": 20.0,
+    "turns": 6,
+    "tool_calls": 4,
+    "context_peak": 64636,
+    "incomplete": false
+   },
+   {
+    "stage": "research",
+    "seconds": 16.0,
+    "turns": 5,
+    "tool_calls": 3,
+    "context_peak": 72386,
+    "incomplete": false
+   },
+   {
+    "stage": "spec",
+    "seconds": 67.0,
+    "turns": 22,
+    "tool_calls": 13,
+    "context_peak": 111908,
+    "incomplete": false
+   },
+   {
+    "stage": "test-strategy",
+    "seconds": 81.0,
+    "turns": 23,
+    "tool_calls": 11,
+    "context_peak": 137397,
+    "incomplete": false
+   },
+   {
+    "stage": "plan",
+    "seconds": 81.0,
+    "turns": 21,
+    "tool_calls": 11,
+    "context_peak": 162316,
+    "incomplete": false
+   },
+   {
+    "stage": "prepare",
+    "seconds": 12.0,
+    "turns": 3,
+    "tool_calls": 1,
+    "context_peak": 168513,
+    "incomplete": false
+   },
+   {
+    "stage": "step-plan",
+    "seconds": 116.0,
+    "turns": 24,
+    "tool_calls": 11,
+    "context_peak": 200771,
+    "incomplete": false
+   },
+   {
+    "stage": "test-spec",
+    "seconds": 53.0,
+    "turns": 14,
+    "tool_calls": 7,
+    "context_peak": 219150,
+    "incomplete": false
+   },
+   {
+    "stage": "validate-existing",
+    "seconds": 0.0,
+    "turns": 0,
+    "tool_calls": 0,
+    "context_peak": null,
+    "incomplete": false
+   },
+   {
+    "stage": "implement",
+    "seconds": 61.0,
+    "turns": 14,
+    "tool_calls": 6,
+    "context_peak": 237661,
+    "incomplete": false
+   },
+   {
+    "stage": "step-plan",
+    "seconds": 48.0,
+    "turns": 14,
+    "tool_calls": 7,
+    "context_peak": 256106,
+    "incomplete": false
+   },
+   {
+    "stage": "test-spec",
+    "seconds": 30.0,
+    "turns": 9,
+    "tool_calls": 5,
+    "context_peak": 268029,
+    "incomplete": false
+   },
+   {
+    "stage": "validate-existing",
+    "seconds": 0.0,
+    "turns": 0,
+    "tool_calls": 0,
+    "context_peak": null,
+    "incomplete": false
+   },
+   {
+    "stage": "implement",
+    "seconds": 75.0,
+    "turns": 19,
+    "tool_calls": 9,
+    "context_peak": 287082,
+    "incomplete": false
+   },
+   {
+    "stage": "test",
+    "seconds": 44.0,
+    "turns": 10,
+    "tool_calls": 5,
+    "context_peak": 304454,
+    "incomplete": false
+   },
+   {
+    "stage": "document",
+    "seconds": 24.0,
+    "turns": 7,
+    "tool_calls": 3,
+    "context_peak": 311659,
+    "incomplete": false
+   },
+   {
+    "stage": "verify",
+    "seconds": 82.0,
+    "turns": 18,
+    "tool_calls": 9,
+    "context_peak": 330850,
+    "incomplete": false
+   },
+   {
+    "stage": "carry-forward",
+    "seconds": 71.0,
+    "turns": 18,
+    "tool_calls": 9,
+    "context_peak": 349653,
+    "incomplete": false
+   },
+   {
+    "stage": "system-test-author",
+    "seconds": 63.0,
+    "turns": 17,
+    "tool_calls": 8,
+    "context_peak": 367879,
+    "incomplete": false
+   },
+   {
+    "stage": "system-test",
+    "seconds": 25.0,
+    "turns": 9,
+    "tool_calls": 4,
+    "context_peak": 374022,
+    "incomplete": false
+   },
+   {
+    "stage": "product-acceptance",
+    "seconds": 29.0,
+    "turns": 7,
+    "tool_calls": 4,
+    "context_peak": 381122,
+    "incomplete": false
+   },
+   {
+    "stage": "release-plan",
+    "seconds": 80.0,
+    "turns": 22,
+    "tool_calls": 11,
+    "context_peak": 400696,
+    "incomplete": false
+   },
+   {
+    "stage": "release-check",
+    "seconds": 79.0,
+    "turns": 23,
+    "tool_calls": 9,
+    "context_peak": 414813,
+    "incomplete": false
+   },
+   {
+    "stage": "release",
+    "seconds": 31.0,
+    "turns": 9,
+    "tool_calls": 4,
+    "context_peak": 420200,
+    "incomplete": false
+   },
+   {
+    "stage": "release-verify",
+    "seconds": 48.0,
+    "turns": 11,
+    "tool_calls": 5,
+    "context_peak": 430636,
+    "incomplete": false
+   },
+   {
+    "stage": "operations",
+    "seconds": 28.0,
+    "turns": 7,
+    "tool_calls": 3,
+    "context_peak": 434941,
+    "incomplete": false
+   },
+   {
+    "stage": "handoff",
+    "seconds": 82.0,
+    "turns": 22,
+    "tool_calls": 10,
+    "context_peak": 451118,
+    "incomplete": false
+   }
+  ],
+  "file": "metrics.json"
+ },
+ "gates": {
+  "measured": true,
+  "count": 0,
+  "gates": [
+   {
+    "gate": "base",
+    "records": 1,
+    "skipped": 0,
+    "reason": null
+   },
+   {
+    "gate": "mutation",
+    "records": 1,
+    "skipped": 0,
+    "reason": null
+   },
+   {
+    "gate": "inventory",
+    "records": 1,
+    "skipped": 0,
+    "reason": null
+   },
+   {
+    "gate": "item_commit",
+    "records": 1,
+    "skipped": 0,
+    "reason": null
+   }
+  ],
+  "ran": 4,
+  "file": ".shiploop-runs/work-20261025-225710-c57c36/run/tests"
+ },
+ "refusals": {
+  "count": 6,
+  "rows": [
+   {
+    "stage": "step-plan",
+    "cause": "no step satisfies C4: name it in the step that does, or add the step",
+    "count": 1
+   },
+   {
+    "stage": "implement",
+    "cause": "ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from <path>",
+    "count": 1
+   },
+   {
+    "stage": "verify",
+    "cause": "the verify loop is still active: run the receipt's next_argv once, follow each instruction it returns until it",
+    "count": 1
+   },
+   {
+    "stage": "release-plan",
+    "cause": "evidence_refs cite files that do not exist: <path> Write the file or remove the reference.",
+    "count": 1
+   },
+   {
+    "stage": "improve",
+    "cause": "no bound current Improve stage with this action (it may already be imported)",
+    "count": 1
+   },
+   {
+    "stage": "release-check",
+    "cause": "return plan is stale because candidate state changed",
+    "count": 1
+   }
+  ],
+  "file": "events.jsonl"
+ },
+ "item_commit": {
+  "measured": true,
+  "present": true,
+  "uncommitted_product": [],
+  "reason": null,
+  "file": ".shiploop-runs/work-20261025-225710-c57c36/run/lint/items"
+ },
+ "skills": {
+  "calls": {
+   "skill-craft:improve": 11
+  },
+  "improve_invoked": 11,
+  "improve_stages": 11,
+  "file": "events.jsonl"
+ },
+ "seeded": [],
+ "cannot_show": [
+  "whether the model read or used the text a tool result showed it: only what reached it is counted",
+  "a time or turn difference between runs: one run per side (n=1); the page shows it only beside an A/A spread"
+ ]
+}

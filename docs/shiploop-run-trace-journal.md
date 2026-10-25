@@ -84,7 +84,8 @@ running. A critical pass over the same page found three more misreadings:
 
 Owner: "We always want the ability to see what the original prompt was and what the expanded prompt was, based on all
 the planning activities." What planning records, read on the chess run: intake's summary maps every request sentence
-(`S1 outcome: …`, `S2 boundary: …`; 22 of 22 in that run); each planning stage has a headline and summary; spec names
+(`S1 outcome: …`, `S2 boundary: …`; 22 of 22 in that run; superseded 2026-10-25: that is one host's shape, and the
+reader built on it missed 11 of 27 real intakes, see "live check on a real host run"); each planning stage has a headline and summary; spec names
 the living spec's requirements (17, `### R-n.` headings in `docs/shiploop/spec.md`); plan has the work items and 10
 assumptions; each item's step plan has its steps (6, 1, 3); answers the owner gave a waiting run are in `decisions/`.
 
@@ -180,6 +181,73 @@ packet over the print limit, so they now accept a kept head. Evidence: the six s
 Lesson: for a change that writes a new file into every run, select the suites that snapshot run directories (cross-run,
 chain*, backchain-check) and the e2e apparatus, not only the suites the changed files reference. Gap: chain commands
 (ask-agent runs) are not in the trace.
+
+## 2026-10-25: live check on a real host run, ShipLoop 1.12.0 (interim: 1.12.1 rerun pending)
+
+**Question.** Does the released trace (skill-craft 2.12.0 / ShipLoop 1.12.0, `5485b896`) record and show a real host run:
+command, packet and hook lines in order; each packet kept as sent; refusals with their text; keepalive continuations
+with their injected text; `trace`, `--action`, `--request`, `--html`; a page with no console errors, a legend that never
+animates on a finished run, times in the viewer's zone? And do its counts agree with the harness's
+`flow.py --read-first`?
+
+**Case.** `hello` (`run.py --case hello --host claude --source marketplace --timeout 3600 --max-budget-usd 15`),
+Claude Sonnet 5.5 (`claude-sonnet-5-5`, host default effort), marketplace preflight `--host all` OK on Claude, Codex
+and Grok. Output `~/e2e-runs/20261025/trace-verify-4fd9f1/hello` (not in the repo; product never committed). PASS on
+every verdict: done in 1,382 s, $7.65, 1 session, 28 accepted steps including a send-back of W1's implement. Two
+other harness runs shared the machine (the harness says so), so its time and cost are not comparable. Evidence,
+paths scrubbed to `<OUT>` and `~`: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.12.0/`.
+
+| Feature | Result on the real run | Evidence |
+|---|---|---|
+| `trace.jsonl` lines in order | worked: 120 lines (81 command, 38 packet, 1 hook), timestamps monotonic; a packet line precedes the command that printed it | `trace.jsonl` |
+| packets kept as sent | worked: 38 packet lines, every `packets/sent/<sha>.md` present and matching its sha; 22 printed as a head, each head kept too (60 files); 0 reprints | `trace.jsonl`, `page-check.json` |
+| refusal text | worked for navigator verbs (3 refusals, each with its full text, e.g. the step proof's `grep: invalid option -- P`); **not** for the 2 exit-3 `lint`/`red-check` calls, recorded as refusals with no text | `action-implement.txt`, `digest.txt` |
+| failed `--check-only` | worked: 2 counted as checks, not refusals | `digest.txt` |
+| keepalive continuation text | **not exercised**: the headless Claude session never ended a turn before the run was done; the one hook line is `allow: run is done` (no text, as designed) | `trace.jsonl` |
+| `shiploop trace` digest | worked (stages ✓ with ×2, (1 step), ↩1, +I, !1 marks; 28 steps; totals) | `digest.txt` |
+| `--action` | worked with `nav-7d0f97f9`; **refused the bare hex `7d0f97f9`** that a reader copies from the digest's `nav-7d0f97f9…` (fixed) | `action-implement.txt` |
+| `--request` | **wrong**: "intake read 0 of 1 sentences" and "→ not read by intake", although intake's summary covered S1 (fixed; see below) | `request-released-reader.txt`, `request-fixed-reader.txt` |
+| `--json` | worked: the whole model, counts as the digest | (not exported, 101 KB) |
+| `--html` | worked into the run and to a path outside it | `page-check.json` |
+| page | worked: 0 console messages; finished run 0 animated elements, 24 chips all done, legend names only done and the marks the run has; times `03:57:11 PM` with the UTC stamp as tooltip and "times in PDT"; no horizontal scroll at 1024 and 375 px; active page mid-run animates only its status dot and offers the live toggle | `page-check.json` |
+| `workspace start` | **recorded twice**: `init` and `workspace`, both `[None, 0]` (fixed) | `trace.jsonl` lines 2-3 |
+
+**Counts against `flow.py --read-first` (same run).** Reconciled exactly; every difference is a counting rule, none a
+lost event.
+
+| | trace | flow | difference |
+|---|---|---|---|
+| refusals | 5 refused + 2 failed checks | 6 refusals | 3 in both (step proof, verify loop still active, `improve-pass` on an imported Improve stage); 2 `--check-only` failures are checks in the trace and refusals in flow (any failure line); 1 stale `workspace plan-return` only in flow (it names `--workspace-root`, and the trace records commands that name `--run-dir`); 2 exit-3 `lint`/`red-check` calls only in the trace (run by loop drivers, no failure line for flow to see; 1.12.1 stops tracing those verbs) |
+| commands | 81 | 88 invocations | 78 in both (56 `complete`, 16 `improve-pass`, 5 `lint`, 1 `workspace start`); trace +2 `red-check` (loop drivers) +1 `init` (the double-recorded `workspace start`); flow +9 `workspace plan-return`/`review-return`/`return` (untraced, `--workspace-root`) +1 `init` that is a heredoc Python script (a flow parser false positive) |
+| packets | 38 | 27 producer rows | 38 = 27 producer packets + 11 Improve packets |
+| skill calls | 11 | 11 `skill-craft:improve` | none |
+
+**The request view on real runs.** Intake is asked to cite `S<n>`, one clause each, without a fixed shape. Survey of
+every accepted intake under `~/e2e-runs` since 2026-10-15 that cites sentences (27 runs): the released reader mapped
+all sentences on 16 (all `S1 outcome: …`, mostly Grok and Haiku) and none on 11 (Claude Sonnet and Codex:
+`S1: outcome = …`, `S1: Outcome: …`, `S1: outcome - …`, `S1: outcome is …`, `S1 (paraphrase): Outcome 1: …`,
+`S1: Deliver …`, `S1 maps to …`). With none mapped, the terminal request view also hid intake's summary, so Sonnet
+runs, the E2E default, showed nothing of intake. Every citation in the 27 starts a clause (summary start, after `. `
+or `| `). Evidence: `docs/shiploop-run-trace-evidence/intake-sentence-survey-2026-10-25.json`.
+
+**Fixed in this change** (`changes/shiploop/trace-real-run-fixes.md`, patch):
+
+| Defect | Fix | Pinned by |
+|---|---|---|
+| sentence readings missed 11 of 27 real intakes | `sentence_readings` takes `S<n>` + `kind:`, `:`, `(paraphrase):` or `maps to`; a kind after the colon (`outcome =`, `Boundary -`, `Outcome 1:`) is read, else `reading`; 27 of 27 map | `test_intakes_reading_is_split_however_the_host_words_the_citation` (fails on the released reader) |
+| an unmapped intake vanished from the terminal request view; "not read by intake" was false | intake's summary prints when nothing maps; the wording is "no clause of intake's summary cites it" (digest and page) | `test_an_intake_summary_with_no_cited_sentence_stays_in_the_request_view` (fails on the released reader) |
+| `workspace start` recorded as two commands | only the outermost `protocol.main` records (`_DEPTH`), with the run the inner `init` or `next` loaded | `test_workspace_start_is_one_command_though_it_runs_init_or_next` (fails without the fix: 4 lines for 2 commands) |
+| `--action` refused the bare hex | an id also matches without its `nav-` prefix | `test_one_action_lists_its_packets_commands_and_files` |
+| digest plurals "1 checks failed", "(1 reprints)", "of 1 sentences" | `_count` | two assertions corrected in `test/shiploop-trace.test.py` |
+
+`test/shiploop-trace.test.py`: 25 tests pass. Quick tier (`run-all.sh --group quick --changed-from 5485b896 --jobs 6`):
+PASS, 27 suites, 173.3 s wall (before the `--action` change, which touches `find_action` only).
+
+**Status: interim.** The parent session reported that 1.12.0 failed main's full CI and 1.12.1 follows (navigator
+command tracing unchanged; `chain`, `lint`, `red-check`, `backchain-check` no longer traced; packet lines only during a
+traced command), so the firm check is the rerun on 1.12.1. Not verified on any real run: a keepalive continuation
+with its injected text; a reprinted packet. `workspace plan-return`/`review-return`/`return` are not in the trace by
+design (they name `--workspace-root`); whether they should be is open.
 
 ## Open (exploratory)
 

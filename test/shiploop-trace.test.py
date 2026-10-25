@@ -115,6 +115,21 @@ class TraceWriterTests(CliRun):
         for row in rows:
             self.assertEqual((row["v"], type(row["ts"]), row["at"][-1]), (1, float, "Z"))
 
+    def test_workspace_start_is_one_command_though_it_runs_init_or_next(self) -> None:
+        # The 2026-10-25 E2E run recorded `workspace start` twice, as init and as workspace, both creating the run.
+        repo, root = self.base / "source", self.base / "workspace"
+        repo.mkdir()
+        for argv in (["init", "-q", "-b", "main"], ["-c", "user.name=T", "-c", "user.email=t@example.invalid",
+                                                     "commit", "-q", "--allow-empty", "-m", "baseline"]):
+            subprocess.run(["git", "-C", str(repo), *argv], check=True, capture_output=True)
+        start = ["workspace", "start", "--repo", str(repo), "--workspace-root", str(root), "--prompt", "Add a greeting."]
+        for _ in range(2):                                # the second is an identical re-entry: it runs next
+            result = subprocess.run([sys.executable, "-B", str(CLI), *start], env=ENV, text=True, capture_output=True,
+                                    timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        commands = [row for row in events(root / "run") if row["kind"] == "command"]
+        self.assertEqual([(row["verb"], row["rev"]) for row in commands], [("workspace", [None, 0]), ("workspace", [0, 0])])
+
     def test_every_packet_is_kept_as_sent(self) -> None:
         intake, discovery = self.drive()
         packets = [row for row in events(self.run) if row["kind"] == "packet"]
@@ -249,7 +264,7 @@ class TraceReaderTests(CliRun):
         self.assertIn("refused: RUN/inbox/" + intake + ".md: record must contain exactly one shiploop-state fence", text)
         self.assertIn("reprint, same text", text)
         self.assertIn("accepted intake (done)", text)
-        self.assertIn("Totals:   1 accepted · 7 commands · 1 refused · 0 checks failed · 5 packets (1 reprints)", text)
+        self.assertIn("Totals:   1 accepted · 7 commands · 1 refused · 0 checks failed · 5 packets (1 reprint)", text)
 
     def test_a_failed_check_only_run_is_a_check_not_a_refusal(self) -> None:
         intake = self.action()
@@ -270,6 +285,9 @@ class TraceReaderTests(CliRun):
         missing = self.cli("trace", "--run-dir", str(self.run), "--action", "nav-")
         self.assertEqual(missing.returncode, 2)
         self.assertIn("no single action matches", missing.stderr)
+        # The digest prints `nav-7d0f97f9…`; the 2026-10-25 E2E check copied the hex and was refused.
+        bare = self.ok("trace", "--run-dir", str(self.run), "--action", intake.split("-", 1)[1][:8]).stdout
+        self.assertIn(f"=== ShipLoop trace: action {intake} ===", bare)
 
     def test_json_is_the_whole_model(self) -> None:
         self.drive()
@@ -321,6 +339,34 @@ class TraceRequestTests(CliRun):
                                     3: [{"kind": "open question", "text": "which version source? (asked)."}]})
         self.assertEqual(trace.sentence_readings("No sentence markers here."), {})
 
+    def test_intakes_reading_is_split_however_the_host_words_the_citation(self) -> None:
+        # Shapes from real intake summaries (2026-10-24/25 E2E runs on Claude Sonnet, Codex and Grok); before the fix
+        # 11 of 27 real intakes that cite every sentence were read as "0 of N sentences".
+        readings = trace.sentence_readings(
+            'S1: outcome = report.py at the root (fact). S2: Outcome: one JSON object. S3: outcome - rows skipped. '
+            'S4: outcome is a header-only file adds nothing. S5 (page shows "shots (and hits)"): boundary = no new '
+            'route. S6 (create hello.py): Outcome 1: hello.py prints. Outcome 2: test_hello.py runs it. '
+            'S7: Deliver hello.py and its test. S8 maps to the unittest suite. | S9 open question: which port? '
+            'Defaults recorded: stdlib only; see AWS S3 for nothing.')
+        self.assertEqual({n: [(r["kind"], r["text"]) for r in found] for n, found in readings.items()}, {
+            1: [("outcome", "report.py at the root (fact).")], 2: [("outcome", "one JSON object.")],
+            3: [("outcome", "rows skipped.")], 4: [("outcome", "a header-only file adds nothing.")],
+            5: [("boundary", "no new route.")],
+            6: [("outcome", "hello.py prints. Outcome 2: test_hello.py runs it.")],
+            7: [("reading", "Deliver hello.py and its test.")], 8: [("reading", "the unittest suite.")],
+            9: [("open question", "which port? Defaults recorded: stdlib only; see AWS S3 for nothing.")]})
+
+    def test_an_intake_summary_with_no_cited_sentence_stays_in_the_request_view(self) -> None:
+        model = {"request": {"original": {"chars": 5, "file": "request.md", "text": "Hi.",
+                                          "sentences": [{"n": 1, "text": "Hi.", "readings": []}]},
+                             "expanded": {"through": "intake", "mapped": 0, "requirements": [], "spec_file": "spec.md",
+                                          "work_items": [], "assumptions": [], "answers": [], "superseded": 0,
+                                          "stages": [{"stage": "intake", "state": "accepted", "headline": "Read",
+                                                      "summary": "Greets the owner in one line.", "improve": False}]}}}
+        text = trace.request_digest(model)
+        self.assertIn("→ no clause of intake's summary cites it", text)
+        self.assertIn("Greets the owner in one line.", text)
+
     def test_the_request_shows_the_original_and_each_planning_result(self) -> None:
         self.drive()
         spec = self.repo / "docs" / "shiploop" / "spec.md"
@@ -357,7 +403,7 @@ class TraceRequestTests(CliRun):
         self.assertIn("  RUN/decisions/nav-answer.md: Use the user's login name.", text)
         digest = self.ok("trace", "--run-dir", str(self.run)).stdout
         self.assertIn("Request:  original 22 chars, 1 sentence (RUN/request.md): “Add a greeting script.”", digest)
-        self.assertIn("Expanded: through intake · intake read 1 of 1 sentences · 2 requirements · 0 work items · "
+        self.assertIn("Expanded: through intake · intake read 1 of 1 sentence · 2 requirements · 0 work items · "
                       "0 assumptions · 1 owner answer", digest)
 
 

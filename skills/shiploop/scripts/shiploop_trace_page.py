@@ -342,7 +342,7 @@ const TRACE = /*TRACE-DATA*/null;
           el("span", {class: "sn"}, "S" + sentence.n), el("span", {}, sentence.text),
           sentence.readings.length
             ? el("span", {class: "reading"}, sentence.readings.map((r) => el("div", {}, el("span", {class: "tag " + (r.kind === "boundary" ? "amber" : r.kind.includes("question") ? "red" : "green")}, r.kind), " " + r.text)))
-            : el("span", {class: "reading none"}, ex.through ? "not read by intake" : "intake not accepted yet")))), true),
+            : el("span", {class: "reading none"}, ex.through ? "no clause of intake's summary cites it" : "intake not accepted yet")))), true),
       more("Requirements in the living spec", ex.requirements.length,
         ex.requirements.length ? [el("div", {class: "meta"}, el("span", {class: "mono"}, ex.spec_file))].concat(ex.requirements.map((r) =>
           el("details", {class: "req"}, el("summary", {}, el("strong", {}, r.id), " " + r.title + " ", el("span", {class: "tag"}, r.section)), el("pre", {}, r.body))))

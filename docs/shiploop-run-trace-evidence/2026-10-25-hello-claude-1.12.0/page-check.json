@@ -1,0 +1,25 @@
+{
+ "page": "RUN/trace.html, rewritten with `shiploop trace --html PATH` after the run finished (1,121,628 bytes); and a copy of the observer's page taken mid-run (rev 20, implement)",
+ "browser": "Claude desktop built-in browser, served from localhost (file:// is refused by the pane)",
+ "finished_run": {
+  "console_messages": 0,
+  "animated_elements": 0,
+  "stage_chips": {"done": 24, "legend sample (done)": 1},
+  "legend": "done · I Improve reviewed · ×N accepted N times · N steps implement · ↩N sent back · !N refused (no current or pending: the run has none)",
+  "zone_label": "times in PDT",
+  "first_times": [["03:57:11 PM", "2026-10-25T22:57:11Z (tooltip)"], ["03:57:23 PM", "2026-10-25T22:57:23Z (tooltip)"]],
+  "live_reload_toggle": "absent (run done)",
+  "tiles": {"steps accepted": 28, "packets sent": 38, "refused": 5, "hook continuations": 0, "skill calls": 11, "commands": 81},
+  "refusal_rows": 5, "check_rows": 2, "hook_rows": 1,
+  "refusal_rows_without_text": ["lint exit 3", "red-check exit 3"],
+  "horizontal_scroll": {"1024px": false, "375px": false},
+  "packets_sent_files_referenced": 60
+ },
+ "active_run_mid_way": {
+  "console_messages": 0,
+  "animated_elements": ["the status dot"],
+  "legend_samples_animated": false,
+  "live_reload_toggle": "present, checked: live (reload every 10 s)",
+  "zone_label": "times in PDT"
+ }
+}
