@@ -9,7 +9,9 @@ headless Claude Code 2.1.310:
 - connection: through Ollama 0.40.11's native Anthropic endpoint (`ANTHROPIC_BASE_URL=http://127.0.0.1:11434`);
 - permissions: `--permission-mode bypassPermissions`, with every built-in tool, as the owner asked for no restrictions;
 - MCP: `--strict-mcp-config`, so no connectors, because those include a brokerage account and email;
-- workspace: a detached worktree of `origin/main` 31933a73 (skill-craft 2.9.0, ShipLoop 1.9.0).
+- workspace: a detached worktree of `origin/main` 31933a73 (skill-craft 2.9.0, ShipLoop 1.9.0);
+- auth: `ANTHROPIC_AUTH_TOKEN` unset and `ANTHROPIC_API_KEY=ollama`, without `--bare`, launched from inside a Claude
+  Code session. **This did not keep the owner's login out**; see the correction dated 2026-10-25 at the end.
 
 The brief is [brief.md](brief.md): ShipLoop's purpose, its eight tenets, where to read, and the
 report format. The run took 16.6 min, 164 turns and 161 tool calls ([run-summary.txt](run-summary.txt)). It
@@ -44,6 +46,9 @@ wrote its own probes. Three conditions mattered:
 - stderr carries a harmless `unrecognized_model` line.
 
 Building this into `ask-ollama` is a separate session in grok-build-additions.
+
+**Superseded 2026-10-25:** this list missed the condition that mattered most. The run likely sent the owner's
+Claude login to the Ollama server; see the correction at the end.
 
 ## Second look: are they worth doing? (2026-10-24, live-run evidence) — status: firm for the counts, interim for the verdicts
 
@@ -93,3 +98,36 @@ Branch `fix/shiploop-generic-test-advice-320e96`, off `origin/main` 5f71657f, on
   step-plan duty in `shiploop_prompts.py` ("Jest `--verbose`, pytest `-v`, others: GUIDES/platforms/") and the runner
   readers in `shiploop_test_counts.py` still name runners under D-13, so the step-plan duty and this refusal now differ
   in style. Drop this commit to keep D-13 everywhere.
+
+## Correction: the review run likely sent the owner's Claude login to Ollama (2026-10-25) — status: interim (inferred from a reproduced mechanism, not observed in this run)
+
+**What happened.** The review ran `claude -p` with `ANTHROPIC_BASE_URL=http://127.0.0.1:11434` from this session's own
+shell. That shell was inside a Claude Code desktop session. I unset `ANTHROPIC_AUTH_TOKEN` and set
+`ANTHROPIC_API_KEY=ollama`, expecting the child to authenticate with the dummy key. I said at the time that this was
+unverified.
+
+The ask-ollama harness session then reproduced the mechanism live from the same kind of shell (grok-build-additions
+2f6aa27; `docs/ask-host-portability-journal.md` E12, finding F20). A nested `claude -p` still sent
+`Authorization: Bearer <the host's OAuth token>`, never `x-api-key: ollama`. The shell holds no token variable, but it
+does carry the host's auth-refresh channel (`CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH`, `CLAUDE_CODE_MESSAGING_*`). The
+review's main run used the same environment without `--bare`, so it most likely sent the owner's token to the local
+Ollama server. This was not observed directly: the run kept no request headers.
+
+The three smoke probes before it are not affected. They passed `--bare`, which reads no host authentication.
+
+**What was checked (2026-10-25).**
+- Ollama's `~/.ollama/logs/app*.log` and `server*.log` hold no `Bearer` and no `sk-ant` string (count 0 in every
+  file), so the token was not written to disk there.
+- Whether Ollama forwarded the header to ollama.com when it proxied the cloud model is unknown.
+
+**What to do instead.**
+- The owner was told to sign out of Claude Code and back in, which issues a fresh token.
+- For any nested `claude -p` against a non-Anthropic base URL, use the ask-ollama runner (`claude_harness_once.py`).
+  It scrubs the whole `ANTHROPIC_*`/`CLAUDE_CODE_*`/`CLAUDECODE` environment and passes `--setting-sources=` with an
+  explicit `--tools=` list.
+- The alternative is `--bare`, which reads no host authentication but caps the tool set.
+- Never hand-roll the environment as this run did.
+
+**Effect on the results above.** None: the review's findings, the checks and the live-run verdicts do not depend on
+how the child authenticated. The setup line and the harness finding are marked superseded where they were
+incomplete.
