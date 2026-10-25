@@ -351,12 +351,11 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_the_step_plan_packet_bounds_each_step_by_criteria_and_product_files(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
         self.assertIn("Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files "
-                      "(a file that only describes another changed file counts with it; tests, docs and the step's own "
-                      "proof script do not).", text)
+                      "(a file that only describes another changed file counts with it; tests, docs and its proof "
+                      "script do not).", text)
         self.assertIn("two separately confirmable behaviours or two outcomes joined with \"and\" make another step.", text)
-        self.assertIn("Its `paths` (inside the item's) name every file it changes, so its size can be checked.", text)
-        self.assertIn("the steps share one proof script: the first step adds it and each later step adds its own "
-                      "assertions, so a split costs one more run, not a new script.", text)
+        self.assertIn("Its `paths` (inside the item's) name every file it changes.", text)
+        self.assertIn("Remote-only target: the recorded test route only; steps share one proof script.", text)
         self.assertNotIn("too large for one review", text)
         self.assertFalse(hasattr(prompts, "STEP_SIZING"))  # the older copy of the rule no packet printed
 

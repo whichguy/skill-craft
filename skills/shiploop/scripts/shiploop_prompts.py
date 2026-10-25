@@ -1282,22 +1282,21 @@ Change no product file in this stage.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
-     only describes another changed file counts with it; tests, docs and the step's own proof script do not). More
-     criteria or files, a second module or layer (interface first, then each side), two separately confirmable
-     behaviours or two outcomes joined with "and" make another step. Fold a step no proof confirms alone (half a
-     rename, scaffolding) into the first step that uses it. A single bug fix or mechanical rename is one step.
-   - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
-     files is refused unless the whole item is tests.
+     only describes another changed file counts with it; tests, docs and its proof script do not). A second module
+     or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with
+     "and" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the first step
+     that uses it. A single bug fix or mechanical rename is one step.
+   - Tests are not a step (the test stage writes them); a step changing only test files is refused unless the item
+     is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Its `paths` (inside the item's) name every file it changes, so its size can be checked. Limits: task
-     700 characters, proof 600, its criteria 1,200.
+     some step. Its `paths` (inside the item's) name every file it changes. Limits: task 700 characters, proof 600,
+     its criteria 1,200.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
-     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only, and the steps
-     share one proof script: the first step adds it and each later step adds its own assertions, so a split costs one
-     more run, not a new script. None runs now: change the step boundary.
+     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only; steps share
+     one proof script. None runs now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
      reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
@@ -1310,7 +1309,7 @@ Change no product file in this stage.
    - regression: the retained suites the changed paths affect.
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
-     The test and verify stages run these; implement runs only each step's own `proof`.
+     Implement runs only each step's own `proof`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
    - A focused or regression command that runs on a Test targets row that keeps state names it in `target`.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
