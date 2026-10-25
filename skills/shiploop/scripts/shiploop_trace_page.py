@@ -1,4 +1,11 @@
-<!doctype html>
+"""The run-trace page template: ``shiploop trace --html`` replaces ``DATA_MARK`` with the model as JSON.
+
+Kept as a Python string because every file in ``scripts/`` must compile (test/shiploop-package-integrity.test.py).
+"""
+
+DATA_MARK = "/*TRACE-DATA*/null"
+
+PAGE = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -63,11 +70,15 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .chip.done { background: var(--accent-soft); color: var(--accent); }
 .chip.current { background: var(--amber-soft); color: var(--amber); border-color: var(--amber); font-weight: 600; }
 .chip.current::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.4s infinite; }
+.chip.sample { cursor: default; }
+.chip.sample::before { animation: none; }
+.b.back { background: var(--amber-soft); color: var(--amber); }
+.tile.muted b { color: var(--muted); }
 .chip.pending { background: transparent; border: 1px dashed var(--line); color: var(--muted); cursor: default; }
 .chip.reopened { background: transparent; border: 1px dashed var(--amber); color: var(--amber); }
-.chip .b { font-size: 10.5px; font-weight: 700; padding: 0 4px; border-radius: 5px; background: rgba(127,127,127,.16); }
-.chip .b.ref { background: var(--red-soft); color: var(--red); }
-.chip .b.imp { background: var(--violet-soft); color: var(--violet); }
+.b { font-size: 10.5px; font-weight: 700; padding: 0 4px; border-radius: 5px; background: rgba(127,127,127,.16); }
+.b.ref { background: var(--red-soft); color: var(--red); }
+.b.imp { background: var(--violet-soft); color: var(--violet); }
 .note { color: var(--muted); font-style: italic; padding-top: 4px; }
 .legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 12px; margin-top: 10px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; font-size: 12.5px; }
@@ -112,7 +123,35 @@ summary .c { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end
 .viewer pre { max-height: none; flex: 1; margin: 0; border-radius: 0; padding: 14px 16px; background: var(--panel); }
 .viewer .scroll { flex: 1; overflow: auto; }
 footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
+.request { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.request h3 { font-size: 13px; margin: 0 0 6px; }
+.request .verbatim, .item .verbatim { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 var(--sans); max-height: 320px; overflow: auto;
+  background: var(--chip); border-radius: 8px; padding: 10px 12px; margin: 0; }
+.stage-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.stage-list li { display: grid; grid-template-columns: 18px 110px 1fr; gap: 6px; align-items: baseline; font-size: 13px; }
+.stage-list .pending { color: var(--muted); }
+.counts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+details.more { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+details.more > summary { display: block; padding: 9px 14px; font-weight: 600; }
+details.more > div { border-top: 1px solid var(--line); padding: 8px 14px; }
+.sentences { display: grid; gap: 0; }
+.sentence { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.sentence:last-child { border-bottom: 0; }
+.sentence .sn { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.sentence .reading { color: var(--ink); }
+.sentence .reading.none { color: var(--muted); font-style: italic; }
+.req { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.req:last-child { border-bottom: 0; }
+.req summary { display: block; padding: 0; cursor: pointer; }
+.req pre { white-space: pre-wrap; font-family: var(--sans); font-size: 12.5px; margin: 6px 0 0; color: var(--muted); }
+.item { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.item:last-child { border-bottom: 0; }
+.item ol { margin: 6px 0 0 18px; padding: 0; }
+.item li { margin: 2px 0; }
 @media (max-width: 720px) {
+  .request { grid-template-columns: 1fr; }
+  .sentence { grid-template-columns: 34px 1fr; }
+  .sentence .reading { grid-column: 2; }
   .plan-row { grid-template-columns: 1fr; gap: 4px; }
   .ev { grid-template-columns: 70px 1fr; }
   .ev .kind { grid-column: 2; grid-row: 1; }
@@ -200,9 +239,9 @@ const TRACE = /*TRACE-DATA*/null;
   function header() {
     const pill = el("span", {class: "pill " + run.status}, el("span", {class: "dot"}), run.status);
     const tiles = [
-      ["Steps accepted", counts.accepted], ["Packets sent", counts.packets, counts.reprints ? counts.reprints + " reprints" : ""],
-      ["Refused", counts.refusals, "", counts.refusals > 0], ["Hook continuations", counts.continuations],
-      ["Skill calls", counts.skills], ["Commands", counts.commands],
+      ["Steps accepted", counts.accepted], ["Packets sent", counts.packets, counts.reprints ? counts.reprints + " reprints" : "", false, true],
+      ["Refused", counts.refusals, "", counts.refusals > 0, true], ["Hook continuations", counts.continuations, "", false, true],
+      ["Skill calls", counts.skills], ["Commands", counts.commands, "", false, true],
     ];
     return el("header", {},
       el("div", {class: "meta"}, "ShipLoop run trace"),
@@ -212,8 +251,10 @@ const TRACE = /*TRACE-DATA*/null;
         run.last_event ? el("span", {}, "last event " + clock(run.last_event)) : null, el("span", {}, "page written " + clock(TRACE.generated)),
         run.status === "active" ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); schedule(); }}), " live (reload every 10 s)") : null),
       run.traced ? null : el("p", {class: "note"}, "This run predates the trace: steps come from state.md and timeline.json, and each packet is its last copy, not every copy sent."),
-      el("div", {class: "tiles"}, tiles.map(([label, value, sub, warn]) =>
-        el("div", {class: "tile" + (warn ? " warn" : "")}, el("b", {}, num(value)), el("span", {}, label + (sub ? " · " + sub : ""))))));
+      // Not measured is not zero: a run before the trace recorded no packets, refusals, hook stops or commands.
+      el("div", {class: "tiles"}, tiles.map(([label, value, sub, warn, traceOnly]) => traceOnly && !run.traced
+        ? el("div", {class: "tile muted", title: "not recorded: the run predates the trace"}, el("b", {}, "—"), el("span", {}, label + " · not recorded"))
+        : el("div", {class: "tile" + (warn ? " warn" : "")}, el("b", {}, num(value)), el("span", {}, label + (sub ? " · " + sub : ""))))));
   }
 
   function nowCard() {
@@ -236,13 +277,75 @@ const TRACE = /*TRACE-DATA*/null;
           el("button", {onclick: () => focusAction(now.action)}, "Show its events"))));
   }
 
+  // A slot's marks, shared by the chips and the legend: [kind, text, explanation].
+  function marks(slot) {
+    const out = [];
+    const accepted = slot.runs - (slot.sent_back || 0);
+    if (slot.steps !== null && slot.steps !== undefined) out.push(["steps", slot.steps + (slot.steps === 1 ? " step" : " steps"), "implement is accepted once per step: " + accepted + " accepted results"]);
+    else if (accepted > 1) out.push(["runs", "×" + accepted, "accepted " + accepted + " times (re-planned or redone)"]);
+    if (slot.sent_back) out.push(["back", "↩" + slot.sent_back, "sent back " + slot.sent_back + (slot.sent_back > 1 ? " times" : " time")]);
+    if (slot.improve) out.push(["imp", "I", "reviewed by an Improve stage"]);
+    if (slot.refusals) out.push(["ref", "!" + slot.refusals, slot.refusals + " callback" + (slot.refusals > 1 ? "s" : "") + " refused"]);
+    return out;
+  }
+  const BADGE = {steps: "b", runs: "b", back: "b back", imp: "b imp", ref: "b ref"};
+
+  // ---------------------------------------------------------------- request: original beside expanded
+  function requestSection() {
+    const req = TRACE.request;
+    if (!req) return null;
+    const original = req.original, ex = req.expanded;
+    const steps = ex.work_items.reduce((sum, item) => sum + item.steps.length, 0);
+    const counts = [
+      ex.through ? "expanded through " + ex.through : "not expanded yet",
+      "intake read " + ex.mapped + " of " + original.sentences.length + " sentences",
+      ex.requirements.length + " requirements", ex.work_items.length + " work items" + (steps ? ", " + steps + " steps" : ""),
+      ex.assumptions.length + " assumptions", ex.answers.length + " owner answers",
+    ].concat(ex.superseded ? [ex.superseded + " superseded"] : []);
+    const more = (title, count, body, open) => el("details", {class: "more", open: open || null},
+      el("summary", {}, title + " (" + count + ")"), el("div", {}, body));
+    return el("section", {}, el("h2", {}, "Request: original and expanded"),
+      el("div", {class: "request"},
+        el("div", {class: "card"}, el("h3", {}, "Original, verbatim"),
+          el("div", {class: "meta"}, el("span", {}, num(original.chars) + " chars"), el("span", {}, original.sentences.length + " sentences"),
+            el("span", {class: "mono"}, "RUN/" + original.file)),
+          el("pre", {class: "verbatim"}, original.text)),
+        el("div", {class: "card"}, el("h3", {}, "Expanded by planning"),
+          el("ul", {class: "stage-list"}, ex.stages.map((stage) => el("li", {class: stage.state === "accepted" ? "" : "pending", title: stage.summary || ""},
+            el("span", {}, stage.state === "accepted" ? "✓" : "·"), el("strong", {}, stage.stage),
+            el("span", {}, stage.headline || "pending", stage.improve ? " " : null, stage.improve ? el("span", {class: "b imp"}, "I") : null)))),
+          el("div", {class: "counts"}, counts.map((text) => el("span", {class: "tag"}, text))))),
+      more("Sentence by sentence: the original, then how intake read it", original.sentences.length,
+        el("div", {class: "sentences"}, original.sentences.map((sentence) => el("div", {class: "sentence"},
+          el("span", {class: "sn"}, "S" + sentence.n), el("span", {}, sentence.text),
+          sentence.readings.length
+            ? el("span", {class: "reading"}, sentence.readings.map((r) => el("div", {}, el("span", {class: "tag " + (r.kind === "boundary" ? "amber" : r.kind.includes("question") ? "red" : "green")}, r.kind), " " + r.text)))
+            : el("span", {class: "reading none"}, ex.through ? "not read by intake" : "intake not accepted yet")))), true),
+      more("Requirements in the living spec", ex.requirements.length,
+        ex.requirements.length ? [el("div", {class: "meta"}, el("span", {class: "mono"}, ex.spec_file))].concat(ex.requirements.map((r) =>
+          el("details", {class: "req"}, el("summary", {}, el("strong", {}, r.id), " " + r.title + " ", el("span", {class: "tag"}, r.section)), el("pre", {}, r.body))))
+          : el("div", {class: "note"}, "none yet")),
+      more("Work items and their steps", ex.work_items.length,
+        ex.work_items.length ? ex.work_items.map((item) => el("div", {class: "item"}, el("strong", {}, item.id + " " + item.title),
+          el("div", {class: "meta"}, item.context),
+          item.steps.length ? el("ol", {}, item.steps.map((step) => el("li", {}, el("span", {class: "mono"}, step.id), " " + step.task + (step.deps.length ? " (after " + step.deps.join(", ") + ")" : "")))) : null))
+          : el("div", {class: "note"}, "set by the plan stage")),
+      more("Assumptions the plan recorded", ex.assumptions.length,
+        ex.assumptions.length ? ex.assumptions.map((a) => el("div", {class: "item"}, el("span", {class: "mono"}, a.id || ""), " ",
+          el("span", {class: "tag"}, a.disposition || ""), " " + a.assumption)) : el("div", {class: "note"}, "none")),
+      more("Owner answers", ex.answers.length,
+        ex.answers.length ? ex.answers.map((a) => el("div", {class: "item"}, el("span", {class: "mono"}, "RUN/" + a.file), el("pre", {class: "verbatim"}, a.text)))
+          : el("div", {class: "note"}, "none")),
+      more("Planning summaries", ex.stages.filter((s) => s.state === "accepted").length,
+        ex.stages.filter((s) => s.state === "accepted").map((s) => el("div", {class: "item"}, el("strong", {}, s.stage), " " + (s.headline || ""),
+          el("div", {class: "meta"}, s.summary || "")))));
+  }
+
   function chip(slot) {
-    const badges = [];
-    if (slot.runs > 1) badges.push(el("span", {class: "b"}, "×" + slot.runs));
-    if (slot.improve) badges.push(el("span", {class: "b imp"}, "I"));
-    if (slot.refusals) badges.push(el("span", {class: "b ref"}, "!" + slot.refusals));
-    const title = [slot.stage + (slot.group ? " (" + slot.group + ")" : ""), slot.purpose,
-      slot.headline ? "Result: " + slot.headline : "", slot.at ? "Accepted " + slot.at : ""].filter(Boolean).join("\n");
+    const found = marks(slot);
+    const badges = found.map(([kind, text]) => el("span", {class: BADGE[kind]}, text));
+    const title = [slot.stage + (slot.group ? " (" + slot.group + ")" : "") + ": " + slot.state, slot.purpose,
+      ...found.map((m) => m[2]), slot.headline ? "Result: " + slot.headline : "", slot.at ? "Accepted " + slot.at : ""].filter(Boolean).join("\n");
     return el("span", {class: "chip " + slot.state, title, role: slot.action ? "button" : null, tabindex: slot.action ? "0" : null,
       onclick: slot.action ? () => focusAction(slot.action) : null}, slot.stage, badges);
   }
@@ -250,12 +353,24 @@ const TRACE = /*TRACE-DATA*/null;
   function plan() {
     return el("section", {}, el("h2", {}, "Plan: every stage"),
       el("div", {class: "card plan"}, TRACE.plan.map((row) => el("div", {class: "plan-row"},
-        el("div", {class: "plan-label", title: row.label}, row.label, row.position ? el("small", {}, "item " + row.position) : null),
+        el("div", {class: "plan-label", title: row.label}, row.label,
+          row.slots.length ? el("small", {}, [row.position, row.done + " of " + row.slots.length + " done"].filter(Boolean).join(" · ")) : null),
         row.slots.length ? el("div", {class: "chips"}, row.slots.map(chip)) : el("div", {class: "note"}, row.note || ""))),
-        el("div", {class: "legend"},
-          el("span", {}, el("span", {class: "chip done"}, "done")), el("span", {}, el("span", {class: "chip current"}, "current")),
-          el("span", {}, el("span", {class: "chip reopened"}, "reopened")), el("span", {}, el("span", {class: "chip pending"}, "pending")),
-          el("span", {}, "×N runs · I Improve reviewed · !N refused · click a stage for its events"))));
+        legend()));
+  }
+
+  // The legend names only what this run's plan shows; its samples never animate.
+  function legend() {
+    const slots = TRACE.plan.flatMap((row) => row.slots);
+    const states = ["done", "current", "reopened", "pending"].filter((name) => slots.some((slot) => slot.state === name));
+    const seen = new Map();
+    for (const slot of slots) for (const [kind] of marks(slot)) seen.set(kind, true);
+    const words = {steps: ["N steps", "implement, once per step"], runs: ["×N", "accepted N times"], back: ["↩N", "sent back"],
+      imp: ["I", "Improve reviewed"], ref: ["!N", "refused"]};
+    return el("div", {class: "legend"},
+      states.map((name) => el("span", {}, el("span", {class: "chip sample " + name}, name))),
+      [...seen.keys()].map((kind) => el("span", {}, el("span", {class: BADGE[kind]}, words[kind][0]), " " + words[kind][1])),
+      el("span", {}, "click a stage for its events"));
   }
 
   // ---------------------------------------------------------------- timeline
@@ -385,10 +500,10 @@ const TRACE = /*TRACE-DATA*/null;
   function save() { store.set("ui", ui); }
   function render() {
     const app = document.getElementById("app");
-    app.replaceChildren(header(), nowCard(), plan(), timeline(),
+    app.replaceChildren(...[header(), nowCard(), requestSection(), plan(), timeline(),
       el("footer", {}, "Written by ", el("span", {class: "mono"}, "shiploop trace"), " from ", el("span", {class: "mono"}, run.dir),
         " · trace.jsonl " + num(run.trace_bytes) + " bytes" + (run.capped ? " (stopped growing at its cap)" : "") +
-        " · state.md stays the authority; this page is a display."));
+        " · state.md stays the authority; this page is a display.")].filter(Boolean));
   }
   let timer = null;
   function schedule() {
@@ -410,3 +525,4 @@ const TRACE = /*TRACE-DATA*/null;
 </script>
 </body>
 </html>
+"""

@@ -28,11 +28,13 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import time
 from typing import Any, Iterable, Mapping, Sequence
 
 import shiploop_store as store
+from shiploop_trace_page import DATA_MARK, PAGE as TEMPLATE
 
 TRACE_FILE = "trace.jsonl"
 SENT_DIR = "packets/sent"
@@ -45,8 +47,6 @@ TEXT_LIMIT = 4000  # characters of refusal or hook text kept in one line
 # The page embeds each packet's text as sent, screened line by line, up to these bounds; past them it names the file.
 PAGE_PACKET_LIMIT = 256 * 1024
 PAGE_TEXT_LIMIT = 12 * 1024 * 1024
-TEMPLATE = Path(__file__).resolve().with_name("shiploop_trace_page.html")
-DATA_MARK = "/*TRACE-DATA*/null"
 # Commands that only read or display; they are not run activity.
 UNTRACED = frozenset(("view", "hook-status", "trace", "graph-dry-run", "-h", "--help"))
 
@@ -333,6 +333,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
         }
 
     plan = _plan(state, navigator, guidance, accepted_at, improve_results, tally)
+    request = request_model(run, state, accepted_at, improve_results)
     counts = Counter(event["kind"] for event in events)
     commands = [event for event in events if event["kind"] == "command"]
     hooks = [event for event in events if event["kind"] == "hook"]
@@ -354,6 +355,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "work_items": len(state.get("work_items") or []), "work_index": state.get("work_index"),
         },
         "now": now_block,
+        "request": request,
         "plan": plan,
         "steps": steps,
         "events": events,
@@ -394,6 +396,133 @@ def _goal(state: Mapping[str, Any], navigator: Any, limit: int = 140) -> str:
     return text[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
 
 
+# ---------------------------------------------------------------------------------------------------------- request
+
+# The planning stages that expand the request, in order; each item's step-plan expands its work item.
+EXPANDING = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
+# Intake maps each request sentence: "S4 outcome: …", "S2 boundary: …", "S9 open question: …".
+_SENTENCE_READING = re.compile(r"(?:^|(?<=\s))S(\d+)\s+([a-z][a-z /-]{0,30}?):\s")
+_REQUIREMENT = re.compile(r"^###\s+(R-\d+)\.?\s*(.*)$")
+SPEC_LIMIT = 256 * 1024          # bytes of the living spec the reader reads
+FIELD_LIMIT = 2000               # characters of one expanded field the model keeps
+ANSWER_LIMIT = 8 * 1024          # bytes of one owner answer
+
+
+def sentence_readings(summary: str) -> dict[int, list[dict[str, str]]]:
+    """Intake's summary split by request sentence: S<n> -> [{kind, text}].  Text intake did not tie to a sentence is
+    not returned; the stage's summary keeps it."""
+    marks = list(_SENTENCE_READING.finditer(summary or ""))
+    readings: dict[int, list[dict[str, str]]] = defaultdict(list)
+    for index, mark in enumerate(marks):
+        end = marks[index + 1].start() if index + 1 < len(marks) else len(summary)
+        readings[int(mark.group(1))].append({"kind": mark.group(2).strip(), "text": summary[mark.end():end].strip()})
+    return dict(readings)
+
+
+def _bounded_text(path: Path, limit: int) -> str | None:
+    """A regular file's text up to ``limit`` bytes, screened line by line; None when it is missing or not regular."""
+    import shiploop_privacy as privacy
+
+    try:
+        if path.is_symlink() or not path.is_file():
+            return None
+        with path.open("rb") as handle:
+            raw = handle.read(limit + 1)
+    except OSError:
+        return None
+    text = raw[:limit].decode("utf-8", errors="replace")
+    return "\n".join(privacy.REDACTED_SENSITIVE_VALUE if privacy.sensitive_text(line) else line
+                     for line in text.split("\n"))
+
+
+def requirements(path: Path) -> list[dict[str, Any]]:
+    """The living spec's requirements (``### R-n. Title`` and the lines under it), with the section each sits in."""
+    text = _bounded_text(path, SPEC_LIMIT)
+    found: list[dict[str, Any]] = []
+    section, current = "", None
+    for line in (text or "").splitlines():
+        match = _REQUIREMENT.match(line)
+        if match:
+            current = {"id": match.group(1), "title": match.group(2).strip(), "section": section, "body": []}
+            found.append(current)
+        elif line.startswith("#"):
+            section = line.lstrip("#").strip() if line.startswith("## ") else section
+            current = None
+        elif current is not None:
+            current["body"].append(line)
+    for each in found:
+        each["body"] = _clip("\n".join(each["body"]).strip(), FIELD_LIMIT)
+    return found
+
+
+def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str, Any],
+                  improve_results: Mapping[str, Any]) -> dict[str, Any]:
+    """The request as the owner wrote it beside the request as planning has expanded it so far.
+
+    Original: the verbatim prompt and its sentences S1..Sn (``request.md``).  Expanded, from the current accepted
+    results only (a reconciled planning result is superseded): intake's reading of each sentence, each planning
+    stage's headline and summary, the living spec's requirements, the work items with their step plans, the plan's
+    assumptions, and the owner's answers to questions the run waited on.
+    """
+    import shiploop_knowledge_home as knowledge
+    import shiploop_planning_revision as planning_revision
+    import shiploop_request as request_file
+
+    prompt = str(state.get("prompt") or "")
+    results = state.get("accepted") or {}
+    try:
+        current = planning_revision.current_actions(state)
+    except (KeyError, TypeError, ValueError):
+        current = {}
+    stages = []
+    for stage in EXPANDING:
+        action = current.get((None, stage))
+        result = results.get(action) or {}
+        stages.append({
+            "stage": stage, "action": action, "state": "accepted" if action else "pending",
+            "headline": _headline(result, None) if action else None,
+            "summary": _clip(" ".join(str(result.get("summary") or "").split()), FIELD_LIMIT) if action else None,
+            "at": _iso(accepted_at.get(action)) if action else None, "improve": action in improve_results,
+        })
+    planning = set(EXPANDING) | {"step-plan"}
+    live = set(current.values())
+    superseded = [entry.get("action") for entry in state.get("history") or []
+                  if entry.get("stage") in planning and entry.get("outcome") == "done" and entry.get("action") not in live]
+    intake = results.get(current.get((None, "intake"))) or {}
+    readings = sentence_readings(str(intake.get("summary") or ""))
+    plan = results.get(current.get((None, "plan"))) or {}
+    items = []
+    for row in state.get("work_items") or []:
+        step_plan = results.get(current.get((row.get("id"), "step-plan"))) or {}
+        steps = step_plan.get("steps") if isinstance(step_plan.get("steps"), list) else []
+        items.append({"id": row.get("id"), "title": row.get("title"), "context": _clip(row.get("context") or "", FIELD_LIMIT),
+                      "steps": [{"id": step.get("id"), "task": _clip(str(step.get("task") or ""), 600),
+                                 "deps": step.get("deps") or []} for step in steps if isinstance(step, dict)]})
+    assumptions = [{"id": each.get("id"), "assumption": _clip(str(each.get("assumption") or ""), 600),
+                    "disposition": each.get("disposition")}
+                   for each in plan.get("assumptions") or [] if isinstance(each, dict)]
+    answers = []
+    for path in sorted((run / "decisions").glob("*.md")) if (run / "decisions").is_dir() else []:
+        text = _bounded_text(path, ANSWER_LIMIT)
+        if text is not None:
+            answers.append({"file": f"decisions/{path.name}", "action": path.stem, "text": text.strip()})
+    home = Path(str(state.get("repo") or "")) / knowledge.HOME
+    sentences = request_file.sentences(prompt)
+    return {
+        "original": {"text": prompt, "chars": len(prompt), "file": request_file.REQUEST_FILE,
+                     "sentences": [{"n": index, "text": text, "readings": readings.get(index, [])}
+                                   for index, text in enumerate(sentences, 1)]},
+        "expanded": {
+            "through": next((each["stage"] for each in reversed(stages) if each["state"] == "accepted"), None),
+            "stages": stages, "mapped": sum(1 for index in range(1, len(sentences) + 1) if readings.get(index)),
+            "requirements": requirements(home / "spec.md"), "spec_file": str(home / "spec.md"),
+            "architecture_file": str(home / "architecture.md"),
+            "work_items": items if any(key[1] == "plan" for key in current) else [],
+            "assumptions": assumptions, "answers": answers, "superseded": len(superseded),
+        },
+    }
+
+
 def _plan(state: Mapping[str, Any], navigator: Any, guidance: Any, accepted_at: Mapping[str, Any],
           improve_results: Mapping[str, Any], tally: Any) -> list[dict[str, Any]]:
     """Every stage of the run as a slot: done, current, reopened (run before, then invalidated) or pending."""
@@ -405,9 +534,11 @@ def _plan(state: Mapping[str, Any], navigator: Any, guidance: Any, accepted_at: 
     stage, _, owner = _cursor(state)
     finished = state.get("status") == "done"
     runs: dict[tuple[Any, str], list[str]] = defaultdict(list)
+    outcomes: dict[tuple[Any, str], Counter] = defaultdict(Counter)
     for entry in state.get("history") or []:
         key = (entry.get("workitem") if entry.get("stage") in inner else None, entry.get("stage"))
         runs[key].append(entry.get("action"))
+        outcomes[key][entry.get("outcome")] += 1
     current_key = None if finished else ((owner, stage) if stage in inner else (None, stage))
     results = state.get("accepted") or {}
     groups = {node: name for name, nodes in guidance.INNER_GROUPS for node in nodes}
@@ -429,10 +560,14 @@ def _plan(state: Mapping[str, Any], navigator: Any, guidance: Any, accepted_at: 
         tallied = Counter()
         for each in ran:
             tallied.update(tally(each))
+        # implement is accepted once per step of the item's current step plan, so its count is steps, not reruns.
+        plan_steps = (results.get(done.get((item, "step-plan"))) or {}).get("steps") if node == "implement" else None
         return {
             "stage": node, "state": state_name, "group": groups.get(node), "action": latest,
             "at": _iso(accepted_at.get(latest)) if latest else None, "outcome": result.get("outcome"),
             "headline": _headline(result, None) if result else None, "runs": len(ran),
+            "sent_back": outcomes[key]["send-back"],
+            "steps": len(plan_steps) if isinstance(plan_steps, list) else None,
             "improve": any(each in improve_results for each in ran),
             "purpose": guidance.STAGE_PURPOSE.get(node, ""), **dict(tallied),
         }
@@ -443,18 +578,24 @@ def _plan(state: Mapping[str, Any], navigator: Any, guidance: Any, accepted_at: 
     planned = any(key[1] == "plan" for key in done)
     for index, row in enumerate(items if planned else []):
         rows.append({"label": f"{row.get('id')} {row.get('title', '')}".strip(), "phase": "work", "item": row.get("id"),
-                     "position": f"{index + 1} of {len(items)}",
+                     "position": f"item {index + 1} of {len(items)}",
                      "slots": [slot(row.get("id"), node) for node in inner]})
     if not planned:
         rows.append({"label": "Work items", "phase": "work", "item": None, "slots": [],
                      "note": "set by the plan stage"})
     rows.append({"label": "Release", "phase": "release", "item": None, "slots": [slot(None, node) for node in outer]})
+    for row in rows:
+        row["done"] = sum(each["state"] == "done" for each in row["slots"])
     return rows
 
 
 # ---------------------------------------------------------------------------------------------------------- digest
 
 _MARK = {"done": "✓", "current": "▶", "reopened": "↺", "pending": "·"}
+
+
+def _count(number: int, noun: str) -> str:
+    return f"{number} {noun}" + ("" if number == 1 else "s")
 
 
 def _clock(stamp: Any) -> str:
@@ -544,9 +685,10 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
             lines.append(f"          {_one_line(now_block['purpose'], 150)}")
         if now_block.get("packet"):
             lines.append(f"Packet:   RUN/{now_block['packet']}")
+    lines.extend(request_summary(model["request"]))
     lines.append("")
-    lines.append("Plan (✓ done · ▶ current · ↺ reopened · · pending; ×N runs, "
-                 "+I Improve reviewed, !N refusals):")
+    lines.append("Plan (✓ done · ▶ current · ↺ reopened · · pending; ×N accepted N "
+                 "times, (N steps) implement's steps, ↩N sent back, +I Improve reviewed, !N refused):")
     for row in model["plan"]:
         label = _one_line(row["label"], 26)
         if not row["slots"]:
@@ -558,8 +700,12 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
         chips = []
         for slot in row["slots"]:
             chip = _MARK[slot["state"]] + slot["stage"]
-            if slot["runs"] > 1:
-                chip += f"×{slot['runs']}"
+            if slot.get("steps") is not None:
+                chip += f"({_count(slot['steps'], 'step')})"
+            elif slot["runs"] - slot.get("sent_back", 0) > 1:
+                chip += f"×{slot['runs'] - slot.get('sent_back', 0)}"
+            if slot.get("sent_back"):
+                chip += f"↩{slot['sent_back']}"
             if slot["improve"]:
                 chip += "+I"
             if slot.get("refusals"):
@@ -588,15 +734,86 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     for event in (events[-last:] if last else events):
         lines.append("  " + event_line(event))
     lines.append("")
-    lines.append(f"Totals:   {counts['accepted']} accepted · {counts['commands']} commands · "
-                 f"{counts['refusals']} refused · {counts['checks_failed']} checks failed · "
-                 f"{counts['packets']} packets ({counts['reprints']} reprints) · "
-                 f"{counts['continuations']} hook continuations · {counts['skills']} skill calls")
+    if run["traced"]:
+        lines.append(f"Totals:   {counts['accepted']} accepted · {counts['commands']} commands · "
+                     f"{counts['refusals']} refused · {counts['checks_failed']} checks failed · "
+                     f"{counts['packets']} packets ({counts['reprints']} reprints) · "
+                     f"{counts['continuations']} hook continuations · {_count(counts['skills'], 'skill call')}")
+    else:
+        # Not measured is not zero: a run before the trace recorded no commands, refusals, packets or hook stops.
+        lines.append(f"Totals:   {counts['accepted']} accepted · {_count(counts['skills'], 'skill call')} · commands, refusals, "
+                     "packets and hook stops not recorded")
     if run.get("capped"):
         lines.append(f"Note:     the trace reached {TRACE_LIMIT // (1024 * 1024)} MB and stopped growing.")
     lines.append("More:     --action <id> for one action · --json for every field · --html for the page "
                  f"(RUN/{PAGE})")
     lines.append(f"RUN:      {run['dir']}")
+    lines.append("=== end ShipLoop trace ===")
+    return "\n".join(lines) + "\n"
+
+
+def request_summary(request: Mapping[str, Any]) -> list[str]:
+    """Two digest lines: the original request, and how far planning has expanded it."""
+    original, expanded = request["original"], request["expanded"]
+    steps = sum(len(item["steps"]) for item in expanded["work_items"])
+    parts = [f"through {expanded['through']}" if expanded["through"] else "not expanded yet",
+             f"intake read {expanded['mapped']} of {len(original['sentences'])} sentences",
+             _count(len(expanded["requirements"]), "requirement"),
+             _count(len(expanded["work_items"]), "work item") + (f", {_count(steps, 'step')}" if steps else ""),
+             _count(len(expanded["assumptions"]), "assumption"), _count(len(expanded["answers"]), "owner answer")]
+    if expanded["superseded"]:
+        parts.append(f"{expanded['superseded']} superseded")
+    return [f"Request:  original {original['chars']:,} chars, {_count(len(original['sentences']), 'sentence')} "
+            f"(RUN/{original['file']}): “{_one_line(original['text'], 90)}”",
+            "Expanded: " + " · ".join(parts),
+            "          --request shows the original beside the expansion"]
+
+
+def request_digest(model: Mapping[str, Any]) -> str:
+    """The original request beside everything planning made of it, sentence by sentence and stage by stage."""
+    request = model["request"]
+    original, expanded = request["original"], request["expanded"]
+    lines = ["=== ShipLoop trace: request ===", f"Original (verbatim, RUN/{original['file']}):"]
+    lines += ["  " + line for line in original["text"].splitlines()] or ["  (empty)"]
+    lines += ["", "Sentence by sentence (the original, then how intake read it):"]
+    for sentence in original["sentences"]:
+        lines.append(f"  S{sentence['n']:<3} {sentence['text']}")
+        for reading in sentence["readings"]:
+            lines.append(f"       → {reading['kind']}: {reading['text']}")
+        if not sentence["readings"]:
+            lines.append("       → " + ("not read by intake" if expanded["through"] else "intake not accepted yet"))
+    lines += ["", "Planning, in order (current results; ✓ accepted, · pending):"]
+    for stage in expanded["stages"]:
+        if stage["state"] != "accepted":
+            lines.append(f"  · {stage['stage']}")
+            continue
+        lines.append(f"  ✓ {stage['stage']:<14} {stage['headline']}" + ("  (+I)" if stage["improve"] else ""))
+        lines.append(f"    {'':<14} {_one_line(stage['summary'], 400)}")
+    lines += ["", f"Requirements ({len(expanded['requirements'])}, living spec {expanded['spec_file']}):"]
+    for requirement in expanded["requirements"]:
+        lines.append(f"  {requirement['id']:<6} {requirement['title']}  [{requirement['section']}]")
+    if not expanded["requirements"]:
+        lines.append("  none yet")
+    lines += ["", f"Work items ({len(expanded['work_items'])}):"]
+    for item in expanded["work_items"]:
+        lines.append(f"  {item['id']:<4} {item['title']}")
+        lines.append(f"       {_one_line(item['context'], 300)}")
+        for step in item["steps"]:
+            after = f" (after {', '.join(step['deps'])})" if step["deps"] else ""
+            lines.append(f"       {step['id']:<4} {_one_line(step['task'], 160)}{after}")
+    if not expanded["work_items"]:
+        lines.append("  set by the plan stage")
+    lines += ["", f"Assumptions ({len(expanded['assumptions'])}):"]
+    for assumption in expanded["assumptions"]:
+        lines.append(f"  {assumption['id'] or '-':<4} {assumption['disposition'] or '':<10} {_one_line(assumption['assumption'], 150)}")
+    lines += ["", f"Owner answers ({len(expanded['answers'])}):"]
+    for answer in expanded["answers"]:
+        lines.append(f"  RUN/{answer['file']}: {_one_line(answer['text'], 300)}")
+    if not expanded["answers"]:
+        lines.append("  none")
+    if expanded["superseded"]:
+        lines += ["", f"Superseded: {_count(expanded['superseded'], 'earlier planning result')} replaced by a later "
+                      "one (send-back or reconciliation); the run's history keeps them."]
     lines.append("=== end ShipLoop trace ===")
     return "\n".join(lines) + "\n"
 
@@ -692,7 +909,7 @@ def render_html(root: str | Path, model: Mapping[str, Any]) -> str:
                        **({"error": privacy.redact_text(event["error"])} if isinstance(event.get("error"), str) else {})}
                       for event in model["events"]]
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    return TEMPLATE.read_text(encoding="utf-8").replace(DATA_MARK, payload, 1)
+    return TEMPLATE.replace(DATA_MARK, payload, 1)
 
 
 def write_html(root: str | Path, path: str | Path | None = None, *, now: float | None = None) -> Path:
@@ -727,6 +944,8 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
                        help="write the self-contained page (default RUN/trace.html) and print its path")
     shape.add_argument("--action", help="one action: its packets as sent, commands, hooks and files (id, or 6+ "
                                         "characters of its start or end)")
+    shape.add_argument("--request", action="store_true",
+                       help="the original request beside its expansion by every planning stage so far")
     parser.add_argument("--last", type=int, default=15, help="how many steps and events the digest lists (0: all)")
     args = parser.parse_args(argv)
     root = Path(args.run_dir).expanduser().resolve()
@@ -743,6 +962,9 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
         return 2
     if args.json:
         print(json.dumps(model, ensure_ascii=False, indent=1))
+        return 0
+    if args.request:
+        print(request_digest(model), end="")
         return 0
     if args.action:
         action = find_action(model, args.action)

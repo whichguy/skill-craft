@@ -31,8 +31,8 @@ import shiploop_store as store  # noqa: E402
 import shiploop_trace as trace  # noqa: E402
 
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_PROGRESS": "off"}
-INTAKE = '```shiploop-state\n{"outcome": "done", "summary": "Intake done.", "headline": "Scope: one greeting script", ' \
-         '"evidence_refs": []}\n```\n'
+INTAKE = '```shiploop-state\n{"outcome": "done", "summary": "S1 outcome: greet.py prints Hello and the name (fact).", ' \
+         '"headline": "Scope: one greeting script", "evidence_refs": []}\n```\n'
 
 
 def _load(name: str, file: str):
@@ -230,6 +230,56 @@ class TraceReaderTests(CliRun):
         self.assertIn("const TRACE = {", (self.run / trace.PAGE).read_text(encoding="utf-8"))
 
 
+class TraceRequestTests(CliRun):
+    """The original request beside its expansion by planning (owner, 2026-10-25: "we always want the ability to see
+    what the original prompt was and what the expanded prompt was")."""
+
+    def test_intakes_reading_is_split_by_request_sentence(self) -> None:
+        readings = trace.sentence_readings("S1 outcome: a CLI flag (fact). S2 boundary: no new dependency. "
+                                           "S3 open question: which version source? (asked).")
+        self.assertEqual(readings, {1: [{"kind": "outcome", "text": "a CLI flag (fact)."}],
+                                    2: [{"kind": "boundary", "text": "no new dependency."}],
+                                    3: [{"kind": "open question", "text": "which version source? (asked)."}]})
+        self.assertEqual(trace.sentence_readings("No sentence markers here."), {})
+
+    def test_the_request_shows_the_original_and_each_planning_result(self) -> None:
+        self.drive()
+        spec = self.repo / "docs" / "shiploop" / "spec.md"
+        spec.parent.mkdir(parents=True)
+        spec.write_text("# Living spec\n\n## Requirements\n\n### R-1. Greeting\n\n- Positive: prints Hello.\n\n"
+                        "## Non-functional requirements\n\n### R-2. Secrets\n\napi_key=sk-live-abcdefghijklmnop1234567890\n",
+                        encoding="utf-8")
+        (self.run / "decisions").mkdir(exist_ok=True)
+        (self.run / "decisions" / "nav-answer.md").write_text("Use the user's login name.\n", encoding="utf-8")
+        request = trace.build(self.run)["request"]
+        self.assertEqual(request["original"]["text"], "Add a greeting script.")
+        self.assertEqual(request["original"]["sentences"], [
+            {"n": 1, "text": "Add a greeting script.",
+             "readings": [{"kind": "outcome", "text": "greet.py prints Hello and the name (fact)."}]}])
+        expanded = request["expanded"]
+        self.assertEqual(expanded["through"], "intake")
+        self.assertEqual([(stage["stage"], stage["state"]) for stage in expanded["stages"]][:2],
+                         [("intake", "accepted"), ("discovery", "pending")])
+        self.assertEqual([(r["id"], r["title"], r["section"]) for r in expanded["requirements"]],
+                         [("R-1", "Greeting", "Requirements"), ("R-2", "Secrets", "Non-functional requirements")])
+        self.assertEqual(expanded["requirements"][1]["body"], "[redacted sensitive value]")
+        self.assertEqual(expanded["answers"], [{"file": "decisions/nav-answer.md", "action": "nav-answer",
+                                                "text": "Use the user's login name."}])
+        self.assertEqual(expanded["work_items"], [])                 # set by the plan stage
+        text = self.ok("trace", "--run-dir", str(self.run), "--request").stdout
+        self.assertIn("Original (verbatim, RUN/request.md):\n  Add a greeting script.\n", text)
+        self.assertIn("  S1   Add a greeting script.\n       → outcome: greet.py prints Hello and the name (fact).", text)
+        self.assertIn("  ✓ intake         Scope: one greeting script", text)
+        self.assertIn("  · discovery", text)
+        self.assertIn("  R-1    Greeting  [Requirements]", text)
+        self.assertIn("  set by the plan stage", text)
+        self.assertIn("  RUN/decisions/nav-answer.md: Use the user's login name.", text)
+        digest = self.ok("trace", "--run-dir", str(self.run)).stdout
+        self.assertIn("Request:  original 22 chars, 1 sentence (RUN/request.md): “Add a greeting script.”", digest)
+        self.assertIn("Expanded: through intake · intake read 1 of 1 sentences · 2 requirements · 0 work items · "
+                      "0 assumptions · 1 owner answer", digest)
+
+
 class TracePlanTests(unittest.TestCase):
     """The plan of a run past planning, from saved state: work-item rows, the current slot, reruns and Improve."""
 
@@ -256,6 +306,10 @@ class TracePlanTests(unittest.TestCase):
         self.assertEqual(w1["step-plan"]["state"], "done")
         self.assertTrue(w1["step-plan"]["improve"])
         self.assertEqual({slot["state"] for slot in rows["W2 Add --version flag"]["slots"]}, {"pending"})
+        self.assertEqual(w1["implement"]["steps"], 1)                  # implement counts its step plan's steps
+        self.assertEqual([item["id"] for item in model["request"]["expanded"]["work_items"]], ["W1", "W2"])
+        self.assertEqual(model["request"]["expanded"]["work_items"][0]["steps"],
+                         [{"id": "S1", "task": "Make the change.", "deps": []}])
         self.assertEqual(model["now"]["item"], "W1")
         text = trace.digest(model)
         self.assertIn("W2 Add --version flag", text)

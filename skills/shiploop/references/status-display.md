@@ -138,19 +138,39 @@ Read it with the same CLI:
 ```sh
 python3 "$CLI" trace --run-dir "$RUN_DIR"              # digest: every stage done, current, reopened or pending; steps run; recent events
 python3 "$CLI" trace --run-dir "$RUN_DIR" --action ID  # one action (its id, or 6+ characters of its start or end): every packet as sent, commands, refusals, hooks, files
+python3 "$CLI" trace --run-dir "$RUN_DIR" --request    # the original request beside its expansion by every planning stage so far
 python3 "$CLI" trace --run-dir "$RUN_DIR" --json       # the whole model, for a program or a model to query
 python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html and prints its path
 ```
 
 The digest's plan lists every stage of the run (preparation, each work item's
 eight stages, release) as done (`✓`), current (`▶`), reopened (`↺`, run once and
-then invalidated by a send-back or reconciliation) or pending (`·`), with `×N`
-runs, `+I` when Improve reviewed it and `!N` refusals. Before `plan` is accepted
-the work items are "set by the plan stage". Events are attributed to the action
-that was current when they happened: their own `--action`, else the last
-packet's.
+then invalidated by a send-back or reconciliation) or pending (`·`). `×N` means the
+stage was accepted N times (re-planned or redone); implement is accepted once per
+step, so it shows its current step plan's step count (`(6 steps)`) instead. `↩N`
+counts send-backs and `!N` refusals. `+I` marks a stage an Improve stage reviewed. Before `plan` is
+accepted the work items are "set by the plan stage". Events are attributed to the
+action that was current when they happened: their own `--action`, else the last
+packet's. A run before the trace has no record of commands, refusals, packets or
+hook stops, and the reader says "not recorded" rather than zero.
 
-`trace.html` is self-contained: the plan grid (a stage opens its events), each
+Every view keeps the **original request beside the expanded one** (owner, 2026-10-25:
+"we always want the ability to see what the original prompt was and what the
+expanded prompt was, based on all the planning activities"). The original is the
+verbatim request and its sentences `S1..Sn` (`request.md`). The expansion is read
+from the current accepted results only, so a result a send-back or reconciliation
+replaced is counted as superseded, not shown: intake's reading of each sentence
+(its summary's `S<n> outcome:`, `boundary:` or `open question:` parts, set beside
+that sentence), each planning stage's headline and summary from intake to
+prepare, the living spec's requirements (`KNOWLEDGE/spec.md`, `### R-n.` headings
+and their text, screened), the work items with each one's step plan, the plan's
+assumptions, and the owner's answers (`decisions/`). The digest gives it two lines
+and `--request` prints it whole.
+
+`trace.html` is self-contained: the request, original beside expanded, with the
+sentence-by-sentence reading, requirements, work items and steps, assumptions and
+answers; the plan grid (a stage opens its events; the legend names only what the
+run shows and never animates), each
 step with its packets, commands, refusals and hook text, filters and search, and
 a viewer that shows each packet's text as sent, screened line by line by the
 credential screen of the progress view. The progress observer rewrites it when

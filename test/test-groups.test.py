@@ -110,9 +110,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 100)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 101)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 155)
+        self.assertEqual(len(suite_catalog.SUITES), 156)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -169,7 +169,7 @@ class TestGroupTests(unittest.TestCase):
             "test/backchain_chunks.py": {"backchain-chunks"},
             "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks", "marketplace-package"},
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli", "shiploop-domain-words",
-                                                          "shiploop-retired-terms"},
+                                                          "shiploop-retired-terms", "shiploop-trace"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words", "shiploop-retired-terms"},
             # Every ShipLoop skill path also selects the domain-word lint and the retired-term scan (the skills/shiploop/ row).
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},

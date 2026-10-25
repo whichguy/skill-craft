@@ -512,8 +512,10 @@ def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
     return None
 
 
-# What the run trace records about the command in progress: the run directory, the saved state before the verb,
-# and the refusal text.  Set by ``_main``, read by ``main`` once the command has finished.
+# What the run trace records about the command in progress: the run directory, the saved state before the verb (set
+# only once that state loaded as a current run), whether init created the run, and the refusal text.  Set by
+# ``_main``, read by ``main`` once the command has finished.  A command on a retired or unloadable run, or one whose
+# command line did not parse, records nothing: it must leave that directory as it was.
 _TRACE: dict[str, Any] = {}
 
 
@@ -537,10 +539,10 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
     """Append the finished command to its run's trace; the state after it is read once the lock is released."""
     import shiploop_trace as trace
 
-    if not raw_argv or raw_argv[0] in trace.UNTRACED:
+    root = _TRACE.get("root")
+    if not raw_argv or raw_argv[0] in trace.UNTRACED or root is None:
         return
-    root = _TRACE.get("root") or _argv_run_dir(raw_argv)
-    if root is None:
+    if _TRACE.get("before") is None and not _TRACE.get("created"):
         return
     try:
         after = store.read_record(Path(root) / "state.md")
@@ -548,6 +550,20 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
         after = None
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
+
+
+def _current_state(root: Optional[Path]) -> Optional[dict]:
+    """The saved state of ``root`` when it loads as a current run, else None (never raises)."""
+    if root is None:
+        return None
+    try:
+        state = store.read_record(root / "state.md")
+        if not isinstance(state, dict) or navigator.retired_run_reason(state) is not None:
+            return None
+        navigator.validate(state)
+    except (OSError, ValueError, KeyError, TypeError, store.StorageError):
+        return None
+    return state
 
 
 def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
@@ -563,6 +579,10 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] in ("chain", "lint", "red-check", "backchain-check"):
+        # Routed before the navigator's own loading: the trace records them only on a current run.
+        _TRACE["root"] = _argv_run_dir(raw_argv)
+        _TRACE["before"] = _current_state(_TRACE["root"])
     if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
         # Both write run state; a lost grant gets the same repair as next.
         refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
@@ -802,6 +822,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
             navigator.save(root, state)
+            _TRACE["created"] = True
             # The run baseline (consumer contract, owner decision D3): what the execution checkout held before any
             # commit of this run, so later packets can quote the spec and architecture diff since then.  A note, never
             # a refusal.

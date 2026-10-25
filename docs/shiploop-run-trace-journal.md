@@ -66,6 +66,45 @@ packets are about 2 MB, the trace stays small and greppable).
 - A demo run with every event kind (refusal, hook continuation with its injected text, a head-printed packet, a failed
   check) rendered in the page at desktop and at 375 px in dark mode with no horizontal scroll.
 
+## 2026-10-25: page review: a pulsing "current" on a finished run (firm, fixed)
+
+Owner, looking at the chess page: "We have a flashing bullet for current at every stage, although it looks like the run
+is complete." Checked in the browser on the page itself: all 61 stage chips had state `done` (0 `current`), and the one
+animated element was the legend's sample "current" chip. It pulsed whatever the run's state, so a finished run read as
+running. A critical pass over the same page found three more misreadings:
+
+| What the page showed | Why it misled | Change |
+|---|---|---|
+| legend: done, current (pulsing), reopened, pending | states the run never had; the sample animated | the legend names only the states and marks the plan shows; samples never animate (0 animated elements on a done run, measured) |
+| `implement ×11` | read as eleven reruns; it was four steps, a send-back, a re-plan, six steps | implement shows its current step plan's steps (`6 steps`), send-backs get `↩N`, `×N` means accepted N times |
+| tiles `0` packets, `0` refused, `0` commands on a run before the trace | not measured is not zero | `—` with "not recorded"; the digest says "not recorded" |
+| rows had no progress | no at-a-glance count | each row says `N of M done` |
+
+## 2026-10-25: original request beside the expanded request (firm, built)
+
+Owner: "We always want the ability to see what the original prompt was and what the expanded prompt was, based on all
+the planning activities." What planning records, read on the chess run: intake's summary maps every request sentence
+(`S1 outcome: …`, `S2 boundary: …`; 22 of 22 in that run); each planning stage has a headline and summary; spec names
+the living spec's requirements (17, `### R-n.` headings in `docs/shiploop/spec.md`); plan has the work items and 10
+assumptions; each item's step plan has its steps (6, 1, 3); answers the owner gave a waiting run are in `decisions/`.
+
+Built: `request_model` in `shiploop_trace.py` builds both sides from current accepted results only (two earlier
+step-plan results replaced after send-backs are counted as superseded, not shown); the digest prints two lines,
+`shiploop trace --request` prints it whole, and the page opens with it (original verbatim beside the stage list, then
+sentence by sentence, requirements, work items with steps, assumptions, owner answers, planning summaries). Spec text and
+answers pass the credential screen.
+
+Evidence: `test/shiploop-trace.test.py` 17 tests pass (18.5 s), including intake's reading split by sentence, the request
+of a real CLI run with a living spec, a screened requirement and an owner answer, and work items with steps from saved
+state.
+
+Test-suite fallout fixed in the same change (quick tier against origin/main): refused commands on retired or unloadable
+runs and argument errors created `trace.jsonl` and broke "no mutation" invariants (shiploop-navigator-contract), so a
+command is recorded only once its run loaded as current; the page template moved from `.html` to a Python string module
+because every file in `scripts/` must compile (shiploop-package-integrity); the context-index map budget rose 3,700 → 3,850
+bytes for its three new entries (shiploop-rehydration); a file-set test now expects `trace.jsonl` and `packets/sent/`
+(shiploop-status-display); suite counts 100 → 101 (test-groups).
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a
