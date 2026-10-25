@@ -1837,3 +1837,8 @@ falls inside its case's `shape` band (`evaluators/e6_step_size.py`). Four of the
 its step plan started; `docs/experiments/shiploop-plan-sizing-20261024/build_fixtures.py` builds them and `--check`
 proves the committed fixtures still match their sources. A case with `fake_sf` (`{"orgs": "de"}`) runs with `fake_sf.py`
 first on PATH as `sf`, for the host and for the harness's own grading, so it never reaches a real org.
+
+`progress_card.py --out DIR <experiment ids> [--arms T,B,C] [--plan PLAN.json] [--parallel N]` prints a status card for a
+running round as an HTML fragment for an inline widget: a plan strip (done, running, waiting, pending), a progress bar
+with an estimated end, and one slot per sample per arm (scored 1, below 1, running with its minutes, pending) with each
+arm's mean and its latest decide verdict. It reads run folders only.

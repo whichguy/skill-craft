@@ -470,5 +470,47 @@ class PlanSizing(unittest.TestCase):
         self.assertEqual(got["three files, a sidecar and its proof script"], "accepted")
 
 
+class ProgressCard(unittest.TestCase):
+    """progress_card.py: the inline status card for experiment runs reads run folders and writes nothing."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-card-")
+        self.addCleanup(self.temp.cleanup)
+        self.out = Path(self.temp.name)
+
+    def test_samples_show_as_scored_running_or_pending_with_the_plan_strip_and_the_verdict(self):
+        import progress_card  # noqa: PLC0415
+        done = self.out / "E6-K1" / "C" / "1" / "slice"
+        done.mkdir(parents=True)
+        (done / "slice-result.json").write_text("{}")
+        (self.out / "E6-K1" / "T" / "1" / "slice").mkdir(parents=True)
+        (self.out / "E6-K1" / "decision-T-C.json").write_text(json.dumps({"verdict": "supports"}))
+        plan = [{"step": "R1 K1", "state": "done"}, {"step": "R1 K3", "state": "running", "note": "4 of 12"}]
+        found = progress_card.card(self.out, ["E6-K1"], ["T", "C"], plan, 2,
+                                   scorer=lambda folder: {"value": 1, "steps": 6})
+        self.assertIn("1 of 8 samples", found)
+        self.assertEqual(found.count('<i class="f">'), 1)
+        self.assertEqual(found.count('<i class="r">'), 1)
+        self.assertEqual(found.count('title="pending"'), 6)  # the legend reuses the marker, not the title
+        self.assertIn('<em>6</em>', found)
+        self.assertIn('<b class="ok">supports</b>', found)
+        self.assertIn("ti-check", found)
+        self.assertIn("R1 K3 · 4 of 12", found)
+        self.assertIn("band 3+ steps", found)
+
+    def test_a_failing_evaluator_shows_an_error_slot_not_a_pass(self):
+        import progress_card  # noqa: PLC0415
+        done = self.out / "E6-K5" / "T" / "1" / "slice"
+        done.mkdir(parents=True)
+        (done / "slice-result.json").write_text("{}")
+
+        def broken(folder):
+            raise ValueError("no step plan")
+        found = progress_card.card(self.out, ["E6-K5"], ["T"], scorer=broken)
+        self.assertIn('<i class="e">', found)
+        self.assertNotIn('<i class="f">', found)
+        self.assertIn("exactly 1 step", found)
+
+
 if __name__ == "__main__":
     unittest.main()
