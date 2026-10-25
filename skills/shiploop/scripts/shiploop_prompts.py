@@ -1285,8 +1285,8 @@ Change no product file in this stage.
    - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
      only describes another changed file counts with it; tests, docs and its proof script do not). A second module
      or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with
-     "and" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the first step
-     that uses it. A single bug fix or mechanical rename is one step.
+     "and" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the
+     first step that uses it. A single bug fix or mechanical rename is one step.
    - Tests are not a step (the test stage writes them); a step changing only test files is refused unless the item
      is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
