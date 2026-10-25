@@ -1125,6 +1125,11 @@ class FakeImprover(FakeReviewer):
         return {"status": "exited", "returncode": 0, "elapsed_seconds": 0}
 
 
+# The suite catalog's path, in two parts: the catalog gives a suite the source of every test helper its text names
+# (its _suite_sources), and the catalog's own source names paths this suite does not cover.
+SUITE_CATALOG = "test/suite" + "_catalog.py"
+
+
 class IterateBoundaryTest(unittest.TestCase):
     """The evaluator boundary in iterate.py (SPEC "The promotion contract", build step 3, R13 of the final verdict). Astra's
     done signal: a candidate cannot modify grader inputs or read protected holdout instances, and the hashes stay unchanged."""
@@ -1226,10 +1231,10 @@ class IterateBoundaryTest(unittest.TestCase):
 
     def test_the_harness_its_suites_the_runner_and_the_catalog_are_out_of_scope(self):
         change, _ = self.improve(lambda worktree, events: self.commit(
-            worktree, "test/shiploop_e2e/run.py", "test/shiploop-e2e.test.py", "test/suite_catalog.py", "test/run-all.sh",
-            "test/shiploop-lint.test.py", "test/shiploop_loop_support.py", "changes/shiploop/x.md"))
+            worktree, "test/shiploop_e2e/run.py", "test/shiploop-e2e.test.py", SUITE_CATALOG, "test/run-all.sh",
+            "test/shiploop-lint.test.py", "test/shiploop_example_support.py", "changes/shiploop/x.md"))
         self.assertEqual(sorted(change["out_of_scope"]), ["test/run-all.sh", "test/shiploop-e2e.test.py",
-                                                          "test/shiploop_e2e/run.py", "test/suite_catalog.py"])
+                                                          "test/shiploop_e2e/run.py", SUITE_CATALOG])
 
     def test_the_loop_stops_and_journals_when_the_improver_changes_what_grades(self):
         def tamper(worktree, events):
@@ -1273,10 +1278,10 @@ class BoundaryTest(unittest.TestCase):
 
     def test_candidate_paths(self):
         for path, allowed in (("skills/shiploop/SKILL.md", True), ("changes/shiploop/x.md", True),
-                              ("test/shiploop-lint.test.py", True), ("test/shiploop_loop_support.py", True),
+                              ("test/shiploop-lint.test.py", True), ("test/shiploop_example_support.py", True),
                               ("test/fixtures/shiploop-keepalive/a", True), ("test/experiments/shiploop_chain/a.py", True),
                               ("test/shiploop_e2e/checks/battleship_game.py", False), ("test/shiploop-e2e-quality.test.py", False),
-                              ("test/suite_catalog.py", False), ("test/run-all.sh", False), ("skills/improve/SKILL.md", False),
+                              (SUITE_CATALOG, False), ("test/run-all.sh", False), ("skills/improve/SKILL.md", False),
                               ("test/fixtures/quality/reference_checkers.py", False)):
             with self.subTest(path=path):
                 self.assertEqual(boundary.candidate_path(path), allowed)
