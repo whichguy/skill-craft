@@ -547,6 +547,34 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             got = metrics.improve_reviews(run_dir)
             self.assertEqual((got["children"], got["passes"], got["max_passes"]), (2, 5, 3))
 
+    def test_a_result_only_edit_counts_as_an_edited_review_and_a_one_pass_review_is_timed_from_its_bind(self):
+        """Advisors panel 2026-10-25: a test spec's result lies outside the tree, so a tree-only count read 0 of 9 test-spec
+        reviews as edited (5 of 9 had edited their result); and a one-pass review measured first note to last note: 0 s."""
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp) / "run"
+            (run_dir / "improve").mkdir(parents=True)
+            bind = run_dir / "improve" / "nav-aaaa1111-bind.md"
+            bind.write_text("bind")
+            reviews = Path(temp) / "worktree" / ".shiploop-improve" / "test-spec-aaaa1111" / "reviews"
+            reviews.mkdir(parents=True)
+            (reviews / "review-1.md").write_text("x")
+            (reviews / "pass-1.json").write_text(json.dumps({"changed": False, "result_changed": True, "edited": True}))
+            os.utime(bind, (1000, 1000))
+            os.utime(reviews / "review-1.md", (1046, 1046))
+            older = Path(temp) / "worktree" / ".shiploop-improve" / "step-plan-bbbb2222" / "reviews"
+            older.mkdir(parents=True)
+            (older / "review-1.md").write_text("x")
+            (older / "pass-1.json").write_text(json.dumps({"changed": False}))  # a run before result tracking
+            got = metrics.improve_reviews(run_dir)
+            child = {c["child"]: c for c in got["per_child"]}
+            self.assertEqual((child["test-spec-aaaa1111"]["edited"], child["test-spec-aaaa1111"]["edited_basis"]),
+                             (True, "tree and result"))
+            self.assertEqual((child["test-spec-aaaa1111"]["seconds"], child["test-spec-aaaa1111"]["review_seconds"]),
+                             (0.0, 46.0))
+            self.assertEqual((child["step-plan-bbbb2222"]["edited"], child["step-plan-bbbb2222"]["edited_basis"]),
+                             (False, "tree only"))
+            self.assertEqual(got["edited_children"], 1)
+
     def test_no_worktree_means_no_children(self):
         self.assertEqual(metrics.improve_reviews(None)["passes"], 0)
         with tempfile.TemporaryDirectory() as temp:

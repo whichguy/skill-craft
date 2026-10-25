@@ -2631,13 +2631,35 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
         # IMP-11: passes.md at import, one row per pass with the listed fields.
         passes = (self.run / "improve" / self.action / "passes.md").read_text(encoding="utf-8")
-        self.assertIn("| stage | pass | label | tree changed | seconds | skill call recorded |", passes)
+        self.assertIn("| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
+                      passes)
         row = next(line for line in passes.splitlines() if line.startswith("| test-strategy | 1 |"))
         cells = [cell.strip() for cell in row.strip("|").split("|")]
-        self.assertEqual(cells[2:4], ["trivial", "n"])
-        self.assertTrue(cells[4].isdigit(), row)
-        self.assertEqual(cells[5], "not enforced")  # no Claude session bound this suite's run
-        self.assertIn("Re-decide the Improve stop rule (IMP-4) at 10 step-stage reviews with at least 3 edits", passes)
+        self.assertEqual(cells[2:6], ["trivial", "n", "n", "n"])
+        self.assertTrue(cells[6].isdigit(), row)
+        self.assertEqual(cells[7], "not enforced")  # no Claude session bound this suite's run
+
+    def test_a_result_only_edit_is_an_edit_and_needs_the_reviews_own_check_of_the_changed_result(self):
+        """Advisors panel 2026-10-25: a step plan's or test spec's result lies outside the tree, so a review that edited only
+        its result read "tree changed: n" (test-spec reviews: 0 of 9 edited by that column, 5 of 9 in fact), and ShipLoop's
+        checks.md summary for an unchanged tree replaced the review's own check of the changed result."""
+        self.begin()
+        record = store.read_record(self.input)
+        record["summary"] = str(record.get("summary", "")) + " The review made it exact."
+        store.write_record(self.input, record)
+        self.write_review(label="non-trivial", exit="unsatisfied", found="the summary was vague.",
+                          changed="the result's summary.", why="it changed the result.")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("record how you checked the changed result", self.line_one(refused))
+        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
+        (self.reviews() / "checks.md").write_text("Re-read the changed summary against the spec: consistent.\n",
+                                                  encoding="utf-8")
+        out = self.run_named(refused).stdout
+        self.assertIn("result changed since the bind", out)
+        self.assertIn("checks.md written by the review after its last edit of the result", out)
+        facts = json.loads((self.reviews() / "pass-1.json").read_text(encoding="utf-8"))
+        self.assertEqual((facts["changed"], facts["result_changed"], facts["edited"]), (False, True, True))
+        self.assertTrue((self.reviews() / "checks.md").read_text(encoding="utf-8").startswith("Re-read"))
 
     def test_an_edit_without_key_learnings_is_refused_and_the_named_exit_commits_and_records_the_pass(self):
         self.begin()

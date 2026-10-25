@@ -7413,7 +7413,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "evidence file.",
             "Planning experiment exit: Require coherent current planning artifacts, a complete "
             "assumption list with no open entry that a bounded probe within the remaining "
-            "allowance could settle now, and the two existing qualifying reviews. An inconclusive "
+            "allowance could settle now, and the qualifying review (one trivial pass ends it). An inconclusive "
             "probe remains unresolved; running a probe or exhausting the shared investigation allowance "
             "does not satisfy readiness. Use the current Improve cycle, never a nested loop or a new "
             "experiment counter. Preserve findings, remaining allowance and cleanup through recovery.",
@@ -8476,10 +8476,29 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     checks = reviews / CHECK_FILE
     changed = list(changes[0]) if changes is not None else None
     bind = store.read_record(root / improve_changes.bind_path(child["action_id"])) if changes is not None else {}
-    if changed == []:
-        store.atomic_write_text(checks, "Tree unchanged since improve-bind (" + str(bind.get("tree", ""))[:12]
-                                + "); producer checks: " + _producer_checks(root, child["action_id"]) + "\n")
-        checks_fact = "written by ShipLoop (tree unchanged since the bind)"
+    # The result block the review edits in place (a step plan, a test spec) lies outside the tree (advisors panel
+    # 2026-10-25): its fingerprint against the bind's says whether the review changed it.
+    result_now = improve_changes.result_identity(root, child["action_id"])
+    bound_result = bind.get("result") if isinstance(bind, Mapping) else None
+    result_edited = None if result_now is None or bound_result is None else result_now != bound_result
+    if changed == [] and result_edited:
+        # A result-only edit keeps the review's own check evidence: the producer's summary says nothing about the
+        # changed result, and a validation the review recorded (a replay) must survive the callback.
+        candidate = next((path for path in (root / "inbox" / (child["action_id"] + "-final-result.md"),
+                                            _result_input_path(root, child["action_id"])) if path.is_file()), None)
+        _need(checks.is_file() and not checks.is_symlink() and not _shiploop_checks(checks)
+              and (candidate is None or checks.stat().st_mtime >= candidate.stat().st_mtime),
+              "This review changed the " + child["stage"] + " result (" + str(candidate) + "), so record how you "
+              "checked the changed result (what you validated, the method, what it showed) in " + str(checks)
+              + " with a file-writing tool, after your last edit of the result, then run: " + command_again)
+        checks_fact = "written by the review after its last edit of the result"
+    elif changed == []:
+        if not (checks.is_file() and not checks.is_symlink() and not _shiploop_checks(checks)):
+            store.atomic_write_text(checks, CHECKS_UNCHANGED_PREFIX + str(bind.get("tree", ""))[:12]
+                                    + "); producer checks: " + _producer_checks(root, child["action_id"]) + "\n")
+            checks_fact = "written by ShipLoop (tree unchanged since the bind)"
+        else:
+            checks_fact = "written by the review (kept; tree and result unchanged since the bind)"
     else:
         _need(checks.is_file() and not checks.is_symlink(),
               "Run this stage's checks on the edited tree and write their output to " + str(checks)
@@ -8499,11 +8518,22 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     except (OSError, ValueError, AttributeError):
         before = None
     pass_changed = None if tree is None or before is None else tree != before
+    try:
+        result_before = (json.loads(previous.read_text(encoding="utf-8")).get("result") if number > 1
+                         else bound_result)
+    except (OSError, ValueError, AttributeError):
+        result_before = None
+    result_changed = None if result_now is None or result_before is None else result_now != result_before
+    # Edited: either changed; unknown only when neither side was measured.
+    edited = (True if pass_changed or result_changed else
+              None if pass_changed is None and result_changed is None else False)
     skill_fact = ("recorded " + str(call.get("at", "")) if call is not None else "not enforced (" + str(why) + ")")
     facts = ("ShipLoop facts: files changed since the bind: " + (", ".join(changed) if changed else
                                                                  "none" if changed == [] else "not measured")
              + ("; committed as " + committed if committed else "")
              + ("; not committed on the instruction: " + no_commit if no_commit else "")
+             + "; result " + ("changed since the bind" if result_edited else "unchanged since the bind"
+                              if result_edited is False else "not measured")
              + "; checks.md " + checks_fact + "; improve skill call " + skill_fact + ".")
     report = {field: front[key] for key, field, _allowed in REVIEW_FRONT}
     report["evidence"] = (review.name + ": " + "; ".join(label + ": " + labels[label] for label in REVIEW_LABELS)
@@ -8513,7 +8543,7 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     store.atomic_write_text(report_path, json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
         "pass": number, "label": front["classification"], "tree": tree, "changed": pass_changed,
-        "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
+        "result": result_now, "result_changed": result_changed, "edited": edited, "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
         "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, indent=1) + "\n")
     inline = delegation(state) == guidance.INLINE
     print("\n".join([
@@ -8529,6 +8559,19 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     return 0
 
 
+# The first words of the checks.md ShipLoop writes for a review that changed nothing; a checks.md that does not begin
+# with them was written by the review and is kept.
+CHECKS_UNCHANGED_PREFIX = "Tree unchanged since improve-bind ("
+
+
+def _shiploop_checks(checks: Path) -> bool:
+    """Whether ``checks`` is the summary ShipLoop writes for an unchanged review, not the review's own evidence."""
+    try:
+        return checks.read_text(encoding="utf-8", errors="replace").startswith(CHECKS_UNCHANGED_PREFIX)
+    except OSError:
+        return False
+
+
 def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], not_enforced: str | None) -> str:
     """``RUN/improve/<action>/passes.md`` at import (IMP-11): one row per review pass, from the files it left."""
     import shiploop_standalone_improve as standalone
@@ -8540,9 +8583,9 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
     except OSError:
         previous = None
     rows = ["# Improve passes: the " + child["stage"] + " result (" + child["action_id"] + ")", "",
-            "Re-decide the Improve stop rule (IMP-4) at 10 step-stage reviews with at least 3 edits.", "",
-            "| stage | pass | label | tree changed | seconds | skill call recorded |",
-            "| --- | --- | --- | --- | --- | --- |"]
+            "Edited is tree changed or result changed: a step plan's or test spec's result lies outside the tree.",
+            "| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for number, path in found:
         try:
             facts = json.loads((reviews / ("pass-" + str(number) + ".json")).read_text(encoding="utf-8"))
@@ -8550,11 +8593,12 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
             facts = {}
         front, _labels, _handoff, _missing = _review_form(path.read_text(encoding="utf-8", errors="replace"))
         stamp = path.stat().st_mtime
-        changed = facts.get("changed") if isinstance(facts, dict) else None
-        call = facts.get("skill_call") if isinstance(facts, dict) else None
+        facts = facts if isinstance(facts, dict) else {}
+        call = facts.get("skill_call")
         rows.append("| " + " | ".join([
             child["stage"], str(number), front.get("classification") or "not recorded",
-            "not measured" if changed is None else "y" if changed else "n",
+            *("not measured" if facts.get(key) is None else "y" if facts[key] else "n"
+              for key in ("changed", "result_changed", "edited")),
             "not measured" if previous is None else str(round(stamp - previous)),
             call or ("not enforced" if not_enforced is not None else "y")]) + " |")
         previous = stamp

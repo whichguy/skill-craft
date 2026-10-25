@@ -957,20 +957,41 @@ def improve_reviews(run_dir: Path | None) -> dict:
 
     A child's passes are its review-<n>.md files; seconds is the time between its first and last note, so a long
     child shows where review passes, not stages, spent the run. Used to decide whether repeat passes are wasted.
+    ``review_seconds`` runs from the review's bind record to its last note (a one-pass review is not 0 s), and
+    ``edited`` reads the passes' records (``edited``, else the older tree-only ``changed``, named by ``edited_basis``).
     A review folder sits at ``.shiploop-improve/<stage>-<id>/reviews`` (every chess run so far: runs 3, 4 and 5 read
     0 children until 2026-10-25) or one level deeper (``<run>/<child>/reviews``); both are read.
     """
     root = run_dir.parent / "worktree" / ".shiploop-improve" if run_dir else None
     children = []
     folders = sorted({*root.glob("*/reviews"), *root.glob("*/*/reviews")}) if root and root.is_dir() else []
+    binds = sorted((run_dir / "improve").glob("*-bind.md")) if run_dir and (run_dir / "improve").is_dir() else []
     for reviews in folders:
         notes = sorted(reviews.glob("review-*.md"))
         if notes:
             stamps = [n.stat().st_mtime for n in notes]
+            facts = []
+            for record in sorted(reviews.glob("pass-*.json")):
+                try:
+                    facts.append(json.loads(record.read_text(encoding="utf-8")))
+                except (OSError, ValueError):
+                    continue
+            # Edited (advisors panel 2026-10-25): a pass's tree or result changed. Runs before result tracking recorded
+            # only the tree, which misses an edit to a step plan's or test spec's result; their basis says so.
+            marks = [f.get("edited", f.get("changed")) for f in facts if isinstance(f, dict)]
+            edited = True if True in marks else None if not marks or None in marks else False
+            basis = ("tree and result" if any(isinstance(f, dict) and "edited" in f for f in facts)
+                     else "tree only" if facts else "not recorded")
+            # Seconds from the bind (the review's start) to its last note: a one-pass review is not 0 s.
+            suffix = reviews.parent.name.rsplit("-", 1)[-1]
+            bind = next((path for path in binds if path.name.endswith(suffix + "-bind.md")), None)
             children.append({"child": reviews.parent.name, "passes": len(notes),
                              "seconds": round(max(stamps) - min(stamps), 1),
+                             "review_seconds": round(max(stamps) - bind.stat().st_mtime, 1) if bind else None,
+                             "edited": edited, "edited_basis": basis,
                              "bytes": sum(n.stat().st_size for n in notes)})
     return {"children": len(children), "passes": sum(c["passes"] for c in children),
+            "edited_children": sum(1 for c in children if c["edited"] is True),
             "max_passes": max((c["passes"] for c in children), default=0), "per_child": children}
 
 
