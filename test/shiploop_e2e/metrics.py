@@ -222,6 +222,9 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # Each step-plan criterion's confirm (F1).
     "confirm": re.compile(r"each criterion says confirm:|are inspected, but name no test_layers row|are executed, "
                           r"but every command naming them only searches text|'s confirm is one of"),
+    # Prepare's harness evidence that shows no test running (run 5a's browser probe; run-5 follow-up), ahead of the
+    # broader harness_runs row, whose "harness_runs evidence" would match it first.
+    "harness_evidence": re.compile(r"shows no test run ShipLoop can read|ran no test \(the runner selected none\)"),
     # Prepare's proof that each prerequisite harness runs (F1).
     "harness_runs": re.compile(r"lists harness_runs|harness_runs (?:has no run|is a list of|evidence)|"
                                r"harness_runs\[\d+\]"),

@@ -1236,7 +1236,8 @@ DUTIES = {
 3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help
    that proves it starts, not the suite); save the output and list each file in `evidence_refs`. Set up the harness
    of each Test layers row marked `prerequisite` (the repository's own tooling, within authority), run one test with
-   it and record the command and its saved output in `harness_runs`; one you cannot set up: report blocked.
+   it and record the command and its saved output, the runner's summary included, in `harness_runs`; one you cannot
+   set up: report blocked.
 4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,
    keep the original observation, and rerun the original initial check on the unchanged product and tests before any
    dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.

@@ -699,6 +699,28 @@ class TestLayerGateTests(RepoCase):
         # The named exit: broader code and shorter text fit.
         navigator._check_submitted_layers(state, "test-strategy", dict(done, test_layers=many[:3]))
 
+    def test_prepare_harness_evidence_must_show_a_test_ran(self) -> None:
+        """Run 5a (2026-10-24): prepare's harness_runs evidence was a browser page that said it was "not the slChessBoard
+        component", and the file-exists gate accepted it. Run 5b's was a real runner summary. The evidence must show
+        at least one test running, read by the same runner readers the test stage uses; the named exit is a saved run."""
+        state = self.strategy_state([dict(self.UNIT, status="prerequisite")], stage="prepare")
+        done = {"outcome": "done", "summary": "s"}
+        run = {"code": "board component", "layer": "unit", "command": "npm run test:unit -- board"}
+        page = self.repo / "probe.txt"
+        page.write_text('<p id="probe">PROBE_OK</p>\n<p>Local document only. This is not the board component.</p>\n',
+                        encoding="utf-8")
+        message = self.refused(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(page))]))
+        self.assertIn("shows no test run ShipLoop can read", message)
+        self.assertIn("board component [unit]", message)
+        none = self.repo / "none.txt"
+        none.write_text("No tests found, exiting with code 1\n", encoding="utf-8")
+        self.assertIn("ran no test", self.refused(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(none))])))
+        # The named exit: the runner's own summary of one test it ran (run 5b's evidence, colours and all).
+        ran = self.repo / "ran.txt"
+        ran.write_text("\x1b[1mTests:       \x1b[22m\x1b[1m\x1b[32m1 passed\x1b[39m\x1b[22m, 1 total\nEXIT:0\n",
+                       encoding="utf-8")
+        navigator._check_submitted_layers(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(ran))]))
+
     def test_prepare_shows_each_prerequisite_harness_running(self) -> None:
         state = self.strategy_state([dict(self.UNIT, status="prerequisite")], stage="prepare")
         done = {"outcome": "done", "summary": "s"}
@@ -709,7 +731,7 @@ class TestLayerGateTests(RepoCase):
                "evidence": str(self.repo / "missing.txt")}
         self.assertIn("is not an existing absolute file", self.refused(state, "prepare", dict(done, harness_runs=[run])))
         output = self.repo / "harness-run.txt"
-        output.write_text("1 test passed\n", encoding="utf-8")
+        output.write_text("Tests:       1 passed, 1 total\n", encoding="utf-8")
         navigator._check_submitted_layers(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(output))]))
         # The template names each prerequisite row, so only the command and its output are left to fill.
         template = navigator._result_template(state, "prepare")

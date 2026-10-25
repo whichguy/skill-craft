@@ -3237,6 +3237,7 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
                     _need(Path(row["evidence"]).is_absolute() and Path(row["evidence"]).is_file(),
                           "harness_runs evidence " + row["evidence"] + " is not an existing absolute file: save the "
                           "harness run's output and name that file")
+                    layers.check_harness_output(row, Path(row["evidence"]).read_text(encoding="utf-8", errors="replace"))
             return
         own = layers.canonical_rows(result.get("test_layers", []))
         if own:

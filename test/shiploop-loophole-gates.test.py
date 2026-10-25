@@ -43,10 +43,20 @@ STATEFUL = {"target": "the shared service", "keeps_state": "yes", "base_state_ro
 PRIMARY_RUN = {"spec": {"primary": ["R-1"]}}
 PRIMARY_ROW = dict(contract.UNVERIFIED_ENTRY, requirement="R-1", outcome="a person sees the built file's text",
                    lower_layer_check="the reviewer read the page")
+# A test-strategy row whose harness prepare sets up (F1), so prepare's done result owes its harness_runs entry.
+PREREQUISITE_RUN = {"test-strategy": {"test_layers": [
+    dict(contract.RESULTS["test-strategy"]["test_layers"][0], status="prerequisite",
+         reason="prepare sets up the shell harness")]}}
 ADD_TEST = {"outcome": "add-work", "summary": "Add the unit test that shows R-1's logic works.",
             "headline": "R-1 needs a lower-layer test.",
             "work_items": [{"id": "W2", "title": "Add a unit test of R-1's logic",
                             "context": "R-1 is primary and no unit or component test of it passed."}]}
+
+
+def probe_evidence(block: dict) -> dict:
+    """``block`` whose harness_runs evidence is a page beside the real output that shows no test (run 5a's probe)."""
+    return {**block, "harness_runs": [dict(row, evidence=str(Path(row["evidence"]).with_name("probe.html")))
+                                      for row in block["harness_runs"]]}
 
 
 def commands(block: dict, change) -> dict:
@@ -95,6 +105,9 @@ DODGES = [
      lambda block: commands(block, focused(lambda row: dict(row, target="the shared service"))),
      "which is no test-strategy targets row",
      lambda block: block),            # the named exit: leave target out for a command that runs on the checkout
+    ("harness evidence that shows no test running", "run 5a's prepare browser probe (F1)", "prepare", PREREQUISITE_RUN,
+     probe_evidence, "shows no test run ShipLoop can read",
+     lambda block: block),            # the named exit: the runner's own output of one test it ran
     ("an unverified primary outcome whose lower-layer check is a person's reading", "run 4's product-acceptance (F6)",
      "product-acceptance", PRIMARY_RUN, lambda block: {**block, "unverified": [PRIMARY_ROW]},
      "a primary requirement (spec primary), and its lower_layer_check names no test",

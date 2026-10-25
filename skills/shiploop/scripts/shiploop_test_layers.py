@@ -31,6 +31,8 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+import shiploop_test_counts as counts
+
 LAYERS = ("unit", "component", "e2e")
 STATUSES = ("available", "prerequisite", "unverified")
 # The layers whose missing harness is work the run can do (prepare), never a reason to leave code unverified.
@@ -182,6 +184,21 @@ def check_harness_runs(rows: Optional[Sequence[Mapping[str, str]]], value: Any) 
     return runs
 
 
+def check_harness_output(run: Mapping[str, str], output: str) -> None:
+    """A harness_runs entry's saved output shows at least one test running, read by the runner readers the test stage
+    uses (``shiploop_test_counts``).  Run 5a's evidence was a browser page that said it was not the component under
+    test, and a file-exists check accepted it."""
+    label = run["code"] + " [" + run["layer"] + "]"
+    seen = counts.count(output, None)
+    _need(seen is not None, "harness_runs evidence " + run["evidence"] + " for " + label + " shows no test run ShipLoop "
+          "can read. Save the runner's own output of one test it ran, summary line included (runners ShipLoop reads: "
+          + counts.RUNNERS + "; the stack's platform card under references/platforms/ names a readable reporter). A "
+          "page, a probe, a listing or a version line is not a test run. A harness this run cannot run so: report "
+          "blocked naming it.")
+    _need(seen["ran"] >= 1, "harness_runs evidence " + run["evidence"] + " for " + label + " ran no test (the runner "
+          "selected none). Run one test with the harness and save that output.")
+
+
 def criterion_label(row: Mapping[str, Any]) -> str:
     """A criterion's ID with how it is confirmed, as the later packets print it: ``C2 [inspected: board UI e2e]``."""
     confirm = row.get("confirm")
@@ -213,5 +230,5 @@ def packet_lines(rows: Optional[Sequence[Mapping[str, str]]], targets: Optional[
 
 __all__ = ("BUILD_LAYERS", "CONFIRMS", "FIELD_LIMITS", "HARNESS_RUN_SHAPE", "HARNESS_RUN_TEMPLATE", "LAYERS",
            "LayerError", "ROW_SHAPE", "ROW_TEMPLATE", "SEARCH_PROGRAMS", "STATUSES", "TARGET_SHAPE", "TARGET_TEMPLATE",
-           "TEXT_LIMIT", "canonical_rows", "canonical_targets", "check_confirms", "check_harness_runs", "check_rows",
-           "check_text", "criterion_label", "packet_lines", "search_only")
+           "TEXT_LIMIT", "canonical_rows", "canonical_targets", "check_confirms", "check_harness_output",
+           "check_harness_runs", "check_rows", "check_text", "criterion_label", "packet_lines", "search_only")

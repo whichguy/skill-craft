@@ -159,6 +159,11 @@ class RealCliCase(unittest.TestCase):
                         GIT_CONFIG_NOSYSTEM="1")
         self.evidence = self.base / "evidence.txt"
         self.evidence.write_text("a note this stage wrote\n")
+        # Prepare's harness run (run-5 follow-up): the runner's own summary of one test, and beside it a page that shows
+        # none, as run 5a's browser probe did.
+        self.harness_output = self.base / "harness-run.txt"
+        self.harness_output.write_text("test_writes_built_txt ... ok\n\nRan 1 test in 0.001s\n\nOK\n")
+        (self.base / "probe.html").write_text("<p>PROBE_OK</p><p>This is not the code under test.</p>\n")
         self.counter = itertools.count(1)
         self.repo = self.make_repo()
 
@@ -264,6 +269,8 @@ class RealCliCase(unittest.TestCase):
             "unverified": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
             "concerns": inner_fixture.no_concerns_map(["W1"]),
+            "harness_runs": [{"code": "built.txt writer", "layer": "unit", "command": "sh test.sh",
+                              "evidence": str(self.harness_output)}],
             **{key: value for result in RESULTS.values() for key, value in result.items()
                if key not in ("outcome", "summary", "assumptions")},
         }
