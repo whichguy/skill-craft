@@ -117,3 +117,34 @@ rerun or lost. Later slices ran on 3.14.9 or 3.15.1 (harness interpreter only; t
 **Next.** Grok to E-EFF1 for its R2 pair (75 minutes). Then R1g: the winner's generic wording `Cg` on K1, K3 and K5,
 4 samples each, before any ShipLoop change (owner, 2026-10-24); then the remaining cases (K2, K4, K6, K7), whose arms
 await the owner's choice.
+
+## 4. 2026-10-24: R1g, the generic wording re-checked
+
+**Question.** Does arm C in a generic wording (`Cg`: "a file that only describes another changed file counts with
+it"; the gate's companion-file rule by name, no stack's file convention) keep C's result, as the owner required before
+any ShipLoop change?
+
+**Conditions.** As R1 (Grok 4.7 medium, seed and stop at step-plan), arm `Cg` = `9ed4ec24` +
+`e6-size-gate-generic.json`, 4 samples on each of K1, K3 and K5 in three parallel lanes, 21:03 to 22:43, Python 3.14.9
+for the harness throughout; compared with R1's own T and C samples in the same output folder (same commit, cases and
+host). E-EFF1's second hello pair ran on Grok just before (its slices had ended); another session's Grok chess run was
+active throughout.
+
+**Results.**
+
+| Case | T | C (R1) | Cg | decide T vs Cg | decide C vs Cg |
+| --- | --- | --- | --- | --- | --- |
+| K1 | 0.25 | 1.00 | 0.75 (4, 2, 7, 5 steps) | inconclusive: +0.50 inside the A/A spread 0.50 | contradicts (Cg no better; -0.25, inside the spread) |
+| K3 | 1.00 | 1.00 | 1.00 | ceiling | ceiling |
+| K5 | 1.00 | 1.00 | 1.00 | ceiling | ceiling |
+
+**Findings.**
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F21 | The generic wording does not reproduce C's verdict: Cg is inconclusive against T on K1 (0.75 vs 0.25). By the owner's rule no ShipLoop change follows from R1 alone. | firm (the verdict); interim (the effect) | decision-T-Cg.json on E6-K1 |
+| F22 | Cg's gate never fired either (0 refusals in 12 samples), so B, C and Cg ran the same bound in prose, differing only in the companion-file clause; on K1 they put 10 of 12 plans inside the band (B 3, C 4, Cg 3) against 1 of 4 for T. Their spread across arms (0.75 to 1.00) is within one arm's sampling noise. | interim (pooling arms the decide rule keeps apart) | r1-results; gate-refusal counts |
+| F23 | The decide threshold is coarse at 4 control samples: the A/A spread is the difference of two 2-sample means, so it can only be 0, 0.5 or 1, and T's [0, 1, 0, 0] fixes it at 0.5. An arm needs a mean above 0.75 against this control to be "supports"; more samples of the arm move its mean but not the threshold. | firm (arithmetic of experiment.py `judge`) | experiment.py `judge`, arms.aa_spread |
+| F24 | The generic wording keeps the over-split guard: every Cg K5 plan is one step, and every Cg K3 plan keeps the layers apart. | firm (n = 4 each) | r1-results |
+
+**Next.** Owner's call: more K1 samples (T and Cg, to firm up F21/F22), the remaining cases, or both.
