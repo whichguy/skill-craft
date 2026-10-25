@@ -125,6 +125,10 @@ import tempfile
 import threading
 import time
 
+# datetime.strptime imports _strptime on its first call. Load it now: run 5a (2026-10-24) crashed at its end when
+# Homebrew swapped the interpreter under the running process and that module was no longer on disk.
+import _strptime  # noqa: E402,F401
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
@@ -768,11 +772,11 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
 
         reader = threading.Thread(target=pump, daemon=True)
         reader.start()
-        deadline = time.time() + timeout
+        deadline = time.monotonic() + timeout
         status = None
         try:
             while proc.poll() is None:
-                if time.time() >= deadline:
+                if time.monotonic() >= deadline:
                     status = "timeout"
                 elif (stop_file is not None and stop_file.exists()) or TERMINATION.is_set():
                     status = "stopped"
@@ -2175,10 +2179,10 @@ def run_platform_command(command: str, cwd: Path, env: dict, timeout: int = PLAT
     proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, errors="replace", start_new_session=True)
     interrupts, code, output = 0, None, ""
-    deadline = time.time() + timeout
+    deadline = time.monotonic() + timeout
     while True:
         try:
-            output, _ = proc.communicate(timeout=max(1, deadline - time.time()))
+            output, _ = proc.communicate(timeout=max(1, deadline - time.monotonic()))
             code = proc.returncode
             break
         except subprocess.TimeoutExpired:
@@ -4096,7 +4100,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   f"ended, or clean by hand: {manual_cleanup_command(out, platform_spec)}", flush=True)
     if platform_spec and regrade:
         platform_before = earlier_platform.get("before")
-    deadline = time.time() + args.timeout
+    # Active time, not wall time: a Mac that slept 10 h spent run 5's 5 h cap with 3.8 h of work (2026-10-25);
+    # time.monotonic stops during sleep (mach_absolute_time, CLOCK_MONOTONIC), time.time does not.
+    deadline = time.monotonic() + args.timeout
     if resumed and not regrade:
         # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
         # not answer the new session's probes: that is how two runs met the same port in round 2.
@@ -4127,7 +4133,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
                          allow=host_allow)
-        process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
+        process = session(argv, work, out, env, max(60, int(deadline - time.monotonic())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
@@ -4139,7 +4145,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     while host.resumable and not regrade and len(sessions) <= args.max_resumes:
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
-        remaining = int(deadline - time.time())
+        remaining = int(deadline - time.monotonic())
         # No run yet means the session ended before ShipLoop wrote its state; a
         # run that is paused, blocked, halted or done is not resumed. (A question
         # waiting for a person is a view of blocked, not a status of its own.)

@@ -533,6 +533,19 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             self.assertEqual([(c["passes"], c["seconds"], c["bytes"]) for c in got["per_child"]],
                              [(3, 120.0, 30), (1, 0.0, 10)])
 
+    def test_a_review_folder_one_level_down_is_read_as_the_runs_write_it(self):
+        """Runs 3, 4 and 5 keep .shiploop-improve/<stage>-<id>/reviews; the reader saw 0 children until 2026-10-25."""
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp) / "run"
+            run_dir.mkdir()
+            for child, count in (("spec-1d6d2aa8", 3), ("implement-0d7e1c02", 2)):
+                reviews = Path(temp) / "worktree" / ".shiploop-improve" / child / "reviews"
+                reviews.mkdir(parents=True)
+                for n in range(1, count + 1):
+                    (reviews / f"review-{n}.md").write_text("x")
+            got = metrics.improve_reviews(run_dir)
+            self.assertEqual((got["children"], got["passes"], got["max_passes"]), (2, 5, 3))
+
     def test_no_worktree_means_no_children(self):
         self.assertEqual(metrics.improve_reviews(None)["passes"], 0)
         with tempfile.TemporaryDirectory() as temp:
@@ -807,6 +820,17 @@ class ExpectationTest(HarnessCase):
         code, result = self.invoke("claude", "done")
         self.assertEqual(code, 0, result)
         self.assertFalse((Path(result["output"]) / "mismatch.md").exists())
+
+    def test_run_deadlines_count_active_time_and_strptime_is_loaded_at_start(self):
+        """Run 5 (2026-10-24/25): a 10 h sleep spent the 5 h wall-clock cap after 3.8 h of work, and a mid-run
+        interpreter swap removed the lazily imported _strptime. Deadlines read time.monotonic, which stops during
+        sleep; _strptime is imported at start."""
+        source = (ROOT / "test" / "shiploop_e2e" / "run.py").read_text(encoding="utf-8")
+        wall = [line.strip() for line in source.splitlines() if "deadline" in line and "time.time()" in line]
+        self.assertEqual(wall, [])
+        self.assertIn("deadline = time.monotonic() + args.timeout", source)
+        self.assertRegex(source, r"(?m)^import _strptime\b")
+        self.assertIn("_strptime", sys.modules)  # importing run loaded it
 
     def test_budget_is_should_level_and_read_from_the_run_timeline(self):
         run_dir = self.tmp / "run"

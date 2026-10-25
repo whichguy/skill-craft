@@ -94,7 +94,7 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "a step's requirement (its criterion)", "use": "criterion", "since": "2026-10-24",
   "pattern": "requirement assigned to this step|requirements that have been stated|requirement's Confirm-by", "allow": []},
  {"retired": "an open item's consumer (where it is settled)", "use": "due_stage, or at plan due_item", "since": "2026-10-24",
-  "pattern": "`consumer` = |\\bas `consumer`|consumer work item|open: `consumer`|an open assumption's `consumer`", "allow": []},
+  "pattern": "`consumer` = |\\bas `consumer`|consumer work item|open: `consumer`|an open assumption's `consumer`|whose consumer is", "allow": []},
  {"retired": "complete command (the callback)", "use": "callback", "since": "2026-10-24",
   "pattern": "(?i)same complete command|the complete command|callback command|completion call\\b", "allow": []},
  {"retired": "=== end ShipLoop head === (the print marker)", "use": "=== end ShipLoop print ===", "since": "2026-10-24",

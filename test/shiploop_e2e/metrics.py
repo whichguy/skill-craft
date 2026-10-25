@@ -954,10 +954,13 @@ def improve_reviews(run_dir: Path | None) -> dict:
 
     A child's passes are its review-<n>.md files; seconds is the time between its first and last note, so a long
     child shows where review passes, not stages, spent the run. Used to decide whether repeat passes are wasted.
+    A review folder sits at ``.shiploop-improve/<stage>-<id>/reviews`` (every chess run so far: runs 3, 4 and 5 read
+    0 children until 2026-10-25) or one level deeper (``<run>/<child>/reviews``); both are read.
     """
     root = run_dir.parent / "worktree" / ".shiploop-improve" if run_dir else None
     children = []
-    for reviews in sorted(root.glob("*/*/reviews")) if root and root.is_dir() else []:
+    folders = sorted({*root.glob("*/reviews"), *root.glob("*/*/reviews")}) if root and root.is_dir() else []
+    for reviews in folders:
         notes = sorted(reviews.glob("review-*.md"))
         if notes:
             stamps = [n.stat().st_mtime for n in notes]

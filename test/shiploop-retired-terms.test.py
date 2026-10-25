@@ -10,6 +10,7 @@ suite fails on the old term's next use.
 
 from __future__ import annotations
 
+import ast
 import re
 import sys
 import tempfile
@@ -34,19 +35,47 @@ def scanned(root: Path = ROOT) -> list[Path]:
     return [path for path in files if path.is_file() and path.name != "glossary.md"]
 
 
+def printed_strings(source: str) -> list[tuple[int, str]]:
+    """(line, text) of each string a script can print: every literal (the parser already joins adjacent ones, so a
+    phrase split across two literals on two lines is one text here) and every ``+`` chain of them, with a non-literal
+    part read as one space.  Run 5 (2026-10-24) printed a retired phrase that the line scan missed for that split."""
+    found: list[tuple[int, str]] = []
+
+    def chain(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = chain(node.left), chain(node.right)
+            if left is not None or right is not None:
+                return (left if left is not None else " ") + (right if right is not None else " ")
+        return None
+
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, (ast.Constant, ast.BinOp)):
+            text = chain(node)
+            if text:
+                found.append((node.lineno, text))
+    return found
+
+
 def hits(terms: list[dict], root: Path = ROOT) -> list[str]:
-    """``path:line: retired term (use ...)`` for each retired-term match outside its allowed files."""
+    """``path:line: retired term (use ...)`` for each retired-term match outside its allowed files: in the file's
+    lines and, for a script, in each string it can print (``printed_strings``)."""
     found = []
     for path in scanned(root):
         relative = path.relative_to(root).as_posix()
         text = path.read_text(encoding="utf-8")
+        strings = printed_strings(text) if path.suffix == ".py" else []
         for term in terms:
             if relative in term["allow"]:
                 continue
             for match in term["regex"].finditer(text):
                 line = text.count("\n", 0, match.start()) + 1
                 found.append(f"{relative}:{line}: {term['retired']} (use {term['use']})")
-    return found
+            for line, string in strings:
+                if term["regex"].search(string):
+                    found.append(f"{relative}:{line}: {term['retired']} (use {term['use']})")
+    return list(dict.fromkeys(found))
 
 
 class RetiredTermTests(unittest.TestCase):
@@ -76,6 +105,18 @@ class RetiredTermTests(unittest.TestCase):
             found = hits(glossary.retired_terms(), root)
         self.assertEqual(found, ["skills/shiploop/references/planted.md:2: expected-RED (a baseline repair) "
                                  "(use expected failure)"])
+
+    def test_a_retired_phrase_split_across_two_literals_is_found(self) -> None:
+        """Run 5 (2026-10-24): "then run the same complete " "command again" passed the line scan in two scripts."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            script = root / "skills" / "shiploop" / "scripts" / "planted.py"
+            script.parent.mkdir(parents=True)
+            script.write_text('def refusal(path):\n    return ("Restore " + path + ", then run the same complete "\n'
+                              '            "command again.")\n', encoding="utf-8")
+            (root / "skills" / "shiploop" / "SKILL.md").write_text("Card.\n", encoding="utf-8")
+            found = hits(glossary.retired_terms(), root)
+        self.assertEqual(found, ["skills/shiploop/scripts/planted.py:2: complete command (the callback) (use callback)"])
 
     def test_a_malformed_block_is_refused_by_name(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

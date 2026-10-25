@@ -999,12 +999,11 @@ def _canonical_result(
     problem = _result_shape_problem(value)
     _need(problem is None, problem or "")
     _need("blocked_by" not in keys,
-          "blocked_by is retired: " + BLOCKED_RULE + ". Replace blocked_by with awaiting and run the same complete "
-          "command again")
+          "blocked_by is retired: " + BLOCKED_RULE + ". Replace blocked_by with awaiting and run the same callback again")
     unsupported = sorted(keys - _RESULT_KEYS)
     _need(not unsupported,
-          "result has unsupported fields: " + ", ".join(unsupported) + ". Delete them and run the same complete "
-          "command again; a result carries only: " + ", ".join(sorted(_RESULT_KEYS)))
+          "result has unsupported fields: " + ", ".join(unsupported) + ". Delete them and run the same callback again; a "
+          "result carries only: " + ", ".join(sorted(_RESULT_KEYS)))
     outcome = value.get("outcome")
     _need(outcome in ("done", "blocked", "send-back", "add-work", "reconcile"),
           "result outcome must be one of " + ", ".join(stage_spec.stage(stage).outcomes) + " at " + stage

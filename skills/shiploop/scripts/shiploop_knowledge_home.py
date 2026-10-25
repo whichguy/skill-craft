@@ -626,8 +626,8 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     found = [label + ": " + "; ".join(lines) for label, lines in (
         ("changed or removed", changed), ("without the step's mark", unmarked), ("outside a current R-<n> entry", outside))
         if lines]
-    return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same complete "
-            "command again; to change a requirement, report send-back naming it.\n"
+    return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same callback "
+            "again; to change a requirement, report send-back naming it.\n"
             "At implement, spec.md takes only new acceptance lines inside an existing R-<n> entry, each ending (" + marker
             + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 
