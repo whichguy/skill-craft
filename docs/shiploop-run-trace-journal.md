@@ -151,6 +151,14 @@ never write into a retired or unloadable run, lock-free appends), not my conclus
 
 `test/shiploop-trace.test.py`: 22 tests pass (21.4 s).
 
+## 2026-10-25: verification after rebasing on origin/main (firm)
+
+Rebased the branch onto origin/main (22 upstream commits, no conflicts). Quick tier for this change
+(`test/run_suites.py --group quick --changed-from origin/main`, 41 suites, `--jobs 8`): PASS, 258.8 s wall. The last
+commit (page plurals, page template only) landed while the tier ran; `test/shiploop-trace.test.py` passed on it (22).
+Not run: the full tier and a live ShipLoop run on a real host with the trace on; the first released E2E run is the live
+check.
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a
