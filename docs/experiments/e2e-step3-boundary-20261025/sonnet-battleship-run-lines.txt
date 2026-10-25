@@ -1,0 +1,27 @@
+PASS  shiploop e2e case=battleship host=claude  output=~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship
+  process   PASS  exited rc=0 1387.7s cost=$6.6446 sessions=1
+  shiploop  PASS  done
+  outcome   PASS  every verdict passed
+  committed PASS  HEAD fe541421 (started at no commit); 10 files in HEAD, 0 uncommitted product paths
+  check     PASS  log=$(mktemp); node --test > "$log" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' "$log" && [ $rc -eq 0 ]; r=$?; rm -f "$log"; exit $r
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi battleship'
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e 'fetch(process.env.BASE+"/api/new").then(r=>r.json()).then(g=>{ const id=g.game??g.id??g.g
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"
+PASS  shiploop e2e case=battleship-scoring host=claude  output=~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring
+  process   PASS  exited rc=0 1409.9s cost=$7.3887 sessions=1
+  shiploop  PASS  done
+  outcome   PASS  every verdict passed
+  committed PASS  HEAD ad80410a (started at fe541421); 11 files in HEAD, 0 uncommitted product paths
+  check     PASS  log=$(mktemp); node --test > "$log" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' "$log" && [ $rc -eq 0 ]; r=$?; rm -f "$log"; exit $r
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi battleship'
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e 'fetch(process.env.BASE+"/api/new").then(r=>r.json()).then(g=>{ const id=g.game??g.id??g.g
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e "const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',header
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e "const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',header
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi accuracy'
+  check     PASS  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"
+  check     PASS  git -C "$PRIOR_WORK" ls-files --cached --others --exclude-standard | grep -v '\.log$' | while IFS= read -r f; do [ -e "$f" ] || { ec
+  check     PASS  node -e 'const fs=require("fs"),path=require("path");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,"package.json
+  check     PASS  count() { (cd "$1" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\2/p' | tail -1; }; before=$(count "$PRIOR_WORK"); aft
+  check     PASS  ids() { grep -oE '\bR-[0-9]+\b' "$1/docs/shiploop/spec.md" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids "$PRIOR_
+suite web-service: battleship PASS, battleship-scoring PASS

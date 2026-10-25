@@ -2886,3 +2886,86 @@ evidence? This is step 2 of Astra's build order (R2, R3), approved by the owner 
 
 `scorecard/1` and `promotion/1` are replaced, with no shim (one supported version).
 
+
+## Sonnet confirmation of the fixed Battleship checks (2026-10-25) — status: firm
+
+**Question.** Do the Battleship checks fixed in wave 1 pass a real delivery and leave it untouched? The live check is
+`battleship_game.py`, which fires at every cell and asserts the game ends exactly once. The fix also stopped the checks
+writing scratch files into `work/` (E4). The owner asked for this run on 2026-10-25.
+
+**Run.** It was the `web-service` suite (battleship, then battleship-scoring) on Claude Sonnet 5.5, from the marketplace
+(skill-craft 2.10.1). It ran from the gate worktree, output `~/e2e-runs/20261025/gate-2100-96810d-claude-web`.
+
+**Result** (`docs/experiments/e2e-step3-boundary-20261025/sonnet-battleship-run-lines.txt`,
+`sonnet-battleship-scorecard3.txt`):
+- battleship: PASS, 4 of 4 checks, 23.1 minutes, $6.64, 277 turns.
+- battleship-scoring: PASS, 12 of 12 checks, 23.5 minutes, $7.39, 317 turns.
+- Both are correctness Y and attribution Y under `scorecard/3`. Under E4's checks the gate's Battleship run was
+  correctness n, because a check had deleted the committed `page.html`. These fixed checks left the delivered tree clean.
+- Timing is n for both: each overlapped 2 other runs (E-EFF1's frozen experiment). So they are quality evidence and never
+  speed evidence.
+- Neither has grading digests: both were graded before build step 3 recorded them.
+
+## Build step 3: the evaluator boundary (2026-10-25) — status: firm for the improver's boundary and the comparison rule; interim for the run agent's reads (detected by name, not prevented)
+
+**Question.** Can a candidate be stopped from changing what grades it, or reading the held-out checks, with the grading
+hashes shown unchanged? This is step 3 of Astra's build order (R13: "freeze grading outside the candidate's control:
+evaluator tests out of edit permissions, holdout data out of model access"). The owner approved it on 2026-10-25.
+
+**Found before building:**
+- `iterate.py`'s `ALLOWED_PREFIXES` included all of `test/`. An improver could edit the oracles in `checks/`, the harness,
+  `cases.json`, the suite catalog, or the quick-tier runner that gates its own commit.
+- The improver's worktree held the held-out `checkers_accept.py` and its calibration reference
+  `reference_checkers.py`, a correct Checkers implementation.
+- Nothing recorded which harness or oracle graded a run. So `promotion.py` could compare a control graded by one oracle
+  with a candidate graded by an edited one.
+
+**Built.** The SPEC was amended first, in its own commit. Then:
+- **`boundary.py`.** It gives three grading digests, all byte digests: `evaluator` (the harness's `*.py` and `*.cjs`),
+  `oracle` (`checks/`) and `case` (the catalog entry). `candidate_path` says what the improver may change. The held-out
+  files are each acceptance module plus its `calibration` files. `withheld` takes them out of a worktree using
+  skip-worktree in that worktree's own index, so no shared sparse-checkout config is touched. `named` counts the event
+  lines that name one.
+- **`run.py`.** It records `boundary` in `result.json` each time it grades, a regrade included.
+- **`scorecard/3`.** The card carries `boundary`, with the candidate taken from `versions.plugin_sha256`. Correctness is
+  null when a run's events name a held-out file, the checks folder or the case catalog, or when that was not recorded,
+  for a case with held-out acceptance.
+- **`promotion/3`.** A case's attempts, in both arms, must share all three grading digests. Otherwise the decision is
+  UNDECIDED, so a harness or oracle change is its own experiment.
+- **`iterate.py`.**
+  - The improver's scope is the skill, its notes and ShipLoop's own tests, never the E2E harness, its suites, the
+    runner or the catalog.
+  - The held-out files are withheld while it works and restored before the quick tier.
+  - Each iteration journals the four digests.
+  - The loop stops when the grading checkout's digests changed, or when the improver's tool calls name a held-out file,
+    or when its events can't be read. Only tool calls count: the SPEC is in the improver's prompt and names these files.
+    The first draft also searched the model's prose, which this review caught before commit.
+- **`cases.json`.** Checkers' acceptance block names its `calibration`. `quality.held_out_seen` counts that name too.
+
+**Checked for safety:** only `shiploop-e2e-quality` loads `checkers_accept`. No candidate-path change selects that suite
+(`suite_catalog.targeted` over all 120 files in `skills/shiploop` and `changes/shiploop`), so withholding cannot redden
+the improver's own quick tier. The five saved Checkers runs with a quality block all recorded `held_out_seen` 0
+(`docs/experiments/e2e-step3-boundary-20261025/checkers-held-out-seen.txt`). So the new correctness rule voids none of
+them.
+
+**Done signal (Astra)** — `IterateBoundaryTest` (5) and `BoundaryTest` (3) in `test/shiploop-e2e.test.py`. Each fails on
+the old code:
+- *Cannot modify grader inputs.* The improver's commits to `test/shiploop_e2e/run.py`, `test/shiploop-e2e.test.py`,
+  `test/suite_catalog.py` and `test/run-all.sh` are out of scope; ShipLoop's own tests are not. An edit to the grading
+  checkout's oracle, harness or case entry crosses the boundary. Run end to end, `iterate.main` journals the stop and
+  grades nothing on the changed oracle.
+- *Cannot read protected holdout instances.* While the improver works, its worktree lists neither held-out file, and
+  `git status` stays clean. Afterwards both are back byte for byte, with no skip-worktree flag left. A tool call that
+  names one stops the loop, and so do unreadable events. Prose that names one does not: that is the negative control.
+- *The hashes stay unchanged.* For a legitimate candidate, the grading digests before and after are equal.
+- Also tested: `PromotionContractTest` covers mixed and unrecorded grading digests (UNDECIDED), and a changed candidate
+  digest (still decides). `ScorecardTest` covers a held-out name voiding correctness, and the card's boundary.
+  `shiploop-e2e-quality` checks that a calibration file's name counts.
+
+**What it does not do.** The hosts run unsandboxed: a model can read any file the user can, git objects included.
+Withholding closes the default path. A tool call that names the file is detected; a read that never names it is not. Full
+isolation would need the held-out files outside the repository, and CI's tests of them rule that out today. `arms.py`
+compares slice bytes and is not fingerprinted yet.
+
+**Consequence.** Every run graded before 2026-10-25 has no grading digest, so `promotion/3` is UNDECIDED on it. That is
+by design: no promotion has yet been decided on those runs, and step 10's first epoch will run fresh arms.

@@ -347,7 +347,7 @@ read-only probes and changed no files. The cross-check was DeepSeek v4.1 Flash a
 |---|---|---|---|
 | 1 | R1/R16: the promotion contract and its SPEC amendment (**built 2026-10-25**: `promotion.py`, SPEC "The promotion contract") | — | A slower correctness fix promotes; a faster regression drops; an inconclusive optimisation stays undecided |
 | 2 | R2/R3: required evidence and separate validity dimensions (**built 2026-10-25**: scorecard/2, promotion/2, arms.py) | 1 | A missing slice or field blocks promotion; timing contamination keeps independently valid correctness evidence |
-| 3 | R13: the evaluator boundary | 2 | A candidate cannot modify grader inputs or read protected holdout instances; the hashes stay unchanged |
+| 3 | R13: the evaluator boundary (**built 2026-10-25**: `boundary.py`, scorecard/3, promotion/3, iterate.py's scope and withheld holdout) | 2 | A candidate cannot modify grader inputs or read protected holdout instances; the hashes stay unchanged |
 | 4 | R6: the delivery snapshot | 3 | A later committed alteration is detected; an archived delivery reproduces grading after teardown |
 | 5 | R7/R9: calibrate one existing oracle | 4 | Correct and alternative implementations pass; each targeted broken variant fails |
 | 6 | R10: one Node brownfield case | 5 | The base fails the new-feature checks; the reference passes them and the pristine regression suite |

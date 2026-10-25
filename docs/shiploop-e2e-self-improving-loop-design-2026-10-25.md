@@ -1,6 +1,6 @@
 ---
 Execute: ask
-Status: design proposal, amended by the final verdict (Astra at max, 2026-10-25; docs/shiploop-e2e-loop-recommendations-2026-10-25.md); P1 (scorecard.py) and build steps 1-2 (promotion.py; scorecard/2 and promotion/2) built, the rest not implemented
+Status: design proposal, amended by the final verdict (Astra at max, 2026-10-25; docs/shiploop-e2e-loop-recommendations-2026-10-25.md); P1 (scorecard.py) and build steps 1-3 (promotion.py; scorecard/2 and promotion/2; the evaluator boundary: boundary.py, scorecard/3 and promotion/3) built, the rest not implemented
 Directive: owner, 2026-10-25
 Builds on: docs/shiploop-e2e-runner-review-plan-2026-10-24.md, test/shiploop_e2e/SPEC.md
 ---
@@ -95,7 +95,9 @@ ShipLoop through its own SDLC, and an engine that cannot do that shows it in its
 
 - Hidden oracles are never in a prompt, a packet or a review brief. *Corrected 2026-10-25 (R11, R13):*
   - `quality.held_out_seen` counts event lines that name an oracle, and its own note says 0 is not proof of no leak.
-  - So the guard is structural: grading inputs sit outside the candidate's control and read access.
+  - So the guard is structural: grading inputs sit outside the candidate's control and read access. *Built 2026-10-25*
+    *(build step 3, `boundary.py`) for the improver: its scope excludes the harness, and the held-out files are withheld*
+    *from its worktree. A run agent's reads are detected by name only, since the hosts run unsandboxed.*
   - Every piece of holdout feedback, aggregate decisions included, counts as exposure.
 - The holdout is frozen per epoch and rotated each quarter. Its transcripts are not read by the reviewer or the improver.
 - Scorecard and oracle changes go through SPEC admission. A changed scorecard gets a new id, and old figures are never
