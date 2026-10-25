@@ -1,0 +1,8 @@
+  process   n/a   stopped rc=-9 2079.1s cost=not reported sessions=1
+  shiploop  FAIL  active
+  outcome   STOPPED  host stopped with the engine active at spec; stopped by ~/e2e-runs/20261025/haiku55-max-battleship-d521a8/stop
+  committed FAIL  HEAD bb5ce08b (started at no commit); 0 files in HEAD, 0 uncommitted product paths
+  check     FAIL  log=$(mktemp); node --test > "$log" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' "$log" && [ $rc -eq 0 ]; r=$?; rm -f "$log"; exit $r
+  check     FAIL  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi battleship'
+  check     FAIL  python3 "$E2E_CHECKS/serve.py" -- node -e 'fetch(process.env.BASE+"/api/new").then(r=>r.json()).then(g=>{ const id=g.game??g.id??g.g
+  check     FAIL  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"

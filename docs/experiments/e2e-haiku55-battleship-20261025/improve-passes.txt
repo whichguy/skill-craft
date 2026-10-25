@@ -1,0 +1,17 @@
+# The run's ShipLoop worktree history, oldest first: discovery and research knowledge, the spec (+260), then each Improve pass on the spec (stopped at 2079 s, engine active at spec)
+bb5ce08  | Empty baseline for the first ShipLoop run
+82a40ce 1 file changed, 42 insertions(+) | docs(shiploop): record build-a-small-single-player-battleship-8e82cb knowledge after discovery
+303970f 1 file changed, 5 insertions(+), 2 deletions(-) | docs(shiploop): record build-a-small-single-player-battleship-8e82cb knowledge after research
+d467345 1 file changed, 260 insertions(+) | docs(spec): make Battleship checks replayable, state error order
+36da48a 1 file changed, 29 insertions(+), 29 deletions(-) | docs(spec): close stand-in checks, port rule and NFR gaps
+a3f8335 1 file changed, 5 insertions(+), 5 deletions(-) | docs(spec): assert status, content type and each field in the checks
+f4ba14a 1 file changed, 9 insertions(+), 9 deletions(-) | docs(spec): assert content types, race sends and the loopback clause
+b6d23d4 1 file changed, 7 insertions(+), 7 deletions(-) | docs(spec): match rule wording and check every rejection's keys
+cab8d68 1 file changed, 2 insertions(+), 2 deletions(-) | docs(spec): check the page's requests, locks and state after rejection
+92b90d4 1 file changed, 2 insertions(+), 2 deletions(-) | docs(spec): name each rejected request and the exact title
+cd3bdc8 1 file changed, 2 insertions(+), 2 deletions(-) | docs(spec): check the rules module's requires and name full rejection bodies
+0164225 1 file changed, 3 insertions(+), 3 deletions(-) | docs(spec): correct the boundary coverage claim and state the fixed fleet
+8329c38 1 file changed, 1 insertion(+), 1 deletion(-) | docs(spec): name the fleet and the shots for the per-cell check
+747e074 1 file changed, 2 insertions(+), 2 deletions(-) | docs(spec): name the restart request and the in-flight double click
+09730dc 1 file changed, 1 insertion(+), 1 deletion(-) | docs(spec): name the cells of the concurrent-shot check
+d8309b2 1 file changed, 4 insertions(+), 4 deletions(-) | docs(spec): define a valid shot and allow every loopback address
