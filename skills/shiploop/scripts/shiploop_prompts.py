@@ -751,13 +751,17 @@ _VERIFY_ONCE_INLINE = "item 9 once, before you report the exit satisfied."
 # below carries it to the spec and test-strategy duties and to every planning review, and test-spec's duty applies it to
 # the cases that stage owns.
 PROCEDURE_WALK = ("Walk it from its stated start: can the actor reach that start under recorded authority, can each "
-                  "action occur in the state the preceding actions leave, can the chosen observer see the expected "
-                  "result?")
+                  "action occur in the state the preceding actions leave (name the spec rule that permits each action "
+                  "that decides the outcome), can the chosen observer see the expected result? Recompute an expected "
+                  "result derived from the actions from that walk. A helper that applies the actions without checking "
+                  "that each is permitted, or the product under test alone, does not check them.")
 _PROCEDURE_ITEM = textwrap.fill(
-    "an ordered procedure (calls, commands, interactions) that cannot happen as written. " + PROCEDURE_WALK
-    + " Use an existing local check where one fits. Record an unreachable start as an open prerequisite, revise an "
-    "invalid action or oracle, claim no execution from a plan, and treat an observation made before its setup changed "
-    "as stale", width=80, initial_indent="- ", subsequent_indent="  ", break_on_hyphens=False)[2:]
+    "an ordered procedure (calls, commands, interactions), or an expected result derived from one, that cannot "
+    "happen as written, including one this review adds or changes. " + PROCEDURE_WALK
+    + " Record the case, the method and the recomputed result in the review, or mark it `NOT-REPLAYED: <reason>`, "
+    "which leaves it open. Use an existing local check where one fits. Record an unreachable start as an open "
+    "prerequisite, revise an invalid action or oracle, claim no execution from a plan, and treat an observation made "
+    "before its setup changed as stale", width=80, initial_indent="- ", subsequent_indent="  ", break_on_hyphens=False)[2:]
 # Test-spec's duty item 4: the walk applied to the cases that stage owns, and where a procedure's locator rides, so the
 # stages that quote the case or the open item (implement and its Improve, test, verify, system-test-author, the open
 # item's consumer) run that one procedure rather than a copy.
@@ -803,7 +807,10 @@ REVIEW_FOCUS_DUTY_STAGES = ("spec", "test-strategy")
 
 def _duty_focus(number: int, where: str, product: str) -> str:
     """The numbered duty item that holds the planning review focus conditions, worded for this stage's own files."""
+    # The review's words for its own writing ("this review adds", "in the review") become the producer's.
     rows = [" ".join(item.split()).replace("correct the plan", "correct the " + product)
+            .replace(", including one this review adds or changes", "")
+            .replace("recomputed result in the review", "recomputed result in your evidence")
             for item in _REVIEW_FOCUS_ITEMS]
     lines = [f"{number}. Before you submit, fix any of these in {where}:"]
     for index, row in enumerate(rows):

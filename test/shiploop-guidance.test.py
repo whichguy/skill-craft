@@ -843,8 +843,8 @@ class GuidanceTests(unittest.TestCase):
             if stage in prompts.REVIEW_FOCUS_DUTY_STAGES:
                 with self.subTest(stage=stage, boundary="producer"):
                     duty = text[text.index("Before you submit, fix any of these in"):]
-                    self.assertIn("an ordered procedure (calls, commands, interactions) that cannot happen as written. "
-                                  + walk, duty)
+                    self.assertIn("an ordered procedure (calls, commands, interactions), or an expected result derived "
+                                  "from one, that cannot happen as written. " + walk, duty)
                     producers.append(stage)
             if stage == "test-spec":
                 with self.subTest(stage=stage, boundary="producer"):
