@@ -6544,7 +6544,7 @@ class LeftBehindReadmeTest(unittest.TestCase):
     def test_the_readme_says_to_run_compared_runs_one_after_the_other_and_what_that_cannot_promise(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
         for phrase in ("Run the runs you compare one after the other", "`--serial` for a suite",
-                       "The suite default of 3 parallel chains stays", "no overlap field", "a discipline and not a guarantee"):
+                       "The suite default of 3 parallel chains stays", "carries `overlapped_runs`", "a discipline and not a guarantee"):
             self.assertIn(phrase, readme)
 
     def test_the_spec_carries_the_rules_this_code_serves(self):

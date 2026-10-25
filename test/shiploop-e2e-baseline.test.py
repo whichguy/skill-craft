@@ -2003,7 +2003,7 @@ class IdentityDocsTest(unittest.TestCase):
                        "the build of the run's first launch",
                        "A later launch records its own probe on its own record and the run's result keeps the first launch's",
                        "`identity_unmeasured`", "a bare null is never all there is",
-                       "A baseline row has no overlap field", "a discipline and not a guarantee",
+                       "A baseline row carries `overlapped_runs`", "a discipline and not a guarantee",
                        "it can include a resumed run's pause"):
             self.assertIn(phrase, readme)
 
