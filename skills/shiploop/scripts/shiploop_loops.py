@@ -770,8 +770,8 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
 
 
 def _remedy_open(root: Path, action_id: str) -> bool:
-    """The test loop's own run record supports a route out of the stage (its refused-run cap or a run that could
-    not start).  Imported where used: the test loop imports the quality module, which imports this one."""
+    """The test loop's own run record supports a route out of the stage (a run that could not
+    reach a verdict).  Imported where used: the test loop imports the quality module, which imports this one."""
     import shiploop_test_loop as test_loop
 
     remedy = getattr(test_loop, "remedy_open", None)
@@ -781,7 +781,8 @@ def _remedy_open(root: Path, action_id: str) -> bool:
 def _verify_refused(root: Path, action_id: str) -> bool:
     """verify's rerun refused at least once: its refusals name send-back (a test below the floor, a check unachievable as
     planned), and verify's review loop has already ended, so that route is accepted.  The test stage differs: one
-    refused run there is fixed and resubmitted as done, and send-back opens only at the cap (``remedy_open``)."""
+    refused run there is fixed and resubmitted as done, and send-back opens without a receipt only when its latest
+    run could not run (``remedy_open``)."""
     import shiploop_test_loop as test_loop
 
     refused = getattr(test_loop, "refused_runs", None)

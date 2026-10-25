@@ -568,6 +568,18 @@ class ArmsTests(unittest.TestCase):
         report = arms.decide({"g": summary(host="grok")}, {"g": summary(host="grok", improve_skill=None, ingest_chars=1)}, {})
         self.assertEqual(report["gates_failed"], [])
 
+    def test_missing_evidence_never_decides_a_slice_one_arm_lacks_or_an_unmeasured_gate(self) -> None:
+        # Build step 2 (R2): Astra's probe made the candidate win with a missing slice and with missing gate fields.
+        cheap = summary(ingest_chars=500_000, orientation_bytes=50_000)
+        one_sided = arms.decide({"s1": summary(), "s2": summary()}, {"s1": cheap}, {**self.AA, "s2": self.AA["s1"]})
+        self.assertEqual((one_sided["decision"], one_sided["exit"]), (None, 3))
+        self.assertIn("s2 (control only)", one_sided["reason"])
+        unmeasured = self.decide({**cheap, "refusals": None})
+        self.assertEqual((unmeasured["decision"], unmeasured["exit"]), (None, 3))
+        self.assertIn("s1 refusals", unmeasured["reason"])
+        rejected = self.decide({**cheap, "refusals": None, "redone": 2})
+        self.assertEqual((rejected["decision"], rejected["exit"]), ("control", 0), "a measured failure still rejects")
+
     def test_the_spread_is_the_difference_between_the_two_control_runs_of_a_slice(self) -> None:
         first = {"s1": summary(refusals=2, ingest_chars=1_000_000), "s2": summary(refusals=5)}
         second = {"s1": summary(refusals=4, ingest_chars=940_000)}

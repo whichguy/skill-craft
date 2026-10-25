@@ -1,6 +1,6 @@
 ---
 Execute: ask
-Status: design proposal, amended by the final verdict (Astra at max, 2026-10-25; docs/shiploop-e2e-loop-recommendations-2026-10-25.md); P1 (scorecard.py) and build step 1 (promotion.py) built, the rest not implemented
+Status: design proposal, amended by the final verdict (Astra at max, 2026-10-25; docs/shiploop-e2e-loop-recommendations-2026-10-25.md); P1 (scorecard.py) and build steps 1-2 (promotion.py; scorecard/2 and promotion/2) built, the rest not implemented
 Directive: owner, 2026-10-25
 Builds on: docs/shiploop-e2e-runner-review-plan-2026-10-24.md, test/shiploop_e2e/SPEC.md
 ---

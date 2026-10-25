@@ -193,34 +193,27 @@ against 0 of 15 without it (Sonnet, three trials per cell). No run without the
 planning reviews exists, so the rate of defects that escape without them is
 unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
-**S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop.)
-- **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11". It is not a clause this
-  serves. It bounds a stage's acceptance gate, not a loop, and says so.
-- **Three limits, each a constant that a test pins against every prose copy**
-  (`test/shiploop-stage-spec.test.py`):
-  1. **Refused runs.** At a stage whose `complete` reruns the recorded commands (the test stage and
-     `verify`), ShipLoop accepts `done` only after its own run of every listed command passes. After
-     `shiploop_test_loop.MAX_REFUSED_RUNS` (11) refused runs for one action, `done` is no longer accepted, and the
-     stage's remedy outcome is: `revise` back to the step plan, or `blocked` where the stage allows only that. A
-     run that could not run (a timeout, a command that cannot start, or one skipped on budget) never counts
-     toward the 11.
-  2. **Genuine fix attempts.** In the step exit criteria the model applies (the implement duty, implement's
-     loop contract and the chain step contract), the same check still failing after `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix
-     attempts ends the stage as `revise`. No script counts these attempts; it is the model's stopping rule, as
-     the step exit criteria were before.
-  3. **Keepalive release.** The keepalive hook lets one session's turn end after
-     `shiploop_keepalive.STUCK_CONTINUATIONS` (22, twice the refused-run cap) continuations with no accepted
-     result. This releases a turn only. Nothing is accepted or refused, and the run stays active and resumable.
-- **What is not capped.** None of the three caps a loop. The Until Loop that runs the iterations keeps its frozen
-  contract, its counted iterations and its stated exit and repeat conditions, with no iteration limit. An
-  iteration that keeps making progress is never cut short. The caps bound only how often a stage may submit a
-  candidate that ShipLoop's own rerun rejects, so a check that cannot pass as planned returns to the step plan
-  instead of being resubmitted indefinitely. Every inner stage's Until Loop, the Improve loops and the
-  Backchain child are unchanged.
-- **Basis.** Until 2026-10-10 the refused-run cap was 7, the fix-attempt cap 3 and the continuation release 14. The
-  2026-10-10 packet-concision review flagged them as possibly conflicting with this clause, and the owner chose
-  to keep them as gate bounds at the higher values. Record: docs/shiploop-packet-concision-2026-10-10.md
-  ("Open").
+**S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop; amended 2026-10-24:
+the refused-run cap, the send-back cap and the keepalive release are removed.)
+- **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11", superseded on 2026-10-24
+  by "Remove any other artificially imposed limits by our scripts": ShipLoop runs everything in a single context with
+  no limit on turns.
+- **One limit remains, a constant that a test pins against every prose copy** (`test/shiploop-stage-spec.test.py`):
+  **genuine fix attempts.** In the step exit criteria the model applies (the implement duty, implement's loop
+  contract and the chain step contract), the same check still failing after
+  `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix attempts ends the stage as `revise`. No script counts
+  these attempts; it is the model's stopping rule.
+- **Removed 2026-10-24.** No count of refused runs stops `done` (the packet still prints the tally); no count of
+  send-backs refuses a `send-back`; no count of keepalive continuations without an accepted result releases a turn;
+  the test stage, the mutation check and the lint pass have no whole-run time budget, and the lint pass no file-count
+  cap. Each command keeps its own hang guard (a per-command timeout), which stops that command, never the run.
+- **What is not capped.** No loop is capped. The Until Loop that runs the iterations keeps its frozen contract, its
+  counted iterations and its stated exit and repeat conditions, with no iteration limit. An iteration that keeps
+  making progress is never cut short. Every inner stage's Until Loop, the Improve loops and the Backchain child are
+  unchanged.
+- **Basis.** Until 2026-10-10 the refused-run cap was 7, the fix-attempt cap 3 and the continuation release 14; from
+  2026-10-10 to 2026-10-24 they were 11, 7 and 22, and a work item had two send-backs. Record:
+  docs/shiploop-packet-concision-2026-10-10.md ("Open") and docs/shiploop-run5-batch-journal-2026-10-24.md.
 
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
 spec, environment, test strategy, architecture with its numbered decisions,
@@ -403,7 +396,8 @@ design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R1 and R16, Astr
 quality first, then tokens, then time.
 
 A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
-`promotion/1`. It reads scorecards (`scorecard.py`) of a control arm and a candidate arm. Changing the rule takes a new id,
+`promotion/2` (it was `promotion/1` until build step 2). It reads scorecards (`scorecard.py`, `scorecard/2`) of a control
+arm and a candidate arm. Changing the rule takes a new id,
 and two decisions are compared only under the same id.
 
 - **Pre-registered.** Before the runs, a registration file names:
@@ -429,6 +423,25 @@ and two decisions are compared only under the same id.
   - The candidate is PROMOTE when it is lower beyond the tolerance, and DROP when it is higher beyond it.
   - Otherwise it is UNDECIDED: an inconclusive optimisation is neither shipped nor discarded on this evidence.
 - **No model judgement enters** (S-9). A judge's findings may propose checks, never a decision.
+- **Required evidence and validity (amended 2026-10-25, build step 2; R2 and R3 of the final verdict).** The contract is now
+  `promotion/2`, reading `scorecard/2`. Unobserved required evidence never passes. Contamination voids only the claims it
+  touches.
+  - *Floors.* Each floor is `pass`, `fail`, `unobserved` or `not_applicable`. **Requiredness belongs to the case**
+    (`cases.json`): a case that declares hidden acceptance requires it. A declared acceptance that was not observed makes
+    the accuracy floor `unobserved`, not a pass, as `scorecard/1` had it. Mutation stays a record until its own step.
+    Enterprise is `not_applicable` until its rubric exists.
+  - *Validity.* There are three dimensions, each `valid` true, false or null, where null means not observed and is never
+    valid:
+    - **correctness** is false when a check changed the delivered tree. It is null when the run overlapped others while
+      writing shared `/tmp` names, since shared state can't be ruled out, or when the delivered tree can no longer be read.
+    - **attribution** is false when hosts or host builds were mixed.
+    - **timing** is false when the run overlapped other runs, was resumed, mixed hosts or builds, or left listeners alive.
+      It is null when any of those was not observed.
+  - *Coverage.* A registration may name how many attempts each case expects. An arm with fewer is missing evidence, and
+    the decision is UNDECIDED.
+  - *What the decision reads.* A case's quality is taken only from cards whose correctness is valid; any other card
+    leaves that case's quality unknown. Efficiency is compared only on cards whose timing and attribution are both valid.
+    So a run that overlapped others still counts as evidence of quality, and never as evidence of speed.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
@@ -641,8 +654,9 @@ stands at the commit under test.
   refused before a host starts. Basis: a Claude run built from a checkout was
   given a bare `shiploop next` (the marketplace route lost 13 turns to the same
   prompt, fixed in 7c1f1014); the command the harness prints for continuing a run
-  carries the harness flags too, because a resume that falls back to the default
-  `--timeout` can outlive the task that launched it. It is printed only where
+  carries the harness flags too, because a resume that drops the run's `--timeout`
+  runs with no time limit (none is the default since 2026-10-24) and can outlive
+  the task that launched it. It is printed only where
   those flags are the run's own: not by a regrade (`--grade-only`), whose flags
   are the grader's, and not for a run that wrote no ShipLoop state, which
   `--resume-run` refuses.

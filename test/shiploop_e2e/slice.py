@@ -292,12 +292,14 @@ def parser() -> argparse.ArgumentParser:
                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
     p.add_argument("--plugin-dir", type=Path, help="a skill-craft plugin build to test (default: build this checkout)")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--timeout", type=int, default=3600, help="seconds before the host is killed")
-    p.add_argument("--max-turns", type=int, default=2000)
-    p.add_argument("--max-budget-usd", type=float, default=10.0, help="claude only; grok has no spend cap")
+    p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
+    p.add_argument("--max-turns", type=int, default=None,
+                   help="a turn limit for the host session; default: none")
+    p.add_argument("--max-budget-usd", type=float, default=None, help="claude only, default none; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--max-resumes", type=int, default=5,
-                   help="resumable hosts (grok, codex): continue a session that ended before the slice was complete")
+    p.add_argument("--max-resumes", type=int, default=None,
+                   help="resumable hosts (grok, codex): continue a session that ended before the slice was complete; "
+                        "default: no limit")
     p.add_argument("--seed-without-home", action="store_true",
                    help="do not commit the neutral knowledge home (docs/shiploop/spec.md with R-1 = the request, environment.md "
                         "with the case's checks) into the seed repository; the item base is recorded either way. The flagged "
@@ -382,11 +384,11 @@ def main(argv: list[str] | None = None) -> int:
     if host.name != "claude" and any(spec["inside"] for spec in clear_at) and not args.quiet:
         print("note: an :inside position needs Claude's stream (clear.py); on this host it is recorded as requested and "
               "will not fire", flush=True)
-    deadline = time.time() + args.timeout
+    deadline = time.monotonic() + (args.timeout or float("inf"))  # active time, as in run.py: sleep spends none of it
     session_args = dict(work=work, out=out, env=env, run_dir=run_dir, watch=not args.quiet,
                         translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at)
     process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
-                    timeout=args.timeout, **session_args)
+                    timeout=args.timeout or float("inf"), **session_args)
     sessions = [process]
     resumes = 0
     while True:
@@ -398,9 +400,9 @@ def main(argv: list[str] | None = None) -> int:
                       f"(prompt {args.resume_prompt})", flush=True)
             prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
             process = drive(host.argv(prompt=prompt, prompt_file=out / f"resume-after-clear-{number}.txt", **common),
-                            timeout=max(60, int(deadline - time.time())), first=False, told=told, **session_args)
-        elif (host.resumable and process["status"] == "exited" and resumes < args.max_resumes
-              and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.time() > 60):
+                            timeout=max(60, deadline - time.monotonic()), first=False, told=told, **session_args)
+        elif (host.resumable and process["status"] == "exited" and (args.max_resumes is None or resumes < args.max_resumes)
+              and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.monotonic() > 60):
             # A headless Grok or Codex session ends whenever the model ends its turn; continue it while the slice is
             # unfinished (the clears still to come stay in force). A clear is not a resume: it does not use the budget.
             session_id = run.last_session_id(out / "events.jsonl")
@@ -409,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
             resumes += 1
             argv = host.argv(prompt=run.resume_prompt(str(run_dir), cli), prompt_file=out / f"resume-{len(sessions)}.txt",
                              resume=session_id, **common)
-            process = drive(argv, timeout=int(deadline - time.time()), first=False, resumed_session=session_id,
+            process = drive(argv, timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
                             told=run.resume_told(str(run_dir), cli), **session_args)
         else:
             break

@@ -49,7 +49,6 @@ import hosts  # noqa: E402
 import review as reviewer  # noqa: E402
 import run as runner  # noqa: E402
 
-MAX_ITERATIONS = 10
 # An improvement may touch only the skill, its notes and tests.
 ALLOWED_PREFIXES = ("skills/shiploop/", "changes/shiploop/", "test/")
 
@@ -253,21 +252,21 @@ def journal(path: Path, lines: list[str]) -> None:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="battleship")
-    p.add_argument("--iterations", type=int, default=3, help=f"hard cap, at most {MAX_ITERATIONS}")
+    p.add_argument("--iterations", type=int, default=3, help="how many iterations to run")
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok",
                    help="host for the run, the review and the improvement")
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--run-max-turns", type=int, default=10000)
-    p.add_argument("--improve-max-turns", type=int, default=120)
-    p.add_argument("--max-budget-usd", type=float, default=10.0, help="per Claude process; Grok has no spend cap")
-    p.add_argument("--run-timeout", type=int, default=10800)
+    p.add_argument("--run-max-turns", type=int, default=None)  # no turn limit unless one is asked for
+    p.add_argument("--improve-max-turns", type=int, default=None)  # no turn limit unless asked
+    p.add_argument("--max-budget-usd", type=float, default=None, help="per Claude process, default none; Grok has no spend cap")
+    p.add_argument("--run-timeout", type=int, default=None)  # no time limit unless asked
     p.add_argument("--improve-timeout", type=int, default=2700)
     p.add_argument("--output", type=Path)
     args = p.parse_args(argv)
-    if not 1 <= args.iterations <= MAX_ITERATIONS:
-        raise SystemExit(f"--iterations must be 1..{MAX_ITERATIONS}")
+    if args.iterations < 1:
+        raise SystemExit("--iterations must be at least 1")
 
     name = f"auto-shiploop-e2e-{secrets.token_hex(3)}"
     out = (args.output or Path(tempfile.gettempdir()) / "shiploop-e2e" / name).resolve()
@@ -295,8 +294,10 @@ def main(argv: list[str] | None = None) -> int:
                        check=True, stdout=subprocess.DEVNULL)
         run_args = ["--case", args.case, "--host", args.host, "--output", str(stage / "run"),
                     "--plugin-dir", str(stage / "build" / "plugins" / "skill-craft"),
-                    "--permission-mode", args.permission_mode, "--max-turns", str(args.run_max_turns),
-                    "--max-budget-usd", str(args.max_budget_usd), "--timeout", str(args.run_timeout)]
+                    "--permission-mode", args.permission_mode,
+                    *(["--max-turns", str(args.run_max_turns)] if args.run_max_turns else []),
+                    *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
+                    *(["--timeout", str(args.run_timeout)] if args.run_timeout else [])]
         run_args += (["--model", args.model] if args.model else []) + (["--effort", args.effort] if args.effort else [])
         print(f"\n== iteration {index}: run ({sha[:8]})", flush=True)
         runner.main(run_args)

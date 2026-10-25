@@ -156,6 +156,11 @@ REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.
 PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
+# With no resume limit by default, a host that cannot run (its auth expired, its binary broke) or a model that ends every
+# turn without moving the run would be resumed forever. Evidence, not a count of work: this many resumed sessions in a row
+# that left ShipLoop's revision where it was end the loop (the owner's rule for autonomous runs: stop on three
+# no-progress iterations).
+RESUME_STALL = 3
 # Hosts this process has started and not yet reaped, by the pid of the leader of the group it leads. A host starts in a
 # session of its own (start_new_session=True), so a SIGTERM to the harness does not reach it: on 2026-10-08 the Grok host of a
 # round-2 run went on working for about 28 minutes after the harness died of one, with nothing collecting its events.
@@ -925,8 +930,10 @@ def resume_command(out: Path, args) -> str:
     """
     parts = ["python3", str(Path(__file__).resolve()), "--resume-run", str(out), "--host", args.host,
              "--model", args.model, *(["--effort", args.effort] if args.effort else []),
-             "--timeout", str(args.timeout), "--max-resumes", str(args.max_resumes),
-             "--max-budget-usd", str(args.max_budget_usd), "--permission-mode", args.permission_mode]
+             *(["--timeout", str(args.timeout)] if args.timeout else []),
+             *(["--max-resumes", str(args.max_resumes)] if args.max_resumes is not None else []),
+             *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
+             "--permission-mode", args.permission_mode]
     binary = getattr(args, args.host + "_bin")
     if binary != parser().get_default(args.host + "_bin"):
         parts += [f"--{args.host}-bin", binary]
@@ -2549,12 +2556,15 @@ def parser() -> argparse.ArgumentParser:
                    help="pull skill-craft from the marketplace into a fresh profile, print what main publishes "
                         "and what the host installed, and exit non-zero if the version gate refuses")
     p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
-    p.add_argument("--max-turns", type=int, default=10000)
-    p.add_argument("--max-budget-usd", type=float, default=40.0, help="claude only; grok has no spend cap")
+    p.add_argument("--max-turns", type=int, default=None,
+                   help="a turn limit for the host session; default: none (the owner wants no turn limit)")
+    # No limit is imposed unless one is asked for (owner 2026-10-24: no turn, spend, time or resume limit by default).
+    p.add_argument("--max-budget-usd", type=float, default=None, help="claude only, default none; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--timeout", type=int, default=10800, help="seconds before the host is killed")
-    p.add_argument("--max-resumes", type=int, default=20,
-                   help="grok only: resume the same session this many times while ShipLoop is still active")
+    p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
+    p.add_argument("--max-resumes", type=int, default=None,
+                   help="grok only: resume the same session at most this many times while ShipLoop is still active; "
+                        "default: no limit")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
     p.add_argument("--max-parallel", type=int, default=3,
                    help="suites: run up to this many independent case chains at once (default 3)")
@@ -3445,6 +3455,8 @@ RESUME_STOP_CLASSES = (
     ("no host session id to resume", "FAILED"),
     ("run deadline spent", "STOPPED"),
     ("resume budget spent", "STOPPED"),
+    ("resumed host failed ", "FAILED"),
+    ("resumed host made no ShipLoop progress ", "STOPPED"),
     ("stopped by ", "STOPPED"),
     ("terminated by ", "STOPPED"),
 )
@@ -4226,7 +4238,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         platform_before = earlier_platform.get("before")
     # Active time, not wall time: a Mac that slept 10 h spent run 5's 5 h cap with 3.8 h of work (2026-10-25);
     # time.monotonic stops during sleep (mach_absolute_time, CLOCK_MONOTONIC), time.time does not.
-    deadline = time.monotonic() + args.timeout
+    deadline = time.monotonic() + (args.timeout or float("inf"))
     if resumed and not regrade:
         # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
         # not answer the new session's probes: that is how two runs met the same port in round 2.
@@ -4237,7 +4249,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     else:
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
-        process = session(cli, work, out, env, args.timeout, watch=not args.quiet,
+        process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
@@ -4257,19 +4269,25 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
                          allow=host_allow)
-        process = session(argv, work, out, env, max(60, int(deadline - time.monotonic())), watch=not args.quiet,
+        process = session(argv, work, out, env, max(60, deadline - time.monotonic()), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
-    # run is still active, resume that same session (bounded) instead of losing the run.
+    # run is still active, resume that same session instead of losing the run.
     resume_stop = ("not evaluated (regraded)" if regrade
                    else None if host.resumable else "host is not resumable")
     stop_seen = not regrade and process["status"] == "stopped"  # a requested stop ended the host
-    while host.resumable and not regrade and len(sessions) <= args.max_resumes:
+    # Resumed sessions in a row that left ShipLoop's revision unchanged (None before ShipLoop wrote any state counts too).
+    stalled, failures, launched_at, resumed_any = 0, 0, None, False
+    while host.resumable and not regrade and (args.max_resumes is None or len(sessions) <= args.max_resumes):
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
-        remaining = int(deadline - time.monotonic())
+        remaining = deadline - time.monotonic()
+        if resumed_any:
+            moved = state.get("revision") != launched_at
+            stalled = 0 if moved else stalled + 1
+            failures = 0 if moved else failures + (process["status"] == "failed")
         # No run yet means the session ended before ShipLoop wrote its state; a
         # run that is paused, blocked, halted or done is not resumed. (A question
         # waiting for a person is a view of blocked, not a status of its own.)
@@ -4287,13 +4305,21 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if remaining <= 60:
             resume_stop = "run deadline spent"
             break
+        if stalled >= RESUME_STALL:
+            # Every stalled session failed: the host cannot run (FAILED). Otherwise the harness ends a run that stopped moving.
+            resume_stop = (f"resumed host failed {stalled} times in a row with ShipLoop still at revision "
+                           f"{state.get('revision')} (last exit code {process['returncode']})" if failures == stalled
+                           else f"resumed host made no ShipLoop progress {stalled} times in a row (revision "
+                                f"{state.get('revision')})")
+            break
         if not args.quiet:
-            print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
+            print(f"resume {len(sessions)}/{args.max_resumes if args.max_resumes is not None else 'no limit'}: session {session_id} ended with ShipLoop "
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id, allow=host_allow)
+        launched_at, resumed_any = state.get("revision"), True
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
                          told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)

@@ -246,10 +246,11 @@ class GrokHost(Host):
             "GROK_CURSOR_SKILLS_ENABLED": "false"})
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None, allow=()):
+             max_budget_usd=None, plugin_dir=None, resume=None, allow=()):
         prompt_file.write_text(prompt)
         argv = [self.binary, "--cwd", str(cwd), "--prompt-file", str(prompt_file), "--verbatim",
-                "--output-format", "streaming-json", "--model", model, "--max-turns", str(max_turns),
+                "--output-format", "streaming-json", "--model", model,
+                *(["--max-turns", str(max_turns)] if max_turns else []),  # no turn limit unless one is asked for
                 "--permission-mode", permission_mode, "--no-auto-update"]
         for rule in allow:  # a case's platform.host_allow: auto mode blocks an action it judges the user did not ask for
             argv += ["--allow", rule]
@@ -301,9 +302,11 @@ class ClaudeHost(Host):
         self.binary = binary
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None, allow=()):
-        argv = [self.binary, "-p", prompt, "--model", model, "--max-turns", str(max_turns),
-                "--max-budget-usd", str(max_budget_usd), "--permission-mode", permission_mode,
+             max_budget_usd=None, plugin_dir=None, resume=None, allow=()):
+        argv = [self.binary, "-p", prompt, "--model", model,
+                *(["--max-turns", str(max_turns)] if max_turns else []),  # no turn limit unless one is asked for
+                *(["--max-budget-usd", str(max_budget_usd)] if max_budget_usd else []),  # no spend limit unless asked
+                "--permission-mode", permission_mode,
                 "--output-format", "stream-json", "--verbose", "--no-session-persistence",
                 "--setting-sources", "project,local", "--strict-mcp-config"]
         if allow:
@@ -344,7 +347,7 @@ class CodexHost(Host):
         return f"${skill} {prompt}"
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=10.0, plugin_dir=None, resume=None, allow=()):
+             max_budget_usd=None, plugin_dir=None, resume=None, allow=()):
         # `allow` is not used: this host runs with approval_policy "never", so no action waits for a permission.
         prompt_file.write_text(prompt)
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",

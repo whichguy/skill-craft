@@ -153,29 +153,32 @@ class StageTableTest(unittest.TestCase):
             with self.subTest(stage=name):
                 self.assertIn("no iteration limit", loops.REPEAT[name])
                 self.assertNotIn("Stop cancelled when", loops.REPEAT[name])
-        self.assertEqual(test_loop.MAX_REFUSED_RUNS, 11)
+        # Owner 2026-10-24: no run caps.  No refused-run cap, send-back cap or keepalive release remains.
+        self.assertFalse(hasattr(test_loop, "MAX_REFUSED_RUNS") or hasattr(spec, "MAX_SEND_BACKS"))
 
     def test_every_prose_copy_of_a_cap_names_its_constant_value(self) -> None:
-        """SPEC S-10 carve-out (owner decision 2026-10-10): the refused-run cap, the genuine-fix-attempt rule and the
-        keepalive release are constants, and every copy of them in ShipLoop's text and the SPEC says the same number.
-        The caps went 7 -> 11, 3 -> 7 and 14 -> 22 on 2026-10-10, and a copy that kept an old number would tell a model
-        a different rule than the gate applies."""
+        """SPEC S-10 carve-out: the genuine-fix-attempt rule is a constant, and every copy of it in ShipLoop's text and
+        the SPEC says the same number.  The refused-run cap, the send-back cap and the keepalive release were removed on
+        2026-10-24 (owner: no run caps), so no text may still state one: a leftover copy would tell a model a stop rule
+        that no gate applies."""
         import re
         import shiploop_keepalive as keepalive
+        self.assertFalse(hasattr(keepalive, "STUCK_CONTINUATIONS"))
         words = {"seven": 7, "eleven": 11, "three": 3, "fourteen": 14, "twenty-two": 22}
-        refused, attempts, stuck = test_loop.MAX_REFUSED_RUNS, spec.GENUINE_FIX_ATTEMPTS, keepalive.STUCK_CONTINUATIONS
-        self.assertEqual((refused, attempts, stuck), (11, 7, 2 * test_loop.MAX_REFUSED_RUNS))
+        attempts = spec.GENUINE_FIX_ATTEMPTS
+        self.assertEqual(attempts, 7)
         rules = (
-            (re.compile(r"\b(\d+)\s+refused\s+runs\b"), refused),
-            (re.compile(r"\b(\d+)(?:st|nd|rd|th)\s+refused\s+run\b"), refused),
-            (re.compile(r"\b(?:spend one of|reach) the (\d+)\b"), refused),
-            (re.compile(r"\bup\s+to\s+(\w+(?:-\w+)?)\s+times\b"), refused),
             (re.compile(r"\b(\d+)\s+genuine\s+fix\s+attempts\b"), attempts),
-            # ShipLoop's release only; "Grok ends a turn after 8 continuations" is the host's own limit.
-            (re.compile(r"count\s+only\s+so\s+far:\s+after\s+(\d+)|\b(\d+)\s+continuations\s+without\s+an\s+accepted\s+result"), stuck),
-            (re.compile(r"MAX_REFUSED_RUNS` \((\d+)\)"), refused),
             (re.compile(r"GENUINE_FIX_ATTEMPTS` \((\d+)\)"), attempts),
-            (re.compile(r"STUCK_CONTINUATIONS` \((\d+)"), stuck),
+        )
+        gone = (
+            re.compile(r"\b\d+\s+refused\s+runs\b"),
+            re.compile(r"\b\d+(?:st|nd|rd|th)\s+refused\s+run\b"),
+            re.compile(r"\b(?:spend one of|reach) the \d+\b"),
+            re.compile(r"count\s+only\s+so\s+far:\s+after\s+\d+|\b\d+\s+continuations\s+without\s+an\s+accepted\s+result"),
+            re.compile(r"MAX_REFUSED_RUNS|STUCK_CONTINUATIONS|MAX_SEND_BACKS"),
+            re.compile(r"at most twice per (?:item|destination)|sent back twice|has used its \d+ send-backs"),
+            re.compile(r"no longer accepted for this action"),
         )
         sources = [*sorted((ROOT / "skills/shiploop").rglob("*.md")), *sorted((ROOT / "skills/shiploop/scripts").glob("*.py")),
                    ROOT / "test/shiploop_e2e/SPEC.md"]
@@ -186,12 +189,15 @@ class StageTableTest(unittest.TestCase):
                 for match in pattern.finditer(text):
                     number = next(group for group in match.groups() if group)
                     number = words.get(number.lower(), number)
-                    if not str(number).isdigit():
-                        continue  # "up to N times" also reads other quantities; only a number word is a cap copy
                     found += 1
                     with self.subTest(file=str(path.relative_to(ROOT)), text=match.group(0)):
                         self.assertEqual(int(number), value)
-        self.assertGreater(found, 10)  # the scan reaches the copies (SKILL.md, references, prompts, SPEC)
+            if path.name == "SPEC.md":
+                continue  # the SPEC's carve-out names the removed constants as history
+            for pattern in gone:
+                with self.subTest(file=str(path.relative_to(ROOT)), removed=pattern.pattern):
+                    self.assertIsNone(pattern.search(text))
+        self.assertGreater(found, 2)  # the scan reaches the copies (references, prompts, SPEC)
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint

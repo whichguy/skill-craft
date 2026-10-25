@@ -2005,8 +2005,8 @@ class CompleteRouteTests(inner.RunDriver):
 
 
 class SendBackBudgetCliTests(inner.RunDriver):
-    """The send-back budget through the real CLI (run-insights N5): check-only refuses a send-back once the item has
-    used its send-backs, and the exit the refusal names (blocked awaiting a decision) is accepted by the same gate."""
+    """Send-backs through the real CLI (owner 2026-10-24: no run caps): check-only accepts a third send-back, one more
+    than the old cap of two, and blocked awaiting a decision is still accepted by the same gate."""
 
     SEND_BACK = {"outcome": "send-back", "summary": "The step plan cannot meet a criterion as written."}
     DECISION = {"kind": "answer", "question": "Which criterion yields: C1 or C2?", "options": ["C1", "C2"],
@@ -2019,7 +2019,7 @@ class SendBackBudgetCliTests(inner.RunDriver):
                    SHIPLOOP_PROGRESS="off", SHIPLOOP_KEEPALIVE="off")
         return subprocess.run(argv, capture_output=True, text=True, env=env)
 
-    def test_check_only_refuses_a_third_send_back_and_the_named_exit_is_accepted(self) -> None:
+    def test_check_only_accepts_a_third_send_back_and_blocked_is_still_accepted(self) -> None:
         self.start()
         for used in (1, 2):
             self.drive_to("implement")
@@ -2030,11 +2030,10 @@ class SendBackBudgetCliTests(inner.RunDriver):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, inner.prepare(self.run_dir, state, dict(self.SEND_BACK)), "result")
-        refused = self.cli(action, path, "--check-only")
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing further can proceed "
-                      "without the user: report blocked awaiting a decision", refused.stderr)
-        self.assertEqual(self.state()["revisions"], {"W1": stage_spec.MAX_SEND_BACKS})   # check-only completes nothing
+        third = self.cli(action, path, "--check-only")
+        self.assertEqual(third.returncode, 0, third.stdout + third.stderr)
+        self.assertNotIn("send-backs", third.stdout + third.stderr)
+        self.assertEqual(self.state()["revisions"], {"W1": 2})   # check-only completes nothing
         # The named exit goes through the same gate, check-only first, then for real.
         store.write_record(path, dict(self.SEND_BACK, outcome="blocked", awaiting=self.DECISION), "result")
         checked = self.cli(action, path, "--check-only")
@@ -2044,8 +2043,8 @@ class SendBackBudgetCliTests(inner.RunDriver):
         self.assertEqual(self.state()["status"], "blocked")
         self.assertEqual(self.state()["status_reason"], "answer: " + self.SEND_BACK["summary"])
 
-    def test_check_only_refuses_a_third_outer_send_back_to_the_same_target(self) -> None:
-        """system-test sends the run back to system-test-author (S1.5); the target's budget is checked at check-only.
+    def test_check_only_accepts_a_third_outer_send_back_to_the_same_target(self) -> None:
+        """system-test sends the run back to system-test-author (S1.5); no count of send-backs refuses a third.
 
         The fixture's synthetic results do not fill the OUTER stages' fields, so the state comes from the dry run's
         declarations (each through the real gate) and only the check-only call goes through the CLI."""
@@ -2075,11 +2074,10 @@ class SendBackBudgetCliTests(inner.RunDriver):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, dict(outer), "result")
-        refused = self.cli(action, path, "--check-only")
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("system-test-author has used its " + str(stage_spec.MAX_SEND_BACKS) + " send-backs; nothing "
-                      "further can proceed without the user: report blocked awaiting a decision", refused.stderr)
-        self.assertEqual(self.state()["revisions"], {"system-test-author": stage_spec.MAX_SEND_BACKS})
+        third = self.cli(action, path, "--check-only")
+        self.assertEqual(third.returncode, 0, third.stdout + third.stderr)
+        self.assertNotIn("send-backs", third.stdout + third.stderr)
+        self.assertEqual(self.state()["revisions"], {"system-test-author": 2})
 
 
 class CaseRowCliTests(inner.RunDriver):
@@ -2793,7 +2791,7 @@ class RequestAndReviewedInputTests(unittest.TestCase):
         waiting = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Amended."})
         self.assertEqual(waiting["active_improve"]["stage"], "step-plan")
         lines = navigator._reviewed_input_lines(Path("/r"), waiting, "step-plan", "W1")
-        self.assertEqual(lines[-1], "Revisit: W1 is back at step-plan (1 of " + str(stage_spec.MAX_SEND_BACKS) + "); the "
+        self.assertEqual(lines[-1], "Revisit: W1 is back at step-plan (send-back 1); the "
                                     "previous accepted step-plan result: RUN/results/" + previous + ".md; the send-back result "
                                     "that sent it back: RUN/results/" + send_back + ".md.")
         self.assertIn(lines[-1], navigator.improve_handoff_text(None, Path("/r"), waiting))

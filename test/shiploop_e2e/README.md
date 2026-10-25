@@ -73,7 +73,7 @@ with `--plugin-dir` for a checkout build, so a line from a checkout run is compl
 find the build by itself), when a run starts and again when it ends with ShipLoop still active, so a later
 session that finds only the task log has it even if the harness was killed.
 `invocation.json` keeps the host's argv and not those flags, so a resume without them
-would run with the default `--timeout` (10800 s). For that reason a regrade (`--grade-only`)
+would run with none of the run's limits (there is no default `--timeout`). For that reason a regrade (`--grade-only`)
 prints no command at its end, only a pointer to the one printed when the run started (its own
 flags are the grader's), and a run that wrote no ShipLoop state prints the start line only
 (`--resume-run` refuses it).
@@ -852,7 +852,7 @@ the run directory or Improve receipts, hand-built loop contracts), listed with
 the reason so a reviewer can confirm them. Both are defined by ShipLoop's own
 paths and verbs, never by a case's tools. `script_verifications` also counts
 `could_not_run`: attempts where no command reached a verdict about the product (a
-timeout, a command that could not be spawned, or one skipped when the invocation's
+timeout, a command that could not be spawned, or, in runs before 2026-10-24, one skipped when the invocation's
 budget ran out). They refuse their stage without counting as product failures. A
 non-zero count means the run could not tell, because of an environment problem or a
 product hang; it does not say the product is wrong. It also counts `red`: the records in
@@ -1133,8 +1133,12 @@ uses it on purpose. Publish (`scripts/release.py`, then
   keepalive hook into the isolated profile before launch (`shiploop-hook install --host
   grok`) and reports the keepalive's decisions in `result.json`. A headless session
   also ends whenever the model ends its turn; when that happens while ShipLoop's run is
-  still `active`, the harness resumes the same session (`grok --resume`, default 20
-  times, `--max-resumes`) with a prompt to run `shiploop next`, within the timeout.
+  still `active`, the harness resumes the same session (`grok --resume`) with a prompt to run
+  `shiploop next`, with no limit on resumes unless `--max-resumes` sets one, and within the
+  timeout if one was given. Three resumed sessions in a row that leave ShipLoop's revision where
+  it was end the loop (`RESUME_STALL`), because resuming again would never end: "resumed host
+  failed …" (FAILED) when every one of them failed (an expired auth, a broken binary), else
+  "resumed host made no ShipLoop progress …" (STOPPED; the printed command continues the run).
   Turns and cost add up across the sessions that reported (`unreported_sessions`
   counts those that did not).
 - **Grok** runs with a throwaway `HOME`. Its `.grok` holds only a symlink to
@@ -1147,9 +1151,10 @@ uses it on purpose. Publish (`scripts/release.py`, then
   `--plugin-dir`, so your plugins and hooks stay out and none of your account's
   claude.ai connectors load (a plain launch loaded 15 of them and 174 tools,
   some connected, into an unattended run); `~/.claude/CLAUDE.md` still loads.
-- Grok has no spend cap; its runs are bounded by `--max-turns` and the timeout.
-  Claude runs also get `--max-budget-usd` (default 40; a chained case such as battleship-scoring can cost
-  more than 10 across its resumes).
+- No run gets a turn, spend, time or resume limit by default (owner, 2026-10-24: "I do not want to have any
+  limit on the number of turns"). Pass `--max-turns`, `--timeout`, `--max-resumes` or, on Claude,
+  `--max-budget-usd` to set one; Grok has no spend cap of its own. `run.py`, `slice.py` and `iterate.py`
+  share these defaults.
 
 ### Platform hooks (`platform`)
 
@@ -1331,7 +1336,9 @@ the cleanup would then refuse to delete anything. A resume reuses its run's fold
 Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
 timeout it was given and the harness is signalled (see below; its host is a separate process group), so the limit is
 whatever the launcher set and not a platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
-kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
+kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). The harness sets no timeout of its own, so a run launched
+as a task needs one: pass `--timeout` (seconds) below the task's limit, with margin. The deadline counts active time
+(`time.monotonic`), so a machine's sleep spends none of it. Margin matters because the
 deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
 each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
 ending: the harness writes metrics.json, result.json and the export, writes no baseline row, and prints the command
@@ -1479,7 +1486,8 @@ case's built product is committed in the worktree, so a run starts at the releas
 **The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
 `run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
 the run moved past item W1, left the inner loop, or stopped being active. A completed slice is never resumed.
-Grok and Codex sessions that end before the slice is complete are resumed, up to `--max-resumes`.
+Grok and Codex sessions that end before the slice is complete are resumed, with no limit unless `--max-resumes` sets
+one; a session that fails (a non-zero exit) is not resumed.
 
 **The verdicts**, written to `slice-result.json`:
 
@@ -1523,7 +1531,7 @@ python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --cl
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
-host is ended before it writes its `result` event; `--max-budget-usd` still caps the spend.
+host is ended before it writes its `result` event; there is no spend cap unless `--max-budget-usd` sets one.
 
 **The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a
 full run, only the last copy of each packet is available.
@@ -1631,7 +1639,7 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 | `metrics.reading_path(OUT)`, or `python3 test/shiploop_e2e/metrics.py reading-path OUT [--limit-events N]` | Where the characters the model took in came from: ShipLoop prints, files by class (entry card, packet file, Improve card, ADAPTER, references, knowledge, scripts), an Improve child's handoff, the Until Loop runtime. Cold (the first 12 calls after a break: the start, a compaction, a fresh session) against warm. How each ShipLoop command was typed (`piped_shiploop_calls`, `variable_built_shiploop_calls`, what the status display could read), prints a pipe cut (`shiploop_print_cut`, with N), packet files opened (`packet_file_opens`: whole, slice or none per producer stage), symbolic pointers followed, gates a run skipped (`skipped_gates`, including "no mutants"), `warm_next_calls`, the Improve skill invoked per Improve stage (Claude only), quoted knowledge that reached the model by file. `--limit-events N` reads the first N lines of the stream, which is how a snapshot taken while a run was live is read again. |
 | `metrics.stage_share(OUT)` | What a planning stage takes of the planning window: the stage's authoring time (accept to accept less its Improve child) and the span of its calls that name Backchain, as shares of the window on the engine clock. |
 | `clear.orientation(events, clear_line)` | What a fresh session read before its first state-changing call, by class, and how long that took. The S-6 verdict still counts only redone state-changing calls. Claude's stream only. |
-| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from. |
+| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from: no common slice, a slice one arm lacks, or a hard-gate field not measured on both arms (since build step 2; a measured gate failure still rejects). |
 | `seeded_defects.py verify` / `score OUT` | The three planted-defect cases (`node-seeded-*`): a request whose obvious implementation carries a defect the case's own checks do not exercise. `verify` proves each probe fails on the unreviewed tree and passes on the fixed one; `score` runs the probes on a slice's graded export (`OUT/export`). A record, never a verdict. |
 | `obligations.py` with `packet_obligations.json` | The packet obligation ledger: what every packet must carry, in the printed head or the packet file, checked on the 33-packet dry-run walk and the offline step slice on both routes. `--arm-checks DIR` writes the rows a checkout loses to `DIR/arm-checks.json` for `arms.py`. Its suite is `test/shiploop-packet-obligations.test.py`. |
 | `home_fixtures.py [long\|small\|empty]` | Generated, neutral knowledge homes (about 16/14/6 KB, and a few hundred characters) and the per-stage packet sizes over them, with `fingerprints` to show a change left a home's packets byte-identical. |
@@ -1742,28 +1750,35 @@ org): `bash test/run-all.sh --group quick`, the suites `shiploop-e2e-release-sli
 python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
 ```
 
-This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`, P1). It
-reads each run's own records, writes nothing into a run folder and calls no model. A folder above run folders is walked
-to them. Every card carries `scorecard: scorecard/1`, and two cards are compared only when their ids are equal.
+This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
+`scorecard/2` since build step 2). It reads each run's own records, writes nothing into a run folder and calls no model. A
+folder above run folders is walked to them. Two cards are compared only when their ids are equal.
 
-- **Floors** (each true, false or null where not measured):
-  - **accuracy:** every verdict passes, and any hidden acceptance checks all pass;
-  - **enterprise:** not measured until the P2 rubric exists;
-  - **fidelity:** the engine ended done, with no unverified entry and no skipped evidence.
-- **The target:** `efficiency` (minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
-  minutes and re-orientation minutes).
-- **`validity`** says whether a run is clean enough to compare. A run is not comparable if any of these hold:
-  - it was resumed, or ran on mixed hosts;
-  - its host build changed;
-  - it overlapped other runs under its runs root;
-  - it left listeners alive;
-  - its delivered `work/` changed after delivery (the deleted `page.html` of E4 shows here).
-- Reported beside the fidelity floor, deciding nothing: refusals, retired glossary terms, and edits of script-owned files
-  to confirm.
-- A value nothing measured is null, with its reason in `unmeasured`.
+**Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
+- **accuracy:** every verdict, plus the hidden acceptance when the case declares it. Requiredness belongs to the case
+  (`cases.json`), so a declared acceptance that was not observed makes the floor `unobserved`, never a pass.
+- **enterprise:** `not_applicable` until its rubric exists.
+- **fidelity:** the engine ended done, with no unverified entry and no skipped evidence.
+
+**The target** is `efficiency`: minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
+minutes, re-orientation minutes.
+
+**Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
+valid.
+- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). It is null when
+  the tree can't be read, or when this run and a run overlapping it wrote the same `/tmp` name.
+- **attribution** is false when hosts or host builds were mixed.
+- **timing** is false when the run overlapped other runs under its runs root, was resumed, wasn't attributable to one
+  build, or left listeners alive.
+
+So an overlapped run is still evidence of quality, never of speed.
+
+Refusals, retired glossary terms and script-owned edits to confirm are reported beside the fidelity floor and decide
+nothing. A value nothing measured is null, with its reason in `unmeasured`.
 
 The tests are `ScorecardTest` in `test/shiploop-e2e-baseline.test.py`, over compact extracts of real runs in
-`test/fixtures/scorecard` (`extract.py` rebuilds them).
+`test/fixtures/scorecard` (`extract.py`). Those extracts hold no `work/` tree, so their correctness is null until build
+step 4's delivery snapshot.
 
 ## The promotion contract: promote, drop or undecided
 
@@ -1771,11 +1786,13 @@ The tests are `ScorecardTest` in `test/shiploop-e2e-baseline.test.py`, over comp
 python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_CARDS ... --candidate RUN_OR_CARDS ... [--json]
 ```
 
-This is the one scripted rule (SPEC "The promotion contract", contract `promotion/1`) that decides whether a candidate change
-to ShipLoop is promoted. It reads the two arms' scorecards: run folders, or card files from `scorecard.py --out`.
+This is the one scripted rule (SPEC "The promotion contract", contract `promotion/2` since build step 2) that decides whether
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/2` cards: run folders, or card files from
+`scorecard.py --out`.
 
 **The registration, written before the runs,** names:
-- the cases, each a `regression` (an established requirement) or a `capability` (being improved);
+- the cases, each a `regression` (an established requirement) or a `capability` (being improved), optionally with the
+  number of attempts each arm must bring (`{"role": "capability", "attempts": 2}`; fewer is UNDECIDED);
 - the required floors (accuracy and fidelity by default);
 - the efficiency metrics in order (`cost_usd`, `minutes`, `turns`; `tokens` arrives with build step 8);
 - a quality tolerance, a relative efficiency tolerance, and any budget.
@@ -1784,15 +1801,16 @@ A run that began before `registered_at` makes the decision UNDECIDED. For card f
 not checked.
 
 **The rule, in order:**
-1. Missing coverage or a required floor not measured: UNDECIDED, never a pass.
+1. Fewer attempts than registered, or quality unknown (a card whose correctness is not valid, or a required floor that
+   is neither pass nor fail): UNDECIDED, never a pass.
 2. A regression case's success share falls: DROP.
 3. Over the registered budget: DROP.
 4. A capability case's share rises: PROMOTE, with its cost per success stated. A slower or dearer correctness fix still
    promotes.
 5. A share falls with no gain: DROP.
 6. At equal quality, each efficiency metric in turn, as all-attempt cost per successful case, compared within a case and
-   only on cards whose validity is comparable: no case dearer and one cheaper beyond the tolerance is PROMOTE; one dearer
-   is DROP; otherwise the next metric is asked.
+   only on cards whose timing and attribution are valid: no case dearer and one cheaper beyond the tolerance is
+   PROMOTE; one dearer is DROP; otherwise the next metric is asked.
 7. None decides: UNDECIDED, an inconclusive optimisation.
 
 Every attempt counts, stops and resumes included. No model judgement enters. It decides promotion only, never a run's

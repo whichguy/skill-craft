@@ -10,13 +10,20 @@ only when their ids are equal, so a change to what a part reads or how a floor i
 
 The parts, each read from records the harness already writes:
 
-* ``validity``: was the run clean enough to compare? Resumed, mixed host, a host build that changed, the neighbours it overlapped
-  (``environment.overlap``, under the runs root), listeners it left behind, and whether its delivered work tree changed
-  after delivery (``git status`` of ``work/``: a check that deleted a product file, as on 2026-10-24, shows here).
-  ``comparable`` is false when any of them says no. A record, never a verdict.
+* ``validity``: three dimensions (SPEC "The promotion contract", build step 2), each ``{valid, why}`` with ``valid`` true,
+  false or null; null means not observed and is never valid.
+  - **correctness**: false when the delivered ``work/`` changed after delivery (a check that deleted a product file, as on
+    2026-10-24). Null when the tree can't be read, or when this run and a run that overlapped it wrote the same ``/tmp``
+    name, because shared state can't be ruled out.
+  - **attribution**: false when hosts or host builds were mixed.
+  - **timing**: false when the run overlapped others under its runs root (``environment.overlap``), was resumed, was not
+    attributable to one build, or left listeners alive. Null when any of those was not observed.
+
+  The observations are kept beside the dimensions. It is a record, never a run's verdict.
 * ``accuracy`` (a floor): the verdicts, the checks (a follow-on's include the followed case's and the retention checks),
-  the hidden acceptance checks and the mutation ratio where the case declares them.
-* ``enterprise`` (a floor): not measured yet. The scripted rubric is P2, so the part says so and decides nothing.
+  the hidden acceptance checks and the mutation ratio. **Requiredness belongs to the case** (``cases.json``): a case that
+  declares hidden acceptance requires it, so an unobserved acceptance leaves the floor ``unobserved``, never a pass.
+* ``enterprise`` (a floor): ``not_applicable`` until the scripted rubric exists.
 * ``fidelity`` (a floor): the engine ended done, with no unverified entry and no skipped evidence. Edits of script-owned
   files, refusals and retired glossary terms in ShipLoop's replies (``nomenclature``, S-16) are reported beside it; the
   edit list is a heuristic to confirm (SPEC), so it decides nothing. ``improve_reviews`` is left out: on the 2.9.0 runs it
@@ -24,8 +31,8 @@ The parts, each read from records the harness already writes:
 * ``efficiency`` (the target): minutes, cost, turns, refusals, Improve children, planning minutes and re-orientation
   minutes.
 
-A value nothing measured is null with its reason in ``unmeasured``, never 0. A floor is true, false, or null where its part
-was not measured.
+A value nothing measured is null with its reason in ``unmeasured``, never 0. A floor is ``pass``, ``fail``, ``unobserved``
+(required and not measured) or ``not_applicable``.
 """
 
 from __future__ import annotations
@@ -40,9 +47,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
 
-SCORECARD_ID = "scorecard/1"
+SCORECARD_ID = "scorecard/2"
 VERDICTS = ("invoked", "plugin", "process", "shiploop", "committed")
 NOT_YET = "no scripted enterprise rubric yet (design P2)"
+PASS, FAIL, UNOBSERVED, NOT_APPLICABLE = "pass", "fail", "unobserved", "not_applicable"
+CASES = Path(__file__).resolve().parent / "cases.json"
+
+
+def combined(*parts: str) -> str:
+    """One floor from its parts: any fail fails, then any unobserved is unobserved, all not applicable is not applicable."""
+    real = [part for part in parts if part != NOT_APPLICABLE]
+    if not real:
+        return NOT_APPLICABLE
+    return FAIL if FAIL in real else UNOBSERVED if UNOBSERVED in real else PASS
+
+
+def requires_acceptance(case) -> bool:
+    """Whether the case declares hidden acceptance checks (``cases.json`` ``quality.acceptance``): requiredness is the case's."""
+    try:
+        declared = json.loads(CASES.read_text()).get(case) or {}
+    except (OSError, ValueError):
+        return False
+    return bool((declared.get("quality") or {}).get("acceptance"))
 
 
 def _read(path: Path) -> dict | None:
@@ -81,6 +107,37 @@ def host_builds(result: dict, run_metrics: dict) -> list[str] | None:
     return sorted(set(builds)) or None
 
 
+def shared_tmp_names(run: Path, seen: dict, run_metrics: dict) -> tuple[list[str] | None, str | None]:
+    """The /tmp names this run wrote that a run overlapping it also wrote (each run's own ``metrics.tmp_writes``), or None
+    with the reason where it can't be known. A run that wrote none shares none."""
+    mine = run_metrics.get("tmp_writes")
+    if not isinstance(mine, list):
+        return None, "this run's /tmp writes were not recorded"
+    if not mine:
+        return [], None
+    if not seen.get("observed"):
+        return None, "the overlap was not observed"
+    root, shared, unknown = environment.runs_root(run), set(), []
+    for neighbour in seen["runs"]:
+        theirs = (_read(root / neighbour["folder"] / "metrics.json") or {}).get("tmp_writes")
+        if not isinstance(theirs, list):
+            unknown.append(neighbour["folder"])
+            continue
+        shared |= set(mine) & set(theirs)
+    if shared:
+        return sorted(shared), None
+    return (None, "the /tmp writes of " + ", ".join(unknown) + " are not known") if unknown else ([], None)
+
+
+def dimension(false_reasons: list[str], null_reasons: list[str]) -> dict:
+    """One validity dimension: false with its reasons, else null when something was not observed, else true."""
+    if false_reasons:
+        return {"valid": False, "why": false_reasons}
+    if null_reasons:
+        return {"valid": None, "why": null_reasons}
+    return {"valid": True, "why": []}
+
+
 def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> dict:
     environment_block = result.get("environment") or {}
     seen = environment.overlap(run)
@@ -99,24 +156,35 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
     builds = host_builds(result, run_metrics)
     if builds is None:
         unmeasured["validity.host_builds"] = "no launch record or init event names the host build"
+    shared, shared_why = shared_tmp_names(run, seen, run_metrics)
     block = {"resumed": resumed, "mixed_host": mixed if isinstance(mixed, bool) else None,
              "host_builds": builds, "overlapped_runs": overlapped, "overlap_root": seen.get("root"),
-             "left_behind_survived": survived, "work_tree_after": status}
+             "left_behind_survived": survived, "work_tree_after": status, "shared_tmp_names": shared}
+    block["correctness"] = dimension(
+        [f"the delivered work tree changed after delivery: {', '.join(status[:3])}"] if status else [],
+        [f"the delivered tree can't be read: {why}"] * (status is None)
+        + ([f"/tmp names shared with an overlapping run: {', '.join(shared)}"] if shared else [])
+        + ([f"shared /tmp state is not known: {shared_why}"] if shared is None else []))
     # A host build that changed mid-run changes behaviour (inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 alone blocked
     # chess run 5's deploy), so its figures are not one build's.
-    reasons = [text for text, bad in (("resumed", resumed), ("mixed host", mixed is True),
-                                      (f"host build changed: {', '.join(builds or [])}", len(builds or []) > 1),
-                                      (f"overlapped {overlapped} run(s)", bool(overlapped)),
-                                      (f"{survived} listener(s) survived", bool(survived)),
-                                      (f"work tree changed after delivery: {', '.join((status or [])[:3])}", bool(status)))
-               if bad]
-    block["comparable"] = not reasons
-    block["why_not"] = reasons
+    block["attribution"] = dimension(
+        [text for text, bad in (("mixed hosts", mixed is True),
+                                (f"host build changed: {', '.join(builds or [])}", len(builds or []) > 1)) if bad],
+        [text for text, unknown in (("whether hosts were mixed is not recorded", not isinstance(mixed, bool) and mixed is not True),
+                                    ("no host build was recorded", builds is None)) if unknown])
+    block["timing"] = dimension(
+        [text for text, bad in (("resumed", resumed), (f"overlapped {overlapped} run(s)", bool(overlapped)),
+                                (f"{survived} listener(s) survived", bool(survived)),
+                                ("not attributable to one build", block["attribution"]["valid"] is False)) if bad],
+        [text for text, unknown in (("the overlap was not observed", overlapped is None),
+                                    ("leftover listeners were not observed", survived is None),
+                                    ("attribution is not observed", block["attribution"]["valid"] is None)) if unknown])
     return block
 
 
 def accuracy(result: dict, unmeasured: dict) -> dict:
     quality = result.get("quality") or {}
+    required = requires_acceptance(result.get("case"))
     acceptance = quality.get("acceptance")
     mutation = quality.get("mutation")
     block = {"pass": result.get("pass") is True,
@@ -133,7 +201,10 @@ def accuracy(result: dict, unmeasured: dict) -> dict:
         unmeasured["accuracy.mutation"] = ((mutation or {}).get("reason") if isinstance(mutation, dict)
                                            else "the case declares no mutation measure")
     hidden = block["acceptance"]
-    block["floor"] = block["pass"] and (hidden is None or hidden["passed"] == hidden["total"])
+    block["acceptance_required"] = required
+    hidden_status = (NOT_APPLICABLE if not required else UNOBSERVED if hidden is None
+                     else PASS if hidden["passed"] == hidden["total"] else FAIL)
+    block["floor"] = combined(PASS if block["pass"] else FAIL, hidden_status)
     return block
 
 
@@ -141,7 +212,7 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
     record = run_metrics.get("fidelity") or {}
     if not record:
         unmeasured["fidelity"] = "metrics.json has no fidelity block"
-        return {"floor": None}
+        return {"floor": UNOBSERVED}
     end = record.get("end_state") or {}
     unverified = (end.get("unverified") or {}).get("entries")
     skipped = ((record.get("evidence") or {}).get("counts") or {}).get("skipped")
@@ -162,8 +233,8 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
     missing = [name for name in ("unverified", "skipped_evidence") if block[name] is None]
     for name in missing:
         unmeasured[f"fidelity.{name}"] = "the fidelity block does not carry it"
-    block["floor"] = (None if missing or end.get("status") is None else
-                      end.get("status") == "done" and unverified == 0 and skipped == 0)
+    block["floor"] = (UNOBSERVED if missing or end.get("status") is None else
+                      PASS if end.get("status") == "done" and unverified == 0 and skipped == 0 else FAIL)
     return block
 
 
@@ -210,7 +281,7 @@ def score(run) -> dict:
                          "plugin_version": versions.get("plugin_version"), "shiploop_version": versions.get("shiploop_version")},
             "outcome_class": result.get("outcome_class"),
             "validity": validity(run, result, run_metrics, unmeasured), "accuracy": accuracy(result, unmeasured),
-            "enterprise": {"observed": False, "reason": NOT_YET, "floor": None},
+            "enterprise": {"observed": False, "reason": NOT_YET, "floor": NOT_APPLICABLE},
             "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured)}
     card["floors"] = {name: card[name]["floor"] for name in ("accuracy", "enterprise", "fidelity")}
     card["unmeasured"] = unmeasured
@@ -233,21 +304,24 @@ def _cell(value, unit: str = "") -> str:
 
 
 def render(cards: list[dict]) -> str:
-    """One line per run: floors, then the target's main figures, then why a run is not comparable."""
-    lines = [f"{SCORECARD_ID}: {len(cards)} run(s); floors accuracy/enterprise/fidelity (Y yes, n no, - not measured)"]
-    mark = {True: "Y", False: "n", None: "-"}
+    """One line per run: floors, the three validity dimensions, then the target's main figures and what voids a dimension."""
+    lines = [f"{SCORECARD_ID}: {len(cards)} run(s); floors accuracy/enterprise/fidelity (P pass, F fail, ? unobserved, - n/a);"
+             " validity correctness/attribution/timing (Y valid, n not, ? not observed)"]
+    floor_mark = {PASS: "P", FAIL: "F", UNOBSERVED: "?", NOT_APPLICABLE: "-"}
+    valid_mark = {True: "Y", False: "n", None: "?"}
     for card in cards:
         name = Path(card["run"]).name if Path(card["run"]).name not in ("", ".") else card["run"]
         if not card.get("observed"):
             lines.append(f"  {name:<34} {card['reason']}")
             continue
-        floors = "/".join(mark[card["floors"][k]] for k in ("accuracy", "enterprise", "fidelity"))
+        floors = "/".join(floor_mark[card["floors"][k]] for k in ("accuracy", "enterprise", "fidelity"))
         e, v = card["efficiency"], card["validity"]
+        dims = "/".join(valid_mark[v[k]["valid"]] for k in ("correctness", "attribution", "timing"))
         driver = card["driver"].get("host") or "?"
         cost = _cell(e["cost_usd"]) if not e["cost_lower_bound"] or e["cost_usd"] is None else f"{e['cost_usd']}+"
-        lines.append(f"  {(card['case'] or '?') + ' ' + driver:<26} {floors}  {_cell(e['minutes'], 'm'):>7} ${cost:<8} "
-                     f"{_cell(e['turns']):>4}t {_cell(e['refusals']):>3}r plan {_cell(e['planning_minutes'], 'm'):>6}  "
-                     + ("comparable" if v["comparable"] else "not comparable: " + "; ".join(v["why_not"])))
+        why = "; ".join(f"{k}: {v[k]['why'][0]}" for k in ("correctness", "attribution", "timing") if v[k]["why"])
+        lines.append(f"  {(card['case'] or '?') + ' ' + driver:<26} {floors}  {dims}  {_cell(e['minutes'], 'm'):>7} ${cost:<8} "
+                     f"{_cell(e['turns']):>4}t {_cell(e['refusals']):>3}r" + (f"  {why}" if why else ""))
     return "\n".join(lines) + "\n"
 
 

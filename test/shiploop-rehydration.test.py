@@ -85,7 +85,7 @@ class IndexTests(unittest.TestCase):
         state = nav.apply(state, nav.current_action(state)["id"],
                           {"outcome": "send-back", "summary": "Criterion unachievable as planned."})
         text = context_index.render(state, Path("/tmp/run"), nav.current_stage(state))
-        self.assertIn("W1 has gone back to step-plan 1 of 2 times", text)
+        self.assertIn("W1 has gone back to step-plan 1 time", text)
 
     def test_verify_and_handoff_read_the_evidence_they_judge(self) -> None:
         # test absorbed test-green and regression; verify itself now runs static-checks' review loop.

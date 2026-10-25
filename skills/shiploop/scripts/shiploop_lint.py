@@ -42,9 +42,9 @@ cannot clear a repository's ``extend-safe-fixes``, which ruff merges);
 all-or-nothing fixes limited to lines the work item changed, on regular
 single-link files whose sha256 is unchanged since read; scope limited to the
 run's repository directory and free of ShipLoop runtime metadata; a pending
-journal written before any product file changes; and a whole-pass wall-clock
-budget that also bounds Git plumbing.  Callers catch every exception except
-KeyboardInterrupt, so a lint failure never fails ``complete``.
+journal written before any product file changes; and a hang guard on each tool
+and Git call (no whole-pass budget: every file in scope is read and linted).
+Callers catch every exception except KeyboardInterrupt, so a lint failure never fails ``complete``.
 """
 
 from __future__ import annotations
@@ -84,9 +84,11 @@ SUPPORTING = "supporting output; not exit-criteria evidence"
 # implement, test and verify, which edit code.
 GATE_STAGES = stage_spec.with_complete_run("lint-gate")
 GATE_STAGE = GATE_STAGES[0]
-BUDGET_SECONDS = 120.0
+# Hang guards: one tool call, one Git plumbing call, one private-index snapshot.  Each stops that call, never the pass.
 TOOL_TIMEOUT_SECONDS = 60.0
-MAX_FILES = 200
+SNAPSHOT_TIMEOUT_SECONDS = 120.0
+# How many change-inventory rows a packet prints; the record holds every row (an output size cut, not a scope cut).
+INVENTORY_PRINT_LIMIT = 200
 MAX_FILE_BYTES = 2_000_000
 # Line-diff cells (before x after, after trimming the common prefix and suffix)
 # above which changed-line attribution is not computed: difflib is superlinear.
@@ -375,7 +377,7 @@ def _git(top: Path, *args: str, env: Optional[Mapping[str, str]] = None,
             timeout=timeout, check=False)
     except subprocess.TimeoutExpired as exc:
         raise LintError("git " + (args[0] if args else "") + " did not finish within "
-                        + "%.1f" % timeout + " seconds (pass budget)") from exc
+                        + "%.1f" % timeout + " seconds") from exc
 
 
 def git_toplevel(repo: Path, timeout: float = GIT_TIMEOUT_SECONDS) -> Optional[Path]:
@@ -475,7 +477,7 @@ def capture_base(run_dir: Path, repo: Path, work_item: str) -> Dict[str, str]:
         index = _lint_dir(run_dir) / "tmp" / ("base-" + uuid.uuid4().hex + ".index")
         prefix = scope_prefix(top, Path(repo))
         try:
-            tree = snapshot_tree(top, Path(run_dir), index, prefix=prefix, timeout=BUDGET_SECONDS)
+            tree = snapshot_tree(top, Path(run_dir), index, prefix=prefix, timeout=SNAPSHOT_TIMEOUT_SECONDS)
         finally:
             if index.exists():
                 index.unlink()
@@ -564,39 +566,29 @@ def resolve_tool(name: str, top: Path, path_env: str, shim_dirs: Sequence[str],
 
 
 class _Invoker:
-    """Run tools under the pass budget and keep every invocation for the block."""
+    """Run tools, each under its hang guard, and keep every invocation for the block."""
 
     def __init__(self, top: Path, logs: Path, prefix: str, env: Mapping[str, str], *,
-                 budget: float, tool_timeout: float, clock: Callable[[], float], runner: Runner):
+                 tool_timeout: float, clock: Callable[[], float], runner: Runner):
         self.top = top
         self.logs = logs
         self.prefix = prefix
         self.env = dict(env)
         self.tool_timeout = tool_timeout
         self.clock = clock
-        self.deadline = clock() + budget
         self.runner = runner
         self.calls: List[Dict[str, Any]] = []
         self.plumbing: List[str] = []
-        self.skipped: List[str] = []
-
-    def remaining(self) -> float:
-        """Seconds left before the pass deadline."""
-        return self.deadline - self.clock()
 
     def run(self, argv: Sequence[str], *, what: str, stdin: Optional[bytes] = None,
             stdin_note: str = "", note: str = "", stdout_note: str = "",
-            ok_codes: Optional[Sequence[int]] = (0, 1), cwd: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+            ok_codes: Optional[Sequence[int]] = (0, 1), cwd: Optional[Path] = None) -> Dict[str, Any]:
         """Run one invocation; ``ok_codes`` None means any exit is a result, not a tool error.
 
         ``cwd`` defaults to the Git top level; discovered tools run in the run's
         repository directory so they find its configuration.
         """
-        left = self.remaining()
-        if left <= 0.1:
-            self.skipped.append(what)
-            return None
-        timeout = max(0.1, min(self.tool_timeout, left))
+        timeout = self.tool_timeout
         started = self.clock()
         try:
             status, code, out, err = self.runner(list(argv), cwd or self.top, timeout,
@@ -616,11 +608,9 @@ class _Invoker:
         self.calls.append(call)
         return call
 
-    def git(self, *args: str, env: Optional[Mapping[str, str]] = None,
-            floor: float = 1.0) -> subprocess.CompletedProcess:
-        """Scope plumbing under the pass budget; ``floor`` seconds even once the budget is spent."""
-        timeout = min(GIT_TIMEOUT_SECONDS, max(floor, self.remaining()))
-        result = _git(self.top, *args, env=env, timeout=timeout)
+    def git(self, *args: str, env: Optional[Mapping[str, str]] = None) -> subprocess.CompletedProcess:
+        """Scope plumbing under its hang guard (``GIT_TIMEOUT_SECONDS``)."""
+        result = _git(self.top, *args, env=env, timeout=GIT_TIMEOUT_SECONDS)
         line = _one_line(shlex.join(["git", *args])) + " -> exit " + str(result.returncode)
         if result.stderr.strip():
             line += "; stderr: " + _one_line(_decode(result.stderr).strip().replace("\n", " / "))
@@ -880,7 +870,7 @@ def lint_pass(repo: Path, run_dir: Path, *, action: str, work_item: str, stage: 
               mode: str, run_option: str, base: Optional[Mapping[str, Any]], allow_fix: bool,
               fallback_note: str = "", command: str = "shiploop", record_name: str = "",
               env: Optional[Mapping[str, str]] = None, runner: Optional[Runner] = None,
-              clock: Optional[Callable[[], float]] = None, budget: float = BUDGET_SECONDS,
+              clock: Optional[Callable[[], float]] = None,
               tool_timeout: float = TOOL_TIMEOUT_SECONDS, reference_dir: Optional[Path] = None,
               execution_mode: str = "navigator") -> Dict[str, Any]:
     """Run one lint pass and return the record payload (block text included).
@@ -894,15 +884,14 @@ def lint_pass(repo: Path, run_dir: Path, *, action: str, work_item: str, stage: 
     record_name = record_name or action
     catalog = load_catalog(reference_dir or default_reference_dir())
     clock = clock or time.monotonic
-    started = clock()
-    top = git_toplevel(Path(repo), timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget)))
+    top = git_toplevel(Path(repo), timeout=GIT_TIMEOUT_SECONDS)
     if top is None:
         raise LintError("not a Git checkout: " + os.fspath(repo))
     prefix = scope_prefix(top, Path(repo))
-    roots = repo_roots(top, timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget - (clock() - started))))
+    roots = repo_roots(top, timeout=GIT_TIMEOUT_SECONDS)
     base_env = dict(os.environ if env is None else env)
     invoker = _Invoker(top, _lint_dir(run_dir) / "logs", record_name, _tool_env(base_env, run_dir, roots),
-                       budget=budget - (clock() - started), tool_timeout=tool_timeout, clock=clock,
+                       tool_timeout=tool_timeout, clock=clock,
                        runner=runner or run_argv)
     journal_notes = _adopt_journals(run_dir)
     fixing = mode == "fix" and allow_fix and base is not None
@@ -921,8 +910,7 @@ def lint_pass(repo: Path, run_dir: Path, *, action: str, work_item: str, stage: 
                      + ". This pass is report-only." + (" " + fallback_note if fallback_note else ""))
     index = _lint_dir(run_dir) / "tmp" / (record_name + "-" + uuid.uuid4().hex + ".index")
     try:
-        current_tree = snapshot_tree(top, run_dir, index, prefix=prefix,
-                                     timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, invoker.remaining())))
+        current_tree = snapshot_tree(top, run_dir, index, prefix=prefix, timeout=SNAPSHOT_TIMEOUT_SECONDS)
         invoker.plumbing.append("git add -A (private index) + git write-tree -> " + current_tree[:12])
         payload = _run_pass(invoker, catalog, top, run_dir, index, action=action, record_name=record_name,
                             work_item=work_item, stage=stage, mode=mode, run_option=run_option,
@@ -941,7 +929,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
               notes: List[str], command: str, base_env: Mapping[str, str], prefix: str = ".",
               roots: Sequence[str] = (), journal_notes: Sequence[str] = ()) -> Dict[str, Any]:
     """Run one lint pass over the files changed between ``base_tree`` and ``current_tree``: read them, run the
-    available linters inside the time budget, optionally apply ruff fixes, and return the pass payload.
+    available linters on every one of them, optionally apply ruff fixes, and return the pass payload.
     """
     shim_dirs = tuple(catalog.get("shim_dirs", ()))
     project = top if prefix == "." else top / prefix
@@ -957,21 +945,14 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     for item in files:
         if item.status == "D":
             item.scope = "not in scope: deleted"
-    for item in scoped[MAX_FILES:]:
-        item.scope = "not in scope: over the " + str(MAX_FILES) + "-file cap"
-    attrs = _attributes(invoker, [item.path for item in scoped[:MAX_FILES]])
+    attrs = _attributes(invoker, [item.path for item in scoped])
     base_blobs: Dict[str, List[str]] = {}
     for path, (_mode, sha) in base_entries.items():
         base_blobs.setdefault(sha, []).append(path)
     current_blobs: Dict[str, List[str]] = {}
     for path, (_mode, sha) in current_entries.items():
         current_blobs.setdefault(sha, []).append(path)
-    for item in scoped[:MAX_FILES]:
-        if invoker.remaining() <= 0.1:
-            item.scope = "not in scope: the pass budget ran out before this file was read"
-            item.uncovered = True
-            invoker.skipped.append("reading " + cquote(item.path))
-            continue
+    for item in scoped:
         _load_file(invoker, top, item, base_entries, catalog)
         if item.scope:
             continue
@@ -993,7 +974,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     # A mirror group is linted once: every later member reuses the first one's result.
     linted_blobs: Dict[str, str] = {}
     active: List[_File] = []
-    for item in scoped[:MAX_FILES]:
+    for item in scoped:
         if item.scope:
             continue
         sha = current_entries.get(item.path, ("", ""))[1]
@@ -1012,7 +993,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
         path = tools[name][0]
         if path and any(item.kind == ("python" if name == "ruff" else "shell") for item in active):
             call = invoker.run([path, "--version"], what=name + " --version")
-            found = [line.strip() for line in (_decode(call["stdout"]).splitlines() if call else [])
+            found = [line.strip() for line in _decode(call["stdout"]).splitlines()
                      if re.search(r"\d+\.\d+", line)]
             versions.append(name + " (" + (found[0] if found else "version unknown") + "; " + cquote(path) + ")")
 
@@ -1077,8 +1058,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     final_tree = current_tree
     if applied:
         try:
-            final_tree = snapshot_tree(top, run_dir, index, prefix=prefix,
-                                       timeout=min(GIT_TIMEOUT_SECONDS, max(5.0, invoker.remaining())))
+            final_tree = snapshot_tree(top, run_dir, index, prefix=prefix, timeout=SNAPSHOT_TIMEOUT_SECONDS)
         except LintError as exc:
             final_tree = ""
             invoker.plumbing.append("snapshot after fixes failed (" + str(exc) + "); verify will rerun the pass")
@@ -1170,9 +1150,6 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
         lines.append("Files created by tools during this pass: " + ", ".join(cquote(path) for path in created)
                      + (". Removed catalogued caches: " + ", ".join(cquote(path) for path in removed)
                         if removed else "") + ".")
-    if invoker.skipped:
-        lines.append("Skipped because the " + str(int(BUDGET_SECONDS)) + "-second pass budget ran out: "
-                     + "; ".join(invoker.skipped) + ".")
     lines.append("END lint data")
     lines.append(result_line)
     if stage in GATE_STAGES:
@@ -1428,8 +1405,6 @@ def _ruff_fix(invoker: _Invoker, top: Path, files: List[_File], ruff: str, *, fi
                            stdout_note="fixed source of " + cquote(item.path)
                            + ", shown as the APPLIED or NOT APPLIED diff; unchanged when no fix applies",
                            ok_codes=FIX_OK_EXIT)
-        if call is None:
-            continue
         if call["status"] == "timeout" or call["exit"] not in FIX_OK_EXIT:
             notes.append("No fix for " + cquote(item.path) + ": the fixer "
                          + ("timed out" if call["status"] == "timeout" else "exited " + str(call["exit"]))
@@ -1502,8 +1477,6 @@ def _promoted_fixes(invoker: _Invoker, ruff: str, item: _File) -> str:
     argv = [ruff, "check", "--show-settings", *FIXER_PINS, "--no-cache", "--", os.path.join(".", item.path)]
     call = invoker.run(argv, what="ruff --show-settings for " + item.path, ok_codes=(0,),
                        stdout_note="resolved ruff settings; ShipLoop reads only linter.safety_table.forced_safe")
-    if call is None:
-        return "fix-safety settings not read (budget); fix withheld"
     codes = _forced_safe(_decode(call["stdout"])) if call["exit"] == 0 else None
     if codes is None:
         return "cannot read ruff's resolved fix-safety settings; fix withheld"
@@ -1519,8 +1492,6 @@ def _syntax_regression(invoker: _Invoker, ruff: str, item: _File, fixed: bytes) 
             "--output-format", "concise", "--stdin-filename", item.path, "-"]
     after = invoker.run(argv, what="syntax guard for " + item.path, stdin=fixed,
                         stdin_note="stdin: fixer output for " + cquote(item.path), ok_codes=None)
-    if after is None:
-        return "syntax guard skipped (budget); fix withheld"
     if after["status"] != "timeout" and after["exit"] == 0:
         return ""
     if after["status"] == "timeout" or after["exit"] is None:
@@ -1570,8 +1541,6 @@ def _ruff_check(invoker: _Invoker, top: Path, files: List[_File], ruff: str) -> 
             continue
         call = invoker.run([ruff, "check", "--no-fix", "--no-cache", "--force-exclude", "--output-format",
                             "concise", *flags, "--", *[item.path for item in included]], what="ruff check")
-        if call is None:
-            continue
         if call["status"] == "timeout" or call["exit"] not in (0, 1):
             for item in included:
                 item.coverage = "syntax only: ruff " + ("timed out" if call["status"] == "timeout"
@@ -1610,8 +1579,6 @@ def _shellcheck(invoker: _Invoker, top: Path, files: List[_File], shellcheck: st
     for flags, members in groups.items():
         call = invoker.run([shellcheck, "-f", "gcc", *flags, "--", *[item.path for item in members]],
                            what="shellcheck")
-        if call is None:
-            continue
         if call["status"] == "timeout" or call["exit"] not in (0, 1):
             for item in members:
                 item.coverage = "syntax only: shellcheck " + ("timed out" if call["status"] == "timeout"
@@ -1691,7 +1658,7 @@ def _syntax_tool(invoker: _Invoker, run_dir: Path, item: _File, argv: List[str],
     example ``--require=x.js``) can never be read as one.
     """
     call = invoker.run([*argv, os.path.join(".", item.path)], what=label + " " + item.path, ok_codes=None)
-    if call is None or call["exit"] == 0 or call["status"] == "timeout":
+    if call["exit"] == 0 or call["status"] == "timeout":
         return ""
     if item.base is None:
         return ""
@@ -1948,16 +1915,9 @@ def _format_findings(item: _File, name: str, formatted: str, hint: str) -> None:
                      + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
 
 
-def _record_tool_failure(call: Optional[Mapping[str, Any]], members: Sequence[_File], tool_name: str,
+def _record_tool_failure(call: Mapping[str, Any], members: Sequence[_File], tool_name: str,
                          ok_codes: Sequence[int]) -> bool:
-    """Note on every member why a linter call produced no usable output; True means it failed.
-
-    ``call`` is None when the pass budget ran out before the tool could start.
-    """
-    if call is None:
-        for member in members:
-            member.tool_notes.append(tool_name + " skipped: pass budget ran out")
-        return True
+    """Note on every member why a linter call produced no usable output; True means it failed."""
     if call["status"] == "timeout" or call["exit"] not in ok_codes:
         reason = "timed out" if call["status"] == "timeout" else "exited " + str(call["exit"])
         for member in members:
@@ -2193,8 +2153,6 @@ def _project_scripts(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, p
                 item.tool_notes.append(str(row["name"]) + " not run: " + reason)
             continue
         call = invoker.run(_argv(row["argv"], tool=tool), what=str(row["name"]), cwd=project, ok_codes=None)
-        if call is None:
-            continue
         _parse_tool_lines(_decode(call["stdout"]) + "\n" + _decode(call["stderr"]), by_path,
                           str(row["name"]), project, top)
         for item in uncovered:
@@ -2616,7 +2574,7 @@ def inventory_path(action: str) -> str:
 
 
 def inventory_writes(run_dir: Path, repo: Path, work_item: str, action: str,
-                     timeout: float = BUDGET_SECONDS) -> Dict[str, str]:
+                     timeout: float = SNAPSHOT_TIMEOUT_SECONDS) -> Dict[str, str]:
     """Record the files this work item changed, tracked and untracked, for one action.
 
     Runs in every lint mode: a snapshot is Git plumbing, not a linter.  The
@@ -2672,11 +2630,11 @@ def render_inventory_lines(run_dir: Path, action: str, work_item: str) -> List[s
              + "; tracked and untracked, ignored excluded; record " + str(path) + "):"]
     if not rows:
         lines.append("  (no changed files)")
-    for row in rows[:MAX_FILES]:
+    for row in rows[:INVENTORY_PRINT_LIMIT]:
         renamed = " (from " + cquote(str(row.get("old"))) + ")" if row.get("status") in ("R", "C") else ""
         lines.append("  " + str(row.get("status")) + " " + cquote(str(row.get("path"))) + renamed)
-    if len(rows) > MAX_FILES:
-        lines.append("  +" + str(len(rows) - MAX_FILES) + " more in the record")
+    if len(rows) > INVENTORY_PRINT_LIMIT:
+        lines.append("  +" + str(len(rows) - INVENTORY_PRINT_LIMIT) + " more in the record")
     return lines
 
 
@@ -2685,7 +2643,6 @@ def render_inventory_lines(run_dir: Path, action: str, work_item: str) -> List[s
 def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, Any], *, command: str,
                   reference_dir: Optional[Path] = None, env: Optional[Mapping[str, str]] = None,
                   runner: Optional[Runner] = None, clock: Optional[Callable[[], float]] = None,
-                  budget: float = BUDGET_SECONDS,
                   tool_timeout: float = TOOL_TIMEOUT_SECONDS) -> Tuple[Dict[str, str], Optional[Dict[str, Any]]]:
     """Return (extra transactional writes, payload to finalize after save).
 
@@ -2708,7 +2665,7 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
         new_action = after.get("action") is not None and after.get("action") != before.get("action")
         if stage == "verify" and new_action and item:
             writes.update(inventory_writes(run_dir, Path(after["repo"]), str(item), str(after["action"]),
-                                           timeout=min(GIT_TIMEOUT_SECONDS, max(1.0, budget))))
+                                           timeout=SNAPSHOT_TIMEOUT_SECONDS))
         mode = after["mode"]
         if mode not in ("fix", "report") or after.get("status") != "active":
             return writes, None
@@ -2717,7 +2674,7 @@ def on_transition(run_dir: Path, before: Mapping[str, Any], after: Mapping[str, 
         entered = str(after["action"])
         base = read_base(run_dir, item)
         common = dict(action=entered, work_item=item or "", stage=stage, run_option=mode, command=command,
-                      env=env, runner=runner, clock=clock, budget=budget, tool_timeout=tool_timeout,
+                      env=env, runner=runner, clock=clock, tool_timeout=tool_timeout,
                       reference_dir=reference_dir, execution_mode=str(after.get("execution_mode", "navigator")))
         first = int(after.get("static_entries", 0)) == 0
         payload = lint_pass(Path(after["repo"]), run_dir, mode=mode, base=base,
@@ -2745,7 +2702,7 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
          base: Optional[Mapping[str, Any]], waivers: Mapping[str, str], command: str,
          stage: str = GATE_STAGE,
          env: Optional[Mapping[str, str]] = None, runner: Optional[Runner] = None,
-         clock: Optional[Callable[[], float]] = None, budget: float = BUDGET_SECONDS,
+         clock: Optional[Callable[[], float]] = None,
          tool_timeout: float = TOOL_TIMEOUT_SECONDS, reference_dir: Optional[Path] = None,
          execution_mode: str = "navigator") -> Tuple[Dict[str, str], Optional[Dict[str, Any]], str]:
     """Lint the work item's changes before a gate stage (``GATE_STAGES``) is accepted as done.
@@ -2766,7 +2723,7 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
         payload = lint_pass(Path(repo), run_dir, action=action, work_item=work_item, stage=stage,
                             mode=run_option, run_option=run_option, base=base, allow_fix=base is not None,
                             command=command, record_name=name, env=env, runner=runner, clock=clock,
-                            budget=budget, tool_timeout=tool_timeout, reference_dir=reference_dir,
+                            tool_timeout=tool_timeout, reference_dir=reference_dir,
                             execution_mode=execution_mode)
     except KeyboardInterrupt:
         raise

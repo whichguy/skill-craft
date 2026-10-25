@@ -1352,7 +1352,8 @@ class PlanAndExecutionTest(unittest.TestCase):
         spec.loader.exec_module(stage_spec)
         inner = list(stage_spec.INNER)
         self.assertEqual(export.AFTER_IMPLEMENT, tuple(inner[inner.index("implement") + 1:]))
-        self.assertEqual((stage_spec.SEND_BACK_TO, stage_spec.MAX_SEND_BACKS), ("step-plan", 2))  # SCHEMA.md says "at most twice"
+        self.assertEqual(stage_spec.SEND_BACK_TO, "step-plan")
+        self.assertFalse(hasattr(stage_spec, "MAX_SEND_BACKS"))  # no send-back cap (owner 2026-10-24)
 
     def test_schema_md_defines_loops_the_pairing_and_the_unknown_cases(self):
         text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())

@@ -2146,7 +2146,7 @@ def verifications(run_dir: Path | None) -> dict:
     """The checks ShipLoop itself ran and recorded (tests/<action>-verify<N>.md), case-agnostic.
 
     ``could_not_run`` counts the attempts where no command reached a verdict
-    about the product (it timed out, could not start, or was skipped on budget).
+    about the product (it timed out, could not start, or, before 2026-10-24, was skipped on budget).
     Those refuse their stage without being evidence against it, so a run with
     any of them is reporting an environment problem, not a product one.
     ``red`` counts the records in which a command ran red (a run whose own status is `red`): the test stage's base run

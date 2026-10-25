@@ -56,13 +56,13 @@ base, 1 when one does or a test did not run, 3 when the check cannot run.
 
 `verify` reruns every recorded command on `done` and may not run fewer tests
 than ShipLoop already accepted for the item; the outer `system-test` and
-`release-verify` rerun their own recorded commands. Each action allows 11
-refused runs (at `test`, base and candidate runs share one tally); after that
-ShipLoop no longer accepts `done`, so a failing command takes the stage's own
-remedy — back to the step plan with `send-back` at an INNER stage, or corrective
-work items with `add-work` at `system-test` and `release-verify` — instead of an
-endless retry. A run that times out, cannot start or is skipped on budget
-refuses the stage but does not spend one of the 11.
+`release-verify` rerun their own recorded commands. No count of refused runs
+stops `done` (the packet shows the tally; at `test`, base, candidate and
+mutation runs share one). When the plan or a recorded command is what is wrong,
+take the stage's own remedy — back to the step plan with `send-back` at an INNER
+stage, or corrective work items with `add-work` at `system-test` and
+`release-verify`. A run that times out or cannot start refuses the stage without
+counting.
 
 `test` is recorded as not applicable when the item has no test command and
 touches only documentation or configuration paths, and `document` when the

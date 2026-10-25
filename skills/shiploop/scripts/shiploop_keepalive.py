@@ -414,17 +414,9 @@ def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool
 
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
-# A refused callback counts as progress so the host fixes and resubmits it.  But
-# after this many continuations with no accepted result (the revision unchanged)
-# the stop is allowed, so a state that can never be accepted does not keep a
-# session alive forever.  This only releases one session's turn: nothing is
-# refused or accepted by it, and the run stays active and resumable.  It is twice
-# shiploop_test_loop.MAX_REFUSED_RUNS so that real failing test runs reach the
-# script's own remedy gate first.  A test run that could not run (timeout, cannot
-# start, skipped on budget) never counts toward that gate, so for it this release
-# is the only bound; the refusal names the remedy outcome that ShipLoop accepts on
-# its own record of that attempt (shiploop_test_loop.remedy_open).
-STUCK_CONTINUATIONS = 22  # 2 x shiploop_test_loop.MAX_REFUSED_RUNS (11); a literal, so the hook imports nothing more
+# A refused callback counts as progress so the host fixes and resubmits it.  No
+# count of continuations without an accepted result releases the turn (owner
+# 2026-10-24: no run caps); only a host's own cap above ends one.
 # From this many continuations before a cap, the reason asks harder not to stop.
 CAP_WARNING_MARGIN = 2
 
@@ -489,7 +481,7 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
 
 def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) -> dict:
     """Decide whether a stop hook lets the host stop or asks it to continue the run; stopping is allowed when the
-    run is unreadable, not active, or stuck.
+    run is unreadable, not active, owned by another session, or made no progress since the last continuation.
     """
     status = run_status(binding["run_dir"])
     if status.get("error") or status.get("run_id") != binding["run_id"]:
@@ -512,19 +504,6 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
         return {"decision": "allow", "why": "no progress",
                 "notice": ("ShipLoop keepalive: the run made no progress since the last "
                            "continuation, so the turn may end. Resume with: " + status["next"])}
-    if binding.get("block_revision") != status["revision"]:
-        binding["block_revision"], binding["blocks_at_revision"] = status["revision"], 0
-    if not waiting:
-        binding["blocks_at_revision"] = int(binding.get("blocks_at_revision", 0)) + 1
-        if binding["blocks_at_revision"] > STUCK_CONTINUATIONS:
-            return {"decision": "allow", "why": "stuck: no accepted result",
-                    "notice": ("ShipLoop keepalive: " + str(STUCK_CONTINUATIONS) + " continuations "
-                               "produced no accepted result for this action, so the turn may end. Read "
-                               "the last refusal; if it cannot be fixed in this run, submit outcome "
-                               "blocked (or send-back) with the reason: blocked, with awaiting, only for what "
-                               "a person or an outside service must supply, and the outcome the refusal names "
-                               "(send-back, or add-work at the outer stages) when a recorded command or plan "
-                               "is what is wrong. Resume with: " + status["next"])}
     binding["last_block_progress"] = progress
     binding["turn_blocks"] = int(binding.get("turn_blocks", 0)) + 1
     cap = CONTINUATION_CAPS.get(host)
