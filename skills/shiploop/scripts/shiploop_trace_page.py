@@ -104,6 +104,7 @@ summary .c { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end
 .ev { display: grid; grid-template-columns: 88px 78px 1fr; gap: 10px; padding: 5px 14px; align-items: start; }
 .ev:hover { background: var(--chip); }
 .ev time { color: var(--muted); font-family: var(--mono); font-size: 11.5px; padding-top: 2px; }
+.multiday .ev { grid-template-columns: 150px 78px 1fr; }
 .kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
 .kind.command { color: var(--accent); } .kind.packet { color: var(--green); } .kind.hook { color: var(--violet); }
 .kind.skill { color: var(--amber); } .kind.accepted { color: var(--green); } .kind.refused { color: var(--red); }
@@ -153,7 +154,7 @@ details.more > div { border-top: 1px solid var(--line); padding: 8px 14px; }
   .sentence { grid-template-columns: 34px 1fr; }
   .sentence .reading { grid-column: 2; }
   .plan-row { grid-template-columns: 1fr; gap: 4px; }
-  .ev { grid-template-columns: 70px 1fr; }
+  .ev, .multiday .ev { grid-template-columns: auto 1fr; }
   .ev .kind { grid-column: 2; grid-row: 1; }
   .ev .body { grid-column: 1 / -1; }
   summary { grid-template-columns: auto 1fr; }
@@ -197,10 +198,28 @@ const TRACE = /*TRACE-DATA*/null;
     return node;
   }
   const num = (n) => (n || 0).toLocaleString("en-US");
-  function clock(stamp) {
-    if (!stamp) return "";
+  // Every time is shown in the viewer's own time zone; the data stays UTC.
+  function toDate(stamp) {
+    if (stamp === null || stamp === undefined || stamp === "") return null;
     const d = typeof stamp === "number" ? new Date(stamp * 1000) : new Date(stamp);
-    return isNaN(d) ? "" : d.toISOString().slice(11, 19) + "Z";
+    return isNaN(d) ? null : d;
+  }
+  const ZONE = (() => {
+    try { return new Intl.DateTimeFormat(undefined, {timeZoneName: "short"}).formatToParts(new Date()).find((p) => p.type === "timeZoneName").value; }
+    catch (e) { return "local time"; }
+  })();
+  const dayOf = (stamp) => { const d = toDate(stamp); return d ? d.toDateString() : ""; };
+  // A run that crosses a local midnight shows the date with each time, so 23:58 and 00:03 do not read as one day.
+  const MULTIDAY = !!(TRACE.run.started && TRACE.run.last_event) && dayOf(TRACE.run.started) !== dayOf(TRACE.run.last_event);
+  function clock(stamp) {
+    const d = toDate(stamp);
+    if (!d) return "";
+    const time = d.toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit", second: "2-digit"});
+    return MULTIDAY ? d.toLocaleDateString(undefined, {month: "short", day: "numeric"}) + " " + time : time;
+  }
+  function when(stamp) {
+    const d = toDate(stamp);
+    return d ? d.toLocaleString(undefined, {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"}) : "";
   }
   function span(s) {
     if (s === null || s === undefined) return "?";
@@ -247,8 +266,9 @@ const TRACE = /*TRACE-DATA*/null;
       el("div", {class: "meta"}, "ShipLoop run trace"),
       el("h1", {}, run.goal || "ShipLoop run"),
       el("div", {class: "meta"}, pill, el("span", {class: "mono"}, run.id || ""), el("span", {}, "revision " + run.revision),
-        run.started ? el("span", {}, "started " + run.started.replace("T", " ")) : null, el("span", {}, "elapsed " + span(run.elapsed)),
-        run.last_event ? el("span", {}, "last event " + clock(run.last_event)) : null, el("span", {}, "page written " + clock(TRACE.generated)),
+        run.started ? el("span", {title: run.started}, "started " + when(run.started)) : null, el("span", {}, "elapsed " + span(run.elapsed)),
+        run.last_event ? el("span", {title: run.last_event}, "last event " + when(run.last_event)) : null,
+        el("span", {title: TRACE.generated}, "page written " + when(TRACE.generated)), el("span", {}, "times in " + ZONE),
         run.status === "active" ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); schedule(); }}), " live (reload every 10 s)") : null),
       run.traced ? null : el("p", {class: "note"}, "This run predates the trace: steps come from state.md and timeline.json, and each packet is its last copy, not every copy sent."),
       // Not measured is not zero: a run before the trace recorded no packets, refusals, hook stops or commands.
@@ -345,7 +365,7 @@ const TRACE = /*TRACE-DATA*/null;
     const found = marks(slot);
     const badges = found.map(([kind, text]) => el("span", {class: BADGE[kind]}, text));
     const title = [slot.stage + (slot.group ? " (" + slot.group + ")" : "") + ": " + slot.state, slot.purpose,
-      ...found.map((m) => m[2]), slot.headline ? "Result: " + slot.headline : "", slot.at ? "Accepted " + slot.at : ""].filter(Boolean).join("\n");
+      ...found.map((m) => m[2]), slot.headline ? "Result: " + slot.headline : "", slot.at ? "Accepted " + when(slot.at) : ""].filter(Boolean).join("\n");
     return el("span", {class: "chip " + slot.state, title, role: slot.action ? "button" : null, tabindex: slot.action ? "0" : null,
       onclick: slot.action ? () => focusAction(slot.action) : null}, slot.stage, badges);
   }
@@ -404,7 +424,7 @@ const TRACE = /*TRACE-DATA*/null;
       body.push("accepted " + where(ev) + " (" + ev.outcome + ")");
     }
     return el("div", {class: "ev" + (refusal ? " refusal" : "") + (failed && !refusal ? " check" : "") + (ev.kind === "hook" ? " hook" : "")},
-      el("time", {}, clock(ev.at || ev.ts)), el("span", {class: "kind " + (failed ? kind : ev.kind)}, kind), el("div", {class: "body"}, body));
+      el("time", {datetime: ev.at || "", title: ev.at || ""}, clock(ev.at || ev.ts)), el("span", {class: "kind " + (failed ? kind : ev.kind)}, kind), el("div", {class: "body"}, body));
   }
 
   function groups() {
@@ -500,6 +520,7 @@ const TRACE = /*TRACE-DATA*/null;
   function save() { store.set("ui", ui); }
   function render() {
     const app = document.getElementById("app");
+    app.classList.toggle("multiday", MULTIDAY);
     app.replaceChildren(...[header(), nowCard(), requestSection(), plan(), timeline(),
       el("footer", {}, "Written by ", el("span", {class: "mono"}, "shiploop trace"), " from ", el("span", {class: "mono"}, run.dir),
         " · trace.jsonl " + num(run.trace_bytes) + " bytes" + (run.capped ? " (stopped growing at its cap)" : "") +

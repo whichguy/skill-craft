@@ -105,6 +105,20 @@ because every file in `scripts/` must compile (shiploop-package-integrity); the 
 bytes for its three new entries (shiploop-rehydration); a file-set test now expects `trace.jsonl` and `packets/sent/`
 (shiploop-status-display); suite counts 100 → 101 (test-groups).
 
+## 2026-10-25: times in the viewer's zone; is intake flawed? (firm)
+
+Owner: "All times should be relative to local time from the viewer's perspective in the browser." The page now formats
+every time with the browser's locale and zone (`toLocaleTimeString`), names the zone in the header, adds the date to each
+time when the run crosses a local midnight (the chess run: Oct 24 7:09 PM to Oct 25 9:42 AM PDT), and keeps the UTC stamp
+as each time's tooltip. Checked in the browser at PDT: `20:56:25Z` shows as `01:56:25 PM`. The JSONL, `--json` and the
+terminal digest stay UTC.
+
+Owner, on the demo page's refused intake callback: "Is there some fundamental flaw in intake itself?" No: the demo run's
+refusal was staged (a result with no `shiploop-state` fence, written by the demo script to show a refusal), and ShipLoop
+refused it as designed. In the real 2026-10-24 chess run the harness read-first panel counts 0 refusals in the whole run
+(`flow.py --read-first`, from `events.jsonl`); intake took 142.5 s, 11 turns, 17 tool calls and was accepted on its first
+callback.
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a

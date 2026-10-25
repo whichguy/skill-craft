@@ -173,7 +173,10 @@ answers; the plan grid (a stage opens its events; the legend names only what the
 run shows and never animates), each
 step with its packets, commands, refusals and hook text, filters and search, and
 a viewer that shows each packet's text as sent, screened line by line by the
-credential screen of the progress view. The progress observer rewrites it when
+credential screen of the progress view. The page shows every time in the viewer's
+own time zone (named in the header; a run that crosses a local midnight shows the
+date with each time, and each time's UTC stamp is its tooltip); the trace, `--json`
+and the digest keep UTC with a `Z`. The progress observer rewrites it when
 the trace, `state.md` or `skill-calls.jsonl` change, and while the run is active
 the open page reloads every ten seconds (a checkbox turns that off; an open packet
 or a search in progress holds it). A run saved before the trace still reads: its
