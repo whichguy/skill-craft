@@ -345,6 +345,96 @@ Evidence: `/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/` (`result.json
 `review-export/facts.md`, `transcript.md`, and the run's worktree history); the failed first attempt
 `/Users/dadleet/e2e-runs/20261020/chess-sf-full-b89b42/result.json`; and run 3's folder for the baseline.
 
+### F12. Live run 5 on 2.9.0: 5a blocked by a host update; 5b the first full pass (firm for the counts, 2026-10-24/25; interim for the causes; n=1)
+
+Same flags as runs 3 and 4 (F10, F11) plus `--timeout 18000`: Grok 4.7 medium, ShipLoop 1.9.0 / skill-craft 2.9.0
+from the marketplace, coordinated by a Sonnet agent, in org `de` with prefix `SLChess`. Before the run, run 4's kept app
+was removed with `chess_salesforce.py cleanup --platform-dir <run 4>/platform`. The cleanup needs the earlier run's own
+`before.json`; without it it refuses to delete anything.
+
+**Run 5a** (`chess-sf-full-ed3292`) **was BLOCKED after 93 min at W1 implement, for a reason outside ShipLoop.**
+- Grok had moved from 1.0.62 (run 4) to 1.0.70. Its auto mode refused `cd <worktree> && … && sf project deploy start
+  --target-org de` twice ("a remote stateful mutation; block until the target is confirmed safe"). Run 4 had sent the
+  same command shape 15 times under the same `host_allow`.
+- The sf guard logged 61 calls, none of them a deploy. Nothing reached the org.
+- ShipLoop reported `blocked` (a person must act) rather than faking a deploy.
+- run.py then crashed at its end on a Homebrew interpreter swap (a lazy `_strptime`).
+- 5a also showed the F1 dodge: prepare's `harness_runs` evidence was a browser probe page that said it was not the
+  component.
+
+**Run 5b** (`chess-sf-full-12a23d`, `--permission-mode bypassPermissions`, the owner's choice) **PASSED.**
+- ShipLoop reached `done` and handoff with 61 stages accepted, in **284.3 active minutes**.
+- The laptop slept from 22:57 to 08:44 (588.9 min, at 1% battery). That spent the 5 h wall-clock cap after 229 active
+  minutes. The coordinator resumed in place, and the owner extended the cap.
+- The sf guard kept all 232 calls in org `de` and the prefix: 58 model `sf` commands, 0 direct.
+
+| Check | Run 3 (2.7.0) | Run 4 (2.8.0) | Run 5b (2.9.0) |
+|---|---|---|---|
+| `project` | FAIL | FAIL | **PASS** (4 Apex classes, the LWC bundle, tab, app, page) |
+| `deployed` | FAIL | PASS | PASS |
+| `tests` | PASS (11) | PASS (21) | PASS (27, 0 failing) |
+| `rules` | PASS | PASS | PASS |
+| `committed` | FAIL | FAIL | **PASS** (45 commits) |
+| Release stages run | 0 of 6 | 0 of 6 | **6 of 6** |
+
+**Measures** (`collect.py`; run 5b's time is active time):
+
+| Measure | Run 3 | Run 4 | Run 5b |
+|---|---|---|---|
+| Run time (cap) | 236.1 (240) | 232.3 (240) | 284.3 active (300, extended) |
+| Compactions | 14 | 15 | 21 |
+| Re-orientation | 107.9 min, 764 calls | 74.0 min, 528 calls | 125.2 min, 1,169 calls (includes the resume) |
+| Improve reviews / passes / minutes | 16 / 52 / 98.9 | 13 / 25 / 81.8 | 27 / 41 / 83.8 |
+| Planning window | 78.1 min | 73.8 min | 73.1 min |
+| W1 full cycle | 51.8 min | 53.3 min | 109.6 min (6 steps and a send-back) |
+| Steps planned / executed | 4 / 3 | 3 / 3 | 10 / 10 |
+| Send-backs | 1 | 1 | 3 |
+| Refusals, each fixed in stage | 5 | 13 | 9 |
+| Turns / cost (lower bound) | 922 / $15.92 | 884 / $21.49 | 1,265 / $21.65 (segment 2 only; 5a about $25.5 more) |
+
+**What the 2.9.0 changes did, observed:**
+- **F1 test layers.** Prepare installed `sfdx-lwc-jest` and ran a real render test ("slChessBoard ✓ draws eight ranks
+  and a status word"). No criterion was confirmed by inspection, and none by grep alone.
+- **F2.** No focused command was guarded by a file check.
+- **F3 and I2.**
+  - test-strategy recorded the org as a target that keeps state.
+  - W1's base run left both Apex commands out as remote, with F3's reason.
+  - Verify printed "RED unobserved".
+  - The mutation check was skipped for W1 and W2 (all-remote); W3's component tests killed 6 of 8 mutants.
+- **The step-size limit** refused W1's single step (criteria of 5,192 characters). The model split it into 6
+  behaviour steps.
+- **Two implement steps found a criterion they could not meet and sent back** ("C28's promotion line needs an illegal
+  straight pawn capture"; "C6 cannot be caught from anonymous Apex").
+- **F5.** The end-of-work review fixed two real board bugs (a promotion when the queen is illegal; a late reply after
+  New game), each with `Regression test:` naming its test.
+- **F6.** Product-acceptance accepted the unobserved board outcome (R-10, primary) with the passed component test
+  `TC_B1_startBoard`, and R-9 with `TC_19_controllerMates`, with no add-work. Run 4's "accepted on words" failure is
+  closed.
+- **Look-back.** Improve commits cited earlier commits 12 times in 13 (run 4: 6 in 11).
+
+**Open:**
+- re-orientation (125 min, slice 4);
+- the `harness_runs` evidence check (5a);
+- a `primary` field that does not discriminate (7 of 7, then 13 of 14);
+- the expectation base after a mid-item send-back;
+- checking that each criterion is reachable before implement;
+- the F5 token check;
+- the Apex code's zero mutation coverage, structural to a remote target.
+
+Released in 2.9.1 from this run:
+- the retired terms left in refusals;
+- active-time deadlines and the `_strptime` load in run.py;
+- the Improve review counter.
+
+The app is kept in org `de` (`--keep-platform`).
+
+Report: https://claude.ai/artifact/Noh6HwBwhsKFnCRnDV647s (version 4).
+
+Evidence:
+- `/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d/` (`result.json`, `metrics.json`, `review-export/`,
+  `transcript.md`) and run 5a's `/Users/dadleet/e2e-runs/20261024/chess-sf-full-ed3292/`;
+- the report's figures, analysis and live notes: `docs/shiploop-run5-batch-evidence/run5-report/`.
+
 ## 2026-10-17: the Battleship case reuses this case's checks (pointer)
 
 `battleship-salesforce` (owner request 2026-10-17) loads `checks/chess_salesforce.py` as its Salesforce library. Three chess functions

@@ -2543,11 +2543,12 @@ Learnings:
 Evidence: `/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/` and the failed first attempt
 `/Users/dadleet/e2e-runs/20261020/chess-sf-full-b89b42/`.
 
-## The Salesforce chess case, live run 5 (interim, while 5b runs): a host update blocked the first attempt; the second reached the release stages (2026-10-24/25, skill-craft 2.9.0 / ShipLoop 1.9.0 from the marketplace) — status: interim (n=1, one host)
+## The Salesforce chess case, live run 5: 5a blocked by a host update; 5b the first full pass (2026-10-24/25, skill-craft 2.9.0 / ShipLoop 1.9.0 from the marketplace) — status: interim (n=1, one host)
 
 Run 4's flags plus `--timeout 18000`, in org `de` after the kept SLChess app was removed with the case's own
-`chess_salesforce.py cleanup --platform-dir <run 4>/platform`. Full account (with the comparison to runs 3 and 4) to
-follow as `docs/e2e-salesforce-chess-journal.md` F12.
+`chess_salesforce.py cleanup --platform-dir <run 4>/platform`. Full account (with the comparison to runs 3 and 4) is
+`docs/e2e-salesforce-chess-journal.md` F12, and the report is https://claude.ai/artifact/Noh6HwBwhsKFnCRnDV647s
+(version 4).
 
 **Run 5a** (`/Users/dadleet/e2e-runs/20261024/chess-sf-full-ed3292`) **was blocked after 93 min, at W1 implement.**
 - Grok had moved from 1.0.62 (run 4) to 1.0.70. Its auto mode refused `cd <worktree> && … && sf project deploy start
@@ -2559,7 +2560,9 @@ follow as `docs/e2e-salesforce-chess-journal.md` F12.
 
 **Run 5b** (`/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d`) used `--permission-mode bypassPermissions`. That
 was the owner's choice; the sf guard still keeps every `sf` call in org `de` and the prefix.
-- It deployed and finished all 3 work items and the end-of-work review in about 255 active minutes.
+- **It PASSED:** ShipLoop reached `done` and handoff in 284.3 active minutes (61 stages, 6 of 6 release stages).
+  Every check passed: project, deployed, tests (27, 0 failing), rules, committed (45 commits). It is the first chess
+  run to pass.
 - The Mac slept for 9.8 h at 1% battery, which spent the 5 h wall-clock cap. The coordinator resumed the run; 2.9.1
   counts deadlines in active time.
 
