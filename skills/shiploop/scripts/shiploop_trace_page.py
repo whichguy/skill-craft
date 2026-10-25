@@ -198,6 +198,7 @@ const TRACE = /*TRACE-DATA*/null;
     return node;
   }
   const num = (n) => (n || 0).toLocaleString("en-US");
+  const count = (n, noun) => num(n) + " " + noun + (n === 1 ? "" : "s");
   // Every time is shown in the viewer's own time zone; the data stays UTC.
   function toDate(stamp) {
     if (stamp === null || stamp === undefined || stamp === "") return null;
@@ -292,7 +293,7 @@ const TRACE = /*TRACE-DATA*/null;
         stopped ? el("div", {class: "tag red"}, run.status + ": " + (run.status_reason || "")) : null,
         el("div", {class: "meta"}, el("span", {class: "mono"}, now.action || ""),
           now.since ? el("span", {}, "first packet " + clock(now.since)) : null,
-          now.packets ? el("span", {}, now.packets + " packets") : null, now.refusals ? el("span", {}, now.refusals + " refused") : null),
+          now.packets ? el("span", {}, count(now.packets, "packet")) : null, now.refusals ? el("span", {}, now.refusals + " refused") : null),
         el("div", {class: "row-actions"},
           packetFile ? el("button", {class: "primary", onclick: () => openPacket(packetFile, "Current packet: " + where(now))}, "Open current packet") : null,
           el("button", {onclick: () => focusAction(now.action)}, "Show its events"))));
@@ -319,16 +320,16 @@ const TRACE = /*TRACE-DATA*/null;
     const steps = ex.work_items.reduce((sum, item) => sum + item.steps.length, 0);
     const counts = [
       ex.through ? "expanded through " + ex.through : "not expanded yet",
-      "intake read " + ex.mapped + " of " + original.sentences.length + " sentences",
-      ex.requirements.length + " requirements", ex.work_items.length + " work items" + (steps ? ", " + steps + " steps" : ""),
-      ex.assumptions.length + " assumptions", ex.answers.length + " owner answers",
+      "intake read " + ex.mapped + " of " + count(original.sentences.length, "sentence"),
+      count(ex.requirements.length, "requirement"), count(ex.work_items.length, "work item") + (steps ? ", " + count(steps, "step") : ""),
+      count(ex.assumptions.length, "assumption"), count(ex.answers.length, "owner answer"),
     ].concat(ex.superseded ? [ex.superseded + " superseded"] : []);
     const more = (title, count, body, open) => el("details", {class: "more", open: open || null},
       el("summary", {}, title + " (" + count + ")"), el("div", {}, body));
     return el("section", {}, el("h2", {}, "Request: original and expanded"),
       el("div", {class: "request"},
         el("div", {class: "card"}, el("h3", {}, "Original, verbatim"),
-          el("div", {class: "meta"}, el("span", {}, num(original.chars) + " chars"), el("span", {}, original.sentences.length + " sentences"),
+          el("div", {class: "meta"}, el("span", {}, num(original.chars) + " chars"), el("span", {}, count(original.sentences.length, "sentence")),
             el("span", {class: "mono"}, "RUN/" + original.file)),
           el("pre", {class: "verbatim"}, original.text)),
         el("div", {class: "card"}, el("h3", {}, "Expanded by planning"),
