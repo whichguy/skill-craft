@@ -7083,8 +7083,11 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         # What a cleared child needs first, then the review focus and the commit: all inside the first 4,500 characters
         # (the route file holds the policy that is the same in every review; efficiency plan U18).
         focus, craft = _improve_focus(state, child)
+        scope = _revised_case_scope(state, child)
         head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
                  "## Commit", *_improve_commit_lines(core, root, state, child), "",
+                 # After the commit lines, so the focus, commit command and callback stay inside the first 4,500.
+                 *(["## Scope of this revision", *scope[1:], ""] if scope else []),
                  *(["## Code craft", *craft, ""] if craft else [])]
     head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
@@ -7160,6 +7163,41 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
         "Open ROUTE once per context and after a reset: its short core has every pass's rules and names the file for "
         "recovery, final_result and review inputs; this file leaves them out.",
     ]
+
+
+def _revised_case_scope(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """Where a test spec revised after a send-back is reviewed (advisors panel 2026-10-25, P3).
+
+    The four test-spec re-reviews of chess runs 3, 4 and 5b changed nothing, and run 5b's two read all 25 cases when one
+    had changed (TC_28; then TC_19).  When the item's test spec accepted before its latest send-back was itself reviewed,
+    this review takes the cases that changed, were added or were dropped since then, their dependents, and whether every
+    requirement the earlier version covered is still covered.  An earlier version that was never reviewed (an item after
+    the first, under the first-item rule) leaves the whole test spec in scope, so nothing goes unreviewed.
+    """
+    workitem = _current_work_item(state) if child.get("stage") == "test-spec" else None
+    if workitem is None:
+        return []
+    history = state["history"]
+    sent = [index for index, row in enumerate(history)
+            if row.get("workitem") == workitem and row.get("outcome") == "send-back"]
+    earlier = [row["action"] for row in history[:sent[-1]] if row.get("workitem") == workitem
+               and row.get("stage") == "test-spec" and row.get("outcome") == "done"] if sent else []
+    if not earlier or earlier[-1] not in (state.get("improve_results") or {}):
+        return []
+    previous = earlier[-1]
+    added, dropped, changed = _id_changes(state["accepted"].get(previous, {}).get("test_cases"),
+                                          (child.get("seed_result") or {}).get("test_cases"))
+    kept = len([row for row in (child.get("seed_result") or {}).get("test_cases") or ()
+                if isinstance(row, Mapping) and str(row.get("id")) not in {*added, *changed}])
+    where = "RUN/results/" + previous + ".md"
+    if not (added or dropped or changed):
+        return ["", "Revised test spec: no case changed since the test spec accepted and reviewed before the send-back ("
+                + where + "). Check only that every requirement it covered is still covered."]
+    return ["", "Revised test spec: this result revises the test spec accepted and reviewed before the send-back ("
+            + where + "). Review the cases that changed (" + (", ".join(changed) or "none") + "), were added ("
+            + (", ".join(added) or "none") + ") or were dropped (" + (", ".join(dropped) or "none") + "), the cases "
+            "that depend on them, and that every requirement the earlier version covered is still covered. The "
+            + str(kept) + " unchanged cases were reviewed then: do not review them again."]
 
 
 def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[list[str], list[str]]:

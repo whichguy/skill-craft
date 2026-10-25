@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
@@ -69,6 +70,48 @@ def full_packet(head):
     """The complete packet: the file a ``Full packet:`` pointer names, else the head itself (a short packet is whole)."""
     row = next((r for r in head.splitlines() if r.startswith("Full packet: ")), None)
     return Path(row.removeprefix("Full packet: ").split(" - ", 1)[0]).read_text(encoding="utf-8") if row else head
+
+
+class RevisedCaseScopeTests(unittest.TestCase):
+    """P3 of the 2026-10-25 advisors panel: a test spec revised after a send-back is reviewed where it changed.
+
+    Chess run 5b's two test-spec re-reviews read all 25 cases when one had changed (TC_28 for W1, then TC_19 for W2),
+    and runs 3 and 4 add two more with no edit. An earlier version that was never reviewed keeps the whole spec in scope.
+    """
+    CASES = [{"id": "TC_1", "criterion": "C1", "oracle": "a"}, {"id": "TC_2", "criterion": "C2", "oracle": "b"},
+             {"id": "TC_3", "criterion": "C3", "oracle": "c"}]
+
+    def state(self, *, reviewed=True, revised=None):
+        history = [{"workitem": "W1", "stage": "test-spec", "outcome": "done", "action": "nav-spec1"},
+                   {"workitem": "W1", "stage": "implement", "outcome": "send-back", "action": "nav-back"}]
+        child = {"stage": "test-spec", "action_id": "nav-spec2",
+                 "seed_result": {"test_cases": revised if revised is not None else self.CASES}}
+        return {"history": history, "accepted": {"nav-spec1": {"test_cases": self.CASES}},
+                "improve_results": {"nav-spec1": {}} if reviewed else {}}, child
+
+    def scope(self, state, child):
+        with mock.patch.object(nav, "_current_work_item", return_value="W1"):
+            return " ".join(nav._revised_case_scope(state, child))
+
+    def test_the_review_takes_the_changed_added_and_dropped_cases_and_the_coverage(self):
+        revised = [dict(self.CASES[0]), dict(self.CASES[1], oracle="b, exact"), {"id": "TC_4", "criterion": "C4"}]
+        text = self.scope(*self.state(revised=revised))
+        self.assertIn("changed (TC_2), were added (TC_4) or were dropped (TC_3)", text)
+        self.assertIn("RUN/results/nav-spec1.md", text)
+        self.assertIn("The 1 unchanged cases were reviewed then: do not review them again.", text)
+        self.assertIn("every requirement the earlier version covered is still covered", text)
+
+    def test_an_unchanged_revision_checks_only_the_coverage(self):
+        self.assertIn("no case changed", self.scope(*self.state()))
+
+    def test_an_earlier_version_that_was_never_reviewed_keeps_the_whole_spec_in_scope(self):
+        self.assertEqual(self.scope(*self.state(reviewed=False)), "")
+
+    def test_a_first_visit_or_another_stage_adds_nothing(self):
+        state, child = self.state()
+        state["history"] = state["history"][:1]
+        self.assertEqual(self.scope(state, child), "")
+        self.assertEqual(self.scope(self.state()[0], dict(child, stage="step-plan")), "")
 
 
 class ImproveScheduleTests(unittest.TestCase):
