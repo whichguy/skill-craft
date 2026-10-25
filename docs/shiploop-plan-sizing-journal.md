@@ -76,3 +76,44 @@ branch changes `slice.py`. The templates branch renames a step's `check` to `pro
 
 **Next.** R1 on the owner's go, after E-EFF1's Grok pair: E6-K1, K3, K5 first on Grok 4.7 medium, arms T, B, C, 4
 samples each (36 slices), then the rest (experiment plan section 5).
+
+## 3. 2026-10-24: R1, the first three cases on Grok
+
+**Question.** Does a measurable step bound in the step-plan template (arm B), or the same bound as a refusal (arm C),
+keep Grok 4.7's step plans inside each case's band where the current text (arm T) does not, without over-splitting a
+small item?
+
+**Conditions.** Grok 4.7 medium (harness default), slices seeded at and stopped after step-plan, planning review
+`stage`, inline. Arms T = `9ed4ec24`, B = T + `e6-size-prose.json`, C = T + `e6-size-gate.json`; 4 samples per arm
+per case; the three arms ran in parallel, each through K1, K3, K5 in order, 16:02 to 19:55. Output
+`/Users/dadleet/e2e-runs/e6-r1-20261024` (not committed); every sample's score in
+[`r1-results-2026-10-24.json`](experiments/shiploop-plan-sizing-20261024/r1-results-2026-10-24.json), written by
+`r1_report.py`; decisions in `<out>/E6-K<n>/decision-*.json` and the template journal.
+
+**Harness incident.** Homebrew replaced Python 3.14.7 with 3.14.9 at 18:33 (and `python3` now resolves to 3.15.1); the
+three slices still running on 3.14.7 (K3/T/4, K3/C/3, K3/B/4) crashed at grading on a lazily imported standard module
+after their step plans were accepted. Each was regraded with `slice.py --regrade` on 3.14.9 and scored; no sample was
+rerun or lost. Later slices ran on 3.14.9 or 3.15.1 (harness interpreter only; the model and its plugin are unchanged).
+
+**Results.**
+
+| Case (band) | T | B | C | decide |
+| --- | --- | --- | --- | --- |
+| K1 chess engine (3+ steps) | 0.25 (2, 3, 2, 2 steps) | 0.75 (4, 6, 6, 2) | 1.00 (6, 3, 5, 3) | T vs C **supports**; T vs B and B vs C inconclusive (A/A spread 0.50) |
+| K3 board and entry metadata (2+, layers apart) | 1.00 | 1.00 | 1.00 | ceiling, every pair |
+| K5 one bug fix (exactly 1) | 1.00 | 1.00 | 1.00 | ceiling, every pair |
+
+**Findings.**
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F15 | The control reproduces chess run 4: T planned the engine in 2 steps in 3 of 4 samples, one step carrying up to 9 criteria. | firm (n = 4) | r1-results, E6-K1 T |
+| F16 | A countable step bound in the template text moves Grok: 7 of 8 B and C plans split the engine into 3 to 6 steps, against 1 of 4 for T; `decide` supports C over T on K1. | interim (n = 4 per arm) | decision-T-C.json; r1-results |
+| F17 | C's refusal never fired: 0 gate refusals in its 12 samples. B and C therefore ran identical prompt text in effect, and their K1 difference (0.75 against 1.00) is sampling noise; pooled, the prose bound split the engine in 7 of 8. The gate is untested insurance. | firm (0 refusals); the pooling is interim | gate-refusal count over C's events |
+| F18 | K3 does not reproduce run 4's W3 merge: every arm, the control included, keeps the component and its tab, app and flexipage in separate steps. The case cannot separate the arms and needs changing before more samples (the decide rule's own advice). | firm | decision-*.json on E6-K3 |
+| F19 | No over-splitting: every K5 plan in every arm is one step; B and C stay within their own bound (at most 4 criteria). | firm (n = 12) | r1-results, E6-K5 |
+| F20 | Cost: B and C took about as long as T on K3 and K5 and 2 to 5 minutes longer on K1, where they plan more steps; in a full run each extra step adds an implement and its Improve review, which R2 measures. | interim | r1-results `mean_minutes` |
+
+**Next.** Grok to E-EFF1 for its R2 pair (75 minutes). Then R1g: the winner's generic wording `Cg` on K1, K3 and K5,
+4 samples each, before any ShipLoop change (owner, 2026-10-24); then the remaining cases (K2, K4, K6, K7), whose arms
+await the owner's choice.

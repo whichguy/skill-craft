@@ -1,0 +1,920 @@
+[
+ {
+  "experiment": "E6-K1",
+  "arm": "B",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 0.75,
+  "steps": [
+   4,
+   6,
+   6,
+   2
+  ],
+  "max_criteria": [
+   4,
+   4,
+   2,
+   4
+  ],
+  "max_product_files": [
+   2,
+   3,
+   2,
+   3
+  ],
+  "declared_paths": [
+   4,
+   6,
+   6,
+   2
+  ],
+  "slice_failed": [],
+  "mean_minutes": 19.4,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 4,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 2,
+    "declared_paths": 4,
+    "joined_layers": [],
+    "seconds": 941.0,
+    "slice_pass": true,
+    "action": "nav-eeafce19160a4d2ba067439e2690cb3b"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 6,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 3,
+    "declared_paths": 6,
+    "joined_layers": [],
+    "seconds": 1336.1,
+    "slice_pass": true,
+    "action": "nav-a646fb0dce4641fcb2ba1d01ad7992ce"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 6,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 2,
+    "declared_paths": 6,
+    "joined_layers": [],
+    "seconds": 1261.8,
+    "slice_pass": true,
+    "action": "nav-b089709428284c62bbae5cea366579d8"
+   },
+   {
+    "sample": 4,
+    "value": 0,
+    "steps": 2,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1107.4,
+    "slice_pass": true,
+    "action": "nav-25e78780121b43098be1054657832bb9"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K1",
+  "arm": "C",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   6,
+   3,
+   5,
+   3
+  ],
+  "max_criteria": [
+   4,
+   2,
+   2,
+   3
+  ],
+  "max_product_files": [
+   2,
+   2,
+   2,
+   1
+  ],
+  "declared_paths": [
+   6,
+   3,
+   5,
+   3
+  ],
+  "slice_failed": [],
+  "mean_minutes": 22.4,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 6,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 2,
+    "declared_paths": 6,
+    "joined_layers": [],
+    "seconds": 1604.4,
+    "slice_pass": true,
+    "action": "nav-722842cfe29f4c25ad0d4fea865f870a"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 3,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 2,
+    "declared_paths": 3,
+    "joined_layers": [],
+    "seconds": 1461.7,
+    "slice_pass": true,
+    "action": "nav-8103c263faf545c19269f3a39b3d8f2e"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 5,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 2,
+    "declared_paths": 5,
+    "joined_layers": [],
+    "seconds": 1155.6,
+    "slice_pass": true,
+    "action": "nav-886648db94654199b6975afc73f15adb"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 3,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 3,
+    "max_product_files": 1,
+    "declared_paths": 3,
+    "joined_layers": [],
+    "seconds": 1153.4,
+    "slice_pass": true,
+    "action": "nav-a19b20adea824a728ffd1d37e8e3d923"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K1",
+  "arm": "T",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 0.25,
+  "steps": [
+   2,
+   3,
+   2,
+   2
+  ],
+  "max_criteria": [
+   6,
+   4,
+   6,
+   9
+  ],
+  "max_product_files": [
+   3,
+   2,
+   2,
+   1
+  ],
+  "declared_paths": [
+   2,
+   3,
+   2,
+   2
+  ],
+  "slice_failed": [],
+  "mean_minutes": 17.0,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 0,
+    "steps": 2,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 6,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 764.2,
+    "slice_pass": true,
+    "action": "nav-7204b6cd14954f959726eb2c6e34316f"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 3,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 2,
+    "declared_paths": 3,
+    "joined_layers": [],
+    "seconds": 1253.7,
+    "slice_pass": true,
+    "action": "nav-319b89d8bb1540a0a2991456cf2d860a"
+   },
+   {
+    "sample": 3,
+    "value": 0,
+    "steps": 2,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 6,
+    "max_product_files": 2,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1064.3,
+    "slice_pass": true,
+    "action": "nav-2e958f09f63b4c0885b441b87e83ce31"
+   },
+   {
+    "sample": 4,
+    "value": 0,
+    "steps": 2,
+    "band": [
+     3,
+     null
+    ],
+    "max_criteria": 9,
+    "max_product_files": 1,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 988.6,
+    "slice_pass": true,
+    "action": "nav-b07288f0bfb04e2a9d35910910e047e9"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K3",
+  "arm": "B",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "max_criteria": [
+   3,
+   3,
+   4,
+   2
+  ],
+  "max_product_files": [
+   3,
+   3,
+   3,
+   3
+  ],
+  "declared_paths": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "slice_failed": [],
+  "mean_minutes": 22.7,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 3,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 586.2,
+    "slice_pass": true,
+    "action": "nav-975b3391e3f949cfbef00a93fe381c80"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 3,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 2130.3,
+    "slice_pass": true,
+    "action": "nav-62481278ee994b18a7876cc4da73b1e3"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1230.3,
+    "slice_pass": true,
+    "action": "nav-96d353626ffe44769d2bd6ddf590daaa"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1501.8,
+    "slice_pass": true,
+    "action": "nav-131bda7b26dd448a8bddb0ecef15b1b8"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K3",
+  "arm": "C",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "max_criteria": [
+   3,
+   3,
+   3,
+   4
+  ],
+  "max_product_files": [
+   3,
+   3,
+   3,
+   3
+  ],
+  "declared_paths": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "slice_failed": [],
+  "mean_minutes": 21.4,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 3,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1274.4,
+    "slice_pass": true,
+    "action": "nav-a969f2be9b6f49fa9010e1e9d0c2cf84"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 3,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1390.2,
+    "slice_pass": true,
+    "action": "nav-e310a5e299154e829e4bdafd11083887"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 3,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1446.5,
+    "slice_pass": true,
+    "action": "nav-6e0cb6c6a87f4f658c96cbe8a470cf82"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 4,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1022.9,
+    "slice_pass": true,
+    "action": "nav-33b09980096144afbcce286805092060"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K3",
+  "arm": "T",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   3,
+   2,
+   2,
+   2
+  ],
+  "max_criteria": [
+   1,
+   2,
+   2,
+   2
+  ],
+  "max_product_files": [
+   3,
+   3,
+   0,
+   4
+  ],
+  "declared_paths": [
+   2,
+   2,
+   0,
+   2
+  ],
+  "slice_failed": [],
+  "mean_minutes": 22.2,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 3,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 1,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1444.7,
+    "slice_pass": true,
+    "action": "nav-9cb4434581ea42699852d7bfc71047dc"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 3,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1372.9,
+    "slice_pass": true,
+    "action": "nav-51b45e06f77f4f359fa01401fba5cedb"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 0,
+    "declared_paths": 0,
+    "joined_layers": [],
+    "seconds": 1420.0,
+    "slice_pass": true,
+    "action": "nav-7636525075694095995968df947d4b1f"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 2,
+    "band": [
+     2,
+     null
+    ],
+    "max_criteria": 2,
+    "max_product_files": 4,
+    "declared_paths": 2,
+    "joined_layers": [],
+    "seconds": 1097.4,
+    "slice_pass": true,
+    "action": "nav-21b76fec58c549dea9e283be0ad6b21c"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K5",
+  "arm": "B",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "max_criteria": [
+   2,
+   2,
+   2,
+   3
+  ],
+  "max_product_files": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "declared_paths": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "slice_failed": [],
+  "mean_minutes": 12.6,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 2,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 552.8,
+    "slice_pass": true,
+    "action": "nav-eca0d1ee0a47425da57c2eb4649cc518"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 2,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 556.6,
+    "slice_pass": true,
+    "action": "nav-f40e7313b5424f1aa9c86bd14f6dee10"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 2,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 1308.9,
+    "slice_pass": true,
+    "action": "nav-7ee044531c884aca87dc163b16c2ec24"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 3,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 597.7,
+    "slice_pass": true,
+    "action": "nav-0f05fa5427a14ee0976f6827e6415f5f"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K5",
+  "arm": "C",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "max_criteria": [
+   3,
+   4,
+   2,
+   3
+  ],
+  "max_product_files": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "declared_paths": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "slice_failed": [],
+  "mean_minutes": 10.9,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 3,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 719.3,
+    "slice_pass": true,
+    "action": "nav-038a659336384bf98680c402d27224e0"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 4,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 679.1,
+    "slice_pass": true,
+    "action": "nav-6a82a944ebaa48b5a6784fcc4f4f6862"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 2,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 703.4,
+    "slice_pass": true,
+    "action": "nav-392543b8a5554c379a2afdb2dc971b9e"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 3,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 514.9,
+    "slice_pass": true,
+    "action": "nav-25763a729a324f439b5a9b67e03c0966"
+   }
+  ]
+ },
+ {
+  "experiment": "E6-K5",
+  "arm": "T",
+  "n": 4,
+  "scored": 4,
+  "mean_value": 1,
+  "steps": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "max_criteria": [
+   1,
+   1,
+   2,
+   2
+  ],
+  "max_product_files": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "declared_paths": [
+   1,
+   0,
+   0,
+   0
+  ],
+  "slice_failed": [],
+  "mean_minutes": 8.8,
+  "commit": [
+   "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+  ],
+  "samples": [
+   {
+    "sample": 1,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 1,
+    "max_product_files": 1,
+    "declared_paths": 1,
+    "joined_layers": [],
+    "seconds": 531.3,
+    "slice_pass": true,
+    "action": "nav-a816151eb68246c9807985e700172484"
+   },
+   {
+    "sample": 2,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 1,
+    "max_product_files": 1,
+    "declared_paths": 0,
+    "joined_layers": [],
+    "seconds": 677.1,
+    "slice_pass": true,
+    "action": "nav-20fcb7551bed4304bc9422aa944e6f8f"
+   },
+   {
+    "sample": 3,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 2,
+    "max_product_files": 1,
+    "declared_paths": 0,
+    "joined_layers": [],
+    "seconds": 440.2,
+    "slice_pass": true,
+    "action": "nav-5a56cf72bb2141e4998386fdb8c34919"
+   },
+   {
+    "sample": 4,
+    "value": 1,
+    "steps": 1,
+    "band": [
+     1,
+     1
+    ],
+    "max_criteria": 2,
+    "max_product_files": 1,
+    "declared_paths": 0,
+    "joined_layers": [],
+    "seconds": 455.4,
+    "slice_pass": true,
+    "action": "nav-00a7e3f95810462e8a0749fa8b2213c5"
+   }
+  ]
+ }
+]
