@@ -112,6 +112,54 @@ delivery remains visibly unverified; a halted run remains unfinished. The
 existing `report.html` stays the terminal report. An archived HTML snapshot has
 no ongoing observation unless an observer still owns its original path.
 
+## Run trace
+
+The status block says where the run is; the **run trace** says what happened, in
+order, and what is still scheduled (owner, 2026-10-25: "what steps have been run,
+what hasn't been run, which is still scheduled, what prompt messages were
+injected"). ShipLoop appends one JSON line per event to `<run>/trace.jsonl` as it
+happens (`shiploop_trace.py`):
+
+| Kind | Written by | Holds |
+|---|---|---|
+| `command` | every ShipLoop command that names the run (not `view`, `hook-status`, `trace`) | verb, `--action`, exit code, milliseconds, revision, stage and action before and after, the results it accepted, the refusal text when it exited non-zero |
+| `packet` | every printed packet (`emit`) | action, stage, work item, the reviewed stage of an Improve packet, characters in the file and printed, whether it printed whole, and `file`: the copy kept as sent in `packets/sent/<sha>.md` (and `head_file` when only a head printed) |
+| `hook` | the keepalive stop hook, for a session bound to the run | the decision (`continue` or `allow`), why, and `text`: what the hook put into the host's turn |
+
+`packets/<action>.md` is rewritten in place by every `next`; `packets/sent/`
+keeps each distinct text once, so the trace names every packet the model was sent.
+Skill-tool calls stay in `skill-calls.jsonl`, and the reader merges them. The
+trace is evidence, never state: `state.md` stays the authority, nothing resumes
+from the trace, appends take no lock (one `write` on an append-only descriptor)
+and a failed append never fails a command. It stops growing at 32 MB.
+
+Read it with the same CLI:
+
+```sh
+python3 "$CLI" trace --run-dir "$RUN_DIR"              # digest: every stage done, current, reopened or pending; steps run; recent events
+python3 "$CLI" trace --run-dir "$RUN_DIR" --action ID  # one action (its id, or 6+ characters of its start or end): every packet as sent, commands, refusals, hooks, files
+python3 "$CLI" trace --run-dir "$RUN_DIR" --json       # the whole model, for a program or a model to query
+python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html and prints its path
+```
+
+The digest's plan lists every stage of the run (preparation, each work item's
+eight stages, release) as done (`✓`), current (`▶`), reopened (`↺`, run once and
+then invalidated by a send-back or reconciliation) or pending (`·`), with `×N`
+runs, `+I` when Improve reviewed it and `!N` refusals. Before `plan` is accepted
+the work items are "set by the plan stage". Events are attributed to the action
+that was current when they happened: their own `--action`, else the last
+packet's.
+
+`trace.html` is self-contained: the plan grid (a stage opens its events), each
+step with its packets, commands, refusals and hook text, filters and search, and
+a viewer that shows each packet's text as sent, screened line by line by the
+credential screen of the progress view. The progress observer rewrites it when
+the trace, `state.md` or `skill-calls.jsonl` change, and while the run is active
+the open page reloads every ten seconds (a checkbox turns that off; an open packet
+or a search in progress holds it). A run saved before the trace still reads: its
+steps come from `state.md` and `timeline.json`, its packets are the last copy of
+each, and the reader and the page say so.
+
 ## Where it appears
 
 1. **Every packet, one progress block**, after the Until Loop block and

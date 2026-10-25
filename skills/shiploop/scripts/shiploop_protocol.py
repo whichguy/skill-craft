@@ -512,12 +512,53 @@ def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
     return None
 
 
+# What the run trace records about the command in progress: the run directory, the saved state before the verb,
+# and the refusal text.  Set by ``_main``, read by ``main`` once the command has finished.
+_TRACE: dict[str, Any] = {}
+
+
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
+    """Dispatch one ShipLoop command line and record it in the run trace; returns the process exit code."""
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    _TRACE.clear()
+    started = time.monotonic()
+    code = 2
+    try:
+        code = _main(core, argv)
+        return code
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else 2
+        raise
+    finally:
+        _record_command(raw_argv, code, started)
+
+
+def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
+    """Append the finished command to its run's trace; the state after it is read once the lock is released."""
+    import shiploop_trace as trace
+
+    if not raw_argv or raw_argv[0] in trace.UNTRACED:
+        return
+    root = _TRACE.get("root") or _argv_run_dir(raw_argv)
+    if root is None:
+        return
+    try:
+        after = store.read_record(Path(root) / "state.md")
+    except (OSError, ValueError, store.StorageError):
+        after = None
+    trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
+                         after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
+
+
+def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     """Dispatch one ShipLoop command line; returns the process exit code."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "view":
         import shiploop_progress
         return shiploop_progress.main(raw_argv[1:], core=core)
+    if raw_argv and raw_argv[0] == "trace":
+        import shiploop_trace
+        return shiploop_trace.main(raw_argv[1:], core=core)
     if raw_argv and raw_argv[0] == "hook-status":
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
@@ -544,6 +585,8 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     )
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("view", help="portable HTML progress snapshot and read-only background observer")
+    subs.add_parser("trace", help="read the run trace: every stage done, current or pending, the steps run, each packet "
+                                  "as sent, refusals and hook continuations (--action, --json, --html)")
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
@@ -656,6 +699,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         print("ShipLoop blocked: run directory must not be a symlink", file=sys.stderr)
         return 2
     root = unresolved_root.resolve()
+    _TRACE["root"] = root
     if args.command != "init" and not root.is_dir():
         # Only init may create a run directory; the lock would otherwise
         # materialize a mistyped --run-dir (or a stray repo .shiploop/).
@@ -686,6 +730,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                     print(f"ShipLoop blocked: saved run state cannot be loaded: {exc}",
                           file=sys.stderr)
                     return 2
+                _TRACE["before"] = existing
                 if args.command == "init":
                     # Idempotent entry must never substitute a saved request for
                     # a new one.
@@ -769,6 +814,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             progress_ready = True
             return 0
     except navigator.NavigatorError as exc:
+        _TRACE["error"] = str(exc)
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
         print("Read the current packet with next; the rejected request did not advance the graph.",
               file=sys.stderr)
@@ -776,6 +822,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
               "turn over a refused callback.", file=sys.stderr)
         return 2
     except (ProtocolError, store.StorageError, OSError, KeyError, ValueError, TypeError) as exc:
+        _TRACE["error"] = str(exc)
         print(f"ShipLoop blocked: {exc}", file=sys.stderr)
         # A rejected result may have changed only the in-memory candidate.
         # Rehydrate the durable cursor; never suggest an inferred next stage.

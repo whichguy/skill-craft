@@ -145,6 +145,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-retired-terms.test.py",
     "test/shiploop-keepalive.test.py",
     "test/shiploop-skill-calls.test.py",
+    "test/shiploop-trace.test.py",
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
@@ -370,6 +371,7 @@ _DURATION_SECONDS = {
     "test/shiploop-callback-contract.test.py": 69.1,
     "test/shiploop-loophole-gates.test.py": 15.0,  # measured locally 2026-10-24: 12 dodge rows, one real-CLI run each
     "test/shiploop-e2e-status-card.test.py": 0.2,  # measured locally 2026-10-24: 5 tests, 0.12 s wall
+    "test/shiploop-trace.test.py": 16.0,  # measured locally 2026-10-25: 14 tests, 16.0 s wall; real-CLI runs to discovery
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 

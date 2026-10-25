@@ -299,6 +299,9 @@ Do not reprint the status line: a host status hook shows the user a two-line sum
 the host supports one. Tell the user at most one line per completed step, and when
 they ask for the full status show the **status block** that `shiploop status` prints
 (also in `status.md`) unchanged; see [status display](references/status-display.md).
+When they ask what has run, what is still scheduled or what a step was sent, run
+`shiploop trace --run-dir RUN` (one action: `--action ID`) and show its digest; the
+page is `RUN/trace.html` ([run trace](references/status-display.md#run-trace)).
 
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval

@@ -54,7 +54,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/status.md", "the status block as of the last save", "you want the run position"),
     ("RUN/reference.md", "run-wide rules (#rules), blocked (#blocked), outcomes (#outcomes), recovery (#recovery), "
                          "policies (#policies)", "a packet says `reference#<anchor>`"),
-    ("RUN/packets/", "every packet in full, one file per action", "the printed packet was cut or lost"),
+    ("RUN/packets/", "every packet in full, one file per action; sent/ keeps each as sent", "the printed packet was cut or lost"),
     ("RUN/results/", "each accepted result, one file per action (listed below)", "a stage builds on one"),
     ("RUN/inbox/", "the result you write for the current action", "before its callback"),
     ("RUN/notes/", "your notes; notes/<action>.md is the optional pass log", "after a reset, if the log exists"),
@@ -73,7 +73,8 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/run-baseline.txt", "the commit the run began from; spec diffs run against it", "a diff since the run began"),
     ("RUN/skill-calls.jsonl", "the Skill-tool calls the session made in this run (the Improve stage's gate reads it)",
      "an Improve stage refuses for a missing skill call"),
-    ("RUN/report.html, progress.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
+    ("RUN/trace.jsonl", "each command, packet, refusal and hook stop, in order", "what happened? `shiploop trace`"),
+    ("RUN/report.html, progress.html, trace.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
      ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
      "journal, lock, counter; no workflow state", "the user asks how the run stands"),
     ("KNOWLEDGE/spec.md", "the living spec: R-<n> requirements", "a stage quotes it"),
