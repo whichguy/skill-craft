@@ -209,9 +209,10 @@ class Decide(unittest.TestCase):
         self.assertEqual((found["verdict"], found["spread"]), ("supports", 0.125))
 
     def test_every_experiment_runs_four_samples_and_pins_each_arm_to_a_commit(self):
+        # A descriptive experiment measures and reports (R3: owner, "3 full slices each"); decide needs 4 per arm.
         for exp_id, exp in experiment.load().items():
             with self.subTest(exp=exp_id):
-                self.assertEqual(exp["samples"], 4)
+                self.assertEqual(exp["samples"], 3 if exp.get("descriptive") else 4)
                 for name, arm in exp["arms"].items():
                     self.assertRegex(arm["ref"], r"^[0-9a-f]{8,40}$", f"{exp_id}/{name}")
 
@@ -558,6 +559,28 @@ class RoundSpeedups(unittest.TestCase):
                                ("Q", "T", 4)])
         self.assertIn("Q/Cg/4: skipped, the verdict cannot change", printed.getvalue())
         self.assertIn("Q: stopped early, T vs Cg: supports", printed.getvalue())
+
+    def test_a_round_of_fewer_than_four_samples_is_never_stopped_early(self):
+        """With 3 samples the A/A spread is never measured, so every completion reads "inconclusive": a settled check
+        there would stop the round after its first sample. R3 runs 3 full slices per arm, so it must run them all."""
+        runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
+        with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
+            experiment.queue(["Q"], ["T", "Cg"], 3, 1, "grok", self.tmp, [], runner=runner)
+        self.assertEqual(len(ran), 6)
+
+    def test_the_downstream_experiments_run_the_whole_item_and_their_evaluator_verifies(self):
+        for exp_id in ("E6D-K2", "E6D-K4"):
+            exp = experiment.load(exp_id)
+            with self.subTest(exp=exp_id):
+                self.assertNotIn("stop_after", exp)
+                self.assertEqual((exp["samples"], sorted(exp["arms"])), (3, ["Cg", "T"]))
+                argv = experiment.slice_argv(exp, exp["arms"]["Cg"], self.tmp / "slice", "grok", None)
+                self.assertNotIn("--stop-after", argv)
+                self.assertEqual(argv[argv.index("--seed-at") + 1], "step-plan")
+                rows = experiment.verify(exp_id)
+                self.assertTrue(rows and all(r["ok"] for r in rows), rows)
+        shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "grok", None)
+        self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
     def test_a_second_queue_in_the_same_folder_is_refused(self):
         import os  # noqa: PLC0415

@@ -33,6 +33,9 @@ change and the experiment's remaining samples are skipped (``--no-early-stop`` r
 value (the evaluator's ``BINARY``) and no gate; other experiments run every sample. Options ``run`` does not know (for
 example ``--planning-review none``, which skips the planning stages' Improve children in a shape round) go to slice.py;
 each sample records them, and ``decide`` refuses arms whose samples ran under different planning-review options.
+An experiment marked ``descriptive`` runs fewer samples (3) and is reported, not decided: without samples 1-4 of the
+first arm the A/A spread is unmeasured, so ``decide`` can only answer "inconclusive" (or ceiling or floor), and
+``queue`` never stops it early. An experiment without ``stop_after`` runs the item to its end.
 """
 from __future__ import annotations
 
@@ -93,7 +96,8 @@ def evaluator(exp: dict):
 
 def slice_argv(exp: dict, arm: dict, output: Path, host: str, extra_records: Path | None) -> list[str]:
     argv = [sys.executable, str(HERE / "slice.py"), "--case", exp["case"], "--seed-at", exp["seed_at"],
-            "--stop-after", exp["stop_after"], "--host", host, "--output", str(output), "--quiet"]
+            *(["--stop-after", exp["stop_after"]] if exp.get("stop_after") else []),
+            "--host", host, "--output", str(output), "--quiet"]
     if arm.get("ref"):
         argv += ["--ref", arm["ref"]]
     if arm.get("overlay"):
@@ -306,10 +310,11 @@ def possible_verdicts(x: list[dict], y: list[dict], count: int) -> set[str]:
 def settled(exp_id: str, out: Path, arm_names: list[str], count: int) -> str | None:
     """The verdicts of ``exp_id``'s round when no remaining sample can change them, else None.
 
-    Only for a binary value and no gate (the module doc); the first arm is the control. It scores the finished samples
-    (score.json) and reads the rest as unknown."""
+    Only for a binary value, no gate and 4 or more samples (the module doc; fewer leave the A/A spread unmeasured, so
+    every completion would read "inconclusive" and the round would stop at once); the first arm is the control. It
+    scores the finished samples (score.json) and reads the rest as unknown."""
     exp = load(exp_id)
-    if exp.get("gate") or not getattr(evaluator(exp), "BINARY", False) or len(arm_names) < 2:
+    if count < 4 or exp.get("gate") or not getattr(evaluator(exp), "BINARY", False) or len(arm_names) < 2:
         return None
     score(exp_id, out)
     control = read_scores(out, exp_id, arm_names[0])
@@ -484,7 +489,8 @@ def main(argv: list[str] | None = None) -> int:
     out = (args.out or default_out()).expanduser().resolve()
     if args.command == "list":
         for exp_id, exp in load().items():
-            print(f"{exp_id} [{exp['fix']}] {exp['case']} {exp['seed_at']}->{exp['stop_after']} arms {', '.join(exp['arms'])}: "
+            print(f"{exp_id} [{exp['fix']}] {exp['case']} {exp['seed_at']}->{exp.get('stop_after') or 'item end'} "
+                  f"arms {', '.join(exp['arms'])}: "
                   f"{exp['claim']}")
         return 0
     if not args.id:

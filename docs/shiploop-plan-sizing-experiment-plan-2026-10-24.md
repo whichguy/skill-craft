@@ -184,7 +184,12 @@ the word to E-EFF1 before they reach main.
   and K3 need a real Apex run to finish an item, so a downstream round on them needs the owner's go for org `de`.
   Quality first: slice verdicts (`inner_loop`, `assembled`, `checks`), send-backs, Improve material findings per step;
   then tokens; then item minutes and implement minutes per step. This is the round that says whether smaller steps
-  are actually better, not just smaller.
+  are actually better, not just smaller. Prepared 2026-10-25 (owner: "When E-EFF1 frees Grok, run R3 downstream on K2
+  and K4 with T and Cg, 3 full slices each, through the queue"). The experiments are `E6D-K2` and `E6D-K4`, with no
+  `stop_after`, `descriptive` (3 samples are reported, not decided) and evaluator `e6_downstream.py`. The command is
+  `experiment.py queue E6D-K2 E6D-K4 --arms T,Cg --samples 3 --jobs 4 --host grok --timeout 10800`, under the default
+  planning review (stage), since R3 measures the inner loop as ShipLoop runs it, test-spec's Improve child included.
+  The table comes from `r3_report.py`.
 
 **Decision rule** (memory `eval-decision-priority`; `skills/rubric-eval/SPEC.md` section 8): quality, then tokens,
 then time; a tie keeps the control. Blocking for any arm: a K5 to K7 case over its band in a majority of repetitions,
