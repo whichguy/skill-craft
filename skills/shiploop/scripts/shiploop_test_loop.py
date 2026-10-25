@@ -662,16 +662,23 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str) -> Dict[str,
     ``passed`` needs exit 0, a recognised count of at least ``min_tests`` (1 by default) and every listed ID shown; a
     focused command whose count cannot be read passes only when it lists IDs and all appear.  A regression command
     without ids or min_tests may pass uncounted.  A check is judged by its exit code, but a runner summary in its output
-    must show a test ran.
+    must show a test ran.  Exit zero does not win over a reporter-recognised failure: a wrapper or build step that
+    swallows a runner's nonzero status still fails when the output's own tally or a listed ID's own outcome says so.
     """
     tally = counts.count(output, code)
+    ids = list(row.get("ids") or ())
+    masked_failure = code == 0 and (
+        (tally is not None and tally["failed"] > 0)
+        or any(outcome == "failed" for outcome in counts.outcomes(output, ids).values())
+    )
     if row.get("suite") == "check":
         # A runner recorded as a check must not pass by running nothing (a release-verify `node --test` did so with
         # counts null).
         if code == 0 and tally is not None and tally["ran"] == 0:
             return {"counts": tally, "ids_missing": [], "status": "no-tests"}
+        if masked_failure:
+            return {"counts": tally, "ids_missing": [], "status": "failed"}
         return {"counts": tally, "ids_missing": [], "status": "passed" if code == 0 else "failed"}
-    ids = list(row.get("ids") or ())
     names = counts.named(output, ids) if ids else {"shown": [], "missing": []}
     minimum = int(row.get("min_tests") or 1)
     verdict: Dict[str, Any] = {"counts": tally, "ids_missing": names["missing"]}
@@ -685,6 +692,8 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str) -> Dict[str,
         verdict["status"] = "too-few-tests"
     elif names["missing"]:
         verdict["status"] = "ids-missing"
+    elif masked_failure:
+        verdict["status"] = "failed"
     elif tally is not None or ids:
         verdict["status"] = "passed"
     elif row["suite"] == "regression" and "min_tests" not in row:
@@ -769,6 +778,10 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
         detail = ((run.get("stderr") or "").strip().splitlines() or ["no detail"])[-1]
         return ("could not start: " + detail
                 + ". The command never ran, so this says nothing about the product.")
+    if status == "failed" and run["exit"] == 0:
+        return ("exited 0, but" + seen + " shows a reporter-recognised failure: a wrapper or build step swallowed "
+                "the runner's own nonzero exit. Fix the failing case; make the command exit nonzero on failure or "
+                "stop swallowing its exit code.")
     return "exit " + str(run["exit"])
 
 

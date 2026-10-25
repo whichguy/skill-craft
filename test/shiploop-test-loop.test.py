@@ -3372,6 +3372,62 @@ class UnavailableExecutionTests(unittest.TestCase):
             self.assertEqual(test_loop.refused_runs(root, "A1"), 1)  # only the failed one counts
 
 
+class MaskedZeroExitFailureTests(unittest.TestCase):
+    """R08/T37: a wrapper that reports exit zero must not let the judge call a reporter-recognised failure
+    ``passed``.  Reproduces the committed-source probe at
+    docs/shiploop-implement-prompt-audit-evidence/probe-judge-zero-exit.py."""
+
+    OUTPUT = "test_config.py::test_value[CASE-1] FAILED\n================ 1 failed in 0.01s ================\n"
+
+    def test_a_focused_command_reporting_a_failed_id_is_failed_even_at_exit_zero(self):
+        row = {"command": "wrapped-test", "suite": "focused", "ids": ["CASE-1"]}
+        verdict = test_loop.judge(row, 0, self.OUTPUT)
+        self.assertEqual(verdict["status"], "failed")
+        self.assertEqual(verdict["counts"], {"ran": 1, "failed": 1, "runners": ["pytest"]})
+        self.assertEqual(verdict["ids_missing"], [])  # the ID is shown, just not passing
+
+    def test_a_check_command_reporting_a_failed_tally_is_failed_even_at_exit_zero(self):
+        row = {"command": "wrapped-test", "suite": "check"}
+        verdict = test_loop.judge(row, 0, self.OUTPUT)
+        self.assertEqual(verdict["status"], "failed")
+
+    def test_a_nonzero_exit_with_the_same_output_was_already_failed(self):
+        """GUARD: the masked-failure path only ever changes an exit-zero verdict."""
+        row = {"command": "wrapped-test", "suite": "focused", "ids": ["CASE-1"]}
+        self.assertEqual(test_loop.judge(row, 1, self.OUTPUT)["status"], "failed")
+
+    def test_a_passing_test_whose_own_id_contains_the_word_failed_still_passes(self):
+        """A crude text search for FAILED would misjudge this; the fix reads the reporter's own pass/fail marks."""
+        output = "test_config.py::test_verify_FAILED_status PASSED\n1 passed in 0.01s\n"
+        row = {"command": "wrapped-test", "suite": "focused", "ids": ["test_verify_FAILED_status"]}
+        verdict = test_loop.judge(row, 0, output)
+        self.assertEqual(verdict["status"], "passed")
+        self.assertEqual(verdict["counts"], {"ran": 1, "failed": 0, "runners": ["pytest"]})
+
+    def test_a_missing_id_still_reports_ids_missing_over_a_masked_failure_elsewhere(self):
+        """A truly missing ID keeps its own, more specific refusal; it is not swallowed by the new failed status."""
+        row = {"command": "wrapped-test", "suite": "focused", "ids": ["CASE-1", "CASE-9"]}
+        self.assertEqual(test_loop.judge(row, 0, self.OUTPUT)["status"], "ids-missing")
+
+    def test_the_refusal_for_a_masked_failure_names_the_tally_instead_of_the_contradictory_exit_0(self):
+        """Review finding: _explain() had no branch for a failed/exit-0 run and fell through to the bare
+        ``exit 0``, which reads as success and drops the runner's own tally."""
+        row = {"command": "wrapped-test", "suite": "check", "exit": 0}
+        run = dict(row, **test_loop.judge(row, 0, self.OUTPUT))
+        flat = " ".join(test_loop._explain(run, "test").split())
+        self.assertNotEqual(flat, "exit 0")
+        self.assertIn("exited 0", flat)
+        self.assertIn("(pytest reported 1 run, 1 failed)", flat)
+        self.assertIn("swallowed", flat)
+
+    def test_a_nonzero_exit_failure_still_gets_the_bare_exit_code_fallback(self):
+        """GUARD: the new _explain() branch is scoped to exit 0; the pinned ``-> exit 1`` wording elsewhere in this
+        file for a genuinely nonzero exit must not change."""
+        row = {"command": "wrapped-test", "suite": "focused", "ids": ["CASE-1"], "exit": 1}
+        run = dict(row, **test_loop.judge(row, 1, self.OUTPUT))
+        self.assertEqual(test_loop._explain(run, "test"), "exit 1")
+
+
 class RefusedRunTallyTests(unittest.TestCase):
     """TD-10 (owner rule 7, plan decision N3): no text the model reads shows the refused-run cap, and the count shows only
     above zero.  The cap is patched to a number no other text prints, so any digit of it in a text can only come from the
