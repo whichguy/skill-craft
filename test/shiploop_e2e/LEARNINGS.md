@@ -2542,3 +2542,34 @@ Learnings:
 
 Evidence: `/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/` and the failed first attempt
 `/Users/dadleet/e2e-runs/20261020/chess-sf-full-b89b42/`.
+
+## The Salesforce chess case, live run 5 (interim, while 5b runs): a host update blocked the first attempt; the second reached the release stages (2026-10-24/25, skill-craft 2.9.0 / ShipLoop 1.9.0 from the marketplace) — status: interim (n=1, one host)
+
+Run 4's flags plus `--timeout 18000`, in org `de` after the kept SLChess app was removed with the case's own
+`chess_salesforce.py cleanup --platform-dir <run 4>/platform`. Full account (with the comparison to runs 3 and 4) to
+follow as `docs/e2e-salesforce-chess-journal.md` F12.
+
+**Run 5a** (`/Users/dadleet/e2e-runs/20261024/chess-sf-full-ed3292`) **was blocked after 93 min, at W1 implement.**
+- Grok had moved from 1.0.62 (run 4) to 1.0.70. Its auto mode refused `cd <worktree> && … && sf project deploy start
+  --target-org de` twice, as "a remote stateful mutation". Run 4 had sent the same command shape 15 times under the
+  same host_allow.
+- Nothing reached the org. ShipLoop reported `blocked` (a person must act) rather than faking a deploy.
+- run.py then crashed at its end: Homebrew had swapped the interpreter under the running process (a lazy `_strptime`).
+  2.9.1 fixes that.
+
+**Run 5b** (`/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d`) used `--permission-mode bypassPermissions`. That
+was the owner's choice; the sf guard still keeps every `sf` call in org `de` and the prefix.
+- It deployed and finished all 3 work items and the end-of-work review in about 255 active minutes.
+- The Mac slept for 9.8 h at 1% battery, which spent the 5 h wall-clock cap. The coordinator resumed the run; 2.9.1
+  counts deadlines in active time.
+
+Learnings so far:
+- **A host update is an experiment variable.** Record the host build per run, and treat a change as non-comparable.
+- **The 2.9.0 gates held in normal use, with 7 distinct refusals, each fixed in stage:**
+  - the step-size limit split W1 into 6 behaviour steps;
+  - F3's targets left the remote Apex tests out of the base run, and verify printed "RED unobserved";
+  - F5's regression line came on both end-of-work fixes (TC_B4_promotionQueen, TC_B6_newGame).
+- **A gate that checks only that evidence exists can be dodged.** In 5a, prepare's `harness_runs` evidence was a
+  browser probe page that said it was not the component. 5b's evidence was a real jest render test. The evidence must
+  show a test ran.
+- **Retired terms survived in refusals split across string literals.** 2.9.1 scans the strings a script can print.
