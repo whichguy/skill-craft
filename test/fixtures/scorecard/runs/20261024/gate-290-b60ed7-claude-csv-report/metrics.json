@@ -1,0 +1,67 @@
+{
+ "span": {
+  "started": 1792895980.462,
+  "ended": 1792897793.664
+ },
+ "cost_usd": 9.9976,
+ "unreported_sessions": 0,
+ "claude_code_version": "2.1.310",
+ "nomenclature": {
+  "retired": {
+   "complete command (the callback)": {
+    "texts": 2
+   }
+  }
+ },
+ "unmeasured": {
+  "compactions": "kept",
+  "truncated_outputs": "kept",
+  "cancelled_tool_calls": "kept",
+  "knowledge_reads": "kept"
+ },
+ "turns": 354,
+ "shiploop_failures": [
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {}
+ ],
+ "improve_children": 12,
+ "planning": {
+  "window": {
+   "closed": true,
+   "through": "test-spec",
+   "seconds": 739.0,
+   "host_seconds": 750.5,
+   "before_engine_seconds": 11.5
+  }
+ },
+ "fresh_starts": [],
+ "fresh_starts_unmeasured": "compactions not detected on this host: only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+ "fidelity": {
+  "end_state": {
+   "status": "done",
+   "unverified": {
+    "entries": 0
+   }
+  },
+  "evidence": {
+   "counts": {
+    "skipped": 0
+   }
+  },
+  "edits": {
+   "script_owned": []
+  },
+  "refusals": {
+   "count": 10,
+   "repeated": 0
+  }
+ }
+}

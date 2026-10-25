@@ -204,6 +204,8 @@ def runs_root(out) -> Path:
     if named:
         return Path(named).expanduser()
     parent = Path(out).absolute().parent
+    if (parent / "suite-result.json").is_file():
+        return runs_root(parent)  # a finished suite's case: its suite folder's root, as run_suite set it during the run
     grand = parent.parent
     too_wide = {os.path.realpath(place) for place in (Path.home(), tempfile.gettempdir(), grand.anchor)}
     return parent if grand == parent or os.path.realpath(grand) in too_wide else grand

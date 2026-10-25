@@ -1,0 +1,22 @@
+{
+ "suite": "batch",
+ "cases": [
+  {
+   "case": "hello",
+   "pass": true,
+   "gate": true
+  },
+  {
+   "case": "seat-reservations",
+   "pass": true
+  },
+  {
+   "case": "battleship",
+   "pass": false
+  },
+  {
+   "case": "battleship-scoring",
+   "skipped": "its predecessor 'battleship' failed; nothing to build on"
+  }
+ ]
+}

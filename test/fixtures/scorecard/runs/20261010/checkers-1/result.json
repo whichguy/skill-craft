@@ -1,0 +1,92 @@
+{
+ "case": "checkers",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0"
+ },
+ "outcome_class": "PASS",
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "process": {
+  "pass": true
+ },
+ "shiploop": {
+  "pass": true
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "quality": {
+  "mutation": {
+   "observed": true,
+   "ratio": 0.82,
+   "operator_id": "js-1"
+  },
+  "acceptance": {
+   "observed": true,
+   "checks": [
+    {
+     "id": "red-moves-first",
+     "pass": true
+    },
+    {
+     "id": "illegal-keeps-turn",
+     "pass": true
+    },
+    {
+     "id": "off-board-keeps-turn",
+     "pass": true
+    },
+    {
+     "id": "legal-moves-alternate",
+     "pass": true
+    },
+    {
+     "id": "red-jump-mandatory",
+     "pass": true
+    },
+    {
+     "id": "black-jump-mandatory-and-removal",
+     "pass": true
+    }
+   ]
+  }
+ },
+ "resumed_run": null,
+ "environment": {
+  "mixed_host": false,
+  "environments": [
+   {
+    "host": "claude",
+    "host_build": null
+   }
+  ]
+ },
+ "left_behind": {
+  "observed": true,
+  "survived": []
+ }
+}

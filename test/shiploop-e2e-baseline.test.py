@@ -34,6 +34,7 @@ import hosts  # noqa: E402
 import metrics  # noqa: E402
 import progress  # noqa: E402
 import run  # noqa: E402
+import scorecard  # noqa: E402
 
 FIXTURES = ROOT / "test" / "fixtures" / "baseline-spread"
 
@@ -2060,6 +2061,134 @@ class IdentityDocsTest(unittest.TestCase):
             self.assertIn(phrase, spec)
         for retired in ("kept out of every cell", "belongs to no host's cell", "That count is a lower bound"):
             self.assertNotIn(retired, spec)
+
+
+class ScorecardTest(unittest.TestCase):
+    """test/shiploop_e2e/scorecard.py, P1 of the self-improving loop design (docs/shiploop-e2e-self-improving-loop-design-
+    2026-10-25.md): one card per run from its own records, a versioned id, floors and a target. The backfill is the 2.9.0
+    release-gate runs, chess run 4 and a Checkers run with mutation and hidden acceptance, as compact extracts
+    (test/fixtures/scorecard, extract.py). The figures are the ones LEARNINGS cites for those runs."""
+
+    RUNS = ROOT / "test" / "fixtures" / "scorecard" / "runs"
+    #           run: (accuracy pass, fidelity floor, minutes, cost, turns, refusals, planning minutes, re-orientation minutes)
+    WANT = {"20261024/gate-290-b60ed7-claude-batch/hello": (True, True, 10.3, 4.1815, 197, 3, 4.2, 0.0),
+            "20261024/gate-290-b60ed7-claude-batch/seat-reservations": (True, True, 20.9, 6.0145, 256, 5, 7.4, 0.0),
+            "20261024/gate-290-b60ed7-claude-batch/battleship": (False, True, 19.6, 6.3566, 269, 8, 9.3, 0.0),
+            "20261024/gate-290-b60ed7-claude-csv-report": (True, True, 30.2, 9.9976, 354, 10, 12.3, 0.0),
+            "20261024/gate-290-b60ed7-codex-hello": (True, False, 124.9, None, 120, 9, 51.4, 27.5),
+            "20261020/chess-sf-full-9e52e8": (False, False, 239.6, 21.4859, 884, 13, 73.8, 74.0),
+            "20261010/checkers-1": (True, False, 13.2, 3.7224, 201, 3, 4.8, 0.0)}
+
+    def setUp(self):
+        patcher = mock.patch.dict(os.environ)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        os.environ.pop("SHIPLOOP_E2E_RUNS_ROOT", None)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def cards(self) -> dict:
+        return {Path(c["run"]).relative_to(self.RUNS).as_posix(): c for c in map(scorecard.score, scorecard.run_folders([self.RUNS]))}
+
+    def test_the_backfill_reproduces_each_runs_verdict_and_figures(self):
+        cards = self.cards()
+        self.assertEqual(sorted(cards), sorted(self.WANT))
+        for name, (passed, fidelity, minutes, cost, turns, refusals, planning, reorientation) in self.WANT.items():
+            card = cards[name]
+            with self.subTest(run=name):
+                self.assertEqual(card["scorecard"], scorecard.SCORECARD_ID)
+                self.assertEqual((card["accuracy"]["pass"], card["floors"]["fidelity"]), (passed, fidelity))
+                e = card["efficiency"]
+                self.assertEqual((e["minutes"], e["cost_usd"], e["turns"], e["refusals"], e["planning_minutes"],
+                                  e["reorientation_minutes"]), (minutes, cost, turns, refusals, planning, reorientation))
+                self.assertIsNone(card["floors"]["enterprise"], "the rubric is P2: the part decides nothing yet")
+        # What each failing floor says, in the records' own words.
+        self.assertEqual(cards["20261024/gate-290-b60ed7-codex-hello"]["fidelity"]["unverified"], 1)  # release-verify
+        self.assertEqual(cards["20261020/chess-sf-full-9e52e8"]["fidelity"]["end_status"], "active")  # stopped at the cap
+        self.assertIn("efficiency.cost_usd", cards["20261024/gate-290-b60ed7-codex-hello"]["unmeasured"])
+        self.assertTrue(cards["20261020/chess-sf-full-9e52e8"]["efficiency"]["cost_lower_bound"], "every Grok cost is one")
+        # S-16: 2.9.0's refusals still print a retired term ("complete command"), which inner-loop saw in chess run 5b too.
+        self.assertEqual(cards["20261024/gate-290-b60ed7-claude-csv-report"]["fidelity"]["retired_terms"], 2)
+        self.assertIsNone(cards["20261020/chess-sf-full-9e52e8"]["fidelity"]["retired_terms"], "its metrics predate the record")
+        self.assertEqual(cards["20261024/gate-290-b60ed7-codex-hello"]["validity"]["host_builds"], ["codex-cli 0.164.0"])
+        checkers = cards["20261010/checkers-1"]["accuracy"]
+        self.assertEqual((checkers["acceptance"], checkers["mutation"]), ({"passed": 6, "total": 6}, {"ratio": 0.82, "operator_id": "js-1"}))
+
+    def test_validity_says_which_runs_ran_beside_others_or_were_resumed(self):
+        cards = self.cards()
+        validity = {name: (c["validity"]["resumed"], c["validity"]["overlapped_runs"], c["validity"]["comparable"])
+                    for name, c in cards.items()}
+        self.assertEqual(validity["20261024/gate-290-b60ed7-codex-hello"], (True, 4, False))
+        self.assertEqual(validity["20261020/chess-sf-full-9e52e8"], (False, 0, True), "run 4 ran alone")
+        # A finished suite's case reads its suite folder's root (suite-result.json), so it sees the cases run alone too.
+        self.assertEqual(validity["20261024/gate-290-b60ed7-claude-batch/hello"], (False, 1, False))
+        self.assertTrue(cards["20261024/gate-290-b60ed7-claude-batch/hello"]["validity"]["overlap_root"]
+                        .endswith("test/fixtures/scorecard/runs"), "the suite folder's grandparent, shown under ~ where it is")
+
+    def test_a_check_that_changed_the_delivered_tree_makes_the_run_not_comparable(self):
+        # E4 of the runner review: the gate's Battleship check deleted the product's committed page.html.
+        run_dir = self.tmp / "runs" / "day" / "battleship"
+        work = run_dir / "work"
+        work.mkdir(parents=True)
+        (work / "page.html").write_text("<title>Battleship</title>\n")
+        subprocess.run(["git", "init", "-q", str(work)], check=True)
+        subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "p"], check=True)
+        (run_dir / "result.json").write_text(json.dumps({"case": "battleship", "pass": True}))
+        (run_dir / "timeline.jsonl").write_text('{"line": 0, "t": 1000}\n{"line": 1, "t": 2000}\n')
+        self.assertTrue(scorecard.score(run_dir)["validity"]["comparable"])
+        (work / "page.html").unlink()
+        validity = scorecard.score(run_dir)["validity"]
+        self.assertEqual((validity["work_tree_after"], validity["comparable"]), ([" D page.html"], False))
+        self.assertIn("work tree changed after delivery", validity["why_not"][0])
+
+    def test_a_host_build_that_changed_mid_run_makes_the_run_not_comparable(self):
+        # inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 between two chess runs alone blocked the deploy.
+        run_dir = self.tmp / "runs" / "day" / "mixed-build"
+        run_dir.mkdir(parents=True)
+        launches = [{"host": "grok", "host_build": "grok 1.0.62 (aaa)"}, {"host": "grok", "host_build": "grok 1.0.70 (bbb)"}]
+        (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True, "environment": {"environments": launches}}))
+        validity = scorecard.score(run_dir)["validity"]
+        self.assertEqual(validity["host_builds"], ["grok 1.0.62 (aaa)", "grok 1.0.70 (bbb)"])
+        self.assertFalse(validity["comparable"])
+        self.assertIn("host build changed", validity["why_not"][0])
+        (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True, "environment": {"environments": launches[:1]}}))
+        self.assertNotIn("host build changed", " ".join(scorecard.score(run_dir)["validity"]["why_not"]))
+
+    def test_a_value_nothing_measured_is_null_with_its_reason_and_a_missing_record_is_named(self):
+        run_dir = self.tmp / "bare"
+        run_dir.mkdir()
+        self.assertEqual(scorecard.score(run_dir), {"scorecard": scorecard.SCORECARD_ID, "run": str(run_dir), "observed": False,
+                                                    "reason": "no readable result.json"})
+        (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True}))
+        card = scorecard.score(run_dir)
+        self.assertEqual(card["floors"], {"accuracy": True, "enterprise": None, "fidelity": None})
+        self.assertTrue(all(value is None for key, value in card["efficiency"].items() if key not in ("cost_lower_bound", "refusals")))
+        for name in ("efficiency.minutes", "efficiency.cost_usd", "efficiency.turns", "fidelity", "accuracy.acceptance",
+                     "accuracy.mutation", "validity.overlap", "validity.work_tree_after"):
+            self.assertIn(name, card["unmeasured"])
+
+    def test_the_cli_reads_a_folder_above_runs_writes_only_where_told_and_never_into_a_run(self):
+        runs = self.tmp / "runs"
+        shutil.copytree(self.RUNS, runs)
+        before = {str(p): p.stat().st_mtime_ns for p in runs.rglob("*")}
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            self.assertEqual(scorecard.main([str(runs), "--json", "--out", str(self.tmp / "cards.json")]), 0)
+        self.assertEqual(len(json.loads(printed.getvalue())["cards"]), 7)
+        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], scorecard.SCORECARD_ID)
+        self.assertEqual({str(p): p.stat().st_mtime_ns for p in runs.rglob("*")}, before, "nothing in a run folder changed")
+        inside = runs / "20261010" / "checkers-1" / "cards.json"
+        with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
+            scorecard.main([str(runs), "--out", str(inside)])
+        self.assertIn("inside a run folder", str(refused.exception))
+        self.assertFalse(inside.exists())
+        text = io.StringIO()
+        with contextlib.redirect_stdout(text):
+            scorecard.main([str(runs)])
+        self.assertIn("scorecard/1: 7 run(s)", text.getvalue())
+        self.assertIn("not comparable: resumed", text.getvalue())
 
 
 if __name__ == "__main__":

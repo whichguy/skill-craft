@@ -1118,6 +1118,15 @@ class OverlapTest(unittest.TestCase):
                                  "the grandparent of the suite folder, not of the case folder")
                 self.assertEqual(os.environ.get(name), named, "restored as the caller had it")
 
+    def test_a_finished_suites_case_reads_the_suite_folders_root_by_its_suite_result(self):
+        case = self.parent / "runs" / "day" / "batch" / "hello"
+        case.mkdir(parents=True)
+        with mock.patch.dict(os.environ):
+            os.environ.pop(self.environment.RUNS_ROOT_ENV, None)
+            self.assertEqual(self.environment.runs_root(case), self.parent / "runs" / "day", "no suite record: the grandparent")
+            (case.parent / "suite-result.json").write_text('{"suite": "batch", "cases": []}')
+            self.assertEqual(self.environment.runs_root(case), self.parent / "runs", "the suite folder's grandparent")
+
     def test_alive_runs_lists_the_other_folders_whose_harness_holds_its_lock(self):
         me = self.write_run("runs/day/me", 1000, 2000)
         live = self.write_run("runs/day/live", 1000, 2000)

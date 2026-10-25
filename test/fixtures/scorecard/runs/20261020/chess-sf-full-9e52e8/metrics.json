@@ -1,0 +1,160 @@
+{
+ "span": {
+  "started": 1792551738.099,
+  "ended": 1792566116.787
+ },
+ "cost_usd": 21.4859,
+ "unreported_sessions": null,
+ "claude_code_version": null,
+ "nomenclature": null,
+ "unmeasured": {
+  "window_tokens": "kept",
+  "unreported_sessions": "kept"
+ },
+ "turns": 884,
+ "shiploop_failures": [
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {}
+ ],
+ "improve_children": 13,
+ "planning": {
+  "window": {
+   "closed": true,
+   "through": "test-spec",
+   "seconds": 4430.0,
+   "host_seconds": 4468.9,
+   "before_engine_seconds": 38.9
+  }
+ },
+ "fresh_starts": [
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 453.5
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 538.1
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 493.8
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 556.0
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 27.8
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 23.5
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 54.9
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 529.2
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 156.4
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 187.2
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 81.9
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 237.9
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 380.6
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 588.2
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 129.8
+   }
+  }
+ ],
+ "fresh_starts_unmeasured": null,
+ "fidelity": {
+  "end_state": {
+   "status": "active",
+   "unverified": {
+    "entries": 3
+   }
+  },
+  "evidence": {
+   "counts": {
+    "skipped": 0
+   }
+  },
+  "edits": {
+   "script_owned": [
+    {},
+    {},
+    {},
+    {},
+    {},
+    {}
+   ]
+  },
+  "refusals": {
+   "count": 13,
+   "repeated": 1
+  }
+ }
+}

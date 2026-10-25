@@ -1736,6 +1736,35 @@ command printed by the run that first deployed it (its snapshot is the org witho
 stop, look at Setup > Deployment Status in the org: a deploy the host started can outlive its command. Hermetic checks (no real
 org): `bash test/run-all.sh --group quick`, the suites `shiploop-e2e-release-slice`, `-battleship-salesforce`, `-platform`.
 
+## The scorecard: one card per run
+
+```sh
+python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
+```
+
+This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`, P1). It
+reads each run's own records, writes nothing into a run folder and calls no model. A folder above run folders is walked
+to them. Every card carries `scorecard: scorecard/1`, and two cards are compared only when their ids are equal.
+
+- **Floors** (each true, false or null where not measured):
+  - **accuracy:** every verdict passes, and any hidden acceptance checks all pass;
+  - **enterprise:** not measured until the P2 rubric exists;
+  - **fidelity:** the engine ended done, with no unverified entry and no skipped evidence.
+- **The target:** `efficiency` (minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
+  minutes and re-orientation minutes).
+- **`validity`** says whether a run is clean enough to compare. A run is not comparable if any of these hold:
+  - it was resumed, or ran on mixed hosts;
+  - its host build changed;
+  - it overlapped other runs under its runs root;
+  - it left listeners alive;
+  - its delivered `work/` changed after delivery (the deleted `page.html` of E4 shows here).
+- Reported beside the fidelity floor, deciding nothing: refusals, retired glossary terms, and edits of script-owned files
+  to confirm.
+- A value nothing measured is null, with its reason in `unmeasured`.
+
+The tests are `ScorecardTest` in `test/shiploop-e2e-baseline.test.py`, over compact extracts of real runs in
+`test/fixtures/scorecard` (`extract.py` rebuilds them).
+
 ## Review one run
 
 ```sh

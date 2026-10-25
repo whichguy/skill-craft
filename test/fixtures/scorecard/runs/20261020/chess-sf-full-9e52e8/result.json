@@ -1,0 +1,57 @@
+{
+ "case": "chess-salesforce",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "versions": {
+  "source": "marketplace",
+  "plugin_version": "2.8.0",
+  "shiploop_version": "1.8.0"
+ },
+ "outcome_class": "STOPPED",
+ "pass": false,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "process": {
+  "pass": false
+ },
+ "shiploop": {
+  "pass": false
+ },
+ "committed": {
+  "pass": false
+ },
+ "checks": [
+  {
+   "pass": false
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "quality": {},
+ "resumed_run": null,
+ "environment": {
+  "mixed_host": false,
+  "environments": [
+   {
+    "host": "grok",
+    "host_build": "grok 1.0.62 (1474f9cbdd91)"
+   }
+  ]
+ },
+ "left_behind": {
+  "observed": true,
+  "survived": []
+ }
+}
