@@ -1986,6 +1986,27 @@ def _plan_discovered_fix(item: _File, fixed_bytes: bytes, fixed_text: str, *, fi
     return "", diff
 
 
+def _resolve_row(row: Mapping[str, Any], active: Sequence[_File], search: Sequence[Path], top: Path,
+                 path_env: str, shim_dirs: Sequence[str],
+                 roots: Sequence[str]) -> Tuple[List[_File], Optional[Path], Optional[str], Optional[str]]:
+    """One catalog row's matched files, marker and resolved tool for this pass -- a pure function of ``active``
+    and the filesystem, computed once and shared by ``_discover``'s Phase A and Phase B, which would otherwise
+    each redo the same marker check and PATH resolution per row.
+
+    Returns (files, marker, tool, reason). ``reason`` is ``None`` when the row does not apply this pass at all
+    (no matched files, or a required marker is missing) -- as opposed to a resolved-but-missing tool, whose
+    reason is always a real string, even when empty.
+    """
+    files = [item for item in active if item.text is not None and _matches(item, row)]
+    if not files:
+        return files, None, None, None
+    marker = _marker(search, row)
+    if marker is None and row.get("require_marker", True):
+        return files, marker, None, None
+    tool, reason = _discovered_tool(row, search, top, path_env, shim_dirs, roots)
+    return files, marker, tool, reason
+
+
 def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
               active: Sequence[_File], base_env: Mapping[str, str], shim_dirs: Sequence[str],
               roots: Sequence[str], *, fixing: bool, withheld: str, pending_path: Path,
@@ -2014,19 +2035,17 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
     # never re-invokes the same tool with the same stdin a second time.
     stdin_cache: Dict[str, bytes] = {}
     rows = list(catalog.get("discovered", ()))
+    # Each row's matched files, marker and resolved tool are a pure function of ``active`` and the filesystem,
+    # neither of which changes between Phase A and Phase B within one pass: resolve once, not once per phase.
+    resolved = {str(row["name"]): _resolve_row(row, active, search, top, path_env, shim_dirs, roots)
+                for row in rows}
 
     for row in rows:
         if not row.get("fixable"):
             continue
         name = str(row["name"])
-        files = [item for item in active if item.text is not None and _matches(item, row)]
-        if not files:
-            continue
-        marker = _marker(search, row)
-        if marker is None and row.get("require_marker", True):
-            continue
-        tool, _reason = _discovered_tool(row, search, top, path_env, shim_dirs, roots)
-        if tool is None:
+        files, _, tool, _reason = resolved[name]
+        if not files or tool is None:
             continue  # Phase B below records the missing-tool note for every row, fixable or not.
         relative = {item.path: os.path.join(".", os.path.relpath(os.fspath(top / item.path), os.fspath(project)))
                     for item in files}
@@ -2086,13 +2105,9 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
 
     for row in rows:
         name = str(row["name"])
-        files = [item for item in active if item.text is not None and _matches(item, row)]
-        if not files:
-            continue
-        marker = _marker(search, row)
-        if marker is None and row.get("require_marker", True):
-            continue
-        tool, reason = _discovered_tool(row, search, top, path_env, shim_dirs, roots)
+        files, marker, tool, reason = resolved[name]
+        if not files or reason is None:
+            continue  # no matched files, or a required marker is missing: this row never applies this pass
         declared = (" (" + cquote(os.path.relpath(os.fspath(marker), os.fspath(top))) + ")") if marker else ""
         if tool is None:
             if marker is not None:

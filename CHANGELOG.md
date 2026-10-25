@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.10.1
+
+- Skills: shiploop 1.10.1
+
+### shiploop 1.10.1
+
+- - The lint pass resolves each catalogued linter's matched files, marker and tool once per pass instead of once
+    per phase: `_discover`'s fix-apply and report phases previously each re-checked the marker file and re-walked
+    `PATH` for every row, even though neither changes within one pass. No behavior change.
+
 ### skill-craft 2.10.0
 
 - Skills: shiploop 1.10.0
