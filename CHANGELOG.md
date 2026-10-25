@@ -4,6 +4,19 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.9.2
+
+- Skills: improve 0.7.1
+
+### improve 0.7.1
+
+- Align standalone instructions and README diagrams with the existing one-review
+  gate: a completed trivial pass may include trivial polish and still needs current
+  exit evidence. Honor an explicit user-requested count over the default, including
+  in the bundled adapter. Preserve the cumulative handoff without requiring two
+  reviews, and cover reported classifications after committed edits in the runtime
+  regression.
+
 ### skill-craft 2.9.1
 
 - Skills: shiploop 1.9.1

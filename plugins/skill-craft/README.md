@@ -20,7 +20,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [backchain](skills/backchain/SKILL.md) | `/skill-craft:backchain` | 0.6.6 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain /… |
 | [c-plan](skills/c-plan/SKILL.md) | `/skill-craft:c-plan` | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | `/skill-craft:compare-prompts` | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results… |
-| [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.7.0 | Review and improve until a trivial pass |
+| [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.7.1 | Review and improve until a trivial pass |
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | `/skill-craft:improve-system-prompt` | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the… |
 | [in-parallel](skills/in-parallel/SKILL.md) | `/skill-craft:in-parallel` | 0.1.1 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified… |

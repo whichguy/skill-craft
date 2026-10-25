@@ -146,7 +146,7 @@ transitions. Never invoke `/goal` or create a background scheduler.
   (short labeled bullets: facts and corrections, decisions, hypotheses, execution pitfalls; each
   prior learning kept or marked **Retired** with its reason) and **Evidence**. The script's
   progress, not a number in the handoff, is the authority for the streak. Keep the whole run's key
-  changes and lessons in it: the last two no-change reviews must not reduce it to "nothing changed".
+  changes and lessons in it: a final trivial or no-change review must not reduce it to "nothing changed".
 - **The opening.** The parent's **Current context and desired improvements** opening, **Current
   learnings** included, stands once at the start of `context.request` with the binding marker.
   Use it to inform the first review, checking candidate-dependent claims against current

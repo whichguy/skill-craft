@@ -6,9 +6,10 @@ flowchart LR
     Contract --> Packet[Bundled Until Loop returns one action]
     Packet --> Cycle[Review, improve, check, and record one cycle]
     Cycle --> Report[Submit the exact done callback with handoff]
-    Report --> Gate{Two passes with no changes, or a first pass with no change?}
-    Gate -->|No| Packet
-    Gate -->|Yes| Terminal[Terminal packet and state deletion]
+    Report --> Gate{Runtime result}
+    Gate -->|active| Packet
+    Gate -->|complete| Terminal[Completed packet and state deletion]
+    Gate -->|stopped| Stopped[Incomplete packet and state deletion]
 ~~~
 
 Improve reviews a repository candidate, makes worthwhile changes, checks the
@@ -69,12 +70,18 @@ Each completed cycle reports factual observations and a rolling handoff:
 }
 ~~~
 
-A first trivial report that left the workspace unchanged ends the run at once
-when the exit condition has current evidence. Otherwise the first qualifying
-trivial report leaves the run active with a streak of one, and the second
-distinct qualifying report can be terminal only when the substantive exit
-condition also has current evidence. The terminal response retains the
-last report and context, then deletes the temporary state file.
+Once the numeric review gate is met, a completed trivial pass can end the run
+when the substantive exit condition has current evidence and no requested stop
+applies. The pass may include
+trivial polish; Improve's default gate is one review and does not require
+unchanged Git content. An explicit user-requested count overrides that default.
+The executor judges the classification; the runtime enforces the reported
+streak, conditions, and checks. A material or unresolved report does not
+satisfy the gate. When the
+exit or gate is unmet, blocked continuation stops incomplete and allowed
+continuation returns another action. A triggered user stop takes precedence
+over success. The runtime selects the returned status; a terminal response
+retains the last report and context, then deletes the temporary state file.
 
 ## Context, handoff, and cold recovery
 
@@ -222,6 +229,6 @@ PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH PYTHONDONTWRITEBYTECODE=1
 ~~~
 
 The package test relocates the leaf to a path with spaces, verifies the
-ephemeral start/next/done two-review terminal path and state deletion, and
+ephemeral start/next/done terminal path with an explicit gate of two and state deletion, and
 checks the vendored runtime provenance. It does not run arbitrary repository
 changes or prove semantic review quality.
