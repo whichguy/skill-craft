@@ -165,7 +165,7 @@
   {
    "id": "S28",
    "file": "skills/improve/references/standalone-route.md",
-   "head": "- **Exit rule:** repeat until",
+   "head": "- **Exit rule:** by default,",
    "route": "**Exit rule.**",
    "core": "Only the runtime decides, from the contract and Git, whether another pass follows"
   },

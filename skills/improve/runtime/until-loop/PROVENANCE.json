@@ -2,15 +2,15 @@
   "format": "skill-craft-until-loop-runtime-provenance/v1",
   "upstream": {
     "repository": "https://github.com/whichguy/until-loop.git",
-    "commit": "6e7ab0d280071fe32e40cec88fce4710ec39f7fd",
-    "version": "0.10.0"
+    "commit": "332bd11cde1e280d9deaf47e30948a5f1ba0653c",
+    "version": "0.10.1"
   },
   "default_ephemeral_runtime": [
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "f63be1138ff16b0e558f8061a1ac327cdf2a854da2c4024071ffbe7238a0e90e",
-      "upstream_sha256": "6cbfd79dde08ce258dc49b4d21d471afb081d55d5548e4ef7f0736f2837b3dce",
+      "sha256": "de85fdc2873c6d07c197a32deb3a8188d297df6e1e59e22b75fcb78277322842",
+      "upstream_sha256": "20cd9bd9cf65266d7013c49029e700b624d4e302deacb82369eb251f16af171f",
       "adaptation_reason": "Retain Improve’s owner-bound authority-update clarification and preserve its consumer-owned temporary callback state by requiring ordinary standalone starts to use --isolated; upstream session/recovery helpers are vendored for release parity, but this consumer does not enable automatic host-session mode."
     },
     {

@@ -249,7 +249,7 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual((verdict["status"], verdict["ids_unread"]), ("unread", ["TC_1", "TC_2"]))
         text = test_loop._explain_base(dict(row, **verdict))
         self.assertIn("named TC_1, TC_2 on the base, but no output line says whether it passed or failed", text)
-        self.assertIn("the platform card under references/platforms/", text)
+        self.assertIn("platform card under references/platforms/", text)
         self.assertTrue(sorted((ROOT / "skills/shiploop/references/platforms").glob("*.md")), "the directory the text names holds cards")
 
     def test_red_on_the_base_needs_each_new_id_to_fail_not_a_setup_error(self):

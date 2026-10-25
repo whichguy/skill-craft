@@ -96,14 +96,17 @@ original learnings with selective references to prior commits in one account.
   `unresolved` if work, evidence, required commit, or assessment is incomplete.
   Report the substantive exit assessment and whether continuation is allowed,
   blocked, or cancelled.
-- **Exit rule:** repeat until a pass finds only trivial changes or none (start the
-  runtime with `required_trivial_reviews: 1`). A `trivial` pass found nothing
+- **Exit rule:** by default, repeat until a pass finds only trivial changes or
+  none (`required_trivial_reviews: 1`). An explicit user-requested review count
+  overrides that default; put the requested count in `required_trivial_reviews`
+  rather than only in the prose exit condition. A `trivial` pass found nothing
   material, at most trivial polish, which it commits. A material or unresolved
-  pass continues the loop. The one-pass exit needs more than the report: the
-  runtime checks from Git that the workspace content (tracked and untracked
-  files; ignored and runtime files aside) is exactly what it was at `start`,
-  and only then ends the loop after that first pass. Only the runtime can
-  accept a terminal transition. A blocker, requested stop, exhausted budget,
+  pass continues the loop while continuation is allowed. With the default
+  one-review gate, a completed trivial pass satisfies the numeric gate even
+  when it made trivial edits; the
+  substantive exit condition still needs current evidence and applicable
+  checks. Only the runtime can accept a terminal transition. A blocker that
+  prevents completion, requested stop, exhausted budget,
   failed required commit, stale check, or unresolved evidence remains
   incomplete rather than satisfying the review policy.
 
@@ -205,8 +208,8 @@ unresolved and stop incomplete when it prevents useful authorized progress.
 
 Include preparing a cumulative summary in the standalone execution contract.
 Before each `done`, retain the key implemented changes and still-relevant lessons
-from the whole run in the existing `handoff`; the last two no-change reviews must
-not reduce that account to “nothing changed.” After the runtime returns
+from the whole run in the existing `handoff`; a final trivial or no-change review
+must not reduce that account to “nothing changed.” After the runtime returns
 `complete`, return a self-contained summary to the caller; inside an
 [agent-run invocation](../SKILL.md#agent-run-invocation), return it inline in the native
 result:

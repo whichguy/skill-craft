@@ -115,6 +115,23 @@ class UnchangedFirstPassTests(unittest.TestCase):
         self.assertEqual(terminal["status"], "complete")
         self.assertNotIn("unchanged_first_pass", terminal["progress"])
 
+    def test_one_review_gate_uses_report_classification_after_committed_edits(self) -> None:
+        cases = (
+            ("trivial", "# Document the existing value.\nx = 1\n", "complete", 1),
+            ("non-trivial", "x = 2\n", "active", 0),
+        )
+        for classification, content, expected_status, expected_streak in cases:
+            with self.subTest(classification=classification):
+                packet = self.start(reviews=1)
+                (self.repo / "app.py").write_text(content)
+                git(self.repo, "commit", "-qam", "review fixture change")
+                report = dict(TRIVIAL, classification=classification,
+                              evidence=f"Completed fixture review with a committed {classification} edit.")
+                result = self.done(packet, report)
+                self.assertEqual(result["status"], expected_status)
+                self.assertEqual(result["progress"]["trivial_streak"], expected_streak)
+                self.assertNotIn("unchanged_first_pass", result["progress"])
+
 
 class OnePassGateTests(unittest.TestCase):
     """The gate the plan packet prints for the Backchain child, started on the real runtime.
