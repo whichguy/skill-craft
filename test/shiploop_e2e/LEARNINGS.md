@@ -2643,7 +2643,7 @@ Learnings so far:
 - **E4, a harness false fail.** Check 2 runs `curl … -o page.html …; rm -f page.html` in `work/`. The product commits a `page.html` its server reads at start, so the check overwrote and deleted it, and the next checks' servers died with ENOENT. The product's repository was left with ` D page.html`.
   - A copy with the file restored passes every check, the new game check included.
   - The same scratch-file pattern sits in nine more check lines: `node-test.log`, `.ids-*` and `out.txt`/`err.txt`.
-  - Evidence: `docs/experiments/e2e-runner-review-20261024/e4-check-clobber.json`. The fix awaits the owner.
+  - Evidence: `docs/experiments/e2e-runner-review-20261024/e4-check-clobber.json`. The fix awaits the owner. *[superseded 2026-10-25: the owner approved the fix, and it is made: see "Case checks write nothing into the product's folder".]*
 - **Codex at xhigh is far slower on a hello.**
   - Planning took 51.4 min against Claude's 7.4. That is over the owner's 30-minute planning ceiling on the smallest case.
   - Improve took 26.6 min in 5 children, with 348,612 output tokens (64% reasoning).
@@ -2656,3 +2656,26 @@ Learnings so far:
 - Costs and turns are higher than the last rows (hello 117 → 197 turns), but 15 ShipLoop releases lie between them, so this is a description, not a regression claim.
 
 The four Claude rows are appended to `baselines.jsonl`, including Battleship's false fail exactly as recorded. Evidence: `~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/`, `-claude-csv-report/` and `-codex-hello/` (with `-resume.log`).
+
+
+## Case checks write nothing into the product's folder (2026-10-25, E4 fix) — status: firm for the fix and its tests; the live Battleship rerun needs the branch on main
+
+**Question.** How can the checks be stopped from deleting the product's files, as E4 found?
+
+**Change (owner approved, 2026-10-25).** 12 check and retention lines in `cases.json` wrote scratch output into `work/` and then removed it. They now write to `mktemp` or a shell variable:
+- the three page checks (battleship, battleship-scoring, checkers) keep the page in a variable, so `curl`'s own failure still fails the check;
+- `node --test` logs go to `mktemp` (battleship, checkers);
+- the scoring retention check keeps its id lists in `mktemp` files;
+- the four parallel-graph cases' stdout and stderr go to `mktemp`, created after each line's existence guard, so a missing program leaves no temporary file.
+
+**Tests: `CheckScratchFileTest`** in `test/shiploop-e2e.test.py`.
+- A static scan of every check and retention line for a redirect or `curl -o` into a relative name. The four lines E4 found are kept as controls, and the scan must flag them.
+- A product that commits `page.html` (its `server.js` reads it at start, as the gate's product did) and the five other scratch names. Every check and retention line of every non-hosted case runs against it.
+  - After each line, `git status` is clean and the files are byte for byte unchanged.
+  - The three page checks pass.
+  - The E4 line, run last as the control, deletes `page.html`.
+- On the old `cases.json` the two tests fail 53 times; on the new one they pass, in 14 s.
+
+**Regrade.** The gate's Battleship product was copied and its `page.html` restored. All four fixed Battleship checks pass, the new game check included, and its repository stays clean. So the web-service verdict on 2.9.0 is a pass, once a live run on the fixed harness confirms it (`e4-check-clobber.json` `fixed_regrade`).
+
+**Next.** Live Battleship and battleship-scoring runs need these checks on origin/main, because the version gate refuses a marketplace run from a branch with unpublished commits.

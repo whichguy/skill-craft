@@ -27,7 +27,8 @@ Status: plan; nothing implemented
   - Their overlap and Battleship verdicts are re-read with the wave 1 readers after they end.
   - Results (LEARNINGS "Release gate on 2.9.0"): hello, seat-reservations and csv-report passed on Claude, and Codex
     hello passed after one resume. Battleship's FAIL was a harness false fail: a check deleted the product's `page.html`
-    (E4); its fix awaits the owner.
+    (E4). The fix is made (2026-10-25, owner approved): 12 check lines now write to mktemp or a variable, and
+    `CheckScratchFileTest` guards it. A regrade of the gate's product passes all four checks.
   - The Grok hello is not run yet: other sessions' Grok runs were live throughout.
   - E5 found that the runs-root default gave suite cases only their day folder; fixed on the branch.
 
