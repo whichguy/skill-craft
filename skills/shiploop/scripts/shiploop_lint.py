@@ -13,10 +13,21 @@ step's own checks.
 
 Linters are discovered per changed file type from the catalog: built-in ruff and
 shellcheck, the tools a repository configures (eslint, prettier, tsc, mypy,
-black, markdownlint-cli2, yamllint, gofmt; actionlint whenever it is on PATH),
-and ``npm run lint`` / ``make lint`` when a changed file has no other linter.
-Repository-configured linters run repository code by design (owner decision
-2026-09-25); ShipLoop still never installs or downloads a tool.
+black, markdownlint-cli2, yamllint, gofmt, clang-format, terraform fmt, ktlint,
+phpcs, rubocop; actionlint whenever it is on PATH), and ``npm run lint`` /
+``make lint`` when a changed file has no other linter.  Repository-configured
+linters run repository code by design (owner decision 2026-09-25); ShipLoop
+still never installs or downloads a tool.
+
+A catalog row marked ``fixable`` (prettier, black, gofmt, clang-format,
+terraform fmt today) applies its own fix exactly like ruff: acquired through a
+non-mutating call (stdin in, fully formatted content out), then applied
+through the same ``_apply_fixes`` machinery ruff uses.  A file more than one
+fixable row matches gets each row's fix applied in the catalog's listed
+order, one row to completion before the next starts, so a later row reads an
+earlier row's already-applied content; the pending journal still gets one
+entry per path, diffed from the content when the pass started, never one
+section per fixer.
 
 Safety rules are fixed here, not in the catalog: PATH-only tool resolution
 (Git included) refusing relative entries, paths inside any work tree of the
@@ -101,7 +112,6 @@ _FINDING_RE = re.compile(r"^(?P<path>.+?):(?P<line>\d+):(?:(?P<col>\d+):)? (?P<r
 # Discovered tools: ``path:line[:col][:] message`` and tsc's ``path(line,col): message``.
 _TOOL_FINDING_RE = re.compile(r"^(?P<path>[^\s:][^:]*?):(?P<line>\d+)(?::(?P<col>\d+))?:?\s+(?P<rest>\S.*)$")
 _TSC_FINDING_RE = re.compile(r"^(?P<path>[^\s(][^(]*?)\((?P<line>\d+),(?P<col>\d+)\):\s+(?P<rest>\S.*)$")
-_HUNK_RE = re.compile(r"^@@ -(?P<start>\d+)(?:,(?P<count>\d+))? \+\d+(?:,\d+)? @@")
 _FINDING_ID_RE = re.compile(r"^L[0-9a-f]{10}(?:-[0-9]+)?$")
 _RUFF_CONFIG_RE = re.compile(r"(?m)^\s*\[tool\.ruff")
 _MAKE_TARGET_RE = re.compile(r"^(?P<name>lint(?:-[A-Za-z0-9_.-]+)?|format-check)\s*:(?!=)")
@@ -832,6 +842,8 @@ class _File:
         self.old = row["old"]
         self.data = b""
         self.text: Optional[str] = None
+        self.pass_data = b""         # content when this pass started; never mutated by a fixer (journal diffs from here)
+        self.pass_text: Optional[str] = None
         self.base: Optional[bytes] = None
         self.base_text: Optional[str] = None
         self.kind = ""
@@ -1007,7 +1019,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     python = [item for item in active if item.kind == "python"]
     shell = [item for item in active if item.kind == "shell"]
     pending_path = _lint_dir(run_dir) / ("pending-" + record_name + ".patch")
-    exact_patch = b""
+    journal: Dict[str, str] = {}
     if mode != "fix":
         withheld = "report-only pass"
     elif not base_tree or notes:
@@ -1017,14 +1029,19 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     else:
         withheld = ""
     if python and tools["ruff"][0]:
-        applied, not_applied, fix_notes, exact_patch = _ruff_fix(
+        applied, not_applied, fix_notes, journal = _ruff_fix(
             invoker, top, python, tools["ruff"][0], fixing=fixing, withheld=withheld,
             pending_path=pending_path)
         _ruff_check(invoker, top, python, tools["ruff"][0])
     if shell and tools["shellcheck"][0]:
         _shellcheck(invoker, top, shell, tools["shellcheck"][0])
     _tier0(invoker, top, run_dir, active, tools, base_tree, current_tree, catalog)
-    missing = _discover(invoker, catalog, top, project, active, base_env, shim_dirs, roots)
+    missing, disc_applied, disc_not_applied, journal = _discover(
+        invoker, catalog, top, project, active, base_env, shim_dirs, roots,
+        fixing=fixing, withheld=withheld, pending_path=pending_path, before=journal)
+    applied += disc_applied
+    not_applied += disc_not_applied
+    exact_patch = "".join(journal.values()).encode("utf-8")
     for item in active:
         if item.linted_by:
             linted = "linted by " + ", ".join(item.linted_by)
@@ -1218,6 +1235,7 @@ def _load_file(invoker: _Invoker, top: Path, item: _File, base_entries: Mapping[
     except UnicodeDecodeError:
         item.text = item.data.decode("utf-8", "replace")
         item.check_only.append("not UTF-8")
+    item.pass_data, item.pass_text = item.data, item.text
     item.kind = _classify(item.path, item.data[:256], catalog)
     old = base_entries.get(item.old if item.status in ("R", "C") else item.path)
     if old is not None and item.status != "A":
@@ -1309,10 +1327,80 @@ def _ruff_flags(top: Path, item: _File) -> Tuple[Tuple[str, ...], str]:
     return (), "rules from " + cquote(config)
 
 
+def _apply_fixes(invoker: _Invoker, top: Path, planned: List[Tuple[_File, bytes, str]], pending_path: Path,
+                 before: Optional[Mapping[str, str]] = None) -> Tuple[List[Tuple[_File, str]],
+                                                                       List[Tuple[_File, str, str]], Dict[str, str]]:
+    """Apply every planned ``(item, fixed_bytes, diff)`` fix, tool-agnostically: journal-first, then per file
+    re-stat + re-read + sha256-staleness check, atomic temp-file + ``os.replace``, and update
+    ``item.data``/``text``/``sha``/``changed`` in place.
+
+    The journal is a path -> diff mapping, not raw bytes: a path an earlier fixer in this pass already applied
+    gets its entry REPLACED here, diffed from ``item.pass_text`` (the content when this pass started) to this
+    fix's result -- never from the earlier fixer's own output -- so one path never ends up with two sections in
+    one pass's patch. ``diff`` in ``planned`` is each fixer's own incremental before/after text and is kept as
+    the human-facing report line (``applied``/``not_applied``); only the journal uses the cumulative diff.
+    ``before`` is the mapping this pass has already written to ``pending_path`` (``None``/``{}`` for the pass's
+    first fixer). Returns (applied, race failures, the updated mapping).
+    """
+    applied: List[Tuple[_File, str]] = []
+    not_applied: List[Tuple[_File, str, str]] = []
+    mapping: Dict[str, str] = dict(before) if before else {}
+    if not planned:
+        return applied, not_applied, mapping
+    # Journal first, in the consolidated form every planned write would produce if none were refused: the
+    # pending patch exists before any product file changes. A leftover journal was already adopted at the
+    # start of the pass.
+    prospective = dict(mapping)
+    fixed_text_of: Dict[str, str] = {}
+    for item, fixed, _diff in planned:
+        fixed_text_of[item.path] = fixed.decode("utf-8")
+        prospective[item.path] = unified(item.path, item.pass_text or "", fixed_text_of[item.path],
+                                         note_before="(before ShipLoop)", note_after="(after ShipLoop)")
+    _write_private(pending_path, "".join(prospective.values()).encode("utf-8"))
+    for item, fixed, diff in planned:
+        path = top / item.path
+        try:
+            info = path.lstat()
+            current = path.read_bytes()
+        except OSError as exc:
+            not_applied.append((item, "cannot re-read before writing: " + type(exc).__name__, diff))
+            continue
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or _sha256(current) != item.sha:
+            not_applied.append((item, "file changed since ShipLoop read it; fix refused", diff))
+            continue
+        temporary = path.with_name("." + path.name + ".shiploop-lint-" + uuid.uuid4().hex[:8])
+        try:
+            _write_private(temporary, fixed)
+            os.chmod(os.fspath(temporary), stat.S_IMODE(info.st_mode))
+            os.replace(os.fspath(temporary), os.fspath(path))
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+        applied.append((item, diff))
+        mapping[item.path] = prospective[item.path]
+        item.data = fixed
+        item.text = fixed_text_of[item.path]
+        item.sha = _sha256(fixed)
+        recomputed = _changed_lines(item.base_text, item.text)
+        if recomputed is not None:
+            item.changed = recomputed
+    if mapping != prospective:
+        # Some planned write was refused (a race or an unreadable path): collapse the journal to what this
+        # pass actually applied, which may be exactly ``before`` again, or nothing at all.
+        if mapping:
+            _write_private(pending_path, "".join(mapping.values()).encode("utf-8"))
+        else:
+            pending_path.unlink()
+    return applied, not_applied, mapping
+
+
 def _ruff_fix(invoker: _Invoker, top: Path, files: List[_File], ruff: str, *, fixing: bool, withheld: str,
-              pending_path: Path) -> Tuple[List[Tuple[_File, str]], List[Tuple[_File, str, str]], List[str], bytes]:
-    """Plan ruff autofixes per file and, when ``fixing``, apply them; returns the applied and unapplied fixes,
-    notes and the pending bytes written.
+              pending_path: Path,
+              before: Optional[Mapping[str, str]] = None) -> Tuple[List[Tuple[_File, str]],
+                                                                    List[Tuple[_File, str, str]], List[str],
+                                                                    Dict[str, str]]:
+    """Plan ruff autofixes per file and, when ``fixing``, apply them via ``_apply_fixes``; returns the applied
+    and unapplied fixes, notes and the updated path -> journal-diff mapping (``before`` plus this call's own).
     """
     applied: List[Tuple[_File, str]] = []
     not_applied: List[Tuple[_File, str, str]] = []
@@ -1370,45 +1458,10 @@ def _ruff_fix(invoker: _Invoker, top: Path, files: List[_File], ruff: str, *, fi
             continue
         planned.append((item, fixed, diff))
     if not planned:
-        return applied, not_applied, notes, b""
-    # Journal first: the pending patch exists before any product file changes.
-    # A leftover journal was already adopted at the start of the pass.
-    journal = "".join(diff for _item, _fixed, diff in planned).encode("utf-8")
-    _write_private(pending_path, journal)
-    written = b""
-    for item, fixed, diff in planned:
-        path = top / item.path
-        try:
-            info = path.lstat()
-            current = path.read_bytes()
-        except OSError as exc:
-            not_applied.append((item, "cannot re-read before writing: " + type(exc).__name__, diff))
-            continue
-        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or _sha256(current) != item.sha):
-            not_applied.append((item, "file changed since ShipLoop read it; fix refused", diff))
-            continue
-        temporary = path.with_name("." + path.name + ".shiploop-lint-" + uuid.uuid4().hex[:8])
-        try:
-            _write_private(temporary, fixed)
-            os.chmod(os.fspath(temporary), stat.S_IMODE(info.st_mode))
-            os.replace(os.fspath(temporary), os.fspath(path))
-        finally:
-            if temporary.exists():
-                temporary.unlink()
-        applied.append((item, diff))
-        written += diff.encode("utf-8")
-        item.data = fixed
-        item.text = fixed.decode("utf-8")
-        item.sha = _sha256(fixed)
-        recomputed = _changed_lines(item.base_text, item.text)
-        if recomputed is not None:
-            item.changed = recomputed
-    if not written:
-        # Every planned write was refused: nothing changed, so no journal remains.
-        pending_path.unlink()
-    elif written != journal:
-        _write_private(pending_path, written)
-    return applied, not_applied, notes, written
+        return applied, not_applied, notes, (dict(before) if before else {})
+    applied, race, mapping = _apply_fixes(invoker, top, planned, pending_path, before=before)
+    not_applied += race
+    return applied, not_applied, notes, mapping
 
 
 def _forced_safe(text: str) -> Optional[List[str]]:
@@ -1815,20 +1868,6 @@ def _format_findings(item: _File, name: str, formatted: str, hint: str) -> None:
                      + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
 
 
-def _parse_diff(item: _File, name: str, text: str, hint: str) -> None:
-    """Hunks of a unified diff from the current file (old side) to the formatted file."""
-    for raw in text.splitlines():
-        match = _HUNK_RE.match(raw)
-        if match is None:
-            continue
-        start = int(match.group("start"))
-        count = int(match.group("count")) if match.group("count") is not None else 1
-        first = max(1, start)
-        span = list(range(first, first + max(count, 1)))
-        _add_finding(item, name, first, "formatting differs from " + name + " output on lines "
-                     + str(span[0]) + "-" + str(span[-1]) + "; run " + hint, span)
-
-
 def _record_tool_failure(call: Optional[Mapping[str, Any]], members: Sequence[_File], tool_name: str,
                          ok_codes: Sequence[int]) -> bool:
     """Note on every member why a linter call produced no usable output; True means it failed.
@@ -1847,18 +1886,96 @@ def _record_tool_failure(call: Optional[Mapping[str, Any]], members: Sequence[_F
     return False
 
 
+def _plan_discovered_fix(item: _File, fixed_bytes: bytes, fixed_text: str, *, fixing: bool, withheld: str,
+                         label: str) -> Tuple[str, str]:
+    """The fixer-agnostic withhold checks every discovered-tool fix needs (ruff's own fixer applies the same
+    four, plus two ruff-specific ones with no analog here): fixing-disallowed, check-only, a line-ending
+    change, or a hunk outside the lines this work item changed. Returns (reason, diff); an empty reason means
+    apply it.
+    """
+    diff = unified(item.path, item.text or "", fixed_text, note_before="(before ShipLoop)",
+                   note_after="(after ShipLoop: " + label + " fix)")
+    if not fixing:
+        return withheld or "report-only pass", diff
+    if item.check_only:
+        return "check-only: " + "; ".join(item.check_only), diff
+    if not _endings(fixed_bytes) <= _endings(item.data):
+        return "the fixer changed line endings; whole file withheld", diff
+    if not _hunks_on_changed(item.text or "", fixed_text, item.changed):
+        return "would change a line this work item did not touch; whole file withheld", diff
+    return "", diff
+
+
 def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,
               active: Sequence[_File], base_env: Mapping[str, str], shim_dirs: Sequence[str],
-              roots: Sequence[str]) -> List[str]:
+              roots: Sequence[str], *, fixing: bool, withheld: str, pending_path: Path,
+              before: Optional[Mapping[str, str]] = None) -> Tuple[List[str], List[Tuple[_File, str]],
+                                                                    List[Tuple[_File, str, str]],
+                                                                    Dict[str, str]]:
     """Run every catalogued linter the repository declares for a changed file type.
 
-    Returns recommendation lines for linters the repository configures but this
-    host lacks.  Findings, coverage and tool notes go onto the files.
+    Phase A applies every ``fixable`` row's fix to completion -- acquire, ``_plan_discovered_fix``,
+    ``_apply_fixes`` -- one row at a time, in the catalog's own row order, before moving to the next row. A
+    later row's acquisition call for a path an earlier row already fixed therefore reads that already-applied
+    content (composing, never clobbering); the catalog lists eslint before prettier, the only two fixable rows
+    that share any suffixes. Phase B (the report loop) runs only after Phase A has fully finished every row,
+    re-invoking each tool fresh against final content -- simpler and strictly correct, at the cost of one
+    extra bounded call per already-fixed file, versus caching Phase A's own output.
+
+    Returns (recommendation lines for linters the repository configures but this host lacks, applied fixes,
+    fix attempts this call refused, the updated path -> journal-diff mapping). Findings, coverage and tool
+    notes go onto the files.
     """
     search = [project] if project == top else [project, top]
     path_env = base_env.get("PATH", "")
     missing: List[str] = []
-    for row in catalog.get("discovered", ()):
+    applied: List[Tuple[_File, str]] = []
+    not_applied: List[Tuple[_File, str, str]] = []
+    journal: Dict[str, str] = dict(before) if before else {}
+    rows = list(catalog.get("discovered", ()))
+
+    for row in rows:
+        if not row.get("fixable"):
+            continue
+        name = str(row["name"])
+        files = [item for item in active if item.text is not None and _matches(item, row)]
+        if not files:
+            continue
+        marker = _marker(search, row)
+        if marker is None and row.get("require_marker", True):
+            continue
+        tool, _reason = _discovered_tool(row, search, top, path_env, shim_dirs, roots)
+        if tool is None:
+            continue  # Phase B below records the missing-tool note for every row, fixable or not.
+        relative = {item.path: os.path.join(".", os.path.relpath(os.fspath(top / item.path), os.fspath(project)))
+                    for item in files}
+        ok = tuple(row.get("ok", (0, 1)))
+        planned: List[Tuple[_File, bytes, str]] = []
+        for item in files:
+            call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
+                               what=name + " fix for " + item.path, stdin=item.data, cwd=project,
+                               stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
+            if _record_tool_failure(call, [item], name, ok):
+                continue
+            formatted = call["stdout"]
+            if not formatted or formatted == item.data:
+                continue
+            try:
+                formatted_text = formatted.decode("utf-8")
+            except UnicodeDecodeError:
+                item.tool_notes.append(name + " fix output is not UTF-8; not applied")
+                continue
+            reason, diff = _plan_discovered_fix(item, formatted, formatted_text, fixing=fixing,
+                                                withheld=withheld, label=name)
+            if reason:
+                not_applied.append((item, reason, diff))
+                continue
+            planned.append((item, formatted, diff))
+        row_applied, row_race, journal = _apply_fixes(invoker, top, planned, pending_path, before=journal)
+        applied += row_applied
+        not_applied += row_race
+
+    for row in rows:
         name = str(row["name"])
         files = [item for item in active if item.text is not None and _matches(item, row)]
         if not files:
@@ -1883,23 +2000,16 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
         hint = str(row.get("fix_hint", name))
         label = name + (declared or " (on PATH)")
 
-        if fmt in ("stdin-diff", "diff"):
+        if fmt == "stdin-diff":
             for item in files:
-                if fmt == "stdin-diff":
-                    call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
-                                       what=name + " " + item.path, stdin=item.data, cwd=project,
-                                       stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
-                else:
-                    call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
-                                       what=name + " " + item.path, cwd=project, ok_codes=ok)
+                call = invoker.run(_argv(row["argv"], tool=tool, file=relative[item.path]),
+                                   what=name + " " + item.path, stdin=item.data, cwd=project,
+                                   stdin_note="stdin: current " + cquote(item.path), ok_codes=ok)
                 if _record_tool_failure(call, [item], name, ok):
                     continue
-                if fmt == "stdin-diff":
-                    formatted = _decode(call["stdout"])
-                    if formatted != (item.text or ""):
-                        _format_findings(item, name, formatted, hint + " " + item.path)
-                else:
-                    _parse_diff(item, name, _decode(call["stdout"]), hint + " " + item.path)
+                formatted = _decode(call["stdout"])
+                if formatted != (item.text or ""):
+                    _format_findings(item, name, formatted, hint + " " + item.path)
                 item.linted_by.append(label)
             continue
         if row.get("scope") == "project":
@@ -1919,7 +2029,7 @@ def _discover(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project:
             _parse_tool_lines(text, by_path, name, project, top)
         for item in files:
             item.linted_by.append(label)
-    return missing
+    return missing, applied, not_applied, journal
 
 
 def _project_scripts(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, project: Path,

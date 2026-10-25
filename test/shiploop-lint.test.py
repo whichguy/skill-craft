@@ -219,10 +219,19 @@ if name == "eslint":
         out.append({"filePath": os.path.abspath(path), "messages": messages})
     print(json.dumps(out))
     sys.exit(1 if any(entry["messages"] for entry in out) else 0)
-if name == "prettier":
+if name in ("prettier", "black", "gofmt", "clang-format", "terraform"):
     text = sys.stdin.read()
     sys.stdout.write("".join(line.rstrip() + "\n" for line in text.splitlines()))
     sys.exit(0)
+if name in ("ktlint", "phpcs", "rubocop"):
+    suffix = {"ktlint": (".kt", ".kts"), "phpcs": (".php",), "rubocop": (".rb",)}[name]
+    found = False
+    for path in [arg for arg in argv if arg.endswith(suffix)]:
+        for number, line in enumerate(open(path).read().splitlines(), 1):
+            if "LINTME" in line:
+                print(path + ":" + str(number) + ":1: stub finding")
+                found = True
+    sys.exit(1 if found else 0)
 if name == "tsc":
     found = False
     for root, _dirs, names in os.walk("."):
@@ -1303,6 +1312,92 @@ class DiscoveredLinterTests(Fixture):
         self.assertEqual([(row["path"], row["line"]) for row in prettier], [("a.md", 2)])
         self.assertIn("formatting differs from prettier output on lines 2-2; run prettier --write a.md",
                       prettier[0]["message"])
+        # prettier is fixable, but this pass is report-only: the fix is previewed, never applied.
+        self.assertIn("NOT APPLIED (report-only pass): a.md", payload["block"])
+        self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo   \n")
+
+    def test_prettier_fix_is_applied_on_the_lines_this_item_changed(self):
+        self.commit({".prettierrc": "{}\n", "a.md": "one\n"})
+        write_tool(self.bin, "prettier")
+        self.base()
+        self.edit({"a.md": "one\ntwo   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo\n")
+        self.assertIn("a.md", payload["applied"])
+        # prettier's own finding clears; git diff --check (Tier 0) still reports against the pass's entry
+        # snapshot, taken before this fix -- a separate, pre-existing characteristic this change does not alter.
+        self.assertFalse([row for row in payload["gating"] if row["message"].startswith("prettier: ")])
+
+    def test_black_fix_is_withheld_when_fixing_is_disabled_this_pass(self):
+        self.commit({"pyproject.toml": "[tool.black]\n", "a.py": "x = 1\n"})
+        write_tool(self.bin, "black")
+        self.base()
+        self.edit({"a.py": "x = 1\ny = 2   \n"})
+        payload = self.run_pass(mode="report")
+        self.assertIn("NOT APPLIED (report-only pass): a.py", payload["block"])
+        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2   \n")
+
+    def test_gofmt_fix_is_applied_and_findings_no_longer_gate(self):
+        self.commit({"go.mod": "module x\n", "a.go": "package main\n"})
+        write_tool(self.bin, "gofmt")
+        self.base()
+        self.edit({"a.go": "package main\nfunc f() {}   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.go").read_text(), "package main\nfunc f() {}\n")
+        self.assertIn("a.go", payload["applied"])
+        self.assertFalse([row for row in payload["gating"] if row["message"].startswith("gofmt: ")])
+
+    def test_clang_format_fix_is_applied(self):
+        self.commit({".clang-format": "{}\n", "a.c": "int main() {}\n"})
+        write_tool(self.bin, "clang-format")
+        self.base()
+        self.edit({"a.c": "int main() {}\nint g() {}   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.c").read_text(), "int main() {}\nint g() {}\n")
+        self.assertIn("a.c", payload["applied"])
+
+    def test_terraform_fmt_fix_is_applied(self):
+        self.commit({"a.tf": 'resource "x" "y" {}\n'})
+        write_tool(self.bin, "terraform")
+        self.base()
+        self.edit({"a.tf": 'resource "x" "y" {}\nresource "x" "z" {}   \n'})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.tf").read_text(), 'resource "x" "y" {}\nresource "x" "z" {}\n')
+        self.assertIn("a.tf", payload["applied"])
+
+    def test_ktlint_reports_findings(self):
+        self.commit({"a.kt": "fun main() {}\n"})
+        write_tool(self.bin, "ktlint")
+        self.base()
+        self.edit({"a.kt": "fun main() {}\nval x = 1 // LINTME\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.kt", 2)])
+
+    def test_phpcs_reports_findings(self):
+        self.commit({"phpcs.xml": "<ruleset></ruleset>\n", "a.php": "<?php\n"})
+        write_tool(self.bin, "phpcs")
+        self.base()
+        self.edit({"a.php": "<?php\n$x = 1; // LINTME\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.php", 2)])
+
+    def test_rubocop_reports_findings(self):
+        self.commit({".rubocop.yml": "\n", "a.rb": "puts 1\n"})
+        write_tool(self.bin, "rubocop")
+        self.base()
+        self.edit({"a.rb": "puts 1\nx = 1 # LINTME\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.rb", 2)])
+
+    def test_ruff_and_black_fixes_on_the_same_file_both_apply(self):
+        self.commit({"pyproject.toml": "[tool.black]\n", "a.py": "x = 1\n"})
+        write_tool(self.bin, "black")
+        self.base()
+        self.edit({"a.py": "x = 1  # fixme\ny = 2   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
+        self.assertEqual(payload["applied"].count("a.py"), 2)  # ruff's own fix, then black's
+        self.assertEqual(payload["patch"].count("--- a/a.py"), 1)  # one consolidated journal entry
 
     def test_tsc_project_findings_count_only_in_changed_files(self):
         self.commit({"tsconfig.json": "{}\n", "src/a.ts": "let a = 1;\n", "src/b.ts": "let b = TSBAD;\n"})
@@ -1461,6 +1556,19 @@ class GateTests(Fixture):
                                                             "changed"):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
+
+    def test_prettier_auto_fix_refuses_once_then_accepts(self):
+        self.commit({".prettierrc": "{}\n", "a.md": "one\n"})
+        write_tool(self.bin, "prettier")
+        state = self.start()
+        self.edit({"a.md": "one\ntwo   \n"})
+        with self.patched_env():
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.md on lines this work item "
+                                                            "changed"):
+                complete(self.run_dir, state)
+            self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo\n")
             complete(self.run_dir, state)
         self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
 
