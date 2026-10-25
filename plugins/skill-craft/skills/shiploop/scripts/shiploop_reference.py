@@ -23,7 +23,7 @@ VERSION_LINE = "<!-- shiploop-reference: {version} -->"
 
 # (anchor, heading). Packets cite `reference#<anchor>`; tests check every cited anchor exists.
 SECTIONS = (
-    ("rules", "Rules for every step"),
+    ("rules", "Rules for every stage"),
     ("blocked", "Blocked, and waiting for a person"),
     ("outcomes", "Result outcomes"),
     ("recovery", "Recovery"),

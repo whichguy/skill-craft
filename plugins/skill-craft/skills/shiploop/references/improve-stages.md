@@ -1,12 +1,12 @@
 # When Improve runs: the schedule
 
-Split from the ShipLoop skill card (`../SKILL.md`). Read when you need to know which results start an Improve child under the run's `planning_review` option, how its passes end, or what a plan-time experiment may change.
+Split from the ShipLoop skill card (`../SKILL.md`). Read when you need to know which results start an Improve stage under the run's `planning_review` option, how its passes end, or what a plan-time experiment may change.
 
 ## Experiment-informed planning
 
 Every run supports [experiments during planning](planning-experiments.md).
-The existing Plan Improve child investigates consequential assumptions (a run recorded
-with `--planning-review none` has no such child, so no plan-time experiment and no
+The plan's Improve review investigates consequential assumptions (a run recorded
+with `--planning-review none` has no plan Improve stage, so no plan-time experiment and no
 reconciliation). When a
 finding invalidates an upstream premise, the parent can settle its stopped child
 and rerun the affected planning suffix before preparation. Follow only the
@@ -17,7 +17,7 @@ a missing evidence file.
 
 ## When Improve runs
 
-Three kinds of result start an actual Improve child:
+Three kinds of result start an Improve stage:
 
 - Every result of a planning stage the run's `planning_review` option reviews. With
   `stage` (the default) those are `spec`, `test-strategy`, `plan`, `step-plan`,
@@ -35,7 +35,7 @@ Three kinds of result start an actual Improve child:
   `scripts/shiploop_prompts.py`, with the *Code craft* rubric), so each step is
   reviewed before the next one builds on it.
 - The successful `carry-forward` that leaves no work item pending. This
-  end-of-work child reviews every executed step together (code, tests,
+  end-of-work Improve review covers every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.
 
 Improve is a stage of its own in the sequence (`improve`), with its own action id, after each
@@ -63,11 +63,11 @@ each stage happen. If the end review adds work items, the review moves to the
 new last item's carry-forward. An isolated run's workspace return happens at
 `release` or `handoff` once no child is active.
 
-Every Improve child runs at Improve's own stop rule (`required_trivial_reviews: 1`, the
+Every Improve review runs at Improve's own stop rule (`required_trivial_reviews: 1`, the
 same for every reviewed stage): it completes at the first pass that finds only trivial
 changes or none (owner decision 2026-10-20; a second confirming pass took about a fifth
 of a live run's Improve passes and found nothing). Packets and reports call them passes.
-When that first pass leaves the workspace unchanged, the terminal packet says so
+When that first pass leaves the workspace unchanged, the receipt says so
 (`unchanged_first_pass`) and ShipLoop cross-checks it against the tree it recorded at
 `improve-bind`.
 

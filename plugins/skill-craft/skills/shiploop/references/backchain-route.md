@@ -35,7 +35,7 @@ original source/candidate identities, locator bases plus resolved paths, protect
 and receipts. Read the Backchain convergence resources; they must support the direct natural-language
 handoff under `Backchain standalone Until Loop binding: <binding-id>`: a plan-only child
 where the actual loaded Until Loop card starts its adapter, is the sole CLI caller, and
-returns the exact terminal packet. Caller/v1 alone is insufficient; reject an observed old
+returns the exact final receipt. Caller/v1 alone is insufficient; reject an observed old
 custom Backchain loop even when an Until Loop package is installed. A recovery reopens these
 records rather than deriving either skill root from CWD or a same-named package.
 

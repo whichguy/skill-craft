@@ -241,7 +241,7 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
              f"- Action {action_id} ({stage}); result file {root / 'inbox' / (action_id + '.md')}",
              f"- Pass log ({PASS_LOG_RULE}): {pass_log_path(root, action_id)}"]
     if "loop-terminal" in row.complete_runs:  # every inner stage: its Until Loop receipt (shiploop_loops.receipt_path)
-        lines.append(f"- Loop receipt (the runtime writes every packet here, the last one terminal): "
+        lines.append(f"- Loop receipt (the runtime rewrites it at every step, the final state last): "
                      f"{root / 'loops' / (action_id + '-terminal.json')}")
     runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
     if runs:

@@ -39,7 +39,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Collection, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_lint as lint
 import shiploop_store as store
@@ -77,18 +77,34 @@ def remote_test_commands(cards: Path = PLATFORM_CARDS) -> List[Tuple[str, str]]:
     return found
 
 
+def remote_card(command: str) -> Optional[Tuple[str, str]]:
+    """(card name, prefix) when ``command`` runs a test a platform card lists under ``## Remote tests``, else None."""
+    text = " ".join(str(command).split())
+    return next(((card, prefix) for card, prefix in remote_test_commands()
+                 if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+
+
+def split_remote(commands: Sequence[Mapping[str, Any]], stateful: Collection[str] = ()) \
+        -> Tuple[List[Mapping[str, Any]], List[str]]:
+    """(the commands that run on the checkout, the remote ones left out) for the mutant runs (run-5 batch I2, F3).
+
+    A mutant lives only in the checkout's copy, so a command that tests a deployed target beside local ones could never
+    kill one; running it would only spend the budget.  Remote means a platform card's Remote tests, or a test-strategy
+    target that keeps state (``stateful``)."""
+    remote = [str(row.get("command", "")) for row in commands
+              if remote_card(str(row.get("command", ""))) is not None or row.get("target") in stateful]
+    return [row for row in commands if str(row.get("command", "")) not in remote], remote
+
+
 def _remote_reason(commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
     """Why the mutation check cannot judge these focused commands, when every one tests a deployed target a platform
     card names; ``None`` when any of them runs on the checkout.
 
     A mutant lives only in a temporary copy of the checkout; a command that tests the deployed product never sees it,
     so every mutant would survive and the check would refuse good tests (a live run, 2026-10-18: 0 of 8 killed)."""
-    prefixes = remote_test_commands()
     matched = []
     for row in commands:
-        text = " ".join(str(row.get("command", "")).split())
-        hit = next(((card, prefix) for card, prefix in prefixes
-                    if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+        hit = remote_card(str(row.get("command", "")))
         if hit is None:
             return None
         matched.append(hit)
@@ -284,6 +300,13 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     if remote:
         record["skipped"] = remote
         return record
+    commands, skipped = split_remote(commands, test_loop.stateful_targets(state))
+    if skipped:
+        record["remote_commands_skipped"] = skipped
+        if not commands:
+            record["skipped"] = ("every focused command tests a deployed target or one that keeps state between runs, "
+                                 "which a mutant in the checkout's copy never reaches")
+            return record
     base = lint.read_base(root, work_item)
     if base is not None and base_commit:
         base = test_loop._at_commit(base, base_commit)
@@ -386,7 +409,13 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
                     budget=budget)
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
-    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0
+    # A mixed item left its remote commands out (I2, F3): a mutant in code only they reach survives whatever the local
+    # tests assert, so its survivors are recorded, not refused.
+    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0 \
+        and not record.get("remote_commands_skipped")
+    if record["mutants"] and record["killed"] == 0 and record.get("remote_commands_skipped"):
+        record["advisory"] = ("no mutant was killed, but the remote commands this check left out may be the only tests "
+                              "that reach the mutated code; recorded, not refused")
     # A check that could not judge anything (no focused command, no item base, no mutant, a copy that was not green)
     # passes, and says ``skipped`` so no reader takes it for a proof; one that refused is ``failed`` as before.
     record.update(passed=not refuse,

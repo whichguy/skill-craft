@@ -30,7 +30,7 @@ boundary, follow the packet's plan-return, review-return and guarded return comm
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
 The return happens at release or handoff, after the end-of-work Improve
-child, once no child is active. A product fix committed after that return (for
+stage, once no child is active. A product fix committed after that return (for
 example one found by a post-deploy check) goes back as a follow-up return: run
 the same plan-return, review-return and return commands again.
 If source return must itself trigger a required delivery check, retain that

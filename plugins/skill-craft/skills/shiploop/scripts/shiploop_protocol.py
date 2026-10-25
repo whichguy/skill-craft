@@ -88,7 +88,7 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
     if (requested or navigator.DEFAULT_PLANNING_REVIEW) != "none":
         return
     need(bool(card), "--planning-review none needs --improve-skill=<absolute selected Improve SKILL.md>: with no "
-                     "Improve child at the planning stages nothing else binds the card before the first item's "
+                     "Improve stage at the planning stages nothing else binds the card before the first item's "
                      "stage Until Loops, which read it. Start the run again with the flag.")
     import shiploop_standalone_improve as standalone
     try:
@@ -233,7 +233,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
     start.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                        help="new run: Backchain planning child passes, one (default), converge or none")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
-                       help="new run: which planning results start an Improve child, stage (default) or none")
+                       help="new run: which planning results start an Improve stage, stage (default) or none")
     for name in ("plan-return", "review-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -356,7 +356,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
             print(f"Receipt: {root / 'return-receipt.md'}")
             print(f"Original checkout/branch and baseline: {root / 'workspace.md'}")
             print("Return does not advance ShipLoop. Recover the current packet, finish its "
-                  "remaining duties, then submit its exact completion call:")
+                  "remaining duties, then submit its exact callback:")
             print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                               "next", "--run-dir", str(root / "run")]))
         return 0
@@ -589,7 +589,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                              help="new run: Backchain planning child passes, one (default), converge or none")
             sub.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
-                             help="new run: which planning results start an Improve child, stage (default) or none")
+                             help="new run: which planning results start an Improve stage, stage (default) or none")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")

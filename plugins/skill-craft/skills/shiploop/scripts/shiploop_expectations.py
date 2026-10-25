@@ -96,7 +96,7 @@ TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
 # requirement silently, and a model copied a refusal's example requirement and wrote a spec entry to match (2026-10-17,
 # SPEC-3/X-5).  A row that keeps a placeholder is refused as one (the navigator's HANDOFF_PLACEHOLDERS lists these).
 CASE_PLACEHOLDERS = {"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement": "R-<n>",
-                     "oracle": "<what observes the behaviour, and where>", "red": "<how the case fails before the change>",
+                     "oracle": "<what observes the behaviour, and where>", "red": "<the assertion that fails on the item's base because the behaviour is missing, not because a file is>",
                      "green": "<what the case shows once the change works>"}
 _TEST_CASE_SHAPE = "test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
 # The test-spec template prints at most this many skeleton rows (about 220 characters each); the focused IDs after them are
@@ -294,7 +294,7 @@ def open_assumptions(state: Mapping[str, Any], work_item: str) -> List[Mapping[s
     """The plan's open assumptions whose consumer is ``work_item``."""
     plan = test_loop._latest_root_result(state, "plan")
     return [row for row in plan.get("assumptions") or () if isinstance(row, Mapping)
-            and row.get("disposition") == "open" and row.get("consumer") == work_item]
+            and row.get("disposition") == "open" and row.get("due_item") == work_item]
 
 
 def _base_files(repo: Path, base: Optional[Mapping[str, Any]]) -> Optional[List[str]]:
@@ -396,7 +396,7 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
         _need(not stray, "expectations cite from " + ", ".join(stray) + ", which is not an open plan assumption "
               "whose consumer is " + work_item + (" (those are " + ", ".join(sorted(opened)) + ")" if opened else ""))
         uncited = sorted(opened - cited)
-        _need(not uncited, "open plan assumptions " + ", ".join(uncited) + " name " + work_item + " as consumer; "
+        _need(not uncited, "open plan assumptions " + ", ".join(uncited) + " name " + work_item + " as due_item; "
               "add an expectation for each with \"from\": \"<assumption id>\" and a check that settles it")
 
 
@@ -527,7 +527,7 @@ def coverage_notices(state: Mapping[str, Any], result: Mapping[str, Any]) -> Lis
         if isinstance(row, Mapping) and row.get("suite") != "focused":
             covered |= {str(name) for name in row.get("criteria") or ()}
     said = " ".join(str(row.get(key) or "") for row in result.get("assumptions") or () if isinstance(row, Mapping)
-                    for key in ("assumption", "check", "reason"))
+                    for key in ("assumption", "settle", "reason"))
     return [COVERAGE_PREFIX + "Criterion " + name + " has no test case and no recorded non-focused command lists it in "
             "criteria: add a case, add the command to the step plan, or record an assumptions open item naming the "
             "inspection that confirms it (this result is accepted)."

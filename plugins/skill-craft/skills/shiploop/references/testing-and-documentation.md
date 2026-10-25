@@ -190,7 +190,7 @@ to retain the requirement section, test path/selector and actual result location
 as distinct locators; planned cases and source inspection are not passing evidence.
 
 Define expected behavior before implementation when possible. In the spec, name
-observable acceptance criteria. Before source code, the step-plan and test-spec
+observable acceptance lines. Before source code, the step-plan and test-spec
 results contain a compact criteria matrix: each stable case ID maps its
 requirement or `T-` ID to preconditions/input, expected output/state/side
 effect, planned test path/selector, check command, and environment/fixture. This is the durable pre-code plan, not a new result schema
@@ -780,7 +780,7 @@ observations; `handoff` reconciles the final evidence.
 
 At `product-acceptance`, reassess the selected browser/service/API views against
 the whole product, not only the final item. Match the checks to every
-acceptance criterion. Review expected-versus-observed outcomes, test adequacy,
+acceptance line. Review expected-versus-observed outcomes, test adequacy,
 function/API contracts, README accuracy, and environment identity. Required
 blocked/not-run checks remain unfinished. Product changes discovered here use
 corrective work items through `add-work`, including documentation-only fixes, not
@@ -801,6 +801,28 @@ environment/version, manual versus automated evidence, and limitations without
 copying logs. Show generic ShipLoop proposals separately. Passing declared
 commands does not prove that cases or documentation are semantically complete;
 the host must perform this review and report uncertainty honestly.
+
+## Test layers
+
+Test-strategy records, before any code, which harness tests each part of the code at each layer and where the tests
+run (`scripts/shiploop_test_layers.py`). "Surface" keeps its meaning above: where a requirement is observed.
+
+- `test_layers`: `[{"code", "layer": "unit" | "component" | "e2e", "harness", "status": "available" |
+  "prerequisite" | "unverified", "reason"}]`, where `code` names a module, component or page the run writes. All code
+  has a unit or component row, and neither layer is `unverified`: a missing harness there is `prerequisite` work.
+  Only an e2e layer with no runner stays unverified. `test_layers_na` (the reason) replaces the list only when the run
+  writes no code; a step plan whose paths hold code then lists the item's own rows in `test_layers`.
+- `targets`: `[{"target", "keeps_state": "yes" | "no", "base_state_route"}]`. A target that keeps state between runs
+  says how a test still fails on an item's base there (a clean target, a destructive or ordered deploy, or an
+  inventory check).
+- Prepare's `harness_runs`: `[{"code", "layer", "command", "evidence"}]`, one per prerequisite row, the command that
+  ran one test with the harness and its saved output.
+- Each step-plan criterion's `confirm`: `executed` (a recorded command runs the behaviour; a command that only
+  searches text does not), `searched` (text the item writes) or `inspected` (with `code` and `layer` naming an
+  unverified row).
+
+The prepare, step-plan, test-spec and test packets print both lists as required text, grouped by layer, harness and
+status; their printed lines are kept within 1,200 characters, so the step-plan head still fits the host's cut.
 
 ## Design basis
 

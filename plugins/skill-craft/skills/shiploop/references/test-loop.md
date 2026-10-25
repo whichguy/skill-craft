@@ -29,8 +29,11 @@ On `done`, after the lint gate, ShipLoop runs two things itself
 1. **Base run** (`base_check`): every focused and regression command in a
    temporary detached worktree at the item's base (after any preparatory fix),
    with only this item's test files copied in. A new test ID (one a focused
-   command lists) must not pass there: it must fail, or be missing because a
-   file this item adds cannot be loaded. A characterisation test that already
+   command lists) must not pass there: it must fail because the behaviour it
+   asserts is missing, or fail to load the code this item adds. A line that is
+   only a path is not a load failure, so a guard that checks or prints a file's
+   path is not RED. A command a platform card lists under Remote tests is not
+   run on the base. A characterisation test that already
    passes goes in the result's `red_na: [{"id", "reason"}]`, which may name only
    an ID a focused command lists (`tests/<action>-base<N>.md`).
 2. **Candidate run** (`loop_run`): every recorded command (focused, regression,
@@ -92,11 +95,14 @@ record (`observed`) and the handoff say so. An empty list needs its `_na` reason
 evidence; a result's summary is not.
 
 A request outcome no executed check observed is neither confirmed nor hidden: a
-done `product-acceptance` lists it in `unverified` (outcome, reason, check, owner,
-due stage), and `[]` says every outcome was observed. ShipLoop refuses a missing
-list, an incomplete or placeholder entry and a due stage that is not a later
-stage; it cannot judge that the list is complete. It prints each entry at its
-due stage and the whole list at `handoff` and in the report.
+done `product-acceptance` lists it in `unverified` (outcome, requirement, reason,
+lower-layer check, settle, owner, due stage), and `[]` says every outcome was observed.
+ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement
+with no entry in the spec and a due stage that is not a later stage; it cannot judge
+that the list is complete. An outcome of a requirement the spec lists in `primary`
+is accepted only when its `lower_layer_check` is the ID of a test ShipLoop ran and saw
+pass in a case for that requirement; else add-work adds that test. It prints each
+entry at its due stage and the whole list at `handoff` and in the report.
 
 ## Tests pass or the step stops
 

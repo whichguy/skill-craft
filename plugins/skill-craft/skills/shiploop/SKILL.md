@@ -2,10 +2,10 @@
 name: shiploop
 description: >-
   Markdown-authoritative delivery harness. Start or resume once, follow the
-  script's current action packet, and submit its exact completion call until
+  script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.8.0
+version: 1.9.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -51,8 +51,8 @@ purpose files; open one when its trigger holds, read it whole, once:
 - [Run options](references/run-options.md): choosing `--delegation`, `--lint` or `--planning-review`, or switching one mid-run.
 - [Backchain route](references/backchain-route.md): a planning packet names Backchain, or choosing `--backchain-passes`.
 - [Guides by stage](references/guide-map.md): discovery, research, spec and planning guides and the knowledge home.
-- [When Improve runs](references/improve-stages.md): which results an Improve child reviews and how its passes end.
-- [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart one.
+- [When Improve runs](references/improve-stages.md): which results an Improve stage reviews and how its passes end.
+- [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart its child.
 - [The inner loop](references/inner-loop.md): an inner stage's rule, its Until Loop, expectations, `send-back`.
 - [Test loop and confirmation](references/test-loop.md): test commands, base and candidate runs, floors, criteria.
 - [Chains: route and binding](references/chain-route.md) and [navigation](references/chain-navigation.md): a
@@ -280,7 +280,7 @@ the step with its paths, skills and check commands, the test floors, the rerun l
 template and allowed outcomes; then, while the head fits 20,000
 characters, the References block, the pass log, the progress view and the pause command; and the knowledge files'
 contents (each file's size and headings; open the file for its text) and the hand-offs. Every print ends with the line
-`=== end ShipLoop head ===`: a print without it was cut (by the host, or by a pipe such as `head -N`), so run the
+`=== end ShipLoop print ===`: a print without it was cut (by the host, or by a pipe such as `head -N`), so run the
 command again with no pipe or read the packet file. Read the packet file with a file-reading tool for what the
 head leaves out; do not print it to the shell, where hosts cut long output (Grok keeps the first and last 10 KB of
 a print over 20 KB) and every byte stays in context. References a packet names are for lookup: open only the
@@ -321,7 +321,7 @@ question about the loop is not a stop: answer it and continue the packet.
 
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies
-   one effective node, its owner, and exactly one completion callback. During
+   one effective node, its owner, and exactly one callback. During
    INNER work, the parent exposes exactly one active owner: the producer or
    its bound Improve child. On a `delegation: ask-agent` run, give a worker only
    that one current packet and the relevant scoped context. A delegated worker does not
@@ -339,7 +339,7 @@ question about the loop is not a stop: answer it and continue the packet.
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
    At every INNER stage, do the stage's work inside the packet's
    [Until Loop](references/inner-loop.md#stage-until-loops), started with the printed start command; its
-   `--receipt` makes the runtime keep the terminal packet, so do not write that
+   `--receipt` makes the runtime keep its receipt there, so do not write that
    file yourself. At `test`, the packet's [test loop](references/test-loop.md#test-loop) lists the
    commands ShipLoop will run.
    A ShipLoop lint block printed after a `verify` callback is
@@ -369,8 +369,8 @@ question about the loop is not a stop: answer it and continue the packet.
    Missing state/output is incomplete, never evidence of success or permission to restart. Pause by pausing the parent;
    never report `cancelled` for a pause.
 4. The owning agent writes the packet's generic Markdown result and runs its
-   exact completion command (`complete`), retaining the action ID. At an Improve
-   checkpoint a `done` outcome starts the bound Improve child rather
+   exact callback (`complete`), retaining the action ID. At an Improve
+   checkpoint a `done` outcome starts the Improve stage rather
    than advancing the graph directly; `blocked` preserves unfinished work, `send-back` returns
    the item to its step plan and `add-work` adds corrective items. These are result outcomes, not permission to pick
    an arbitrary successor. Consume the returned packet before beginning another

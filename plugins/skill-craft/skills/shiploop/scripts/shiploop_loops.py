@@ -4,7 +4,7 @@ Every INNER stage does its work inside one bound Until Loop run.  ShipLoop
 writes the loop contract on entry to the stage's action (``contract_writes``),
 prints the loop block in the packet (``invoke_lines``: the one literal start
 command, the argument between two marker lines, and the result to report) and,
-before it accepts the result, compares the runtime's terminal packet with the
+before it accepts the result, compares the runtime's receipt with the
 contract rebuilt from state (``check_terminal``), so editing the contract file
 cannot reshape the loop.
 
@@ -43,7 +43,7 @@ BUNDLED_IMPROVE_CARD = Path(__file__).resolve().parents[2] / "improve" / "SKILL.
 
 
 class LoopError(ValueError):
-    """An inner stage's loop contract cannot be built, or its result is not supported by its terminal packet."""
+    """An inner stage's loop contract cannot be built, or its result is not supported by its receipt."""
 
 
 def _need(condition: bool, message: str) -> None:
@@ -62,8 +62,8 @@ _NO_LIMIT = "there is no iteration limit."
 
 # ``{items}`` is the duty items the loop does, counted from the duty text the route prints (``_duty_items``), so a duty
 # edit moves the range the Work cites and the Work never cites an item the packet does not print.  The check-only clause
-# is the Callback command with the flag added, which no packet prints as a command of its own.
-_CHECK_ONLY = "run the Callback command with `--check-only` added and fix each refusal"
+# is the callback with the flag added, which no packet prints as a command of its own.
+_CHECK_ONLY = "run the callback with `--check-only` added and fix each refusal"
 
 WORK: Mapping[str, str] = {
     "step-plan": (
@@ -97,9 +97,9 @@ WORK_ONE_STEP = "Do duty items {items} of {run}/packets/{action}.md."
 # The inline implement step's Work (implement-step fix plan section 3.4, the owner's D4 words): the step is anchored in
 # its criteria, the R-<n> they serve and the item's AD-<n>, read from state (``step_anchors``) so the contract rebuilt
 # at complete is the one written at entry.  WORK["implement"] stays the ask-agent route's whole-plan Work (its T31).
-WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the requirements that have been stated "
+WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the criteria that have been stated "
              "({criteria}{serving}) and the design directions that have been applied ({decisions}), until each "
-             "requirement assigned to this step is satisfied and none of the others is broken. Do duty items {items} "
+             "criterion assigned to this step is satisfied and none of the others is broken. Do duty items {items} "
              "of {run}/packets/{action}.md. Write no tests and start no later step.")
 
 REPEAT: Mapping[str, str] = {
@@ -107,7 +107,7 @@ REPEAT: Mapping[str, str] = {
         "Repeat while a check-only refusal remains or an exit condition above does not hold; " + _NO_LIMIT
         + " Stop blocked only when the plan no longer requires the item. " + _NEVER_CANCEL),
     "test-spec": (
-        "Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; " + _NO_LIMIT
+        "Repeat while a criterion has no entry, an entry lacks a field, or the callback with --check-only refuses an id; " + _NO_LIMIT
         + " Stop blocked when a criterion cannot be tested as written (the stage then reports send-back). "
         + _NEVER_CANCEL),
     "validate-existing": (
@@ -249,7 +249,7 @@ def contract_path(action_id: str) -> str:
 
 
 def terminal_path(action_id: str) -> str:
-    """Run-relative path of an action's loop receipt (the runtime writes every packet there, the terminal one last)."""
+    """Run-relative path of an action's loop receipt (the runtime rewrites it at every step, the final state last)."""
     return LOOP_DIR + "/" + action_id + "-terminal.json"
 
 
@@ -562,19 +562,19 @@ INVOKE_LINE = ("RUN the Until Loop now, once, before any work, and do this stage
                "this command, in the foreground, exactly as printed (if the Receipt below already exists and is active, "
                "run its next_argv instead: a second start resets the loop):")
 ARGUMENT_LEAD = "Its argument is already in the Contract file; do not edit that file or the receipt:"
-FOLLOW_LINE = ("Then follow each packet it prints (run its done_argv as printed) until the receipt says complete or "
+FOLLOW_LINE = ("Then follow each instruction it prints (run its done_argv as printed) until the receipt says complete or "
                "stopped. " + ARGUMENT_LEAD)
 ARGUMENT_BEGIN = "----- BEGIN until-loop ARGUMENT -----"
 ARGUMENT_END = "----- END until-loop ARGUMENT -----"
 # The stages whose packet still prints the argument (decision 20, owner 2026-10-18): the test stage's packet numbers its
 # command floors by the argument's list (shiploop_test_loop.loop_lines).  Every other loop stage's packet names the files
-# and points at the loop's own packets, which print the contract's Work, Exit and Repeat each time (a test pins that), so
+# and points at the loop's own instructions, which print the contract's Work, Exit and Repeat each time (a test pins that), so
 # the conditions are not printed twice and the head keeps room for its lookups.
 ARGUMENT_STAGES = ("test",)
-NO_ARGUMENT_FOLLOW = ("Then follow each packet it prints (run its done_argv as printed) until the receipt says complete "
-                      "or stopped. Each packet it prints states this stage's Work, Exit and Repeat conditions, the "
+NO_ARGUMENT_FOLLOW = ("Then follow each instruction it prints (run its done_argv as printed) until the receipt says complete "
+                      "or stopped. Each instruction it prints states this stage's Work, Exit and Repeat conditions, the "
                       "Contract file's words; do not edit that file or the receipt.")
-NO_ARGUMENT_RESUME = ("Its packets state this stage's Work, Exit and Repeat conditions, the Contract file's words; do not "
+NO_ARGUMENT_RESUME = ("Its instructions state this stage's Work, Exit and Repeat conditions, the Contract file's words; do not "
                       "edit that file or the receipt.")
 # How an inner stage works inside its loop: the exit-evidence rule, printed once, last in the block (packet re-cut,
 # 2026-10-11).  Where the loop's files may not be edited is said where the argument is introduced.
@@ -584,25 +584,25 @@ Call an exit condition satisfied only when a command or file shows it after your
 
 RECEIPT_RULE = ("Never write or edit the receipt. If it exists and is active, run its next_argv instead of starting "
                 "again.")
-RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop checks this file, so "
+RECEIPT_LINE = ("Receipt (the runtime rewrites it at every step, the final state last; ShipLoop checks this file, so "
                 "do not write or edit it): ")
 RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it when you report done. "
                     "ShipLoop refuses done without it.")
 RESUME_LINE = ("The loop already started: do not start it again (a second start resets it). While the receipt's status "
-               "is active, run its next_argv once and follow the packet it prints; when complete or stopped, submit this "
+               "is active, run its next_argv once and follow the instruction it prints; when complete or stopped, submit this "
                "stage's result.")
 # The runtime's report schema requires all five fields; its enums are printed here so the done report is written once.
 REPORT_FIELDS = ("Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment "
                  "satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and "
                  "handoff (nonblank text).")
 _RESULT_HEAD = ("Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run "
-                "the Callback command above. If that refuses for the loop, ")
+                "the callback above. If that refuses for the loop, ")
 RESULT_LINE = (_RESULT_HEAD + "run the start command above again (an active receipt: its next_argv instead), then run "
-               "the Callback again. " + REPORT_FIELDS)
+               "the callback again. " + REPORT_FIELDS)
 # A packet read after the start prints no start command (a second start resets the loop), so its result line names the
 # receipt's next_argv alone.
-RESUME_RESULT_LINE = (_RESULT_HEAD + "run the receipt's next_argv once and follow the packet it prints, then run the "
-                      "Callback again. " + REPORT_FIELDS)
+RESUME_RESULT_LINE = (_RESULT_HEAD + "run the receipt's next_argv once and follow what it prints, then run the "
+                      "callback again. " + REPORT_FIELDS)
 
 
 def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
@@ -613,7 +613,7 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
 
 def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
     """Whether the Until Loop is bound for this state: ``invoke_lines`` then prints the start route, and the argument on
-    an ``ARGUMENT_STAGES`` stage (elsewhere the loop's own packets state the exit conditions)."""
+    an ``ARGUMENT_STAGES`` stage (elsewhere the loop's own instructions state the exit conditions)."""
     found = cursor(state)
     if found is None:
         return False
@@ -700,9 +700,9 @@ def _read_json(path: Path, label: str) -> Any:
 
 def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[str, Any],
                       label: str, contract_file: str, start: str = "") -> None:
-    """Refuse a loop stage's result that its saved Until Loop terminal packet does not support.
+    """Refuse a loop stage's result that its saved Until Loop receipt does not support.
 
-    The packet must come from a run of ``expected`` (rebuilt from ShipLoop state).  ``complete`` supports only
+    The receipt must come from a run of ``expected`` (rebuilt from ShipLoop state).  ``complete`` supports only
     ``done``; its final report must assess the exit satisfied and, when the contract asks for trivial reviews, be
     trivial (with none asked, a non-trivial final report is accepted, as the runtime completes on it).  A
     ``blocked`` stop supports ``send-back`` or ``blocked``; a ``cancelled`` stop supports nothing; an active receipt is
@@ -714,48 +714,48 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
         until = ("complete" if outcome == "done" else
                  "stopped: report continuation_assessment blocked when the work proved unachievable as planned")
         raise LoopError(
-            "the " + label + " has not run: no terminal packet exists at " + str(path) + ". Start it with: " + start
-            + "  and follow each packet it returns (its done_argv takes your report) until its status is "
+            "the " + label + " has not run: no receipt exists at " + str(path) + ". Start it with: " + start
+            + "  and follow each instruction it returns (its done_argv takes your report) until its status is "
             + until + "; the runtime writes that file itself. Then submit " + str(outcome) + " again")
-    packet = _read_json(path, "Until Loop terminal packet")
-    _need(isinstance(packet, Mapping), "the Until Loop terminal packet must be a JSON object")
+    packet = _read_json(path, "Until Loop receipt")
+    _need(isinstance(packet, Mapping), "the Until Loop receipt must be a JSON object")
     _need(set(packet) == _PACKET_KEYS,
-          "the terminal packet is not a complete Until Loop packet (start the loop with the printed "
+          "the receipt is not a complete Until Loop receipt (start the loop with the printed "
           "--receipt command; the runtime writes this file itself)")
     _need(packet.get("receipt") == str(path),
-          "the terminal packet was not written by a run started with --receipt " + str(path))
+          "the receipt was not written by a run started with --receipt " + str(path))
     conditions, progress = packet.get("conditions"), packet.get("progress")
     _need(isinstance(conditions, Mapping) and isinstance(progress, Mapping)
           and frozenset(progress) in _PROGRESS_KEYS,
-          "the Until Loop terminal packet lacks its conditions or progress")
+          "the Until Loop receipt lacks its conditions or progress")
     status = packet.get("status")
     _need(status != "active",
-          "the " + label + " is still active: run the receipt's next_argv once, follow the returned packet until "
-          "its status is complete or stopped, then submit " + str(outcome) + " again")
+          "the " + label + " is still active: run the receipt's next_argv once, follow each instruction it returns "
+          "until its status is complete or stopped, then submit " + str(outcome) + " again")
     _need(packet.get("workspace") == expected["workspace"]
           and packet.get("work") == expected["work"]
           and conditions.get("exit") == expected["exit_condition"]
           and conditions.get("repeat") == expected["repeat_condition"]
           and progress.get("required_trivial_reviews") == expected["required_trivial_reviews"]
           and packet.get("context") == expected["context"],
-          "the terminal packet is not from a run of this action's contract " + contract_file
+          "the receipt is not from a run of this action's contract " + contract_file
           + (": start the loop again with " + start if start else ""))
     _need(status in ("complete", "stopped"),
-          "the terminal packet must have status complete or stopped, found " + repr(status))
+          "the receipt must have status complete or stopped, found " + repr(status))
     state_file = packet.get("state_file")
     _need(isinstance(state_file, str) and os.path.isabs(state_file) and not os.path.lexists(state_file),
-          "the terminal packet's run is still live or unnamed; a terminal transition deletes its state file")
+          "the receipt's run is still live or unnamed; a terminal transition deletes its state file")
     _need(packet.get("next_argv") is None and packet.get("done_argv") is None
           and packet.get("report_schema") is None,
-          "the terminal packet still offers a callback")
+          "the receipt still offers a next or done command")
     report = packet.get("last_report")
-    _need(isinstance(report, Mapping), "the terminal packet has no final report")
+    _need(isinstance(report, Mapping), "the receipt has no final report")
     iterations = progress.get("action_number")
     _need(isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 1,
-          "the terminal packet has no iteration count")
+          "the receipt has no iteration count")
     if status == "complete":
         _need(report.get("exit_assessment") == "satisfied",
-              "a complete terminal packet needs a final report whose exit is satisfied")
+              "a complete receipt needs a final report whose exit is satisfied")
         _need(expected["required_trivial_reviews"] == 0 or report.get("classification") == "trivial",
               "this loop's review gate needs a final trivial report")
         _need(outcome == "done", "a complete " + label + " reports outcome done")
@@ -789,7 +789,7 @@ def _verify_refused(root: Path, action_id: str) -> bool:
 
 
 def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, Any]) -> Path | None:
-    """Refuse the current inner action's result that its Until Loop terminal packet does not support.
+    """Refuse the current inner action's result that its Until Loop receipt does not support.
 
     Reads the action's receipt, which ShipLoop derives (the result need not list it: ``cite_receipt`` adds it to
     evidence_refs once this check holds), and compares it with the contract rebuilt from state, never the contract

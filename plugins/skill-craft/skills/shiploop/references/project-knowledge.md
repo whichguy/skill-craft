@@ -120,8 +120,8 @@ external-source quota or an inventory of every account.
 1. **Select the question and leads.** Retain permitted prompt hints about terms,
    aliases, team/tenant, channels, document/site links, repositories, owners and
    time windows in existing authorized notes. Sanitize hints for the note's
-   audience; sensitive locators belong only in an authorized knowledge home.
-   Use them as search leads, not established
+   audience; sensitive locators belong only in an authorized private store,
+   never in the committed knowledge home. Use them as search leads, not established
    definitions or proof of access. Hints are optional: follow relevant links and
    inspect the host's available capabilities when organizational context is
    needed. Resolve consequential ambiguity from evidence or one focused question;
@@ -165,8 +165,8 @@ external-source quota or an inventory of every account.
    private terms, identifiers, URLs or excerpts to public search or another
    service without authority covering that disclosure. Reading private material
    also does not authorize copying it into a public repository, report or task.
-   Retain the minimum permitted summary and safe locators in an authorized
-   knowledge home; if a consumer cannot access required evidence, record the
+   Retain the minimum permitted summary and safe locators in the knowledge home
+   only where its readers may see them; if a consumer cannot access required evidence, record the
    scoped gap instead of exporting the source or inventing a local snapshot.
 
 Use the [existing discovery handoff](#discovery-evidence-handoff): index selected
@@ -516,7 +516,7 @@ planning, and later runs inherit it.
 
 | Path | Holds |
 | --- | --- |
-| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`) and its acceptance criteria inside it, a `Retired` section with reasons. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
+| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`) and its acceptance lines inside it, a `Retired` section with reasons. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each; each harness and suite with its files and command, and the system-test catalog; the test-ID scheme and the one command that lists the IDs already taken (the test code is the one home of the IDs); the standing release and rollback procedure, under the heading the run uses. Sections: `## Targets and runtimes`, `## Commands`, `## Skills` (the repository's local skill directory), `## Harnesses and suites`, `## ID convention`, `## Access and accounts`, `## Platform facts` |
 | `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the real-boundary checks a local test cannot prove (each with its owner), and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Real-boundary checks`, `## Decisions`, `## Superseded` |
 
