@@ -49,6 +49,9 @@ PAGE_PACKET_LIMIT = 256 * 1024
 PAGE_TEXT_LIMIT = 12 * 1024 * 1024
 # Commands that only read or display; they are not run activity.
 UNTRACED = frozenset(("view", "hook-status", "trace", "graph-dry-run", "-h", "--help"))
+# Set by the CLI while a traced command runs on a current run; packets printed at any other time (a routed verb such as
+# chain, a test calling emit directly) write nothing.
+ACTIVE = False
 
 
 # ---------------------------------------------------------------------------------------------------------- writer
@@ -128,7 +131,9 @@ def keep_sent(root: str | Path, text: str) -> tuple[str, str]:
 
 def record_packet(root: str | Path, state: Mapping[str, Any], text: str, printed: str) -> bool:
     """Record one printed packet of ``state`` and keep its text, and the printed head when that is not the whole,
-    as sent."""
+    as sent.  Only while a traced command runs (``ACTIVE``)."""
+    if not ACTIVE:
+        return False
     try:
         sha, file = keep_sent(root, text)
         whole = printed.startswith(text)

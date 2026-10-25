@@ -123,8 +123,10 @@ class TraceWriterTests(CliRun):
         for row in packets:
             sent = (self.run / row["file"]).read_text(encoding="utf-8")
             self.assertEqual(len(sent), row["chars"])
-            self.assertTrue(row["whole"])
             self.assertTrue(row["file"].startswith("packets/sent/"))
+            # A packet over the print limit prints a head (how long depends on the install's paths); it is kept too.
+            if not row["whole"]:
+                self.assertEqual(len((self.run / row["head_file"]).read_text(encoding="utf-8")), row["printed"])
         # packets/<action>.md holds only the last text; the paused packet survives in sent/.
         paused = packets[3]
         self.assertEqual(paused["status"], "paused")
@@ -296,7 +298,9 @@ class TraceReaderTests(CliRun):
         data = json.loads(page[start:page.index(";\n", start)].replace("<\\/", "</"))
         self.assertEqual(data["schema"], trace.SCHEMA)
         self.assertIn("[redacted sensitive value]", data["texts"][sent["file"]])
-        self.assertEqual(set(data["texts"]), {row["file"] for row in events(self.run) if row["kind"] == "packet"})
+        sent_files = {row[key] for row in events(self.run) if row["kind"] == "packet" for key in ("file", "head_file")
+                      if row.get(key)}
+        self.assertEqual(set(data["texts"]), sent_files)
 
     def test_a_progress_snapshot_also_writes_the_page(self) -> None:
         self.drive()

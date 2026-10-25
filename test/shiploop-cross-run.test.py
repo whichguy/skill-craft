@@ -171,11 +171,13 @@ class CrossRunTests(unittest.TestCase):
         (any dispatch verb, on any status) rewrites the current action's full
         packet there as the printed head's locator target, so it is a derived,
         always-refreshed display cache, not part of the run's durable record.
+        Excludes the run trace too (``trace.jsonl``, ``trace.html``): every
+        command appends to it, as evidence of what ran, never as run state.
         """
         return {
             path.relative_to(run_dir).as_posix(): path.read_bytes()
             for path in sorted(run_dir.rglob("*"))
-            if path.is_file() and path.name != ".lock"
+            if path.is_file() and path.name not in (".lock", "trace.jsonl", "trace.html")
             and path.relative_to(run_dir).parts[0] != "packets"
         }
 

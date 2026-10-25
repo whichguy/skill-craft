@@ -159,6 +159,28 @@ commit (page plurals, page template only) landed while the tier ran; `test/shipl
 Not run: the full tier and a live ShipLoop run on a real host with the trace on; the first released E2E run is the live
 check.
 
+## 2026-10-25: the release's full CI found what the quick tier missed (firm, fixed)
+
+Main CI on the feature push (`3c333f04`) passed; it runs the quick checks. The release commit (`5485b896`, shiploop
+1.12.0) runs the full shards; six suites in four jobs failed (run 40241413798): `shiploop-cross-run`, `shiploop-chain`,
+`shiploop-chain-lifecycle`, `shiploop-chain-planning-context`, `shiploop-backchain-check` and the e2e apparatus's
+`test_grok_adapter`. None was in the quick selection for this change.
+
+Cause: those suites pin that read-only views (`chain history`, `chain pending`), record-only checks (`backchain-check`)
+and refused operations on a retired chain binding leave the run directory byte-identical. 1.12.0 traced the routed
+verbs and wrote a packet line for any `emit()`, so `trace.jsonl` appeared. The Grok adapter pins the CLI's verb list,
+which gained `trace`.
+
+Fix (1.12.1): only navigator commands on a current run are traced, and packet lines are written only while such a
+command runs (`shiploop_trace.ACTIVE`, set by `protocol.main`); `chain`, `lint`, `red-check` and `backchain-check` are not
+traced. The cross-run snapshot excludes `trace.jsonl`/`trace.html` as it excludes `packets/` (evidence, not run state).
+The adapter lists `trace`. Two trace tests assumed every packet prints whole; a longer install path pushes discovery's
+packet over the print limit, so they now accept a kept head. Evidence: the six suites pass locally on the fix.
+
+Lesson: for a change that writes a new file into every run, select the suites that snapshot run directories (cross-run,
+chain*, backchain-check) and the e2e apparatus, not only the suites the changed files reference. Gap: chain commands
+(ask-agent runs) are not in the trace.
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a

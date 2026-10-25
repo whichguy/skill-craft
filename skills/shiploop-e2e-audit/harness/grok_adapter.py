@@ -28,6 +28,7 @@ DEFAULT_REASONING_EFFORT = "xhigh"
 SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
     {
         "view",
+        "trace",
         "workspace",
         "chain",
         "graph-dry-run",
