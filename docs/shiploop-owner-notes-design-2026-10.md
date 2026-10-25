@@ -218,6 +218,18 @@ at its next ShipLoop callback or `next`.
   The head-order tier table gains `owner-notes`.
 - A change note `changes/shiploop/owner-notes.md` (bump: minor), a journal entry, and the quick tier.
 
+Write boundaries. Shiploop 1.12.1 changes `shiploop_protocol.py` (`main`, `_record_command`) and `shiploop_trace.py`
+(`record_packet`): routed verbs are no longer traced, and packet lines are written only while a traced command runs
+(the `shiploop_trace.ACTIVE` flag, set once a current run loads). The build starts by rebasing on it, and keeps to
+these rules:
+
+- `note` is a protocol verb. It writes nothing until the run loads as current. A note on a retired or unloadable run,
+  or with bad arguments, leaves the run exactly as it was.
+- `shown.json` is written only by `emit`, beside the packet file it already writes, and by a held callback. A held
+  callback writes nothing else.
+- Every other refusal, every read-only view, and every routed verb (chain, lint, red-check, backchain-check) leaves the
+  run byte-identical. The shiploop-chain, backchain-check, cross-run and navigator-contract suites pin this.
+
 ## Follow-ups found while measuring
 
 - **F1.** At a 163-character run directory, the plan head prints 20,160 characters with no note at all: 160 past
