@@ -8850,6 +8850,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     final_result = receipt.get("final_result")
                     if final_result is not None:
                         _check_submitted_evidence(final_result, None)
+                        # A revised result meets the size bounds a submitted one meets: later packets print it whole.
+                        _check_producer_bounds(child["stage"], final_result)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
