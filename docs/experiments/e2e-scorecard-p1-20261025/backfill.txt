@@ -1,0 +1,10 @@
+scorecard/1: 9 run(s); floors accuracy/enterprise/fidelity (Y yes, n no, - not measured)
+  checkers claude            Y/-/n    13.2m $3.7224    201t   3r plan   4.8m  comparable
+  chess-salesforce grok      n/-/-   240.0m $15.9202+  922t   5r plan  78.1m  comparable
+  chess-salesforce grok      n/-/n   239.6m $21.4859+  884t  13r plan  73.8m  comparable
+  chess-salesforce grok      n/-/-    92.9m $25.5349+  350t   0r plan  78.5m  not comparable: resumed; overlapped 16 run(s)
+  battleship claude          n/-/Y    19.6m $6.3566    269t   8r plan   9.3m  not comparable: overlapped 7 run(s); work tree changed after delivery:  D page.html
+  hello claude               Y/-/Y    10.3m $4.1815    197t   3r plan   4.2m  not comparable: overlapped 8 run(s)
+  seat-reservations claude   Y/-/Y    20.9m $6.0145    256t   5r plan   7.4m  not comparable: overlapped 7 run(s)
+  csv-report claude          Y/-/Y    30.2m $9.9976    354t  10r plan  12.3m  not comparable: overlapped 8 run(s)
+  hello codex                Y/-/n   124.9m $-         120t   9r plan  51.4m  not comparable: resumed; overlapped 20 run(s)

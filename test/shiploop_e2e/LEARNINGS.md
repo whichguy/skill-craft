@@ -2592,7 +2592,7 @@ Learnings so far:
 - **E3: the run records are not bloated.** 25 of the 33 `metrics.json` blocks of run 4 have a reader; the 8 without one total 981 bytes. Pruning outputs was rejected. Evidence: `e3-consumers.json`.
 - Also seen:
   - No retained run folder holds a `review.json`, so `review.py` and `iterate.py` are unused. That decision is the owner's.
-  - Chess run 5 ended BLOCKED at W1 implement after 1.5 h: the session guard blocked a deploy to `de`. Its `shiploop_progress.py --watch` outlived it, as on 2026-10-18.
+  - Chess run 5 ended BLOCKED at W1 implement after 1.5 h: the session guard blocked a deploy to `de`. Its `shiploop_progress.py --watch` outlived it, as on 2026-10-18. *[corrected 2026-10-25: the block was Grok 1.0.70's own auto mode refusing `sf project deploy` ("Auto mode blocked this action … remote stateful mutation"), not the harness's `sf` guard; inner-loop, which watched runs 5a and 5b live.]*
 
 **Changes on `feat/e2e-wave1-6e86ad`.** Each is a record or a check, and none changes a baseline rule.
 
@@ -2679,3 +2679,59 @@ The four Claude rows are appended to `baselines.jsonl`, including Battleship's f
 **Regrade.** The gate's Battleship product was copied and its `page.html` restored. All four fixed Battleship checks pass, the new game check included, and its repository stays clean. So the web-service verdict on 2.9.0 is a pass, once a live run on the fixed harness confirms it (`e4-check-clobber.json` `fixed_regrade`).
 
 **Next.** Live Battleship and battleship-scoring runs need these checks on origin/main, because the version gate refuses a marketplace run from a branch with unpublished commits.
+
+
+## The scorecard (P1 of the self-improving loop): one card per run, backfilled on the 2.9.0 gate (2026-10-25) — status: firm for the reader and the backfill figures; interim for what the floors should be (enterprise is not measured yet)
+
+**Question.** Can one versioned card per run carry the loop's objective from records the harness already writes? The design
+is `docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`, P1 (owner approved, 2026-10-25).
+
+**Built.** `test/shiploop_e2e/scorecard.py`, id `scorecard/1`. It is read-only, calls no model and writes nothing into a run
+folder.
+- Floors: accuracy, enterprise and fidelity. Enterprise is null until the P2 rubric exists.
+- Target: efficiency.
+- A validity block marks a run not comparable when it was resumed, ran on mixed hosts, changed host build, overlapped
+  runs under its root, left listeners alive, or had its delivered tree change after delivery.
+- Readers it shares: `environment.overlap`, `metrics.lower_bound`.
+- A finished suite's case now reads the suite folder's runs root through its `suite-result.json` (`environment.runs_root`,
+  SPEC amended first).
+
+**Reproduces the journal.** On chess runs 3 and 4 the card gives:
+- re-orientation 107.9 and 74.0 min;
+- refusals 5 and 13;
+- planning 78.1 and 73.8 min;
+- Grok cost marked as a lower bound.
+
+These are the figures the entries above cite.
+
+**Backfill** (`docs/experiments/e2e-scorecard-p1-20261025/backfill.txt`, nine runs):
+- **Accuracy floor:** passes for hello, seat-reservations and csv-report on Claude, hello on Codex, and Checkers. It fails
+  for Battleship, the E4 false fail, and for chess runs 3-5, which stopped or were blocked.
+- **Fidelity floor:** fails wherever an entry stayed unverified. That is Codex hello at release-verify, the 2026-10-10
+  Checkers run, and chess run 4, whose engine was still active.
+  - The first draft also failed every passing run. Its floor read the script-owned edit list, and its type check was
+    wrong.
+  - SPEC calls that list "a list to confirm", so it is now reported and decides nothing.
+- **Validity:** no gate run is a clean timing basis. Each overlapped 7-20 runs under `~/e2e-runs`. Battleship is also
+  marked for its deleted `page.html`, and the card found that on its own.
+- **S-16:** csv-report's ShipLoop texts used the retired term "complete command" twice. inner-loop saw the same in chess
+  run 5b's refusals.
+- `metrics.improve_reviews` reads 0 children on runs with 10 Improve children: a stale reader, left out of the card.
+
+**From `inner-loop` (2026-10-25).** It watched chess runs 5a and 5b live and sent:
+- a list of stop-now signals and run-to-the-end signals;
+- which of them a script can read;
+- seven things the scorecard should measure next.
+
+All of it is in the design's triage table and its scorecard/2 list. It also reported that its 2.9.1 patch touches
+`run.py` (monotonic deadlines, `import _strptime`).
+
+**Tests:** `ScorecardTest`, 6 tests in `test/shiploop-e2e-baseline.test.py`, over compact extracts of the 7 runs in
+`test/fixtures/scorecard`. It covers:
+- the figures above;
+- validity, including a fixture whose committed `page.html` is deleted;
+- a host build that changed;
+- nulls with their reasons;
+- a CLI that never writes inside a run.
+
+`OverlapTest` gains the `suite-result.json` root.

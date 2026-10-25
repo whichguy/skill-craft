@@ -1,0 +1,764 @@
+{
+ "scorecard": "scorecard/1",
+ "cards": [
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261010/checkers-1",
+   "observed": true,
+   "case": "checkers",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "checkout",
+    "plugin_version": "1.26.0",
+    "shiploop_version": "0.58.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.296"
+    ],
+    "overlapped_runs": 0,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": true,
+    "why_not": []
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 4,
+     "total": 4
+    },
+    "acceptance": {
+     "passed": 6,
+     "total": 6
+    },
+    "mutation": {
+     "ratio": 0.82,
+     "operator_id": "js-1"
+    },
+    "floor": true
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 1,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 3,
+    "repeated_refusals": 0,
+    "retired_terms": null,
+    "floor": false
+   },
+   "efficiency": {
+    "minutes": 13.2,
+    "cost_usd": 3.7224,
+    "cost_lower_bound": false,
+    "turns": 201,
+    "refusals": 3,
+    "improve_children": 8,
+    "planning_minutes": 4.8,
+    "reorientation_minutes": 0.0
+   },
+   "floors": {
+    "accuracy": true,
+    "enterprise": null,
+    "fidelity": false
+   },
+   "unmeasured": {
+    "fidelity.retired_terms": "metrics.json has no nomenclature record (it predates 2026-10-24)"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261019/chess-sf-full-05fe25b",
+   "observed": true,
+   "case": "chess-salesforce",
+   "driver": {
+    "host": "grok",
+    "model": "grok-4.7",
+    "effort": "medium"
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.7.0",
+    "shiploop_version": "1.7.0"
+   },
+   "outcome_class": "STOPPED",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "grok 1.0.62 (1474f9cbdd91)"
+    ],
+    "overlapped_runs": 0,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": true,
+    "why_not": []
+   },
+   "accuracy": {
+    "pass": false,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": false,
+     "shiploop": false,
+     "committed": false
+    },
+    "checks": {
+     "passed": 2,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": false
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "active",
+    "unverified": null,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 5,
+    "repeated_refusals": 0,
+    "retired_terms": null,
+    "floor": null
+   },
+   "efficiency": {
+    "minutes": 240.0,
+    "cost_usd": 15.9202,
+    "cost_lower_bound": true,
+    "turns": 922,
+    "refusals": 5,
+    "improve_children": 16,
+    "planning_minutes": 78.1,
+    "reorientation_minutes": 107.9
+   },
+   "floors": {
+    "accuracy": false,
+    "enterprise": null,
+    "fidelity": null
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure",
+    "fidelity.retired_terms": "metrics.json has no nomenclature record (it predates 2026-10-24)",
+    "fidelity.unverified": "the fidelity block does not carry it"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261020/chess-sf-full-9e52e8",
+   "observed": true,
+   "case": "chess-salesforce",
+   "driver": {
+    "host": "grok",
+    "model": "grok-4.7",
+    "effort": "medium"
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.8.0",
+    "shiploop_version": "1.8.0"
+   },
+   "outcome_class": "STOPPED",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "grok 1.0.62 (1474f9cbdd91)"
+    ],
+    "overlapped_runs": 0,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": true,
+    "why_not": []
+   },
+   "accuracy": {
+    "pass": false,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": false,
+     "shiploop": false,
+     "committed": false
+    },
+    "checks": {
+     "passed": 3,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": false
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "active",
+    "unverified": 3,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 6,
+    "refusals": 13,
+    "repeated_refusals": 1,
+    "retired_terms": null,
+    "floor": false
+   },
+   "efficiency": {
+    "minutes": 239.6,
+    "cost_usd": 21.4859,
+    "cost_lower_bound": true,
+    "turns": 884,
+    "refusals": 13,
+    "improve_children": 13,
+    "planning_minutes": 73.8,
+    "reorientation_minutes": 74.0
+   },
+   "floors": {
+    "accuracy": false,
+    "enterprise": null,
+    "fidelity": false
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure",
+    "fidelity.retired_terms": "metrics.json has no nomenclature record (it predates 2026-10-24)"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261024/chess-sf-full-ed3292",
+   "observed": true,
+   "case": "chess-salesforce",
+   "driver": {
+    "host": "grok",
+    "model": "grok-4.7",
+    "effort": "medium"
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.9.0",
+    "shiploop_version": "1.9.0"
+   },
+   "outcome_class": "BLOCKED",
+   "validity": {
+    "resumed": true,
+    "mixed_host": false,
+    "host_builds": [
+     "grok 1.0.70 (f50904eaee6c)"
+    ],
+    "overlapped_runs": 16,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": null,
+    "work_tree_after": [],
+    "comparable": false,
+    "why_not": [
+     "resumed",
+     "overlapped 16 run(s)"
+    ]
+   },
+   "accuracy": {
+    "pass": false,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": null,
+     "shiploop": false,
+     "committed": false
+    },
+    "checks": {
+     "passed": 0,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": false
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "blocked",
+    "unverified": null,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 0,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": null
+   },
+   "efficiency": {
+    "minutes": 92.9,
+    "cost_usd": 25.5349,
+    "cost_lower_bound": true,
+    "turns": 350,
+    "refusals": 0,
+    "improve_children": 5,
+    "planning_minutes": 78.5,
+    "reorientation_minutes": 51.2
+   },
+   "floors": {
+    "accuracy": false,
+    "enterprise": null,
+    "fidelity": null
+   },
+   "unmeasured": {
+    "validity.left_behind": "not recorded",
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure",
+    "fidelity.unverified": "the fidelity block does not carry it"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship",
+   "observed": true,
+   "case": "battleship",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.9.0",
+    "shiploop_version": "1.9.0"
+   },
+   "outcome_class": "FAILED",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 7,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [
+     " D page.html"
+    ],
+    "comparable": false,
+    "why_not": [
+     "overlapped 7 run(s)",
+     "work tree changed after delivery:  D page.html"
+    ]
+   },
+   "accuracy": {
+    "pass": false,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 2,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": false
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 8,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": true
+   },
+   "efficiency": {
+    "minutes": 19.6,
+    "cost_usd": 6.3566,
+    "cost_lower_bound": false,
+    "turns": 269,
+    "refusals": 8,
+    "improve_children": 11,
+    "planning_minutes": 9.3,
+    "reorientation_minutes": 0.0
+   },
+   "floors": {
+    "accuracy": false,
+    "enterprise": null,
+    "fidelity": true
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the unmutated copy's test run exited 1: with a red baseline every mutant would read as caught"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/hello",
+   "observed": true,
+   "case": "hello",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.9.0",
+    "shiploop_version": "1.9.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 8,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": false,
+    "why_not": [
+     "overlapped 8 run(s)"
+    ]
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 2,
+     "total": 2
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": true
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 3,
+    "repeated_refusals": 1,
+    "retired_terms": 0,
+    "floor": true
+   },
+   "efficiency": {
+    "minutes": 10.3,
+    "cost_usd": 4.1815,
+    "cost_lower_bound": false,
+    "turns": 197,
+    "refusals": 3,
+    "improve_children": 9,
+    "planning_minutes": 4.2,
+    "reorientation_minutes": 0.0
+   },
+   "floors": {
+    "accuracy": true,
+    "enterprise": null,
+    "fidelity": true
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+   "observed": true,
+   "case": "seat-reservations",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.9.0",
+    "shiploop_version": "1.9.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 7,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": false,
+    "why_not": [
+     "overlapped 7 run(s)"
+    ]
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 4,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": true
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 5,
+    "repeated_refusals": 1,
+    "retired_terms": 0,
+    "floor": true
+   },
+   "efficiency": {
+    "minutes": 20.9,
+    "cost_usd": 6.0145,
+    "cost_lower_bound": false,
+    "turns": 256,
+    "refusals": 5,
+    "improve_children": 10,
+    "planning_minutes": 7.4,
+    "reorientation_minutes": 0.0
+   },
+   "floors": {
+    "accuracy": true,
+    "enterprise": null,
+    "fidelity": true
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-csv-report",
+   "observed": true,
+   "case": "csv-report",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.9.0",
+    "shiploop_version": "1.9.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 8,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": false,
+    "why_not": [
+     "overlapped 8 run(s)"
+    ]
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 5,
+     "total": 5
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": true
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 10,
+    "repeated_refusals": 0,
+    "retired_terms": 2,
+    "floor": true
+   },
+   "efficiency": {
+    "minutes": 30.2,
+    "cost_usd": 9.9976,
+    "cost_lower_bound": false,
+    "turns": 354,
+    "refusals": 10,
+    "improve_children": 12,
+    "planning_minutes": 12.3,
+    "reorientation_minutes": 0.0
+   },
+   "floors": {
+    "accuracy": true,
+    "enterprise": null,
+    "fidelity": true
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure"
+   }
+  },
+  {
+   "scorecard": "scorecard/1",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-codex-hello",
+   "observed": true,
+   "case": "hello",
+   "driver": {
+    "host": "codex",
+    "model": "gpt-6-luna",
+    "effort": "xhigh"
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.9.0",
+    "shiploop_version": "1.9.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": true,
+    "mixed_host": false,
+    "host_builds": [
+     "codex-cli 0.164.0"
+    ],
+    "overlapped_runs": 20,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "comparable": false,
+    "why_not": [
+     "resumed",
+     "overlapped 20 run(s)"
+    ]
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 2,
+     "total": 2
+    },
+    "acceptance": null,
+    "mutation": null,
+    "floor": true
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": null
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 1,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 3,
+    "refusals": 9,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": false
+   },
+   "efficiency": {
+    "minutes": 124.9,
+    "cost_usd": null,
+    "cost_lower_bound": true,
+    "turns": 120,
+    "refusals": 9,
+    "improve_children": 9,
+    "planning_minutes": 51.4,
+    "reorientation_minutes": 27.5
+   },
+   "floors": {
+    "accuracy": true,
+    "enterprise": null,
+    "fidelity": false
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure",
+    "efficiency.cost_usd": "the host reports no cost"
+   }
+  }
+ ],
+ "question": "P1 backfill: what do scorecard/1 cards say about the 2.9.0 release-gate runs, chess runs 3-5 and a Checkers run with mutation and hidden acceptance, read live from ~/e2e-runs (runs root ~/e2e-runs)?",
+ "measured": "2026-10-25 ~09:30 PDT"
+}
