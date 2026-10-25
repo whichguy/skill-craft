@@ -25,11 +25,12 @@ The record ``tests/<action>-mutation<N>.md`` holds every mutant and the totals, 
 the kill count as a measure).  A refused check counts toward ``MAX_REFUSED_RUNS`` with the base and candidate runs;
 ``count=False`` (``complete --check-only``) writes ``tests/<action>-mutation-check-only.md`` and never counts.
 
-Known limits, the same as the base run's: ignored files other than ``DEPENDENCY_DIRS`` are absent from the copy (so
-the unmutated run may fail there, and the check then records that it could not judge and passes); a command that names
-the checkout by an absolute path runs the checkout, not the copy.  The operators are textual, so a token inside a
-construct the cheap scan does not recognise (a regex literal, a heredoc, a raw string with an unusual delimiter) can be
-mutated; such a mutant either breaks the file (killed) or survives, and only a check with no kill at all refuses.
+Known limits, the same as the base run's: ignored files other than the platform cards' dependency directories
+(``dependency_directories``) are absent from the copy (so the unmutated run may fail there, and the check then records
+that it could not judge and passes); a command that names the checkout by an absolute path runs the checkout, not the
+copy.  The operators are textual, so a token inside a construct the cheap scan does not recognise (a regex literal, a
+heredoc, a raw string with an unusual delimiter) can be mutated; such a mutant either breaks the file (killed) or
+survives, and only a check with no kill at all refuses.
 """
 
 from __future__ import annotations
@@ -57,24 +58,39 @@ MUTATION_BUDGET_SECONDS = 600.0
 SCHEMA = "shiploop-test-mutation/v1"
 # A file larger than this is not mutated (a generated or vendored file, not something the item wrote by hand).
 MAX_FILE_BYTES = 512 * 1024
-# The platform cards: a card's ``## Remote tests`` section lists, one backticked prefix per bullet, the commands that test
-# a deployed copy of the product rather than the checkout (owner rule: platform detail lives only in the cards).
+# The platform cards (owner rule: platform detail lives only in the cards), one backticked item per bullet: a card's
+# ``## Remote tests`` section lists the command prefixes that test a deployed copy of the product rather than the
+# checkout, and its ``## Dependency directories`` section the ignored directories a runner is installed in.
 PLATFORM_CARDS = Path(__file__).resolve().parent.parent / "references" / "platforms"
-_REMOTE_PREFIX = re.compile(r"^\s*[-*]\s+`([^`]+)`")
+_CARD_BULLET = re.compile(r"^\s*[-*]\s+`([^`]+)`")
+
+
+def _card_bullets(heading: str, cards: Path) -> List[Tuple[str, str]]:
+    """(card name, item) for each backticked bullet a platform card lists under ``## <heading>``."""
+    found: List[Tuple[str, str]] = []
+    for card in sorted(Path(cards).glob("*.md")):
+        section = card.read_text(encoding="utf-8").split("\n## " + heading, 1)
+        if len(section) < 2:
+            continue
+        for line in section[1].split("\n## ", 1)[0].splitlines():
+            match = _CARD_BULLET.match(line)
+            if match:
+                found.append((card.stem, " ".join(match.group(1).split())))
+    return found
 
 
 def remote_test_commands(cards: Path = PLATFORM_CARDS) -> List[Tuple[str, str]]:
     """(card name, command prefix) for each prefix a platform card lists under ``## Remote tests``."""
-    found: List[Tuple[str, str]] = []
-    for card in sorted(Path(cards).glob("*.md")):
-        section = card.read_text(encoding="utf-8").split("\n## Remote tests", 1)
-        if len(section) < 2:
-            continue
-        for line in section[1].split("\n## ", 1)[0].splitlines():
-            match = _REMOTE_PREFIX.match(line)
-            if match:
-                found.append((card.stem, " ".join(match.group(1).split())))
-    return found
+    return _card_bullets("Remote tests", cards)
+
+
+def dependency_directories(cards: Path = PLATFORM_CARDS) -> List[str]:
+    """Every directory name a platform card lists under ``## Dependency directories``, once each, in card order.
+
+    The base run's worktree and this check's copy hold only tracked files, so each listed directory that exists in the
+    checkout is linked in from there and a runner installed in it can start.  A card lists only directories a command
+    reads as input, never build output: a linked build directory would show the base the candidate's built product."""
+    return list(dict.fromkeys(name for _card, name in _card_bullets("Dependency directories", cards)))
 
 
 def remote_card(command: str) -> Optional[Tuple[str, str]]:

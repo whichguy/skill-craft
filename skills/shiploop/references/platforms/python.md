@@ -29,6 +29,15 @@ on the import path, as a script's own directory does. Mark module-private names
 with a leading underscore and, where the package defines one, keep `__all__` to
 the names consumers need.
 
+## Dependency directories
+
+The test stage's base run and mutation check work in a copy that holds only tracked files. ShipLoop links each
+directory below in from the checkout when it is there, so a runner installed in it can start. List only directories a
+command reads as input, never build output.
+
+- `.venv`
+- `venv`
+
 ## Tool state
 
 Tools write their own files inside the project: `__pycache__/` and `*.pyc`, a virtual environment (`.venv/`), and

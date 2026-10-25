@@ -42,6 +42,14 @@ Recheck these against the linked pages before relying on them.
 - "Socket.IO automatically syncs rooms/broadcasts across horizontally scaled instances." It requires explicitly installing `@socket.io/redis-adapter`. ([socket.io Redis adapter](https://socket.io/docs/v4/redis-adapter/))
 - "`--env-file` is a drop-in dotenv replacement." It has no variable expansion and is still experimental in the version checked.
 
+## Dependency directories
+
+The test stage's base run and mutation check work in a copy that holds only tracked files. ShipLoop links each
+directory below in from the checkout when it is there, so a runner installed in it can start. List only directories a
+command reads as input, never build output.
+
+- `node_modules`
+
 ## Tool state
 
 `node_modules/` and tool caches (`.npm/`, `.eslintcache`, `coverage/`) belong in `.gitignore`; unignored, they change

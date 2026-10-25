@@ -1681,6 +1681,36 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("platforms/salesforce.md", mutation._remote_reason(
             [{"command": "sf apex run test --target-org de --class-names SLTest --synchronous"}]))
 
+    def test_the_platform_cards_list_the_dependency_directories(self):
+        """Outside review 2026-10-24, fix 3: the directories the base run links in come from the cards (owner rule:
+        platform detail lives only in the cards), not from a constant in the engine."""
+        self.assertEqual(mutation.dependency_directories(), ["node_modules", ".venv", "venv"])
+        with tempfile.TemporaryDirectory() as temp:
+            cards = Path(temp)
+            (cards / "a.md").write_text("# A\n\n## Dependency directories\n\n- `vendor`\n- `.venv`\n\n## Other\n\n"
+                                        "- `not-a-directory`\n")
+            (cards / "b.md").write_text("# B\n\n## Dependency directories\n\n- `vendor`\n")
+            (cards / "c.md").write_text("# C\n\nNo such section.\n")
+            self.assertEqual(mutation.dependency_directories(cards), ["vendor", ".venv"])
+
+    def test_the_base_run_links_a_dependency_directory_only_when_a_card_lists_it(self):
+        """A runner installed in an ignored directory starts on the base only when a card lists the directory.
+        Unlisted, the focused test cannot import it there and reads as not run; listed, it loads, and the module the
+        item adds is missing, which is RED."""
+        (self.repo / ".gitignore").write_text("vendor/\n")
+        git(self.repo, "add", ".gitignore")
+        git(self.repo, "commit", "-qm", "ignore vendor")
+        (self.repo / "vendor").mkdir()
+        (self.repo / "vendor" / "helper.py").write_text("ONE = 1\n")
+        self.calc_item("import sys\nsys.path.insert(0, 'vendor')\nimport helper  # noqa: E402,F401\n" + self.REAL_TEST)
+        with mock.patch.object(mutation, "dependency_directories", return_value=[]):
+            ok, lines = test_loop.red_check(self.run_dir, self.state(), self.item(), self.action(), None)
+        self.assertFalse(ok)
+        self.assertIn("did not run test_tc1 on the base", "\n".join(lines))
+        with mock.patch.object(mutation, "dependency_directories", return_value=["vendor"]):
+            ok, lines = test_loop.red_check(self.run_dir, self.state(), self.item(), self.action(), None)
+        self.assertTrue(ok, "\n".join(lines))
+
     def test_a_focused_and_a_regression_row_fold_only_with_one_target_and_keep_it(self):
         """Sol pass 2, finding 1: folding dropped target, so a remote command lost its remote rule."""
         rows = test_loop.normalise_commands([
