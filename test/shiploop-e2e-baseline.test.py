@@ -403,6 +403,17 @@ class BaselineRowIdentityTest(unittest.TestCase):
                                None, None)
         self.assertEqual(row["local_head"], "7aff70aa")
 
+    def test_overlapped_runs_counts_the_neighbours_the_runs_own_record_saw_and_is_null_where_it_saw_nothing(self):
+        # E1 of the 2026-10-24 runner review: a row had no overlap field (SPEC's known limit), so a comparison could not tell
+        # from the row alone that chess run 5 had sixteen neighbours. A count, never an exclusion.
+        seen = {"observed": True, "runs": [{"folder": "a"}, {"folder": "b"}]}
+        for overlap, expected in ((seen, 2), (dict(seen, runs=[]), 0), ({"observed": False, "reason": "no listing"}, None),
+                                  (None, None)):
+            with self.subTest(overlap=overlap):
+                result = {"case": "hello", "metrics": {}, "environment": {"overlap": overlap} if overlap else {}}
+                self.assertEqual(run.baseline_row(result, None, None)["overlapped_runs"], expected)
+        self.assertIsNone(run.baseline_row({"case": "hello", "metrics": {}}, None, None)["overlapped_runs"])
+
     def test_unreported_sessions_is_still_not_a_baseline_key(self):
         row = run.baseline_row({"metrics": {"unreported_sessions": 3}}, None, None)
         self.assertNotIn("unreported_sessions", row)

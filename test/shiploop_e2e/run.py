@@ -2630,6 +2630,29 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
     from the same three (SPEC: the driver is a parameter, not a code path), and
     per-stage rows so a regression can be located in a stage rather than only in
     a whole-run total. ``baseline_stages`` decides which stage fields are worth
+def concurrent_line(out) -> str | None:
+    """The line printed when a run starts beside other live harness runs under its runs root (``environment.alive_runs``), so
+    a run meant for a timing comparison is not started there by mistake (SPEC "Parallel work"). Printed only, never a refusal,
+    and a scan that fails prints nothing: the run's own overlap record, read at its end, says what overlapped."""
+    try:
+        alive = environment.alive_runs(out)
+    except Exception:  # noqa: BLE001 - a notice that cannot be made is left out, never raised
+        return None
+    if not alive:
+        return None
+    return (f"  concurrent  {len(alive)} other harness run(s) alive under {environment.runs_root(out)}: "
+            f"{', '.join(alive[:5])}{' …' if len(alive) > 5 else ''}; a wall-time or cost comparison with this run is not clean")
+
+
+def overlapped_runs(result: dict) -> int | None:
+    """How many neighbouring runs the run's own overlap record saw (``environment.overlap``), for the baseline row; null where
+    the record was not observed. A record, never an exclusion: no baseline rule reads it."""
+    seen = (result.get("environment") or {}).get("overlap")
+    if isinstance(seen, dict) and seen.get("observed") is True and isinstance(seen.get("runs"), list):
+        return len(seen["runs"])
+    return None
+
+
     committing; the full rows stay in the run's own metrics.json. A counter the host's
     events cannot show is null here and named in ``unmeasured``, so a later run on that
     host compares it as not measured and never as 0 -> 0. ``planning_review`` is the
@@ -2670,6 +2693,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
 
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
 # after each of spec, test-strategy, plan, step-plan and test-spec, `none` after none of them. Planning minutes, Improve
+            "overlapped_runs": overlapped_runs(result),
 # passes and turns are not the same quantity in the two modes, so a run is compared with the last row of its own mode
 # (the same case, source, host, model and effort as ever) and never with a row of the other mode; when no earlier row of
 # that driver has the run's mode, nothing is compared and the report says so (`planning_review_line`). A row written before
@@ -4135,6 +4159,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          allow=host_allow)
         process = session(argv, work, out, env, max(60, int(deadline - time.monotonic())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
+            if line := concurrent_line(out):
+                print(line, flush=True)
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's

@@ -557,17 +557,22 @@ each fails open (a part that cannot be made says so, with its reason, and the ru
   regraded, not refused (the point of a regrade is old runs): its entries have `environment: null` and `host_build: null` with
   their reasons, and its `start` says why it was not recorded.
 - `overlap`: which neighbouring runs had host events while this one did, read-only, at the end of the run, from the first and last
-  `timeline.jsonl` stamp of this run and of each folder beside it in the same parent folder. Each entry has `folder`, `case`,
+  `timeline.jsonl` stamp of this run and of each run folder under the runs root (`root` in the record:
+  `$SHIPLOOP_E2E_RUNS_ROOT`, else the output's grandparent, else its parent where the grandparent is the home folder, the
+  temporary folder or `/`; so `~/e2e-runs/<day>/<run>` reads every day's runs). The walk does not enter a run folder or a hidden
+  folder, and a timeline last written before this run began is counted in `ended_before` and not read. Each entry has `folder`
+  (its path under the root), `case`,
   `hosts` (null with `hosts_reason` where its launch records cannot be read), `overlapped_seconds` and
   `started_offset_seconds` (the neighbour's start minus this run's: negative when it was already running, positive when it
   began later). A count taken when a run starts would miss the second kind: of the nine round runs of 2026-10-08 all nine
   overlapped another run and three saw an overlap begin more than a second after their own start. Limits: `timeline.jsonl` holds
   host events only, so a span is first to last host event; it counts a pause between sessions, and it misses the setup before the
   first event and the case checks, the product-at-stop run and the reap after the last (34.6 s and 37.4 s on the r1 and r3 Grok
-  runs, by the review's measurement), so the seconds are neither an upper nor a lower bound. A run started with `--output` in
-  another folder, and a sibling with no timeline yet, are not seen; a sibling whose timeline cannot be read is named in
-  `siblings_unreadable`. `runs: []` means the neighbours read had no host events in common with this run, not that nothing else
-  ran. The baseline row has no overlap field and no rule excludes an overlapped run.
+  runs, by the review's measurement), so the seconds are neither an upper nor a lower bound. A run outside the root, and a
+  neighbour with no timeline yet, are not seen; a neighbour whose timeline cannot be read is named in `siblings_unreadable`.
+  `runs: []` means the neighbours read had no host events in common with this run, not that nothing else ran. The baseline row
+  carries `overlapped_runs` (the count of `runs`, null where the record was not observed), and no rule excludes on it. A run
+  started beside live harness runs under its root prints a `concurrent` line naming them (never a refusal).
 - `start.browser`: the browser capability record, present as a probe only where something declares the need: a case's
   `needs` in `cases.json` (the three browser cases do, each with its `needs_source`) or `--need browser`. **A custom prompt
   (`--prompt`) declares none by itself**, which is why the Grok runs that motivated the record, all case `custom`, would have
@@ -674,8 +679,9 @@ Run the runs you compare one after the other. Concurrent runs share the CPU, the
 ports, so two runs whose wall time or per-call cost are set side by side (a before/after pair, a host or model comparison)
 are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
 The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. A baseline
-row has no overlap field. Two records say what overlapped, and neither excludes a run: `result.json` carries
-`environment.overlap` for the run, which names the neighbours in the same parent folder whose host events overlapped (not the
+row carries `overlapped_runs`, the count its run's own record saw. Two records say what overlapped, and neither excludes a run:
+`result.json` carries `environment.overlap` for the run, which names the run folders under the runs root whose host events
+overlapped (not the
 checks or setup around them; neither an upper nor a lower bound); and a row carries `started` and `ended` (the first and last
 stamp of the run's stream, epoch seconds), from which `--baseline-report` counts how many rows overlapped another recorded
 run's span. That count is neither a floor nor a ceiling: it misses a run that wrote no row and a row written before the span

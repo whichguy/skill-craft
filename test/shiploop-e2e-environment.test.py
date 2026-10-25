@@ -887,7 +887,7 @@ class OverlapTest(unittest.TestCase):
 
     def write_run(self, name: str, first: float, last: float, hosts=("claude",), case="custom", tail: str = "") -> Path:
         folder = self.parent / name
-        folder.mkdir()
+        folder.mkdir(parents=True)
         stamps = [first, first + (last - first) / 3, first + 2 * (last - first) / 3, last]
         (folder / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in enumerate(stamps)) + tail)
         for number, host in enumerate(hosts):
@@ -1022,16 +1022,90 @@ class OverlapTest(unittest.TestCase):
         late = {name for name, record in records.items() if any(e["started_offset_seconds"] > 1 for e in record["runs"])}
         self.assertEqual(late, {"r1-battleship-grok-none", "r1-battleship-sonnet", "r3-battleship-grok-none"})
         # The overlap a start-time count would have recorded as 0 or 1: r1 Grok met r1 Checkers 280 s after it began.
+        # The runs root is the folder above 20261008 (the runs' grandparent), so a neighbour is named by its path under it.
         grok = self.entries(records["r1-battleship-grok-none"])
-        self.assertAlmostEqual(grok["r1-checkers-sonnet"]["started_offset_seconds"], 280.4, places=1)
-        self.assertAlmostEqual(grok["r1-checkers-sonnet"]["overlapped_seconds"], 787.0, delta=1.0)
-        self.assertEqual(grok["r1-battleship-sonnet"]["hosts"], ["claude"])
+        self.assertAlmostEqual(grok["20261008/r1-checkers-sonnet"]["started_offset_seconds"], 280.4, places=1)
+        self.assertAlmostEqual(grok["20261008/r1-checkers-sonnet"]["overlapped_seconds"], 787.0, delta=1.0)
+        self.assertEqual(grok["20261008/r1-battleship-sonnet"]["hosts"], ["claude"])
         r3 = self.entries(records["r3-battleship-grok-none"])
-        self.assertAlmostEqual(r3["r3-checkers-sonnet"]["started_offset_seconds"], 763.3, places=1)
-        self.assertEqual(records["r3-checkers-sonnet"]["runs"][0]["folder"], "r3-battleship-grok-none",
+        self.assertAlmostEqual(r3["20261008/r3-checkers-sonnet"]["started_offset_seconds"], 763.3, places=1)
+        self.assertEqual(records["r3-checkers-sonnet"]["runs"][0]["folder"], "20261008/r3-battleship-grok-none",
                          "the later Checkers run overlapped the Grok run it killed")
         # The r2 trio started within a second of each other: nothing began later.
         self.assertTrue(all(e["started_offset_seconds"] < 1 for e in records["r2-battleship-grok-none"]["runs"]))
+
+    def test_chess_run_5_overlapped_sixteen_slices_in_another_folder_under_the_runs_root_and_runs_3_and_4_none(self):
+        # E1 of docs/experiments/e2e-runner-review-20261024: compact extracts of the three chess runs and every run folder under
+        # ~/e2e-runs that overlapped one of them (test/fixtures/e2e-environment/extract.py runs-root). Run 5 sat in 20261024/ and
+        # the sixteen E6 slices under e6-r1-20261024/<cell>/<arm>/<n>/slice: the same-parent rule saw none of them.
+        root = self.parent / "runs"
+        shutil.copytree(FIXTURES / "runs-root", root)
+        records = {name: self.environment.overlap(root / name) for name in
+                   ("20261019/chess-sf-full-05fe25b", "20261020/chess-sf-full-9e52e8", "20261024/chess-sf-full-ed3292")}
+        run5 = records["20261024/chess-sf-full-ed3292"]
+        self.assertEqual(len(run5["runs"]), 16)
+        self.assertTrue(all(re.fullmatch(r"e6-r1-20261024/E6-K\d/[TBC]/\d/slice", entry["folder"]) for entry in run5["runs"]),
+                        [entry["folder"] for entry in run5["runs"]])
+        self.assertGreater(sum(entry["overlapped_seconds"] for entry in run5["runs"]) / 3600, 4.0, "over four hours summed")
+        for name in ("20261019/chess-sf-full-05fe25b", "20261020/chess-sf-full-9e52e8"):
+            self.assertEqual(records[name]["runs"], [], f"{name} ran alone")
+            self.assertGreater(records[name]["siblings_read"], 0, f"{name} read its neighbours")
+        with mock.patch.dict(os.environ, {self.environment.RUNS_ROOT_ENV: str(root / "20261024")}):
+            self.assertEqual(self.environment.overlap(root / "20261024/chess-sf-full-ed3292")["runs"], [],
+                             "with the parent as the root, the record is the old one: it sees none of the sixteen")
+
+    def test_the_walk_finds_a_run_nested_under_plain_folders_and_never_looks_inside_a_run_folder(self):
+        me = self.write_run("runs/20261024/me", 1000, 2000)
+        self.write_run("runs/e6/K3/B/2/slice", 1500, 2500, hosts=("grok",))
+        self.write_run("runs/20261024/me/work/app", 1000, 2000)  # a product's own timeline.jsonl inside a run: not a run
+        self.write_run("runs/20261023/other/home/.grok/x", 1000, 2000)
+        (self.parent / "runs/20261023/other/invocation.json").write_text(json.dumps({"case": "c", "host": "grok"}))
+        self.write_run("runs/.hidden/run", 1000, 2000)  # a hidden folder is not walked
+        self.write_run("elsewhere/run", 1000, 2000)  # outside the root: not seen, which the basis says
+        record = self.environment.overlap(me)
+        self.assertEqual([entry["folder"] for entry in record["runs"]], ["e6/K3/B/2/slice"])
+        self.assertEqual(record["root"], str(self.parent / "runs"))
+        self.assertIn("a run outside the root is not seen", record["basis"])
+
+    def test_a_neighbour_whose_timeline_was_last_written_before_this_run_began_is_counted_and_not_read(self):
+        me = self.write_run("me", 10_000, 20_000)
+        old = self.write_run("old", 1000, 2000)
+        os.utime(old / "timeline.jsonl", (5000, 5000))
+        self.write_run("fresh", 15_000, 25_000)
+        with mock.patch.object(self.environment.metrics, "span", wraps=self.environment.metrics.span) as span:
+            record = self.environment.overlap(me)
+        self.assertEqual((record["ended_before"], record["siblings_read"]), (1, 1))
+        self.assertNotIn(old / "timeline.jsonl", [Path(call.args[0]) for call in span.call_args_list])
+        self.assertEqual([entry["folder"] for entry in record["runs"]], ["fresh"])
+
+    def test_the_runs_root_is_the_grandparent_unless_that_is_too_wide_and_the_variable_names_another(self):
+        root = self.environment.runs_root
+        self.assertEqual(root(Path("/x/runs/20261024/run")), Path("/x/runs"))
+        self.assertEqual(root(Path("/x/run")), Path("/x"), "the file system root is too wide: the parent")
+        self.assertEqual(root(Path(tempfile.gettempdir()) / "shiploop-e2e" / "hello-1"), Path(tempfile.gettempdir()) / "shiploop-e2e")
+        with mock.patch.object(self.environment.Path, "home", return_value=self.parent):
+            self.assertEqual(root(self.parent / "e2e-runs" / "run"), self.parent / "e2e-runs", "the home folder is too wide")
+        with mock.patch.dict(os.environ, {self.environment.RUNS_ROOT_ENV: str(self.parent / "named")}):
+            self.assertEqual(root(Path("/x/runs/20261024/run")), self.parent / "named")
+        me = self.write_run("me", 1000, 2000)
+        with mock.patch.dict(os.environ, {self.environment.RUNS_ROOT_ENV: str(self.parent / "missing")}):
+            record = self.environment.overlap(me)
+        self.assertFalse(record["observed"])
+        self.assertIn("is not a folder", record["reason"])
+
+    def test_alive_runs_lists_the_other_folders_whose_harness_holds_its_lock(self):
+        me = self.write_run("runs/day/me", 1000, 2000)
+        live = self.write_run("runs/day/live", 1000, 2000)
+        self.write_run("runs/other-day/ended", 1000, 2000)
+        (self.parent / "runs/other-day/ended" / self.environment.listeners.LOCK_NAME).write_text("")  # a lock nobody holds
+        held = [self.environment.listeners.hold_case(folder) for folder in (me, live)]
+        self.addCleanup(lambda: [handle.close() for handle in held if handle])
+        self.assertEqual(self.environment.alive_runs(me), ["day/live"], "its own folder and an unheld lock are not listed")
+        line = run.concurrent_line(me)
+        self.assertIn("1 other harness run(s) alive", line)
+        self.assertIn("not clean", line)
+        held[1].close()
+        self.assertIsNone(run.concurrent_line(me), "nothing alive: no line")
 
 
 class LaunchRecordsTest(unittest.TestCase):

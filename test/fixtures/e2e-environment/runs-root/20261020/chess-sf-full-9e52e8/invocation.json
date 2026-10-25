@@ -1,0 +1,11 @@
+{
+ "case": "chess-salesforce",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "versions": {
+  "source": "marketplace",
+  "plugin_version": "2.8.0",
+  "shiploop_version": "1.8.0"
+ }
+}
