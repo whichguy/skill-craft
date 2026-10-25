@@ -1077,7 +1077,7 @@ Question: does the `battleship-scoring` retention check that guards the earlier 
 - **Change (one catalog line).** `ids()` runs `grep -oE '\bR-[0-9]+\b'` (JSON-escaped `\\b`), the engine's rule in grep's syntax. Not `grep -ow 'R-[0-9]+'`: BSD grep (macOS `/usr/bin/grep`) reads 1 of the 2 ids in `R-1 R-1a R-2` where the engine reads 2. A dropped id still fails in every form and is named in the check's output (`missing: R-2`).
 - **Tests** (`RetentionIdCountTest`, the last class in `test/shiploop-e2e.test.py`; the real shell command from `cases.json` run through `run.run_checks`): five spec forms (heading, bullet, bold bullet, table row, mixed line `R-1 R-1a R-2`), each passing when every id is kept with the printed count equal to the engine's, and failing with the dropped id named when one is lost; a spec with no ids still fails; a drift guard that extracts the pattern from the catalog line, requires it verbatim with a real backslash, and compares what `grep -oE` finds with `_REQUIREMENT_ID.findall` on eight sample texts. On the base (`git archive a1a3-integ-7f216e` with only the new test file copied over) 7 subtests fail: bold bullet, table row and mixed line in both form tests, and the drift guard; heading and bullet pass on both (the old pattern read them). Mutation check: restoring `grep -owE 'R-[0-9]+'` in the catalog fails the mixed-line subtests and the drift guard.
 - **Limits: what is not guarded, and why.** Each was checked against `cases.json` and `run.run_checks` on 2026-10-04.
-  - The Battleship checks are protocol checks. Three constructed stubs pass all four `battleship` checks (re-run through `run.run_checks`: PPPP each): a server that answers every fire with `sunk` and `gameOver: true`; one that has no fleet, counts shots per game and answers `miss`, ending the game at the 100th shot; one whose page says no game is playable, with one constant game id and `miss` plus `gameOver: true` on every fire. The checks read the response shape and that a 10x10 sweep ends the game, not fleet placement, ship sizes or hit and sink counts. Rule correctness belongs to the product's own tests and ShipLoop's own system test (S-9: the evidence is a script-run check); the harness does not repeat it. Reopens if a returned Battleship candidate passes all four checks yet fails the rules in review or system test. The plan measured a variant of check 4 that also counts `sunk` results: it rejected all three stubs and accepted the real products; it is not kept as code.
+  - The Battleship checks are protocol checks. Three constructed stubs pass all four `battleship` checks (re-run through `run.run_checks`: PPPP each): a server that answers every fire with `sunk` and `gameOver: true`; one that has no fleet, counts shots per game and answers `miss`, ending the game at the 100th shot; one whose page says no game is playable, with one constant game id and `miss` plus `gameOver: true` on every fire. The checks read the response shape and that a 10x10 sweep ends the game, not fleet placement, ship sizes or hit and sink counts. Rule correctness belongs to the product's own tests and ShipLoop's own system test (S-9: the evidence is a script-run check); the harness does not repeat it. Reopens if a returned Battleship candidate passes all four checks yet fails the rules in review or system test. The plan measured a variant of check 4 that also counts `sunk` results: it rejected all three stubs and accepted the real products; it is not kept as code. *[superseded 2026-10-24: the 2026-10-16 audit found the same gap with a server that has no fleet, and the owner approved a game check (runner review plan item 1.2). `checks/battleship_game.py` replaces check 4: it rejects that server and all three stubs here, and it accepts all 11 saved real deliveries (`docs/experiments/e2e-runner-review-20261024/e2b-game-check.json`). See the entry "E2E runner review and wave 1".]*
   - Coordinates are assumed 0-based. The checks fire rows 0 to 9, columns 0 to 9 and (0, 0); the prompt says "10x10 grid" and names no base, so a product that rejects row 0 or column 0 fails.
   - A check that times out or cannot start reads as a product FAIL. `run_checks` records `pass: false` with `returncode: null` and output `timeout` after 180 s, and a command that cannot start inside `sh -c` (126 or 127, `node` missing) is a plain non-zero. A1 treats these as could-not-run only inside ShipLoop's own test loop, not in this harness's grading. Read a failing check's output before reading it as a product defect.
   - Ports 39171 to 39176 are fixed (three checks per case; `grep -o 'PORT=[0-9]*'` on `cases.json` finds exactly these six, and no other case uses a fixed port). One suite cannot collide with itself, because the chain that uses them runs its two cases in order. Two runs grading at once on one machine (two suites, or a suite beside a `--case` run) share them, and a stale server from an earlier run holds its port and answers in place of the product (README, "Launching long runs"). A collision reads as a product FAIL.
@@ -2576,3 +2576,49 @@ Learnings so far:
   browser probe page that said it was not the component. 5b's evidence was a real jest render test. The evidence must
   show a test ran.
 - **Retired terms survived in refusals split across string literals.** 2.9.1 scans the strings a script can print.
+
+## E2E runner review and wave 1: overlap under the runs root, a Battleship game check, a release-gate line (2026-10-24, origin/main 31933a73) — status: firm for E1, E2, E2b, E3 and D1; the release-gate runs are in a later entry
+
+**Question.** Is the E2E runner sufficient, and what should change? The plan is `docs/shiploop-e2e-runner-review-plan-2026-10-24.md`; its evidence is in `docs/experiments/e2e-runner-review-20261024/`.
+
+**Answer.** The instrument is sufficient. As it was being run, it verified one Salesforce case on Grok and nothing else.
+
+- **D1: no case had passed from the marketplace since 2026-10-10** (ShipLoop 0.59.0), fifteen ShipLoop releases earlier. The two later off-Salesforce passes were checkout runs.
+  - cli-files and stateful-service last passed on 2026-09-27.
+  - No Codex run had ever written a result.
+  - Evidence: `d1-staleness.json`, and `--baseline-report --release-gate` (below).
+- **E1: the overlap record missed the runs that overlapped chess run 5.** It read only the same parent folder. Sixteen E6 slices under `e6-r1-20261024/…/slice` overlapped run 5 for 4.5 h summed, and run 5's own regraded `result.json` lists none of them. Runs 3 and 4 ran alone. So run 5's minutes are no clean comparison with theirs. Evidence: `e1-overlap.json`, `overlap_probe.py`.
+- **E2: on 2.9.0 the four Battleship checks still passed the 2026-10-16 audit's broken server.** It has no fleet, `gameOver` is true from the start, and its one test is a placeholder. Evidence: `e2-oracle.json`.
+- **E3: the run records are not bloated.** 25 of the 33 `metrics.json` blocks of run 4 have a reader; the 8 without one total 981 bytes. Pruning outputs was rejected. Evidence: `e3-consumers.json`.
+- Also seen:
+  - No retained run folder holds a `review.json`, so `review.py` and `iterate.py` are unused. That decision is the owner's.
+  - Chess run 5 ended BLOCKED at W1 implement after 1.5 h: the session guard blocked a deploy to `de`. Its `shiploop_progress.py --watch` outlived it, as on 2026-10-18.
+
+**Changes on `feat/e2e-wave1-6e86ad`.** Each is a record or a check, and none changes a baseline rule.
+
+1. **The overlap record reads the whole runs root** (`environment.runs_root`, `run_folders`, `overlap`; SPEC amended first in its own commit).
+   - The root:
+     - `$SHIPLOOP_E2E_RUNS_ROOT` when set;
+     - else the output's grandparent;
+     - else the parent, where the grandparent is the home folder, the temporary folder or `/`.
+   - The walk does not enter a run folder or a hidden folder.
+   - A timeline last written before the run began is counted in `ended_before` and not read.
+   - A neighbour is named by its path under the root.
+   - The baseline row gains `overlapped_runs`.
+   - A run started beside live harness runs prints a `concurrent` line (`run.concurrent_line`). It is never a refusal.
+   - On `~/e2e-runs` it finds the 16 for run 5 and 0 for runs 3 and 4, in about 0.1 s. Without the mtime filter, reading all 462 timelines took 2.9 s.
+   - The plan's `--runs-root` flag was not built. The variable and the default cover the owner's layout, and a flag would have to ride every printed resume command.
+2. **`checks/battleship_game.py` replaces Battleship's check 4**, the 10x10 sweep. battleship-scoring adds it as well.
+   - Every result is miss, hit or sunk.
+   - `gameOver` is not true before the shot that ends the game, and that shot is a `sunk`.
+   - At least two ships have sunk by then: "a fleet".
+   - A shot after the end does not report the game as running again.
+   - E2b: it rejects the audit server, and it accepts all 11 saved real deliveries (Claude and Grok, 2026-10-06 to 2026-10-16). The old check 4 accepted all 12.
+   - This reverses the 2026-10-04 "protocol checks" limit above, now marked superseded.
+3. **`--baseline-report --release-gate`** prints, per case style, the last marketplace pass and the ShipLoop releases since, read from the local origin/main ref (`run.release_gate`, `run.published_versions`, now shared with `released_versions`). It is opt-in, so the committed report pins are unchanged.
+
+**Tests:**
+- `OverlapTest`: 5 new tests, including the E1 replay on compact extracts in `test/fixtures/e2e-environment/runs-root`, built by `extract.py runs-root`. The round test's neighbours are now named `20261008/<run>`.
+- `BaselineRowIdentityTest`: `overlapped_runs`.
+- `BattleshipGameCheckTest`: eight Python stubs through `serve.py --start`, and the case pin.
+- `ReleaseGateTest`: 3 tests.
