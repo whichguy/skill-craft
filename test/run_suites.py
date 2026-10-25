@@ -3,13 +3,18 @@
 
 This runner intentionally owns process lifecycle, output receipts and catalog
 coverage checks.  ``test/run-all.sh`` is its one public Bash entrypoint and only
-forwards here, so it cannot drift into a separate inventory.
+forwards here, so it cannot drift into a separate inventory.  Up to ``--jobs``
+suites run at once; their output and receipt records still appear one suite at
+a time in catalog order.
 """
 
 from __future__ import annotations
 
 import argparse
+from concurrent import futures
+import contextlib
 from dataclasses import dataclass
+import functools
 import hashlib
 import json
 import os
@@ -19,12 +24,17 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Iterator, Sequence
 
 import suite_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# Each suite is its own hermetic process, so they can run side by side.  Eight
+# kept seven ShipLoop suites at 5.4 minutes against about 14 serially
+# (2026-10-25); more mostly adds contention on a shared machine.
+MAX_DEFAULT_JOBS = 8
+DEFAULT_JOBS = min(os.cpu_count() or 1, MAX_DEFAULT_JOBS)
 TOP_LEVEL_TEST_ALLOWLIST = frozenset({
     # Explicit host-dependent checks are invoked through test/run-integration.sh.
     "test/advisors.test.sh",
@@ -52,6 +62,16 @@ class ProcessOutcome:
     error: str | None = None
 
 
+def _jobs(value: str) -> int:
+    try:
+        jobs = int(value)
+    except ValueError:
+        jobs = 0
+    if jobs < 1:
+        raise argparse.ArgumentTypeError(f"must be a positive integer: {value!r}")
+    return jobs
+
+
 def _parser() -> UsageParser:
     parser = UsageParser(
         prog="bash test/run-all.sh",
@@ -66,8 +86,13 @@ def _parser() -> UsageParser:
     parser.add_argument("--group", action="append", metavar="GROUP",
                         help="repeatable group; unions are deduplicated in catalog order")
     parser.add_argument("--changed-from", metavar="REF",
-                        help="with --group quick: also run the suites matching files changed since REF, "
-                             "including uncommitted and untracked files")
+                        help="with --group quick: also run the suites matching files changed since REF; "
+                             "with --group prompt: also run the suites whose own files changed; "
+                             "uncommitted and untracked files count")
+    parser.add_argument("--jobs", type=_jobs, default=DEFAULT_JOBS, metavar="N",
+                        help=f"run up to N suites at once (default: CPU count capped at {MAX_DEFAULT_JOBS}, "
+                             f"here {DEFAULT_JOBS}); output and the receipt stay per suite in catalog order; "
+                             "--jobs 1 runs one suite at a time")
     parser.add_argument("--list", action="store_true", help="list selected catalog entries without executing")
     parser.add_argument("--output", type=Path, help="new external receipt directory")
     return parser
@@ -84,8 +109,8 @@ def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, t
     unknown = set(groups) - set(suite_catalog.GROUPS)
     if unknown:
         parser.error("unknown group: " + ", ".join(sorted(unknown)))
-    if args.changed_from is not None and "quick" not in groups:
-        parser.error("--changed-from applies only to --group quick")
+    if args.changed_from is not None and not {"quick", "prompt"} & set(groups):
+        parser.error("--changed-from applies only to --group quick or prompt")
     return args, groups
 
 
@@ -230,8 +255,18 @@ def _terminate_process_group(process: subprocess.Popen[str]) -> str | None:
     return "; ".join(warnings) or None
 
 
-def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> ProcessOutcome:
-    """Run a fixed argv with a bounded lifetime and collected output."""
+def run_process(
+    argv: Sequence[str],
+    *,
+    cwd: Path,
+    timeout_seconds: float,
+    on_start: Callable[[subprocess.Popen[str]], None] | None = None,
+) -> ProcessOutcome:
+    """Run a fixed argv with a bounded lifetime and collected output.
+
+    ``on_start`` receives the process once it exists, so a parallel caller can
+    stop its group when the run is interrupted.
+    """
 
     started = time.monotonic()
     try:
@@ -247,6 +282,8 @@ def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> Pr
             status="failed", returncode=None, duration_seconds=time.monotonic() - started,
             stdout="", stderr="", error=str(exc),
         )
+    if on_start is not None:
+        on_start(process)
     try:
         stdout, stderr = process.communicate(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
@@ -282,6 +319,65 @@ def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> Pr
         returncode=process.returncode, duration_seconds=time.monotonic() - started,
         stdout=stdout, stderr=stderr,
     )
+
+
+def _run_suite(
+    suite: suite_catalog.Suite,
+    on_start: Callable[[subprocess.Popen[str]], None] | None = None,
+) -> ProcessOutcome:
+    return run_process(suite.argv, cwd=ROOT, timeout_seconds=suite.timeout_seconds, on_start=on_start)
+
+
+def _signal_groups(processes: Iterable[subprocess.Popen[str]], sig: signal.Signals) -> None:
+    for process in processes:
+        try:
+            if os.name == "posix":
+                os.killpg(process.pid, sig)
+            else:
+                process.kill()
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
+def _stop_process_groups(running: dict[futures.Future, subprocess.Popen[str]]) -> None:
+    """Stop the suites still running when a parallel run is interrupted.
+
+    Each suite leads its own session, so an interrupt at the terminal never
+    reaches it, and the interpreter would wait at exit for every one.  TERM each
+    group, give the workers a second to collect their processes, then KILL the
+    groups whose suite is still running (its leader is not yet reaped, so the
+    group id cannot have been reused).
+    """
+
+    _signal_groups(running.values(), signal.SIGTERM)
+    _, still_running = futures.wait(running, timeout=1)
+    _signal_groups((running[future] for future in still_running), signal.SIGKILL)
+
+
+def _outcomes(selected: Sequence[suite_catalog.Suite], jobs: int) -> Iterator[ProcessOutcome]:
+    """Yield each selected suite's outcome in catalog order, running up to JOBS at once.
+
+    With one job a suite starts only when the caller asks for its outcome, so
+    the receipt written after each suite is complete before the next starts.
+    """
+
+    if jobs == 1:
+        for suite in selected:
+            yield _run_suite(suite)
+        return
+    processes: dict[int, subprocess.Popen[str]] = {}
+    pool = futures.ThreadPoolExecutor(max_workers=jobs, thread_name_prefix="suite")
+    pending = [pool.submit(_run_suite, suite, functools.partial(processes.__setitem__, index))
+               for index, suite in enumerate(selected)]
+    try:
+        for future in pending:
+            yield future.result()
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+        running = {future: processes[index] for index, future in enumerate(pending)
+                   if not future.done() and index in processes}
+        if running:
+            _stop_process_groups(running)
 
 
 def _write_log(output: Path | None, index: int, identifier: str, stream: str, value: str) -> str | None:
@@ -335,6 +431,14 @@ def _write_receipt(output: Path, receipt: dict[str, object]) -> None:
     (output / "receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _timing_line(completed: Sequence[dict[str, object]], wall: float, jobs: int) -> str:
+    """The run's wall time and its slowest suites: the floor a parallel run cannot go under."""
+
+    slowest = sorted(completed, key=lambda record: -float(record["duration_seconds"]))[:3]
+    named = ", ".join(f"{record['id']} {float(record['duration_seconds']):.1f} s" for record in slowest)
+    return f"run-all.sh: {len(completed)} suites in {wall:.1f} s wall (--jobs {jobs}); slowest: {named or 'none'}"
+
+
 def _print_list(selected: Iterable[suite_catalog.Suite]) -> None:
     for suite in selected:
         print(f"{suite.family}\t{suite.id}\t{shlex.join(suite.argv)}")
@@ -374,6 +478,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "source": source_identity(ROOT),
         "runtimes": runtime_versions(ROOT),
         "selected": [_command_record(suite) for suite in selected],
+        "jobs": args.jobs,
         "completed": [],
         "status": "running",
     }
@@ -381,24 +486,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         _write_receipt(output, receipt)
     failures = False
     completed: list[dict[str, object]] = []
-    for index, suite in enumerate(selected, start=1):
-        print(f"==> [{suite.family}] {suite.id}")
-        outcome = run_process(suite.argv, cwd=ROOT, timeout_seconds=suite.timeout_seconds)
-        _emit(outcome)
-        record = _outcome_record(suite, outcome, output, index)
-        completed.append(record)
-        receipt["completed"] = completed
-        if output is not None:
-            _write_receipt(output, receipt)
-        if outcome.status != "passed":
-            failures = True
-            print(f"FAIL {suite.id}", file=sys.stderr)
-        else:
-            print(f"OK   {suite.id}")
+    started = time.monotonic()
+    with contextlib.closing(_outcomes(selected, args.jobs)) as outcomes:
+        for index, suite in enumerate(selected, start=1):
+            print(f"==> [{suite.family}] {suite.id}")
+            outcome = next(outcomes)
+            _emit(outcome)
+            record = _outcome_record(suite, outcome, output, index)
+            completed.append(record)
+            receipt["completed"] = completed
+            if output is not None:
+                _write_receipt(output, receipt)
+            if outcome.status != "passed":
+                failures = True
+                print(f"FAIL {suite.id}", file=sys.stderr)
+            else:
+                print(f"OK   {suite.id}")
+    wall = time.monotonic() - started
+    receipt["wall_seconds"] = round(wall, 3)
     receipt["status"] = "failed" if failures else "passed"
     if output is not None:
         _write_receipt(output, receipt)
         print(f"receipt: {output / 'receipt.json'}")
+    print(_timing_line(completed, wall, args.jobs))
 
     if failures:
         print("run-all.sh: FAILED", file=sys.stderr)

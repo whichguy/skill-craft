@@ -6,13 +6,16 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import textwrap
 import time
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +89,21 @@ class TestGroupTests(unittest.TestCase):
                     "    if receipt['completed']:\n"
                     "        log = Path(os.environ['CHECK_RECEIPT_ROOT']) / receipt['completed'][-1]['stdout_log']\n"
                     "        assert log.is_file()\n"
+                    # PID_DIR: record the pid and hang, for the interrupt test.
+                    "if os.environ.get('PID_DIR'):\n"
+                    "    import time\n"
+                    f"    (Path(os.environ['PID_DIR']) / '{suite.id}').write_text(str(os.getpid()))\n"
+                    "    time.sleep(60)\n"
+                    # BARRIER_DIR: pass only once BARRIER_COUNT suites have arrived, so passing proves they overlapped.
+                    "if os.environ.get('BARRIER_DIR'):\n"
+                    "    import time\n"
+                    "    barrier = Path(os.environ['BARRIER_DIR'])\n"
+                    f"    (barrier / '{suite.id}').touch()\n"
+                    "    deadline = time.monotonic() + float(os.environ['BARRIER_SECONDS'])\n"
+                    "    while len(list(barrier.iterdir())) < int(os.environ['BARRIER_COUNT']):\n"
+                    "        if time.monotonic() > deadline:\n"
+                    "            raise SystemExit(9)\n"
+                    "        time.sleep(0.01)\n"
                     f"raise SystemExit(7 if os.environ.get('FAIL_SUITE') == '{suite.id}' else 0)\n",
                     encoding="utf-8",
                 )
@@ -212,7 +230,8 @@ class TestGroupTests(unittest.TestCase):
                      "skills/shiploop/scripts/shiploop"):
             with self.subTest(path=path):
                 extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
-                self.assertLessEqual(len(extra), len(suite_catalog._HUB_SUITE_IDS) + 2)
+                # The navigator is also a packet source, which adds the packet-size suites.
+                self.assertLessEqual(len(extra), len(suite_catalog._HUB_SUITE_IDS) + len(suite_catalog.PACKET_SIZE_IDS) + 2)
 
     def test_quick_never_runs_heavy_suites_or_the_apparatus(self) -> None:
         everything = tuple(suite.path for suite in suite_catalog.SUITES)
@@ -235,11 +254,18 @@ class TestGroupTests(unittest.TestCase):
         # A local checkout may carry uncommitted edits, which quick counts.
         self.assertEqual([line.split("\t")[1] for line in listed.stdout.splitlines()],
                          [suite.id for suite in suite_catalog.quick(run_suites.changed_paths(ROOT, "HEAD"))])
+        listed = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "prompt", "--group", "core",
+                                 "--changed-from", "HEAD", "--list"],
+                                cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual([line.split("\t")[1] for line in listed.stdout.splitlines()],
+                         [suite.id for suite in suite_catalog.select(("prompt", "core"),
+                                                                     run_suites.changed_paths(ROOT, "HEAD"))])
         refused = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "core",
                                   "--changed-from", "HEAD", "--list"],
                                  cwd=ROOT, capture_output=True, text=True, check=False)
         self.assertEqual(refused.returncode, 64)
-        self.assertIn("--changed-from applies only to --group quick", refused.stderr)
+        self.assertIn("--changed-from applies only to --group quick or prompt", refused.stderr)
 
     def test_changed_paths_include_uncommitted_and_untracked_work(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -287,6 +313,9 @@ class TestGroupTests(unittest.TestCase):
             (self.invoke_root, ("--smoke", "--list"), 64),
             (self.invoke_root, ("--shard", "1/3", "--list"), 64),
             (self.invoke_root, ("--shiploop-entrypoint", "--list"), 64),
+            (self.invoke_root, ("--jobs", "0", "--list"), 64),
+            (self.invoke_root, ("--jobs", "-2", "--list"), 64),
+            (self.invoke_root, ("--jobs", "many", "--list"), 64),
         ):
             with self.subTest(args=args):
                 result = invocation(root, *args, env=env)
@@ -325,7 +354,8 @@ class TestGroupTests(unittest.TestCase):
             CHECK_RECEIPT_COUNT="1",
         )
         selected = suite_catalog.select(("ask-agent",))
-        result = self.invoke_root(root, "--group", "ask-agent", "--output", str(output), env=env)
+        # One job keeps today's order: each suite starts after the previous one is in the receipt.
+        result = self.invoke_root(root, "--group", "ask-agent", "--jobs", "1", "--output", str(output), env=env)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertEqual(
             (parent / "trace").read_text(encoding="utf-8").splitlines(),
@@ -338,6 +368,91 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(receipt["completed"][0]["status"], "failed")
         self.assertTrue((output / receipt["completed"][0]["stdout_log"]).is_file())
         self.assertIn("dirty_diff_sha256", receipt["source"])
+
+    TIMING = re.compile(r"^run-all\.sh: \d+ suites in [\d.]+ s wall \(--jobs (\d+)\); slowest: ")
+
+    def test_parallel_jobs_report_what_one_job_reports(self) -> None:
+        # Same per-suite output in catalog order, same receipt records, same exit code; only the timing line and the
+        # receipt's own path differ.  A failure at the front, in the middle and at the end, and none.
+        selected = [suite.id for suite in suite_catalog.select(("ask-agent",))]
+        for failing in (None, selected[0], "ask-agent-delivery", selected[-1]):
+            with self.subTest(failing=failing):
+                runs = {}
+                for jobs in ("1", "4"):
+                    root, env, parent = self.execution_fixture()
+                    if failing:
+                        env["FAIL_SUITE"] = failing
+                    output = parent / "receipt"
+                    result = self.invoke_root(root, "--group", "ask-agent", "--jobs", jobs, "--output", str(output),
+                                              env=env)
+                    receipt = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
+                    timing = [match for line in result.stdout.splitlines() if (match := self.TIMING.match(line))]
+                    self.assertEqual([match.group(1) for match in timing], [jobs], result.stdout)
+                    self.assertEqual(receipt["jobs"], int(jobs))
+                    self.assertGreater(receipt["wall_seconds"], 0)
+                    self.assertEqual(sorted((parent / "trace").read_text(encoding="utf-8").splitlines()), sorted(selected))
+                    runs[jobs] = (
+                        result.returncode,
+                        [line for line in result.stdout.splitlines()
+                         if not self.TIMING.match(line) and not line.startswith("receipt: ")],
+                        result.stderr,
+                        [(record["id"], record["status"], record["returncode"]) for record in receipt["completed"]],
+                        receipt["status"],
+                    )
+                self.assertEqual(runs["4"], runs["1"])
+                self.assertEqual(runs["1"][0], 1 if failing else 0)
+                self.assertEqual([record[0] for record in runs["1"][3]], selected)
+                self.assertEqual([record[0] for record in runs["1"][3] if record[1] == "failed"],
+                                 [failing] if failing else [])
+
+    def test_jobs_run_suites_side_by_side_and_one_job_never_overlaps(self) -> None:
+        # Each fake suite passes only once BARRIER_COUNT suites have arrived, so a pass proves they overlapped.
+        root, env, parent = self.execution_fixture()
+        (parent / "barrier").mkdir()
+        env.update(BARRIER_DIR=str(parent / "barrier"), BARRIER_COUNT="4", BARRIER_SECONDS="10")
+        result = self.invoke_root(root, "--group", "ask-agent", "--jobs", "4", env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        # The control: one job at a time, the first suite waits alone and fails; every later one finds two arrivals.
+        root, env, parent = self.execution_fixture()
+        (parent / "barrier").mkdir()
+        env.update(BARRIER_DIR=str(parent / "barrier"), BARRIER_COUNT="2", BARRIER_SECONDS="0.5")
+        result = self.invoke_root(root, "--group", "ask-agent", "--jobs", "1", env=env)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(re.findall(r"^FAIL (\S+)$", result.stderr, re.M), [suite_catalog.select(("ask-agent",))[0].id])
+
+    def test_an_interrupted_parallel_run_stops_the_suites_it_started(self) -> None:
+        # Each suite leads its own session, so Ctrl-C reaches only the runner; it must stop them, not wait 60 s for them.
+        root, env, parent = self.execution_fixture()
+        pids = parent / "pids"
+        pids.mkdir()
+        env["PID_DIR"] = str(pids)
+        runner = subprocess.Popen(
+            ["bash", str(root / "test" / "run-all.sh"), "--group", "ask-agent", "--jobs", "3"],
+            cwd=root, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+            # Python installs its Ctrl-C handler only when SIGINT is not ignored, and a background shell ignores it.
+            preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL),
+        )
+        self.addCleanup(lambda: runner.poll() is None and runner.kill())
+        deadline = time.monotonic() + 20
+        while len(list(pids.iterdir())) < 3:
+            self.assertLess(time.monotonic(), deadline, "three suites did not start")
+            time.sleep(0.05)
+        interrupted = time.monotonic()
+        runner.send_signal(signal.SIGINT)
+        runner.communicate(timeout=10)
+        self.assertLess(time.monotonic() - interrupted, 10)
+        self.assertNotEqual(runner.returncode, 0)
+        started = [int(path.read_text(encoding="utf-8")) for path in pids.iterdir()]
+        self.assertEqual(len(started), 3, "a suite started after the interrupt")
+        deadline = time.monotonic() + 5
+        for pid in started:
+            while True:
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    break
+                self.assertLess(time.monotonic(), deadline, f"suite process {pid} outlived the runner")
+                time.sleep(0.05)
 
     def test_output_must_be_new_and_external_and_coverage_fails_before_execution(self) -> None:
         root, env, parent = self.execution_fixture()
@@ -383,6 +498,66 @@ class TestGroupTests(unittest.TestCase):
             outcome = run_suites.run_process((sys.executable, str(program)), cwd=root, timeout_seconds=0.1)
             self.assertEqual(outcome.status, "timed_out")
             self.assertLess(time.monotonic() - started, 4)
+
+
+class PacketSourceSelectionTest(unittest.TestCase):
+    """A ShipLoop prompt or packet source always selects the packet-size suites (owner, 2026-10-25).
+
+    The step-plan template edits of that day (f23cdb20, 58a8f2eb) changed only shiploop_prompts.py.  It is a hub, so the
+    quick tier ran the hub's fixed consumers in place of the suites that read it, and two `--changed-from` quick runs did
+    not select the packet-size suites; a third, wider run caught a head over its cut.  Each assertion fails on the catalog
+    before the packet-source rule.
+    """
+
+    SOURCES = (
+        "skills/shiploop/scripts/shiploop_prompts.py",
+        "skills/shiploop/scripts/shiploop_navigator.py",
+        "skills/shiploop/scripts/shiploop_stage_spec.py",
+        "skills/shiploop/scripts/shiploop_loops.py",
+        "skills/shiploop/scripts/shiploop_narrative.py",
+    )
+    # The prompt surface selected them before, through _SHIPLOOP_PROMPT_IDS; pinned so it keeps doing so.
+    SURFACE = ("skills/shiploop/SKILL.md", "skills/shiploop/references/inner-loop.md",
+               "skills/shiploop/commands/shiploop.md")
+
+    def test_the_packet_size_suites_are_the_four_named(self) -> None:
+        self.assertEqual(set(suite_catalog.PACKET_SIZE_IDS), {"shiploop-step-packets", "shiploop-packet-recut",
+                                                              "shiploop-head-order", "shiploop-packet-completeness"})
+
+    def test_a_packet_source_selects_the_packet_size_suites_in_the_quick_tier(self) -> None:
+        for path in (*self.SOURCES, *self.SURFACE):
+            with self.subTest(path=path):
+                self.assertGreaterEqual({suite.id for suite in suite_catalog.quick([path])},
+                                        set(suite_catalog.PACKET_SIZE_IDS))
+
+    def test_a_packet_source_keeps_the_obligation_ledger_and_its_hub(self) -> None:
+        # The ledger anchors literal phrases of the packet text; 2.11.0 failed CI there after a rewrap.
+        for path in self.SOURCES:
+            with self.subTest(path=path):
+                self.assertIn("shiploop-packet-obligations", {suite.id for suite in suite_catalog.quick([path])})
+        self.assertGreaterEqual(suite_catalog.targeted([self.SOURCES[0]]), set(suite_catalog._HUB_SUITE_IDS))
+
+    def test_the_prompt_group_is_the_packet_suites_plus_the_changed_suites(self) -> None:
+        # The four packet-size suites and the obligation ledger: 2.11.0 failed CI on the ledger (a rewrap split an
+        # anchored phrase of shiploop_prompts.py across two lines) while the four passed locally.
+        packet = [suite.id for suite in suite_catalog.SUITES
+                  if suite.id in {*suite_catalog.PACKET_SIZE_IDS, "shiploop-packet-obligations"}]
+        self.assertEqual(len(packet), 5)
+        self.assertEqual([suite.id for suite in suite_catalog.select(("prompt",))], packet)
+        # A changed suite runs itself; a changed source adds nothing beyond the packet suites, and a suite above
+        # QUICK_MAX_SECONDS (shiploop-workspace) stays in the full tier, as in quick.
+        changed = ("skills/shiploop/scripts/shiploop_prompts.py", "test/shiploop-guidance.test.py",
+                   "test/shiploop-workspace.test.py", "docs/notes.md")
+        self.assertEqual({suite.id for suite in suite_catalog.select(("prompt",), changed)},
+                         {*packet, "shiploop-guidance"})
+        union = {*suite_catalog.quick(changed), *suite_catalog.prompt(changed)}
+        self.assertEqual(suite_catalog.select(("quick", "prompt"), changed),
+                         tuple(suite for suite in suite_catalog.SUITES if suite in union))
+
+    def test_a_selection_rule_naming_an_unknown_suite_is_refused(self) -> None:
+        with mock.patch.object(suite_catalog, "_HUB_SUITE_IDS", (*suite_catalog._HUB_SUITE_IDS, "shiploop-renamed")):
+            with self.assertRaisesRegex(ValueError, "unknown suites: shiploop-renamed"):
+                suite_catalog.validate_catalog()
 
 
 class QuickSelectionNameCollisionTest(unittest.TestCase):

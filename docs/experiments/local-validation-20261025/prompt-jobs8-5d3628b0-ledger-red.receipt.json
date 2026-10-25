@@ -1,0 +1,139 @@
+{
+  "changed": [],
+  "changed_from": null,
+  "completed": [
+    {
+      "command": "python3 test/shiploop-packet-completeness.test.py",
+      "duration_seconds": 8.509,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-completeness",
+      "path": "test/shiploop-packet-completeness.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/001-shiploop-packet-completeness.stderr.log",
+      "stdout_log": "logs/001-shiploop-packet-completeness.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-step-packets.test.py",
+      "duration_seconds": 1.251,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-step-packets",
+      "path": "test/shiploop-step-packets.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/002-shiploop-step-packets.stderr.log",
+      "stdout_log": "logs/002-shiploop-step-packets.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-recut.test.py",
+      "duration_seconds": 2.642,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-recut",
+      "path": "test/shiploop-packet-recut.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/003-shiploop-packet-recut.stderr.log",
+      "stdout_log": "logs/003-shiploop-packet-recut.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-head-order.test.py",
+      "duration_seconds": 5.035,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-head-order",
+      "path": "test/shiploop-head-order.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/004-shiploop-head-order.stderr.log",
+      "stdout_log": "logs/004-shiploop-head-order.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-obligations.test.py",
+      "duration_seconds": 4.63,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-obligations",
+      "path": "test/shiploop-packet-obligations.test.py",
+      "returncode": 1,
+      "status": "failed",
+      "stderr_log": "logs/005-shiploop-packet-obligations.stderr.log",
+      "stdout_log": "logs/005-shiploop-packet-obligations.stdout.log",
+      "timeout_seconds": 1800
+    }
+  ],
+  "entrypoint": "run-all",
+  "groups": [
+    "prompt"
+  ],
+  "jobs": 8,
+  "runtimes": {
+    "bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)\nCopyright (C) 2007 Free Software Foundation, Inc.",
+    "node": "v26.12.1",
+    "python3": "Python 3.15.1"
+  },
+  "schema": "skill-craft-hermetic-receipt/1",
+  "selected": [
+    {
+      "command": "python3 test/shiploop-packet-completeness.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-completeness",
+      "path": "test/shiploop-packet-completeness.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-step-packets.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-step-packets",
+      "path": "test/shiploop-step-packets.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-recut.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-recut",
+      "path": "test/shiploop-packet-recut.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-head-order.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-head-order",
+      "path": "test/shiploop-head-order.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-obligations.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-obligations",
+      "path": "test/shiploop-packet-obligations.test.py",
+      "timeout_seconds": 1800
+    }
+  ],
+  "source": {
+    "dirty_diff_sha256": "5bcb5f0b323c6ce5375b8792b2abdb2d853000c7fa29dc8608600822cc438360",
+    "head": "5d3628b0497c2402d7554c73011bb3d87a13bf55",
+    "status": [
+      "M docs/ARCHITECTURE.md",
+      " M test/README.md",
+      " M test/run_suites.py",
+      " M test/suite_catalog.py",
+      " M test/test-groups.test.py",
+      "?? docs/local-validation-journal.md"
+    ],
+    "tree": "b6ca6cd58a9cc7e4eeb7d5e1934e20db17a91977"
+  },
+  "status": "failed",
+  "wall_seconds": 8.514
+}

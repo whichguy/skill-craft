@@ -38,6 +38,7 @@ truthfully reports incomplete planning with a usable recovery action.
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
 | Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, the mock replay, 12 ShipLoop boundary suites) plus the light suites matching files changed since REF, uncommitted and untracked included |
+| Prompt | `bash test/run-all.sh --group prompt [--changed-from REF]` | The four packet-size suites (`packet-completeness`, `step-packets`, `packet-recut`, `head-order`) and the packet obligation ledger (`packet-obligations`, whose anchors are literal prompt phrases), about 25 s, plus the light suites whose own files changed since REF: the loop while editing a ShipLoop prompt or packet source; quick is still the gate before a push |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |
@@ -63,7 +64,10 @@ suites named after the leaf; a changed file under `skills/`, `agents/`,
 they import, names it, so `shiploop_navigator.py` and
 `test/shiploop_*_support.py` reach their consumers; ShipLoop's `SKILL.md`,
 `references/` and `commands/` select its packet, guidance and package-integrity
-suites; and the `scripts/shiploop` entrypoint and `shiploop_protocol.py` select
+suites; its packet sources (`shiploop_prompts.py`, `shiploop_navigator.py`,
+`shiploop_stage_spec.py`, `shiploop_loops.py`, `shiploop_narrative.py`) select the
+packet-size suites and the packet obligation ledger beside their hub consumers;
+and the `scripts/shiploop` entrypoint and `shiploop_protocol.py` select
 every light ShipLoop suite). Suites measured above two minutes and the E2E
 apparatus never run in quick. A pull request diffs from its merge base and a push
 from the previous `main` head. Only a push that contains a release commit (its
@@ -92,7 +96,13 @@ bash test/run-all.sh --group shiploop-1 --list
 
 `test/run-all.sh` is the only runner command; it has no ShipLoop-specific
 flags. Repeated groups form a union: shared entries run once, in catalog order.
-`--list` and help execute no suites. Listing prints one row per constituent
+`--jobs N` runs up to N suites at once (default: the CPU count, capped at 8);
+each suite is its own hermetic process, and its output, `OK`/`FAIL` line and
+receipt record still appear in catalog order, so a parallel run prints what a
+serial one prints and exits the same way. `--jobs 1` runs one suite at a time,
+each started after the previous one is in the receipt. The closing line gives the
+wall time and the three slowest suites, the floor no job count goes under.
+Ctrl-C stops the suites already started. `--list` and help execute no suites. Listing prints one row per constituent
 entry, with family, ID and command. `core`, `shiploop` and `e2e-apparatus` can
 also run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
 checked-in duration estimates and a deterministic fallback. They are scheduling

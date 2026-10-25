@@ -1,0 +1,37 @@
+# Per-class wall seconds of the slowest suites, 2026-10-25, 5d3628b0, the four run side by side
+# (load average 11.62 13.21 12.89 at start, 12.76 13.43 13.09 at end). Script: per-test durations from unittest, summed by class.
+
+shiploop-chain-async
+tests=3 sum=128.9s
+    128.9  suite_under_profile.AsyncCallbackTests
+
+shiploop-navigator-contract
+tests=130 sum=101.0s
+     60.8  suite_under_profile.EightStageInnerLoopCliTests
+     15.7  suite_under_profile.CliBoundaryRegressionTests
+     10.3  suite_under_profile.PlanningReviewOptionTest
+      7.7  suite_under_profile.BackchainPassesOptionTest
+      4.7  suite_under_profile.NavigatorContractTests
+      1.6  suite_under_profile.PlanningReviewNoneTest
+
+shiploop-callback-contract
+tests=84 sum=215.2s
+     73.3  suite_under_profile.RefusalRouteTests
+     29.3  suite_under_profile.EveryStageRouteTests
+     22.2  suite_under_profile.PathHandlingRouteTests
+     17.9  suite_under_profile.StepSizingRouteTests
+     13.0  suite_under_profile.PacketReviewRefusalRouteTests
+     12.6  suite_under_profile.InnerGateRouteTests
+
+shiploop-actual-improve-cli
+  File "/private/tmp/claude-501/-Users-dadleet-src-skill-craft--claude-worktrees-gifted-feynman-9de788/68acf7a5-e0b6-4855-b83a-b2bc60a3167c/scratchpad/before/test/shiploop-actual-improve-cli.test.py", line 2834, in test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output
+    self.assertLessEqual(written, 1500, (len(review.read_bytes()), len(command), len(done), len(str(self.run))))
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests=89 sum=173.9s
+     81.5  suite_under_profile.EphemeralImproveCliTests
+     50.8  suite_under_profile.ImproveCommitContractTests
+     23.4  suite_under_profile.AskAgentEphemeralImproveCliTests
+     18.1  suite_under_profile.ImprovePassTests
+      0.1  suite_under_profile.LoopContractShapeTests
+
+shiploop-actual-improve-cli had one failure in this profile, unrelated to the runner: ImprovePassTests.test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output wrote 1536 > 1500 characters at a checkout path of about 130 characters; the same commit passes at a 59-character checkout path.
