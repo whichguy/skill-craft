@@ -2969,3 +2969,45 @@ compares slice bytes and is not fingerprinted yet.
 
 **Consequence.** Every run graded before 2026-10-25 has no grading digest, so `promotion/3` is UNDECIDED on it. That is
 by design: no promotion has yet been decided on those runs, and step 10's first epoch will run fresh arms.
+
+## A run's own platform prefix, and why a Claude-host Salesforce run is refused (2026-10-25) — status: firm
+
+**Question.** Can a Haiku 5.5 Battleship run be published to org `de` without colliding with the earlier runs kept
+there? The owner asked for that run on 2026-10-25, "with a unique name and schema because we have lots of runs in that
+Salesforce org".
+
+**Found** (`docs/experiments/e2e-platform-prefix-20261025/`):
+- A read-only preflight for `SLBattle` refused. The org holds a kept app: 5 Apex classes, `slBattleBoard`, the tab,
+  the app and the permission set (`org-preflight-SLBattle.txt`). So a default run cannot start.
+  `--platform-existing update` would deploy over that app.
+- Both rules oracles hard-coded their class names in their anonymous Apex: Battleship 10 times, chess 30.
+
+**Built** (SPEC "A hosted-platform run's prefix"; README "A run's own prefix"):
+- `run.py --platform-prefix P` renames each Salesforce spelling of the case's prefix (`SLBattle`, `slBattle`) in the
+  prompt, the checks, the platform commands and the guard. It does so through one run-scoped reader, `catalog()`.
+- P must share no case-insensitive beginning with any case's prefix. A resume keeps P.
+- The oracles rename their classes where they send the Apex (`chess_salesforce.renamed`).
+- Tests: `PlatformPrefixTest` (4: run.main end to end with the fakes) and one oracle test each in the Battleship and
+  chess suites. The quick tier passed, 45 of 45 suites.
+
+**Then the run itself was refused, correctly** (`claude-host-preflight.txt`):
+- The Claude host runs under the real HOME (`hosts.Host.env` is `os.environ`), so `pin_shell_path` writes no startup
+  file.
+- Under every login shell (`sh -lc`, `bash -lc`, `zsh -lc`, `zsh -ilc`), `sf` resolves to `/opt/homebrew/bin/sf`
+  instead of `sf_guard.py`.
+- The model could then reach every app in the org. This is the hole that made chess run 1 invalid on 2026-10-16.
+
+**Sign-in probes** (`claude-signin-probes.txt`): Claude Code 2.1.310 answers "Not logged in" under each of:
+- a throwaway HOME;
+- a throwaway HOME with `~/.claude.json` linked in;
+- a throwaway HOME with `CLAUDE_CONFIG_DIR=~/.claude`.
+
+Under the real HOME it answers. So on macOS a Claude-host Salesforce run cannot be guarded today. Grok and Codex get a
+throwaway HOME and can be.
+
+**Decision (owner).** Haiku 5.5 runs the local `battleship` case at max effort instead. The Salesforce cases stay on
+Grok, each with its own `--platform-prefix`.
+
+**Open:**
+- A Claude-host Salesforce run first needs Claude Code to sign in under an isolated HOME without the harness handling a
+  credential. That is research, not a fix.

@@ -1,0 +1,5 @@
+# Claude Code sign-in under an isolated HOME (claude -p, claude-haiku-5-5, --effort max, Claude Code 2.1.310), 2026-10-25
+throwaway HOME: apiKeySource=none is_error=True result='Not logged in · Please run /login'
+throwaway HOME + ~/.claude.json symlinked: apiKeySource=none is_error=True result='Not logged in · Please run /login'
+throwaway HOME + CLAUDE_CONFIG_DIR=~/.claude: apiKeySource=none is_error=True result='Not logged in · Please run /login'
+real HOME (the harness's Claude host env): rc 0, model claude-haiku-5-5, result 'OK', cost $0.0021
