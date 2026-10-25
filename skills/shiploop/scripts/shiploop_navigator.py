@@ -43,6 +43,7 @@ import shiploop_lessons as commit_lessons
 import shiploop_knowledge_home as knowledge
 import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
+import shiploop_mutation as mutation
 import shiploop_loops as loops
 import shiploop_expectations as expectations
 import shiploop_planning_revision as planning_revision
@@ -72,7 +73,7 @@ _RESULT_KEYS = frozenset((
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
-    "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
+    "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -120,6 +121,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
+    "mutant_dispositions",
 )
 _STATE_KEYS = frozenset(
     (
@@ -478,7 +480,7 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
         return True
     # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option. Except
     # (advisors panel 2026-10-25, P4: "review each changed implementation action") a step that changed no file since it
-    # began: its Proof still ran, and its review would read code an earlier review already read. Chess runs 3 and 5b
+    # began: its Proof still ran, and its review would read code an earlier review already read. Live runs 3 and 5b
     # reviewed such reissued steps after a send-back three times, each a single trivial pass (327 s).
     if stage in stage_spec.with_improve("step"):
         action = _active_cursor(state)[1]
@@ -1162,10 +1164,16 @@ def _canonical_result(
     # Shape only (the test layers, run-5 batch F1/F3); the CLI gate applies each field's rule.  A step plan's test_layers
     # are the item's own rows.
     for key, stages in (("test_layers", ("test-strategy", "step-plan")), ("test_layers_na", ("test-strategy",)),
-                        ("targets", ("test-strategy",)), ("harness_runs", ("prepare",))):
+                        ("targets", ("test-strategy",)), ("harness_runs", ("prepare",)),
+                        ("mutant_dispositions", ("test",))):
         if key in value:
             _need(stage in stages and outcome == "done", key + " is allowed only on a done " + " or ".join(stages)
                   + " result")
+    if "mutant_dispositions" in value:
+        try:
+            result["mutant_dispositions"] = mutation.canonical_dispositions(value["mutant_dispositions"])
+        except mutation.DispositionError as exc:
+            raise NavigatorError(str(exc)) from exc
     try:
         if "test_layers" in value:
             result["test_layers"] = layers.canonical_rows(value["test_layers"])
@@ -7226,7 +7234,7 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
 def _revised_case_scope(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
     """Where a test spec revised after a send-back is reviewed (advisors panel 2026-10-25, P3).
 
-    The four test-spec re-reviews of chess runs 3, 4 and 5b changed nothing, and run 5b's two read all 25 cases when one
+    The four test-spec re-reviews of live runs 3, 4 and 5b changed nothing, and run 5b's two read all 25 cases when one
     had changed (TC_28; then TC_19).  When the item's test spec accepted before its latest send-back was itself reviewed,
     this review takes the cases that changed, were added or were dropped since then, their dependents, and whether every
     requirement the earlier version covered is still covered.  An earlier version that was never reviewed (an item after

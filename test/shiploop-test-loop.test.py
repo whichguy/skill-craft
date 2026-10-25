@@ -1772,17 +1772,58 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(test_loop.stateful_targets(state), org)
 
     def test_a_mixed_item_whose_remote_commands_were_left_out_records_survivors_without_refusing(self):
-        """Sol pass 2, finding 2: the mutants may sit in code only the left-out remote tests reach."""
+        """Sol pass 2, finding 2: the mutants may sit in code only the left-out remote tests reach, so the zero-kill rule
+        does not refuse them. Since the 2026-10-25 panel (P5) each still needs a disposition: not-exercisable, here."""
         self.calc_item(self.EMPTY_TEST)  # kills nothing
-        with mock.patch.object(mutation, "split_remote",
-                               side_effect=lambda commands, stateful=(): (list(commands), ["sf apex run test -n A"])):
-            lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        split = mock.patch.object(mutation, "split_remote",
+                                  side_effect=lambda commands, stateful=(): (list(commands), ["sf apex run test -n A"]))
+        with split, self.assertRaisesRegex(test_loop.TestLoopError, "with no disposition"):
+            test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
         record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
         self.assertEqual(record["killed"], 0)
         self.assertGreater(record["survived"], 0)
-        self.assertTrue(record["passed"])
         self.assertIn("recorded, not refused", record["advisory"])
+        dispositions = [{"mutant": ident, "disposition": "not-exercisable",
+                         "evidence": "only the left-out remote test reaches this code"} for ident in record["undisposed"]]
+        with split:
+            lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action(),
+                                             {"mutant_dispositions": dispositions})
+        self.assertTrue(store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 2))["passed"])
         self.assertTrue(lines)
+
+    PARTIAL_TEST = ("import unittest\n\nimport calc\n\n\nclass CalcTests(unittest.TestCase):\n"
+                    "    def test_tc1(self):\n        self.assertEqual(calc.add(2, 3), 5)\n"
+                    "        self.assertTrue(calc.is_big(20))\n")  # far above 10: the 10 -> 11 mutant survives
+
+    def test_each_surviving_mutant_needs_a_disposition_and_a_resubmission_with_them_reuses_the_run(self):
+        """Advisors panel 2026-10-25, P5: a partial survival passed silently (the gate refused only when none was killed),
+        and run 3's survivor at the engine's bounds check (src >= 0 -> >= 1) was never looked at. Each survivor now gets
+        a test that kills it or a disposition with evidence; resubmitting only dispositions runs no mutant again."""
+        self.calc_item(self.PARTIAL_TEST)  # kills a + b -> a - b; no boundary assertion on is_big
+        action = self.action()
+        self.assert_refused(self.loop_done(), r"(?s)survived the focused tests, with no disposition:.*calc\.py:6:")
+        first = store.read_record(self.run_dir / test_loop.mutation_path(action, 1))
+        self.assertGreater(first["killed"], 0)
+        self.assertFalse(first["passed"])
+        survivors = first["undisposed"]
+        self.assertTrue(survivors and all(ident.startswith("calc.py:6:") for ident in survivors), survivors)
+        done = dict(self.loop_done(), mutant_dispositions=[
+            {"mutant": ident, "disposition": "equivalent", "evidence": "R-2 states is_big only for n far above 10"}
+            for ident in survivors])
+        self.complete(done)
+        self.assertNotEqual(nav.current_stage(self.settle()), "test")
+        second = store.read_record(self.run_dir / test_loop.mutation_path(action, 2))
+        self.assertTrue(second["passed"])
+        self.assertEqual(second["reused"]["path"], test_loop.mutation_path(action, 1))
+        self.assertEqual(second["mutants"], first["mutants"])
+
+    def test_a_malformed_disposition_is_refused_with_its_shape(self):
+        for bad, message in (("all of them", "is a list of"),
+                             ([{"mutant": "calc.py:6:13", "disposition": "fine", "evidence": "x"}], "is one of equivalent"),
+                             ([{"mutant": "calc.py:6:13", "disposition": "equivalent", "evidence": "<why>"}],
+                              "needs a real value")):
+            with self.subTest(bad=bad), self.assertRaisesRegex(nav.NavigatorError, message):
+                nav._canonical_result(dict(DONE, mutant_dispositions=bad), stage="test")
 
     def test_the_checkout_is_byte_identical_after_the_check(self):
         self.calc_item(self.REAL_TEST)

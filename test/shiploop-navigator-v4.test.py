@@ -664,7 +664,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("sufficient evidence", packet_lower)
         self.assertIn("inconclusive", packet_lower)
         self.assertIn("remains unresolved", packet_lower)
-        self.assertIn("existing qualifying reviews", packet_lower)
+        self.assertIn("the qualifying review (one trivial pass ends it)", packet_lower)
         self.assertIn("nested loop", packet_lower)
         self.assertIn("Planning scratch directory: " + str(scratch), packet)
         self.assertIn("frozen scope", packet_lower)

@@ -2534,7 +2534,9 @@ input, then review the change against the rubric below and for:
 - code whose only check is a source search, not a run;
 - a parser that checks each field but not how they combine;
 - a language pitfall handled in one place and not everywhere it applies;
-- a failure state that does not name the user's next action.
+- a failure state that does not name the user's next action;
+- a mutant disposition a test stage recorded (equivalent, out-of-scope,
+  not-exercisable) that a later edit made untrue, or a kill claimed with no run.
 Fix violations within scope; each fix comes with a test that fails before it.
 A pass that finds no material violation is trivial.
 """

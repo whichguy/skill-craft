@@ -222,6 +222,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # Each step-plan criterion's confirm (F1).
     "confirm": re.compile(r"each criterion says confirm:|are inspected, but name no test_layers row|are executed, "
                           r"but every command naming them only searches text|'s confirm is one of"),
+    # A surviving mutant with no disposition at the test stage, or a malformed disposition (advisors panel P5).
+    "mutant_disposition": re.compile(r"with no disposition:|mutant_dispositions(?:\[\d+\])?(?:\.\w+)? (?:is|needs) "),
     # Prepare's harness evidence that shows no test running (run 5a's browser probe; run-5 follow-up), ahead of the
     # broader harness_runs row, whose "harness_runs evidence" would match it first.
     "harness_evidence": re.compile(r"shows no test run ShipLoop can read|ran no test \(the runner selected none\)"),
