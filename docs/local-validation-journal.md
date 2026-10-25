@@ -80,6 +80,19 @@ suites shows the same: `shiploop-callback-contract` (325 s), `shiploop-actual-im
 6.0 s to 27.2 s in the parallel run. A test that rebuilt `quick()` once per catalog suite cost 8.5 s and was fixed
 before the commit. The file now takes about 13.5 s alone, most of it the eight fixture runs of the equivalence test.
 
+**On GitHub CI.** The round was pushed to `main` as ef3fb8be, which is f72de7b3 rebased onto 79b3490e. An
+`ubuntu-latest` runner has 4 vCPUs, so the default there is `--jobs 4`. Both runs below are push runs of the quick
+tier on the same 16 baseline suites, since 79b3490e changed only docs:
+
+| Run | Commit | Quick job, setup included | Runner wall | Result |
+|---|---|---|---|---|
+| [40237296441](https://github.com/whichguy/skill-craft/actions/runs/40237296441), serial | 79b3490e | 3 min 26 s | not printed (the old runner has no timing line) | success |
+| [40237477513](https://github.com/whichguy/skill-craft/actions/runs/40237477513), `--jobs 4` | ef3fb8be | 1 min 23 s | 51.0 s | success |
+
+On CI the floor is `shiploop-navigator-contract` (50.9 s), then `shiploop-chain-async` (30.8 s) and
+`shiploop-navigator-dry-run` (30.3 s). `shiploop-chain-async`, the local floor, takes about 125 s on the shared
+development machine against 30.8 s on CI. The cause of that gap was not measured.
+
 The 5-suite prompt run on 5d3628b0 reproduces the 2.11.0 CI failure locally in 8.5 s. `shiploop-packet-obligations`
 fails seven tests while the four packet-size suites pass. That is the case for keeping the ledger in the group. The
 fix, 891be21e on `main`, keeps the anchored phrase on one source line. On `main`'s own diff from 5d3628b0 to 891be21e,
@@ -121,6 +134,7 @@ Evidence in `docs/experiments/local-validation-20261025/`:
   `test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output` depends on the checkout path's length. On
   5d3628b0 it writes 1,536 characters and fails at a checkout path of about 130 characters (a scratch worktree), and
   passes at this worktree's 59-character path. CI's path is shorter still.
-- F4 (exploratory): GitHub CI now runs each group with 4 jobs, the runner's CPU count. Quick is covered by the local
-  run above, but the full shards (`shiploop-1|2|3`, `core`) have not yet run in parallel anywhere. If one is flaky
+- F4 (interim): GitHub CI now runs each group with 4 jobs, the runner's CPU count. Quick ran in parallel there and
+  passed: run 40237477513 took 1 min 23 s against 3 min 26 s serial. The full shards (`shiploop-1|2|3`, `core`) have
+  not yet run in parallel anywhere, and the first release commit will be their first parallel run. If one is flaky
   under parallel load, `--jobs 1` in `ci.yml` restores the serial run.
