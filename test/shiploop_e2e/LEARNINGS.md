@@ -2798,3 +2798,47 @@ Shadow triage follows. The design doc is amended to match.
 **Biggest remaining risk** (Astra): optimising incomplete oracles. A deterministic controller can keep promoting software
 that passes its checks and misses the user's real requirements.
 
+## Build step 1: the promotion contract (2026-10-25) — status: firm for the rule and its tests; interim for its tolerances (none calibrated on real arms yet)
+
+**Question.** Can one scripted, pre-registered rule decide whether a candidate ShipLoop change is promoted, putting
+quality first and efficiency second, from the scorecards alone? This is step 1 of Astra's build order (R1 and R16;
+`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`), and the owner approved it on 2026-10-25.
+
+**Built:**
+- SPEC "The promotion contract" (contract id `promotion/1`), amended first in its own commit.
+- `test/shiploop_e2e/promotion.py`. It reads the two arms' cards (run folders, or `scorecard.py --out` files) under a
+  registration written before the runs. Rules:
+  - coverage gaps and unmeasured required floors are UNDECIDED;
+  - a fallen regression case is DROP;
+  - over budget is DROP;
+  - a capability gain is PROMOTE at its stated cost;
+  - at equal quality, all-attempt cost per success decides, metric by metric, on comparable cards only.
+
+  Exit 0, 3 or 4.
+- Enterprise cannot be a required floor yet, because every `scorecard/1` card has it null. The default required floors
+  are accuracy and fidelity. The SPEC commit was amended once, before any push, to say so.
+
+**Done signal** (Astra's): the three examples are a test.
+- A slower, dearer change that makes the capability case pass is PROMOTE.
+- A faster, cheaper change that breaks an established requirement is DROP.
+- Equal quality, with costs within the tolerance, is UNDECIDED.
+
+**Also tested:**
+- missing coverage and an unmeasured floor;
+- a regression beside a gain;
+- a gain over budget;
+- all attempts counted;
+- the metric order;
+- non-comparable timing;
+- tokens not measured yet;
+- a registration written after a run began, and invalid registrations;
+- the CLI on a real gate card.
+
+That last case is UNDECIDED: the 2.9.0 gate runs all overlapped other runs, so that evidence cannot promote an efficiency
+change.
+
+**Open:**
+- The tolerances (10 % relative, 0 share) are unmeasured defaults, to calibrate on the first real arms.
+- Steps 2 (required evidence per case and validity dimensions) and 8 (tokens) will change what the contract reads, under a
+  new id.
+
