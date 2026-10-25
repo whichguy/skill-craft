@@ -15,12 +15,11 @@ minutes at `--parallel` samples at a time (default: the number running, else 1).
 arrows, each state carrying its own icon so state is never colour alone.
 
 It reads only run folders and decision files and writes nothing. A sample whose evaluator fails shows as an error
-slot, never as a pass.
+slot, never as a pass. It builds a status_card.py model and lets that module draw it (the same card any long job uses).
 """
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import statistics
 import sys
@@ -30,28 +29,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import experiment  # noqa: E402
-
-BLUE = "#2a78d6"
-STYLE = (
-    "<style>.s{display:flex;flex-direction:column;align-items:center;gap:3px;width:28px}"
-    ".s i{display:block;width:14px;height:14px;border-radius:50%;box-sizing:border-box;margin:2px 0}"
-    f".f{{background:{BLUE};width:18px!important;height:18px!important;margin:0!important}}.o{{border:2px solid {BLUE}}}"
-    ".r{border:2px dashed #BA7517}.p{border:1.5px dotted var(--border-stronger)}.e{border:2px solid #A32D2D;border-radius:3px!important}"
-    ".s em{font-style:normal;font-size:11px;color:var(--text-muted);height:14px}"
-    ".c{background:var(--surface-1);border-radius:var(--radius);padding:10px 12px}.row{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}"
-    ".ft{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text-secondary)}"
-    ".ft span{font-size:11px;color:var(--text-muted)}.ok{font-weight:400;font-size:11px;padding:1px 6px;border-radius:var(--radius);"
-    "background:var(--bg-success);color:var(--text-success)}.no{font-weight:400;font-size:11px;padding:1px 6px;"
-    "border-radius:var(--radius);background:var(--bg-danger);color:var(--text-danger)}"
-    ".h{font-size:13px;font-weight:500}.m{font-size:12px;color:var(--text-muted)}"
-    ".pl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;font-size:12px}"
-    ".ch{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:var(--radius);border:0.5px solid var(--border)}"
-    ".ch.done{background:var(--bg-success);color:var(--text-success);border-color:transparent}"
-    ".ch.running{background:var(--bg-warning);color:var(--text-warning);border-color:transparent}"
-    ".ch.waiting{color:var(--text-secondary);border-style:dashed}.ch.pending{color:var(--text-muted)}"
-    ".ar{color:var(--text-muted)}.lg{flex-direction:row!important;width:auto!important;gap:5px!important}"
-    "@media (prefers-reduced-motion:no-preference){.r{animation:sp 2s linear infinite}}@keyframes sp{to{transform:rotate(360deg)}}</style>")
-ICONS = {"done": "ti-check", "running": "ti-loader-2", "waiting": "ti-hourglass", "pending": "ti-circle-dashed"}
+import status_card  # noqa: E402
 
 
 def band(exp: dict) -> str:
@@ -84,19 +62,18 @@ def sample_state(sample: Path, module, now: float, scorer=None) -> dict:
     return {"state": "done", "value": found.get("value"), "label": found.get("steps"), "minutes": minutes}
 
 
-def slot(s: dict) -> str:
+def _slot(s: dict) -> dict:
+    """A sample's state as a status_card slot."""
     if s["state"] == "done":
         value = s.get("value")
         label = s.get("label") if s.get("label") is not None else ("–" if value is None else f"{value:.2f}".rstrip("0").rstrip("."))
-        kind = "f" if value is not None and value >= 0.999 else "o"
         tip = f"value {value}" + (f", {s['label']} steps" if s.get("label") is not None else "")
-    elif s["state"] == "running":
-        kind, label, tip = "r", f"{round(s['minutes'])}m", f"running {round(s['minutes'])} min"
-    elif s["state"] == "error":
-        kind, label, tip = "e", "err", s.get("why", "")
-    else:
-        kind, label, tip = "p", "", "pending"
-    return f'<span class="s" title="{html.escape(str(tip))}"><i class="{kind}"></i><em>{html.escape(str(label))}</em></span>'
+        return {"state": "pass" if value is not None and value >= 0.999 else "below", "label": label, "tip": tip}
+    if s["state"] == "running":
+        return {"state": "running", "label": f"{round(s['minutes'])}m", "tip": f"running {round(s['minutes'])} min"}
+    if s["state"] == "error":
+        return {"state": "error", "label": "err", "tip": s.get("why", "")}
+    return {"state": "pending"}
 
 
 def card(out: Path, exp_ids: list[str], arms: list[str] | None = None, plan: list[dict] | None = None,
@@ -119,49 +96,23 @@ def card(out: Path, exp_ids: list[str], arms: list[str] | None = None, plan: lis
     lanes = parallel or max(len(running), 1)
     left = len(slots) - len(done)
     eta = now + (left / lanes) * (statistics.mean(minutes) if minutes else 20) * 60
-    stamp = time.strftime("%H:%M", time.localtime(now))
-    pct = round(100 * len(done) / len(slots)) if slots else 0
-    parts = [f'<h2 class="sr-only">Experiment progress at {stamp}: {len(done)} of {len(slots)} samples finished, '
-             f'{len(running)} running.</h2>', STYLE]
-    if plan:
-        chips = []
-        for step in plan:
-            state = step.get("state", "pending")
-            note = f' · {html.escape(step["note"])}' if step.get("note") else ""
-            chips.append(f'<span class="ch {state}"><i class="ti {ICONS.get(state, ICONS["pending"])}" aria-hidden="true"></i>'
-                         f'{html.escape(step["step"])}{note}</span>')
-        parts.append('<div class="pl">' + '<span class="ar" aria-hidden="true">→</span>'.join(chips) + "</div>")
-    eta_text = f" · ETA about {time.strftime('%H:%M', time.localtime(eta))}" if left else " · complete"
-    parts.append(f'<div style="display:flex;justify-content:space-between;align-items:baseline;margin:0 0 6px">'
-                 f'<span style="font-size:16px;font-weight:500">{len(done)} of {len(slots)} samples</span>'
-                 f'<span style="font-size:13px;color:var(--text-secondary)">{stamp} · {len(running)} running{eta_text}</span></div>'
-                 f'<div style="height:8px;background:var(--surface-1);border-radius:4px;overflow:hidden;margin:0 0 16px">'
-                 f'<div style="width:{pct}%;height:100%;background:{BLUE}"></div></div>')
-    columns = f"minmax(0,1.3fr) repeat({len(arms)},minmax(0,1fr))"
-    parts.append(f'<div style="display:grid;grid-template-columns:{columns};gap:8px;align-items:center"><div></div>'
-                 + "".join(f'<div class="h" style="text-align:center">{html.escape(a)}</div>' for a in arms))
+    rows = []
     for exp_id, exp in exps.items():
-        parts.append(f'<div><div class="h">{html.escape(exp_id)} · {html.escape(exp["case"])}</div>'
-                     f'<div class="m">{html.escape(band(exp))}</div></div>')
+        cells = []
         for arm in arms:
             states = grid[(exp_id, arm)]
             values = [s["value"] for s in states if s["state"] == "done" and s.get("value") is not None]
-            mean = f"{statistics.mean(values):.2f}" if values else "–"
-            verdict = None
             record = out / exp_id / f"decision-{control}-{arm}.json"
-            if arm != control and record.exists():
-                verdict = json.loads(record.read_text()).get("verdict")
-            tag = ('<b class="ok">supports</b>' if verdict == "supports" else '<b class="no">contradicts</b>'
-                   if verdict == "contradicts" else f"<span>{html.escape(verdict)}</span>" if verdict else "")
-            parts.append(f'<div class="c"><div class="row">{"".join(slot(s) for s in states)}</div>'
-                         f'<div class="ft"><span>mean {mean}</span>{tag}</div></div>')
-    parts.append("</div>")
-    parts.append('<div class="ft" style="justify-content:flex-start;flex-wrap:wrap;gap:14px;margin-top:12px">'
-                 '<span class="s lg"><i class="f" style="width:10px!important;height:10px!important"></i>scored 1</span>'
-                 '<span class="s lg"><i class="o"></i>scored below 1</span>'
-                 '<span class="s lg"><i class="r" style="animation:none"></i>running (minutes)</span>'
-                 '<span class="s lg"><i class="p"></i>pending</span><span>number = steps planned, or the value</span></div>')
-    return "".join(parts)
+            verdict = json.loads(record.read_text()).get("verdict") if arm != control and record.exists() else None
+            cells.append({"slots": [_slot(s) for s in states], "verdict": verdict,
+                          "summary": f"mean {statistics.mean(values):.2f}" if values else "mean –"})
+        rows.append({"name": f"{exp_id} · {exp['case']}", "sub": band(exp), "cells": cells})
+    model = {"plan": plan or [], "columns": arms, "rows": rows,
+             "progress": {"done": len(done), "total": len(slots), "unit": "samples", "running": len(running),
+                          "stamp": time.strftime("%H:%M", time.localtime(now)),
+                          "eta": time.strftime("%H:%M", time.localtime(eta)) if left else None},
+             "legend": {"pass": "scored 1", "below": "scored below 1", "note": "number = steps planned, or the value"}}
+    return status_card.render(model)
 
 
 def main(argv: list[str] | None = None) -> int:
