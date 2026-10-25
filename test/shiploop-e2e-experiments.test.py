@@ -511,6 +511,33 @@ class ProgressCard(unittest.TestCase):
         self.assertNotIn('<i class="f">', found)
         self.assertIn("exactly 1 step", found)
 
+    def test_the_model_carries_iso_times_for_a_live_card_and_renders_as_the_card(self):
+        import progress_card  # noqa: PLC0415
+        import status_card  # noqa: PLC0415
+        (self.out / "E6-K1" / "T" / "1" / "slice").mkdir(parents=True)
+        done = self.out / "E6-K1" / "T" / "2" / "slice"
+        done.mkdir(parents=True)
+        (done / "slice-result.json").write_text("{}")
+        found = progress_card.model(self.out, ["E6-K1"], ["T"], now=1_800_000_000.0,
+                                    scorer=lambda folder: {"value": 1, "steps": 3})
+        progress = found["progress"]
+        self.assertEqual((progress["done"], progress["total"], progress["running"]), (1, 4, 1))
+        self.assertEqual([(e["kind"], e["text"]) for e in found["events"]],
+                         [("done", "E6-K1 T sample 2 finished: value 1, 3 steps")])
+        self.assertRegex(progress["updatedAt"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d$")
+        self.assertRegex(progress["etaAt"], r"^\d{4}-\d\d-\d\dT")
+        running = found["rows"][0]["cells"][0]["slots"][0]
+        self.assertEqual(running["state"], "running")
+        self.assertRegex(running["since"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d$")
+        self.assertEqual(json.loads(json.dumps(found)), found)
+        self.assertEqual(status_card.render(found),
+                         progress_card.card(self.out, ["E6-K1"], ["T"], now=1_800_000_000.0,
+                                            scorer=lambda folder: {"value": 1, "steps": 3}))
+        job = progress_card.job_document(found, {"title": "R9", "notes": [
+            {"at": "1999-01-01T00:00:00+00:00", "kind": "info", "text": "launched"}]})
+        self.assertEqual((job["title"], job["status"], job["updatedAt"]), ("R9", "running", progress["updatedAt"]))
+        self.assertEqual([e["text"] for e in job["events"]], ["E6-K1 T sample 2 finished: value 1, 3 steps", "launched"])
+
 
 if __name__ == "__main__":
     unittest.main()

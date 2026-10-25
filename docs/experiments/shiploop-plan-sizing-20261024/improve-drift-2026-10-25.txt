@@ -1,0 +1,4 @@
+80 samples, 80 with the submitted plan on record; Improve changed the step count in 0
+largest step's criteria characters through Improve: median +0.0, max +375, grew in 29 of 80
+final plans with a step over 1,200 criteria characters: 1
+  E6-K4 Cg 2: 846 -> 1221

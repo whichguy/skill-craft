@@ -148,3 +148,59 @@ active throughout.
 | F24 | The generic wording keeps the over-split guard: every Cg K5 plan is one step, and every Cg K3 plan keeps the layers apart. | firm (n = 4 each) | r1-results |
 
 **Next.** Owner's call: more K1 samples (T and Cg, to firm up F21/F22), the remaining cases, or both.
+
+## 5. 2026-10-25: R2, shape on the remaining cases
+
+**Question.** Owner, 2026-10-24: "Skip extra K1 samples; run K2, K4, K6 and K7 with T and Cg, 4 samples each (32
+slices)." Does the generic bound (`Cg`) split the second engine case (K2, the Node engine) and keep the battleship
+server (K4), the rename (K6) and the added function (K7) inside their bands?
+
+**Conditions.** As R1g: Grok 4.7 medium, seed and stop at step-plan, arm T = `9ed4ec24`, arm Cg = `9ed4ec24` +
+`e6-size-gate-generic.json`, 4 samples per arm per case, output `/Users/dadleet/e2e-runs/e6-r1-20261024`, Python
+3.14.9. 08:47 to 11:22 in four lanes. Two lanes were refused at launch (`run` takes `--sample` or `--samples`, not both)
+and relaunched at 08:49. From 09:57 the lanes that finished early took later samples of the slow ones (K7 samples 1 to 4
+in part, K4 Cg 4). The original lanes skipped those as finished earlier: 7 skips, no cut slice. E-EFF1 held its runs
+until this batch ended. Another session's Grok chess run may have shared the host, which matters to minutes, not to
+plan shape. Renaming: the downstream round that entries 3 and 4 call R2 is R3 from now on (plan section 5).
+
+**Results.** All 32 slices passed. The steps column gives each sample's step count; max criteria is the largest step's
+criteria count over the 4 samples.
+
+| Case | Band | T (steps) | Cg (steps) | Max criteria T / Cg | Minutes T / Cg | decide T vs Cg |
+| --- | --- | --- | --- | --- | --- | --- |
+| K2 node-chess-engine | 3+ | 0.50 (2, 4, 1, 6) | 0.75 (2, 10, 4, 5) | 6 / 4 | 16.4 / 16.7 | **supports**: +0.25 beyond the A/A spread 0.00 |
+| K4 node-battleship-server | 2-7 | 1.00 (3, 4, 4, 6) | 1.00 (4, 5, 3, 4) | 4 / 2 | 20.2 / 21.5 | ceiling |
+| K6 node-rename | 1 | 1.00 (1, 1, 1, 1) | 1.00 (1, 1, 1, 1) | 3 / 4 | 13.8 / 14.2 | ceiling |
+| K7 node-add-function | 1-2 | 1.00 (1, 1, 1, 1) | 1.00 (1, 1, 1, 1) | 4 / 4 | 12.5 / 10.6 | ceiling |
+
+**Harness changes** (this commit; none changes an earlier result, since all read run folders only):
+- `progress_card.py`: `model()` split from `card()`. `--json` prints the model with ISO `progress.updatedAt` and
+  `etaAt`, a running slot's `since`, and `events` (the finished samples, newest first). `--meta JOB.json` turns it into
+  a Live Run Card job document (`job_document`). The card's tip now says "1 step", not "1 steps". Test:
+  `ProgressCard.test_the_model_carries_iso_times_for_a_live_card_and_renders_as_the_card`.
+- The Live Run Card (https://claude.ai/artifact/6UrX5dfz95wMNfpMMzwdz8): a page that subscribes to its `jobs` store
+  and redraws on every write. Source and R2's job meta are in `docs/experiments/shiploop-plan-sizing-20261024/live-card/`.
+  This round's job, `jobs/e6-r2`, was written on every 3.5-minute tick and every finished sample.
+- `improve_drift.py` compares each sample's submitted plan (the Improve record's `seed_result`) with the scored plan.
+- `r2-results-2026-10-25.json`: every E6 round (R1, R1g, R2) from `r1_report.py --json`, superseding
+  `r1-results-2026-10-24.json` as the complete table.
+
+**Findings.**
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F25 | The generic wording wins K2, its first "supports": Cg 0.75 against T 0.50, whose pairs tie (T 0, 1, 0, 1), so the A/A spread is 0. The margin is one sample. | firm (the verdict); interim (the effect, n = 4) | `E6-K2/decision-T-Cg.json` |
+| F26 | Across both engine cases Cg puts 6 of 8 plans in band against 3 of 8 for T (K1 3 against 1, K2 3 against 2). | interim (pooling two cases the decide rule keeps apart) | r2-results |
+| F27 | No harm on the guards: K4, K6 and K7 are at the ceiling in both arms, Cg kept every rename and added function to 1 step, and K4 within 2 to 7. With R1g's K3 and K5, Cg has 20 of 20 samples in band on the five non-engine cases. | firm (n = 4 each) | r2-results; decision files |
+| F28 | Cg's gate refused nothing in 28 samples (C's nothing in 12): every plan met the bound in its first submission, so the prose did the work and the gate is untested insurance. Updates F17 and F22. | firm (exact refusal messages counted in the events) | events.jsonl of every C and Cg slice |
+| F29 | The bound caps the criteria count, not its text: Cg's largest step stayed within 4 criteria in all 28 samples while T's K2 steps reached 6, but Cg K2 sample 1 put 1,121 characters into 2 criteria. T's merged steps press on the text limit instead: its largest K1 and K2 steps are 1,166 to 1,200 of 1,200 characters in 6 of 8 samples. | interim (descriptive; the clear Cg case is n = 1) | per-step criteria characters from the scored plans |
+| F30 | The bound can swing to many tiny steps: Cg K2 sample 2 planned 10 one-criterion steps, in band because K2 has no upper limit. In a full run each step adds an implement and an Improve round, which only R3 can price. | exploratory (n = 1) | E6-K2/Cg/2 plan |
+| F31 | E6 measures the planner, not Improve. The scored plan is the one after the step-plan Improve child, but in 80 samples Improve changed no step count; it lengthened the largest step's criteria in 29, median +0 and at most +375 characters. | firm | `improve_drift.py` output on the run folder |
+| F32 | ShipLoop defect found here: an Improve final result skips `_check_producer_bounds`. The Improve import path in `shiploop_navigator.py` runs 12 gates on `final_result`, the sizing gate among them, but not the producer bounds, so K4 Cg sample 2's S1 grew from 846 to 1,221 criteria characters and was stored over `STEP_CRITERIA_LIMIT` (1,200). The same holds on main `c91cfb90`. The generic fix is to call `_check_producer_bounds(child["stage"], final_result)` beside those gates; it is not made here. | firm (code read on both commits; one stored instance) | `improve_drift.py`; the import path after `final_result = receipt.get("final_result")` |
+| F33 | Cost at step-plan: Cg's minutes are within 2 of T's on every R2 case. | interim (shared host) | r2-results `mean_minutes` |
+
+**Next.** Owner's call on a ShipLoop change. Option (a): take Cg's wording into the step-plan template: the prose and
+the gate as tested, or the prose alone, since the gate never fired. Option (b): more K1 samples first, since F23's
+coarse threshold left K1 inconclusive. Option (c): R3 downstream to price the extra steps; it needs the owner's go, and
+K1 and K3 need org `de`. Separately, F32 is a small generic navigator fix with its own change note. Grok stays with
+E-EFF1 until it reports its R2 finished.

@@ -1,7 +1,8 @@
 ---
 Execute: ask
 Status: R-1 (corpus analysis) done 2026-10-24; R0 (harness) built 2026-10-24 as E6 of the template-field harness,
-  one smoke sample; R1 and R2 not started
+  one smoke sample; R1 and R1g done 2026-10-24; R2 (shape on K2, K4, K6, K7) done 2026-10-25; R3 (downstream) not
+  started
 Branch: exp/plan-sizing-1b1e33, on the template-field harness branch 78ea131b (worktree-agent-a34bc5d47d282ddad)
 Opened: 2026-10-24
 Consumer: the owner, who approves, strikes or re-scopes a round before any run is launched; later, whoever changes a
@@ -168,7 +169,11 @@ main. The templates-branch session (`feat/shiploop-templates-6d625a`, shipping a
   listed file's name plus a suffix starting with a separator with that file, with no stack's file convention. Only the
   R1 winner's generic arm runs (4 samples per case), after E-EFF1's Grok pair; it ships only if it keeps the
   winner's result against T.
-- **R2, downstream** (full slices, step-plan to carry-forward): K2, K4 × T and the R1 winner × 3 on Grok (12 runs). K1
+- **R2, shape on the remaining cases** (done 2026-10-25, journal entry 5; owner: "Skip extra K1 samples; run K2, K4,
+  K6 and K7 with T and Cg, 4 samples each"): `experiment.py run E6-K<n> --arm T|Cg` at `--stop-after step-plan`, 32
+  slices on Grok 4.7 medium in four lanes, then `score` and `decide E6-K<n> T Cg`. This name was the downstream
+  round's until 2026-10-25; that round is now R3.
+- **R3, downstream** (full slices, step-plan to carry-forward): K2, K4 × T and the R1 winner × 3 on Grok (12 runs). K1
   and K3 need a real Apex run to finish an item, so a downstream round on them needs the owner's go for org `de`.
   Quality first: slice verdicts (`inner_loop`, `assembled`, `checks`), send-backs, Improve material findings per step;
   then tokens; then item minutes and implement minutes per step. This is the round that says whether smaller steps
@@ -180,7 +185,7 @@ or a slice check that passes under control and fails under the arm.
 
 **Cost estimate** from R-1 medians (Grok: step-plan 1.1 minutes, p90 8.0; one item's inner loop 20, p90 51.5) plus
 seeding, plugin build and the step plan's Improve review, which a stopped slice still runs (planning review `stage`):
-R1 on Grok is roughly 84 slices at 5 to 15 minutes, 7 to 21 hours serial, less if the first three cases settle it; R2
+R1 on Grok is roughly 84 slices at 5 to 15 minutes, 7 to 21 hours serial, less if the first three cases settle it; R3
 about 4 to 10 hours. Grok has no spend cap in the harness; a Claude slice takes `--max-budget-usd` (default 10).
 
 ## 6. Reuse for other templates and prompt refining
@@ -201,7 +206,7 @@ templates whose output depends on tools, gates and the repository (step-plan, pl
 
 ## 7. What this might harm
 
-- Over-splitting: more steps each pay the lint gate, an Improve child and a step commit (K5 to K7, R2 tokens).
+- Over-splitting: more steps each pay the lint gate, an Improve child and a step commit (K5 to K7, R3 tokens).
 - A file count is a proxy: a two-file step can still hold an engine; R1's requirements-per-step column watches that.
 - Platform sidecars (Salesforce `-meta.xml`) inflate counts unless collapsed; the scorer and gate must agree on how.
 - Packet length: arm B adds about four lines to every step-plan packet.
