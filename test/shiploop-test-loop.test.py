@@ -1727,6 +1727,16 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(test_loop._explain_base({"status": "not-run", "ids_unrun": ["TC-1"]}).startswith(
             "did not run TC-1 on the base"))
 
+    def test_the_unread_refusal_points_at_the_platform_card_which_names_the_reporters(self):
+        """Outside review 2026-10-24, fix 5: the refusal names no runner; the cards carry each stack's reporter."""
+        text = test_loop._explain_base({"status": "unread", "ids_unread": ["TC-1"]})
+        self.assertIn("the stack's platform card under references/platforms/ names a readable one", text)
+        for runner in ("pytest", "unittest", "jest"):
+            self.assertNotIn(runner, text.lower())
+        cards = mutation.PLATFORM_CARDS
+        self.assertIn("`pytest -v` and `python -m unittest -v`", (cards / "python.md").read_text())
+        self.assertIn("Under Jest, add `--verbose`", (cards / "node-express.md").read_text())
+
     def test_a_focused_and_a_regression_row_fold_only_with_one_target_and_keep_it(self):
         """Sol pass 2, finding 1: folding dropped target, so a remote command lost its remote rule."""
         rows = test_loop.normalise_commands([

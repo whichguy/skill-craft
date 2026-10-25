@@ -1753,9 +1753,8 @@ def _explain_base(run: Mapping[str, Any]) -> str:
                 "so ShipLoop can judge each one, and make the tests assert the behaviour the change adds.")
     if status == "unread":
         return ("named " + ", ".join(run["ids_unread"]) + " on the base, but no output line says whether it passed or "
-                "failed. Use a reporter that marks each test's outcome on the line that names it (pytest -v; python -m "
-                "unittest -v; jest --verbose). Another runner's readable reporter is in the platform card under "
-                "references/platforms/.")
+                "failed. Use a reporter that marks each test's outcome on the line that names it; the stack's platform "
+                "card under references/platforms/ names a readable one.")
     if status == "not-run":
         # The exit code and whether anything printed are facts the record holds; the output's last lines follow this
         # explanation.  Neither says why: a command that never started and one that asserted ahead of its first print

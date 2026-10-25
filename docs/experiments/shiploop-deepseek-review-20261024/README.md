@@ -85,3 +85,11 @@ Branch `fix/shiploop-generic-test-advice-320e96`, off `origin/main` 5f71657f, on
   stderr part of the review's plan existed. Only the exit code and an empty-output note were missing. The `not-run`
   explanation now starts `exited <n>[ and printed nothing]: it did not run …`, with no diagnosis, and the existing
   wording and its test pins are unchanged. The review's probe (`sys.exit(3)`) is now a test.
+- **Fix 5: the unread refusal points at the card.** The refusal drops "pytest -v; python -m unittest -v; jest
+  --verbose". `python.md` names `pytest -v` and `python -m unittest -v`, and `node-express.md` names Jest's `--verbose`.
+  **Correction to my earlier ranking:** I called these names a breach of the genericity rule. In fact D-13
+  (`docs/shiploop-efficiency-plan-2026-10-16.md`, section 11, and the `test/domain-words.json` comment) kept generic runner
+  examples on purpose. This commit departs from D-13 for this one refusal only, at the owner's 2026-10-24 go. The
+  step-plan duty in `shiploop_prompts.py` ("Jest `--verbose`, pytest `-v`, others: GUIDES/platforms/") and the runner
+  readers in `shiploop_test_counts.py` still name runners under D-13, so the step-plan duty and this refusal now differ
+  in style. Drop this commit to keep D-13 everywhere.

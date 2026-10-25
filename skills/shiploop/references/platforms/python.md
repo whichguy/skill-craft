@@ -29,6 +29,9 @@ on the import path, as a script's own directory does. Mark module-private names
 with a leading underscore and, where the package defines one, keep `__all__` to
 the names consumers need.
 
+Record a focused command with a reporter ShipLoop reads: `pytest -v` and `python -m unittest -v` print each test's
+name with its outcome. Without `-v` they name only failing tests, so ShipLoop cannot read a passing one.
+
 ## Dependency directories
 
 The test stage's base run and mutation check work in a copy that holds only tracked files. ShipLoop links each
