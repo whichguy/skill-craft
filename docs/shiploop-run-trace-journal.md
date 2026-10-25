@@ -373,8 +373,15 @@ packet. On it the stream counts 4 failures and misses the refusal; the trace cou
 refusal's text appears in `flow.json` right after the call that caused it. The same folder without its trace reads exactly as before (stream counts, `retained` packets, None for unrecorded
 counts), and a trace stripped of its accepting command reads as partial and falls back with its reason. Checked in the
 browser: the viewer shows the refused and check-failed events with their text, the keepalive text, and "printed 2× (1
-reprint)" on each phase. Neighbouring suites pass unchanged: owner page, fidelity, efficiency, commit counters, Run
-Review, test groups (suite count 101 → 102 ShipLoop, 156 → 157 in all).
+reprint)" on each phase. The new suite is registered (101 → 102 ShipLoop suites, 156 → 157 in all).
+
+Quick tier (`test/run_suites.py --group quick --changed-from 6b678500`, the merge-base with origin/main, `--jobs 8`).
+The first commit's run failed 1 of 37 suites: `shiploop-e2e-slice` pinned the packet report's `emissions_source` as the
+archive. Its fake host drives the real CLI, so the run has a trace and the source is now the trace, which is the change
+itself; the test now pins that. The final tree (`03ddfe06`, clean) passed all 37 suites in 226.6 s. Not run: the full
+tier, and a regrade of a finished traced E2E run through `run.py --resume-run <output> --grade-only` (the two traced runs
+of 2026-10-25 belong to the sibling live-E2E session and were only read). The branch is not yet rebased on shiploop 1.12.1,
+which had not landed when last fetched.
 
 ## Open (exploratory)
 
