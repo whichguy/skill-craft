@@ -25,8 +25,11 @@ Status: plan; nothing implemented
   - The version gate refuses marketplace runs from a branch with unpublished commits, so wave 1's code is not in these
     runs.
   - Their overlap and Battleship verdicts are re-read with the wave 1 readers after they end.
-  - Running: `--suite batch` on Claude Sonnet, and `hello` on Codex xhigh.
-  - Still to run: `csv-report` on Claude, then `hello` on Grok once the E6 Grok slices end.
+  - Results (LEARNINGS "Release gate on 2.9.0"): hello, seat-reservations and csv-report passed on Claude, and Codex
+    hello passed after one resume. Battleship's FAIL was a harness false fail: a check deleted the product's `page.html`
+    (E4); its fix awaits the owner.
+  - The Grok hello is not run yet: other sessions' Grok runs were live throughout.
+  - E5 found that the runs-root default gave suite cases only their day folder; fixed on the branch.
 
 ## Verdict
 

@@ -2622,3 +2622,37 @@ Learnings so far:
 - `BaselineRowIdentityTest`: `overlapped_runs`.
 - `BattleshipGameCheckTest`: eight Python stubs through `serve.py --start`, and the case pin.
 - `ReleaseGateTest`: 3 tests.
+
+
+## Release gate on 2.9.0 (2026-10-24, marketplace, harness at origin/main 31933a73) — status: firm for the verdicts and figures (n=1 per cell); interim for what the cost and planning figures mean (14-15 ShipLoop releases separate them from the last rows)
+
+**Question.** Does 2.9.0 pass the gate SPEC asks for before a costlier case? That is the `batch` suite (hello as the gate, then seat-reservations, battleship and battleship-scoring), csv-report to complete breadth, and one hello per other host. Plan item 1.5; this is the first marketplace gate run on any 2.x release (D1 of the entry above).
+
+| Run | Host | Verdict | Minutes | Cost | Turns | Notes |
+|---|---|---|---|---|---|---|
+| hello (gate) | Claude Sonnet 5.5 | PASS | 10.3 | $4.18 | 197 | 2/2 checks; the 2026-10-10 row had 117 turns and $2.01 |
+| seat-reservations | Claude Sonnet 5.5 | PASS | 20.9 | $6.01 | 256 | 4/4 checks; first stateful pass since 2026-09-27; 5 refusals, each fixed |
+| battleship | Claude Sonnet 5.5 | FAIL, false | 21 | $6.36 | 269 | engine done and committed; checks 3 and 4 failed because check 2 deleted the product's `page.html` (E4) |
+| battleship-scoring | Claude Sonnet 5.5 | skipped | | | | its predecessor failed |
+| csv-report | Claude Sonnet 5.5 | PASS | 30.2 | $10.00 | 354 | 5/5 checks; first cli-files pass since 2026-09-27; 10 refusals, none repeated |
+| hello | Codex Luna xhigh | PASS after one resume | ~125 | not reported | 120+ (lower bound) | stopped at the 110 min `--timeout` at release-verify, then resumed in place (14 min); first Codex run to reach done; resumed, so no baseline row |
+| hello | Grok 4.7 medium | not run | | | | other sessions' Grok runs (E6 slices, chess `chess-sf-full-12a23d`) were live throughout |
+
+**Findings:**
+- **2.9.0 passes every style it reached, on Claude.** smoke, stateful-service and cli-files passed. web-service failed only through the harness.
+- **E4, a harness false fail.** Check 2 runs `curl … -o page.html …; rm -f page.html` in `work/`. The product commits a `page.html` its server reads at start, so the check overwrote and deleted it, and the next checks' servers died with ENOENT. The product's repository was left with ` D page.html`.
+  - A copy with the file restored passes every check, the new game check included.
+  - The same scratch-file pattern sits in nine more check lines: `node-test.log`, `.ids-*` and `out.txt`/`err.txt`.
+  - Evidence: `docs/experiments/e2e-runner-review-20261024/e4-check-clobber.json`. The fix awaits the owner.
+- **Codex at xhigh is far slower on a hello.**
+  - Planning took 51.4 min against Claude's 7.4. That is over the owner's 30-minute planning ceiling on the smallest case.
+  - Improve took 26.6 min in 5 children, with 348,612 output tokens (64% reasoning).
+  - The product checks passed at the stop; only the last stages were left.
+- **E5: the overlap records of these runs.**
+  - The old rule saw 0-2 neighbours.
+  - The wave 1 reader saw 8 for csv-report and 20 for Codex hello, but only 2-3 for the suite cases: the grandparent of `<runs>/<day>/<suite>/<case>` is the day folder.
+  - Fixed on the branch (suite cases read the suite folder's root): the suite cases then see 7-8, the E6 slices included.
+  - Evidence: `e5-gate-overlap.json`.
+- Costs and turns are higher than the last rows (hello 117 → 197 turns), but 15 ShipLoop releases lie between them, so this is a description, not a regression claim.
+
+The four Claude rows are appended to `baselines.jsonl`, including Battleship's false fail exactly as recorded. Evidence: `~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/`, `-claude-csv-report/` and `-codex-hello/` (with `-resume.log`).
