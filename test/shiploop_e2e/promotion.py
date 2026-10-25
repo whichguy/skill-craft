@@ -9,19 +9,26 @@ An arm is any mix of run folders (scored with scorecard.py) and card files (`sco
 
 The registration (JSON)::
 
-    {"contract": "promotion/1",
+    {"contract": "promotion/2",
      "registered_at": 1792900000,                       # epoch seconds; a run that began earlier makes the decision UNDECIDED
-     "cases": {"hello": "regression", "battleship": "capability"},
+     "cases": {"hello": "regression",                   # a role, or {"role": ..., "attempts": n}: the expected attempts per arm
+               "battleship": {"role": "capability", "attempts": 2}},
      "floors": ["accuracy", "fidelity"],                # the required floors (the default)
      "quality_tolerance": 0.0,                          # a share change within it is "equal quality"
      "efficiency": ["cost_usd", "minutes"],             # cost per successful case, in order; the first that decides wins
      "tolerance": 0.10,                                 # relative; within it a metric decides nothing
      "budget": {"cost_usd": 40.0}}                      # optional: candidate per-success cost above it is DROP
 
-The rule, in order: the registration time, coverage and unknown floors (UNDECIDED); a fallen regression case (DROP); the
-budget (DROP); a capability gain (PROMOTE at its stated cost); a fallen capability case (DROP); then, at equal quality,
-each efficiency metric in turn on comparable cards: no case dearer beyond the tolerance and one cheaper beyond it is
-PROMOTE, one dearer beyond it is DROP, and otherwise the next metric is asked; none deciding is UNDECIDED.
+The rule, in order: the registration time, coverage (fewer attempts than registered) and unknown quality (UNDECIDED); a
+fallen regression case (DROP); the budget (DROP); a capability gain (PROMOTE at its stated cost); a fallen capability case
+(DROP); then, at equal quality, each efficiency metric in turn on cards whose timing and attribution are valid: no case
+dearer beyond the tolerance and one cheaper beyond it is PROMOTE, one dearer beyond it is DROP, and otherwise the next
+metric is asked; none deciding is UNDECIDED.
+
+An attempt's quality is known only when its card's correctness is valid (``scorecard/2`` validity) and each required floor
+is ``pass`` or ``fail``: an ``unobserved`` or ``not_applicable`` required floor, or correctness that is false or not
+observed, leaves its case's quality unknown. So a run that overlapped others is still quality evidence, never speed
+evidence (SPEC "The promotion contract", build step 2).
 """
 
 from __future__ import annotations
@@ -36,10 +43,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import metrics  # noqa: E402  (metrics.span: the one span reader)
 import scorecard  # noqa: E402  (the cards the contract reads)
 
-CONTRACT_ID = "promotion/1"
+CONTRACT_ID = "promotion/2"
 ROLES = ("regression", "capability")
 FLOORS = ("accuracy", "enterprise", "fidelity")
-DEFAULT_FLOORS = ("accuracy", "fidelity")  # enterprise has no measure yet (scorecard/1), so it cannot be required
+DEFAULT_FLOORS = ("accuracy", "fidelity")  # enterprise is not_applicable until its rubric exists, so it cannot be required
 METRICS = ("cost_usd", "minutes", "turns", "tokens")  # a card's efficiency fields; tokens arrive with build step 8
 EXIT = {"PROMOTE": 0, "DROP": 3, "UNDECIDED": 4}
 
@@ -55,8 +62,14 @@ def load_registration(path: Path) -> dict:
         raise SystemExit(f"the registration names contract {reg.get('contract') if isinstance(reg, dict) else None!r}, "
                          f"not {CONTRACT_ID!r}")
     cases = reg.get("cases")
-    if not isinstance(cases, dict) or not cases or any(role not in ROLES for role in cases.values()):
-        raise SystemExit(f"the registration's cases must map each case to one of {', '.join(ROLES)}")
+    if not isinstance(cases, dict) or not cases:
+        raise SystemExit("the registration names no cases")
+    for name, entry in list(cases.items()):
+        entry = {"role": entry} if isinstance(entry, str) else entry
+        attempts = entry.get("attempts", 1) if isinstance(entry, dict) else None
+        if not isinstance(entry, dict) or entry.get("role") not in ROLES or not isinstance(attempts, int) or attempts < 1:
+            raise SystemExit(f"the registration's case {name!r} needs a role ({', '.join(ROLES)}) and attempts of at least 1")
+        cases[name] = {"role": entry["role"], "attempts": attempts}
     floors = reg.setdefault("floors", list(DEFAULT_FLOORS))
     if not floors or any(floor not in FLOORS for floor in floors):
         raise SystemExit(f"the registration's floors must be a non-empty subset of {', '.join(FLOORS)}")
@@ -87,11 +100,18 @@ def arm(paths) -> list[tuple[dict, float | None]]:
 
 
 def succeeded(card: dict, floors) -> bool | None:
-    """Whether an attempt met every required floor: None when its card was not observed or a required floor is null."""
-    if not card.get("observed"):
+    """Whether an attempt met every required floor: None when its card was not observed, its correctness is not valid, or a
+    required floor is neither pass nor fail."""
+    if not card.get("observed") or ((card.get("validity") or {}).get("correctness") or {}).get("valid") is not True:
         return None
     values = [(card.get("floors") or {}).get(floor) for floor in floors]
-    return None if any(value is None for value in values) else all(values)
+    return None if any(value not in ("pass", "fail") for value in values) else all(value == "pass" for value in values)
+
+
+def timing_valid(card: dict) -> bool:
+    """Whether a card is evidence of speed or cost: its timing and its attribution are both valid."""
+    validity = card.get("validity") or {}
+    return all((validity.get(name) or {}).get("valid") is True for name in ("timing", "attribution"))
 
 
 def per_success(cards: list[dict], metric: str, successes: int) -> float | None:
@@ -123,12 +143,13 @@ def decide(reg: dict, control, candidate) -> dict:
     arms = {"control": control, "candidate": candidate}
     by_case = {name: {side: [card for card, _ in attempts if card.get("case") == name] for side, attempts in arms.items()}
                for name in reg["cases"]}
-    missing = [f"{name} ({side})" for name, sides in by_case.items() for side, cards in sides.items() if not cards]
+    missing = [f"{name} ({side}: {len(cards)} of {reg['cases'][name]['attempts']})" for name, sides in by_case.items()
+               for side, cards in sides.items() if len(cards) < reg["cases"][name]["attempts"]]
     if missing:
-        return finish("UNDECIDED", "no card for " + ", ".join(missing))
+        return finish("UNDECIDED", "fewer attempts than registered for " + ", ".join(missing))
     unknown, shares = [], {}
     for name, sides in by_case.items():
-        row = report["cases"][name] = {"role": reg["cases"][name]}
+        row = report["cases"][name] = {"role": reg["cases"][name]["role"]}
         for side, cards in sides.items():
             outcomes = [succeeded(card, reg["floors"]) for card in cards]
             if any(outcome is None for outcome in outcomes):
@@ -137,9 +158,10 @@ def decide(reg: dict, control, candidate) -> dict:
             row[side] = {"attempts": len(cards), "successes": successes, "share": round(successes / len(cards), 4)}
         shares[name] = row["candidate"]["share"] - row["control"]["share"]
     if unknown:
-        return finish("UNDECIDED", "a required floor is not measured for " + ", ".join(unknown))
+        return finish("UNDECIDED", "quality is unknown (correctness not valid, or a required floor unobserved) for "
+                      + ", ".join(unknown))
     tol = reg["quality_tolerance"]
-    regressions = [name for name, delta in shares.items() if reg["cases"][name] == "regression" and delta < -tol]
+    regressions = [name for name, delta in shares.items() if reg["cases"][name]["role"] == "regression" and delta < -tol]
     if regressions:
         return finish("DROP", "an established requirement fell: " + ", ".join(regressions))
     for metric, limit in reg["budget"].items():
@@ -152,16 +174,16 @@ def decide(reg: dict, control, candidate) -> dict:
         report["cases"][name]["cost_per_success"] = {
             metric: {side: per_success(cards, metric, report["cases"][name][side]["successes"]) for side, cards in sides.items()}
             for metric in reg["efficiency"]}
-    gains = [name for name, delta in shares.items() if reg["cases"][name] == "capability" and delta > tol]
+    gains = [name for name, delta in shares.items() if reg["cases"][name]["role"] == "capability" and delta > tol]
     if gains:
         return finish("PROMOTE", "quality rose on " + ", ".join(gains) + "; its cost per success is in cases")
     falls = [name for name, delta in shares.items() if delta < -tol]
     if falls:
         return finish("DROP", "quality fell on " + ", ".join(falls) + " with no gain elsewhere")
-    not_comparable = sorted({card.get("case") for attempts in arms.values() for card, _ in attempts
-                             if card.get("case") in reg["cases"] and not (card.get("validity") or {}).get("comparable")})
-    if not_comparable:
-        return finish("UNDECIDED", "equal quality, and the timing evidence is not comparable for " + ", ".join(not_comparable))
+    not_timed = sorted({card.get("case") for attempts in arms.values() for card, _ in attempts
+                        if card.get("case") in reg["cases"] and not timing_valid(card)})
+    if not_timed:
+        return finish("UNDECIDED", "equal quality, and the timing evidence is not valid for " + ", ".join(not_timed))
     for metric in reg["efficiency"]:
         changes, unmeasured = {}, []
         for name in by_case:
