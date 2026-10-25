@@ -1,11 +1,23 @@
 ---
 Execute: ask
-Status: design proposal; P1 (scorecard.py) built on feat/e2e-scorecard-b79a33, the rest not implemented
+Status: design proposal, amended by the final verdict (Astra at max, 2026-10-25; docs/shiploop-e2e-loop-recommendations-2026-10-25.md); P1 (scorecard.py) built, the rest not implemented
 Directive: owner, 2026-10-25
 Builds on: docs/shiploop-e2e-runner-review-plan-2026-10-24.md, test/shiploop_e2e/SPEC.md
 ---
 
 # A self-improving E2E loop for ShipLoop (design, 2026-10-25)
+
+## Amended by the final verdict (2026-10-25)
+
+The owner asked for every recommendation to be merged with its source, then for a final verdict from Astra at max, whom the
+owner trusts most. The full table (R1-R38, with sources and checks) is `docs/shiploop-e2e-loop-recommendations-2026-10-25.md`.
+Where this design and that verdict differ, the verdict wins. The sections below are amended in place:
+- the promotion rule (R1, R16);
+- the validity dimensions (R2, R3);
+- the target (R4);
+- the leak claim (R11);
+- the triage table (R22-R24);
+- the phases, replaced by Astra's 10-step build order.
 
 ## The directive
 
@@ -29,8 +41,16 @@ compared only when their ids match.
 | SDLC fidelity | Every stage did its row; evidence classes; no skipped gate | **floor** | `fidelity` block |
 | Efficiency | Minutes, cost or tokens, turns, refusals, re-orientation minutes, Improve share | **target**: what a change improves | `metrics.json`, baseline rows |
 
-The rule follows the owner's eval priority (quality first, then tokens, then time). A change is promoted only if every
-floor holds and the target improves beyond the A/A spread. Efficiency can never buy a lower floor.
+The rule follows the owner's eval priority (quality first, then tokens, then time). *Amended 2026-10-25 (R1, R2, R4, R16):*
+- **Quality gains are promotable.** A change that newly passes a capability case is promoted, at its stated cost, if no
+  established regression requirement falls.
+- **Equal quality.** Only at equal quality (a pre-registered tolerance) do tokens decide, then time: all-attempt tokens
+  per successful case, compared within a case.
+- **Diagnostics, not targets.** Refusal and review counts are diagnostics. Minimising them would reward reviewing less.
+- **Missing required evidence** (a slice, a field or a validity observation) means no promotion decision.
+- **Validity** has three dimensions, correctness, attribution and timing; a contamination voids only the claims it touches.
+
+Efficiency can never buy a lower floor.
 
 ## What the corpus must look like
 
@@ -61,8 +81,10 @@ planted defects (`seeded_defects.py`). The gap is brownfield at case scale.
 5. **Try** each candidate on the cheapest rung that shows it: replay (no model) → step slice → small case → full case.
    The arms are control and candidate, plus an A/A pair, chosen by `arms.py` (hard gates first, then bytes, then time).
 6. **Batch** the winners into one release candidate, admitted by SPEC Change admission.
-7. **Promote**: run the holdout pool and the canary. Release only if no floor drops and the target improves. Otherwise
-   drop the candidate that lost and journal why.
+7. **Promote**: run the holdout pool and the canary. Release when no established regression requirement falls, and either
+   quality rises (a capability case newly passes) or quality is equal and all-attempt tokens per successful case fall,
+   then time. Missing required evidence means no decision. A failing batch is ablated in dev; it cannot simply name "the
+   candidate that lost" (amended 2026-10-25, R1, R2, R15, R16).
 8. **Record**: LEARNINGS, baseline rows, the release-gate line, and the next epoch's coverage map.
 
 **The recursion (a later phase):** in step 5, the candidate itself is built by a ShipLoop run on skill-craft, whose
@@ -71,7 +93,10 @@ ShipLoop through its own SDLC, and an engine that cannot do that shows it in its
 
 ## Guards against gaming
 
-- Hidden oracles are never in a prompt, a packet or a review brief. `quality.held_out_seen` already detects a leak.
+- Hidden oracles are never in a prompt, a packet or a review brief. *Corrected 2026-10-25 (R11, R13):*
+  - `quality.held_out_seen` counts event lines that name an oracle, and its own note says 0 is not proof of no leak.
+  - So the guard is structural: grading inputs sit outside the candidate's control and read access.
+  - Every piece of holdout feedback, aggregate decisions included, counts as exposure.
 - The holdout is frozen per epoch and rotated each quarter. Its transcripts are not read by the reviewer or the improver.
 - Scorecard and oracle changes go through SPEC admission. A changed scorecard gets a new id, and old figures are never
   compared with new ones.
@@ -123,11 +148,11 @@ these rules, then take the `inner-loop` session's learnings (asked 2026-10-25).
 | Signal (read live from the run folder) | Example | Call |
 |---|---|---|
 | The engine is honestly `blocked` (present) by the environment, such as the host's own permission mode | run 5a: Grok 1.0.70's auto mode refused `sf project deploy` ("Auto mode blocked this action … remote stateful mutation"); the events and stderr say "Auto mode blocked" or "permission required" | **fatal**: nothing more to learn; fix the environment, then rerun |
-| The same refusal first line three or more times on one `--action`, with no accept between | a refusal loop; identical text means looping, changing text means converging (a judgement) | **fatal** when identical |
+| The same refusal first line three or more times on one `--action`, with no accept between | a refusal loop; identical text means looping, changing text means converging | **WATCH**, then inspect at once; stop only when the same action and unchanged state persist after a documented recovery opportunity (amended 2026-10-25, R23: SPEC allows eleven refused check runs before revision or blocking) |
 | The host process is gone while `run.py` is alive and no `resume-N.txt` appears (`pgrep -f "<host> --cwd <run>/work"`) | run 5b after a 9.8 h laptop sleep | **fatal**: resume in place |
-| No new events for over 15 min while the host is up (the `events.jsonl` mtime) | hung inference or a dead connection | **fatal** |
-| The interpreter or host build changed mid-run (the launch record's `tools.python3` and `host_build` against now) | run 5a: Homebrew swapped Python, and `run.py` crashed at the end | **fatal**: invalid evidence |
-| A required action blocked by the harness's own guard (`platform/sf-calls.jsonl` `decision: denied`) | — | **fatal**: a harness defect; fix it, then resume |
+| No new events for 15 min while the host is up (read incrementally, not by mtime) | hung inference or a dead connection | **WATCH**; at 30 min inspect pending tool deadlines and recovery; stop only on exhausted recovery or an authorised deadline (amended, R23) |
+| The interpreter or host build changed mid-run | run 5a: Homebrew swapped Python, and `run.py` crashed at the end | the actual execution identity decides. A mixed build voids attribution; only an established unrecoverable harness failure is **fatal** (amended, R24) |
+| A required action blocked by the harness's own guard (`platform/sf-calls.jsonl` `decision: denied`) | — | **WATCH**, then inspect: a denial alone does not establish a harness defect (amended, R22) |
 | A neighbour starts on a timing run, or the product tree changes under a check | E1, E4 | **not fatal**: run on for the verdict, and mark the timing or verdict invalid |
 | Refusals fixed in stage; send-backs (about 6-10 min of rework each); long but converging Improve reviews (each pass's Changed line differs); paired Grok restarts | runs 5b, 3 and 4 | **run to the end**: this is the evidence |
 | The deadline projection exceeds the remaining budget | runs 3 and 4 at the 4 h cap | **not fatal**: plan the resume budget |
@@ -158,6 +183,20 @@ id.
   already marks a host build that changed within a run.
 
 ## Phases
+
+*Superseded 2026-10-25 by the final verdict's build order, kept below for its history.* The build order is:
+1. the promotion contract;
+2. required evidence and validity;
+3. the evaluator boundary;
+4. the delivery snapshot;
+5. one calibrated oracle;
+6. one Node brownfield case;
+7. the resource lifecycle;
+8. attempt and token accounting;
+9. the coverage and exposure manifest;
+10. one epoch.
+
+Shadow triage follows; judge expansion and P4 wait. Each step's "done" signal is in the recommendations doc.
 
 | Phase | What | Built on | Size | Adopt when |
 |---|---|---|---|---|

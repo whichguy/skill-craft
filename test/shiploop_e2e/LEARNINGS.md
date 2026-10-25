@@ -2735,3 +2735,66 @@ All of it is in the design's triage table and its scorecard/2 list. It also repo
 - a CLI that never writes inside a run.
 
 `OverlapTest` gains the `suite-result.json` root.
+
+## Consulting on the E2E loop: five sources merged, a final verdict from Astra at max (2026-10-25) — status: firm for the verdict and the checked corrections; interim for the build order (none of it built)
+
+**Question** (owner): what should improve in the E2E loops, how should the judge be used, and how do we decide mid-run
+whether to stop, fix and restart, or finish and evaluate? The owner asked that every recommendation be merged with its
+source and rationale, then put to Astra at max, the source the owner trusts most, for a final verdict.
+
+**Sources:**
+- GPT-6 Astra: xhigh twice, then max. Owner rule: design questions go to Astra at max.
+- DeepSeek v4.1 Flash at high, then max. Owner rule: DeepSeek and Kimi run in their highest mode for design questions.
+  The runner's highest is `--effort max`; there is no larger Flash model.
+- The inner-loop session's live notes on chess runs 5a and 5b.
+- This session's runner review.
+
+The merge is `docs/shiploop-e2e-loop-recommendations-2026-10-25.md`: 38 items, each with its sources and a check against
+the code. It went to Astra at max for verdicts, and to DeepSeek at max as a cross-check.
+
+**Verdict:** 10 ACCEPT, 27 MODIFY, 1 REJECT.
+- R23 is WATCH, not a kill. It overrides inner-loop's "three identical refusals or 15 min silent is fatal", because SPEC
+  allows eleven refused check runs before revision or blocking.
+- Quality gains become promotable (R1).
+- Missing required evidence blocks a decision (R2).
+- Validity splits into correctness, attribution and timing (R3).
+- Refusal and review counts become diagnostics, and the target becomes all-attempt tokens per successful case (R4).
+- The evaluator is frozen outside the candidate's control (R13).
+- The owner's Grok 4.7 medium is the driver now; the Sonnet pilot is deferred (R32).
+- A live run inside `release.py` is rejected (R34).
+
+**Corrections that changed this session's own claims**, each checked:
+- **E2b already had negative controls.** It rejected the audit server, `BattleshipGameCheckTest` has seven broken stubs,
+  and Checkers has `reference_checkers.py --defect`. What is missing is independently correct alternative implementations
+  and oracles for csv-report and seat-reservations.
+- **`quality.py` counts a mutant timeout as killed,** so R5 needs a new operator id.
+- **10 of 12 cases carry no quality block,** the batch gate `hello` among them.
+- **The design's "`held_out_seen` already detects a leak" overclaimed.** The design now says the guard is structural.
+- **DeepSeek errors, checked and rejected:** "2.9.1 does not exist" (it read a pre-release worktree), and "0 is not proof
+  is not in `quality.py`".
+
+**Omissions both reviewers added:**
+- freeze the mapping from requirements to independent checks before generation;
+- bind qualification to the published artifact's digest;
+- a longitudinal brownfield holdout;
+- a promotion path when no A/A spread exists;
+- oracle read access, not only edit access;
+- an epoch spend ledger.
+
+**Build order (Astra):**
+1. the promotion contract and its SPEC amendment;
+2. required evidence and validity dimensions;
+3. the evaluator boundary;
+4. the delivery snapshot;
+5. one calibrated oracle;
+6. one Node brownfield case;
+7. the resource lifecycle;
+8. attempt and token accounting;
+9. the coverage and exposure manifest;
+10. one epoch.
+
+Shadow triage follows. The design doc is amended to match.
+
+**Biggest remaining risk** (Astra): optimising incomplete oracles. A deterministic controller can keep promoting software
+that passes its checks and misses the user's real requirements.
+
