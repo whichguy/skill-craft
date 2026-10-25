@@ -1818,6 +1818,79 @@ class CheckHygieneTest(unittest.TestCase):
             dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
+BATTLESHIP_STUB = r'''
+import json, os, sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+MODE = sys.argv[1]
+FLEET = [[(0, c) for c in range(5)], [(2, c) for c in range(4)], [(4, c) for c in range(3)], [(6, 0), (7, 0)]]
+games = {}
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def send(self, body):
+        data = json.dumps(body).encode()
+        self.send_response(200); self.send_header("content-type", "application/json"); self.end_headers(); self.wfile.write(data)
+    def do_GET(self):
+        gid = "g" if MODE == "constant-id" else str(len(games))
+        games[gid] = {"shots": 0, "hit": set(), "over": False}
+        self.send({"game": gid, **({"gameOver": True} if MODE == "audit" else {})})
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["content-length"])))
+        g, cell = games[str(body["game"])], (body["row"], body["col"])
+        g["shots"] += 1
+        if MODE == "all-sunk":
+            return self.send({"result": "sunk", "gameOver": True})
+        if MODE in ("audit", "constant-id"):
+            return self.send({"result": "miss", "gameOver": True})
+        if MODE == "no-fleet":
+            return self.send({"result": "miss", "gameOver": g["shots"] >= 100})
+        if MODE == "never-ends":
+            return self.send({"result": "miss", "gameOver": False})
+        if MODE == "bad-result":
+            return self.send({"result": "splash", "gameOver": False})
+        if g["over"]:
+            return self.send({"result": "miss", "gameOver": MODE != "restarts"})
+        ship = next((s for s in FLEET if cell in s), None)
+        result = "miss"
+        if ship:
+            g["hit"].add(cell)
+            result = "sunk" if all(c in g["hit"] for c in ship) else "hit"
+        g["over"] = all(c in g["hit"] for s in FLEET for c in s)
+        self.send({"result": result, "gameOver": g["over"]})
+HTTPServer(("127.0.0.1", int(os.environ["PORT"])), H).serve_forever()
+'''
+
+
+class BattleshipGameCheckTest(unittest.TestCase):
+    """checks/battleship_game.py, the Battleship case's game check (2026-10-24 runner review, E2): it must reject the audit's
+    server with no fleet and the three stubs of the 2026-10-04 review, and accept a game that plays. The eleven saved real
+    deliveries it accepted are listed in docs/experiments/e2e-runner-review-20261024/e2b-game-check.json."""
+
+    def verdict(self, mode: str) -> tuple[int, str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "stub.py").write_text(BATTLESHIP_STUB)
+            done = subprocess.run([sys.executable, str(run.HERE / "checks" / "serve.py"), "--start",
+                                   f"{shlex.quote(sys.executable)} stub.py {mode}", "--",
+                                   sys.executable, str(run.HERE / "checks" / "battleship_game.py")],
+                                  cwd=tmp, capture_output=True, text=True, timeout=120, stdin=subprocess.DEVNULL)
+        return done.returncode, done.stdout + done.stderr
+
+    def test_a_game_that_plays_passes_and_every_stub_that_only_answers_in_shape_fails(self):
+        for mode, code in (("plays", 0), ("audit", 5), ("all-sunk", 5), ("no-fleet", 5), ("constant-id", 5),
+                           ("never-ends", 4), ("bad-result", 3), ("restarts", 7)):
+            with self.subTest(mode=mode):
+                returncode, output = self.verdict(mode)
+                self.assertEqual(returncode, code, output)
+                if code:
+                    self.assertIn("FAIL:", output)
+
+    def test_the_case_runs_it_through_serve_py_in_place_of_the_sweep_that_passed_the_audit_server(self):
+        cases = json.loads(run.CASES.read_text())
+        line = 'python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"'
+        self.assertEqual(cases["battleship"]["checks"][3], line)
+        self.assertIn(line, cases["battleship-scoring"]["checks"], "the follow-on keeps the game playing")
+        self.assertFalse([c for c in cases["battleship"]["checks"] if "for(let r=0;r<10" in c], "the old sweep is gone")
+
+
 def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
                          stage: str | None = None, inner: dict | None = None,
                          started: float | bool | None = None) -> None:

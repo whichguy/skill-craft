@@ -15,7 +15,7 @@
       "node --test > node-test.log 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' node-test.log && [ $rc -eq 0 ]; r=$?; rm -f node-test.log; exit $r",
       "python3 \"$E2E_CHECKS/serve.py\" -- sh -c 'curl -fsS \"$BASE/\" -o page.html && grep -qi battleship page.html; rc=$?; rm -f page.html; exit $rc'",
       "python3 \"$E2E_CHECKS/serve.py\" -- node -e 'fetch(process.env.BASE+\"/api/new\").then(r=>r.json()).then(g=>{ const id=g.game??g.id??g.gameId; if(id===undefined) process.exit(2); fetch(process.env.BASE+\"/api/fire\",{method:\"POST\",headers:{\"content-type\":\"application/json\"},body:JSON.stringify({game:id,row:0,col:0})}).then(r=>r.json()).then(j=>process.exit([\"miss\",\"hit\",\"sunk\"].includes(j.result)?0:3)).catch(()=>process.exit(4)); }).catch(()=>process.exit(1))'",
-      "python3 \"$E2E_CHECKS/serve.py\" -- node -e \"const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());(async()=>{const g=await fetch(base+'/api/new').then(r=>r.json()); const id=g.game??g.id??g.gameId;if(id===undefined) process.exit(2); let over=false;for(let r=0;r<10&&!over;r++) for(let c=0;c<10&&!over;c++){const j=await post({game:id,row:r,col:c});if(!['miss','hit','sunk'].includes(j.result)) process.exit(3); over=j.gameOver===true;}if(!over) process.exit(4); const again=await post({game:id,row:0,col:0});process.exit(again.gameOver===false?5:0);})().catch(()=>process.exit(6))\""
+      "python3 \"$E2E_CHECKS/serve.py\" -- python3 \"$E2E_CHECKS/battleship_game.py\""
     ],
     "checks_source": "the request: each check tests a sentence of the prompt",
     "needs": [
@@ -43,7 +43,8 @@
     "checks": [
       "python3 \"$E2E_CHECKS/serve.py\" -- node -e \"const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());(async()=>{const g=await fetch(base+'/api/new').then(r=>r.json()); const id=g.game??g.id??g.gameId;const a=await post({game:id,row:0,col:0}); const b=await post({game:id,row:0,col:1});const ok=a.shots===1&&b.shots===2&&Number.isInteger(a.hits)&&Number.isInteger(b.hits)&&b.hits>=a.hits&&b.hits<=2;process.exit(ok?0:3);})().catch(()=>process.exit(6))\"",
       "python3 \"$E2E_CHECKS/serve.py\" -- node -e \"const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());(async()=>{const g=await fetch(base+'/api/new').then(r=>r.json()); const id=g.game??g.id??g.gameId;let over=false, fired=0, hits=0, sunk=0, last;for(let r=0;r<10&&!over;r++) for(let c=0;c<10&&!over;c++){last=await post({game:id,row:r,col:c}); fired++;if(last.result!=='miss') hits++;if(last.result==='sunk'){sunk++; if(typeof last.ship!=='string'||!last.ship.trim()) process.exit(3);}over=last.gameOver===true;}if(!over) process.exit(4); if(last.shots!==fired||last.hits!==hits) process.exit(5);process.exit(sunk>0?0:7);})().catch(()=>process.exit(6))\"",
-      "python3 \"$E2E_CHECKS/serve.py\" -- sh -c 'curl -fsS \"$BASE/\" -o page.html && grep -qi accuracy page.html; rc=$?; rm -f page.html; exit $rc'"
+      "python3 \"$E2E_CHECKS/serve.py\" -- sh -c 'curl -fsS \"$BASE/\" -o page.html && grep -qi accuracy page.html; rc=$?; rm -f page.html; exit $rc'",
+      "python3 \"$E2E_CHECKS/serve.py\" -- python3 \"$E2E_CHECKS/battleship_game.py\""
     ],
     "retention": [
       "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
