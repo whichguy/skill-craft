@@ -391,6 +391,7 @@ was removed with `chess_salesforce.py cleanup --platform-dir <run 4>/platform`. 
 | Run time (cap) | 236.1 (240) | 232.3 (240) | 284.3 active (300, extended) |
 | Compactions | 14 | 15 | 21 |
 | Re-orientation | 107.9 min, 764 calls | 74.0 min, 528 calls | 125.2 min, 1,169 calls (includes the resume) |
+| Of which, calls before the model re-grounds (added 2026-10-25) | 17 | 51 | 66 (about 7 min) |
 | Improve reviews / passes / minutes | 16 / 52 / 98.9 | 13 / 25 / 81.8 | 27 / 41 / 83.8 |
 | Planning window | 78.1 min | 73.8 min | 73.1 min |
 | W1 full cycle | 51.8 min | 53.3 min | 109.6 min (6 steps and a send-back) |
@@ -398,6 +399,8 @@ was removed with `chess_salesforce.py cleanup --platform-dir <run 4>/platform`. 
 | Send-backs | 1 | 1 | 3 |
 | Refusals, each fixed in stage | 5 | 13 | 9 |
 | Turns / cost (lower bound) | 922 / $15.92 | 884 / $21.49 | 1,265 / $21.65 (segment 2 only; 5a about $25.5 more) |
+
+**Re-orientation, read again (2026-10-25; supersedes the "largest cost" reading in the v4 report).** The Re-orientation row times each compaction's window up to the next accepted action, so it holds the stage work in flight, not only finding the place. The overhead is the row under it: 66 of 5b's 1,169 window calls came before the model ran `shiploop next` or read its packet. Detail and consequence (slice 4 not justified by this measure): `docs/shiploop-run5-followups-journal-2026-10-25.md`, row "Re-orientation, re-measured".
 
 **What the 2.9.0 changes did, observed:**
 - **F1 test layers.** Prepare installed `sfdx-lwc-jest` and ran a real render test ("slChessBoard ✓ draws eight ranks
