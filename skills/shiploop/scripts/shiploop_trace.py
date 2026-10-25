@@ -29,6 +29,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 import time
 from typing import Any, Iterable, Mapping, Sequence
@@ -68,8 +69,9 @@ def record(root: str | Path, kind: str, **fields: Any) -> bool:
     """Append one event to the run's trace; True when a line was written.  Never raises.
 
     Only a run directory (one holding ``state.md``) gets a trace, and only through a regular file opened without
-    following a symlink.  One ``write`` on an ``O_APPEND`` descriptor keeps concurrent writers (a command and a hook)
-    from interleaving lines.
+    following a symlink and without blocking (a FIFO in its place is refused, never waited on).  One ``write`` on an
+    ``O_APPEND`` descriptor keeps concurrent writers (a command and a hook) from interleaving lines.  Callers that are
+    not a command on a loaded run check ``current_state`` first.
     """
     try:
         run = Path(root)
@@ -84,14 +86,34 @@ def record(root: str | Path, kind: str, **fields: Any) -> bool:
         event = {"v": 1, **_stamp(), "kind": kind,
                  **{key: _clip(value) for key, value in fields.items() if value is not None}}
         line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
-        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        fd = os.open(path, flags, 0o600)
         try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                return False
             os.write(fd, line.encode("utf-8"))
         finally:
             os.close(fd)
         return True
     except (OSError, TypeError, ValueError):
         return False
+
+
+def current_state(root: str | Path | None) -> dict[str, Any] | None:
+    """The saved state of ``root`` when it loads as a current run, else None (never raises).  Nothing writes into a
+    retired or unloadable run: it must stay as it was."""
+    import shiploop_navigator as navigator
+
+    if root is None:
+        return None
+    try:
+        state = store.read_record(Path(root) / "state.md")
+        if not isinstance(state, dict) or navigator.retired_run_reason(state) is not None:
+            return None
+        navigator.validate(state)
+    except (OSError, ValueError, KeyError, TypeError, store.StorageError):
+        return None
+    return state
 
 
 def keep_sent(root: str | Path, text: str) -> tuple[str, str]:
@@ -158,7 +180,7 @@ def record_command(root: str | Path, argv: Sequence[str], code: int, started: fl
 
 def record_stop(run_dir: Any, host: str, session: str | None, decision: Mapping[str, Any]) -> bool:
     """Record one keepalive stop decision in the bound run's trace, with the text it put into the turn."""
-    if not isinstance(run_dir, str) or not run_dir:
+    if not isinstance(run_dir, str) or not run_dir or current_state(run_dir) is None:
         return False
     return record(run_dir, "hook", hook="stop", host=host, session=session, decision=decision.get("decision"),
                   why=decision.get("why"), text=decision.get("reason") or decision.get("notice"))
@@ -244,14 +266,19 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
         else:
             events.append({"kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "skill": row.get("skill"),
                            "args": row.get("args")})
-    if not traced:
-        # A run saved before the trace: each accepted step is the one event the timeline recorded.
-        for entry in state.get("history") or []:
-            ts = accepted_at.get(entry.get("action"))
-            if ts is not None:
-                events.append({"kind": "accepted", "ts": ts, "at": _iso(ts), "action": entry.get("action"),
-                               "stage": entry.get("stage"), "item": entry.get("workitem"),
-                               "outcome": entry.get("outcome")})
+    # A step no traced command accepted (the run predates the trace, or began before an upgrade) is the one event the
+    # timeline recorded for it, so the history never loses a step the trace did not see.
+    traced_since = min((float(row.get("ts") or 0) for row in events if row["kind"] in ("command", "packet", "hook")),
+                       default=None)
+    covered = {row.get("action") for event in events if event["kind"] == "command" for row in event.get("accepted") or []}
+    legacy = 0
+    for entry in state.get("history") or []:
+        ts = accepted_at.get(entry.get("action"))
+        if ts is not None and entry.get("action") not in covered:
+            legacy += 1
+            events.append({"kind": "accepted", "ts": ts, "at": _iso(ts), "action": entry.get("action"),
+                           "stage": entry.get("stage"), "item": entry.get("workitem"),
+                           "outcome": entry.get("outcome")})
     events.sort(key=lambda row: float(row.get("ts") or 0))
 
     # Attribute each event to an action: its own, or (``for_action``) the action current when it happened, which is
@@ -350,7 +377,8 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "status_reason": state.get("status_reason"), "revision": state.get("revision"),
             "started": _iso(started), "last_event": _iso(last_ts or None),
             "elapsed": round(end - started) if started else None,
-            "traced": traced, "trace_bytes": size, "capped": size >= TRACE_LIMIT,
+            "traced": traced, "traced_since": _iso(traced_since), "untraced_steps": legacy,
+            "trace_bytes": size, "capped": size >= TRACE_LIMIT,
             "work_items": len(state.get("work_items") or []), "work_index": state.get("work_index"),
         },
         "now": now_block,
@@ -736,6 +764,9 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     if not run["traced"]:
         lines.append("Events: this run has no trace.jsonl (it predates the trace): the events below are the accepted "
                      "steps timeline.json stamped and the Skill calls; packets/ holds only the last copy of each packet.")
+    elif run.get("untraced_steps"):
+        lines.append(f"Events: the trace began at {run['traced_since']}; {_count(run['untraced_steps'], 'accepted step')} "
+                     "before it come from state.md and timeline.json, with the last copy of each packet.")
     lines.append(f"Recent events ({min(last, len(events)) if last else len(events)} of {len(events)}):")
     for event in (events[-last:] if last else events):
         lines.append("  " + event_line(event))
@@ -887,8 +918,9 @@ def page_texts(root: str | Path, model: Mapping[str, Any]) -> dict[str, str]:
     run = Path(root)
     files = [event.get("file") for event in model["events"] if event["kind"] == "packet" and event.get("file")]
     files += [event.get("head_file") for event in model["events"] if event["kind"] == "packet" and event.get("head_file")]
-    if not model["run"]["traced"]:
-        files += [f"packets/{path.name}" for path in sorted((run / "packets").glob("*.md"))]
+    # An action the trace never saw a packet for keeps its last copy in packets/<action>.md.
+    sent = {event.get("action") for event in model["events"] if event["kind"] == "packet"}
+    files += [f"packets/{path.name}" for path in sorted((run / "packets").glob("*.md")) if path.stem not in sent]
     texts: dict[str, str] = {}
     total = 0
     for relative in dict.fromkeys(files):
@@ -914,7 +946,8 @@ def render_html(root: str | Path, model: Mapping[str, Any]) -> str:
     data["texts"] = page_texts(root, model)
     data["events"] = [{**event, **{name: _screened(event[name]) for name in ("text", "error")
                                    if isinstance(event.get(name), str)}} for event in model["events"]]
-    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    # Every "<" escaped: "</script>" or "<!--<script>" in a prompt must not end or re-open the script element.
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     return PAGE.replace(DATA_MARK, payload, 1)
 
 
@@ -960,6 +993,10 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
         return 2
     try:
         if args.html is not None:
+            if not args.html and current_state(root) is None:
+                print(f"ShipLoop trace: {root} is retired or cannot be loaded, so nothing is written into it; "
+                      "name a page outside it with --html PATH", file=sys.stderr)
+                return 2
             print(write_html(root, args.html or None))
             return 0
         model = build(root)

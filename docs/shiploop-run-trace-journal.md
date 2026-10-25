@@ -119,6 +119,38 @@ refused it as designed. In the real 2026-10-24 chess run the harness read-first 
 (`flow.py --read-first`, from `events.jsonl`); intake took 142.5 s, 11 turns, 17 tool calls and was accepted on its first
 callback.
 
+## 2026-10-25: quality and concision pass (firm)
+
+Owner: "Quality review changes. Detect if any of the prompt skills could actually be more effective or concise ...
+Efficiency." Measured on the 2026-10-24 chess run (837 KB `state.md`, 22-sentence request):
+
+| Item | Before | After | Why |
+|---|---|---|---|
+| `trace --request` text | 22,507 chars | 17,429 (-23%) | the verbatim block repeated the S1..Sn sentences (joined, they are the request); intake's summary repeated the per-sentence readings |
+| status-display "Run trace" section | 5,159 chars | 2,674 (-48%) | append mechanics, cap, observer triggers and the digest's legend (printed by the digest) are not acted on by a reader; they stay in the module docstring and here |
+| SKILL.md trace line | "Asked what has run …" (no asker) | "If the user asks …" | names who asks; card 30,488 of 30,500 bytes |
+| writer cost per command | 1 state parse (5.9 ms) + 0.13 ms append | read-only verbs skip the parse | `status`, `context`, `report` reuse the state loaded before the verb |
+| hook import | page template (29 KB) imported by every command and keepalive hook | imported only to render a page | lazy import in `render_html` |
+| credential screen | three copies; hook and refusal text redacted whole | one `_screened` helper, line by line everywhere | consistency with packets |
+
+Page rebuild 14 ms, model build 12 ms on the same run.
+
+## 2026-10-25: independent review (Sol), five findings, all fixed (firm)
+
+Reviewer: gpt-6.1-sol, effort medium, read-only, given the code diff and the invariants (never fail or change a command,
+never write into a retired or unloadable run, lock-free appends), not my conclusions. Raw output:
+`ask-sol-data.json` in this session's scratchpad (not kept in the repo). Nothing raised on efficiency or complexity.
+
+| # | Finding (Sol's severity) | Fix | Pinned by |
+|---|---|---|---|
+| 1 | P1: a FIFO named `trace.jsonl` blocks `os.open` forever, hanging every command and the keepalive hook | open with `O_NONBLOCK` and refuse a non-regular file after `fstat` | `test_a_fifo_in_place_of_the_trace_is_refused_not_waited_on` |
+| 2 | P2: the stop hook and `trace --html` still wrote into a retired or unloadable run | `current_state` (shared with `protocol`) gates `record_stop`; `--html` into such a run is refused (a PATH outside it is allowed) | `test_nothing_is_written_into_a_run_that_cannot_be_loaded` |
+| 3 | P2: a command's after-state was read after the lock was released, so a command that ran next was credited to it | the after-state is captured inside the run lock; a refused command's after is its before | `test_a_command_is_credited_only_with_its_own_transition` (fails with the fix reverted) |
+| 4 | P2: a run upgraded mid-flight lost its earlier steps from the page timeline after its first traced command | every history step no traced command accepted becomes a timeline event; actions with no traced packet offer their last copy; digest and page say when the trace began | `test_steps_from_before_the_trace_stay_in_the_timeline` |
+| 5 | P2: a prompt with `<!--<script>` breaks the page (escaping only `</` is not enough inside a script element) | every `<` in the inlined JSON becomes `\u003c` | `test_a_prompt_with_script_markup_cannot_break_the_page` (fails with the fix reverted) |
+
+`test/shiploop-trace.test.py`: 22 tests pass (21.4 s).
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a

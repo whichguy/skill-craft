@@ -158,6 +158,80 @@ class TraceWriterTests(CliRun):
         self.assertEqual((self.run / trace.TRACE_FILE).stat().st_size, size)
 
 
+class TraceReviewFindingTests(CliRun):
+    """Findings of the independent review of the run trace (Sol, 2026-10-25), each pinned through the real route."""
+
+    def test_a_fifo_in_place_of_the_trace_is_refused_not_waited_on(self) -> None:
+        (self.run / trace.TRACE_FILE).unlink()
+        os.mkfifo(self.run / trace.TRACE_FILE)
+        self.assertFalse(trace.record(self.run, "command", verb="x"))     # returns at once: no reader, no block
+        self.ok("next")                                                    # the command still runs (60 s timeout)
+
+    def test_a_command_is_credited_only_with_its_own_transition(self) -> None:
+        """Another command that runs once this one releases the lock must not be read as this command's work."""
+        import importlib.machinery
+        import contextlib
+        import io
+        import shiploop_progress as progress
+        import shiploop_protocol as protocol
+
+        loader = importlib.machinery.SourceFileLoader("shiploop_cli_for_trace", str(CLI))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        core = importlib.util.module_from_spec(spec)
+        loader.exec_module(core)
+        intake = self.action()
+        (self.run / "inbox" / f"{intake}.md").write_text(INTAKE, encoding="utf-8")
+
+        def next_command(root: Path) -> None:  # runs after the lock is released, before the trace line is written
+            self.ok("pause", "--reason", "a second command")
+
+        with mock.patch.object(progress, "ensure", side_effect=next_command), \
+                mock.patch.dict(os.environ, {"SHIPLOOP_PROGRESS": "off"}), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(protocol.main(core, ["complete", "--run-dir", str(self.run), "--action", intake]), 0)
+        complete = [row for row in events(self.run) if row.get("verb") == "complete"][-1]
+        pause = [row for row in events(self.run) if row.get("verb") == "pause"][-1]
+        self.assertEqual((complete["rev"], complete["stage"][1], complete["status"]), ([0, 1], "discovery", "active"))
+        self.assertEqual([row["stage"] for row in complete["accepted"]], ["intake"])
+        self.assertEqual((pause["rev"], pause["status"]), ([1, 2], "paused"))
+
+    def test_nothing_is_written_into_a_run_that_cannot_be_loaded(self) -> None:
+        keepalive_home = self.base / "keepalive"
+        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE_HOME": str(keepalive_home)}):
+            (self.run / "state.md").write_text("not a run any more\n", encoding="utf-8")
+            before = (self.run / trace.TRACE_FILE).read_bytes()
+            self.assertFalse(trace.record_stop(str(self.run), "claude", None, {"decision": "allow", "why": "x"}))
+            self.assertEqual((self.run / trace.TRACE_FILE).read_bytes(), before)
+        refused = self.cli("trace", "--run-dir", str(self.run), "--html")
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("retired or cannot be loaded", refused.stderr)
+        self.assertFalse((self.run / trace.PAGE).exists())
+
+    def test_a_prompt_with_script_markup_cannot_break_the_page(self) -> None:
+        run = self.base / "markup-run"
+        made = subprocess.run([sys.executable, "-B", str(CLI), "init", "--run-dir", str(run), "--repo", str(self.repo),
+                               "--prompt", "Render <!--<script> and </script> as text."],
+                              env=ENV, text=True, capture_output=True, timeout=60)
+        self.assertEqual(made.returncode, 0, made.stdout + made.stderr)
+        page = trace.render_html(run, trace.build(run))
+        start = page.index("const TRACE = ") + len("const TRACE = ")
+        payload = page[start:page.index(";\n", start)]
+        self.assertNotIn("<", payload)                                    # no raw "<" can open or close an element
+        self.assertEqual(json.loads(payload)["run"]["prompt"], "Render <!--<script> and </script> as text.")
+
+    def test_steps_from_before_the_trace_stay_in_the_timeline(self) -> None:
+        """A run upgraded mid-flight: its first traced command must not hide the steps accepted before it."""
+        intake, _ = self.drive()
+        # Make the intake acceptance look older than the trace, as if this ShipLoop had been installed afterwards.
+        rows = [row for row in events(self.run) if not row.get("accepted")]
+        (self.run / trace.TRACE_FILE).write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        model = trace.build(self.run)
+        accepted = [row for row in model["events"] if row["kind"] == "accepted"]
+        self.assertEqual([(row["action"], row["stage"]) for row in accepted], [(intake, "intake")])
+        self.assertEqual(model["run"]["untraced_steps"], 1)
+        self.assertIn(f"1 accepted step before it come from state.md", trace.digest(model))
+
+
 class TraceReaderTests(CliRun):
     def test_the_digest_shows_now_the_plan_steps_and_recent_events(self) -> None:
         intake, discovery = self.drive()

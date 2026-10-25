@@ -536,7 +536,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
 
 
 def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
-    """Append the finished command to its run's trace; the state after it is read once the lock is released."""
+    """Append the finished command to its run's trace.  The state after it was captured inside the run lock, so a
+    command that ran next is never credited to this one; a refused command saved nothing, so its after is its before.
+    Only the routed verbs (chain, lint, red-check), which hold their own lock, are read once it is released."""
     import shiploop_trace as trace
 
     root = _TRACE.get("root")
@@ -544,8 +546,10 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
         return
     if _TRACE.get("before") is None and not _TRACE.get("created"):
         return
-    if raw_argv[0] in ("status", "context", "report"):
-        after = _TRACE.get("before")  # read-only verbs: skip a second parse of state.md
+    if "after" in _TRACE:
+        after = _TRACE["after"]
+    elif _TRACE.get("error") is not None:
+        after = _TRACE.get("before")
     else:
         try:
             after = store.read_record(Path(root) / "state.md")
@@ -555,18 +559,13 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
 
 
-def _current_state(root: Optional[Path]) -> Optional[dict]:
-    """The saved state of ``root`` when it loads as a current run, else None (never raises)."""
-    if root is None:
-        return None
+def _saved_state(root: Path) -> Optional[dict]:
+    """``state.md`` as saved, or None when it cannot be read (the trace then records no after-state)."""
     try:
         state = store.read_record(root / "state.md")
-        if not isinstance(state, dict) or navigator.retired_run_reason(state) is not None:
-            return None
-        navigator.validate(state)
-    except (OSError, ValueError, KeyError, TypeError, store.StorageError):
+    except (OSError, ValueError, store.StorageError):
         return None
-    return state
+    return state if isinstance(state, dict) else None
 
 
 def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
@@ -584,8 +583,9 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return workspace_command(core, raw_argv[1:])
     if raw_argv and raw_argv[0] in ("chain", "lint", "red-check", "backchain-check"):
         # Routed before the navigator's own loading: the trace records them only on a current run.
+        import shiploop_trace
         _TRACE["root"] = _argv_run_dir(raw_argv)
-        _TRACE["before"] = _current_state(_TRACE["root"])
+        _TRACE["before"] = shiploop_trace.current_state(_TRACE["root"])
     if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
         # Both write run state; a lost grant gets the same repair as next.
         refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
@@ -780,6 +780,9 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                     core, root, existing, args,
                     completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
                 )
+                # The run trace's after-state, read while this command still holds the lock.
+                _TRACE["after"] = (existing if args.command in ("status", "context", "report")
+                                   else _saved_state(root))
                 if args.command in PACKET_VERBS:
                     import shiploop_keepalive
                     health = shiploop_keepalive.health_notice(str(root))
@@ -825,7 +828,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
             navigator.save(root, state)
-            _TRACE["created"] = True
+            _TRACE["created"], _TRACE["after"] = True, state
             # The run baseline (consumer contract, owner decision D3): what the execution checkout held before any
             # commit of this run, so later packets can quote the spec and architecture diff since then.  A note, never
             # a refusal.

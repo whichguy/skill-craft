@@ -271,6 +271,7 @@ const TRACE = /*TRACE-DATA*/null;
         el("span", {title: TRACE.generated}, "page written " + when(TRACE.generated)), el("span", {}, "times in " + ZONE),
         run.status === "active" ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); schedule(); }}), " live (reload every 10 s)") : null),
       run.traced ? null : el("p", {class: "note"}, "This run predates the trace: steps come from state.md and timeline.json, and each packet is its last copy, not every copy sent."),
+      run.traced && run.untraced_steps ? el("p", {class: "note"}, "The trace began at " + when(run.traced_since) + ": the " + run.untraced_steps + " steps accepted before it come from state.md and timeline.json, each with its packet's last copy.") : null,
       // Not measured is not zero: a run before the trace recorded no packets, refusals, hook stops or commands.
       el("div", {class: "tiles"}, tiles.map(([label, value, sub, warn, traceOnly]) => traceOnly && !run.traced
         ? el("div", {class: "tile muted", title: "not recorded: the run predates the trace"}, el("b", {}, "—"), el("span", {}, label + " · not recorded"))
@@ -492,7 +493,7 @@ const TRACE = /*TRACE-DATA*/null;
       if (refused) tags.push(el("span", {class: "tag red"}, refused + " refused"));
       if (hooks) tags.push(el("span", {class: "tag violet"}, hooks + " hook"));
       if (step && step.at) tags.push(el("span", {class: "tag"}, clock(step.at)));
-      const lastCopy = !run.traced && TRACE.texts["packets/" + group.action + ".md"] !== undefined;
+      const lastCopy = !packets && TRACE.texts["packets/" + group.action + ".md"] !== undefined;
       const open = remembered ? remembered.includes(group.action) : (isNow || position >= all.length - 3);
       const details = el("details", {class: "group" + (refused ? " has-refusal" : "") + (isNow ? " is-now" : ""), "data-action": group.action, open},
         el("summary", {}, el("span", {class: "n"}, n), el("span", {}, el("span", {class: "t"}, title), el("span", {class: "h"}, headline || "")), el("span", {class: "c"}, tags)),
