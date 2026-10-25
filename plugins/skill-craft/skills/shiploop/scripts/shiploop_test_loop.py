@@ -32,10 +32,10 @@ run with a completed return it runs the consumer checks in a clean copy of exact
 (never the user's checkout, never the work area); without a completed return it runs in the work area and says so
 (see ``observation``).
 
-Known limits of the base run: ignored files are not in the worktree, so only the dependency directories named in
-``DEPENDENCY_DIRS`` are linked in from the checkout; a command that names the checkout by an absolute path runs there,
-not on the base; and an ID ShipLoop cannot read an outcome for (a reporter that marks no pass or fail) is refused, not
-guessed.
+Known limits of the base run: ignored files are not in the worktree, so only the dependency directories the platform
+cards list (``shiploop_mutation.dependency_directories``) are linked in from the checkout; a command that names the
+checkout by an absolute path runs there, not on the base; and an ID ShipLoop cannot read an outcome for (a reporter
+that marks no pass or fail) is refused, not guessed.
 """
 
 from __future__ import annotations
@@ -89,9 +89,6 @@ STAGE_BUDGET_SECONDS = 1800.0
 TAIL_CHARS = 6000
 SCHEMA = "shiploop-test-loop/v1"
 BASE_SCHEMA = "shiploop-test-base/v1"
-# Ignored dependency directories the base worktree links from the checkout (at the repository directory), so a runner
-# installed there can start on the base.  Anything else ignored is absent on the base.
-DEPENDENCY_DIRS = ("node_modules", ".venv", "venv")
 # Result fields of the test stage, validated by ``check_result_fields``.
 RED_NA = "red_na"
 RETIRED_TESTS = "retired_tests"
@@ -1561,10 +1558,12 @@ class _BaseTree:
         """Create the temporary detached git worktree at ``self.tree`` for the lint base, copy the item's test
         files into it, and return the directory that stands for the repository. When the base has no ``commit``
         it first makes a dangling commit of the base ``tree`` with a fixed ShipLoop identity. It sets
-        ``self.added`` and symlinks each ``DEPENDENCY_DIRS`` name that is a directory in the checkout and not
-        already present in the returned directory. Raises ``TestLoopError`` if the commit or worktree cannot be
-        made; the file copies and git calls can also raise ``OSError`` or ``lint.LintError``.
+        ``self.added`` and symlinks each dependency directory a platform card lists that is a directory in the
+        checkout and not already present in the returned directory. Raises ``TestLoopError`` if the commit or worktree
+        cannot be made; the file copies and git calls can also raise ``OSError`` or ``lint.LintError``.
         """
+        import shiploop_mutation as mutation  # imports this module: resolved at call time
+
         identity = {"GIT_AUTHOR_NAME": "ShipLoop", "GIT_AUTHOR_EMAIL": "shiploop@localhost",
                     "GIT_COMMITTER_NAME": "ShipLoop", "GIT_COMMITTER_EMAIL": "shiploop@localhost"}
         commit = str(self.base.get("commit") or "")
@@ -1589,7 +1588,7 @@ class _BaseTree:
         prefix = str(self.base.get("prefix") or ".")
         cwd = self.tree if prefix in (".", "") else self.tree / prefix
         checkout = self.top if prefix in (".", "") else self.top / prefix
-        for name in DEPENDENCY_DIRS:
+        for name in mutation.dependency_directories():
             if (checkout / name).is_dir() and not os.path.lexists(cwd / name):
                 (cwd / name).symlink_to(checkout / name, target_is_directory=True)
         return cwd
@@ -1754,15 +1753,21 @@ def _explain_base(run: Mapping[str, Any]) -> str:
                 "so ShipLoop can judge each one, and make the tests assert the behaviour the change adds.")
     if status == "unread":
         return ("named " + ", ".join(run["ids_unread"]) + " on the base, but no output line says whether it passed or "
-                "failed. Use a reporter that marks each test's outcome on the line that names it (pytest -v; python -m "
-                "unittest -v; jest --verbose). Another runner's readable reporter is in the platform card under "
-                "references/platforms/.")
+                "failed. Use a reporter that marks each test's outcome on the line that names it; the stack's platform "
+                "card under references/platforms/ names a readable one.")
     if status == "not-run":
-        return ("did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its output names "
-                "a file this item adds. A new test must fail on the base because the behaviour it asserts is missing "
-                "(a load error for code this item adds counts); a guard that only checks or prints a file's path is "
-                "not that failure, so assert the behaviour instead. A command that fails before it prints (an assert or "
-                "exception ahead of the print) shows no ID: make it print the ID and its outcome on every exit.")
+        # The exit code and whether anything printed are facts the record holds; the output's last lines follow this
+        # explanation.  Neither says why: a command that never started and one that asserted ahead of its first print
+        # look the same here.
+        printed = (str(run.get("stdout") or "") + str(run.get("stderr") or "")).strip()
+        exited = ("" if run.get("exit") is None
+                  else "exited " + str(run["exit"]) + ("" if printed else " and printed nothing") + ": it ")
+        return (exited + "did not run " + ", ".join(run["ids_unrun"]) + " on the base, and no load failure in its "
+                "output names a file this item adds. A new test must fail on the base because the behaviour it asserts "
+                "is missing (a load error for code this item adds counts); a guard that only checks or prints a file's "
+                "path is not that failure, so assert the behaviour instead. A command that fails before it prints (an "
+                "assert or exception ahead of the print) shows no ID: make it print the ID and its outcome on every "
+                "exit.")
     return _explain(run)
 
 

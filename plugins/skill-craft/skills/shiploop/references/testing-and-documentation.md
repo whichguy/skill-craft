@@ -124,7 +124,8 @@ rerun commands another stage recorded and have no `send-back` to lower a floor, 
 ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
 to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
 needs a fixed count to be held to a floor; and the base run sees only tracked files and the dependency directories it links in
-(`node_modules`, `.venv`, `venv`), and a command that names the checkout by an absolute path runs there, not on the base.
+(those the platform cards list under Dependency directories), and a command that names the checkout by an absolute path runs
+there, not on the base.
 A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
 an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
 regression commands and refuses when any of that row's `ids` is shown, run or failed, in their

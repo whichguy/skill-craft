@@ -20,7 +20,7 @@ Check PostgreSQL connection limits, Redis's `maxmemory-policy`, BullMQ concurren
 
 A local single-process `node app.js` run proves route logic and DB queries, but not multi-instance session sharing, Socket.IO cross-instance delivery, cron dedup under multiple replicas, or real SIGTERM behavior. Test graceful shutdown — the process manager sending SIGTERM and `server.close()` finishing in-flight requests while refusing new ones — by sending a real SIGTERM to a running instance, not Ctrl-C in a dev terminal. ([expressjs.com graceful shutdown](https://expressjs.com/en/advanced/healthcheck-graceful-shutdown/))
 
-Record a focused `node --test` command with a reporter ShipLoop reads: the default spec reporter or `--test-reporter=tap` prints each test's name with its outcome; `dot` and `junit` do not, so a focused command that uses them is refused as unread. When you filter (`--test-name-pattern`), check that the filter selects the listed IDs: a command that runs no test is refused. ([nodejs.org/api/test](https://nodejs.org/api/test.html))
+Record a focused `node --test` command with a reporter ShipLoop reads: the default spec reporter or `--test-reporter=tap` prints each test's name with its outcome; `dot` and `junit` do not, so a focused command that uses them is refused as unread. Under Jest, add `--verbose`, which prints each test's name with its outcome. When you filter (`--test-name-pattern`), check that the filter selects the listed IDs: a command that runs no test is refused. ([nodejs.org/api/test](https://nodejs.org/api/test.html))
 
 ## Current facts (as of 2026-09-26)
 
@@ -41,6 +41,14 @@ Recheck these against the linked pages before relying on them.
 - "Default `express-session` `MemoryStore` is fine for small production apps." The docs say it leaks memory and doesn't scale past one process. ([expressjs.com/session](https://expressjs.com/en/resources/middleware/session/))
 - "Socket.IO automatically syncs rooms/broadcasts across horizontally scaled instances." It requires explicitly installing `@socket.io/redis-adapter`. ([socket.io Redis adapter](https://socket.io/docs/v4/redis-adapter/))
 - "`--env-file` is a drop-in dotenv replacement." It has no variable expansion and is still experimental in the version checked.
+
+## Dependency directories
+
+The test stage's base run and mutation check work in a copy that holds only tracked files. ShipLoop links each
+directory below in from the checkout when it is there, so a runner installed in it can start. List only directories a
+command reads as input, never build output.
+
+- `node_modules`
 
 ## Tool state
 

@@ -24,7 +24,7 @@ Coverage, refused at the step-plan gate (``check_step_plan``):
 - every path a step changes that exists on the item's base needs a works or broken expectation listing it in
   ``paths``, and every path that does not exist there needs an absent one;
 - a works or broken expectation's paths exist on the base; an absent expectation's paths do not;
-- every open plan assumption whose consumer is this item appears as an expectation's ``from``.
+- every open plan assumption whose due_item is this item appears as an expectation's ``from``.
 
 At validate-existing entry ShipLoop runs every check (``entry``); when all match, the navigator records the stage done
 by script and issues no packet.  Otherwise the packet lists the results.  A works expectation found broken whose fix is
@@ -291,7 +291,7 @@ def _cursor(state: Mapping[str, Any]) -> Tuple[Optional[str], Optional[str]]:
 
 
 def open_assumptions(state: Mapping[str, Any], work_item: str) -> List[Mapping[str, Any]]:
-    """The plan's open assumptions whose consumer is ``work_item``."""
+    """The plan's open assumptions whose due_item is ``work_item``."""
     plan = test_loop._latest_root_result(state, "plan")
     return [row for row in plan.get("assumptions") or () if isinstance(row, Mapping)
             and row.get("disposition") == "open" and row.get("due_item") == work_item]
@@ -336,7 +336,7 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
     step-plan entry).  Refused: a missing or malformed ``expectations``; a check that is not one read-only shell
     command; an expectation naming an unknown step; an existing step path with no works or broken expectation, or a
     new one with no absent expectation; a works or broken path missing on the base, or an absent path present there;
-    an open plan assumption whose consumer is this item and that no expectation cites in ``from`` (or a ``from``
+    an open plan assumption whose due_item is this item and that no expectation cites in ``from`` (or a ``from``
     naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a step
     without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.
     """
@@ -394,7 +394,7 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
         cited = {row["from"] for row in rows if "from" in row}
         stray = sorted(cited - opened)
         _need(not stray, "expectations cite from " + ", ".join(stray) + ", which is not an open plan assumption "
-              "whose consumer is " + work_item + (" (those are " + ", ".join(sorted(opened)) + ")" if opened else ""))
+              "whose due_item is " + work_item + (" (those are " + ", ".join(sorted(opened)) + ")" if opened else ""))
         uncited = sorted(opened - cited)
         _need(not uncited, "open plan assumptions " + ", ".join(uncited) + " name " + work_item + " as due_item; "
               "add an expectation for each with \"from\": \"<assumption id>\" and a check that settles it")

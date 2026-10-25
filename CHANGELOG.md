@@ -2,6 +2,33 @@
 
 Written by scripts/release.py.
 
+## 2026-10-25
+
+### skill-craft 2.9.1
+
+- Skills: shiploop 1.9.1
+
+### shiploop 1.9.1
+
+- - **The base run's dependency directories come from the platform cards:** the test stage's base run and mutation check
+    link an ignored directory in from the checkout only when a platform card lists it under `## Dependency directories`.
+    The Node card lists `node_modules`, and the Python card `.venv` and `venv`, so those stacks behave as before. A stack
+    that installs its runner elsewhere adds one bullet to its card, not a change to the engine. A card lists only
+    directories a command reads as input, never build output.
+- - **A base run's not-run refusal gives the exit code:** when a focused command ran none of its test IDs on the item's
+    base, the refusal now starts with how it exited, for example `exited 3 and printed nothing: it did not run …`, before
+    the existing advice and the output's last lines. It states only what the record holds; it does not guess whether the
+    command failed to start or asserted before its first print.
+- - **Refusals say the current terms:** four refusals still used words the 2.9.0 renames retired. Three said "run the same
+    complete command again" (the spec write-back gate, a retired `blocked_by` field and an unsupported result field);
+    they now say "run the same callback again". One said an open plan assumption "whose consumer is" a work item; it now
+    says "whose due_item is". Each phrase was split across two string literals, so the line-based term check missed it;
+    run 5 printed two of them.
+- - **The unread refusal points at the platform card:** when a base run names a test ID but no line says whether it
+    passed, the refusal asks for a reporter that marks each outcome on the line that names it and points at the stack's
+    platform card. The Python card now names `pytest -v` and `python -m unittest -v`, and the Node card Jest's
+    `--verbose`, beside its existing `node --test` reporters.
+
 ## 2026-10-24
 
 ### skill-craft 2.9.0
