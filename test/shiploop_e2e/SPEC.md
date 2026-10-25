@@ -507,7 +507,8 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   else its parent where the grandparent is the home folder, the temporary
   folder or the file system root; a suite case reads its suite folder's root
   (the suite sets the variable for its cases, so `<runs>/<day>/<suite>/<case>`
-  reads `<runs>`, not `<runs>/<day>`); the walk does not enter a run folder or a
+  reads `<runs>`, not `<runs>/<day>`, and a reader after the run finds the
+  suite by its `suite-result.json`); the walk does not enter a run folder or a
   hidden folder, and a neighbour whose timeline was last written before this run
   began is counted in `ended_before` and not read. Each neighbour is named by its
   path under the root. A run outside the root is still not seen. The baseline
