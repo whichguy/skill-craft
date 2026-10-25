@@ -1,0 +1,8 @@
+scorecard/2: 7 run(s); floors accuracy/enterprise/fidelity (P pass, F fail, ? unobserved, - n/a); validity correctness/attribution/timing (Y valid, n not, ? not observed)
+  checkers claude            P/-/F  Y/Y/Y    13.2m $3.7224    201t   3r
+  chess-salesforce grok      F/-/F  Y/Y/Y   239.6m $21.4859+  884t  13r
+  battleship claude          F/-/P  n/Y/n    19.6m $6.3566    269t   8r  correctness: the delivered work tree changed after delivery:  D page.html; timing: overlapped 7 run(s)
+  hello claude               P/-/P  Y/Y/n    10.3m $4.1815    197t   3r  timing: overlapped 8 run(s)
+  seat-reservations claude   P/-/P  Y/Y/n    20.9m $6.0145    256t   5r  timing: overlapped 7 run(s)
+  csv-report claude          P/-/P  Y/Y/n    30.2m $9.9976    354t  10r  timing: overlapped 8 run(s)
+  hello codex                P/-/F  Y/Y/n   124.9m $-         120t   9r  timing: resumed

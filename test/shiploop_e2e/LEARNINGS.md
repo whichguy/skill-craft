@@ -2845,3 +2845,44 @@ change.
 - Steps 2 (required evidence per case and validity dimensions) and 8 (tokens) will change what the contract reads, under a
   new id.
 
+## Build step 2: required evidence per case and validity in three dimensions (2026-10-25) — status: firm for the rule, its tests and the re-read; interim for torn-down runs (correctness null until step 4)
+
+**Question.** Can missing evidence be stopped from passing, and can overlap be stopped from discarding good correctness
+evidence? This is step 2 of Astra's build order (R2, R3), approved by the owner on 2026-10-25.
+
+**Built.** The SPEC was amended first. Then:
+- **`scorecard/2`.** Floors are pass, fail, unobserved or not_applicable, and requiredness is the case's (`cases.json`).
+  Validity has three dimensions:
+  - correctness: a delivered tree changed after delivery, or a `/tmp` name shared with an overlapping run, read from that
+    run's own `metrics.tmp_writes`;
+  - attribution: mixed hosts or builds;
+  - timing: overlap, resume, unattributable, leftovers.
+
+  Null is never valid.
+- **`promotion/2`.** Per-case `attempts` is the expected-slice manifest. Quality is read only from correctness-valid
+  cards, and efficiency only from cards valid on both timing and attribution.
+- **`arms.decide`.** It refuses a slice one arm lacks and a hard-gate field unmeasured on both arms. A measured gate
+  failure still rejects. Astra's probe had made the candidate win in both cases.
+
+**Done signal (Astra).**
+- A missing slice or field blocks promotion: `PromotionContractTest` covers an attempt short, an unobserved floor and
+  correctness not valid; `ArmsTests` covers a one-sided slice and an unmeasured gate.
+- Timing contamination preserves independently valid correctness evidence: an overlapped candidate's quality gain still
+  promotes, and its lower cost does not. A declared acceptance that was not observed is now `unobserved`; `scorecard/1`
+  read it as a pass, which is the fail-first case.
+
+**Re-read live** (`docs/experiments/e2e-step2-validity-20261025/backfill-v2.txt`):
+- The 2.9.0 gate runs are correctness Y, timing n. They overlapped 7-8 runs, so they now count as quality evidence;
+  `/1`'s one `comparable` flag had voided them.
+- Battleship is correctness n, from E4's deleted `page.html`.
+- Codex hello is timing n, because it was resumed.
+- Chess run 4 and the Checkers run are Y on all three dimensions.
+- The compact fixtures have no `work/`, so their correctness is null. That is honest for a torn-down run, and build
+  step 4's delivery snapshot is the fix.
+
+**Tests:**
+- `ScorecardTest` (8) and `PromotionContractTest` (8) in `test/shiploop-e2e-baseline.test.py`;
+- `ArmsTests` gains one test.
+
+`scorecard/1` and `promotion/1` are replaced, with no shim (one supported version).
+
