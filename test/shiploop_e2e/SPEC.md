@@ -388,6 +388,17 @@ on quickly before the breadth of everything is checked.
 - Each suite records its own baselines (per case: verdicts, turns, cost,
   sessions, cancellations, glue, ShipLoop failures) so a run is compared with
   the same case's history, never across styles.
+- **A hosted-platform run's prefix (added 2026-10-25).** The owner asked for a Haiku 5.5 Battleship run published to org
+  `de`, which already holds a kept `SLBattle` app. A hosted-platform case names everything it creates with its catalog
+  prefix, and its preflight, guard, checks and cleanup act only on that prefix.
+
+  `run.py --platform-prefix P` renames the prefix for one run, everywhere the case names it: the prompt, the checks,
+  the platform commands and the guard. So a kept app of the same case stays untouched.
+  - P must not share a beginning with any case's prefix, ignoring case. Otherwise that case's preflight, guard or
+    cleanup would take the run's items for its own, or the reverse.
+  - A resume keeps its run's prefix.
+  - It does not go with `--suite`, or with `--seed-at`, because the seeded product carries the case's own names.
+  - The case digest (`boundary.case`) is of the renamed entry. So arms under different prefixes are not compared.
 
 ## The promotion contract (added 2026-10-25)
 
