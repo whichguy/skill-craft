@@ -387,7 +387,11 @@ and the finished live run reads as the upstream live check above counted: 38 pac
 failed checks traced, plus the workspace refusal from the stream. Quick tier on `03f9aad5` (changed from `a677b55d`):
 36 of 37 suites pass in 208.6 s. `shiploop-mock-replay` fails 5 tests, and fails them identically on a clean `a677b55d`.
 Its trace corpus pins `grok_adapter_sha256`, and `96f023a2` changed the adapter (it lists `trace`) without re-binding the
-corpus. That is upstream and not this change, which does not touch `skills/shiploop-e2e-audit/`.
+corpus. That is upstream and not this change, which does not touch `skills/shiploop-e2e-audit/`. Fixed upstream in
+skill-craft 2.13.2 (`b047a64a`, released `0a4fe0a6`): the fixtures pin the new adapter. Rebased on `0a4fe0a6`, the quick
+tier on `133f3e63` (changed from `0a4fe0a6`) passes all 37 suites in 212.1 s. Before the push, rebased on `8df9b1a3`
+(40 upstream commits, among them the new `shiploop-e2e-experiments` suite, so the catalog now counts 103 ShipLoop suites
+and 158 in all): the quick tier passes all 38 selected suites in 355.8 s.
 
 ## Open (exploratory)
 
