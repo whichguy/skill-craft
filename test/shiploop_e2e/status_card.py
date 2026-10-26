@@ -66,7 +66,13 @@ STYLE = (
     "@media (prefers-reduced-motion:no-preference){.r{animation:sp 2s linear infinite}}@keyframes sp{to{transform:rotate(360deg)}}</style>")
 PLAN_ICONS = {"done": "ti-check", "running": "ti-loader-2", "waiting": "ti-hourglass", "pending": "ti-circle-dashed"}
 SLOT_CLASS = {"pass": "f", "below": "o", "running": "r", "pending": "p", "error": "e"}
-LEGEND = {"pass": "passed", "below": "below target", "running": "running (minutes)", "pending": "pending", "note": ""}
+LEGEND = {"pass": "passed", "below": "below target", "running": "running (minutes)", "pending": "pending",
+          "error": "error, not a result", "note": ""}
+# Each slot state's legend mark, in legend order. The legend names only the states the grid draws (an unknown state
+# draws as pending): R3's card (2026-10-26) listed "scored 1" with no such slot and left its error slots unexplained.
+LEGEND_MARKS = (("pass", '<i class="f" style="width:10px!important;height:10px!important"></i>'), ("below", '<i class="o"></i>'),
+                ("running", '<i class="r" style="animation:none"></i>'), ("pending", '<i class="p"></i>'),
+                ("error", '<i class="e"></i>'))
 
 
 def _esc(value) -> str:
@@ -126,12 +132,13 @@ def render(model: dict) -> str:
                          f'<div class="ft">{summary}{_verdict(cell.get("verdict"))}</div></div>')
     parts.append("</div>")
     legend = {**LEGEND, **(model.get("legend") or {})}
+    drawn = {s.get("state") if s.get("state") in SLOT_CLASS else "pending"
+             for row in model["rows"] for cell in row.get("cells") or [] for s in cell.get("slots") or []}
     note = f'<span>{_esc(legend["note"])}</span>' if legend.get("note") else ""
     parts.append('<div class="ft" style="justify-content:flex-start;flex-wrap:wrap;gap:14px;margin-top:12px">'
-                 f'<span class="s lg"><i class="f" style="width:10px!important;height:10px!important"></i>{_esc(legend["pass"])}</span>'
-                 f'<span class="s lg"><i class="o"></i>{_esc(legend["below"])}</span>'
-                 f'<span class="s lg"><i class="r" style="animation:none"></i>{_esc(legend["running"])}</span>'
-                 f'<span class="s lg"><i class="p"></i>{_esc(legend["pending"])}</span>{note}</div>')
+                 + "".join(f'<span class="s lg">{mark}{_esc(legend[state])}</span>'
+                           for state, mark in LEGEND_MARKS if state in drawn)
+                 + f'{note}</div>')
     if model.get("links"):
         parts.append('<div class="ft" style="justify-content:flex-start;flex-wrap:wrap;gap:14px">'
                      + "".join(f'<span>{_esc(link.get("label"))}: {_esc(link.get("href"))}</span>'

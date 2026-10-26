@@ -32,7 +32,7 @@ class StatusCard(unittest.TestCase):
         found = status_card.render(MODEL)
         self.assertEqual(found.count('<i class="f"></i>'), 1)
         self.assertEqual(found.count('<i class="o"></i>'), 2)  # the below slot and its legend mark
-        self.assertEqual(found.count('<i class="e"></i>'), 1)
+        self.assertEqual(found.count('<i class="e"></i>'), 2)  # the error slot and its legend mark
         self.assertEqual(found.count('title="pending"'), 1)
         self.assertEqual(found.count('title="bogus"'), 1)  # an unknown state is drawn as pending
         self.assertIn('title="no step plan"', found)
@@ -53,6 +53,17 @@ class StatusCard(unittest.TestCase):
         self.assertIn("scored 1", found)
         self.assertIn("number = steps planned", found)
         self.assertIn('<h2 class="sr-only">Status at 18:36: 2 of 6 samples finished, 1 running.</h2>', found)
+
+    def test_the_legend_names_only_the_states_the_grid_draws(self):
+        """R3's card (2026-10-26) listed passed and below-target slots it did not have, and no mark for its errors."""
+        found = status_card.render({"rows": [{"name": "K2", "cells": [{"slots": [
+            {"state": "running", "label": "6m"}, {"state": "error", "label": "err", "tip": "host refused"}]}]}],
+            "legend": {"error": "host refused, reruns"}})
+        legend = found[found.rindex('<div class="ft" style="justify-content:flex-start'):]
+        self.assertIn("running (minutes)", legend)
+        self.assertIn('<i class="e"></i>host refused, reruns', legend)
+        for absent in ("passed", "below target", "pending"):
+            self.assertNotIn(absent, legend)
 
     def test_text_is_escaped_and_only_rows_are_required(self):
         found = status_card.render({"rows": [{"name": "<b>x</b>", "cells": [{"slots": [{"state": "pass", "tip": '"a"'}]}]}]})

@@ -772,8 +772,15 @@ class ProgressCard(unittest.TestCase):
         done = self.out / "E6-K1" / "T" / "2" / "slice"
         done.mkdir(parents=True)
         (done / "slice-result.json").write_text("{}")
+        early = progress_card.model(self.out, ["E6-K1"], ["T"], now=1_800_000_000.0,
+                                    scorer=lambda folder: {"value": 1, "steps": 3})
+        # No finished sample has a measured span yet: no ETA rather than a guessed one (R3, 2026-10-26).
+        self.assertEqual((early["progress"]["eta"], early["progress"]["etaAt"]), (None, None))
+        self.assertNotIn("ETA", status_card.render(early))
+        (done / "metrics.json").write_text(json.dumps({"span": {"started": 1_799_998_800.0, "ended": 1_800_000_000.0}}))
         found = progress_card.model(self.out, ["E6-K1"], ["T"], now=1_800_000_000.0,
                                     scorer=lambda folder: {"value": 1, "steps": 3})
+        self.assertEqual(found["progress"]["eta"], time.strftime("%H:%M", time.localtime(1_800_000_000.0 + 3 * 20 * 60)))
         progress = found["progress"]
         self.assertEqual((progress["done"], progress["total"], progress["running"]), (1, 4, 1))
         self.assertEqual([(e["kind"], e["text"]) for e in found["events"]],
