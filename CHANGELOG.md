@@ -4,6 +4,52 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.13.0
+
+- Skills: shiploop 1.13.0
+
+### shiploop 1.13.0
+
+- An Improve review's pass record counts an edit of the reviewed result, not only of the tree. A step plan's or a test
+  spec's result lies outside the tree (`RUN/inbox/<action>.md`, then `<action>-final-result.md`), so a review that edited
+  only its result read "tree changed: n".
+  - Each `pass-<n>.json` records the result's fingerprint, `result_changed` and `edited`, beside the tree's `changed`.
+  - `passes.md` shows the three columns.
+  - A review that changed only the result must leave its own `checks.md`, written after its last edit of the result.
+    ShipLoop's producer-check summary no longer replaces it.
+  - The planning experiment exit no longer asks for "the two existing qualifying reviews": one trivial pass ends a
+    review.
+- Every mutant that survives the test stage's mutation check needs a test that kills it, or a disposition. Before, the
+  check refused only when no mutant was killed, so a partial survival passed silently.
+  - **Dispositions:** the test result's new `mutant_dispositions` lists one entry per survivor, each with its evidence:
+    - `equivalent`: no input the contract allows tells them apart;
+    - `out-of-scope`: not product behaviour, such as a tool's generated file;
+    - `not-exercisable`: no test this runner can run reaches it.
+  - **Refusal:** it lists each survivor as `file:line:column` and names both exits. It is not a kill-rate target, and it
+    forbids weakening an oracle to lower the count.
+  - **Reuse:** a resubmission that changes only the dispositions reuses the latest mutation run while the candidate
+    tree and the focused commands are unchanged, so no mutant runs again.
+  - **End of work:** the end-of-work review checks that a later edit has not made a recorded disposition untrue, and
+    that a claimed kill has a run behind it.
+- The procedure walk validates a derived expected result instead of only asking that it be replayable. It is printed in
+  the planning review focus, in the spec and test-strategy duties and in test-spec's duty 4.
+  - It names the spec rule that permits each action that decides the outcome, and recomputes the expected result from
+    the checked walk.
+  - A helper that applies the actions without checking that each is permitted, or the product under test alone, does
+    not count as a check.
+  - The review focus covers cases the review itself adds or changes. The review records the case, the method and the
+    recomputed result, or marks it `NOT-REPLAYED: <reason>`, which leaves it open.
+- A test spec revised after a send-back is reviewed where it changed, when the version accepted before the send-back was
+  itself reviewed:
+  - the cases that changed, were added or were dropped, with the IDs listed;
+  - the cases that depend on them;
+  - whether every requirement the earlier version covered is still covered.
+  Unchanged cases are not reviewed again. An earlier version that was never reviewed keeps the whole test spec in scope.
+- An inline implement step that changed no file since it began starts no step review. Its Proof still runs as the gate.
+  ShipLoop records the tree the step ended at beside the tree it began from, and the Improve checkpoint compares the two.
+  Every implement-step review's `passes.md` also records, without applying it, what the IMP-4 trigger would have done:
+  review only the first step of the item's current plan, and only a change to code or test files.
+
 ### skill-craft 2.12.0
 
 - Skills: shiploop 1.12.0

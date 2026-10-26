@@ -309,6 +309,7 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
         record["skipped"] = remote
         return record
     commands, skipped = split_remote(commands, test_loop.stateful_targets(state))
+    record["commands"] = [row["command"] for row in commands]
     if skipped:
         record["remote_commands_skipped"] = skipped
         if not commands:
@@ -389,6 +390,80 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     return record
 
 
+# What a surviving mutant may be recorded as instead of a test that kills it (advisors panel 2026-10-25, P5): a
+# mutation no input the contract allows can tell apart, a change outside product behaviour (a tool's generated file), or
+# one no test this runner can run reaches (a remote-only path).  Not a kill-rate target: a test that kills it removes it.
+DISPOSITIONS = ("equivalent", "out-of-scope", "not-exercisable")
+DISPOSITION_SHAPE = ('{"mutant": "<file:line:column, as the refusal lists it>", "disposition": "equivalent" | '
+                     '"out-of-scope" | "not-exercisable", "evidence": "<why it cannot be killed, and where that shows>"}')
+
+
+class DispositionError(ValueError):
+    """A ``mutant_dispositions`` field that is malformed; the message names the field, its shape and the fix."""
+
+
+def mutant_id(row: Mapping[str, Any]) -> str:
+    """How a refusal and a disposition name one mutant: ``file:line:column``."""
+    return str(row["file"]) + ":" + str(row["line"]) + ":" + str(row["column"])
+
+
+def canonical_dispositions(value: Any) -> List[Dict[str, str]]:
+    """A test result's ``mutant_dispositions``: one row per surviving mutant it explains (shape only; the mutation
+    check matches the rows to its survivors)."""
+    if not isinstance(value, list):
+        raise DispositionError("mutant_dispositions is a list of " + DISPOSITION_SHAPE)
+    rows = []
+    for index, row in enumerate(value):
+        where = "mutant_dispositions[" + str(index) + "]"
+        if not isinstance(row, Mapping) or set(row) != {"mutant", "disposition", "evidence"}:
+            raise DispositionError(where + " is " + DISPOSITION_SHAPE)
+        if row["disposition"] not in DISPOSITIONS:
+            raise DispositionError(where + ".disposition is one of " + ", ".join(DISPOSITIONS))
+        for key in ("mutant", "evidence"):
+            if not isinstance(row[key], str) or not row[key].strip() or row[key].strip().startswith("<"):
+                raise DispositionError(where + "." + key + " needs a real value: " + DISPOSITION_SHAPE)
+        rows.append({key: str(row[key]).strip() for key in ("mutant", "disposition", "evidence")})
+    return rows
+
+
+def _reusable(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
+              base_commit: Optional[str]) -> Optional[Dict[str, Any]]:
+    """The latest mutation record of this action made on the same candidate tree with the same focused commands, so a
+    resubmission that changes only ``mutant_dispositions`` does not run the mutants again (Codex, panel P5)."""
+    commands, _skipped = split_remote(_focused(state, work_item), test_loop.stateful_targets(state))
+    base = lint.read_base(root, work_item)
+    if base is None or not commands:
+        return None
+    if base_commit:
+        base = test_loop._at_commit(base, base_commit)
+    paths = [test_loop.mutation_check_only_path(action_id)]
+    paths += [mutation_path(action_id, number) for number in range(1, test_loop._mutation_count(root, action_id) + 1)]
+    found = []
+    for relative in paths:
+        try:
+            record = store.read_record(root / relative)
+        except (OSError, store.StorageError):
+            continue
+        if isinstance(record, Mapping) and not record.get("skipped") and record.get("mutants"):
+            found.append((str(record.get("created_at") or ""), relative, record))
+    if not found:
+        return None
+    created, relative, record = max(found)
+    if record.get("commands") != [row["command"] for row in commands]:
+        return None
+    try:
+        current = _current_tree(root, base)
+    except lint.LintError:
+        return None
+    if record.get("candidate_tree") != current:
+        return None
+    reused = {key: value for key, value in record.items() if key not in ("attempt", "counted", "passed", "disposition",
+                                                                        "reused", "advisory", "action", "seconds")}
+    reused.update(created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  reused={"path": relative, "created_at": created})
+    return reused
+
+
 def _describe(row: Mapping[str, Any]) -> str:
     return (str(row["file"]) + ":" + str(row["line"]) + ": " + repr(row["original"]) + " -> "
             + repr(row["replacement"]))
@@ -405,24 +480,32 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
     counted) and returns its summary line.  Refused only when at least one mutant ran and none was killed; that
     refusal counts in ``refused_runs``.  ``result`` is accepted for the gate's uniform call and not read.
     """
-    del result
     root = Path(root)
     refused = test_loop.refused_runs(root, action_id)
     started = time.monotonic()
-    record = _check(root, state, work_item, base_commit=base_commit, runner=runner, env=env, clock=clock)
+    previous = _reusable(root, state, work_item, action_id, base_commit) if runner is None else None
+    record = previous if previous is not None else _check(root, state, work_item, base_commit=base_commit,
+                                                          runner=runner, env=env, clock=clock)
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
     # A mixed item left its remote commands out (I2, F3): a mutant in code only they reach survives whatever the local
     # tests assert, so its survivors are recorded, not refused.
     refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0 \
         and not record.get("remote_commands_skipped")
+    # Every survivor the zero-kill rule lets through gets a disposition (advisors panel 2026-10-25, P5): before, a partial
+    # survival passed silently, and run 3's survivor at the engine's bounds check was never looked at.
+    given = {row.get("mutant") for row in (result or {}).get("mutant_dispositions") or () if isinstance(row, Mapping)}
+    undisposed = [] if refuse else [row for row in record["mutants"]
+                                    if row["status"] == "survived" and mutant_id(row) not in given]
+    if undisposed:
+        record["undisposed"] = [mutant_id(row) for row in undisposed]
     if record["mutants"] and record["killed"] == 0 and record.get("remote_commands_skipped"):
         record["advisory"] = ("no mutant was killed, but the remote commands this check left out may be the only tests "
                               "that reach the mutated code; recorded, not refused")
     # A check that could not judge anything (no focused command, no item base, no mutant, a copy that was not green)
     # passes, and says ``skipped`` so no reader takes it for a proof; one that refused is ``failed`` as before.
-    record.update(passed=not refuse,
-                  disposition="failed" if refuse else "skipped" if record.get("skipped") else "passed")
+    record.update(passed=not refuse and not undisposed,
+                  disposition="failed" if refuse or undisposed else "skipped" if record.get("skipped") else "passed")
     if count:
         record["attempt"] = test_loop._next_attempt(root, action_id)
         relative = mutation_path(action_id, test_loop._mutation_count(root, action_id) + 1)
@@ -436,8 +519,20 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
         summary = ("mutation: " + str(record["killed"]) + " of " + str(len(record["mutants"]))
                    + " mutants of the changed product lines killed by the focused tests"
                    + (" (" + str(record["not_run"]) + " not run)" if record["not_run"] else ""))
+    if undisposed:
+        lines = ["ShipLoop mutation check: test is not done. " + str(len(undisposed)) + " of " + str(len(record["mutants"]))
+                 + " mutants of this item's changed product lines survived the focused tests, with no disposition:"]
+        lines += ["- " + mutant_id(row) + ": " + _describe(row) for row in undisposed]
+        lines.append("For each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or "
+                     "record why it cannot be killed in mutant_dispositions, one entry per mutant: " + DISPOSITION_SHAPE
+                     + ". equivalent: no input the contract allows tells them apart; out-of-scope: not product "
+                     "behaviour, such as a tool's generated file; not-exercisable: no test this runner can run reaches "
+                     "it. Do not weaken an oracle or change required behaviour to lower the count. Then submit done "
+                     "again: while the candidate and the focused commands stay as they are, this run is reused. Full "
+                     "output: " + str(root / relative) + ".")
+        raise test_loop.TestLoopError("\n".join(lines))
     if not refuse:
-        return [summary]
+        return [summary + ("; reused the run of " + str(record["reused"]["created_at"]) if record.get("reused") else "")]
     lines = ["ShipLoop mutation check: test is not done. ShipLoop made " + str(len(record["mutants"]))
              + " one-token changes (mutants) to this item's changed product lines, applied each alone in a temporary "
              "copy of the candidate and ran the focused commands; every command still passed for every one, so the "

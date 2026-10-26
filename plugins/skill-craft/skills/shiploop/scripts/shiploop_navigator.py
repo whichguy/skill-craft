@@ -43,6 +43,7 @@ import shiploop_lessons as commit_lessons
 import shiploop_knowledge_home as knowledge
 import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
+import shiploop_mutation as mutation
 import shiploop_loops as loops
 import shiploop_expectations as expectations
 import shiploop_planning_revision as planning_revision
@@ -72,7 +73,7 @@ _RESULT_KEYS = frozenset((
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
-    "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
+    "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -120,6 +121,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
+    "mutant_dispositions",
 )
 _STATE_KEYS = frozenset(
     (
@@ -476,8 +478,14 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
         if stage in stage_spec.with_improve("first-item"):
             return _first_item_review(state, _current_work_item(state), state["history"])
         return True
-    # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option.
+    # Owner decision 2026-10-10: every accepted implement step is reviewed, whatever the planning review option. Except
+    # (advisors panel 2026-10-25, P4: "review each changed implementation action") a step that changed no file since it
+    # began: its Proof still ran, and its review would read code an earlier review already read. Live runs 3 and 5b
+    # reviewed such reissued steps after a send-back three times, each a single trivial pass (327 s).
     if stage in stage_spec.with_improve("step"):
+        action = _active_cursor(state)[1]
+        if isinstance(action, Mapping) and action.get("base") and action.get("after") == action.get("base"):
+            return False
         return result["outcome"] == "done"
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
@@ -1156,10 +1164,16 @@ def _canonical_result(
     # Shape only (the test layers, run-5 batch F1/F3); the CLI gate applies each field's rule.  A step plan's test_layers
     # are the item's own rows.
     for key, stages in (("test_layers", ("test-strategy", "step-plan")), ("test_layers_na", ("test-strategy",)),
-                        ("targets", ("test-strategy",)), ("harness_runs", ("prepare",))):
+                        ("targets", ("test-strategy",)), ("harness_runs", ("prepare",)),
+                        ("mutant_dispositions", ("test",))):
         if key in value:
             _need(stage in stages and outcome == "done", key + " is allowed only on a done " + " or ".join(stages)
                   + " result")
+    if "mutant_dispositions" in value:
+        try:
+            result["mutant_dispositions"] = mutation.canonical_dispositions(value["mutant_dispositions"])
+        except mutation.DispositionError as exc:
+            raise NavigatorError(str(exc)) from exc
     try:
         if "test_layers" in value:
             result["test_layers"] = layers.canonical_rows(value["test_layers"])
@@ -1413,10 +1427,12 @@ def new_state(
 
 
 def _validate_action(action: Any, stage: str, label: str) -> str:
-    # An implement action may carry the tree its step began from (``_step_entry``), its Improve review's diff base.
+    # An implement action may carry the tree its step began from (``_step_entry``), its Improve review's diff base, and
+    # the tree it ended at when its result was submitted (``_step_after``).
     _need(isinstance(action, Mapping) and (set(action) == {"id", "stage"} or (
-        stage == "implement" and set(action) == {"id", "stage", "base"} and isinstance(action.get("base"), str)
-        and re.fullmatch(r"[0-9a-f]{40,64}", action["base"]) is not None)),
+        stage == "implement" and set(action) in ({"id", "stage", "base"}, {"id", "stage", "base", "after"})
+        and all(isinstance(action.get(key), str) and re.fullmatch(r"[0-9a-f]{40,64}", action[key]) is not None
+                for key in set(action) - {"id", "stage"}))),
           f"{label} is invalid")
     action_id = action.get("id")
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
@@ -4102,6 +4118,56 @@ def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
     advanced = deepcopy(after)
     advanced["inner_loops"][workitem]["action"] = {**action, "base": tree}
     return advanced
+
+
+def _step_after(root: Path, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Record the tree an inline implement step ends at (``after``) beside the tree it began from (``base``), just before
+    its result is applied, so the Improve checkpoint can tell a step that changed no file (panel P4, 2026-10-25).
+
+    Nothing is recorded on the ask-agent route (no ``base``), outside Git, or when the snapshot fails: the step is
+    reviewed as before."""
+    stage, action, workitem = _active_cursor(state)
+    if (stage != "implement" or not isinstance(action, Mapping) or not action.get("base") or "after" in action
+            or state.get("active_improve")):
+        return state
+    tree = improve_changes.snapshot_tree(Path(root), Path(state["repo"]))
+    if not tree:
+        return state
+    stamped = deepcopy(dict(state))
+    stamped["inner_loops"][workitem]["action"] = {**action, "after": tree}
+    return stamped
+
+
+def _imp4_shadow(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> str | None:
+    """What the IMP-4 trigger would have done with this implement-step review, recorded and not applied (panel P4).
+
+    The trigger: review only the first step of its item's current step plan, and only when the step changed code or
+    test files. Every later-step observation behind it came from one run (5b), so it runs in shadow until another
+    multi-step run, preferably in another domain, shows what it would have skipped."""
+    if child.get("stage") != "implement":
+        return None
+    if delegation(state) != guidance.INLINE:
+        return "IMP-4 shadow: not applicable (the ask-agent route builds every step in one action)."
+    _stage, action, workitem = _active_cursor(state)
+    if not isinstance(action, Mapping) or action.get("id") != child["action_id"] or not action.get("base"):
+        return "IMP-4 shadow: not measured (no step-entry tree for this step)."
+    step = loops.implement_scope(state, workitem, action["id"])
+    _plan_action, plan = test_loop._step_plan(state, workitem)
+    ids = [str(row.get("id")) for row in plan.get("steps") or () if isinstance(row, Mapping)]
+    step_id = str(step.get("id")) if isinstance(step, Mapping) else None
+    position = ids.index(step_id) + 1 if step_id in ids else None
+    top = lint.git_toplevel(Path(state["repo"]))
+    try:
+        paths = improve_changes._diff(top, action["base"], action.get("after") or "") if top else None
+    except lint.LintError:
+        paths = None
+    if position is None or paths is None:
+        return "IMP-4 shadow: not measured (the step's position or its changed files could not be read)."
+    code = item_scope.behavioural_paths(paths)
+    keep = position == 1 and bool(code)
+    return ("IMP-4 shadow (recorded, not applied; this review ran): the trigger would have " + ("kept" if keep else
+            "skipped") + " it. Step " + step_id + " is " + str(position) + " of " + str(len(ids)) + " in its item's "
+            "current plan and changed " + str(len(code)) + " code or test file(s) of " + str(len(paths)) + ".")
 
 
 def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> None:
@@ -7083,8 +7149,11 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         # What a cleared child needs first, then the review focus and the commit: all inside the first 4,500 characters
         # (the route file holds the policy that is the same in every review; efficiency plan U18).
         focus, craft = _improve_focus(state, child)
+        scope = _revised_case_scope(state, child)
         head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
                  "## Commit", *_improve_commit_lines(core, root, state, child), "",
+                 # After the commit lines, so the focus, commit command and callback stay inside the first 4,500.
+                 *(["## Scope of this revision", *scope[1:], ""] if scope else []),
                  *(["## Code craft", *craft, ""] if craft else [])]
     head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
@@ -7160,6 +7229,41 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
         "Open ROUTE once per context and after a reset: its short core has every pass's rules and names the file for "
         "recovery, final_result and review inputs; this file leaves them out.",
     ]
+
+
+def _revised_case_scope(state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """Where a test spec revised after a send-back is reviewed (advisors panel 2026-10-25, P3).
+
+    The four test-spec re-reviews of live runs 3, 4 and 5b changed nothing, and run 5b's two read all 25 cases when one
+    had changed (TC_28; then TC_19).  When the item's test spec accepted before its latest send-back was itself reviewed,
+    this review takes the cases that changed, were added or were dropped since then, their dependents, and whether every
+    requirement the earlier version covered is still covered.  An earlier version that was never reviewed (an item after
+    the first, under the first-item rule) leaves the whole test spec in scope, so nothing goes unreviewed.
+    """
+    workitem = _current_work_item(state) if child.get("stage") == "test-spec" else None
+    if workitem is None:
+        return []
+    history = state["history"]
+    sent = [index for index, row in enumerate(history)
+            if row.get("workitem") == workitem and row.get("outcome") == "send-back"]
+    earlier = [row["action"] for row in history[:sent[-1]] if row.get("workitem") == workitem
+               and row.get("stage") == "test-spec" and row.get("outcome") == "done"] if sent else []
+    if not earlier or earlier[-1] not in (state.get("improve_results") or {}):
+        return []
+    previous = earlier[-1]
+    added, dropped, changed = _id_changes(state["accepted"].get(previous, {}).get("test_cases"),
+                                          (child.get("seed_result") or {}).get("test_cases"))
+    kept = len([row for row in (child.get("seed_result") or {}).get("test_cases") or ()
+                if isinstance(row, Mapping) and str(row.get("id")) not in {*added, *changed}])
+    where = "RUN/results/" + previous + ".md"
+    if not (added or dropped or changed):
+        return ["", "Revised test spec: no case changed since the test spec accepted and reviewed before the send-back ("
+                + where + "). Check only that every requirement it covered is still covered."]
+    return ["", "Revised test spec: this result revises the test spec accepted and reviewed before the send-back ("
+            + where + "). Review the cases that changed (" + (", ".join(changed) or "none") + "), were added ("
+            + (", ".join(added) or "none") + ") or were dropped (" + (", ".join(dropped) or "none") + "), the cases "
+            "that depend on them, and that every requirement the earlier version covered is still covered. The "
+            + str(kept) + " unchanged cases were reviewed then: do not review them again."]
 
 
 def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[list[str], list[str]]:
@@ -7413,7 +7517,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "evidence file.",
             "Planning experiment exit: Require coherent current planning artifacts, a complete "
             "assumption list with no open entry that a bounded probe within the remaining "
-            "allowance could settle now, and the two existing qualifying reviews. An inconclusive "
+            "allowance could settle now, and the qualifying review (one trivial pass ends it). An inconclusive "
             "probe remains unresolved; running a probe or exhausting the shared investigation allowance "
             "does not satisfy readiness. Use the current Improve cycle, never a nested loop or a new "
             "experiment counter. Preserve findings, remaining allowance and cleanup through recovery.",
@@ -8476,10 +8580,29 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     checks = reviews / CHECK_FILE
     changed = list(changes[0]) if changes is not None else None
     bind = store.read_record(root / improve_changes.bind_path(child["action_id"])) if changes is not None else {}
-    if changed == []:
-        store.atomic_write_text(checks, "Tree unchanged since improve-bind (" + str(bind.get("tree", ""))[:12]
-                                + "); producer checks: " + _producer_checks(root, child["action_id"]) + "\n")
-        checks_fact = "written by ShipLoop (tree unchanged since the bind)"
+    # The result block the review edits in place (a step plan, a test spec) lies outside the tree (advisors panel
+    # 2026-10-25): its fingerprint against the bind's says whether the review changed it.
+    result_now = improve_changes.result_identity(root, child["action_id"])
+    bound_result = bind.get("result") if isinstance(bind, Mapping) else None
+    result_edited = None if result_now is None or bound_result is None else result_now != bound_result
+    if changed == [] and result_edited:
+        # A result-only edit keeps the review's own check evidence: the producer's summary says nothing about the
+        # changed result, and a validation the review recorded (a replay) must survive the callback.
+        candidate = next((path for path in (root / "inbox" / (child["action_id"] + "-final-result.md"),
+                                            _result_input_path(root, child["action_id"])) if path.is_file()), None)
+        _need(checks.is_file() and not checks.is_symlink() and not _shiploop_checks(checks)
+              and (candidate is None or checks.stat().st_mtime >= candidate.stat().st_mtime),
+              "This review changed the " + child["stage"] + " result (" + str(candidate) + "), so record how you "
+              "checked the changed result (what you validated, the method, what it showed) in " + str(checks)
+              + " with a file-writing tool, after your last edit of the result, then run: " + command_again)
+        checks_fact = "written by the review after its last edit of the result"
+    elif changed == []:
+        if not (checks.is_file() and not checks.is_symlink() and not _shiploop_checks(checks)):
+            store.atomic_write_text(checks, CHECKS_UNCHANGED_PREFIX + str(bind.get("tree", ""))[:12]
+                                    + "); producer checks: " + _producer_checks(root, child["action_id"]) + "\n")
+            checks_fact = "written by ShipLoop (tree unchanged since the bind)"
+        else:
+            checks_fact = "written by the review (kept; tree and result unchanged since the bind)"
     else:
         _need(checks.is_file() and not checks.is_symlink(),
               "Run this stage's checks on the edited tree and write their output to " + str(checks)
@@ -8499,11 +8622,22 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     except (OSError, ValueError, AttributeError):
         before = None
     pass_changed = None if tree is None or before is None else tree != before
+    try:
+        result_before = (json.loads(previous.read_text(encoding="utf-8")).get("result") if number > 1
+                         else bound_result)
+    except (OSError, ValueError, AttributeError):
+        result_before = None
+    result_changed = None if result_now is None or result_before is None else result_now != result_before
+    # Edited: either changed; unknown only when neither side was measured.
+    edited = (True if pass_changed or result_changed else
+              None if pass_changed is None and result_changed is None else False)
     skill_fact = ("recorded " + str(call.get("at", "")) if call is not None else "not enforced (" + str(why) + ")")
     facts = ("ShipLoop facts: files changed since the bind: " + (", ".join(changed) if changed else
                                                                  "none" if changed == [] else "not measured")
              + ("; committed as " + committed if committed else "")
              + ("; not committed on the instruction: " + no_commit if no_commit else "")
+             + "; result " + ("changed since the bind" if result_edited else "unchanged since the bind"
+                              if result_edited is False else "not measured")
              + "; checks.md " + checks_fact + "; improve skill call " + skill_fact + ".")
     report = {field: front[key] for key, field, _allowed in REVIEW_FRONT}
     report["evidence"] = (review.name + ": " + "; ".join(label + ": " + labels[label] for label in REVIEW_LABELS)
@@ -8513,7 +8647,7 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     store.atomic_write_text(report_path, json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
         "pass": number, "label": front["classification"], "tree": tree, "changed": pass_changed,
-        "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
+        "result": result_now, "result_changed": result_changed, "edited": edited, "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
         "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, indent=1) + "\n")
     inline = delegation(state) == guidance.INLINE
     print("\n".join([
@@ -8529,6 +8663,19 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     return 0
 
 
+# The first words of the checks.md ShipLoop writes for a review that changed nothing; a checks.md that does not begin
+# with them was written by the review and is kept.
+CHECKS_UNCHANGED_PREFIX = "Tree unchanged since improve-bind ("
+
+
+def _shiploop_checks(checks: Path) -> bool:
+    """Whether ``checks`` is the summary ShipLoop writes for an unchanged review, not the review's own evidence."""
+    try:
+        return checks.read_text(encoding="utf-8", errors="replace").startswith(CHECKS_UNCHANGED_PREFIX)
+    except OSError:
+        return False
+
+
 def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], not_enforced: str | None) -> str:
     """``RUN/improve/<action>/passes.md`` at import (IMP-11): one row per review pass, from the files it left."""
     import shiploop_standalone_improve as standalone
@@ -8539,10 +8686,12 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
         previous = standalone.receipt_path(child).with_name("start.json").stat().st_mtime
     except OSError:
         previous = None
+    shadow = _imp4_shadow(root, state, child)
     rows = ["# Improve passes: the " + child["stage"] + " result (" + child["action_id"] + ")", "",
-            "Re-decide the Improve stop rule (IMP-4) at 10 step-stage reviews with at least 3 edits.", "",
-            "| stage | pass | label | tree changed | seconds | skill call recorded |",
-            "| --- | --- | --- | --- | --- | --- |"]
+            *([shadow, ""] if shadow else []),
+            "Edited is tree changed or result changed: a step plan's or test spec's result lies outside the tree.",
+            "| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for number, path in found:
         try:
             facts = json.loads((reviews / ("pass-" + str(number) + ".json")).read_text(encoding="utf-8"))
@@ -8550,11 +8699,12 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
             facts = {}
         front, _labels, _handoff, _missing = _review_form(path.read_text(encoding="utf-8", errors="replace"))
         stamp = path.stat().st_mtime
-        changed = facts.get("changed") if isinstance(facts, dict) else None
-        call = facts.get("skill_call") if isinstance(facts, dict) else None
+        facts = facts if isinstance(facts, dict) else {}
+        call = facts.get("skill_call")
         rows.append("| " + " | ".join([
             child["stage"], str(number), front.get("classification") or "not recorded",
-            "not measured" if changed is None else "y" if changed else "n",
+            *("not measured" if facts.get(key) is None else "y" if facts[key] else "n"
+              for key in ("changed", "result_changed", "edited")),
             "not measured" if previous is None else str(round(stamp - previous)),
             call or ("not enforced" if not_enforced is not None else "y")]) + " |")
         previous = stamp
@@ -9026,6 +9176,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             for line in gate_lines:
                 print(line)
             return 0
+        if cursor_stage == "implement":
+            state = _step_after(root, state)
         updated = apply(state, action_id, submitted)
         if updated != state:
             terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
