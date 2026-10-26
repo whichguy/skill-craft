@@ -359,3 +359,38 @@ cherry-picked onto a local branch there (old-shape fixtures, new host check).
 | --- | --- | --- | --- |
 | F39 | A macOS-only stat field passed every local check and failed Linux CI: local runs cannot prove a platform-portable harness, CI can. | firm | run 40340118933, `6b6ce383` |
 | F40 | Reading the host's own refusal (HTTP 401/402/403) separates "the host could not run" from "the arm did not deliver" without guessing; Grok's "cancelled" stays ambiguous. | firm (5 of 6 R3 slices marked; T 2 not) | R3 folders; the three RoundSpeedups tests |
+
+## 10. 2026-10-26: R3 rerun after a top-up (one sample delivered, then the balance ran out again)
+
+**Question.** Owner, 2026-10-26: "I've added more credits, so you should be able to run now." R3 on K2 again: arms T
+and Cg, 3 full-item slices each, 4 at a time.
+
+**Conditions.** One test Grok call ended `end_turn` with no 402. E-EFF1 confirmed it needed no Grok. The notice to
+the E2E session expired undelivered (different permission modes). The queue started at 10:00 from the frozen worktree,
+local branch `r3-run-host-fix-572f8a` (`da86f8a0` plus this day's host-failure and card fixes), into
+`/Users/dadleet/e2e-runs/e6-r3-20261026` with `--timeout=10800`, under the default planning review (stage).
+
+**Results.** The balance ran out again at about 10:48, roughly 48 minutes of 4 parallel slices (about 190
+slice-minutes). The host-failure fix worked as built: each refused slice was reported, and the queue started nothing
+more (Cg 3 never launched).
+
+| Sample | Outcome | Steps planned | Implement steps done | Minutes | Note |
+| --- | --- | --- | --- | --- | --- |
+| T 1 | delivered, every slice check passed | 2 | 2 (265 s each) | 39.7 | 156 turns, input peak 205k, 5 Improve children of 1 pass each, no send-backs |
+| T 2 | host refused (402) at implement | 10 | 1 (622 s) | 47.4 | not scored |
+| T 3 | host refused (402) before step-plan ended | – | 0 | 7.0 | not scored |
+| Cg 1 | host refused (402) at document | 4 | 4 (337 s each) | 48.0 | test stage passed; not scored |
+| Cg 2 | host refused (402) at implement | 15 | 2 (490 s each) | 47.4 | not scored |
+| Cg 3 | not started | – | – | – | the queue stopped |
+
+Only T 1 is a result. The rest are descriptive, read from the refused slices' own records (`e6_downstream.score`).
+The frozen harness's `metrics.improve_reviews` reads Improve reviews one folder too deep, so it shows 0 passes for 5
+children. Main's reader reads both layouts (fixed 2026-10-25), so R3's Improve passes are counted with main's reader.
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F41 | A full K2 item on Grok took about 40 to 50 minutes, and 4 parallel slices spent the top-up in about 48 minutes (about 190 slice-minutes). The 5 open samples need about 200 to 275 slice-minutes, roughly 1 to 1.4 times that top-up. | interim (one delivered item, four partial) | R3 slice records; queue.log |
+| F42 | Under the full stage review, K2 step plans ranged 2 to 15 (T 2, 10; Cg 4, 15), wider than the shape rounds (R1: T 1 to 6, Cg 2 to 10). | exploratory (n = 4 plans) | step-plan results of the R3 slices; R1 score.json |
+
+**Next.** R3 needs another top-up for its 5 open samples. A refused slice cannot be resumed (`slice.py`: that stop is
+final), so each restarts from its seed.
