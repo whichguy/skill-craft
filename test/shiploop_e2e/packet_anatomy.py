@@ -143,7 +143,8 @@ RULES: tuple[Rule, ...] = (
     _r("progress-rules", r"^Progress: do not reprint this packet", "para"),
     # --- unverified, answered and delta lines (_unverified_lines, _answered_lines, _replan_delta_lines, _revise_delta_lines)
     _r("unverified-and-deltas", r"^(Unverified|Plan assumptions recorded open|Open unverified|Answered|Replan|Revise|"
-       r"Sent back|The user answered|Earlier answer|That is product-acceptance's list only|Product-acceptance listed these)"),
+       r"Sent back|The user answered|Earlier answer|That is the request-outcome list only|The request outcomes still "
+       r"unverified|Request outcomes still unverified|No request outcome stays unverified)"),
     _r("unverified-and-deltas", r"^- (A\d+ \(consumer|.* \| reason: )"),
     # Product-acceptance's primary requirements and the tests that passed for each (run-5 batch F6, shiploop_primary).
     _r("unverified-and-deltas", r"^Primary requirements", "bullets"),

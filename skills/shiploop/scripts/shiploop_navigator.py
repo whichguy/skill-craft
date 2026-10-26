@@ -1210,8 +1210,9 @@ def _canonical_result(
     if "unverified" in value:
         # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
         # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
-        _need(stage in unverified.STAGES and outcome == "done",
-              "unverified is allowed only on a done " + ", ".join(sorted(unverified.STAGES)) + " result")
+        _need((stage in unverified.STAGES or stage in unverified.due_stages()) and outcome == "done",
+              "unverified is allowed only on a done result of " + ", ".join(sorted(unverified.STAGES))
+              + " or a later stage that restates it")
         try:
             result["unverified"] = unverified.canonical(value["unverified"])
         except unverified.UnverifiedError as exc:
@@ -3339,14 +3340,16 @@ def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, r
         raise NavigatorError(str(exc)) from exc
 
 
-def _check_submitted_unverified(stage: str, result: Any) -> None:
-    """Refuse a submitted done product-acceptance result without a usable unverified list.
+def _check_submitted_unverified(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a submitted done product-acceptance result without a usable unverified list, and a done result at a
+    later stage that must restate the list (the handoff, a stage an entry is due at) but does not carry it forward.
 
     CLI gates only, like the assumption list: the pure graph functions check the shape when the field is
     present and do not require it, so simulations and saved runs are unaffected.
     """
     try:
         unverified.check_submitted(stage, result)
+        unverified.check_restated(state, stage, result)
     except unverified.UnverifiedError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -4813,6 +4816,9 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         ]
     if stage in unverified.STAGES:
         result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
+    elif unverified.must_restate(state, stage):
+        # The current list, to carry forward: drop what this stage observed, move what it could not, keep the rest.
+        result["unverified"] = [dict(row) for row in unverified.current_list(state)[2] or ()]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -6766,9 +6772,9 @@ def _unverified_row(row: Mapping[str, Any]) -> str:
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """What the run left unverified, printed from state by the stages that account for it or report it.
 
-    Product-acceptance and the handoff print the plan's assumptions still recorded open; the stage an entry is due
-    at prints that entry; the handoff prints the whole list.  Nothing is recalled by the model, and no Improve
-    stage's packet carries it.
+    Product-acceptance and the handoff print the plan's assumptions still recorded open; the handoff and the stage an
+    entry is due at print the current list (``unverified.current_list``), which their result restates.  Nothing is
+    recalled by the model, and no Improve stage's packet carries it.
     """
     if state["status"] != "active" or state.get("active_improve"):
         return []
@@ -6782,25 +6788,26 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                          + _bounded_packet_text(str(row["assumption"])) + " | to settle: "
                          + _bounded_packet_text(str(row["settle"])) for row in still_open)
     if stage == "handoff":
-        action, entries = unverified.accepted_list(state)
+        _action, source, entries = unverified.current_list(state)
         if entries:
-            lines.append("Product-acceptance listed these request outcomes as unverified (ShipLoop's report lists "
-                         "them too):")
+            lines.append("The request outcomes still unverified, as " + str(source) + " left the list (ShipLoop's "
+                         "report lists them too). Restate the list in your result's unverified: drop one you observed "
+                         "here (name the observation in summary) and copy every other one unchanged:")
             lines.extend(_unverified_row(row) for row in entries)
         elif entries is None:
             lines.append("No unverified list is recorded for product-acceptance (unmeasured, not zero).")
         else:
-            lines.append("Product-acceptance listed no unverified request outcome (its accepted result, field "
-                         "unverified).")
-        lines.append("That is product-acceptance's list only: open items another stage recorded are in that "
-                     "stage's own result; read them before stating the limits.")
-    elif stage in unverified.due_stages():
-        due = unverified.due_entries(state, stage)
-        if due:
-            lines.append("Request outcomes product-acceptance listed as unverified and due at " + stage + " (observe "
-                         "each here if this stage can and say so in the result; otherwise it stays listed for the "
-                         "handoff):")
-            lines.extend(_unverified_row(row) for row in due)
+            lines.append("No request outcome stays unverified (" + str(source) + "'s accepted result, field "
+                         "unverified): restate it as [].")
+        lines.append("That is the request-outcome list only: open items another stage recorded are in that stage's "
+                     "own result; read them before stating the limits.")
+    elif stage in unverified.due_stages() and unverified.must_restate(state, stage):
+        _action, source, entries = unverified.current_list(state)
+        lines.append("Request outcomes still unverified, as " + str(source) + " left the list. Restate the list in "
+                     "your result's unverified: drop an entry due: " + stage + " that you observed here (name the "
+                     "observation in summary), move the due_stage of one you could not observe to a later stage, and "
+                     "copy every other entry unchanged; [] when none stays open:")
+        lines.extend(_unverified_row(row) for row in entries or ())
     return lines
 
 
@@ -9118,7 +9125,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_producer_bounds(current_stage(state), submitted)
             _check_submitted_concerns(state, current_stage(state), submitted)
             _check_submitted_layers(state, current_stage(state), submitted)
-            _check_submitted_unverified(current_stage(state), submitted)
+            _check_submitted_unverified(state, current_stage(state), submitted)
             _check_submitted_primary(root, state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_focused_ids_new(state, current_stage(state), submitted)

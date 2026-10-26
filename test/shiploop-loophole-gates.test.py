@@ -112,6 +112,11 @@ DODGES = [
      "product-acceptance", PRIMARY_RUN, lambda block: {**block, "unverified": [PRIMARY_ROW]},
      "a primary requirement (spec primary), and its lower_layer_check names no test",
      lambda block: dict(ADD_TEST, evidence_refs=block["evidence_refs"])),   # the named exit: add the missing test
+    ("an unverified outcome settled in prose with the list left out", "hello's release-verify on 2.13.2 (E2E trio)",
+     "release-verify", {"product-acceptance": {"unverified": [dict(contract.UNVERIFIED_ENTRY, due_stage="release-verify")]}},
+     lambda block: {key: value for key, value in block.items() if key != "unverified"},
+     "a done release-verify result restates unverified",
+     lambda block: {**block, "unverified": []}),    # the named exit: drop the entry it observed; [] once none is open
 ]
 
 # improve-commit dodges (F5): (label, where it was seen, the files the fix touches, the message, refusal fragment, the

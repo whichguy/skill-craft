@@ -1371,7 +1371,8 @@ class StepSizingRouteTests(RealCliCase):
 
 
 class UnverifiedRouteTests(RealCliCase):
-    """What the run leaves unverified is listed once, at product-acceptance, and reaches the stage that reports it."""
+    """What the run leaves unverified is listed at product-acceptance and reaches the stage that reports it, which
+    restates the list (E2E release-gate trio on 2.13.2, 2026-10-26: hello's release-verify settled R-1 in prose only)."""
 
     FIELDS = ("outcome", "requirement", "reason", "lower_layer_check", "settle", "owner", "due_stage")
 
@@ -1396,15 +1397,18 @@ class UnverifiedRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["unverified"], [UNVERIFIED_ENTRY, UNVERIFIED_EARLY])
 
-    def test_the_stage_an_entry_is_due_at_prints_it_and_the_handoff_prints_every_entry(self) -> None:
+    def test_the_stage_an_entry_is_due_at_prints_the_list_and_the_handoff_prints_every_entry(self) -> None:
         listed = {"product-acceptance": {"unverified": [UNVERIFIED_ENTRY, UNVERIFIED_EARLY]}}
         _, head = self.at("release-plan", **listed)
         self.assertNotIn(UNVERIFIED_EARLY["outcome"], self.full_packet(head))  # not due yet
         _, head = self.at("release-check", **listed)
         due = self.full_packet(head)
-        for field in self.FIELDS:
-            self.assertIn(UNVERIFIED_EARLY[field], due)
-        self.assertNotIn(UNVERIFIED_ENTRY["outcome"], due)  # that one is due at the handoff, not here
+        for entry in (UNVERIFIED_EARLY, UNVERIFIED_ENTRY):  # the whole list, which the result restates
+            for field in self.FIELDS:
+                self.assertIn(entry[field], due)
+        self.assertIn("Restate the list in your result's unverified: drop an entry due: release-check", due)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        self.assertEqual(template["unverified"], [UNVERIFIED_ENTRY, UNVERIFIED_EARLY])
         _, head = self.at("handoff", **listed)
         handoff = self.full_packet(head)
         for entry in (UNVERIFIED_ENTRY, UNVERIFIED_EARLY):
@@ -1420,14 +1424,68 @@ class UnverifiedRouteTests(RealCliCase):
     def test_the_handoff_tells_none_listed_from_no_list_recorded_and_scopes_both_to_product_acceptance(self) -> None:
         _, head = self.at("handoff", **{"product-acceptance": {"unverified": []}})
         none_listed = self.full_packet(head)
-        self.assertIn("Product-acceptance listed no unverified request outcome", none_listed)
+        self.assertIn("No request outcome stays unverified (product-acceptance's accepted result, field unverified): "
+                      "restate it as [].", none_listed)
         _, head = self.at("handoff")  # product-acceptance accepted without the field, as a run saved before it was
         not_recorded = self.full_packet(head)
         self.assertIn("No unverified list is recorded for product-acceptance (unmeasured, not zero)", not_recorded)
-        self.assertNotIn("listed no unverified", not_recorded)
+        self.assertNotIn("No request outcome stays unverified", not_recorded)
         for packet in (none_listed, not_recorded):
             # An empty or absent list says nothing about the open items another stage recorded in its own result.
             self.assertIn("another stage recorded", packet)
+
+    def test_a_due_stage_restates_the_list_and_each_refusal_names_its_way_out(self) -> None:
+        listed = {"product-acceptance": {"unverified": [UNVERIFIED_ENTRY, UNVERIFIED_EARLY]}}
+        moved = dict(UNVERIFIED_EARLY, due_stage="release-verify")
+        for route, restated in (("settled here", [UNVERIFIED_ENTRY]), ("moved later", [UNVERIFIED_ENTRY, moved])):
+            with self.subTest(route):
+                run, head = self.new_run("release-check", results=listed)
+                command, path, action = printed_callback(head)
+                good = self.fill_done(head)
+                for label, block, fragment in (
+                        ("left out", {k: v for k, v in good.items() if k != "unverified"},
+                         "a done release-check result restates unverified, the list product-acceptance left"),
+                        ("an entry due later dropped", dict(good, unverified=[UNVERIFIED_EARLY]),
+                         "unverified drops R-1 (the exported file opens in the customer's reader, due at handoff)"),
+                        ("the due entry kept as it was", dict(good, unverified=[UNVERIFIED_ENTRY, UNVERIFIED_EARLY]),
+                         "due at release-check, the stage now ending"),
+                        ("the due entry moved earlier", dict(good, unverified=[UNVERIFIED_ENTRY, dict(
+                            UNVERIFIED_EARLY, due_stage="release-plan")]), "is not a later stage; use one of release,")):
+                    write_block(path, block)
+                    self.assertIn(fragment, self.refused(command, run), label)
+                write_block(path, dict(good, unverified=restated))
+                RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
+                self.assertEqual(self.recorded(run, action)["unverified"], restated)
+                self.assertEqual(nav.unverified.current_list(self.state(run))[1:], ("release-check", restated))
+
+    def test_a_restatement_reaches_the_handoff_and_the_report_names_what_it_settled(self) -> None:
+        restated = {"product-acceptance": {"unverified": [UNVERIFIED_ENTRY, UNVERIFIED_EARLY]},
+                    "release-check": {"unverified": [UNVERIFIED_ENTRY]}}
+        run, head = self.new_run("handoff", results=restated)
+        handoff = self.full_packet(head)
+        self.assertIn("The request outcomes still unverified, as release-check left the list", handoff)
+        self.assertIn(UNVERIFIED_ENTRY["outcome"], handoff)
+        self.assertNotIn(UNVERIFIED_EARLY["outcome"], handoff)
+        report = self.cli("report", "--run-dir", str(run)).stdout
+        self.assertIn("Settled after product-acceptance (release-check restated the list without them): R-1 "
+                      + UNVERIFIED_EARLY["outcome"], report)
+        self.assertIn("by the time release-check recorded the list", report)
+        # A later stage that restates on its own is held to the same carry rule: it cannot drop a later entry.
+        run, head = self.new_run("release-plan", results={"product-acceptance": {"unverified": [UNVERIFIED_ENTRY]}})
+        command, path, _ = printed_callback(head)
+        self.assertNotIn("Restate the list", self.full_packet(head))  # nothing is due at release-plan
+        write_block(path, dict(self.fill_done(head), unverified=[]))
+        self.assertIn("unverified drops R-1", self.refused(command, run))
+
+    def test_an_entry_due_at_a_stage_that_never_ran_is_carried_to_the_handoff(self) -> None:
+        # A stage the item left out never restates, so its entry reaches the handoff overdue; the handoff carries it.
+        overdue = dict(UNVERIFIED_EARLY, due_stage="operations")
+        state = {"history": [{"stage": "product-acceptance", "outcome": "done", "action": "a1"}],
+                 "accepted": {"a1": {"unverified": [overdue]}}}
+        self.assertTrue(nav.unverified.must_restate(state, "handoff"))
+        nav.unverified.check_restated(state, "handoff", {"outcome": "done", "unverified": [overdue]})
+        with self.assertRaisesRegex(nav.unverified.UnverifiedError, "unverified drops R-1 .*due at operations"):
+            nav.unverified.check_restated(state, "handoff", {"outcome": "done", "unverified": []})
 
     def test_the_report_lists_the_outcomes_and_tells_none_listed_from_not_recorded(self) -> None:
         import html
@@ -1471,7 +1529,8 @@ class UnverifiedRouteTests(RealCliCase):
 
     def test_unverified_is_refused_off_its_stage_and_on_a_result_that_is_not_done(self) -> None:
         state = nav.new_state(str(self.repo), "Off-stage fixture.")
-        with self.assertRaisesRegex(nav.NavigatorError, "allowed only on a done product-acceptance result"):
+        with self.assertRaisesRegex(nav.NavigatorError, "allowed only on a done result of product-acceptance or a "
+                                                         "later stage"):
             nav.apply(state, nav.current_action(state)["id"], {**DONE, "unverified": []})
         run, _ = self.new_run("product-acceptance")
         state = self.state(run)
