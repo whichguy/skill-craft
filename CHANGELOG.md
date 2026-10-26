@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.13.2
+
+- Skills: shiploop-e2e-audit 0.7.9
+
+### shiploop-e2e-audit 0.7.9
+
+- The host trace fixtures are re-pinned to the Grok adapter that knows `trace`; all five golden attribution expectations
+  replay unchanged (`check_suite.py --suite mock` passes again).
+
 ### skill-craft 2.13.1
 
 - Skills: shiploop 1.13.1, shiploop-e2e-audit 0.7.8
