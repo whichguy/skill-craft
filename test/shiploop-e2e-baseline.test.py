@@ -2233,6 +2233,17 @@ class ScorecardTest(unittest.TestCase):
         self.assertEqual(floor({"entries": 0, "owners": [], "not_restated": 0, "not_restated_due": []}), "pass")
         self.assertEqual(floor({"entries": 1, "owners": ["release-verify"]}), "fail", "a reading from before 2026-10-26 is unchanged")
 
+    def test_calls_before_grounding_sum_the_fresh_starts_and_are_null_when_one_is_unmeasured(self):
+        def efficiency(starts):
+            run_dir = self.run_folder(f"day/grounding-{len(starts)}-{bool(starts and 'calls_before_grounding' in starts[-1])}",
+                                      {"case": "hello", "pass": True}, tmp_writes=[])
+            (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": [], "fresh_starts": [{"reorientation": r} for r in starts]}))
+            return scorecard.score(run_dir)["efficiency"]
+        two = [{"measured": True, "seconds": 600.0, "calls_before_grounding": 2}, {"measured": True, "seconds": 120.0, "calls_before_grounding": 0}]
+        found = efficiency(two)
+        self.assertEqual((found["reorientation_minutes"], found["fresh_starts"], found["calls_before_grounding"]), (12.0, 2, 2))
+        self.assertIsNone(efficiency(two[:1] + [{"measured": True, "seconds": 60.0}])["calls_before_grounding"], "one unmeasured: unknown, not 2")
+
     def test_a_host_build_that_changed_mid_run_voids_attribution_and_timing(self):
         # inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 between two chess runs alone blocked the deploy.
         launches = [{"host": "grok", "host_build": "grok 1.0.62 (aaa)"}, {"host": "grok", "host_build": "grok 1.0.70 (bbb)"}]
