@@ -15,7 +15,8 @@ model is JSON:
                "cells": [{"slots": [{"state": "pass" | "below" | "running" | "pending" | "error",
                                      "label": "3", "tip": "3 steps"}],
                           "summary": "mean 0.25", "verdict": "supports" | "contradicts" | "<other text>"}]}],
-     "legend": {"pass": "scored 1", "below": "scored below 1", "note": "number = steps planned"}}
+     "legend": {"pass": "scored 1", "below": "scored below 1", "note": "number = steps planned"},
+     "links": [{"label": "Run Review", "href": "/path/review-export/run-review.html"}]}
 
 Every key but `rows` is optional; a cell needs `slots`. An `error` slot is drawn as an error, never as a pass, and an
 unknown slot state as pending. `render(model)` returns the fragment; nothing is read or written besides the model.
@@ -131,6 +132,10 @@ def render(model: dict) -> str:
                  f'<span class="s lg"><i class="o"></i>{_esc(legend["below"])}</span>'
                  f'<span class="s lg"><i class="r" style="animation:none"></i>{_esc(legend["running"])}</span>'
                  f'<span class="s lg"><i class="p"></i>{_esc(legend["pending"])}</span>{note}</div>')
+    if model.get("links"):
+        parts.append('<div class="ft" style="justify-content:flex-start;flex-wrap:wrap;gap:14px">'
+                     + "".join(f'<span>{_esc(link.get("label"))}: {_esc(link.get("href"))}</span>'
+                               for link in model["links"]) + "</div>")
     return "".join(parts)
 
 
@@ -351,6 +356,12 @@ def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
     model = {"plan": plan, "progress": progress, "columns": ["stages"], "rows": rows,
              "legend": {"pass": "done (a number: times run)", "running": "current (I: Improve review)",
                         "pending": "not yet run", "note": "a finished part shows only the stages it ran"}}
+    # The run's own pages, run level first (E2E, 2026-10-26): Run Review answers how the run went, the flow viewer
+    # what the model saw and did at each action.
+    links = [{"label": label, "href": str(path)} for label, path in (
+        ("Run Review", folder / "review-export" / "run-review.html"), ("flow", folder / "flow.html")) if path.exists()]
+    if links:
+        model["links"] = links
     return model, {"title": "E2E " + folder.name, "subtitle": str(round(minutes)) + " min · "
                    + ("refusals not read" if refusals is None else str(refusals) + " refusals") + " · "
                    + str(restarts) + " host restarts", "status": status, "events": events, "eta_at": eta}

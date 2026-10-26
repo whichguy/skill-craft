@@ -149,6 +149,9 @@ class Builders(unittest.TestCase):
         (folder / "events.jsonl").write_text('{"text": "ShipLoop navigator: refused"}\n{"text": "fine"}\n'
                                              '{"text": "ShipLoop navigator: refused again"}\n', encoding="utf-8")
         (folder / "resume-1.txt").write_text("", encoding="utf-8")
+        (folder / "flow.html").write_text("<html></html>", encoding="utf-8")
+        (folder / "review-export").mkdir()
+        (folder / "review-export" / "run-review.html").write_text("<html></html>", encoding="utf-8")
         return folder
 
     def test_an_e2e_run_draws_stages_by_item_with_the_current_one_and_its_improve_review(self):
@@ -165,6 +168,10 @@ class Builders(unittest.TestCase):
         self.assertEqual([step["state"] for step in model["plan"]],
                          ["done", "done", "running", "pending", "pending"])
         self.assertIn("2 refusals · 1 host restarts", meta["subtitle"])
+        # The run-level page first, the per-action flow viewer beside it; both reach the inline card.
+        self.assertEqual([link["label"] for link in model["links"]], ["Run Review", "flow"])
+        self.assertIn("Run Review: " + str(self.base / "chess-sf-full-abc123" / "review-export" / "run-review.html"),
+                      status_card.render(model))
         self.assertEqual((meta["status"], meta["events"][0]["text"]), ("running", "done: step-plan (W2)"))
 
     def test_the_job_document_carries_the_live_card_keys_and_the_cli_prints_each_view(self):
