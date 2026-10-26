@@ -93,16 +93,20 @@ instead; the transition then starts the child.
 After each review pass, write `reviews/review-<n>.md` (front matter `classification`, `exit`,
 `continuation`; the lines `Read:`, `Found:`, `Changed:`, `Checked:`, `Class:`; a `## Handoff` section) and
 run `improve-pass --action <improve id>`. In this order it refuses until the improve skill's call is
-recorded (where the hooks enforce it), refuses a review missing its form, commits the pass's uncommitted
+recorded (where the hooks enforce it), refuses a review missing its form, refuses a non-trivial pass after
+three passes that each changed 1-10 lines unless its review has the line `Later-stage defect: <stage>:
+<what would fail there without this change>` (the reviewed stage or a later one; otherwise classify the
+pass trivial, which ends the review), commits the pass's uncommitted
 edits with `commit-message.md` (the `improve-commit` rules below; `--no-commit` carries a user's
 instruction not to commit), writes `checks.md` itself when neither the tree nor the reviewed result changed
 since the bind (keeping a `checks.md` the review wrote), refuses a `checks.md` older than the review's last
 edit of the tree or of its result otherwise, then writes `report-<n>.json` and `pass-<n>.json` (with the
-tree's and the result's fingerprints, `changed`, `result_changed` and `edited`) and prints the runtime's
+tree's and the result's fingerprints, `changed`, `result_changed`, `edited` and `lines`, the pass's size:
+lines removed plus added in the tree and in the result, unknown when either is) and prints the runtime's
 `done` for the pass (literal, with the report as standard input) and the stage's `complete`. It runs
 neither. The reviewed result is `RUN/inbox/<action>-final-result.md` once written, else `RUN/inbox/<action>.md`,
 which lies outside the tree. At import `complete` writes `RUN/improve/<reviewed action>/passes.md`: one row
-per pass (stage, pass, label, tree changed, result changed, edited, seconds, skill call recorded).
+per pass (stage, pass, label, tree changed, result changed, edited, lines, seconds, skill call recorded).
 When the hooks enforce the call and the loop ended without one, `complete` refuses and names
 `improve-start --restart-stopped`: a call after the loop ended would review nothing.
 

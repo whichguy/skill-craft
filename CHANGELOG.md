@@ -4,6 +4,24 @@ Written by scripts/release.py.
 
 ## 2026-10-26
 
+### skill-craft 2.15.0
+
+- Skills: shiploop 1.14.0
+
+### shiploop 1.14.0
+
+- Improve reviews converge. Each pass records its size, `lines` (lines removed plus added in the tree and in the reviewed
+  result), in `pass-<n>.json`, in `passes.md` and in the pass's printed facts. After three passes that each changed 1-10
+  lines, `improve-pass` prints the trend. A further pass is recorded as non-trivial only when its review has the line
+  `Later-stage defect: <stage>: <what would fail there without this change>`, naming the reviewed stage or a later one.
+  Otherwise the pass is classified trivial, which ends the review. A pass of unknown size never starts the trend.
+- Later stages restate the unverified list. The handoff, and any stage an `unverified` entry is due at, print the
+  current list, pre-fill it in the result template, and must return it in their own `unverified`: drop an entry due there
+  that the stage observed, move one it could not observe to a later stage, and copy every other entry unchanged (`[]` once
+  none stays open). ShipLoop refuses a restatement that is missing, drops an entry due later, or keeps an entry due at the
+  stage now ending. The report shows the latest list and what later stages settled. Before this, a settled outcome lived
+  only in prose, so a reader could not tell "settled" from "not restated".
+
 ### skill-craft 2.14.0
 
 - Skills: shiploop-run-review 0.4.0

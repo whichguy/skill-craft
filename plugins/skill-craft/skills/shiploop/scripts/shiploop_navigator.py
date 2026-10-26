@@ -1210,8 +1210,9 @@ def _canonical_result(
     if "unverified" in value:
         # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
         # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
-        _need(stage in unverified.STAGES and outcome == "done",
-              "unverified is allowed only on a done " + ", ".join(sorted(unverified.STAGES)) + " result")
+        _need((stage in unverified.STAGES or stage in unverified.due_stages()) and outcome == "done",
+              "unverified is allowed only on a done result of " + ", ".join(sorted(unverified.STAGES))
+              + " or a later stage that restates it")
         try:
             result["unverified"] = unverified.canonical(value["unverified"])
         except unverified.UnverifiedError as exc:
@@ -3339,14 +3340,16 @@ def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, r
         raise NavigatorError(str(exc)) from exc
 
 
-def _check_submitted_unverified(stage: str, result: Any) -> None:
-    """Refuse a submitted done product-acceptance result without a usable unverified list.
+def _check_submitted_unverified(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a submitted done product-acceptance result without a usable unverified list, and a done result at a
+    later stage that must restate the list (the handoff, a stage an entry is due at) but does not carry it forward.
 
     CLI gates only, like the assumption list: the pure graph functions check the shape when the field is
     present and do not require it, so simulations and saved runs are unaffected.
     """
     try:
         unverified.check_submitted(stage, result)
+        unverified.check_restated(state, stage, result)
     except unverified.UnverifiedError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -4813,6 +4816,9 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         ]
     if stage in unverified.STAGES:
         result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
+    elif unverified.must_restate(state, stage):
+        # The current list, to carry forward: drop what this stage observed, move what it could not, keep the rest.
+        result["unverified"] = [dict(row) for row in unverified.current_list(state)[2] or ()]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -6766,9 +6772,9 @@ def _unverified_row(row: Mapping[str, Any]) -> str:
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """What the run left unverified, printed from state by the stages that account for it or report it.
 
-    Product-acceptance and the handoff print the plan's assumptions still recorded open; the stage an entry is due
-    at prints that entry; the handoff prints the whole list.  Nothing is recalled by the model, and no Improve
-    stage's packet carries it.
+    Product-acceptance and the handoff print the plan's assumptions still recorded open; the handoff and the stage an
+    entry is due at print the current list (``unverified.current_list``), which their result restates.  Nothing is
+    recalled by the model, and no Improve stage's packet carries it.
     """
     if state["status"] != "active" or state.get("active_improve"):
         return []
@@ -6782,25 +6788,26 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                          + _bounded_packet_text(str(row["assumption"])) + " | to settle: "
                          + _bounded_packet_text(str(row["settle"])) for row in still_open)
     if stage == "handoff":
-        action, entries = unverified.accepted_list(state)
+        _action, source, entries = unverified.current_list(state)
         if entries:
-            lines.append("Product-acceptance listed these request outcomes as unverified (ShipLoop's report lists "
-                         "them too):")
+            lines.append("The request outcomes still unverified, as " + str(source) + " left the list (ShipLoop's "
+                         "report lists them too). Restate the list in your result's unverified: drop one you observed "
+                         "here (name the observation in summary) and copy every other one unchanged:")
             lines.extend(_unverified_row(row) for row in entries)
         elif entries is None:
             lines.append("No unverified list is recorded for product-acceptance (unmeasured, not zero).")
         else:
-            lines.append("Product-acceptance listed no unverified request outcome (its accepted result, field "
-                         "unverified).")
-        lines.append("That is product-acceptance's list only: open items another stage recorded are in that "
-                     "stage's own result; read them before stating the limits.")
-    elif stage in unverified.due_stages():
-        due = unverified.due_entries(state, stage)
-        if due:
-            lines.append("Request outcomes product-acceptance listed as unverified and due at " + stage + " (observe "
-                         "each here if this stage can and say so in the result; otherwise it stays listed for the "
-                         "handoff):")
-            lines.extend(_unverified_row(row) for row in due)
+            lines.append("No request outcome stays unverified (" + str(source) + "'s accepted result, field "
+                         "unverified): restate it as [].")
+        lines.append("That is the request-outcome list only: open items another stage recorded are in that stage's "
+                     "own result; read them before stating the limits.")
+    elif stage in unverified.due_stages() and unverified.must_restate(state, stage):
+        _action, source, entries = unverified.current_list(state)
+        lines.append("Request outcomes still unverified, as " + str(source) + " left the list. Restate the list in "
+                     "your result's unverified: drop an entry due: " + stage + " that you observed here (name the "
+                     "observation in summary), move the due_stage of one you could not observe to a later stage, and "
+                     "copy every other entry unchanged; [] when none stays open:")
+        lines.extend(_unverified_row(row) for row in entries or ())
     return lines
 
 
@@ -8454,6 +8461,14 @@ REVIEW_FORM = ("front matter between two `---` lines with `classification:` triv
                "`Read:`, `Found:`, `Changed:`, `Checked:` and `Class:` (what this pass read, found, changed, ran and why "
                "its classification); then a `## Handoff` section (the compact handoff a fresh context continues from)")
 PASSES_FILE = "passes.md"
+# The convergence gate (a Haiku 5.5 live run, 2026-10-25: one spec review ran 12 passes whose edits shrank to 1-4 lines,
+# each labelled non-trivial; its journal row is in docs/shiploop-run5-followups-journal-2026-10-25.md).  After
+# SMALL_PASS_RUN passes that each changed 1..SMALL_PASS_LINES lines, a non-trivial pass names the later-stage defect
+# its change prevents, or is classified trivial and ends the review.
+SMALL_PASS_LINES = 10
+SMALL_PASS_RUN = 3
+LATER_DEFECT_LINE = "Later-stage defect: <stage>: <what would fail there without this change>"
+_LATER_DEFECT = re.compile(r"(?m)^\W*Later-stage defect\W*:\s*([a-z-]+)\s*:\s*(\S.*)$")
 _LABEL_LINE = re.compile(r"^(?:#{1,6}\s+)?\**(" + "|".join(REVIEW_LABELS) + r")\**\s*:?\**\s*(.*)$")
 
 
@@ -8511,6 +8526,45 @@ def _producer_checks(root: Path, action_id: str) -> str:
             + ("" if isinstance(record, Mapping) and record.get("passed") else ", not passed") + ")")
 
 
+def _small_pass_trend(reviews: Path, number: int) -> list[int] | None:
+    """The lines each of the ``SMALL_PASS_RUN`` passes before pass ``number`` changed, when every one changed
+    1..``SMALL_PASS_LINES``; None otherwise, or when one is unmeasured (a run recorded before passes had a size)."""
+    sizes = []
+    for earlier in range(number - SMALL_PASS_RUN, number):
+        try:
+            facts = json.loads((reviews / ("pass-" + str(earlier) + ".json")).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        lines = facts.get("lines") if isinstance(facts, dict) else None
+        if earlier < 1 or not isinstance(lines, int) or not 1 <= lines <= SMALL_PASS_LINES:
+            return None
+        sizes.append(lines)
+    return sizes
+
+
+def _trend_text(number: int, sizes: list[int]) -> str:
+    return ("passes " + str(number - len(sizes)) + "-" + str(number - 1) + " each changed only a few lines ("
+            + ", ".join(str(size) for size in sizes) + "; small is 1-" + str(SMALL_PASS_LINES) + ")")
+
+
+def _small_pass_refusal(number: int, sizes: list[int], reviewed: str, review: Path, command: str) -> str:
+    """The convergence gate's refusal of non-trivial pass ``number`` after the small passes ``sizes``: both exits."""
+    return ("This review's " + _trend_text(number, sizes) + ", so pass " + str(number) + " is recorded as non-trivial "
+            "only when it names what would fail later without its change: add the line `" + LATER_DEFECT_LINE + "` to "
+            + str(review) + " (the stage is " + reviewed + " or a later one), or classify the pass trivial, which ends "
+            "this review. Then run: " + command)
+
+
+def _later_stage_defect(text: str, reviewed: str) -> str | None:
+    """The stage a ``Later-stage defect:`` line names, when it is ``reviewed`` or a stage after it."""
+    for match in _LATER_DEFECT.finditer(text):
+        named = match.group(1)
+        if (named in stage_spec.STAGES and reviewed in stage_spec.STAGES
+                and stage_spec.STAGES.index(named) >= stage_spec.STAGES.index(reviewed)):
+            return named
+    return None
+
+
 def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
     """improve-pass: check one review pass, commit its edits, write its evidence, print the runtime's done (IMP-2/5/8).
 
@@ -8559,6 +8613,9 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
                 if not re.search(r"(?m)^\W*" + ident + r"\s*:\s*\S", text)]
     _need(not missing, "Complete " + str(review) + " (missing or invalid: " + ", ".join(missing) + "), then run: "
           + command_again + "\nIts form: " + REVIEW_FORM + ".")
+    trend = _small_pass_trend(reviews, number)
+    _need(not trend or front["classification"] != "non-trivial" or _later_stage_defect(text, child["stage"]),
+          _small_pass_refusal(number, trend or [], child["stage"], review, command_again))
     repo = Path(state["repo"])
     changes = improve_changes.review_changes(root, repo, child["action_id"])
     committed = ""
@@ -8631,6 +8688,19 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     # Edited: either changed; unknown only when neither side was measured.
     edited = (True if pass_changed or result_changed else
               None if pass_changed is None and result_changed is None else False)
+    # The pass's size in lines, tree plus result; unknown when either side is (the convergence gate then never fires).
+    text_now = improve_changes.result_text(root, child["action_id"])
+    try:
+        text_before = (reviews / ("result-" + str(number - 1) + ".json") if number > 1
+                       else root / improve_changes.bind_result_path(child["action_id"])).read_text(encoding="utf-8")
+    except OSError:
+        text_before = None
+    tree_lines = 0 if pass_changed is False else improve_changes.changed_lines(repo, before, tree)
+    result_size = (0 if result_changed is False or (text_now is None and result_now is None)
+                   else improve_changes.result_lines(text_before, text_now))
+    lines = None if tree_lines is None or result_size is None else tree_lines + result_size
+    if text_now is not None:
+        store.atomic_write_text(reviews / ("result-" + str(number) + ".json"), text_now)
     skill_fact = ("recorded " + str(call.get("at", "")) if call is not None else "not enforced (" + str(why) + ")")
     facts = ("ShipLoop facts: files changed since the bind: " + (", ".join(changed) if changed else
                                                                  "none" if changed == [] else "not measured")
@@ -8638,6 +8708,7 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
              + ("; not committed on the instruction: " + no_commit if no_commit else "")
              + "; result " + ("changed since the bind" if result_edited else "unchanged since the bind"
                               if result_edited is False else "not measured")
+             + "; this pass changed " + ("an unmeasured number of" if lines is None else str(lines)) + " lines"
              + "; checks.md " + checks_fact + "; improve skill call " + skill_fact + ".")
     report = {field: front[key] for key, field, _allowed in REVIEW_FRONT}
     report["evidence"] = (review.name + ": " + "; ".join(label + ": " + labels[label] for label in REVIEW_LABELS)
@@ -8647,11 +8718,16 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     store.atomic_write_text(report_path, json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
         "pass": number, "label": front["classification"], "tree": tree, "changed": pass_changed,
-        "result": result_now, "result_changed": result_changed, "edited": edited, "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
+        "result": result_now, "result_changed": result_changed, "edited": edited, "lines": lines,
+        "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
         "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, indent=1) + "\n")
     inline = delegation(state) == guidance.INLINE
+    upcoming = _small_pass_trend(reviews, number + 1)
     print("\n".join([
         "Pass " + str(number) + " of the " + child["stage"] + " review is recorded. " + facts,
+        *(["This review's " + _trend_text(number + 1, upcoming) + ". A further pass is recorded as non-trivial only "
+           "with the line `" + LATER_DEFECT_LINE + "` in its review; otherwise classify it trivial, which ends this "
+           "review."] if upcoming else []),
         "Run the Until Loop runtime's done for this pass exactly as printed (its report is " + str(report_path)
         + ", composed from " + review.name + "):",
         shlex.join([str(part) for part in packet["done_argv"]]) + " < " + shlex.quote(str(report_path)),
@@ -8690,8 +8766,8 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
     rows = ["# Improve passes: the " + child["stage"] + " result (" + child["action_id"] + ")", "",
             *([shadow, ""] if shadow else []),
             "Edited is tree changed or result changed: a step plan's or test spec's result lies outside the tree.",
-            "| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+            "| stage | pass | label | tree changed | result changed | edited | lines | seconds | skill call recorded |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for number, path in found:
         try:
             facts = json.loads((reviews / ("pass-" + str(number) + ".json")).read_text(encoding="utf-8"))
@@ -8705,6 +8781,7 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
             child["stage"], str(number), front.get("classification") or "not recorded",
             *("not measured" if facts.get(key) is None else "y" if facts[key] else "n"
               for key in ("changed", "result_changed", "edited")),
+            "not measured" if facts.get("lines") is None else str(facts["lines"]),
             "not measured" if previous is None else str(round(stamp - previous)),
             call or ("not enforced" if not_enforced is not None else "y")]) + " |")
         previous = stamp
@@ -9118,7 +9195,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_producer_bounds(current_stage(state), submitted)
             _check_submitted_concerns(state, current_stage(state), submitted)
             _check_submitted_layers(state, current_stage(state), submitted)
-            _check_submitted_unverified(current_stage(state), submitted)
+            _check_submitted_unverified(state, current_stage(state), submitted)
             _check_submitted_primary(root, state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_focused_ids_new(state, current_stage(state), submitted)
