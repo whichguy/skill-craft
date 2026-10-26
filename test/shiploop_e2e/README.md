@@ -1105,7 +1105,7 @@ dropped; the earlier output is never changed). It asks whether ShipLoop builds
 on what the first run decided. Its checks are the followed case's checks
 (regression), its own feature checks, and retention checks that see the earlier
 checkout as `$PRIOR_WORK`: every earlier file still exists, no dependency was
-added, the passing test count grew, and the living spec keeps every earlier
+added, no fewer tests pass and the added test lines name the feature's new fields (not a count that must grow: assertions folded into existing tests are building on them), and the living spec keeps every earlier
 requirement ID and adds at least one. The report compares turns and cost with
 the earlier run, and the reviewer judges whether the earlier spec, environment
 notes and modules were used.
