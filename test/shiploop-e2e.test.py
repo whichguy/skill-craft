@@ -2215,27 +2215,80 @@ class H(BaseHTTPRequestHandler):
             return self.send({"result": "miss", "gameOver": False})
         if MODE == "bad-result":
             return self.send({"result": "splash", "gameOver": False})
-        if g["over"]:
+        if g["over"] and MODE != "over-after-two-sunk":
             return self.send({"result": "miss", "gameOver": MODE != "restarts"})
         ship = next((s for s in FLEET if cell in s), None)
         result = "miss"
         if ship:
+            first = not any(c in g["hit"] for c in ship)
             g["hit"].add(cell)
-            result = "sunk" if all(c in g["hit"] for c in ship) else "hit"
-        g["over"] = all(c in g["hit"] for s in FLEET for c in s)
+            whole = all(c in g["hit"] for c in ship)
+            result = ("sunk" if first else "hit") if MODE == "sunk-first-hit" else "hit" if MODE == "never-sunk" else (
+                "sunk" if whole else "hit")
+        sunk = sum(all(c in g["hit"] for c in s) for s in FLEET)
+        g["over"] = (sunk >= 1 if MODE == "over-after-first-sink" else sunk >= 2 if MODE == "over-after-two-sunk"
+                     else all(c in g["hit"] for s in FLEET for c in s))
         self.send({"result": result, "gameOver": g["over"]})
 HTTPServer(("127.0.0.1", int(os.environ["PORT"])), H).serve_forever()
 '''
 
 
-class BattleshipGameCheckTest(unittest.TestCase):
-    """checks/battleship_game.py, the Battleship case's game check (2026-10-24 runner review, E2): it must reject the audit's
-    server with no fleet and the three stubs of the 2026-10-04 review, and accept a game that plays. The eleven saved real
-    deliveries it accepted are listed in docs/experiments/e2e-runner-review-20261024/e2b-game-check.json."""
+# Independently written correct games for the oracle's calibration (build step 5): another id key, the standard five-ship
+# fleet placed at random per game, extra fields in every reply, and a server that refuses shots after the end (allowed).
+BATTLESHIP_ALT = r'''
+import json, os, random, sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+MODE = sys.argv[1]
+SIZES = {"carrier": 5, "battleship": 4, "cruiser": 3, "submarine": 3, "destroyer": 2}
+def place():
+    taken, fleet = set(), {}
+    for name, size in SIZES.items():
+        while True:
+            across = random.random() < 0.5
+            r, c = random.randrange(10 if across else 11 - size), random.randrange(11 - size if across else 10)
+            cells = [(r, c + i) if across else (r + i, c) for i in range(size)]
+            if not taken & set(cells):
+                taken |= set(cells); fleet[name] = cells; break
+    return fleet
+games = {}
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def send(self, body, code=200):
+        data = json.dumps(body).encode()
+        self.send_response(code); self.send_header("content-type", "application/json"); self.end_headers(); self.wfile.write(data)
+    def do_GET(self):
+        gid = "x%d" % len(games)
+        games[gid] = {"fleet": place(), "hit": set(), "shots": 0, "over": False}
+        self.send({"gameId": gid, "size": 10})
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["content-length"])))
+        g = games[body["game"]]
+        if g["over"]:
+            return self.send({"error": "the game is over"}, 400) if MODE == "refuses-after-end" else self.send(
+                {"result": "miss", "gameOver": True, "shots": g["shots"]})
+        g["shots"] += 1
+        cell = (body["row"], body["col"])
+        name = next((n for n, cells in g["fleet"].items() if cell in cells), None)
+        reply = {"result": "miss", "shots": g["shots"]}
+        if name:
+            g["hit"].add(cell)
+            sunk = all(c in g["hit"] for c in g["fleet"][name])
+            reply.update(result="sunk" if sunk else "hit", **({"ship": name} if sunk else {}))
+        g["over"] = all(c in g["hit"] for cells in g["fleet"].values() for c in cells)
+        self.send({**reply, "gameOver": g["over"]})
+HTTPServer(("127.0.0.1", int(os.environ["PORT"])), H).serve_forever()
+'''
 
-    def verdict(self, mode: str) -> tuple[int, str]:
+
+class BattleshipGameCheckTest(unittest.TestCase):
+    """checks/battleship_game.py, the Battleship case's game check (2026-10-24 runner review, E2; calibrated 2026-10-26, build
+    step 5). It must reject the audit's server with no fleet, the three stubs of the 2026-10-04 review and each targeted
+    defect of the prompt's sentences, and accept a game that plays and the independently written games of BATTLESHIP_ALT.
+    The fifteen saved real deliveries it accepts are in docs/experiments/e2e-oracle-calibration-20261026/."""
+
+    def verdict(self, mode: str, stub: str = BATTLESHIP_STUB) -> tuple[int, str]:
         with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / "stub.py").write_text(BATTLESHIP_STUB)
+            (Path(tmp) / "stub.py").write_text(stub)
             done = subprocess.run([sys.executable, str(run.HERE / "checks" / "serve.py"), "--start",
                                    f"{shlex.quote(sys.executable)} stub.py {mode}", "--",
                                    sys.executable, str(run.HERE / "checks" / "battleship_game.py")],
@@ -2250,6 +2303,22 @@ class BattleshipGameCheckTest(unittest.TestCase):
                 self.assertEqual(returncode, code, output)
                 if code:
                     self.assertIn("FAIL:", output)
+
+    def test_each_targeted_defect_fails_and_each_independently_written_game_passes(self):
+        # Build step 5 (Astra): correct and alternative implementations pass; each targeted broken variant fails.
+        for mode, code, reason in (("sunk-first-hit", 5, "a hit: the game ends when the last ship sinks"),
+                                   ("never-sunk", 5, "a hit: the game ends when the last ship sinks"),
+                                   ("over-after-first-sink", 5, "after 1 sunk ship(s)"),
+                                   # The gap the calibration found: the check only knew "more than one ship".
+                                   ("over-after-two-sunk", 8, "a ship was still afloat when the game ended")):
+            with self.subTest(defect=mode):
+                returncode, output = self.verdict(mode)
+                self.assertEqual(returncode, code, output)
+                self.assertIn(reason, output)
+        for mode in ("answers-after-end", "refuses-after-end"):
+            with self.subTest(alternative=mode):
+                returncode, output = self.verdict(mode, BATTLESHIP_ALT)
+                self.assertEqual(returncode, 0, output)
 
     def test_the_case_runs_it_through_serve_py_in_place_of_the_sweep_that_passed_the_audit_server(self):
         cases = json.loads(run.CASES.read_text())
