@@ -26,6 +26,10 @@ PILOT = ROOT / "test" / "experiments" / "shiploop_chain" / "native_pilot.py"
 ASK_AGENT = ROOT / "skills" / "ask-agent" / "SKILL.md"
 DISPATCHER_V3 = ROOT / "skills" / "plan-dispatcher" / "SKILL.md"
 DEFAULT_DISPATCHER = DISPATCHER_V3
+# Wall-clock safety nets, not what a test asserts: under run-all.sh --jobs 8 one `finish` call took over 45 s and B's
+# 20-second hold ran out before C launched (2026-10-26). A call returns when it is done, and B's hold ends at C's launch.
+CALL_TIMEOUT_SECONDS = 180
+HOLD_TIMEOUT_SECONDS = 120
 
 
 def skill_card_version(card: Path) -> str:
@@ -79,7 +83,8 @@ class NativePilotTests(unittest.TestCase):
 
     def call(self, *args: str, ok: bool = True) -> dict:
         completed = subprocess.run(
-            [self.python_executable, "-B", str(PILOT), *args], text=True, capture_output=True, timeout=45,
+            [self.python_executable, "-B", str(PILOT), *args], text=True, capture_output=True,
+            timeout=CALL_TIMEOUT_SECONDS,
         )
         if not ok:
             self.assertNotEqual(completed.returncode, 0, completed.stdout)
@@ -466,7 +471,7 @@ class NativePilotTests(unittest.TestCase):
         self.assertEqual((self.pilot_dir / "events.jsonl").read_bytes(), events)
 
     def test_c_launch_releases_held_b_after_bridge_receipt_and_replays_safely(self) -> None:
-        self.prepare(hold_step="B", hold_timeout_seconds=20)
+        self.prepare(hold_step="B", hold_timeout_seconds=HOLD_TIMEOUT_SECONDS)
         attempts = self.claim("A", "B")
         started_a = self.start("A", attempts["A"])
         started_b = self.start("B", attempts["B"])

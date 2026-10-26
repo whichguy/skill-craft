@@ -312,7 +312,50 @@ topped up; its failed samples must first be moved aside (`queue` skips a sample 
 
 | ID | Finding | Status | Evidence |
 | --- | --- | --- | --- |
-| F37 | A Grok balance that runs out first shows as turns Grok "cancelled", then as HTTP 402 on every call; the harness saw a failed process, not a template result. A slice whose host failed must be rerun, not scored as not delivered. | firm | stderr.txt and events.jsonl of the six R3 slices |
-| F38 | `experiments-shiploop-chain-native-pilot` timed out under `--jobs 8` (a 45-second subprocess limit, a 20-second hold) and passed alone (11 OK). Timing-sensitive suites need their own slot in a parallel run. | firm (one failing parallel run, one passing serial run) | quick run on the merge; serial rerun |
+| F37 | A Grok balance that runs out first shows as turns Grok "cancelled", then as HTTP 402 on every call; the harness saw a failed process, not a template result. A slice whose host failed must be rerun, not scored as not delivered. | firm; fixed for HTTP 401/402/403 in entry 9 (2026-10-26) | stderr.txt and events.jsonl of the six R3 slices |
+| F38 | `experiments-shiploop-chain-native-pilot` timed out under `--jobs 8` (a 45-second subprocess limit, a 20-second hold) and passed alone (11 OK). Timing-sensitive suites need their own slot in a parallel run (superseded 2026-10-26, entry 9: the limits were safety nets, so they were raised instead). | firm (one failing parallel run, one passing serial run) | quick run on the merge; serial rerun |
 
 **Next.** Top up the Grok balance (owner), then rerun R3 on K2. Meanwhile the merged rig lands on main.
+
+## 9. 2026-10-26: fixes from R3 and the merge (harness only, no Grok run)
+
+**Question.** The same instruction's second half: plan and implement fixes from what R3 and the merge taught, then
+keep testing. Three fixes, each with a test that fails without it.
+
+**Fixes.**
+- **Main CI was red on the merge** (`33dec1f9`, run 40340118933): two ProgressCard tests raised AttributeError,
+  because Linux's `os.stat` has no `st_birthtime` and `progress_card.sample_state` read it for a running sample.
+  The card now dates a sample from the `started` its command.json records (`experiment.run` writes it at each
+  launch), else the birth time, else the last change. Commit `6b6ce383`; main CI passed on it (run 40342755667).
+  The local checks missed it because macOS has the field: a test now runs the card with a stat that has none.
+- **A host refusal is a host failure, not a score (F37).** `experiment.host_failure` reads a slice's stderr.txt for
+  HTTP 401, 402 or 403 (in Grok's "API error (status 402 …)" message or an error's `http_status` field). It never
+  applies to a slice that passed, since a host that ran out after delivering did deliver. Such a sample is not
+  `finished`. `score` records it with no value and its reason (`possible_verdicts` reads a missing value as an open
+  sample, not a fixed one). `run` stops at it. `queue` starts no more samples once one is refused: R3 had run six
+  slices into the 402. The next `run` or `queue` moves the slice to `slice.host-failed-<time>`, drops its stale
+  score.json and runs it again. The card shows it as an error slot. On R3's folders it marks T 1, T 3 and Cg 1 to 3.
+  It does not mark T 2, whose six sessions ended in Grok's "cancelled" (several causes, `metrics.session_stop`), so
+  T 2 still has to be moved aside by hand before the rerun.
+- **The pilot suite's wall-clock limits (F38)** were budgets for a few subprocess calls, not what its tests assert:
+  `CALL_TIMEOUT_SECONDS` 180 (was 45) and B's hold `HOLD_TIMEOUT_SECONDS` 120 (was 20). A passing call returns as
+  soon as it is done, and the hold ends at C's launch, so a passing run costs nothing more. It took 168 s alone
+  while another suite ran beside it (72.5 s recorded). The journal's earlier "own slot" idea is not needed.
+
+**Tests.** Three in `RoundSpeedups` fail on main's `experiment.py` (1 error, 2 failures) and pass with the fix:
+`test_a_slice_the_host_refused_is_a_host_failure_never_a_score`, the R3 T 1 stderr verbatim, plus a passing slice, a
+429, a product's 404 and no stderr, none of which count;
+`test_run_moves_a_refused_slice_aside_reruns_it_and_stops_at_a_new_refusal`;
+`test_the_queue_starts_no_more_samples_after_a_host_refusal` (one job: T 1 and Cg 1 ran, then "6 samples not
+started"). There is also a card test. `shiploop-e2e-experiments` now has 58 tests. Of 7 runs of the suite, 6 were OK.
+One, run beside another Python process, ended "FAILED (errors=1)" without its traceback kept, and it did not recur in
+4 reruns. It is unexplained and noted here as exploratory.
+
+**R3 rerun.** The plan's command wrote `--timeout 10800` in two words, which `experiment.py` refuses; it now reads
+`--timeout=10800`. R3's arms are pinned to 9ed4ec24, so it runs from the frozen worktree at `da86f8a0` with this fix
+cherry-picked onto a local branch there (old-shape fixtures, new host check).
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F39 | A macOS-only stat field passed every local check and failed Linux CI: local runs cannot prove a platform-portable harness, CI can. | firm | run 40340118933, `6b6ce383` |
+| F40 | Reading the host's own refusal (HTTP 401/402/403) separates "the host could not run" from "the arm did not deliver" without guessing; Grok's "cancelled" stays ambiguous. | firm (5 of 6 R3 slices marked; T 2 not) | R3 folders; the three RoundSpeedups tests |
