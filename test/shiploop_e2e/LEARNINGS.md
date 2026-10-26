@@ -3208,3 +3208,22 @@ saved real deliveries, each served with its own `node server.js`.
 shown. Passing real deliveries only shows that a check doesn't reject good work. It takes targeted defects to show it
 rejects bad work. The next oracles to calibrate are csv-report and seat-reservations, which have no held-out oracle
 (R7's missing items).
+
+## Deferred acceptance items: open, settled, or not restated (2026-10-26) — status: firm for the reader; the ShipLoop side is inner-loop's (d84d30a9, unreleased)
+
+**Question.** The Grok gate's three runs each failed fidelity on one deferred item. hello's release-verify had settled
+its item but restated no list. Can the reader tell settled, open and unknown apart?
+
+**Agreed with inner-loop.**
+- The latest accepted `unverified` list governs, and an entry is identified by (requirement, outcome).
+- An entry still on that list is open: fail. That includes one due at a stage that never ran, carried to the handoff.
+- An entry whose due stage was accepted later without a restatement is unknown: unobserved, never a pass.
+- An entry a restatement drops is settled.
+
+inner-loop's ShipLoop side refuses a due stage, or the handoff, that does not restate. After that lands, "not
+restated" should appear only in old runs.
+
+**Result** (`docs/experiments/e2e-unverified-reader-20261026/grok-gate-2132-reread.jsonl`): all three gate runs read
+unobserved, where they used to read fail. hello's false fail is gone. The Battleship runs' open page click is now
+unknown, which is honest: it was open only in prose. It will read as open data once ShipLoop restates. The card is
+`scorecard/5`.
