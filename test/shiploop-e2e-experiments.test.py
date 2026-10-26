@@ -577,6 +577,10 @@ class RoundSpeedups(unittest.TestCase):
                 argv = experiment.slice_argv(exp, exp["arms"]["Cg"], self.tmp / "slice", "grok", None)
                 self.assertNotIn("--stop-after", argv)
                 self.assertEqual(argv[argv.index("--seed-at") + 1], "step-plan")
+                missing = [a["ref"] for a in exp["arms"].values() if subprocess.run(
+                    ["git", "-C", str(ROOT), "rev-parse", "--verify", "-q", a["ref"] + "^{commit}"], capture_output=True).returncode]
+                if missing:  # verify builds each arm's ref; a clone without it (CI's) cannot
+                    self.skipTest(f"{missing[0]} is not in this clone")
                 rows = experiment.verify(exp_id)
                 self.assertTrue(rows and all(r["ok"] for r in rows), rows)
         shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "grok", None)
