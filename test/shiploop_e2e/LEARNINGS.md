@@ -3288,3 +3288,24 @@ and find the row by hand. Can each visit link straight to its action, and `flow.
 The saved run itself was not rewritten. Tests: `FlowLinkTests` in `test/shiploop-run-review.test.py`, and
 `FlowTests.test_the_viewer_opens_an_action_by_its_nav_id_and_links_back_to_the_runs_review_page` in
 `test/shiploop-e2e-slice.test.py`, which runs the viewer's script in node.
+
+## Release full tiers failed on a pinned ref the shallow checkout lacks (2026-10-26) — status: firm
+
+**Symptom.** Main's CI failed on both release commits of the day: skill-craft 2.14.0 (run 40347599478) and 2.15.0 (run
+40350502942). Each failed one suite, `shiploop-e2e-experiments`: the E6D-K2/K4 check ended with
+`unknown git ref '9ed4ec24'`. Every ordinary push before them passed.
+
+**Cause.**
+- The check calls `experiment.verify`, which builds each arm's pinned ref.
+- `9ed4ec24` is in main's history, but CI's checks job uses `fetch-depth: 1` on the full tier and `0` on the quick tier.
+- So only a full tier, which runs for release commits, lacks the ref. The check had come in with the E6 merge, and
+  2.14.0 was the first full tier after it.
+
+**Fix.** The check now skips per subtest with "<ref> is not in this clone", as the suite's two other ref-bound checks
+do (26351fb9).
+- In a depth-1 clone both subtests skip and the suite passes; in a full clone the check still runs and passes.
+- A dispatched full tier on 26351fb9 (run 40351300276) is green.
+
+**Lesson.** A test that builds a pinned commit has to tolerate a shallow clone. The quick tier can't show this,
+because it fetches the whole history. Only a full tier can, so a new ref-bound check needs a dispatched full run
+(`gh workflow run ci.yml -f tier=full`) before it can be called CI-safe.
