@@ -760,7 +760,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         if stage == "test-strategy" and result.get("outcome") == "done":
             for key, value in inner_fixture.fixture_test_layers().items():    # run-5 batch F1, F3
                 result.setdefault(key, value)
-        if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
+        if stage in ("product-acceptance", "handoff") and result.get("outcome") == "done" and "unverified" not in result:
+            # Product-acceptance lists none, so the handoff restates that empty list (restate-unverified, 2026-10-26).
             result["unverified"] = []
         if stage in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(state)

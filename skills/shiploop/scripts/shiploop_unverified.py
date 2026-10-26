@@ -128,9 +128,11 @@ def check_restated(state: Mapping[str, Any], stage: str, result: Any) -> None:
     _action, source, entries = current_list(state)
     entries = entries or []
     later = due_stages(stage) or (stage,)
-    how = ("drop an entry due at " + stage + " that this stage observed (name the observation in summary), move the "
-           "due_stage of one it could not observe to " + " or ".join(later) + ", and copy every other entry unchanged; "
-           "[] when none stays open")
+    # The handoff is the last stage: nothing moves later, so what it could not observe stays listed as it is.
+    move = ("" if stage == "handoff" else
+            "move the due_stage of one it could not observe to " + " or ".join(later) + ", ")
+    how = ("drop an entry due at " + stage + " that this stage observed (name the observation in summary), " + move
+           + "and copy every other entry unchanged; [] when none stays open")
     _need("unverified" in result, f"a done {stage} result restates unverified, the list {source} left: {how}")
     restated = result["unverified"]
     _need(isinstance(restated, list), "unverified must be a list: " + how)
