@@ -119,12 +119,14 @@ class TraceWriterTests(CliRun):
         # The 2026-10-25 E2E run recorded `workspace start` twice, as init and as workspace, both creating the run.
         repo, root = self.base / "source", self.base / "workspace"
         repo.mkdir()
+        # No system or global Git config: a host's own filters (CI runners configure git-lfs) make workspace start refuse.
+        env = {**ENV, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
         for argv in (["init", "-q", "-b", "main"], ["-c", "user.name=T", "-c", "user.email=t@example.invalid",
                                                      "commit", "-q", "--allow-empty", "-m", "baseline"]):
-            subprocess.run(["git", "-C", str(repo), *argv], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(repo), *argv], check=True, capture_output=True, env=env)
         start = ["workspace", "start", "--repo", str(repo), "--workspace-root", str(root), "--prompt", "Add a greeting."]
         for _ in range(2):                                # the second is an identical re-entry: it runs next
-            result = subprocess.run([sys.executable, "-B", str(CLI), *start], env=ENV, text=True, capture_output=True,
+            result = subprocess.run([sys.executable, "-B", str(CLI), *start], env=env, text=True, capture_output=True,
                                     timeout=60)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = [row for row in events(root / "run") if row["kind"] == "command"]
