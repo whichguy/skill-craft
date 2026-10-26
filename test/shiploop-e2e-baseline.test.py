@@ -34,6 +34,7 @@ import hosts  # noqa: E402
 import metrics  # noqa: E402
 import progress  # noqa: E402
 import run  # noqa: E402
+import delivery  # noqa: E402
 import scorecard  # noqa: E402
 import promotion  # noqa: E402
 
@@ -2118,7 +2119,7 @@ class ScorecardTest(unittest.TestCase):
         for name, (accuracy, fidelity, minutes, cost, turns, refusals, planning, reorientation) in self.WANT.items():
             card = cards[name]
             with self.subTest(run=name):
-                self.assertEqual(card["scorecard"], "scorecard/3")
+                self.assertEqual(card["scorecard"], "scorecard/4")
                 # Graded before build step 3: no grading digest, and the reason says so.
                 self.assertEqual({k: card["boundary"][k] for k in ("evaluator", "oracle", "case")},
                                  {"evaluator": None, "oracle": None, "case": None})
@@ -2179,6 +2180,46 @@ class ScorecardTest(unittest.TestCase):
         self.assertEqual((validity["work_tree_after"], validity["correctness"]["valid"]), ([" D page.html"], False))
         self.assertIn("changed after delivery", validity["correctness"]["why"][0])
 
+    def snapshot_run(self, name: str) -> tuple[Path, dict]:
+        """A run folder whose result.json carries the delivery snapshot run.py records (build step 4)."""
+        run_dir = self.run_folder(name, {"case": "battleship", "pass": True}, tmp_writes=[])
+        before = delivery.capture(run_dir / "work", run_dir)
+        result = json.loads((run_dir / "result.json").read_text())
+        result["delivery"] = {"before": before, "after": delivery.fingerprint(run_dir / "work")}
+        (run_dir / "result.json").write_text(json.dumps(result))
+        return run_dir, before
+
+    def test_an_archived_delivery_reproduces_grading_after_teardown(self):
+        # Build step 4's done signal (Astra): the bundle rebuilds the delivery, and the same check gives the same verdict.
+        run_dir, before = self.snapshot_run("day/snap")
+        check = "grep -qi battleship page.html"
+        live = run.run_checks(run_dir / "work", [check])[0]["pass"]
+        shutil.rmtree(run_dir / "work")  # torn down
+        card = scorecard.score(run_dir)
+        self.assertTrue(card["validity"]["correctness"]["valid"], "graded from the records, not null: " + str(card["validity"]))
+        self.assertIsNone(card["validity"]["delivery_snapshot"]["after_run"], "work/ is gone, so nothing later is read")
+        restored = delivery.restore(run_dir, self.tmp / "restored", before["head"])
+        self.assertEqual(run.run_checks(restored, [check])[0]["pass"], live)
+        self.assertEqual(delivery.fingerprint(restored)["tree"], before["tree"])
+
+    def test_a_later_committed_alteration_and_a_checks_deletion_are_detected(self):
+        # Build step 4's done signal (Astra): a later committed alteration is detected.
+        run_dir, _ = self.snapshot_run("day/later")
+        work = run_dir / "work"
+        (work / "page.html").write_text("<title>Something else</title>\n")
+        subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qam", "later"],
+                       check=True)
+        correctness = scorecard.score(run_dir)["validity"]["correctness"]
+        self.assertFalse(correctness["valid"])
+        self.assertIn("the delivered tree changed after the run: HEAD moved", correctness["why"][0])
+        during, _ = self.snapshot_run("day/during")
+        result = json.loads((during / "result.json").read_text())
+        result["delivery"]["after"] = {**result["delivery"]["before"], "status": [" D page.html"]}  # what E4's check did
+        (during / "result.json").write_text(json.dumps(result))
+        correctness = scorecard.score(during)["validity"]["correctness"]
+        self.assertFalse(correctness["valid"])
+        self.assertIn("the checks changed the delivered tree: the work tree changed:  D page.html", correctness["why"][0])
+
     def test_a_host_build_that_changed_mid_run_voids_attribution_and_timing(self):
         # inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 between two chess runs alone blocked the deploy.
         launches = [{"host": "grok", "host_build": "grok 1.0.62 (aaa)"}, {"host": "grok", "host_build": "grok 1.0.70 (bbb)"}]
@@ -2221,7 +2262,7 @@ class ScorecardTest(unittest.TestCase):
     def test_a_value_nothing_measured_is_null_or_unobserved_with_its_reason(self):
         run_dir = self.tmp / "bare"
         run_dir.mkdir()
-        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/3", "run": str(run_dir), "observed": False,
+        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/4", "run": str(run_dir), "observed": False,
                                                     "reason": "no readable result.json"})
         (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True}))
         card = scorecard.score(run_dir)
@@ -2241,7 +2282,7 @@ class ScorecardTest(unittest.TestCase):
         with contextlib.redirect_stdout(printed):
             self.assertEqual(scorecard.main([str(runs), "--json", "--out", str(self.tmp / "cards.json")]), 0)
         self.assertEqual(len(json.loads(printed.getvalue())["cards"]), 7)
-        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/3")
+        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/4")
         self.assertEqual({str(p): p.stat().st_mtime_ns for p in runs.rglob("*")}, before, "nothing in a run folder changed")
         inside = runs / "20261010" / "checkers-1" / "cards.json"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
@@ -2251,14 +2292,14 @@ class ScorecardTest(unittest.TestCase):
         text = io.StringIO()
         with contextlib.redirect_stdout(text):
             scorecard.main([str(runs)])
-        self.assertIn("scorecard/3: 7 run(s)", text.getvalue())
+        self.assertIn("scorecard/4: 7 run(s)", text.getvalue())
         self.assertIn("timing: resumed", text.getvalue())
 
 
 def card(case: str, *, passed: bool = True, fidelity: str = "pass", cost: float | None = 5.0, minutes: float = 20.0,
          correct: bool | None = True, timed: bool | None = True, evaluator: str | None = "e1", candidate: str = "p1") -> dict:
     """A scorecard/3 card with only what the promotion contract reads; each case has its own catalog entry, so its own digest."""
-    return {"scorecard": "scorecard/3", "observed": True, "case": case,
+    return {"scorecard": "scorecard/4", "observed": True, "case": case,
             "boundary": {"evaluator": evaluator, "oracle": "o1", "case": f"c-{case}", "candidate": candidate},
             "floors": {"accuracy": "pass" if passed else "fail", "enterprise": "not_applicable", "fidelity": fidelity},
             "validity": {"correctness": {"valid": correct}, "attribution": {"valid": True}, "timing": {"valid": timed}},

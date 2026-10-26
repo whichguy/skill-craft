@@ -3116,6 +3116,8 @@ evidence. All three share evaluator `476582a4f064` and oracle `85672ad0c249`. Ev
 - Proposed oracle change: require no fewer passing tests, plus the new behaviour asserted (by a held-out check, or by
   mutating the new fields). Under build step 3 an oracle change is an experiment of its own, so it is proposed, not
   made here.
+- *Fixed 2026-10-26* (owner go): the check now asks that no fewer tests pass and that the added test lines name shots
+  and hits. See the next entries.
 
 **Finding 2: every run fails fidelity on exactly one unverified entry, and the reader conflates two cases**
 (`unverified-at-release-verify.jsonl`). Product-acceptance defers one acceptance item:
@@ -3134,3 +3136,51 @@ stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). Me
 for the 7 fresh starts was 2, 1, 0, 0, 1, 0, 0: 4 calls in all. So re-orientation itself cost almost nothing, and the
 84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
 again. The 2.10.1 Sonnet run took 23.1 minutes for the same case.
+
+## The follow-on test retention check: kept and built on, not "the count grows" (2026-10-26) — status: firm
+
+**Question.** Does battleship-scoring's retention check read what S-11 asks? The Grok gate's delivery failed it with
+12 tests before and 12 after, although 41 added lines asserted the new fields.
+
+**Change.** The S-11 row was amended first (`912b3126`). The check, in `35aabeb7`:
+- no fewer tests pass than in the followed run;
+- the added test lines, read with `diff -rN` against the followed run's `test/`, name `shots` and `hits`.
+
+This is an oracle change, so under build step 3 it lands on its own, with no ShipLoop change.
+
+**Evidence** (`docs/experiments/e2e-retention-check-20261026/regrade-on-saved-deliveries.txt`):
+- Grok 2.13.2 now passes, 12 -> 12. The old check failed it.
+- Sonnet 2.10.1 passes as before, 20 -> 33.
+- `TestRetentionCheckTest` separates the cases: folded assertions and a new test file pass. These fail, each with its
+  reason: unchanged tests (also when the followed run already named the fields), fewer passing tests, and only one
+  field named.
+
+**Learning.** `node --test` counts a file with no `test()` as one passing test, so a "fewer" control needs real tests
+on both sides.
+
+**Not re-run.** The Grok run's recorded verdict stays FAIL. A harness regrade replays the checks recorded at launch.
+The new check's verdict on that delivery is in the evidence file, beside the record.
+
+## Build step 4: the delivery snapshot (2026-10-26) — status: firm for the mechanism and its tests; no live run yet
+
+**Question.** Can grading be reproduced after a run's `work/` is torn down, and can a later change to a delivery be
+seen? This is R6 of the final verdict and build step 4. The owner's go was "fix all these starting with 1".
+
+**Built.**
+- The SPEC clause comes first (`59d9c834`).
+- `delivery.py` records HEAD, tree and `git status` before the checks, with a git bundle, and the same fingerprint
+  after them. They are recorded as `result.json` `delivery`.
+- `scorecard/4` reads correctness from those records:
+  - the checks changed the tree;
+  - or a `work/` that still exists changed later.
+- A torn-down run is graded from its records instead of reading null.
+
+**Done signal** (`ScorecardTest`, `DeliverySnapshotRunTest`):
+- *An archived delivery reproduces grading after teardown.* After `work/` is removed, `delivery.restore` rebuilds the
+  same tree, and the same check gives the same verdict.
+- *A later committed alteration is detected.* A commit made after the run reads as "HEAD moved", and a check's
+  deletion reads as "the checks changed the delivered tree".
+
+**Not yet.** No live run has recorded a snapshot; the next E2E run on this harness is its first. Every run recorded
+before 2026-10-26 keeps the live reading, so the backfill cards are unchanged and the compact fixtures stay
+correctness-null. A fixture with a snapshot comes with the first live one.

@@ -26,11 +26,11 @@ fallen regression case (DROP); the budget (DROP); a capability gain (PROMOTE at 
 dearer beyond the tolerance and one cheaper beyond it is PROMOTE, one dearer beyond it is DROP, and otherwise the next
 metric is asked; none deciding is UNDECIDED.
 
-An attempt's quality is known only when its card's correctness is valid (``scorecard/3`` validity) and each required floor
+An attempt's quality is known only when its card's correctness is valid (``scorecard/4`` validity) and each required floor
 is ``pass`` or ``fail``: an ``unobserved`` or ``not_applicable`` required floor, or correctness that is false or not
 observed, leaves its case's quality unknown. So a run that overlapped others is still quality evidence, never speed
 evidence (SPEC "The promotion contract", build step 2). Every attempt of a case, in both arms, must carry the same
-``boundary`` digests (``scorecard/3``): a harness or oracle change is an experiment of its own (build step 3).
+``boundary`` digests (``scorecard/4``): a harness or oracle change is an experiment of its own (build step 3).
 """
 
 from __future__ import annotations

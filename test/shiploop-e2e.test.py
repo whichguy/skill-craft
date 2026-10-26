@@ -2068,6 +2068,55 @@ class CheckHygieneTest(unittest.TestCase):
             dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
+@unittest.skipUnless(shutil.which("node"), "the retention check runs the real `node --test`")
+class TestRetentionCheckTest(unittest.TestCase):
+    """battleship-scoring's test retention check (SPEC S-11 row, amended 2026-10-26): no fewer tests pass than in the followed
+    run, and the added test lines name the new shots and hits fields. A pass count that must grow failed the Grok gate's
+    delivery, which asserted the fields inside its 11 existing test() declarations."""
+
+    BASE = ("const test = require('node:test'); const assert = require('node:assert');\n"
+            "test('a shot reports its result', () => { assert.equal(1, 1); });\n")
+
+    @staticmethod
+    def check() -> str:
+        found = [c for c in json.loads(run.CASES.read_text())["battleship-scoring"]["retention"] if "count()" in c]
+        assert len(found) == 1, "the test retention check moved: update this test"
+        return found[0]
+
+    def verdict(self, work_tests: dict, prior_tests: dict | None = None) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            prior, work = Path(tmp) / "prior", Path(tmp) / "work"
+            for root, files in ((prior, prior_tests or {"rules.test.js": self.BASE}), (work, work_tests)):
+                (root / "test").mkdir(parents=True)
+                for name, text in files.items():
+                    (root / "test" / name).write_text(text)
+            return run.run_checks(work, [self.check()], timeout=120, env={"PRIOR_WORK": str(prior)})[0]
+
+    def test_assertions_folded_into_existing_tests_pass_and_so_does_a_new_test_file(self):
+        folded = self.BASE.replace("assert.equal(1, 1);", "assert.deepEqual({shots: 1, hits: 1}, {shots: 1, hits: 1});")
+        result = self.verdict({"rules.test.js": folded})
+        self.assertTrue(result["pass"], result["output"])
+        self.assertIn("tests 1 -> 1", result["output"])
+        new_file = "const test = require('node:test');\ntest('scoring', () => { const shots = 2, hits = 1; });\n"
+        result = self.verdict({"rules.test.js": self.BASE, "score.test.js": new_file})
+        self.assertTrue(result["pass"], result["output"])
+
+    def test_unchanged_fewer_or_unnamed_tests_fail_with_the_reason(self):
+        base_naming = {"rules.test.js": self.BASE.replace("a shot reports", "shots and hits report")}
+        for name, work, prior, reason in (
+                ("unchanged", {"rules.test.js": self.BASE}, None, "the test files are unchanged"),
+                ("unchanged, though the followed run already names the fields", base_naming, base_naming,
+                 "the test files are unchanged"),
+                # node --test counts a file with no test() as one passing test, so "fewer" needs two tests before and one after.
+                ("fewer", {"rules.test.js": self.BASE + "// shots hits\n"},
+                 {"rules.test.js": self.BASE + "test('a miss is a miss', () => {});\n"}, "fewer tests pass"),
+                ("only shots named", {"rules.test.js": self.BASE + "// shots\n"}, None, "no added test line names hits")):
+            with self.subTest(name):
+                result = self.verdict(work, prior)
+                self.assertFalse(result["pass"], result["output"])
+                self.assertIn(reason, result["output"])
+
+
 class CheckScratchFileTest(unittest.TestCase):
     """A case check writes nothing into the product's folder (2026-10-24 runner review, E4): the release-gate Battleship run
     failed because check 2 fetched the page to work/page.html and removed it, and that product commits a page.html its

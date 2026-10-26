@@ -1,0 +1,4 @@
+# The amended battleship-scoring test retention check, run on two saved real deliveries (2026-10-26)
+grok-2.13.2: exit 0 | tests 12 -> 12 no fewer tests pass, and the added test lines name shots and hits 
+sonnet-2.10.1: exit 0 | tests 20 -> 33 no fewer tests pass, and the added test lines name shots and hits 
+# The old check ('pass count grows') gave grok-2.13.2 FAIL (tests 12 -> 12) and sonnet-2.10.1 PASS (20 -> 33).
