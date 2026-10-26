@@ -9,6 +9,10 @@ import sys
 import tempfile
 import unittest
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 sys.path.insert(0, str(PACKAGE / "scripts"))

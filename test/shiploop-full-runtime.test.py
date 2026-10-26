@@ -27,6 +27,9 @@ import shiploop_inner_fixture as inner_fixture
 import shiploop_knowledge_support as knowledge_support
 from shiploop_packet_view import head_packet_path
 from shiploop_loop_support import finish_loop, with_receipt
+import state_home
+
+state_home.isolate()
 
 
 ROOT = Path(__file__).resolve().parents[1]

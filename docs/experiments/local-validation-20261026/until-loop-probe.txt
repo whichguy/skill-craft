@@ -1,0 +1,55 @@
+# Probe, 2026-10-26 07:3x: 42 suites that drive the Until Loop runtime, run by the unchanged runner with
+# XDG_STATE_HOME pointed at a sentinel and CLAUDE_CODE_SESSION_ID=leak-probe; 8 jobs; HEAD 7e9a59b6.
+# The sentinel is shared by all 42, so the one keepalive record names only its last writer.
+passed       29.2s backchain-chunks
+passed       52.0s test-groups
+passed        7.1s ci-policy
+passed       27.1s marketplace-package
+passed       74.2s installed-skill-invocation
+passed        0.2s skill-frontmatter
+passed       13.1s improve
+passed       11.4s improve-plugin
+passed       11.6s improve-agent
+passed        2.9s improve-runtime
+passed        2.2s improve-route
+passed        2.1s until-loop-vendor
+passed       34.6s shiploop-no-model-launch
+passed      264.6s shiploop-navigator-contract
+passed       17.7s shiploop-navigator-v4
+passed        5.2s shiploop-stopped-improve
+passed       11.7s shiploop-v4-consumers
+passed        5.3s shiploop-standalone-improve
+passed      474.1s shiploop-actual-improve-cli
+passed        2.9s shiploop-packet-bounds
+passed       34.2s shiploop-packet-completeness
+passed       28.6s shiploop-head-order
+passed       30.2s shiploop-guidance
+passed      168.7s shiploop-full-runtime
+passed      104.4s shiploop-navigator-dry-run
+passed       37.4s shiploop-status-display
+passed        3.5s shiploop-narrative
+passed        1.3s shiploop-stage-spec
+passed      263.2s shiploop-chain-async
+passed       65.0s shiploop-delegation
+passed       91.1s shiploop-improve-schedule
+passed      210.4s shiploop-lint
+passed       34.3s shiploop-quality
+passed       81.2s shiploop-loops
+passed      742.4s shiploop-test-loop
+passed        0.1s shiploop-store
+passed        1.4s shiploop-discovery
+passed        0.1s shiploop-privacy
+passed      168.6s shiploop-keepalive
+passed      112.7s shiploop-skill-calls
+passed        2.6s shiploop-planning-handoff
+passed       10.2s shiploop-mock-replay
+missing ids: []
+sentinel entries: [
+ "shiploop",
+ "shiploop/keepalive",
+ "shiploop/keepalive/health",
+ "shiploop/keepalive/health/claude-f057ce757c8bccb043c44d28b001071f.json",
+ "shiploop/keepalive/health/claude-f057ce757c8bccb043c44d28b001071f.json.lock"
+] 5
+exit 0
+real until-loop dir unchanged

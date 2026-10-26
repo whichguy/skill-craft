@@ -1,0 +1,1188 @@
+{
+ "what": "the full catalog under the widened state-home guard, before any suite fix (fail-first control)",
+ "source": {
+  "dirty_diff_sha256": "7fd0c131f68228e9d2a15cd562bffb48164a71249802ec79252d8e8c87f399aa",
+  "head": "7e9a59b658987566c0618be884e731d78f2d22e7",
+  "status": [
+   "M test/README.md",
+   " M test/run_suites.py",
+   " M test/test-groups.test.py"
+  ],
+  "tree": "2b1e3f61167c6ed07f81aa4c74b854bda9e3481d"
+ },
+ "jobs": 8,
+ "wall_seconds": 2249.104,
+ "host_markers": "run inside a live Claude Code session (CLAUDECODE, CLAUDE_CODE_SESSION_ID inherited)",
+ "summary": {
+  "suites": 156,
+  "passed": 131,
+  "left_state": 24
+ },
+ "suites": [
+  {
+   "id": "backchain-chunks",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 17.31,
+   "left_in_state_home": []
+  },
+  {
+   "id": "test-groups",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 19.764,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ci-policy",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 5.108,
+   "left_in_state_home": []
+  },
+  {
+   "id": "integration-boundaries",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 13.531,
+   "left_in_state_home": []
+  },
+  {
+   "id": "release-push",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 9.931,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ask-agent-workspace",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 222.321,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ask-agent-delivery",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 39.082,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ask-agent-managed-harness",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 190.168,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ask-agent-parallel",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 425.977,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ask-agent-current-workspace",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 6.622,
+   "left_in_state_home": []
+  },
+  {
+   "id": "ask-agent-task",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 68.018,
+   "left_in_state_home": []
+  },
+  {
+   "id": "in-parallel-queue-audit",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.33,
+   "left_in_state_home": []
+  },
+  {
+   "id": "in-parallel-queue",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 197.451,
+   "left_in_state_home": []
+  },
+  {
+   "id": "in-parallel-composition",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 58.637,
+   "left_in_state_home": []
+  },
+  {
+   "id": "agent-harness",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 221.879,
+   "left_in_state_home": []
+  },
+  {
+   "id": "agent-harness-delivery",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 28.01,
+   "left_in_state_home": []
+  },
+  {
+   "id": "agent-harness-boundaries",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 69.004,
+   "left_in_state_home": []
+  },
+  {
+   "id": "agent-harness-audit",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 9.922,
+   "left_in_state_home": []
+  },
+  {
+   "id": "skill-interop-hygiene",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.052,
+   "left_in_state_home": []
+  },
+  {
+   "id": "sync-plugin-views",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 115.764,
+   "left_in_state_home": []
+  },
+  {
+   "id": "release-flow",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 74.804,
+   "left_in_state_home": []
+  },
+  {
+   "id": "release-boundary",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 10.209,
+   "left_in_state_home": []
+  },
+  {
+   "id": "release-preflight",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 11.001,
+   "left_in_state_home": []
+  },
+  {
+   "id": "native-marketplace-adapters",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 67.862,
+   "left_in_state_home": []
+  },
+  {
+   "id": "marketplace-package",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 15.267,
+   "left_in_state_home": []
+  },
+  {
+   "id": "marketplace-host-isolation",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 12.828,
+   "left_in_state_home": []
+  },
+  {
+   "id": "installed-skill-invocation",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 36.636,
+   "left_in_state_home": []
+  },
+  {
+   "id": "prompt-marketplace-contract",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.085,
+   "left_in_state_home": []
+  },
+  {
+   "id": "skill-frontmatter",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.301,
+   "left_in_state_home": []
+  },
+  {
+   "id": "scaffold-skill",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.627,
+   "left_in_state_home": []
+  },
+  {
+   "id": "marketplace-run",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.703,
+   "left_in_state_home": []
+  },
+  {
+   "id": "install-targets",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 20.356,
+   "left_in_state_home": []
+  },
+  {
+   "id": "install-arbitrary-skill",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 11.226,
+   "left_in_state_home": []
+  },
+  {
+   "id": "install-status-uninstall",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 9.149,
+   "left_in_state_home": []
+  },
+  {
+   "id": "improve",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 8.336,
+   "left_in_state_home": []
+  },
+  {
+   "id": "improve-plugin",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 6.949,
+   "left_in_state_home": []
+  },
+  {
+   "id": "improve-agent",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 7.106,
+   "left_in_state_home": []
+  },
+  {
+   "id": "improve-runtime",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.188,
+   "left_in_state_home": []
+  },
+  {
+   "id": "improve-route",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.1,
+   "left_in_state_home": []
+  },
+  {
+   "id": "until-loop-vendor",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.002,
+   "left_in_state_home": []
+  },
+  {
+   "id": "review-coverage",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 13.302,
+   "left_in_state_home": []
+  },
+  {
+   "id": "rubric-eval",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.52,
+   "left_in_state_home": []
+  },
+  {
+   "id": "dual-body-guard",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 7.41,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-state",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 115.958,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-harness",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 14.014,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-cli",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 49.071,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-progress",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 7.54,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-planning-context",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 6.722,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-compound",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 31.366,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-decisions",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 57.287,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-exact-calls",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 13.013,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-scenarios",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 123.96,
+   "left_in_state_home": []
+  },
+  {
+   "id": "plan-dispatcher-mutants",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 812.181,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-no-model-launch",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 22.252,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-navigator-contract",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 188.131,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-navigator-v4",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 10.233,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-stopped-improve",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 3.152,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-v4-consumers",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 7.222,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-standalone-improve",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 3.614,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-actual-improve-cli",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 315.362,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-packet-bounds",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.458,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-packet-completeness",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 24.197,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-step-packets",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 4.583,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-packet-recut",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 9.07,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-head-order",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 20.499,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-reference",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.275,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-guidance",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 23.051,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-local-skills",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 4.474,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "experiments-shiploop-ui-allocation-evidence",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 7.079,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-full-runtime",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 105.892,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-navigator-dry-run",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 39.059,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-status-display",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 18.26,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-narrative",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 1.158,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-progress",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 19.808,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-progress-data",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.713,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-progress-render",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.077,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-stage-spec",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.797,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-send-back",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.582,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-rehydration",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 3.871,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-confirmation",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.63,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-auth-readiness",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 7.105,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-cross-run",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 13.023,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-workspace",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 447.237,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-return-review",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 227.331,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-chain-ledger",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.475,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-chain-git",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 274.825,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-chain",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 993.227,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-chain-handoff",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 4.995,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-chain-lifecycle",
+   "status": "timed_out",
+   "returncode": -15,
+   "seconds": 1800.011,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ],
+   "error": "timed out after 1800 seconds"
+  },
+  {
+   "id": "shiploop-chain-async",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 208.849,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-planning-context",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 3.831,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-chain-planning-context",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 535.141,
+   "left_in_state_home": []
+  },
+  {
+   "id": "experiments-shiploop-chain-trace",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 4.49,
+   "left_in_state_home": []
+  },
+  {
+   "id": "experiments-shiploop-chain-grok-trace",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.976,
+   "left_in_state_home": []
+  },
+  {
+   "id": "experiments-shiploop-chain-native-pilot",
+   "status": "failed",
+   "returncode": 1,
+   "seconds": 346.949,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-consumer-delivery",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 7.821,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-consumer-delivery-cli",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 8.152,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-delegation",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 81.89,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-improve-schedule",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 115.75,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-lint",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 193.903,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-quality",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 28.465,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-loops",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 80.287,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-test-loop",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 639.42,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-test-counts",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.485,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-backchain-check",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 33.57,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-improve-changes",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 4.548,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-knowledge",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 51.556,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-handoff",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 138.963,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-assumptions",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.885,
+   "left_in_state_home": []
+  },
+  {
+   "id": "experiments-shiploop-delivery-fake-deployment",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.093,
+   "left_in_state_home": []
+  },
+  {
+   "id": "experiments-shiploop-delivery-browser-consumer-serve-fixture",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.891,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-store",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.109,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-literal-transport",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 14.235,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-discovery",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.094,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-capability-fixture",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 66.354,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-capability-runtime",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 3.652,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-generalized-discovery",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 33.82,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-probe-decisions",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 4.247,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-capability-async",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.224,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-repeatable-experiments",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 19.347,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-privacy",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.065,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-reference-routing",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.232,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-domain-words",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.649,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-retired-terms",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.122,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-keepalive",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 91.805,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-skill-calls",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 60.944,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-trace",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 32.181,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-planning-handoff",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 1.907,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-package-integrity",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.672,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 224.681,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-e2e-runrecord",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.09,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-slice",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 157.167,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-e2e-fidelity",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 17.095,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-reorientation",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 12.221,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-environment",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 85.677,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-baseline",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 49.9,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-quality",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 66.92,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-packet-anatomy",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.876,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-render-diff",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 2.629,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-commit-counters",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 45.003,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-chess-salesforce",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 222.172,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-battleship-salesforce",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 73.201,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-release-slice",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 71.922,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-e2e-platform",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 146.655,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-sf-guard",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 35.724,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-status-card",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.116,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-efficiency",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 19.601,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-dodges",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.131,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-owner-page",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 3.12,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-packet-obligations",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 9.513,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-efficiency-journal",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 0.138,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-run-review",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 111.369,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-callback-contract",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 265.439,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-loophole-gates",
+   "status": "failed",
+   "returncode": 0,
+   "seconds": 32.48,
+   "left_in_state_home": [
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json",
+    "shiploop/keepalive/health/claude-85e56d0c3fbcbdead6de1da51d1480be.json.lock"
+   ]
+  },
+  {
+   "id": "shiploop-mock-replay",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 8.672,
+   "left_in_state_home": []
+  },
+  {
+   "id": "shiploop-e2e-apparatus",
+   "status": "passed",
+   "returncode": 0,
+   "seconds": 510.152,
+   "left_in_state_home": []
+  }
+ ]
+}

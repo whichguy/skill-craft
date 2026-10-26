@@ -1,6 +1,7 @@
 # Local validation journal
 
-Living record of the work that makes local test runs in this repository faster without weakening them. Each round
+Living record of the work that makes local test runs in this repository faster without weakening them, and keeps
+them out of the developer's own state (round 2). Each round
 states its question, the cases, the conditions and the result. Each finding carries a status (firm, interim,
 exploratory or superseded) and cites its evidence. The runner is `test/run_suites.py` behind `test/run-all.sh`, the
 inventory and the selection rules are `test/suite_catalog.py`, and `test/test-groups.test.py` pins both.
@@ -138,3 +139,126 @@ Evidence in `docs/experiments/local-validation-20261025/`:
   passed: run 40237477513 took 1 min 23 s against 3 min 26 s serial. The full shards (`shiploop-1|2|3`, `core`) have
   not yet run in parallel anywhere, and the first release commit will be their first parallel run. If one is flaky
   under parallel load, `--jobs 1` in `ci.yml` restores the serial run.
+
+## Round 2 (2026-10-26): a private state home per suite, and the suites that wrote the developer's state
+
+**Why.** On 2026-10-26 a SessionStart hook showed a real session "saved work". It was an active depth-2 Until Loop
+stack in the owner's `~/.local/state/until-loop`. Its frames held placeholder values: work "w", request "q", scope "s",
+and workspaces in test temp directories.
+
+**Questions.** Which test wrote that stack, and does any current suite still write the developer's state? How can a
+hermetic suite be made to fail when it does?
+
+**Attribution (firm).** The file is `innerloop-session-0eba9f4e….json`. Its lock was created at 08:01 on 2026-10-18,
+and the JSON was last written at 08:03. Until Loop names the file after the SHA-256 of the host session identity.
+Hashing the session IDs of the local Claude Code transcripts matched exactly one session, `8acf399b…`. That session
+had merged origin/main's Until Loop 0.10.0 runtime into the integration worktree (fe02651e). At 08:01:37 it ran
+`until-loop-vendor` and six other suites directly, as `python3 -B test/<name>`, and at 08:02:55 it started a subagent
+that ran them again. The branch's `test/until-loop-vendor.test.py` still had
+`LeanReturnTests.test_a_run_without_a_receipt_prints_the_full_packet`. That test ran the CLI `start` with the
+placeholder contract and none of `--isolated`, `--directory` or `--receipt`. Under 0.10.0 such a call is an
+automatic session start: the stack is keyed to the inherited `CLAUDE_CODE_SESSION_ID` and written under
+`${XDG_STATE_HOME:-~/.local/state}/until-loop`. The test's `done` then failed against the new two-pass rule, so the
+frame stayed active, and the two runs pushed one frame each. 29407b46 deleted `LeanReturnTests` 30 minutes later.
+`until-loop-vendor` on main calls the in-process `start()`, which writes an isolated temp file.
+
+**Probe of the Until Loop suites** (unchanged runner and suites; 8 jobs). The probe ran 42 suites: quick's selection
+for the runtime's three scripts, plus 11 more that name the runtime. Each ran with `XDG_STATE_HOME` set to one shared
+sentinel and `CLAUDE_CODE_SESSION_ID=leak-probe`. All 42 passed, none wrote Until Loop state, and the real directory
+was unchanged. The sentinel did hold a ShipLoop keepalive health record, and its `run_dir` named
+`shiploop-full-runtime`. Every suite writes the same key, so that record shows only the last writer.
+
+**The keepalive leak.** `shiploop_keepalive.health_notice` writes `home()/health/<host>-<sha256(session)[:32]>.json`
+whenever a packet prints with `CLAUDECODE` and `CLAUDE_CODE_SESSION_ID` (or the Grok pair) in the environment.
+`home()` is `SHIPLOOP_KEEPALIVE_HOME`, else `$XDG_STATE_HOME/shiploop/keepalive`. A suite run inside a session
+inherits both markers, so its record lands in the developer's state under the live session's key. CI has no markers
+and never writes one. The census of the owner's directory that day:
+
+- 32 of 170 health records named a test temp directory as their `run_dir`. The largest sources were
+  `shiploop-callback-contract` (7), `shiploop-lint` (6) and `shiploop-slice` (3).
+- No entry in `runs/`, `bindings/` or `decisions.log` named one.
+- Other live sessions were still adding records while this round ran: four between 08:07 and 08:34, keyed to
+  sessions other than this one.
+- Their temp prefixes were `shiploop-exp-`, `shiploop-callback-contract` and `shiploop-chain`. `shiploop-exp-` is
+  `shiploop-e2e-experiments`, a suite main added that day, after this round's first base (7e9a59b6).
+
+**Changes** (one commit; its message cites this round):
+
+- `run_suites.run_process` gives each suite a private `XDG_STATE_HOME`, a temporary directory removed afterwards. It
+  also drops `UNTIL_LOOP_STATE_DIR` and `SHIPLOOP_KEEPALIVE_HOME` from what the suite inherits. A suite that leaves
+  anything in that home fails, with an error that names the files and how to isolate them. The path is resolved: an
+  unresolved macOS temp path sits under the `/var` symlink, which Until Loop refuses as a state root. A leaking start
+  would then fail before writing anything, and the guard would never see it. The body that runs the process moved
+  unchanged into `_run_bounded`.
+- `test/state_home.py` `isolate()` gives the calling process a private `XDG_STATE_HOME`, removed at exit, and drops
+  the two overrides. The 27 suites below call it once at module level, so a direct run is isolated too. Every ShipLoop
+  suite builds its subprocess environment from `os.environ`, so one call reaches them all. Only
+  `shiploop-e2e-slice` (`GIT_ENV`) and `shiploop-e2e-run-trace` (`ENV`) copy the environment at module level, and
+  both copies come after the call.
+- `test/README.md` describes both.
+
+**Tests** (`test/test-groups.test.py`, `StateHomeGuardTest`, 3 tests):
+
+| Test | Shows |
+|---|---|
+| `test_a_suite_that_starts_a_session_without_its_own_state_root_fails_and_the_developers_stays_empty` | The real runtime's automatic session start, with the placeholder contract, fails the suite. The error names the stack, and stand-ins for the developer's `UNTIL_LOOP_STATE_DIR`, `SHIPLOOP_KEEPALIVE_HOME` and `XDG_STATE_HOME` stay empty. |
+| `test_keepalive_health_written_for_the_host_session_fails_the_suite` | The real `health_notice`, called under Claude Code markers, fails the suite and names the health record. |
+| `test_a_suite_that_gives_the_runtime_its_own_state_root_passes` | A suite that gives the runtime its own `XDG_STATE_HOME` passes, and its stack is in its own directory. |
+
+Fail-first: against origin/main's `run_suites.py`, all three fail. The leaking suites pass. The isolated suite's stack
+lands in the inherited `UNTIL_LOOP_STATE_DIR` instead of its own directory, because that override beats
+`XDG_STATE_HOME`.
+
+**The full catalog under the guard** (fail-first for the suites, before any suite fix; inside a live Claude Code
+session; `--jobs 8`; load average about 29 to 46 from other sessions; 2249 s wall):
+
+| Outcome | Suites |
+|---|---|
+| Passed | 131 |
+| Failed only on the guard (their own tests exited 0), each leaving `shiploop/keepalive/health/claude-<this session>.json` and its lock | 23 |
+| Timed out at 1800 s and left the same record (`shiploop-chain-lifecycle`) | 1 |
+| Failed its own 20 s hold under load (`experiments-shiploop-chain-native-pilot`; passes alone in 140 s under the new runner) | 1 |
+
+No suite left Until Loop state. `shiploop-full-runtime` passed here only because an earlier `setUp` form of the fix was
+already in place when it started; the probe is its evidence.
+
+**After the fix: direct runs.** The 25 suites ran 8 at a time, the way `python3 -B test/<name>.test.py` runs inside a
+live session: host markers inherited, and `XDG_STATE_HOME` pointed at a per-suite sentinel standing in for the
+developer's state. All 25 passed, and every sentinel was empty. `shiploop-chain-lifecycle` took 1324 s.
+
+**Quick group** after the fix, `--changed-from origin/main` (85 suites, `--jobs 8`): PASS, 85 of 85, in
+458.3 s wall. The real state counts (keepalive records naming a temp directory; Until Loop files) were the same before
+and after the run.
+
+**After the rebase onto 3e1ece77** (49 commits on main). The guarded runner ran 63 suites: quick for
+`--changed-from origin/main` (61) together with every suite main had changed since 7e9a59b6 (14). 61 passed. The two
+suites main had added, `shiploop-e2e-experiments` and `shiploop-e2e-run-trace`, failed only on the guard: each left a
+keepalive health record under this session's key. Both now call `isolate()`. Afterwards they pass as direct runs with
+empty sentinels and under the guarded runner. The real state counts did not change during the 63-suite run.
+
+Evidence in `docs/experiments/local-validation-20261026/`:
+
+- `until-loop-probe.txt`: the 42-suite probe.
+- `full-catalog-state-guard.json`: each suite's status, return code, time and the files it left, for the full run
+  before the fix.
+- `direct-runs-after-fix.txt`: the 25 direct runs, and the 2 after the rebase.
+
+**Findings**
+
+- F7 (firm): the 2026-10-18 stack came from `LeanReturnTests`'s CLI `start`, which 29407b46 deleted. No current suite
+  writes Until Loop state. Proof: the attribution above, the probe, and the full catalog.
+- F8 (firm): 27 ShipLoop suites wrote keepalive health records under the live session's key when run inside a
+  session: 25 at 7e9a59b6, and 2 that main added that day. `state_home.isolate()` stops that for direct runs. Proof:
+  `full-catalog-state-guard.json`, the post-rebase run, and `direct-runs-after-fix.txt`.
+- F9 (firm): `run-all.sh` gives each suite a private state home, and a suite that leaves anything there fails. Proof:
+  `StateHomeGuardTest`, which fails on origin/main's runner.
+- F10 (interim): the guard only fires where the leaking code path runs. Keepalive writes only under host session
+  markers, which CI lacks, so it catches keepalive leaks in local runs inside an agent session, not in CI. Until Loop
+  needs a session identity too, so CI would catch only a suite that sets its own `UNTIL_LOOP_SESSION_ID`.
+- F11 (firm, fixed on main): `experiments-shiploop-chain-native-pilot` failed its 20 s B hold in both loaded runs that
+  day (load average 29 to 46) and passed alone; it is independent of this round. Main's 2dbb8c4b, the same day, raised
+  the hold to 120 s and the call limit to 180 s, after the same failure under `--jobs 8` (its journal's F38). This
+  round was rebased onto that commit.
+- F12 (open): the leaked records in the owner's state are not removed by this round. They are 2 Until Loop files and
+  32 keepalive records with their locks, and the owner moves them to Trash. Sessions that run these suites from a
+  checkout without this commit keep adding records until they update.

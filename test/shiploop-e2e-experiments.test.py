@@ -18,6 +18,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 E2E = ROOT / "test" / "shiploop_e2e"
 sys.path.insert(0, str(E2E))

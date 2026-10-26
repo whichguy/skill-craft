@@ -21,6 +21,9 @@ from unittest.mock import patch
 
 from shiploop_chain_lifecycle_support import CHAIN_MODULES, PerStepChainFixture
 import shiploop_chain_support as fixture
+import state_home
+
+state_home.isolate()
 
 
 class PerStepChainTests(PerStepChainFixture):

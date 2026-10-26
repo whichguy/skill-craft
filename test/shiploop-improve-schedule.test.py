@@ -11,6 +11,10 @@ import tempfile
 import unittest
 from unittest import mock
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
 CLI = PACKAGE / "scripts/shiploop"

@@ -24,6 +24,10 @@ from pathlib import Path
 import sys
 import unittest
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 _SPEC = importlib.util.spec_from_file_location("shiploop_callback_contract",
                                                ROOT / "test" / "shiploop-callback-contract.test.py")

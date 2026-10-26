@@ -16,6 +16,10 @@ import sys
 import tempfile
 import unittest
 
+import state_home
+
+state_home.isolate()
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"

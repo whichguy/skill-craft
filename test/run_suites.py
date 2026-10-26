@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 from concurrent import futures
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import functools
 import hashlib
 import json
@@ -23,6 +23,7 @@ import shlex
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Callable, Iterable, Iterator, Sequence
 
@@ -255,6 +256,34 @@ def _terminate_process_group(process: subprocess.Popen[str]) -> str | None:
     return "; ".join(warnings) or None
 
 
+# Overrides that would send a suite's state to the developer's own directories, so a suite never inherits them.
+_STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME")
+
+
+def _state_home_error(state_home: Path) -> str | None:
+    """Name what a suite left in its private state home, if anything.
+
+    Run outside this runner, the same write lands in the developer's
+    ``~/.local/state``, keyed to their live session.  Until Loop keeps session
+    stacks there, and a SessionStart hook offers an active one to the next real
+    session as saved work: on 2026-10-18 a vendor test left a placeholder stack
+    in the owner's directory.  ShipLoop's keepalive keeps per-session health
+    records there: 32 of the owner's 170 named test temp directories on 2026-10-26.
+    """
+
+    written = sorted(path.relative_to(state_home).as_posix() for path in state_home.rglob("*")
+                     if not path.is_dir() or not any(path.iterdir()))
+    if not written:
+        return None
+    names = ", ".join(written[:6]) + (f" and {len(written) - 6} more" if len(written) > 6 else "")
+    return (f"the suite left state in its private XDG_STATE_HOME ({names}); outside run-all.sh that lands in the "
+            "developer's ~/.local/state. Give its processes their own XDG_STATE_HOME, as "
+            "git_fixture.isolate_git_environment does, or the store's own override (UNTIL_LOOP_STATE_DIR, "
+            "SHIPLOOP_KEEPALIVE_HOME), and leave out the host session markers that key the records "
+            "(CLAUDECODE, CLAUDE_CODE_SESSION_ID, GROK_AGENT, GROK_SESSION_ID). A private HOME alone is not "
+            "enough: XDG_STATE_HOME takes precedence over it")
+
+
 def run_process(
     argv: Sequence[str],
     *,
@@ -262,20 +291,43 @@ def run_process(
     timeout_seconds: float,
     on_start: Callable[[subprocess.Popen[str]], None] | None = None,
 ) -> ProcessOutcome:
-    """Run a fixed argv with a bounded lifetime and collected output.
+    """Run a fixed argv with a bounded lifetime, collected output and a private state home.
 
     ``on_start`` receives the process once it exists, so a parallel caller can
-    stop its group when the run is interrupted.
+    stop its group when the run is interrupted.  The process gets its own
+    ``XDG_STATE_HOME`` and none of ``_STATE_OVERRIDES``, so a suite that forgets
+    to isolate its state cannot write the developer's; one that leaves anything
+    in that home fails.
     """
 
+    # Resolved: macOS temporary paths sit under the /var symlink, which Until Loop refuses as a state root.
+    with tempfile.TemporaryDirectory(prefix="skill-craft-suite-state-", ignore_cleanup_errors=True) as name:
+        state_home = Path(name).resolve()
+        environment = {key: value for key, value in os.environ.items() if key not in _STATE_OVERRIDES}
+        # Ordinary hermetic fixtures must not leave per-run observers.
+        # Progress integration tests explicitly enable and stop their own.
+        environment.update({"SHIPLOOP_PROGRESS": "off", "XDG_STATE_HOME": str(state_home)})
+        outcome = _run_bounded(argv, cwd=cwd, timeout_seconds=timeout_seconds, on_start=on_start, env=environment)
+        error = _state_home_error(state_home)
+    if error is None:
+        return outcome
+    return replace(outcome, status="failed" if outcome.status == "passed" else outcome.status,
+                   error="; ".join(filter(None, (outcome.error, error))))
+
+
+def _run_bounded(
+    argv: Sequence[str],
+    *,
+    cwd: Path,
+    timeout_seconds: float,
+    on_start: Callable[[subprocess.Popen[str]], None] | None,
+    env: dict[str, str],
+) -> ProcessOutcome:
     started = time.monotonic()
     try:
         process = subprocess.Popen(
             list(argv), cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, errors="replace", start_new_session=True,
-            # Ordinary hermetic fixtures must not leave per-run observers.
-            # Progress integration tests explicitly enable and stop their own.
-            env={**os.environ, "SHIPLOOP_PROGRESS": "off"},
+            text=True, errors="replace", start_new_session=True, env=env,
         )
     except OSError as exc:
         return ProcessOutcome(

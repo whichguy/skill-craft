@@ -25,6 +25,10 @@ import time
 import unittest
 from unittest import mock
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 CLI = SCRIPTS / "shiploop"

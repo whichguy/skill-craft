@@ -1,0 +1,33 @@
+# Direct runs after the fix: the 25 suites run as python3 -B test/<name>.test.py would be, inside a live Claude Code
+# session (CLAUDECODE and CLAUDE_CODE_SESSION_ID inherited), each with an inherited XDG_STATE_HOME pointed at its
+# own sentinel standing in for the developer's ~/.local/state; 8 at a time. leaked= lists what the sentinel held.
+passed    rc=0     8.1s shiploop-no-model-launch leaked=nothing
+passed    rc=0    98.4s shiploop-navigator-contract leaked=nothing
+passed    rc=0     3.1s shiploop-navigator-v4 leaked=nothing
+passed    rc=0     1.3s shiploop-local-skills leaked=nothing
+passed    rc=0    68.3s shiploop-full-runtime leaked=nothing
+passed    rc=0     8.2s shiploop-status-display leaked=nothing
+passed    rc=0     0.9s shiploop-narrative leaked=nothing
+passed    rc=0     4.0s shiploop-auth-readiness leaked=nothing
+passed    rc=0     8.1s shiploop-cross-run leaked=nothing
+passed    rc=0   237.5s shiploop-workspace leaked=nothing
+passed    rc=0   497.6s shiploop-chain leaked=nothing
+passed    rc=0  1324.2s shiploop-chain-lifecycle leaked=nothing
+passed    rc=0     2.1s shiploop-consumer-delivery-cli leaked=nothing
+passed    rc=0    16.0s shiploop-delegation leaked=nothing
+passed    rc=0    25.5s shiploop-improve-schedule leaked=nothing
+passed    rc=0   105.3s shiploop-lint leaked=nothing
+passed    rc=0    43.6s shiploop-loops leaked=nothing
+passed    rc=0    69.3s shiploop-handoff leaked=nothing
+passed    rc=0    25.0s shiploop-trace leaked=nothing
+passed    rc=0   176.2s shiploop-e2e leaked=nothing
+passed    rc=0   124.3s shiploop-e2e-slice leaked=nothing
+passed    rc=0    52.5s shiploop-e2e-release-slice leaked=nothing
+passed    rc=0    80.3s shiploop-run-review leaked=nothing
+passed    rc=0   179.0s shiploop-callback-contract leaked=nothing
+passed    rc=0    16.4s shiploop-loophole-gates leaked=nothing
+suites: 25 of 25
+exit 0
+# After the rebase onto 3e1ece77: the 2 suites main added, fixed the same way, run the same way.
+passed    rc=0    21.7s shiploop-e2e-experiments leaked=nothing
+passed    rc=0     2.1s shiploop-e2e-run-trace leaked=nothing

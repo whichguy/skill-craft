@@ -11,6 +11,22 @@ suite explicitly enables the default observer and stops its own processes.
 For a focused non-progress suite, the same environment variable can suppress
 automatic observation without changing workflow behavior.
 
+Each suite also runs with a private `XDG_STATE_HOME`, and without an inherited
+`UNTIL_LOOP_STATE_DIR` or `SHIPLOOP_KEEPALIVE_HOME`. A suite that leaves
+anything in that home fails, and the failure names the files. Two stores live
+there, keyed to the host session the suite runs in. Until Loop keeps session
+stacks there, and a SessionStart hook offers an active one to the next real
+session as saved work. ShipLoop's keepalive keeps per-session health records
+there. A suite run inside a Claude Code or Grok session inherits that session's
+markers. Without isolation, its records would land in the developer's
+`~/.local/state` under the live session's key.
+
+A suite that runs ShipLoop or Until Loop calls `state_home.isolate()` once at
+module level, before anything copies `os.environ`. That gives the suite's
+process, and every process it starts, a private `XDG_STATE_HOME`, so a focused
+`python3 -B test/<name>.test.py` run is protected too. A private `HOME` alone is
+not enough, because `XDG_STATE_HOME` takes precedence over it.
+
 Backchain chunk regressions have two layers. `python3 -B test/backchain-chunks.test.py`
 checks the evaluator against useful plans, deliberate corruptions, and actual Until Loop
 complete/blocked transitions using authored reports. It does not call a model. Quick

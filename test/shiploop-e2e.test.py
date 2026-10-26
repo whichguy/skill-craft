@@ -32,6 +32,10 @@ import time
 import unittest
 from unittest import mock
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import boundary  # noqa: E402

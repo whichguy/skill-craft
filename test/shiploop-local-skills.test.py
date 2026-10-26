@@ -14,6 +14,10 @@ import sys
 import tempfile
 import unittest
 
+import state_home
+
+state_home.isolate()
+
 
 ROOT = Path(__file__).resolve().parents[1]
 APPARATUS = ROOT / "test/experiments/shiploop_local_skills"

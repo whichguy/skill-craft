@@ -22,6 +22,9 @@ from shiploop_chain_support import (
     digest,
     with_packet_file,
 )
+import state_home
+
+state_home.isolate()
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"

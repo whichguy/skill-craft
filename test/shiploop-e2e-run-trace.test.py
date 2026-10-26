@@ -26,6 +26,10 @@ import tempfile
 import time
 import unittest
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 E2E = ROOT / "test" / "shiploop_e2e"
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"

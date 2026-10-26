@@ -26,6 +26,10 @@ import tempfile
 import unittest
 from unittest import mock
 
+import state_home
+
+state_home.isolate()
+
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = ROOT / "skills" / "shiploop-run-review"
 TEMPLATE = SKILL_ROOT / "template" / "index.html"

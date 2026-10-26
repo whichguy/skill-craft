@@ -500,6 +500,79 @@ class TestGroupTests(unittest.TestCase):
             self.assertLess(time.monotonic() - started, 4)
 
 
+class StateHomeGuardTest(unittest.TestCase):
+    """A suite's state never reaches the developer's ~/.local/state, and a suite that leaves any fails.
+
+    On 2026-10-18 a vendor test ran Until Loop's `start` with the host's session ID and no state root of its own, and
+    left a placeholder stack (work "w", request "q") in the owner's ~/.local/state/until-loop, which a SessionStart
+    hook then offered to a real session as saved work.  The program here makes that same call on the real runtime.
+    ShipLoop's keepalive health records leaked the same way (32 of the owner's 170 on 2026-10-26).
+    """
+
+    RUNTIME = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+    PROGRAM = textwrap.dedent("""\
+        import json, os, subprocess, sys
+        contract = {"workspace": os.getcwd(), "work": "w", "exit_condition": "e", "repeat_condition": "r",
+                    "context": {"request": "q", "scope": "s", "authority": "a", "environment": "e", "resources": []}}
+        env = dict(os.environ, UNTIL_LOOP_SESSION_ID="state-guard")
+        if len(sys.argv) > 2:
+            env["XDG_STATE_HOME"] = sys.argv[2]
+        started = subprocess.run([sys.executable, "-B", sys.argv[1], "start"], input=json.dumps(contract),
+                                 env=env, capture_output=True, text=True)
+        sys.stderr.write(started.stdout + started.stderr)
+        raise SystemExit(started.returncode)
+    """)
+
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory(prefix="skill-craft-state-guard-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.program = self.root / "starts_a_session.py"
+        self.program.write_text(self.PROGRAM, encoding="utf-8")
+        # Stand-ins for the developer's own state roots, which the runner's environment would otherwise pass on.
+        self.inherited = {name: self.root / name.lower()
+                          for name in ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME", "XDG_STATE_HOME")}
+        for path in self.inherited.values():
+            path.mkdir(mode=0o700)
+        environment = mock.patch.dict(os.environ, {name: str(path) for name, path in self.inherited.items()})
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def run_program(self, *args: str) -> run_suites.ProcessOutcome:
+        argv = (sys.executable, "-B", str(self.program), str(self.RUNTIME), *args)
+        return run_suites.run_process(argv, cwd=self.root, timeout_seconds=60)
+
+    def assert_the_developers_state_is_untouched(self) -> None:
+        for path in self.inherited.values():
+            self.assertEqual(list(path.iterdir()), [], path)
+
+    def test_a_suite_that_starts_a_session_without_its_own_state_root_fails_and_the_developers_stays_empty(self) -> None:
+        outcome = self.run_program()
+        self.assertEqual(outcome.returncode, 0, "the runtime accepted the runner's state home: " + outcome.stderr)
+        self.assertEqual(outcome.status, "failed")
+        self.assertRegex(outcome.error or "", r"until-loop/innerloop-session-[0-9a-f]{64}\.json")
+        self.assertIn("UNTIL_LOOP_STATE_DIR", outcome.error or "")
+        self.assert_the_developers_state_is_untouched()
+
+    def test_keepalive_health_written_for_the_host_session_fails_the_suite(self) -> None:
+        notice = ("import sys; sys.path.insert(0, sys.argv[1]); import shiploop_keepalive as keepalive; "
+                  "keepalive.health_notice('/run', {'CLAUDECODE': '1', 'CLAUDE_CODE_SESSION_ID': 'host-session'})")
+        argv = (sys.executable, "-B", "-c", notice, str(ROOT / "skills/shiploop/scripts"))
+        outcome = run_suites.run_process(argv, cwd=self.root, timeout_seconds=60)
+        self.assertEqual(outcome.returncode, 0, outcome.stderr)
+        self.assertEqual(outcome.status, "failed")
+        self.assertRegex(outcome.error or "", r"shiploop/keepalive/health/claude-[0-9a-f]{32}\.json")
+        self.assertIn("CLAUDE_CODE_SESSION_ID", outcome.error or "")
+        self.assert_the_developers_state_is_untouched()
+
+    def test_a_suite_that_gives_the_runtime_its_own_state_root_passes(self) -> None:
+        own = self.root / "fixture-state"
+        outcome = self.run_program(str(own))
+        self.assertEqual(outcome.status, "passed", (outcome.error or "") + outcome.stderr)
+        self.assertEqual(len(list((own / "until-loop").glob("innerloop-session-*.json"))), 1)
+        self.assert_the_developers_state_is_untouched()
+
+
 class PacketSourceSelectionTest(unittest.TestCase):
     """A ShipLoop prompt or packet source always selects the packet-size suites (owner, 2026-10-25).
 
