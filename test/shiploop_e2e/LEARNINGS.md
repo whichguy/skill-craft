@@ -3127,5 +3127,10 @@ evidence. All three share evaluator `476582a4f064` and oracle `85672ad0c249`. Ev
 - **battleship and battleship-scoring:** R-3, the page click, stays open. Grok has no browser runner, and release-verify
   says so ("the page click stays open"). This unverified result is real.
 
-**Cost picture.** Battleship's re-orientation took 84.8 of 205.5 minutes (41 %), across 7 sessions: Grok ends its turn
-mid-run and the harness resumes it. The 2.10.1 Sonnet run took 23.1 minutes for the same case.
+**Cost picture.** *Corrected 2026-10-26: the first reading was wrong.* It read Battleship's
+`reorientation_minutes`, 84.8 of 205.5 minutes, as overhead across its 7 Grok sessions; Grok ends its turn mid-run and
+the harness resumes it. inner-loop pointed out that the window runs to the next accepted action, so it includes the
+stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). Measured here, `calls_before_grounding`
+for the 7 fresh starts was 2, 1, 0, 0, 1, 0, 0: 4 calls in all. So re-orientation itself cost almost nothing, and the
+84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
+again. The 2.10.1 Sonnet run took 23.1 minutes for the same case.
