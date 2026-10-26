@@ -591,6 +591,7 @@ and two decisions are compared only under the same id.
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
 | S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the run folders under the runs root whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run (amended 2026-10-24: under the runs root, not only the same parent folder; see Parallel work). A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
+| "Concurrency must not change a verdict", The resource lifecycle | `resources.jsonl` in the output folder (added 2026-10-26): the process groups the harness started and their leaders' creation identity, the adopted progress observer, the leases and the data directories, with an `ended`, `released` or `disposed` row for each given back; `resources` in result.json: this invocation's leases, `contention` (the live runs under the runs root on the same host and model), the disk headroom checked, and what its cleanup stopped, found gone or reused, or left `unverified`. A record beside the verdicts: a refusal (a held lease, a busy port, an orphan, a low disk) starts nothing and writes no result |
 | S-12 | identity of a run, null where unknown (added 2026-10-09): `plugin_sha256` (one digest of the installed plugin tree: file paths and bytes, `__pycache__`, `*.pyc` and symlinks left out, taken when the run is launched), `prompt_sha256` (the case prompt, before the sentence `--planning-review none` appends, with the run's own output folder masked), `host_build`, `started` and `ended` (the stream's first and last stamp), `planning_seconds` (the closed planning window, the engine's clock) and `local_head`, on every baseline row and in `result.json`. A null among them carries its reason in `identity_unmeasured`. Records, never verdicts; `run.py --baseline-report` reads them |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, and the earlier tests kept and built on: no fewer pass, the test files changed, and they name the feature's new fields; amended 2026-10-26, because a pass count that must grow failed a delivery that asserted the new fields inside its existing tests, the Grok gate's battleship-scoring); `product_at_stop` (added 2026-10-09; replaces `shiploop.worktree_checks`): for a run whose ShipLoop did not reach `done`, the case checks run against ShipLoop's unreturned worktree, with the engine's status and stage, each check's return code and whether it timed out, and counts. Information only: checks graded in the worktree stay dropped as a verdict (a run that never delivered must not pass), so it never touches `checks`, `committed`, `pass` or the exit code. Absent for a run that passed; `ran: false` with its reason where there was nothing to run. A feature spec the run removed is not a missing file: `knowledge_facts` and the follow-on retention checks read the living spec and the files the prior repository tracks, never a feature spec. The Run Review exporter lists a removed spec as a kept `history-only` row of the return plan (the knowledge follow-up keeps it); that needs no code change |
 | S-11 (what a run leaves for the next), S-5 | `commits` in metrics.json only (added 2026-10-10): the commits made during the run in the product repository (every ref; after the head a follow-on or seeded run started from, all of a fresh run's), counted by who made them: `improve` (named by ShipLoop's own `improve-commit` reply in the host's tool results, because the Improve card does not fix a message shape; so a lower bound: an Improve commit whose reply the host's events do not hold, cut by the model's pipe or made where the host records no reply, is counted under `other`), `script` (ShipLoop's other commits: knowledge, the spec retire commit (`docs(shiploop): retire <feature> spec: checked its requirement IDs against the living spec`), empty baseline, leftovers, work-item and chain merge commits, by their ShipLoop-owned subject or ShipLoop's own reply) and `other` (the rest, the model's own commits). The classes sum to the commits counted. Each class counts `with_lessons` (a lessons section as `shiploop_lessons.lessons` reads it, the one reader ShipLoop's `improve-commit` gate also reads with, so the harness and the gate cannot disagree about what counts); `improve` also counts `cited` (a `Learned-from` line, as `shiploop_lessons.citations` reads it, whose token is a commit ID that resolves to a commit in the repository) and `cited_earlier_run` (a cited commit that predates the run). Presence only: the text of a section is never judged, so `Key learnings: none` counts. Null, with the reason in `commits_unmeasured`, where the repository, the starting head or the host's events cannot be read. Record-only, no threshold; a later change to what ShipLoop commits or prints is compared with the saved runs' counts, never with cost or wall time |
@@ -706,6 +707,75 @@ E2E runs are long, so the loop spends its waiting time in parallel.
 - Agents do not replace evidence: an agent's analysis is a lead, and a
   claim it makes is checked against the event log or a script before it
   drives a change (Change admission).
+
+## The resource lifecycle (added 2026-10-26)
+
+Anchor: build step 7 of the final verdict on the loop's design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R19
+and R20 as Astra amended them), and the owner's rule that no run starts polluted
+(`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`, "Setup and teardown"). Basis: the Grok host that worked for
+28 minutes after its harness died (2026-10-09), and ShipLoop's progress observer, which outlived the stopped battleship run
+(2026-10-18) and chess run 5 (2026-10-24) and was ended by hand each time.
+
+A run records what it owns, stops only that, and keeps its evidence. Stopping processes and disposing of evidence are separate
+steps. `lifecycle.py` is the one place that does both.
+
+- **The ledger.** `<output>/resources.jsonl` is appended as the run takes and gives back resources, so a harness that is killed
+  still leaves the list. It records:
+  - every process group the harness starts for the case (each host session, each quality-phase run), with its leader's
+    creation identity: pid, group, start time (`ps` `lstart`) and command line;
+  - ShipLoop's progress observer, which a host's ShipLoop starts in a session of its own. It is adopted when the run is
+    cleaned: the pid its own record (`progress-observer.json`) names, only while that process is an orphan (parent pid 1)
+    and its command line carries the record's instance id and run directory;
+  - the leases (below), and when each was given back;
+  - the run's data directories: those under the output folder, and the one a Claude host keeps outside it
+    (`~/.claude/projects/<its working directory, encoded>`).
+- **Stopping.** A group is signalled by its recorded number, and only while its leader still has its recorded identity (pid,
+  group and start time). Nothing is chosen by its name.
+  - A leader that is gone, or whose pid now names another process, is recorded and never signalled. Processes left in a
+    group whose leader is gone are listed as `unverified` and not signalled, because the number can no longer be proven ours.
+  - A host session's whole group is ended when the session ends, before its leader is reaped, so what the host left in it
+    goes with it.
+  - The cleanup is idempotent: a group with an `ended` row is skipped, so a second cleanup changes nothing. It never
+    deletes a file.
+  - It runs at the end of every invocation that launched a host. It also runs first in a `--resume-run` that holds the case
+    lock (crash and retry): what a killed harness left is stopped before anything new starts. `lifecycle.py cleanup
+    <output>` runs it alone and refuses while a harness holds the case. A regrade stops nothing, as before.
+- **Evidence before disposal.** `lifecycle.py dispose <output>` removes the heavy folders (`work/`, `home/`, `marketplace/`,
+  `build/`, `quality/`). It runs only when no harness holds the case, no recorded group is alive, and the evidence is in
+  place:
+  - `result.json` with the delivery's identity (`delivery.before.head`);
+  - the logs (`events.jsonl`, `stderr.txt`, `timeline.jsonl`);
+  - the bundle (`delivery/work.bundle`), which git verifies and which holds that head.
+
+  What it removed is recorded in the ledger. Disposal is never automatic: whoever inspects the run decides when.
+- **Leases (R20).** Before a host starts, the harness leases the controlled resources another run would conflict on, all or
+  none:
+  - the case's platform state, by kind, org and prefix (`platform-salesforce-de-SLChess`);
+  - the case's declared fixed ports (`quality.refuse_ports`, inherited by a follow-on: 3000 for Battleship and Checkers).
+
+  A lease is an exclusive `flock` on a file in one folder for the machine: `$SHIPLOOP_E2E_LEASES`, else
+  `${XDG_STATE_HOME:-~/.local/state}/shiploop-e2e/leases`. The harness holds it while it lives, so the kernel gives it back
+  on any death, and removes the file when it gives it back.
+  - A key another harness holds refuses the run, naming the holder. So does a port this user's process listens on now.
+  - On a refusal every lease of the attempt is given back, and nothing is started.
+  - A regrade leases nothing, except the platform before it runs a platform cleanup. If that lease is refused, the cleanup
+    is not run.
+  - In a suite, a refused case is recorded as refused in `suite-result.json`, and the suite goes on.
+- **Contention is observed, not reserved.** The machine and the model provider cannot be leased. Each invocation that
+  launches a host records `contention`: the live harness runs under the runs root, and which of them use the same host and
+  model. It is a record; the scorecard's timing validity already reads the overlap.
+- **Refusals before a host starts.** A launch, a `--resume-run`, `--preflight-only` and a suite (once, up front) are refused:
+  - while an orphan is alive. That is a recorded group or adopted observer of a run under the runs root whose harness is not
+    alive (no one holds its lock), whose leader still has its recorded identity. The refusal names the remedy, `lifecycle.py
+    cleanup <that output>`.
+  - while the free space on the output's file system is below the workload's headroom: 2 GB for each case the invocation
+    will run. Basis: the 97 run folders under `~/e2e-runs` on 2026-10-26 had a median of 22 MB and a largest of 675 MB
+    (chess run 5b, its throwaway home most of it). The headroom is about three times the largest.
+- **Not covered.** Processes a model starts in a session of its own, other than the observer, are found only as listeners
+  (`left_behind`). The browser probe's group and the review and fan-out agents are not recorded. The orphan refusal does not
+  see a run outside the runs root. A pid reused within the same second, with the same group number, is not told apart.
+- **It changes no verdict.** `pass`, the exit code and baseline rows are unchanged. `resources` in result.json is a record
+  beside the verdicts. A refusal starts nothing and writes no result.
 
 ## Evolving this spec
 
