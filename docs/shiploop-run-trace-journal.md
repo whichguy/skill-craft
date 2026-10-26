@@ -380,8 +380,14 @@ The first commit's run failed 1 of 37 suites: `shiploop-e2e-slice` pinned the pa
 archive. Its fake host drives the real CLI, so the run has a trace and the source is now the trace, which is the change
 itself; the test now pins that. The final tree (`03ddfe06`, clean) passed all 37 suites in 226.6 s. Not run: the full
 tier, and a regrade of a finished traced E2E run through `run.py --resume-run <output> --grade-only` (the two traced runs
-of 2026-10-25 belong to the sibling live-E2E session and were only read). The branch is not yet rebased on shiploop 1.12.1,
-which had not landed when last fetched.
+of 2026-10-25 belong to the sibling live-E2E session and were only read).
+
+Rebased on shiploop 1.13.1 (`a677b55d`; the fix announced as 1.12.1). The run-trace suite passes there (15 tests, 2.1 s),
+and the finished live run reads as the upstream live check above counted: 38 packets, 0 reprints, 3 refusals and 2
+failed checks traced, plus the workspace refusal from the stream. Quick tier on `03f9aad5` (changed from `a677b55d`):
+36 of 37 suites pass in 208.6 s. `shiploop-mock-replay` fails 5 tests, and fails them identically on a clean `a677b55d`.
+Its trace corpus pins `grok_adapter_sha256`, and `96f023a2` changed the adapter (it lists `trace`) without re-binding the
+corpus. That is upstream and not this change, which does not touch `skills/shiploop-e2e-audit/`.
 
 ## Open (exploratory)
 
