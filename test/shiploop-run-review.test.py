@@ -10140,6 +10140,52 @@ def stage_model_view(out: Path, catalog: list | None = None) -> dict:
             "modelFact": next((line for line in facts if line.startswith("- Stage model:")), None), **page}
 
 
+class FlowLinkTests(unittest.TestCase):
+    """The static copy links each visit to its action in the run's flow.html (test/shiploop_e2e/flow.py), which opens it at
+    #action=<nav id>; the shared page, with no flow.html beside it, has no such link."""
+
+    FLOW = 'window.__RR_STATIC=true;window.__RR_FLOW="../flow.html";'
+    LINKS = 'walk(REG.%s,function(e){return e.tagName==="a"&&/flow\\.html#/.test(e.attrs.href||"");}).map(function(e){return e.attrs.href;})'
+
+    def test_a_visit_links_by_its_action_and_nothing_links_without_a_page_or_an_action(self):
+        self.assertEqual(run_logic('[flowHref("../flow.html","nav-a b"),flowHref("","nav-a"),flowHref("../flow.html",""),'
+                                   'flowHref(undefined,"nav-a")]'), ["../flow.html#action=nav-a%20b", "", "", ""])
+        rows = [{"stage": "intake", "outcome": "done", "seeded": True, "action": "nav-s"}] + [dict(r) for r in ROWS_STOPPED] + [
+            {"stage": "test-spec", "outcome": "done", "skipped": True, "action": "nav-d"},
+            {"stage": "baseline", "outcome": "done", "skipped": True, "action": "nav-e"}]
+        actions = run_logic("(function(r){var m=sequenceModel(r,{});return m.columns.map(function(c,k){return columnDetail(m,k,r,[]).action;});})("
+                            + json.dumps({"stages": rows}) + ")")
+        # a seeded visit has no row in the viewer; two skipped visits share one column, so it has no single action
+        self.assertEqual(actions, ["", "nav-a", "nav-b", "nav-c", ""])
+
+    def test_the_static_copy_links_the_open_card_and_every_table_row(self):
+        setup = ended_page(DONE_RUN) + "setCol(1);"
+        card, table, head = page_probe("[%s,%s,walk(REG.seqtable,function(e){return e.tagName===\"th\";}).map(function(e){return e.textContent;})]"
+                                       % (self.LINKS % "seqdetail", self.LINKS % "seqtable"), setup=setup, prelude=self.FLOW)
+        self.assertEqual(card, ["../flow.html#action=nav-b"])
+        self.assertEqual(table, ["../flow.html#action=nav-a", "../flow.html#action=nav-b", "../flow.html#action=nav-c"])
+        self.assertEqual(head[-1], "Flow")
+
+    def test_the_shared_page_and_a_copy_without_flow_html_have_no_flow_link(self):
+        for prelude in ("", "window.__RR_STATIC=true;", 'window.__RR_FLOW="../flow.html";'):
+            links = page_probe("[%s,%s]" % (self.LINKS % "seqdetail", self.LINKS % "seqtable"),
+                               setup=ended_page(DONE_RUN) + "setCol(1);", prelude=prelude)
+            self.assertEqual(links, [[], []], prelude)
+
+    def test_the_export_embeds_the_run_folders_flow_html_from_where_the_page_is_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), loops=False)
+            with contextlib.redirect_stdout(io.StringIO()):
+                plain = (export.export_run(out) / "run-review.html").read_text(encoding="utf-8")
+                (out / "flow.html").write_text("<!doctype html>\n")
+                beside = (export.export_run(out) / "run-review.html").read_text(encoding="utf-8")
+                elsewhere = (export.export_run(out, out=Path(tmp) / "x" / "y") / "run-review.html").read_text(encoding="utf-8")
+        self.assertNotIn("window.__RR_FLOW=\"", plain)  # the page reads the name; only an export with a flow.html sets it
+        self.assertIn('window.__RR_FLOW="../flow.html";', beside)
+        self.assertEqual(static_page_probe(beside, "FLOW"), "../flow.html")
+        self.assertIn('window.__RR_FLOW="../../%s/flow.html";' % out.name, elsewhere)
+
+
 class StageModelTests(unittest.TestCase):
     """A saved 17-stage run reads as the 17-stage engine described it, and a new 8-stage run as the 8-stage engine does. The
     golden is what the exporter and page of 54bcb54d (the last 17-stage release of Run Review) showed for the v4 fixture."""

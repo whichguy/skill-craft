@@ -38,6 +38,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: 
 .drop { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; color: var(--muted); font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .drop.over { border-color: var(--reached); background: var(--reached-soft) }
 .drop label { color: var(--reached); cursor: pointer; text-decoration: underline }
+.back { display: inline-block; margin-top: 6px; color: var(--reached); font-size: 13px; text-underline-offset: 2px }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px }
 .scroll { overflow-x: auto }
 table.runs { border-collapse: collapse; width: 100%; min-width: 760px }
@@ -124,6 +125,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     <div>
       <div class="eyebrow">ShipLoop E2E</div>
       <h1>ShipLoop Run Flow</h1>
+      <a class="back" id="review-link" hidden>This run's Review page</a>
     </div>
     <div class="drop" id="drop">
       <span>Add runs: drop <span class="mono">flow.json</span> files here or</span>
@@ -145,9 +147,11 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
 <script>
 (() => {
   const runs = [];
+  let home = null;  // the run whose own folder holds this page (flow.py writes its flow.html so): its links are relative
   try {
     const node = document.getElementById("flow-runs");
     if (node) runs.push(...JSON.parse(node.textContent));
+    if (node && node.hasAttribute("data-home")) home = runs[0];
   } catch (e) { console.error("embedded runs could not be read", e); }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -438,12 +442,32 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     const token = `r${current}` + (open != null ? `-a${open}` : "");
     try { history.replaceState(null, "", "#" + token); } catch (e) { /* the viewer may refuse */ }
   }
+  // #r<run>-a<row> is this page's own position; #action=<nav id> is a ShipLoop action, the form the run's Review page links
+  // to (the current run first, then the first run that has it).
   function readHash() {
     const m = /^#r(\d+)(?:-a(\d+))?$/.exec(location.hash || "");
-    if (m && runs[+m[1]]) { current = +m[1]; open = m[2] != null ? +m[2] : null; }
+    if (m && runs[+m[1]]) { current = +m[1]; open = m[2] != null ? +m[2] : null; return; }
+    const id = /^#action=(.+)$/.exec(location.hash || "");
+    if (!id) return;
+    let wanted;
+    try { wanted = decodeURIComponent(id[1]); } catch (e) { return; }  // a hand-typed hash that is not valid escaping
+    const r = [current, ...runs.keys()].find((i) => runs[i] && runs[i].actions.some((a) => a.action === wanted));
+    if (r != null) { current = r; open = runs[r].actions.find((a) => a.action === wanted).index; }
+  }
+  // The run's Review page (flow.py records it when review-export/run-review.html exists): relative from the run's own
+  // flow.html, however it is served; from a bundle, a file URL into the run's folder, and none on a page not opened from disk.
+  function reviewHref(run) {
+    if (!run || !run.review_page) return "";
+    if (run === home) return run.review_page;
+    return location.protocol === "file:" ? "file://" + encodeURI(run.output + "/" + run.review_page) : "";
   }
 
-  function renderAll() { renderRuns(); renderRun(); }
+  function renderAll() {
+    renderRuns(); renderRun();
+    const link = document.getElementById("review-link"), href = reviewHref(runs[current]);
+    link.hidden = !href;
+    if (href) link.href = href; else link.removeAttribute("href");
+  }
 
   function addFiles(files) {
     [...files].forEach((file) => {
@@ -471,8 +495,11 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
   document.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
   document.getElementById("files").addEventListener("change", (e) => addFiles(e.target.files));
 
+  const reveal = () => { if (open != null) document.getElementById("detail")?.scrollIntoView({ block: "center" }); };
   readHash();
   renderAll();
+  reveal();
+  window.addEventListener("hashchange", () => { readHash(); renderAll(); reveal(); });
 })();
 </script>
 <!-- data: test/shiploop_e2e/flow.py writes each run's flow.json; flow.py --bundle inlines runs at the FLOW-RUNS marker above. -->

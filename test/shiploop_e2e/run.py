@@ -4651,8 +4651,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                  "cancelled_tool_calls": metrics.count(run_metrics, "cancelled_tool_calls")},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    flow_record(out)  # first, so the Review page finds flow.html and links each visit to its action there
     exported = review_export(out)
-    print(f"  flow      {flow_record(out)}")
+    print(f"  flow      {flow_record(out)}")  # again, now that the Review page exists for flow.html's header to link to
     style = catalog().get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
     # A baseline measures one host running a case from the start to its end; a resumed run is not one, and neither is

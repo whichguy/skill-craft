@@ -617,7 +617,9 @@ history; they are not read back. A run document also no longer has the `improve`
 template with this run's documents embedded as data (the run, every packet document, the Backchain loop documents, the
 starting `expectations` and `config`, and any `reviews` the export holds) and `template/static-db.js` as a read-only stand-in for
 `window.claude.use("db")`: reads answer from the embedded documents, a write does nothing, and the page, told by
-`window.__RR_STATIC`, calls itself a static copy of one run. The shared page and this file render the same template, so
+`window.__RR_STATIC`, calls itself a static copy of one run. When `RUN_DIR/flow.html` exists, `window.__RR_FLOW` holds
+its path from the page (`../flow.html` beside the run) and each visit links to its action there; the shared page has no
+flow.html beside it and shows no such link. The shared page and this file render the same template, so
 a change to the page reaches both. The file is deterministic (the same run gives the same bytes), fetches nothing, and
 is not a source for any other file: it is rebuilt from the documents, never read back.
 

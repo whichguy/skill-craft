@@ -3257,3 +3257,34 @@ caveat). The Grok gate on 2.13.2:
 
 Re-grounding costs about one call per fresh start, except in battleship-scoring, at about five. It is an added
 diagnostic, not a floor or the target, so the card id stays `scorecard/5`.
+
+## Run Review and flow.html link to each other (2026-10-26) — status: firm for the links and their tests; checked on one saved run
+
+**Question.** A reader of the Run Review page who wants to see what the model did on one visit has to open `flow.html`
+and find the row by hand. Can each visit link straight to its action, and `flow.html` link back?
+
+**Change.**
+- The static `run-review.html` links each visit to `flow.html#action=<nav id>`, from the open visit card and from a
+  Flow column in the visits table. It does so only when the run's folder has a `flow.html`; the shared page has none.
+- The flow viewer opens an action at `#action=<nav id>` and scrolls to it. Its header links to the run's Review page
+  when `review-export/run-review.html` exists. From the run's own `flow.html` (marked `data-home`) the link is relative,
+  however the folder is served. From a bundle it is a file URL, and there is no link on a published bundle.
+- `run.py` writes the flow before the export and again after it, so each page can see the other. A rebuild costs about
+  0.2 s on the saved runs.
+
+**Found while checking.**
+- The viewer draws no row for a seeded visit, which it lists in one summary line. A link to one would open nothing,
+  so seeded visits get no link.
+- A link styled as a button rendered 58 px tall against 44 px for the buttons beside it: `<a>` sizes its box as
+  content-box. Fixed with `box-sizing: border-box`.
+- Opened over HTTP, the first version of the viewer hid its back link, because the link depended on the page's own
+  file path. The `data-home` mark replaced that test.
+
+**Checked.** A copy of `gate-2132-f7ba78-grok-hello` was rebuilt with the same three steps and served over HTTP:
+- the Review page had 24 visit links and the card's "Open in flow.html";
+- that link opened `flow.html` with the implement row expanded;
+- the header link returned to the Review page.
+
+The saved run itself was not rewritten. Tests: `FlowLinkTests` in `test/shiploop-run-review.test.py`, and
+`FlowTests.test_the_viewer_opens_an_action_by_its_nav_id_and_links_back_to_the_runs_review_page` in
+`test/shiploop-e2e-slice.test.py`, which runs the viewer's script in node.

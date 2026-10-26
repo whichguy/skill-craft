@@ -48,7 +48,8 @@ Calls are flagged by script, never by a model:
   (`scripted-review`).
 
 `flow_viewer.html` is the template: `--bundle` inlines any number of flow.json files into one self-contained page, and
-the page also opens flow.json files by drag and drop.
+the page also opens flow.json files by drag and drop. The page opens one action at `#action=<nav id>` (the run's Review
+page links each visit there), and its header links to that Review page when the run's folder had one (`review_page`).
 """
 from __future__ import annotations
 
@@ -72,6 +73,7 @@ FLOW_VERSION = 2  # 2: the Improve stage is an action row of its own (`reviewed`
 # `clear` is a list, one entry per clear of the run (several clears per slice); a flow written before that holds an object or null there,
 # which the viewer shows as no clear.
 TEMPLATE = HERE / "flow_viewer.html"
+REVIEW_PAGE = "review-export/run-review.html"  # the run's Review page (skills/shiploop-run-review export.py), from its folder
 DATA_MARK = "<!--FLOW-RUNS-->"
 HEAD = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<rev>\d+)")
 ACTION = re.compile(r"--action=(nav-[0-9a-f]{32})")
@@ -387,6 +389,7 @@ def build(out: Path) -> dict:
         "packets_source": source, "sources": sources(source, claude, traced, run_dir, out),
         "trace": run_trace.summary(traced),
         "paths": short.legend(), "totals": report.get("totals") or {},
+        "review_page": REVIEW_PAGE if (out / REVIEW_PAGE).is_file() else None,  # the viewer's header links to it
         "stages": report.get("stages") or [], "actions": actions,
         "case_details": {
             "expect_paths": invocation.get("expect_paths") or [],
@@ -707,14 +710,15 @@ STANDALONE_HEAD = ('<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n'
                    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n')
 
 
-def bundle(target: Path, flows: list[dict], standalone: bool = True) -> Path:
+def bundle(target: Path, flows: list[dict], standalone: bool = True, home: bool = False) -> Path:
     """The viewer with `flows` inlined. A standalone page (opened from disk) gets its own doctype and charset; an
-    Artifact publish adds its own skeleton, so `standalone=False` leaves them out."""
+    Artifact publish adds its own skeleton, so `standalone=False` leaves them out. `home` marks the page as the one run's
+    own flow.html, in its folder (`data-home`): the viewer then links to the run's Review page by a relative path."""
     page = TEMPLATE.read_text()
     if DATA_MARK not in page:
         raise SystemExit(f"{TEMPLATE} has no {DATA_MARK} marker")
     data = json.dumps(flows).replace("</", "<\\/")  # nothing in the data can close the script element
-    page = page.replace(DATA_MARK, f'<script id="flow-runs" type="application/json">{data}</script>')
+    page = page.replace(DATA_MARK, f'<script id="flow-runs" type="application/json"{" data-home" if home else ""}>{data}</script>')
     target.write_text((STANDALONE_HEAD if standalone else "") + page)
     return target
 
@@ -723,7 +727,7 @@ def write(out: Path) -> dict:
     """flow.json and a one-run flow.html in the output directory."""
     flow = build(out)
     (out / "flow.json").write_text(json.dumps(flow) + "\n")
-    bundle(out / "flow.html", [flow])
+    bundle(out / "flow.html", [flow], home=True)
     return flow
 
 

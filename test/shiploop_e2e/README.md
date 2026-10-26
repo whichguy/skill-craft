@@ -1654,7 +1654,11 @@ No baseline row is written. The one exception is Claude's own session transcript
 ### The run flow: what ShipLoop sent and what the model did
 
 Every slice and every full run writes `flow.json` and `flow.html` into its output directory (`flow.py`, called by
-`slice.py` and by `run.py` after `result.json`; a failure is one printed line, never a verdict). Open `flow.html` to
+`slice.py` and by `run.py` after `result.json`; a failure is one printed line, never a verdict). `run.py` writes the
+flow before the Run Review export and again after it: the Review page (`review-export/run-review.html`) then links
+each visit to its action (`flow.html#action=<nav id>`), and `flow.html`'s header links back to the Review page (a
+relative link from the run's own `flow.html`, however it is served; a file URL from a bundle opened from disk; none
+from a published bundle). Open `flow.html` to
 see the run as a sequence: one row per action, with the packet ShipLoop wrote on the left and what the model did on
 the right. Expand a row to see three views:
 - **seen by the model (after any head pipe):** the printed head, exactly as the tool result showed it, which is only
