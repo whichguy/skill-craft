@@ -3555,6 +3555,7 @@ ran side by side from a separate worktree at 9ebd66cf.
 - Timing is invalid on both: the pair overlapped itself, the fork's two stopped copies, and its DeepSeek-flash pilot.
   So the baseline lines (battleship 269 → 339 turns, $6.36 → $8.47 against a 1.9.0 row) are not a speed or cost
   comparison.
-- Hello's correctness is valid. Battleship's is null, because the overlapping pilot was still running and its `/tmp`
-  writes were not yet known. Rescore once it ends.
+- Hello's correctness is valid. Battleship's read null at first, because the overlapping pilot was still running and its
+  `/tmp` writes were not yet known. *Superseded 2026-10-26, after the pilot ended:* it wrote no `/tmp` names (and passed),
+  and the rescored card is valid (`cards.json` regenerated).
 - Battleship's mutation was not observed: its tests bind a fixed port (3000).

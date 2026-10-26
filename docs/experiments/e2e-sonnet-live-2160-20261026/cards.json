@@ -8,6 +8,7 @@
    "case": "battleship",
    "driver": {
     "host": "claude",
+    "backend": null,
     "model": "claude-sonnet-5-5",
     "effort": null
    },
@@ -27,7 +28,7 @@
     "overlap_root": "~/e2e-runs",
     "left_behind_survived": 0,
     "work_tree_after": [],
-    "shared_tmp_names": null,
+    "shared_tmp_names": [],
     "held_out_seen": null,
     "delivery_snapshot": {
      "head": "fb21f62edb502c6a7c8a110fe58f89a79dae3db1",
@@ -36,11 +37,10 @@
      "after_run": []
     },
     "correctness": {
-     "valid": null,
-     "why": [
-      "shared /tmp state is not known: the /tmp writes of 20261026/pilot-ollama-dsflash-993a9d-hello are not known"
-     ]
+     "valid": true,
+     "why": []
     },
+    "models_served": null,
     "attribution": {
      "valid": true,
      "why": []
@@ -123,6 +123,7 @@
    "case": "hello",
    "driver": {
     "host": "claude",
+    "backend": null,
     "model": "claude-sonnet-5-5",
     "effort": null
    },
@@ -154,6 +155,7 @@
      "valid": true,
      "why": []
     },
+    "models_served": null,
     "attribution": {
      "valid": true,
      "why": []
