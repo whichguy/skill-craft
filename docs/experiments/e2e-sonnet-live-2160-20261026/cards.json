@@ -1,0 +1,233 @@
+{
+ "scorecard": "scorecard/6",
+ "cards": [
+  {
+   "scorecard": "scorecard/6",
+   "run": "<runs>/20261026/live-sonnet-battleship-01b9b3",
+   "observed": true,
+   "case": "battleship",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.16.0",
+    "shiploop_version": "1.15.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 4,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "shared_tmp_names": null,
+    "held_out_seen": null,
+    "delivery_snapshot": {
+     "head": "fb21f62edb502c6a7c8a110fe58f89a79dae3db1",
+     "bundle": "delivery/work.bundle",
+     "during_checks": [],
+     "after_run": []
+    },
+    "correctness": {
+     "valid": null,
+     "why": [
+      "shared /tmp state is not known: the /tmp writes of 20261026/pilot-ollama-dsflash-993a9d-hello are not known"
+     ]
+    },
+    "attribution": {
+     "valid": true,
+     "why": []
+    },
+    "timing": {
+     "valid": false,
+     "why": [
+      "overlapped 4 run(s)"
+     ]
+    }
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 4,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "acceptance_required": false,
+    "floor": "pass"
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": "not_applicable"
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "unverified_not_restated": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 5,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": "pass"
+   },
+   "efficiency": {
+    "minutes": 36.9,
+    "cost_usd": 8.4743,
+    "totals_lower_bound": false,
+    "turns": 339,
+    "tokens": 51445908,
+    "output_tokens": 170501,
+    "refusals": 5,
+    "improve_children": 11,
+    "planning_minutes": 11.0,
+    "reorientation_minutes": 0.0,
+    "fresh_starts": 0,
+    "calls_before_grounding": 0
+   },
+   "floors": {
+    "accuracy": "pass",
+    "enterprise": "not_applicable",
+    "fidelity": "pass"
+   },
+   "boundary": {
+    "evaluator": "c762e11669a7",
+    "oracle": "337e9997e136",
+    "case": "53252bfd577e",
+    "candidate": "1af320e8eafa"
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "its tests bind a fixed port; not run: the unmutated copy's test run touched a declared port (3000) 2 times"
+   }
+  },
+  {
+   "scorecard": "scorecard/6",
+   "run": "<runs>/20261026/live-sonnet-hello-b01d1c",
+   "observed": true,
+   "case": "hello",
+   "driver": {
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.16.0",
+    "shiploop_version": "1.15.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 3,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "shared_tmp_names": [],
+    "held_out_seen": null,
+    "delivery_snapshot": {
+     "head": "a7379a83460ead19cf7e0c1393cfa03a10474abc",
+     "bundle": "delivery/work.bundle",
+     "during_checks": [],
+     "after_run": []
+    },
+    "correctness": {
+     "valid": true,
+     "why": []
+    },
+    "attribution": {
+     "valid": true,
+     "why": []
+    },
+    "timing": {
+     "valid": false,
+     "why": [
+      "overlapped 3 run(s)"
+     ]
+    }
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 2,
+     "total": 2
+    },
+    "acceptance": null,
+    "mutation": null,
+    "acceptance_required": false,
+    "floor": "pass"
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": "not_applicable"
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "unverified_not_restated": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 4,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": "pass"
+   },
+   "efficiency": {
+    "minutes": 11.8,
+    "cost_usd": 3.8775,
+    "totals_lower_bound": false,
+    "turns": 193,
+    "tokens": 21235933,
+    "output_tokens": 73555,
+    "refusals": 4,
+    "improve_children": 9,
+    "planning_minutes": 5.3,
+    "reorientation_minutes": 0.0,
+    "fresh_starts": 0,
+    "calls_before_grounding": 0
+   },
+   "floors": {
+    "accuracy": "pass",
+    "enterprise": "not_applicable",
+    "fidelity": "pass"
+   },
+   "boundary": {
+    "evaluator": "c762e11669a7",
+    "oracle": "337e9997e136",
+    "case": "313993af1a13",
+    "candidate": "1af320e8eafa"
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure"
+   }
+  }
+ ]
+}

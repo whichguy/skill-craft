@@ -3521,3 +3521,40 @@ was ended by hand each time.
 - The observer rule needs parent pid 1. Under a Linux subreaper that is not true, so there it adopts nothing (fail safe).
 - A run that delivered nothing has no head to keep, so it can't be disposed of.
 - No live run has written a ledger yet; the next E2E run on this harness is its first.
+
+## Sonnet 5.5 live check of 2.15.0's two changes, on 2.16.0 / ShipLoop 1.15.0 (2026-10-26) — status: firm for the verdicts; n=1 per case; neither 2.15.0 gate was exercised
+
+**Question.** Do 2.15.0's review-convergence gate and restatement rule hold on a real run? Grok was out of credit, so
+the run used Claude Sonnet 5.5 at its default effort, from the marketplace. The marketplace serves the latest release,
+2.16.0. That is 2.15.0 plus owner notes, and the two changes are unchanged in it. The two runs, hello and battleship,
+ran side by side from a separate worktree at 9ebd66cf.
+
+**Result** (`docs/experiments/e2e-sonnet-live-2160-20261026/cards.json`; both baseline rows in this commit).
+
+| case | verdict | minutes | cost | tokens (output) | totals | Improve reviews | refusals |
+|---|---|---|---|---|---|---|---|
+| hello | PASS, fidelity pass, 0 deferred | 11.8 | $3.88 | 21,235,933 (73,555) | exact | 9, each at most 2 passes | 4, 0 repeated |
+| battleship | PASS, 4 of 4 checks incl. the calibrated game check | 36.9 | $8.47 | 51,445,908 (170,501) | exact | 11, each at most 2 passes | 5, 0 repeated |
+
+**What it shows.**
+- **Neither 2.15.0 gate was exercised.** Every review converged on its own: one pass of 0–8 lines, then a pass with no
+  change. So the three-small-passes gate never had cause to act. Product-acceptance deferred nothing in either case
+  (battleship: "All five request outcomes observed by executed checks; nothing unverified"), so nothing needed
+  restating. This is evidence of no harm only. Showing that the gates bite needs a model that loops (Haiku: 12 passes,
+  2026-10-25) or defers (the Grok battleship's page click, 2.13.2).
+- **The refusals were ShipLoop's checks doing their job.**
+  - battleship: two surviving-mutant refusals (4 of 8, then 1 of 8), harness evidence with no readable test run, verify
+    before it was done, and a bad `owner_stage` value.
+  - hello: three `improve-pass` calls after the review was already imported, and a check that asked for assumptions.
+  - One hello refusal came from a guessed action id. The model said so, then read the real id from the packet.
+- **Build step 8 holds live.** Both cards have exact totals (`totals_lower_bound` false, and so do the baseline rows)
+  and carry tokens.
+- **The 2.14.0 links are on both real runs' pages, in both directions.**
+
+**Validity.**
+- Timing is invalid on both: the pair overlapped itself, the fork's two stopped copies, and its DeepSeek-flash pilot.
+  So the baseline lines (battleship 269 → 339 turns, $6.36 → $8.47 against a 1.9.0 row) are not a speed or cost
+  comparison.
+- Hello's correctness is valid. Battleship's is null, because the overlapping pilot was still running and its `/tmp`
+  writes were not yet known. Rescore once it ends.
+- Battleship's mutation was not observed: its tests bind a fixed port (3000).
