@@ -582,6 +582,83 @@ class RoundSpeedups(unittest.TestCase):
         shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "grok", None)
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
+    # R3's T 1 stderr.txt, verbatim (2026-10-26): every Grok call after the balance ran out.
+    REFUSED = ('Error: Internal error: {\n  "message": "API error (status 402 Payment Required): Grok Build usage balance '
+               'exhausted",\n  "http_status": 402\n}')
+
+    def _slice(self, sample: Path, passed: bool, stderr: str = "", value: int = 1) -> Path:
+        folder = sample / "slice"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "slice-result.json").write_text(json.dumps({"pass": passed}))
+        (folder / "value.json").write_text(json.dumps({"value": value}))
+        (folder / "stderr.txt").write_text(stderr)
+        return folder
+
+    def test_a_slice_the_host_refused_is_a_host_failure_never_a_score(self):
+        """R3 (journal F37): six slices failed on Grok's HTTP 402 and would have scored 0, as items not delivered."""
+        refused = self.tmp / "Q" / "T" / "1"
+        self._slice(refused, False, self.REFUSED)
+        self.assertEqual(experiment.host_failure(refused), "HTTP 402: Grok Build usage balance exhausted")
+        self.assertFalse(experiment.finished(refused))
+        signed_out = self.tmp / "Q" / "T" / "3"
+        self._slice(signed_out, False, '{"error": "unauthorized", "http_status": 401}')
+        self.assertEqual(experiment.host_failure(signed_out), "HTTP 401")
+        for name, stderr, passed in (("a passing slice", self.REFUSED, True), ("a rate limit", "API error (status 429)", False),
+                                     ("a product's 404", "GET /games/9 -> status 404", False), ("no stderr", "", False)):
+            sample = self.tmp / "other" / name.replace(" ", "-")
+            self._slice(sample, passed, stderr)
+            with self.subTest(name):
+                self.assertIsNone(experiment.host_failure(sample))
+                self.assertTrue(experiment.finished(sample))
+        self._slice(self.tmp / "Q" / "T" / "2", False, value=0)
+        _runner, _ran, _peak, patches = self._fake({})
+        with patches[0], patches[1]:
+            table = experiment.score("Q", self.tmp)
+        self.assertEqual([(r["sample"], r["value"]) for r in table["T"]], [(2, 0)])
+        record = json.loads((refused / "score.json").read_text())
+        self.assertEqual((record["value"], record["host_failure"]), (None, "HTTP 402: Grok Build usage balance exhausted"))
+        rows = [{"sample": 1, "value": None}, {"sample": 2, "value": 0}]
+        self.assertEqual(experiment.possible_verdicts(rows, [{"sample": n, "value": 1} for n in (1, 2, 3, 4)], 4),
+                         experiment.possible_verdicts(rows[1:], [{"sample": n, "value": 1} for n in (1, 2, 3, 4)], 4))
+
+    def test_run_moves_a_refused_slice_aside_reruns_it_and_stops_at_a_new_refusal(self):
+        refused = self.tmp / "Q" / "T" / "1"
+        self._slice(refused, False, self.REFUSED)
+        (refused / "score.json").write_text(json.dumps({"sample": 1, "value": None, "host_failure": "HTTP 402"}))
+        exp = {"arms": {"T": {}}, "samples": 4, "case": "fake", "seed_at": "step-plan", "evaluator": "unused.py"}
+        launched = []
+
+        def slice_run(argv, *a, **k):
+            output = Path(argv[argv.index("--output") + 1])
+            launched.append(output.parent.name)
+            self._slice(output.parent, False, self.REFUSED if output.parent.name == "2" else "")
+            return subprocess.CompletedProcess(argv, 0)
+        printed = io.StringIO()
+        with mock.patch.object(experiment, "load", return_value=exp), \
+                mock.patch.object(experiment.subprocess, "run", side_effect=slice_run), contextlib.redirect_stdout(printed):
+            status = experiment.run("Q", "T", 4, "grok", self.tmp, [])
+        self.assertEqual((status, launched), (1, ["1", "2"]))  # sample 1 reran; sample 2's refusal stopped 3 and 4
+        self.assertEqual(len(list(refused.glob("slice.host-failed-*"))), 1)
+        self.assertFalse((refused / "score.json").exists())
+        self.assertTrue(experiment.finished(refused))
+        self.assertIn("Q/T/2: the host refused its calls (HTTP 402: Grok Build usage balance exhausted)", printed.getvalue())
+
+    def test_the_queue_starts_no_more_samples_after_a_host_refusal(self):
+        ran = []
+
+        def runner(exp_id, arm, count, host, out, extra, n):
+            ran.append((arm, n))
+            self._slice(out / exp_id / arm / str(n), False, self.REFUSED if (arm, n) == ("Cg", 1) else "")
+            return 1 if (arm, n) == ("Cg", 1) else 0
+        _runner, _ran, _peak, patches = self._fake({})
+        printed = io.StringIO()
+        with patches[0], patches[1], contextlib.redirect_stdout(printed):
+            status = experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], early_stop=False, runner=runner)
+        self.assertEqual((status, ran), (1, [("T", 1), ("Cg", 1)]))
+        self.assertIn("Q/Cg/1: the host refused its calls (HTTP 402", printed.getvalue())
+        self.assertIn("with 6 samples not started", printed.getvalue())
+        self.assertFalse((self.tmp / ".queue.lock").exists())
+
     def test_a_second_queue_in_the_same_folder_is_refused(self):
         import os  # noqa: PLC0415
         (self.tmp / ".queue.lock").write_text(f"{os.getppid()} now\n")
@@ -644,6 +721,15 @@ class ProgressCard(unittest.TestCase):
         self.assertNotIn('<i class="f">', found)
         self.assertIn("exactly 1 step", found)
 
+    def test_a_sample_the_host_refused_shows_an_error_slot_not_a_below_one_result(self):
+        import progress_card  # noqa: PLC0415
+        done = self.out / "E6D-K2" / "T" / "1" / "slice"
+        done.mkdir(parents=True)
+        (done / "slice-result.json").write_text(json.dumps({"pass": False}))
+        (done / "stderr.txt").write_text(RoundSpeedups.REFUSED)
+        state = progress_card.sample_state(done.parent, None, now=0.0, scorer=lambda folder: {"value": 0})
+        self.assertEqual(state, {"state": "error", "why": "host refused: HTTP 402: Grok Build usage balance exhausted"})
+
     def test_the_model_carries_iso_times_for_a_live_card_and_renders_as_the_card(self):
         import progress_card  # noqa: PLC0415
         import status_card  # noqa: PLC0415
@@ -670,6 +756,19 @@ class ProgressCard(unittest.TestCase):
             {"at": "1999-01-01T00:00:00+00:00", "kind": "info", "text": "launched"}]})
         self.assertEqual((job["title"], job["status"], job["updatedAt"]), ("R9", "running", progress["updatedAt"]))
         self.assertEqual([e["text"] for e in job["events"]], ["E6-K1 T sample 2 finished: value 1, 3 steps", "launched"])
+
+    def test_a_running_sample_starts_at_its_recorded_launch_and_needs_no_birth_time(self):
+        """Linux's os.stat has no st_birthtime, so the card failed on main CI (2026-10-26, run 40340118933)."""
+        import progress_card  # noqa: PLC0415
+        from types import SimpleNamespace  # noqa: PLC0415
+        sample = self.out / "E6-K1" / "T" / "1"
+        (sample / "slice").mkdir(parents=True)
+        linux = SimpleNamespace(st_mtime=1_700_000_100.0)
+        with mock.patch.object(Path, "stat", return_value=linux):
+            self.assertEqual(progress_card.started(sample), 1_700_000_100.0)
+        (sample / "command.json").write_text(json.dumps({"argv": [], "started": 1_700_000_000.0}))
+        state = progress_card.sample_state(sample, None, now=1_700_000_600.0)
+        self.assertEqual((state["state"], state["minutes"], state["since"]), ("running", 10.0, 1_700_000_000.0))
 
 
 if __name__ == "__main__":

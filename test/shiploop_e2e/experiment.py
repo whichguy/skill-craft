@@ -33,6 +33,10 @@ change and the experiment's remaining samples are skipped (``--no-early-stop`` r
 value (the evaluator's ``BINARY``) and no gate; other experiments run every sample. Options ``run`` does not know (for
 example ``--planning-review none``, which skips the planning stages' Improve children in a shape round) go to slice.py;
 each sample records them, and ``decide`` refuses arms whose samples ran under different planning-review options.
+A sample whose host refused its calls (HTTP 401, 402 or 403 in its stderr: an exhausted balance or a lost sign-in) and
+that did not pass is a host failure, not a result: ``score`` records it without a value, ``run`` stops there, ``queue``
+starts no more samples, and the next ``run`` or ``queue`` moves the slice aside to ``slice.host-failed-<time>`` and runs
+it again.
 An experiment marked ``descriptive`` runs fewer samples (3) and is reported, not decided: without samples 1-4 of the
 first arm the A/A spread is unmeasured, so ``decide`` can only answer "inconclusive" (or ceiling or floor), and
 ``queue`` never stops it early. An experiment without ``stop_after`` runs the item to its end.
@@ -44,6 +48,7 @@ import importlib.util
 import itertools
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -115,8 +120,39 @@ def samples(out: Path, exp_id: str, arm: str) -> list[Path]:
     return sorted(found, key=lambda p: int(p.name))
 
 
+# A host that refuses every call (an exhausted balance, a lost sign-in) ends the slice before the arm is tried: R3 on
+# 2026-10-26, Grok's "API error (status 402 Payment Required): Grok Build usage balance exhausted" (journal F37). Its
+# HTTP status is 401, 402 or 403, in the message or in the error's http_status field.
+HOST_REFUSAL = re.compile(r'API error \(status (?P<status>40[123])[^)]*\):?\s*(?P<text>[^"\n]{0,120})'
+                          r'|"http_status"\s*:\s*(?P<field>40[123])\b')
+
+
+def host_failure(sample: Path) -> str | None:
+    """Why the host refused the sample's calls (its slice's stderr.txt), else None; never for a slice that passed.
+
+    Such a slice says nothing about its arm, so it is not scored, and the next ``run`` or ``queue`` moves it aside and runs
+    it again. Grok's "cancelled" stop has several causes (metrics.session_stop), so a cancelled session alone is not a
+    refusal; the downstream evaluator counts it."""
+    try:
+        text = (sample / "slice" / "stderr.txt").read_text(errors="ignore")
+    except OSError:
+        return None
+    match = HOST_REFUSAL.search(text)
+    if match is None:
+        return None
+    try:
+        if json.loads((sample / "slice" / "slice-result.json").read_text()).get("pass") is True:
+            return None
+    except (OSError, ValueError, AttributeError):
+        pass
+    if match.group("status"):
+        return f"HTTP {match.group('status')}: {match.group('text').strip()}".rstrip(": ")
+    return f"HTTP {match.group('field')}"
+
+
 def finished(sample: Path) -> bool:
-    return (sample / "slice" / "slice-result.json").is_file()
+    """The sample's slice wrote its result and its host did not refuse its calls (host_failure)."""
+    return (sample / "slice" / "slice-result.json").is_file() and host_failure(sample) is None
 
 
 def _resolved_commit(ref: str | None) -> str | None:
@@ -188,7 +224,9 @@ def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: lis
             continue
         sample.mkdir(parents=True, exist_ok=True)
         if (sample / "slice").exists():
-            (sample / "slice").rename(sample / f"slice.cut-{time.strftime('%Y%m%d-%H%M%S')}")
+            kind = "host-failed" if host_failure(sample) else "cut"
+            (sample / "slice").rename(sample / f"slice.{kind}-{time.strftime('%Y%m%d-%H%M%S')}")
+            (sample / "score.json").unlink(missing_ok=True)  # it scored the slice just moved aside
         records = None
         if arm.get("seed_records"):
             records = sample / "seed-records.json"
@@ -201,6 +239,12 @@ def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: lis
         done = subprocess.run(argv)
         print(f"{exp_id}/{arm_name}/{n}: slice exit {done.returncode} after {round((time.time() - started) / 60, 1)} min",
               flush=True)
+        refused = host_failure(sample)
+        if refused:
+            print(f"{exp_id}/{arm_name}/{n}: the host refused its calls ({refused}); not scored, and no later sample "
+                  f"starts. Run the same command once the host works: it moves this slice aside and runs it again",
+                  flush=True)
+            return 1
         status = status or (0 if finished(sample) else 1)
     return status
 
@@ -212,6 +256,12 @@ def score(exp_id: str, out: Path) -> dict:
     for arm_name in exp["arms"]:
         rows: list[dict] = []
         for sample in samples(out, exp_id, arm_name):
+            refused = host_failure(sample)
+            if refused:  # recorded, never a value: the sample runs again
+                (sample / "score.json").write_text(json.dumps(
+                    {"experiment": exp_id, "arm": arm_name, "sample": int(sample.name), "value": None,
+                     "host_failure": refused}, indent=2) + "\n")
+                continue
             if not finished(sample):
                 continue
             found = module.score(sample / "slice")
@@ -293,8 +343,12 @@ def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
 def possible_verdicts(x: list[dict], y: list[dict], count: int) -> set[str]:
     """Every verdict ``judge`` could still give Y against X once each arm has samples 1..``count``, a missing sample's
     value being 0 or 1 (a binary evaluator's only values); a scored sample keeps its value."""
-    known_x = {r["sample"]: r.get("value") for r in x if 1 <= r["sample"] <= count}
-    known_y = {r["sample"]: r.get("value") for r in y if 1 <= r["sample"] <= count}
+    def known(rows):
+        """Each scored sample's value; a record without one (a host failure's) leaves its sample missing."""
+        return {r["sample"]: r["value"] for r in rows
+                if 1 <= r["sample"] <= count and isinstance(r.get("value"), (int, float))}
+
+    known_x, known_y = known(x), known(y)
     missing = [(known_x, n) for n in range(1, count + 1) if n not in known_x] + \
               [(known_y, n) for n in range(1, count + 1) if n not in known_y]
     found = set()
@@ -362,6 +416,7 @@ def queue(exp_ids: list[str], arm_names: list[str], count: int, jobs: int, host:
     pending = deque((e, a, n) for n in range(1, count + 1) for e in exp_ids for a in arm_names
                     if not finished(out / e / a / str(n)))
     stopped: dict[str, str] = {}
+    refused: list[str] = []  # the first host refusal: every later sample would fail the same way
     printing = threading.Lock()
     status = 0
 
@@ -382,7 +437,7 @@ def queue(exp_ids: list[str], arm_names: list[str], count: int, jobs: int, host:
         with ThreadPoolExecutor(max_workers=jobs) as pool:
             running: dict = {}
             while pending or running:
-                while pending and len(running) < jobs:
+                while pending and len(running) < jobs and not refused:
                     exp_id, arm, n = pending.popleft()
                     if exp_id in stopped:
                         say(f"{exp_id}/{arm}/{n}: skipped, the verdict cannot change")
@@ -398,11 +453,19 @@ def queue(exp_ids: list[str], arm_names: list[str], count: int, jobs: int, host:
                     except (Exception, SystemExit) as exc:  # one sample's failure never stops the others
                         say(f"{exp_id}/{arm}/{n}: failed: {exc}")
                         status = 1
+                    why = host_failure(out / exp_id / arm / str(n))
+                    if why and not refused:  # a host refusal does stop them: R3 ran six slices into a 402
+                        refused.append(why)
+                        say(f"{exp_id}/{arm}/{n}: the host refused its calls ({why}); the queue starts no more samples")
                     check(exp_id)
     finally:
         lock.unlink(missing_ok=True)
     for exp_id, verdict in stopped.items():
         say(f"{exp_id}: stopped early, {verdict}")
+    if refused:
+        say(f"queue: stopped by the host ({refused[0]}) with {len(pending)} sample{'' if len(pending) == 1 else 's'} "
+            f"not started; run the same command once the host works: it reruns the refused samples and the rest")
+        status = 1
     return status
 
 
