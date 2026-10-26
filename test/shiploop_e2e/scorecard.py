@@ -13,8 +13,11 @@ The parts, each read from records the harness already writes:
 * ``validity``: three dimensions (SPEC "The promotion contract", build step 2), each ``{valid, why}`` with ``valid`` true,
   false or null; null means not observed and is never valid.
   - **correctness**: false when the delivered ``work/`` changed after delivery (a check that deleted a product file, as on
-    2026-10-24). Null when the tree can't be read, or when this run and a run that overlapped it wrote the same ``/tmp``
-    name, because shared state can't be ruled out. Null too, for a case with held-out acceptance, when the run's events
+    2026-10-24). From build step 4 it reads the run's delivery snapshot (result.json ``delivery``): false when the
+    fingerprint after the checks differs from the one before, or when a ``work/`` that still exists now differs from what
+    the checks left (a later commit or edit). So a torn-down run is graded from its records. A run recorded before the snapshot
+    keeps the live reading. Null when nothing can be read, or when this run and a run that overlapped it wrote the same
+    ``/tmp`` name, because shared state can't be ruled out. Null too, for a case with held-out acceptance, when the run's events
     name a held-out file, the checks folder or the case catalog (``quality.held_out_seen`` above 0, build step 3), or when
     that was not recorded: its result is not independent evidence.
   - **attribution**: false when hosts or host builds were mixed.
@@ -26,7 +29,8 @@ The parts, each read from records the harness already writes:
   the hidden acceptance checks and the mutation ratio. **Requiredness belongs to the case** (``cases.json``): a case that
   declares hidden acceptance requires it, so an unobserved acceptance leaves the floor ``unobserved``, never a pass.
 * ``enterprise`` (a floor): ``not_applicable`` until the scripted rubric exists.
-* ``fidelity`` (a floor): the engine ended done, with no unverified entry and no skipped evidence. Edits of script-owned
+* ``fidelity`` (a floor): the engine ended done, with no open unverified entry and no skipped evidence. An entry whose due
+  stage was accepted later without restating the list is unknown, and the floor is ``unobserved`` (``scorecard/5``). Edits of script-owned
   files, refusals and retired glossary terms in ShipLoop's replies (``nomenclature``, S-16) are reported beside it; the
   edit list is a heuristic to confirm (SPEC), so it decides nothing. ``improve_reviews`` is left out: on the 2.9.0 runs it
   reads 0 children beside 10 Improve children, a reader that has not followed the Improve route's change.
@@ -49,10 +53,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import delivery  # noqa: E402  (delivery.fingerprint and delivery.changed: the delivery snapshot)
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
 
-SCORECARD_ID = "scorecard/3"
+SCORECARD_ID = "scorecard/5"
 VERDICTS = ("invoked", "plugin", "process", "shiploop", "committed")
 NOT_YET = "no scripted enterprise rubric yet (design P2)"
 PASS, FAIL, UNOBSERVED, NOT_APPLICABLE = "pass", "fail", "unobserved", "not_applicable"
@@ -99,6 +104,19 @@ def work_tree_after(run: Path) -> tuple[list[str] | None, str | None]:
     if done.returncode != 0:
         return None, "git status failed: " + (done.stderr.strip().splitlines() or ["no message"])[0][:160]
     return [line for line in done.stdout.splitlines() if line.strip()], None
+
+
+def delivery_reading(run: Path, result: dict) -> dict | None:
+    """What the delivery snapshot says (build step 4), or None for a run recorded without one: ``during_checks``, how the
+    fingerprint after the checks differs from the one before; ``after_run``, how a ``work/`` that still exists differs now
+    from what the checks left, a later commit or edit (None when ``work/`` is gone)."""
+    recorded = result.get("delivery") if isinstance(result.get("delivery"), dict) else {}
+    before, after = recorded.get("before") or {}, recorded.get("after") or {}
+    if not (before.get("observed") and after.get("observed")):
+        return None
+    live = delivery.fingerprint(run / "work")
+    return {"head": before.get("head"), "bundle": before.get("bundle"), "during_checks": delivery.changed(before, after),
+            "after_run": delivery.changed(after, live) if live.get("observed") else None}
 
 
 def host_builds(result: dict, run_metrics: dict) -> list[str] | None:
@@ -152,7 +170,8 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
     if left.get("observed") is not True:
         unmeasured["validity.left_behind"] = left.get("reason") or "not recorded"
     status, why = work_tree_after(run)
-    if why:
+    snapshot = delivery_reading(run, result)
+    if why and snapshot is None:
         unmeasured["validity.work_tree_after"] = why
     resumed = bool(result.get("resumed_run"))
     mixed = environment_block.get("mixed_host")
@@ -168,10 +187,17 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
     block = {"resumed": resumed, "mixed_host": mixed if isinstance(mixed, bool) else None,
              "host_builds": builds, "overlapped_runs": overlapped, "overlap_root": seen.get("root"),
              "left_behind_survived": survived, "work_tree_after": status, "shared_tmp_names": shared,
-             "held_out_seen": held_out}
+             "held_out_seen": held_out, "delivery_snapshot": snapshot}
+    if snapshot is not None:  # the records decide, whether or not work/ is still there
+        tree_false = (([f"the checks changed the delivered tree: {'; '.join(snapshot['during_checks'])}"] if snapshot["during_checks"] else [])
+                      + ([f"the delivered tree changed after the run: {'; '.join(snapshot['after_run'])}"] if snapshot["after_run"] else []))
+        tree_null = []
+    else:
+        tree_false = [f"the delivered work tree changed after delivery: {', '.join(status[:3])}"] if status else []
+        tree_null = [f"the delivered tree can't be read: {why}"] * (status is None)
     block["correctness"] = dimension(
-        [f"the delivered work tree changed after delivery: {', '.join(status[:3])}"] if status else [],
-        [f"the delivered tree can't be read: {why}"] * (status is None)
+        tree_false,
+        tree_null
         + ([f"/tmp names shared with an overlapping run: {', '.join(shared)}"] if shared else [])
         + ([f"shared /tmp state is not known: {shared_why}"] if shared is None else [])
         + ([f"the run's events name a held-out file, the checks folder or the case catalog {held_out} time(s)"]
@@ -227,12 +253,14 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
         return {"floor": UNOBSERVED}
     end = record.get("end_state") or {}
     unverified = (end.get("unverified") or {}).get("entries")
+    not_restated = (end.get("unverified") or {}).get("not_restated") or 0  # a reading from before 2026-10-26 has no count
     skipped = ((record.get("evidence") or {}).get("counts") or {}).get("skipped")
     edits = (record.get("edits") or {}).get("script_owned")
     refusals = record.get("refusals") or {}
     # The edit list is a heuristic the SPEC calls a list to confirm, not a count to trust, so it is reported and never
     # decides the floor: an Improve stage's own investigation file can land in it.
-    block = {"end_status": end.get("status"), "unverified": unverified, "skipped_evidence": skipped,
+    block = {"end_status": end.get("status"), "unverified": unverified, "unverified_not_restated": not_restated,
+             "skipped_evidence": skipped,
              "script_owned_edits_to_confirm": len(edits) if isinstance(edits, list) else edits,
              "refusals": refusals.get("count"), "repeated_refusals": refusals.get("repeated"),
              "retired_terms": None}
@@ -246,7 +274,8 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
     for name in missing:
         unmeasured[f"fidelity.{name}"] = "the fidelity block does not carry it"
     block["floor"] = (UNOBSERVED if missing or end.get("status") is None else
-                      PASS if end.get("status") == "done" and unverified == 0 and skipped == 0 else FAIL)
+                      (FAIL if end.get("status") != "done" or unverified != 0 or skipped != 0
+                       else UNOBSERVED if not_restated else PASS))
     return block
 
 

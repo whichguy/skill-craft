@@ -417,7 +417,8 @@ is the one reader of that.
   blocked result the last accepted entry's `blocked_by` and `awaiting` (its `kind`, and whether `no_default` states why no
   default would do), read through `metrics.blocked_detail`, the one reader `termination`'s `engine_blocked_by` and
   `engine_awaiting_*` use too: only while the engine is blocked on its last history action, so a block that was answered (the
-  engine active again) reads null; `unverified` is the product-acceptance list (`entries`, `owners`), null when no result carries the key
+  engine active again) reads null; `unverified` is the latest accepted list's open items (`entries`, `owners`) and those whose due stage was accepted
+  later without restating it (`not_restated`, `not_restated_due`), null when no result carries the key
   (a result without the key says nothing, it is not an empty list, which says every outcome was observed);
 
 **What no script checks.** Whether one call carries one step (S-2), whether the cards agree with the scripts (S-3), packet
@@ -1105,7 +1106,7 @@ dropped; the earlier output is never changed). It asks whether ShipLoop builds
 on what the first run decided. Its checks are the followed case's checks
 (regression), its own feature checks, and retention checks that see the earlier
 checkout as `$PRIOR_WORK`: every earlier file still exists, no dependency was
-added, the passing test count grew, and the living spec keeps every earlier
+added, no fewer tests pass and the added test lines name the feature's new fields (not a count that must grow: assertions folded into existing tests are building on them), and the living spec keeps every earlier
 requirement ID and adds at least one. The report compares turns and cost with
 the earlier run, and the reviewer judges whether the earlier spec, environment
 notes and modules were used.
@@ -1777,21 +1778,27 @@ python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
 ```
 
 This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
-`scorecard/3` since build step 3). It reads each run's own records, writes nothing into a run folder and calls no model. A
+`scorecard/5` since 2026-10-26). It reads each run's own records, writes nothing into a run folder and calls no model. A
 folder above run folders is walked to them. Two cards are compared only when their ids are equal.
 
 **Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
 - **accuracy:** every verdict, plus the hidden acceptance when the case declares it. Requiredness belongs to the case
   (`cases.json`), so a declared acceptance that was not observed makes the floor `unobserved`, never a pass.
 - **enterprise:** `not_applicable` until its rubric exists.
-- **fidelity:** the engine ended done, with no unverified entry and no skipped evidence.
+- **fidelity:** the engine ended done, with no open unverified entry and no skipped evidence. A deferred
+  acceptance item whose due stage was accepted later without restating the list is unknown, and the floor is
+  `unobserved`, never a pass (SPEC, 2026-10-26). An item still on the latest list is open, and the floor fails.
 
 **The target** is `efficiency`: minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
 minutes, re-orientation minutes.
 
 **Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
 valid.
-- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). It is null when:
+- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). From build step 4 it
+  reads the delivery snapshot in `result.json` (`delivery`: HEAD, tree and `git status` before and after the checks, and
+  a git bundle in `<output>/delivery/work.bundle` that `delivery.restore` rebuilds). It is false when the checks changed
+  the tree, or when a `work/` that still exists changed later, so a torn-down run is graded from its records. A run
+  recorded before the snapshot keeps the live reading. It is null when:
   - the tree can't be read;
   - this run and a run overlapping it wrote the same `/tmp` name;
   - for a case with held-out acceptance, the run's events name a held-out file, the checks folder or the case catalog
@@ -1823,7 +1830,7 @@ python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_
 ```
 
 This is the one scripted rule (SPEC "The promotion contract", contract `promotion/3` since build step 3) that decides whether
-a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/3` cards: run folders, or card files from
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/5` cards: run folders, or card files from
 `scorecard.py --out`.
 
 **The registration, written before the runs,** names:

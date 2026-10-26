@@ -9,8 +9,11 @@ It reads only sentences of the case prompt:
 - "the player fires at a computer-placed fleet": a fleet is more than one ship, so a game ends only after two sinks or more.
 
 So, firing row by row at every cell of a new game: every result is miss, hit or sunk; gameOver is not true before the shot
-that ends the game; that shot sinks a ship, and at least two ships have sunk by then; and a shot after the end does not
-report the game as running again. Fleet layout, ship sizes and the page are left to the product's own tests (SPEC S-9).
+that ends the game; that shot sinks a ship, and at least two ships have sunk by then. After the end, the cells not yet
+fired are fired too: none may hit or sink (a ship still afloat means the game ended before every ship sank), and none may
+report the game as running again. A server that refuses shots after the end is allowed: the prompt says nothing about it.
+Why the after-end sweep (2026-10-26, build step 5, docs/experiments/e2e-oracle-calibration-20261026): a game that ended
+after two of its five ships sank passed the check, because the check only knew "more than one ship". Fleet layout, ship sizes and the page are left to the product's own tests (SPEC S-9).
 
 Why (2026-10-24, docs/experiments/e2e-runner-review-20261024 E2): the case's checks passed the 2026-10-16 audit's server with
 no fleet whose every shot is a miss with gameOver true, and the three stubs of the 2026-10-04 review. Exits 0 on a pass, else
@@ -79,12 +82,19 @@ def main() -> int:
         fail(6, f"a request failed: {exc}")
     except (ValueError, OSError) as exc:
         fail(6, f"a reply could not be read: {exc}")
-    try:
-        after = call(base, "/api/fire", {"game": game, "row": 0, "col": 0})
-    except (urllib.error.URLError, ValueError, OSError):
-        return 0  # refusing a shot after the end is allowed: the prompt says nothing about it
-    if isinstance(after, dict) and after.get("gameOver") is False:
-        fail(7, "a shot after the game ended reported gameOver false")
+    # The cells not yet fired, then (0, 0) again: a ship still afloat or a game running again fails.
+    for cell in [*range(shot + 1, SIZE * SIZE), 0]:
+        row, col = divmod(cell, SIZE)
+        try:
+            after = call(base, "/api/fire", {"game": game, "row": row, "col": col})
+        except (urllib.error.URLError, ValueError, OSError):
+            return 0  # refusing a shot after the end is allowed: the prompt says nothing about it
+        if not isinstance(after, dict):
+            continue
+        if after.get("gameOver") is False:
+            fail(7, f"a shot at ({row},{col}) after the game ended reported gameOver false")
+        if after.get("result") in ("hit", "sunk"):
+            fail(8, f"a shot at ({row},{col}) after gameOver was a {after['result']}: a ship was still afloat when the game ended")
     return 0
 
 

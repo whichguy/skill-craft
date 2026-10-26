@@ -1364,10 +1364,12 @@ class EndStateTest(unittest.TestCase):
     def test_a_done_run_reports_the_unverified_entries_and_their_owners(self):
         state = replay("r2-battleship-sonnet")["block"]["end_state"]
         self.assertEqual(state["status"], "done")
-        self.assertEqual(state["unverified"]["owners"], ["user"])
-        self.assertGreaterEqual(state["unverified"]["entries"], 1)
+        # A user-owned item due at the handoff, which ran without restating the list. Before ShipLoop's restatement rule
+        # (inner-loop d84d30a9) that is unknown, so it is not restated, not open (SPEC, 2026-10-26).
+        self.assertEqual(state["unverified"], {"entries": 0, "owners": [], "not_restated": 1, "not_restated_due": ["handoff"]})
         empty = replay("r2-checkers-sonnet")["block"]["end_state"]["unverified"]
-        self.assertEqual(empty, {"entries": 0, "owners": []}, "an empty list says every request outcome was observed")
+        self.assertEqual(empty, {"entries": 0, "owners": [], "not_restated": 0, "not_restated_due": []},
+                         "an empty list says every request outcome was observed")
 
     def test_a_run_whose_results_carry_no_unverified_key_is_unmeasured_not_zero(self):
         block = replay("r1-battleship-sonnet")["block"]
@@ -1383,9 +1385,36 @@ class EndStateTest(unittest.TestCase):
     def test_the_last_unverified_list_wins_over_an_earlier_one(self):
         two = [{"outcome": "a", "owner": "user"}, {"outcome": "b", "owner": "ops"}]
         state = self.end_state_of([("done", {"unverified": two}), ("done", {"unverified": [two[0]]}), ("done", {})])
-        self.assertEqual(state["unverified"], {"entries": 1, "owners": ["user"]})
+        self.assertEqual(state["unverified"], {"entries": 1, "owners": ["user"], "not_restated": 0, "not_restated_due": []})
         state = self.end_state_of([("done", {"unverified": [two[0]]}), ("done", {"unverified": two})])
-        self.assertEqual(state["unverified"], {"entries": 2, "owners": ["ops", "user"]})
+        self.assertEqual(state["unverified"], {"entries": 2, "owners": ["ops", "user"], "not_restated": 0, "not_restated_due": []})
+
+    def staged(self, results):
+        """end_state on a done state with one accepted result per (stage, extra keys), in history order."""
+        history = [{"action": f"a{i}", "stage": stage, "outcome": "done"} for i, (stage, _) in enumerate(results)]
+        accepted = {f"a{i}": {"outcome": "done", "summary": "x", **extra} for i, (_, extra) in enumerate(results)}
+        return self.fidelity.end_state({"status": "done", "history": history, "accepted": accepted})["unverified"]
+
+    def test_a_deferred_item_whose_due_stage_never_restated_the_list_is_not_restated_never_open_or_settled(self):
+        # SPEC (2026-10-26): hello on the 2.13.2 Grok gate. Release-verify settled R-1 in prose only, and restated no list.
+        r1 = {"requirement": "R-1", "outcome": "the consumer copy prints the greeting", "owner": "release-verify",
+              "due_stage": "release-verify"}
+        found = self.staged([("product-acceptance", {"unverified": [r1]}), ("release-verify", {}), ("handoff", {})])
+        self.assertEqual(found, {"entries": 0, "owners": [], "not_restated": 1, "not_restated_due": ["release-verify"]})
+
+    def test_a_restated_list_is_the_data_settled_dropped_open_kept_and_an_item_due_at_a_skipped_stage_stays_open(self):
+        r1 = {"requirement": "R-1", "outcome": "greeting", "owner": "release-verify", "due_stage": "release-verify"}
+        r3 = {"requirement": "R-3", "outcome": "the click shows the result", "owner": "handoff", "due_stage": "handoff"}
+        settled = self.staged([("product-acceptance", {"unverified": [r1]}), ("release-verify", {"unverified": []}), ("handoff", {})])
+        self.assertEqual((settled["entries"], settled["not_restated"]), (0, 0), "[] once settled")
+        moved = self.staged([("product-acceptance", {"unverified": [r1]}), ("release-verify", {"unverified": [r3]}),
+                             ("handoff", {"unverified": [r3]})])
+        self.assertEqual((moved["entries"], moved["not_restated"], moved["owners"]), (1, 0, ["handoff"]), "still open: fail")
+        # inner-loop's edge case: an item due at a stage that never ran is carried to the handoff, so it is open and overdue.
+        skipped = self.staged([("product-acceptance", {"unverified": [r1]}), ("handoff", {"unverified": [r1]})])
+        self.assertEqual((skipped["entries"], skipped["not_restated"]), (1, 0))
+        never_ran = self.staged([("product-acceptance", {"unverified": [r1]}), ("handoff", {})])
+        self.assertEqual((never_ran["entries"], never_ran["not_restated"]), (1, 0), "its due stage never ran, so nothing settled it")
 
     def test_no_default_is_true_only_when_the_result_states_why_no_default_would_do(self):
         for awaiting, expected in (({"kind": "answer", "no_default": "No default would do: a person must grant it"}, True),

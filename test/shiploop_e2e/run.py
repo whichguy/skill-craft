@@ -137,6 +137,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import boundary  # noqa: E402
 import counters  # noqa: E402
+import delivery  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
 import flow  # noqa: E402
@@ -4483,9 +4484,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # A regrade of a platform run that was cleaned cannot ask the platform again: it restates the checks the run made while the
     # work was deployed, rather than replace a pass with checks that find nothing there.
     restated = bool(regrade and platform_spec and (earlier_cleanup or {}).get("ok") and earlier_result.get("checks"))
+    # The delivery snapshot (SPEC: build step 4): the delivered tree before the checks, with a bundle that rebuilds it. A regrade
+    # keeps the first run's, since this tree may already have been checked once.
+    earlier_delivery = (earlier_result.get("delivery") or {}).get("before") if regrade else None
+    delivered_before = earlier_delivery if isinstance(earlier_delivery, dict) else delivery.capture(work, out)
     check_results = (earlier_result["checks"] if restated else
                      run_checks(work, to_run, timeout=(platform_spec or {}).get("check_timeout", CHECK_TIMEOUT), env=check_env,
                                 scrubbed=bool(platform_spec)))
+    delivered_after = delivery.fingerprint(work)  # what the checks left; scorecard's correctness compares the two
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
         # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
@@ -4626,6 +4632,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
+              "delivery": {"before": delivered_before, "after": delivered_after},
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               **({"release_slice": release} if release else {}),
               "expectations": expectations,
