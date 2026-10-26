@@ -29,7 +29,8 @@ The parts, each read from records the harness already writes:
   the hidden acceptance checks and the mutation ratio. **Requiredness belongs to the case** (``cases.json``): a case that
   declares hidden acceptance requires it, so an unobserved acceptance leaves the floor ``unobserved``, never a pass.
 * ``enterprise`` (a floor): ``not_applicable`` until the scripted rubric exists.
-* ``fidelity`` (a floor): the engine ended done, with no unverified entry and no skipped evidence. Edits of script-owned
+* ``fidelity`` (a floor): the engine ended done, with no open unverified entry and no skipped evidence. An entry whose due
+  stage was accepted later without restating the list is unknown, and the floor is ``unobserved`` (``scorecard/5``). Edits of script-owned
   files, refusals and retired glossary terms in ShipLoop's replies (``nomenclature``, S-16) are reported beside it; the
   edit list is a heuristic to confirm (SPEC), so it decides nothing. ``improve_reviews`` is left out: on the 2.9.0 runs it
   reads 0 children beside 10 Improve children, a reader that has not followed the Improve route's change.
@@ -56,7 +57,7 @@ import delivery  # noqa: E402  (delivery.fingerprint and delivery.changed: the d
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
 
-SCORECARD_ID = "scorecard/4"
+SCORECARD_ID = "scorecard/5"
 VERDICTS = ("invoked", "plugin", "process", "shiploop", "committed")
 NOT_YET = "no scripted enterprise rubric yet (design P2)"
 PASS, FAIL, UNOBSERVED, NOT_APPLICABLE = "pass", "fail", "unobserved", "not_applicable"
@@ -252,12 +253,14 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
         return {"floor": UNOBSERVED}
     end = record.get("end_state") or {}
     unverified = (end.get("unverified") or {}).get("entries")
+    not_restated = (end.get("unverified") or {}).get("not_restated") or 0  # a reading from before 2026-10-26 has no count
     skipped = ((record.get("evidence") or {}).get("counts") or {}).get("skipped")
     edits = (record.get("edits") or {}).get("script_owned")
     refusals = record.get("refusals") or {}
     # The edit list is a heuristic the SPEC calls a list to confirm, not a count to trust, so it is reported and never
     # decides the floor: an Improve stage's own investigation file can land in it.
-    block = {"end_status": end.get("status"), "unverified": unverified, "skipped_evidence": skipped,
+    block = {"end_status": end.get("status"), "unverified": unverified, "unverified_not_restated": not_restated,
+             "skipped_evidence": skipped,
              "script_owned_edits_to_confirm": len(edits) if isinstance(edits, list) else edits,
              "refusals": refusals.get("count"), "repeated_refusals": refusals.get("repeated"),
              "retired_terms": None}
@@ -271,7 +274,8 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
     for name in missing:
         unmeasured[f"fidelity.{name}"] = "the fidelity block does not carry it"
     block["floor"] = (UNOBSERVED if missing or end.get("status") is None else
-                      PASS if end.get("status") == "done" and unverified == 0 and skipped == 0 else FAIL)
+                      (FAIL if end.get("status") != "done" or unverified != 0 or skipped != 0
+                       else UNOBSERVED if not_restated else PASS))
     return block
 
 

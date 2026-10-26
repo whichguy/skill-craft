@@ -608,8 +608,10 @@ def end_state(state: dict) -> dict:
     a blocked result, ``blocked_by`` (a run recorded before the four outcomes; None in a current one) and ``awaiting`` (the kind: answer,
     present or service, and whether it states why no default would do), read through
     ``metrics.blocked_detail``, the one reader of the blocked detail (outcome_class's ``termination`` reads it too): only while the engine
-    is blocked on its last history action, so an answered block reads None; the product-acceptance ``unverified`` list of the last result
-    that carries one (None when no result carries the key). Nothing here is a verdict."""
+    is blocked on its last history action, so an answered block reads None; and the deferred acceptance items (SPEC: fidelity's deferred
+    acceptance items, 2026-10-26). The latest accepted result that carries ``unverified`` governs. Of its entries, one whose
+    ``due_stage`` was accepted later without restating the list is ``not_restated`` (unknown); the rest are open (``entries``). None when
+    no result carries the key. Nothing here is a verdict."""
     if not isinstance(state, dict) or not state.get("status"):
         raise Unmeasured("state.md records no status (no ShipLoop run directory, or one of another layout)")
     history = [h for h in state.get("history") or [] if isinstance(h, dict)]
@@ -619,16 +621,23 @@ def end_state(state: dict) -> dict:
     # awaiting_no_default is a bool exactly when the blocked result carries an awaiting record; None when it awaits nothing.
     awaiting = (None if detail["awaiting_no_default"] is None
                 else {"kind": detail["awaiting_kind"], "no_default": detail["awaiting_no_default"]})
-    unverified = None
-    for item in history:
+    unverified, carried_at = None, -1
+    for index, item in enumerate(history):
         entry = accepted.get(item.get("action"))
         if isinstance(entry, dict) and isinstance(entry.get("unverified"), list):
-            unverified = entry["unverified"]
+            unverified, carried_at = entry["unverified"], index
+    later = [(item.get("stage"), accepted.get(item.get("action"))) for item in history[carried_at + 1:]]
+    not_restated = [u for u in unverified or [] if isinstance(u, dict) and u.get("due_stage")
+                    and any(stage == u["due_stage"] and isinstance(result, dict) and "unverified" not in result
+                            for stage, result in later)]
+    still_open = [u for u in unverified or [] if u not in not_restated]
     return {"status": state.get("status"), "stage": metrics.current_stage(state), "unaccepted_stage": metrics.pending_stage(state),
             "status_reason": clip(state.get("status_reason")), "blocked_by": blocked_by, "awaiting": awaiting,
             "unverified": None if unverified is None else {
-                "entries": len(unverified),
-                "owners": sorted({str(u["owner"]) for u in unverified if isinstance(u, dict) and u.get("owner")})}}
+                "entries": len(still_open),
+                "owners": sorted({str(u["owner"]) for u in still_open if isinstance(u, dict) and u.get("owner")}),
+                "not_restated": len(not_restated),
+                "not_restated_due": sorted({str(u["due_stage"]) for u in not_restated})}}
 
 
 # --- the block ------------------------------------------------------------------------------------------------------------

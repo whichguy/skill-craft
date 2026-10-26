@@ -2119,7 +2119,7 @@ class ScorecardTest(unittest.TestCase):
         for name, (accuracy, fidelity, minutes, cost, turns, refusals, planning, reorientation) in self.WANT.items():
             card = cards[name]
             with self.subTest(run=name):
-                self.assertEqual(card["scorecard"], "scorecard/4")
+                self.assertEqual(card["scorecard"], "scorecard/5")
                 # Graded before build step 3: no grading digest, and the reason says so.
                 self.assertEqual({k: card["boundary"][k] for k in ("evaluator", "oracle", "case")},
                                  {"evaluator": None, "oracle": None, "case": None})
@@ -2220,6 +2220,19 @@ class ScorecardTest(unittest.TestCase):
         self.assertFalse(correctness["valid"])
         self.assertIn("the checks changed the delivered tree: the work tree changed:  D page.html", correctness["why"][0])
 
+    def test_a_deferred_item_not_restated_leaves_fidelity_unobserved_and_an_open_one_fails(self):
+        # scorecard/5 (SPEC, 2026-10-26): not restated is unknown, never a pass; still on the latest list is open, a fail.
+        def floor(unverified):
+            run_dir = self.run_folder(f"day/fid-{len(list((self.tmp / 'runs' / 'day').glob('fid-*'))) if (self.tmp / 'runs' / 'day').exists() else 0}",
+                                      {"case": "hello", "pass": True}, tmp_writes=[])
+            (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": [], "fidelity": {
+                "end_state": {"status": "done", "unverified": unverified}, "evidence": {"counts": {"skipped": 0}}}}))
+            return scorecard.score(run_dir)["floors"]["fidelity"]
+        self.assertEqual(floor({"entries": 0, "owners": [], "not_restated": 1, "not_restated_due": ["release-verify"]}), "unobserved")
+        self.assertEqual(floor({"entries": 1, "owners": ["handoff"], "not_restated": 0, "not_restated_due": []}), "fail")
+        self.assertEqual(floor({"entries": 0, "owners": [], "not_restated": 0, "not_restated_due": []}), "pass")
+        self.assertEqual(floor({"entries": 1, "owners": ["release-verify"]}), "fail", "a reading from before 2026-10-26 is unchanged")
+
     def test_a_host_build_that_changed_mid_run_voids_attribution_and_timing(self):
         # inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 between two chess runs alone blocked the deploy.
         launches = [{"host": "grok", "host_build": "grok 1.0.62 (aaa)"}, {"host": "grok", "host_build": "grok 1.0.70 (bbb)"}]
@@ -2262,7 +2275,7 @@ class ScorecardTest(unittest.TestCase):
     def test_a_value_nothing_measured_is_null_or_unobserved_with_its_reason(self):
         run_dir = self.tmp / "bare"
         run_dir.mkdir()
-        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/4", "run": str(run_dir), "observed": False,
+        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/5", "run": str(run_dir), "observed": False,
                                                     "reason": "no readable result.json"})
         (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True}))
         card = scorecard.score(run_dir)
@@ -2282,7 +2295,7 @@ class ScorecardTest(unittest.TestCase):
         with contextlib.redirect_stdout(printed):
             self.assertEqual(scorecard.main([str(runs), "--json", "--out", str(self.tmp / "cards.json")]), 0)
         self.assertEqual(len(json.loads(printed.getvalue())["cards"]), 7)
-        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/4")
+        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/5")
         self.assertEqual({str(p): p.stat().st_mtime_ns for p in runs.rglob("*")}, before, "nothing in a run folder changed")
         inside = runs / "20261010" / "checkers-1" / "cards.json"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
@@ -2292,14 +2305,14 @@ class ScorecardTest(unittest.TestCase):
         text = io.StringIO()
         with contextlib.redirect_stdout(text):
             scorecard.main([str(runs)])
-        self.assertIn("scorecard/4: 7 run(s)", text.getvalue())
+        self.assertIn("scorecard/5: 7 run(s)", text.getvalue())
         self.assertIn("timing: resumed", text.getvalue())
 
 
 def card(case: str, *, passed: bool = True, fidelity: str = "pass", cost: float | None = 5.0, minutes: float = 20.0,
          correct: bool | None = True, timed: bool | None = True, evaluator: str | None = "e1", candidate: str = "p1") -> dict:
     """A scorecard/3 card with only what the promotion contract reads; each case has its own catalog entry, so its own digest."""
-    return {"scorecard": "scorecard/4", "observed": True, "case": case,
+    return {"scorecard": "scorecard/5", "observed": True, "case": case,
             "boundary": {"evaluator": evaluator, "oracle": "o1", "case": f"c-{case}", "candidate": candidate},
             "floors": {"accuracy": "pass" if passed else "fail", "enterprise": "not_applicable", "fidelity": fidelity},
             "validity": {"correctness": {"valid": correct}, "attribution": {"valid": True}, "timing": {"valid": timed}},

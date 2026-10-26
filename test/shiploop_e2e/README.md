@@ -417,7 +417,8 @@ is the one reader of that.
   blocked result the last accepted entry's `blocked_by` and `awaiting` (its `kind`, and whether `no_default` states why no
   default would do), read through `metrics.blocked_detail`, the one reader `termination`'s `engine_blocked_by` and
   `engine_awaiting_*` use too: only while the engine is blocked on its last history action, so a block that was answered (the
-  engine active again) reads null; `unverified` is the product-acceptance list (`entries`, `owners`), null when no result carries the key
+  engine active again) reads null; `unverified` is the latest accepted list's open items (`entries`, `owners`) and those whose due stage was accepted
+  later without restating it (`not_restated`, `not_restated_due`), null when no result carries the key
   (a result without the key says nothing, it is not an empty list, which says every outcome was observed);
 
 **What no script checks.** Whether one call carries one step (S-2), whether the cards agree with the scripts (S-3), packet
@@ -1777,14 +1778,16 @@ python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
 ```
 
 This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
-`scorecard/4` since build step 4). It reads each run's own records, writes nothing into a run folder and calls no model. A
+`scorecard/5` since 2026-10-26). It reads each run's own records, writes nothing into a run folder and calls no model. A
 folder above run folders is walked to them. Two cards are compared only when their ids are equal.
 
 **Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
 - **accuracy:** every verdict, plus the hidden acceptance when the case declares it. Requiredness belongs to the case
   (`cases.json`), so a declared acceptance that was not observed makes the floor `unobserved`, never a pass.
 - **enterprise:** `not_applicable` until its rubric exists.
-- **fidelity:** the engine ended done, with no unverified entry and no skipped evidence.
+- **fidelity:** the engine ended done, with no open unverified entry and no skipped evidence. A deferred
+  acceptance item whose due stage was accepted later without restating the list is unknown, and the floor is
+  `unobserved`, never a pass (SPEC, 2026-10-26). An item still on the latest list is open, and the floor fails.
 
 **The target** is `efficiency`: minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
 minutes, re-orientation minutes.
@@ -1827,7 +1830,7 @@ python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_
 ```
 
 This is the one scripted rule (SPEC "The promotion contract", contract `promotion/3` since build step 3) that decides whether
-a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/4` cards: run folders, or card files from
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/5` cards: run folders, or card files from
 `scorecard.py --out`.
 
 **The registration, written before the runs,** names:
