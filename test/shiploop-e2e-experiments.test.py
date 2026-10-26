@@ -760,6 +760,10 @@ class ProgressCard(unittest.TestCase):
         (done / "stderr.txt").write_text(RoundSpeedups.REFUSED)
         state = progress_card.sample_state(done.parent, None, now=0.0, scorer=lambda folder: {"value": 0})
         self.assertEqual(state, {"state": "error", "why": "host refused: HTTP 402: Grok Build usage balance exhausted"})
+        # R3's Cg 3 (2026-10-26) was refused before it wrote a result; the card counted it as a fifth running slice.
+        (done / "slice-result.json").unlink()
+        state = progress_card.sample_state(done.parent, None, now=0.0, scorer=lambda folder: {"value": 0})
+        self.assertEqual(state["state"], "error")
 
     def test_the_model_carries_iso_times_for_a_live_card_and_renders_as_the_card(self):
         import progress_card  # noqa: PLC0415
