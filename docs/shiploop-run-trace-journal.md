@@ -182,7 +182,7 @@ Lesson: for a change that writes a new file into every run, select the suites th
 chain*, backchain-check) and the e2e apparatus, not only the suites the changed files reference. Gap: chain commands
 (ask-agent runs) are not in the trace.
 
-## 2026-10-25: live check on a real host run, ShipLoop 1.12.0 (interim: 1.12.1 rerun pending)
+## 2026-10-25: live check on a real host run, ShipLoop 1.12.0 (interim; superseded by the 1.13.1 rerun below, which is firm)
 
 **Question.** Does the released trace (skill-craft 2.12.0 / ShipLoop 1.12.0, `5485b896`) record and show a real host run:
 command, packet and hook lines in order; each packet kept as sent; refusals with their text; keepalive continuations
@@ -243,16 +243,66 @@ or `| `). Evidence: `docs/shiploop-run-trace-evidence/intake-sentence-survey-202
 `test/shiploop-trace.test.py`: 25 tests pass. Quick tier (`run-all.sh --group quick --changed-from 5485b896 --jobs 6`):
 PASS, 27 suites, 173.3 s wall (before the `--action` change, which touches `find_action` only).
 
-**Status: interim.** The parent session reported that 1.12.0 failed main's full CI and 1.12.1 follows (navigator
+**Status: interim** (superseded 2026-10-25 by the rerun on ShipLoop 1.13.1, which shipped as 1.13.1, not 1.12.1, after 2.13.0). The parent session reported that 1.12.0 failed main's full CI and 1.12.1 follows (navigator
 command tracing unchanged; `chain`, `lint`, `red-check`, `backchain-check` no longer traced; packet lines only during a
 traced command), so the firm check is the rerun on 1.12.1. Not verified on any real run: a keepalive continuation
 with its injected text; a reprinted packet. `workspace plan-return`/`review-return`/`return` are not in the trace by
 design (they name `--workspace-root`); whether they should be is open.
+
+## 2026-10-25: rerun on ShipLoop 1.13.1, the release carrying the fixes (firm)
+
+**Question.** The same as the 1.12.0 live check, on the release that carries this branch's fixes (`191f272f`) and the
+CI fix (`96f023a2`: only navigator commands on a current run are traced; packet lines only while one runs; `chain`,
+`lint`, `red-check`, `backchain-check` untraced): skill-craft 2.13.1 / ShipLoop 1.13.1, release `a677b55d`.
+
+**Case.** `hello`, `run.py --case hello --host claude --source marketplace --timeout 3600 --max-budget-usd 15`, Claude
+Sonnet 5.5 at host default effort, after `--preflight-only --host all` (Claude, Codex and Grok all got 2.13.1 / 1.13.1).
+Output `~/e2e-runs/20261025/trace-verify-1131-b096ae/hello` (not in the repo). PASS on every verdict: done in 795 s,
+$4.39, 1 session, 24 accepted steps, no send-back; the harness reported no other run alive. Evidence:
+`docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.13.1/`.
+
+| Feature | 1.13.1 result | Evidence |
+|---|---|---|
+| `trace.jsonl` lines in order | worked: 92 lines (58 command, 33 packet, 1 hook), timestamps monotonic; every packet line is followed by the command that printed it | `trace.jsonl` |
+| untraced verbs | worked: no `chain`, `lint`, `red-check` or `backchain-check` line, although the host ran `lint` 4 times (one command also ran `red-check`) | `trace.jsonl`, `flow-read-first.json` |
+| `workspace start` once | worked (fix confirmed): one `workspace` line `[None, 0]`, no `init` line; the init's intake packet is kept | `trace.jsonl` lines 1-2 |
+| packets kept as sent | worked: 33 packet lines, every `packets/sent/<sha>.md` present and matching its sha; 19 printed as a head, each head kept (52 files); 0 reprints | `trace.jsonl` |
+| refusal / check text | worked: the run's one failure, a `--check-only` (`expectation E1.from must be the id of an open plan assumption, such as A3`), is a check with its text in the digest, `--action` and the page; the run had no navigator refusal, so refusal text rests on the 1.12.0 run (same code path) | `action-step-plan-bare-hex.txt`, `page-check.json` |
+| keepalive continuation text | **not exercised**: the one hook line is `allow: run is done` (no text, as designed); the headless session never ended a turn early | `trace.jsonl` |
+| digest | worked; plurals right ("1 check failed", "of 1 sentence") | `digest.txt` |
+| `--action` | worked with the bare hex `bcf73ba9` (fix confirmed) | `action-step-plan-bare-hex.txt` |
+| `--request` | worked (fix confirmed): "intake read 1 of 1 sentence", S1 → outcome. Intake wrote `S1: outcome - …`; the 1.12.0 reader maps 0 on this very summary | `request.txt` |
+| `--json`, `--html` | worked (into the run and to a path) | `page-check.json` |
+| page | worked: 0 console messages, 0 animated elements, 24 chips done, legend only done / I / steps, request card "intake read 1 of 1 sentence" with the reading, local PDT times with UTC tooltips, no live toggle on a done run, no horizontal scroll at 1024 and 375 px | `page-check.json` |
+
+**Counts against `flow.py --read-first` (same run).** Reconciled exactly.
+
+| | trace | flow | difference |
+|---|---|---|---|
+| refusals | 0 refused + 1 failed check | 1 refusal | the same event: the `--check-only` failure (a check in the trace, a refusal in flow) |
+| commands | 58 (1 `workspace`, 41 `complete`, 16 `improve-pass`) | 67 invocations (5 `workspace`, 41 `complete`, 17 `improve-pass`, 4 `lint`) | 4 `workspace plan-return` ×2 / `review-return` / `return` (untraced: `--workspace-root`); 4 `lint` (untraced since 1.13.1); 1 `improve-pass` that never reached ShipLoop (`can't open file`: the model mistyped the CLI path) |
+| packets | 33 | 23 producer rows | 33 = 24 producer packets (23 stages + `done`) + 9 Improve. flow lacks W1's step-plan: the model sent the `complete` output carrying that packet to `run/scratch/out.txt` and read it in `grep`/`sed` slices, so its head never reached a tool result whole; the trace recorded the print. On 1.12.0 the two lists matched (27 = 27) |
+| skill calls | 9 | 9 `skill-craft:improve` | none |
+
+**Status: firm** for every feature above marked worked, on a real Claude Sonnet run of the released 1.13.1, with
+the four 1.12.0 defects confirmed fixed. Not verified on any real run: a keepalive continuation's injected text (a
+headless Claude session ends its turn only when the run is done; the hermetic test with a recorded Claude payload
+stays the only evidence) and a packet reprint. Open, not changed: `workspace plan-return`/`review-return`/`return` are
+not in the trace (they name `--workspace-root`), so a release's return steps and their refusals (one stale
+`plan-return` on 1.12.0) are visible only in the host stream.
+
+**Test change after the release (63b0392f, test only).** `test_workspace_start_is_one_command_though_it_runs_init_or_next`
+failed in CI's full shard on 2.13.1: GitHub runners set a global git-lfs filter, and `workspace start` refuses custom
+filters. The test now runs git and the CLI with `GIT_CONFIG_NOSYSTEM=1` and `GIT_CONFIG_GLOBAL=/dev/null`, as
+`test/shiploop-workspace.test.py` does; a simulated global lfs filter reproduces the failure without it. No product
+change, so neither live run above is affected.
 
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a
   `note` event, and the next packet quoting unread notes. Needs a packet change, so it waits for the owner.
 - **E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
-  `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.
+  `trace.jsonl` instead for refusals, reprints and hook text once a released run has one. Released runs have one since
+  1.13.1, and the 1.13.1 rerun shows the gain: flow missed W1's step-plan packet (redirected to a file, read in slices)
+  that the trace recorded, and counted a heredoc script as `init` on 1.12.0.
 - **Hosts other than Claude Code** record Skill calls nowhere; the trace does not change that.

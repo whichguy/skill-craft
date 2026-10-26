@@ -3062,7 +3062,7 @@ about 9 minutes, and the web-service suite never started. Stopping the task left
 observer (`shiploop_progress.py --watch`) orphaned. It was ended by hand, so it could not look like a Grok process to
 the next Grok user. Grok went back to E-EFF1. The trio reruns on the release that fixes CI.
 
-## Run-trace live check: hello on Claude Sonnet 5.5, ShipLoop 1.12.0 (2026-10-25) — status: interim (rerun on the fixing release pending)
+## Run-trace live check: hello on Claude Sonnet 5.5, ShipLoop 1.12.0 then 1.13.1 (2026-10-25) — status: firm (1.13.1 rerun passed)
 
 Question: does the run trace (`RUN/trace.jsonl`, `shiploop trace`, `RUN/trace.html`, new in 1.12.0) record and show a
 real host run? Case `hello`, `run.py --case hello --host claude --source marketplace` (skill-craft 2.12.0), Claude Sonnet
@@ -3084,7 +3084,23 @@ main's full CI on 1.12.0 failed because routed verbs were traced (fixed in 96f02
 
 Not verified on a real run: a keepalive continuation's injected text (the headless session never ended a turn early)
 and a packet reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.12.0/`, journal
-`docs/shiploop-run-trace-journal.md`. Next: rerun `hello` on the release that carries both fixes.
+`docs/shiploop-run-trace-journal.md`.
+
+Rerun on the fixing release (skill-craft 2.13.1 / ShipLoop 1.13.1, `a677b55d`, carrying 191f272f and 96f023a2): `hello`,
+same command, Claude Sonnet 5.5, preflight `--host all` OK; output `~/e2e-runs/20261025/trace-verify-1131-b096ae/hello`.
+PASS on every verdict: done in 795 s, $4.39, 1 session, 24 accepted steps, no other harness run alive. The four
+defects are fixed on the real run: intake wrote `S1: outcome - …` (the 1.12.0 reader maps 0 on that summary) and the
+request view reads "intake read 1 of 1 sentence" with the reading; `workspace start` is one line; `--action` takes
+the bare hex; plurals are right. 1.13.1's own change held: no `lint`/`red-check`/`chain` lines although the host ran
+`lint` 4 times, and every packet line sits in a traced command. 92 lines in order, every packet kept as sent (19 heads
+kept), the one failed `--check-only` carries its text, the page is clean (no console errors, nothing animated, local
+times, no horizontal scroll at 1024 and 375 px). Counts reconcile exactly with `flow.py --read-first` (58 vs 67
+commands: 4 untraced `workspace` return verbs, 4 untraced `lint`, 1 `improve-pass` the model sent to a mistyped CLI
+path; 33 packets vs 23 producer rows: flow missed W1's step-plan because the model redirected that print to a file).
+Learning for the harness: the trace sees prints a stream parser cannot (a redirected `complete` output), so flow's
+producer rows undercount when the model redirects output. Still not exercised on a real run: a keepalive
+continuation's text and a reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.13.1/`;
+journal entry "rerun on ShipLoop 1.13.1".
 
 ## Grok release-gate trio on 2.13.2 / ShipLoop 1.13.1 (2026-10-26) — status: firm for the verdicts and the two findings; n=1 per case
 
