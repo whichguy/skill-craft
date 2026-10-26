@@ -663,8 +663,9 @@ def preflight_line(versions: dict) -> str:
 class LiveView:
     """One short line per assistant message or tool call, from either host's stream."""
 
-    def __init__(self, start: float, enabled: bool):
-        self.start, self.enabled, self.text = start, enabled, ""
+    def __init__(self, start: float, enabled: bool, priced: bool = True):
+        # ``priced`` False: the host's own cost figure is not the run's (Claude on Ollama prices at Anthropic's rates).
+        self.start, self.enabled, self.text, self.priced = start, enabled, "", priced
 
     def emit(self, line: str):
         if self.enabled:
@@ -697,8 +698,9 @@ class LiveView:
             self.tool(name, event.get("rawInput"))
         elif kind in ("result", "end"):
             turns = event.get("num_turns")
+            cost = metrics.money(event.get("total_cost_usd")) if self.priced else "not measured (Ollama)"
             self.emit(f"done  {metrics.session_stop(event) or 'ended'} turns={'not reported' if turns is None else turns} "
-                      f"cost={metrics.money(event.get('total_cost_usd'))}")
+                      f"cost={cost}")
 
     def tool(self, name, arg):
         arg = arg if isinstance(arg, dict) else {}
@@ -830,7 +832,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         if leftover:
             raise SystemExit(f"working directory is not empty: {leftover}")
     start = time.time()
-    view = LiveView(start, watch)
+    view = LiveView(start, watch, priced=env.get("ANTHROPIC_BASE_URL") != hosts.OLLAMA_URL)  # the route the host set
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
     stop = None
     events_path = out / "events.jsonl"

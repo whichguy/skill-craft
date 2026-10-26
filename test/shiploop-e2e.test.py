@@ -4105,6 +4105,8 @@ class ClaudeOnOllamaTest(PrintedCase):
         self.assertIsNone(result["metrics"]["cost_usd"])
         self.assertEqual(result["metrics"]["unmeasured"]["cost_usd"], metrics.OLLAMA_COST)
         self.assertIn(f"host=claude backend=ollama model={hosts.OLLAMA_MODEL}", printed)
+        done = next(line for line in printed.splitlines() if "] done  " in line)
+        self.assertIn("cost=not measured (Ollama)", done, "the live line shows no Anthropic-priced figure")
         card = scorecard.score(out)
         self.assertEqual(card["driver"], {"host": "claude", "backend": "ollama", "model": hosts.OLLAMA_MODEL, "effort": None})
         self.assertEqual(card["unmeasured"]["efficiency.cost_usd"], metrics.OLLAMA_COST)

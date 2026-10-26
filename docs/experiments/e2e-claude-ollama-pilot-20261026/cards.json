@@ -1,0 +1,273 @@
+{
+ "about": "The hello pilot on DeepSeek flash through Claude Code (--backend ollama) and the Sonnet 5.5 hello of the same release, skill-craft 2.16.0 / ShipLoop 1.15.0 from the marketplace, 2026-10-26. scorecard/6 cards, run paths relative to ~/e2e-runs. Both overlapped other runs, so neither is timing evidence.",
+ "cards": [
+  {
+   "scorecard": "scorecard/6",
+   "run": "20261026/pilot-ollama-dsflash-993a9d-hello",
+   "observed": true,
+   "case": "hello",
+   "driver": {
+    "host": "claude",
+    "backend": "ollama",
+    "model": "deepseek-v4.1-flash:1017-cloud",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.16.0",
+    "shiploop_version": "1.15.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 1,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "shared_tmp_names": [],
+    "held_out_seen": null,
+    "delivery_snapshot": {
+     "head": "8ba46388a24d912e4ff8a295223c561470a5f08e",
+     "bundle": "delivery/work.bundle",
+     "during_checks": [],
+     "after_run": []
+    },
+    "correctness": {
+     "valid": true,
+     "why": []
+    },
+    "models_served": [
+     "deepseek-v4.1-flash:1017-cloud"
+    ],
+    "attribution": {
+     "valid": true,
+     "why": []
+    },
+    "timing": {
+     "valid": false,
+     "why": [
+      "overlapped 1 run(s)"
+     ]
+    }
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 2,
+     "total": 2
+    },
+    "acceptance": null,
+    "mutation": null,
+    "acceptance_required": false,
+    "floor": "pass"
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": "not_applicable"
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "unverified_not_restated": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 15,
+    "repeated_refusals": 1,
+    "retired_terms": 0,
+    "floor": "pass"
+   },
+   "efficiency": {
+    "minutes": 58.2,
+    "cost_usd": null,
+    "totals_lower_bound": false,
+    "turns": 1350,
+    "tokens": 81918503,
+    "output_tokens": 589223,
+    "refusals": 15,
+    "improve_children": 10,
+    "planning_minutes": 20.7,
+    "reorientation_minutes": 0.0,
+    "fresh_starts": 0,
+    "calls_before_grounding": 0
+   },
+   "floors": {
+    "accuracy": "pass",
+    "enterprise": "not_applicable",
+    "fidelity": "pass"
+   },
+   "boundary": {
+    "evaluator": "47f3cf9eb0d2",
+    "oracle": "337e9997e136",
+    "case": "313993af1a13",
+    "candidate": "1af320e8eafa"
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure",
+    "efficiency.cost_usd": "the run ran on Ollama (--backend ollama): Claude Code prices its tokens at Anthropic's rates, so its total_cost_usd is not this run's cost; the tokens are"
+   },
+   "record": {
+    "model_calls": 786,
+    "models_served": [
+     "deepseek-v4.1-flash:1017-cloud"
+    ],
+    "tool_calls": 820,
+    "shiploop_failures": [
+     "Run the improve skill on this spec result first: no call to it has been recorded since this Improve stage started. Invok",
+     "test_layers[0].reason is 201 characters; keep it within 160 (the packets print it whole)",
+     "test_layers[1].reason is 164 characters; keep it within 160 (the packets print it whole)",
+     "test_layers[1].reason is 164 characters; keep it within 160 (the packets print it whole)",
+     "targets[0].target is 107 characters; keep it within 60 (the packets print it whole)",
+     "targets[0].base_state_route is 483 characters; keep it within 240 (the packets print it whole)",
+     "targets[0].base_state_route is 302 characters; keep it within 240 (the packets print it whole)",
+     "targets[0].base_state_route is 276 characters; keep it within 240 (the packets print it whole)",
+     "targets[0].base_state_route is 255 characters; keep it within 240 (the packets print it whole)",
+     "W1: concern config's owner_stage must be one of step-plan, test, document, system-test-author, release-plan, operations",
+     "shiploop: error: unrecognized arguments: --final-result=/Users/dadleet/e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hel",
+     "a done step-plan result must list test_commands: [{\"command\": \"<shell command>\", \"suite\": \"focused\" | \"regression\", \"ids",
+     "red_na is a non-empty list of {id, reason, ...}",
+     "--check-only previews a producer stage's draft result; the Improve stage has no draft to check, and its complete imports",
+     "headline must be one line of at most 100 characters"
+    ]
+   }
+  },
+  {
+   "scorecard": "scorecard/6",
+   "run": "20261026/live-sonnet-hello-b01d1c",
+   "observed": true,
+   "case": "hello",
+   "driver": {
+    "host": "claude",
+    "backend": null,
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.16.0",
+    "shiploop_version": "1.15.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 3,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "shared_tmp_names": [],
+    "held_out_seen": null,
+    "delivery_snapshot": {
+     "head": "a7379a83460ead19cf7e0c1393cfa03a10474abc",
+     "bundle": "delivery/work.bundle",
+     "during_checks": [],
+     "after_run": []
+    },
+    "correctness": {
+     "valid": true,
+     "why": []
+    },
+    "models_served": null,
+    "attribution": {
+     "valid": true,
+     "why": []
+    },
+    "timing": {
+     "valid": false,
+     "why": [
+      "overlapped 3 run(s)"
+     ]
+    }
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 2,
+     "total": 2
+    },
+    "acceptance": null,
+    "mutation": null,
+    "acceptance_required": false,
+    "floor": "pass"
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": "not_applicable"
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "unverified_not_restated": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 4,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": "pass"
+   },
+   "efficiency": {
+    "minutes": 11.8,
+    "cost_usd": 3.8775,
+    "totals_lower_bound": false,
+    "turns": 193,
+    "tokens": 21235933,
+    "output_tokens": 73555,
+    "refusals": 4,
+    "improve_children": 9,
+    "planning_minutes": 5.3,
+    "reorientation_minutes": 0.0,
+    "fresh_starts": 0,
+    "calls_before_grounding": 0
+   },
+   "floors": {
+    "accuracy": "pass",
+    "enterprise": "not_applicable",
+    "fidelity": "pass"
+   },
+   "boundary": {
+    "evaluator": "c762e11669a7",
+    "oracle": "337e9997e136",
+    "case": "313993af1a13",
+    "candidate": "1af320e8eafa"
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "the case declares no mutation measure"
+   },
+   "record": {
+    "model_calls": 114,
+    "models_served": null,
+    "tool_calls": 116,
+    "shiploop_failures": [
+     "no bound current Improve stage with this action (it may already be imported); to read the current packet run: python3 /U",
+     "Add assumptions to RUN/inbox/nav-297fb25ecaa34632ac63a920f8f97afa.md, then run the same callback again.",
+     "no bound current Improve stage with this action (it may already be imported); to read the current packet run: python3 /U",
+     "ShipLoop navigator: no bound current Improve stage with this action (it may already be imported); to read the current pa"
+    ]
+   }
+  }
+ ]
+}

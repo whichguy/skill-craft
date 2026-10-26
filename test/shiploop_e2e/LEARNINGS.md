@@ -3559,3 +3559,47 @@ ran side by side from a separate worktree at 9ebd66cf.
   `/tmp` writes were not yet known. *Superseded 2026-10-26, after the pilot ended:* it wrote no `/tmp` names (and passed),
   and the rescored card is valid (`cards.json` regenerated).
 - Battleship's mutation was not observed: its tests bind a fixed port (3000).
+
+## Pilot: hello on DeepSeek flash through Claude Code, beside Sonnet 5.5 (2026-10-26) — status: interim, n=1 per model, both overlapped other runs
+
+**Question.** Does ShipLoop carry a cheap, fast model run through the Claude Code harness (`--backend ollama`,
+`deepseek-v4.1-flash:1017-cloud`)? How does that run compare with Sonnet 5.5 on the same case and release (hello,
+skill-craft 2.16.0 / ShipLoop 1.15.0 from the marketplace)?
+
+**Result** (`docs/experiments/e2e-claude-ollama-pilot-20261026/cards.json`): **both PASS**. Accuracy and fidelity pass
+for both, the engine ended done, and no unverified entries remained.
+
+| | DeepSeek flash (Ollama) | Sonnet 5.5 |
+|---|---|---|
+| wall minutes | 58.2 | 11.8 |
+| model calls | 786 | 114 |
+| tokens processed / output | 81.9M / 589k | 21.2M / 73.6k |
+| ShipLoop refusals | 15 | 4 |
+| Improve children | 10 | 9 |
+| planning window | 20.7 min | 5.3 min |
+| cost | not measured (Ollama plan) | $3.88 |
+
+**What the route showed live.**
+- The init event names `deepseek-v4.1-flash:1017-cloud`, authenticated with `ANTHROPIC_API_KEY` (the `ollama` key).
+  The tools were the 11 allowlisted ones, with no MCP.
+- `modelUsage` keys the requested tag, so the served-model rule holds. The stream's message `model` is the tag without
+  `-cloud`, and nothing reads that.
+- The host's own result line priced the run at $65.23, Anthropic's rates for DeepSeek's tokens. The harness reported
+  no cost. The live "done" line now says "not measured (Ollama)" too, a fix that followed the pilot.
+- **A noisier stream.** Claude Code emits one `system/thinking_tokens` event per streamed thinking update. DeepSeek
+  streams in small steps: 3,013 such events in 4 minutes against 132 in the whole Sonnet run. The readers count
+  messages, so no figure changed, but `events.jsonl` is about 20 times larger.
+
+**What it says about ShipLoop (interim).**
+- **The weaker model finished, with more calls and more refusals.**
+  - 12 of its 15 refusals were record fields over their printed bound, such as `test_layers[].reason` over 160
+    characters or a `targets[].target` over 60. Only one repeated.
+  - One was a refused attempt to record an Improve pass with no call to the improve skill, so the gate held.
+- **2.15.0's two gates were not exercised.** No review reached the small-pass cap and no item was deferred, so hello is
+  too small for this live check. Battleship is the case for it.
+- **Timing is not evidence.** The pilot overlapped the Sonnet battleship run (1,242 s), and the Sonnet hello overlapped
+  three runs. Part of DeepSeek's wall time is Ollama cloud latency.
+
+**Next.**
+- Battleship on DeepSeek flash would exercise both gates, as would the Sonnet battleship that is running.
+- An open question: the Anthropic route passes `CLAUDE_EFFORT=xhigh` from a Desktop session. See the previous entry.
