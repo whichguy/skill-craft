@@ -51,12 +51,26 @@ def band(exp: dict) -> str:
     return text + (", layers apart" if shape.get("separate") else "")
 
 
+def started(sample: Path) -> float:
+    """When a sample's slice began: the start its command.json records (experiment.run writes it at each launch), else
+    the slice folder's birth time, else its last change (Linux's os.stat has no birth time: main CI, 2026-10-26)."""
+    try:
+        recorded = json.loads((sample / "command.json").read_text()).get("started")
+    except (OSError, ValueError, AttributeError):
+        recorded = None
+    if isinstance(recorded, (int, float)):
+        return float(recorded)
+    info = (sample / "slice").stat()
+    return getattr(info, "st_birthtime", info.st_mtime)
+
+
 def sample_state(sample: Path, module, now: float, scorer=None) -> dict:
     folder = sample / "slice"
     if not folder.exists():
         return {"state": "pending"}
     if not (folder / "slice-result.json").exists():
-        return {"state": "running", "minutes": (now - folder.stat().st_birthtime) / 60, "since": folder.stat().st_birthtime}
+        since = started(sample)
+        return {"state": "running", "minutes": (now - since) / 60, "since": since}
     try:
         found = (scorer or module.score)(folder)
     except Exception as exc:  # shown as an error slot, never as a pass

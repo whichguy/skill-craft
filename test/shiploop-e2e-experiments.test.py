@@ -694,6 +694,19 @@ class ProgressCard(unittest.TestCase):
         self.assertEqual((job["title"], job["status"], job["updatedAt"]), ("R9", "running", progress["updatedAt"]))
         self.assertEqual([e["text"] for e in job["events"]], ["E6-K1 T sample 2 finished: value 1, 3 steps", "launched"])
 
+    def test_a_running_sample_starts_at_its_recorded_launch_and_needs_no_birth_time(self):
+        """Linux's os.stat has no st_birthtime, so the card failed on main CI (2026-10-26, run 40340118933)."""
+        import progress_card  # noqa: PLC0415
+        from types import SimpleNamespace  # noqa: PLC0415
+        sample = self.out / "E6-K1" / "T" / "1"
+        (sample / "slice").mkdir(parents=True)
+        linux = SimpleNamespace(st_mtime=1_700_000_100.0)
+        with mock.patch.object(Path, "stat", return_value=linux):
+            self.assertEqual(progress_card.started(sample), 1_700_000_100.0)
+        (sample / "command.json").write_text(json.dumps({"argv": [], "started": 1_700_000_000.0}))
+        state = progress_card.sample_state(sample, None, now=1_700_000_600.0)
+        self.assertEqual((state["state"], state["minutes"], state["since"]), ("running", 10.0, 1_700_000_000.0))
+
 
 if __name__ == "__main__":
     unittest.main()
