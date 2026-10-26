@@ -740,6 +740,26 @@ stands at the commit under test.
   and a baseline compares only with rows from the same host, model and effort.
   What a host adds on its own (for example account-enabled plugins in a Codex
   profile) is recorded with the run, never silently removed or ignored.
+- **The Claude host can run on Ollama (added 2026-10-26).** `--backend ollama` runs Claude Code headless with a model
+  the local Ollama server serves (default `deepseek-v4.1-flash:1017-cloud`), the route the `ask-ollama` skill verified.
+  The backend is part of the driver, recorded on every launch, and a resume keeps its run's backend. Owner's ask:
+  evaluations on a cheap, fast model, independent of the Grok and Anthropic budgets.
+  - *No user credential reaches the endpoint.* The host drops every `ANTHROPIC_*` and `CLAUDE_CODE_*` variable, and
+    `CLAUDECODE` and `CLAUDE_PROXY_BYPASS`. It then sets only the Ollama route: the base URL, the key `ollama`, and the
+    model for the main thread, every default model class and subagents. ask-ollama found on 2026-10-24 (Claude Code
+    2.1.310) that a `claude` child started from inside a Claude session sends the user's OAuth bearer to the
+    replacement endpoint otherwise. A hermetic test proves that no token of the parent's reaches the child.
+  - *Only coding tools.* The host passes an explicit `--tools` allowlist (the standard coding tools, plus Skill and
+    Agent for ShipLoop's Improve), so the installation's own orchestration tools never reach an outside model.
+    `--strict-mcp-config` keeps every MCP connector out, as for every Claude run.
+  - *Ready before it starts.* A run is refused before any model starts when the Ollama server does not answer or does
+    not list the model.
+  - *What is not measured.* Claude Code prices the tokens at Anthropic's rates, so the run's cost is not measured
+    (null, with the reason), and `--max-budget-usd` is refused. Tokens (build step 8) are the measure of cost. The
+    models that served the sessions (the result events' `modelUsage`) are recorded, and a run that another model
+    served is not attributable to its driver.
+  - A run on Ollama is a cell of its own, by its model. It is evidence about ShipLoop on that model. It is never
+    compared with an Anthropic model's run, so it never decides a promotion against one.
 - Run unattended (S-14): the host and every check get closed standard input and
   a timeout; a case prompt never needs a person, and a check never waits for
   input.
