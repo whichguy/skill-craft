@@ -163,7 +163,8 @@ def job_document(found: dict, meta: dict) -> dict:
     events = sorted(meta.get("notes", []) + found.get("events", []), key=lambda e: e["at"], reverse=True)[:12]
     return {**found, "title": meta["title"], "subtitle": meta.get("subtitle", ""), "status": meta.get("status", "running"),
             "updatedAt": found["progress"]["updatedAt"], "events": events, "findings": meta.get("findings", []),
-            "legend": {**(found.get("legend") or {}), **(meta.get("legend") or {})}}
+            "legend": {**(found.get("legend") or {}), **(meta.get("legend") or {})},
+            **({"refresh": meta["refresh"]} if meta.get("refresh") else {})}
 
 
 if __name__ == "__main__":

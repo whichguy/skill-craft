@@ -41,6 +41,8 @@ body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-
 .live.done .dot { background: var(--ok-ink); }
 .live.failed .dot, .live.stale .dot { background: var(--err); }
 .live.stale { color: var(--bad-ink); background: var(--bad-bg); border-color: transparent; }
+.live.late { color: var(--run-ink); background: var(--run-bg); border-color: transparent; }
+.ago b { font-weight: 500; color: var(--ink-2); }
 .ago { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
 .jobs { display: flex; gap: 6px; flex-wrap: wrap; }
 .jobs button { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 8px; border: 0.5px solid var(--line-2);
@@ -248,7 +250,18 @@ function tick() {
   else if (age !== null && age > STALE_MIN * 60000) { cls += " stale"; label = "No update for " + span(age); }
   else { cls += " on"; }
   live.className = cls; text.textContent = label;
-  ago.textContent = updated ? "updated " + agoText(age) : "";
+  const refresh = job.refresh || {};
+  const every = Number(refresh.everySeconds) > 0 ? Number(refresh.everySeconds) * 1000 : null;
+  const due = updated && every ? updated + every : null;
+  if (status === "running" && due && now > due + 60000 && !cls.includes("stale")) {
+    cls = "live late"; label = "Update overdue";
+    live.className = cls; text.textContent = label;
+  }
+  const parts = [];
+  if (refresh.count) parts.push("update " + refresh.count);
+  if (updated) parts.push("updated " + agoText(age));
+  if (status === "running" && due) parts.push(now <= due ? "next by " + clock(due) : "next was due " + clock(due));
+  ago.textContent = parts.join(" · ");
   const p = job.progress || {}, line = document.getElementById("etaLine");
   if (line) {
     const etaAt = when(p.etaAt);

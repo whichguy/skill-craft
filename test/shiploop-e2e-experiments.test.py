@@ -582,6 +582,29 @@ class RoundSpeedups(unittest.TestCase):
         shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "grok", None)
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
+    def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
+        """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""
+        for argv in (["queue", "E6D-K2", "--arms", "T,Cg", "--timeout", "10800"],
+                     ["run", "E6D-K2", "--arm", "T", "--sample", "1", "--timeout", "10800"]):
+            with self.subTest(command=argv[0]), self.assertRaises(SystemExit), \
+                    contextlib.redirect_stderr(io.StringIO()) as err:
+                experiment.main(argv + ["--out", str(self.tmp)])
+            self.assertIn("--timeout=10800", err.getvalue())
+
+    def test_a_job_document_carries_its_refresh_stats_and_a_cancelled_host_is_counted(self):
+        import progress_card  # noqa: PLC0415
+        found = {"progress": {"updatedAt": "2026-10-26T07:00:00-07:00"}, "events": [], "legend": {"pass": "scored 1"}}
+        job = progress_card.job_document(found, {"title": "R3", "refresh": {"count": 4, "everySeconds": 210},
+                                                 "legend": {"pass": "delivered"}})
+        self.assertEqual((job["refresh"], job["legend"]["pass"]), ({"count": 4, "everySeconds": 210}, "delivered"))
+        self.assertNotIn("refresh", progress_card.job_document(found, {"title": "R3"}))
+        sys.path.insert(0, str(E2E / "evaluators"))
+        import e6_downstream  # noqa: PLC0415
+        (self.tmp / "events.jsonl").write_text('{"stopReason":"cancelled"}\n{"stopReason":"end_turn"}\n'
+                                               '{"stopReason": "cancelled"}\n')
+        self.assertEqual(e6_downstream.host_cancelled(self.tmp), 2)
+        self.assertEqual(e6_downstream.host_cancelled(self.tmp / "none"), 0)
+
     def test_a_second_queue_in_the_same_folder_is_refused(self):
         import os  # noqa: PLC0415
         (self.tmp / ".queue.lock").write_text(f"{os.getppid()} now\n")

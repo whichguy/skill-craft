@@ -171,7 +171,7 @@
               "C2",
               "C3"
             ],
-            "check": "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\"",
+            "proof": "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\"",
             "skills": []
           }
         ],
@@ -272,7 +272,7 @@
               "C1",
               "C2"
             ],
-            "check": "node scripts/deploy.js && node -e \"require('./src/pricing')\"",
+            "proof": "node scripts/deploy.js && node -e \"require('./src/pricing')\"",
             "skills": []
           }
         ],
@@ -402,7 +402,7 @@
               "C3",
               "C4"
             ],
-            "check": "node -e \"const {parseOrders,total}=require('./src/orders');const m=require('./src/meter');const a=require('assert');const o=parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01');a.deepStrictEqual(o,[{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]);m.reset();a.strictEqual(total(o),399);a.ok(m.count()<=2);a.throws(()=>parseOrders('id=1;qty=0;price=1;status=open;shipped_at='),RangeError);a.throws(()=>parseOrders('id=1;qty=1;price=1;status=open;shipped_at=2026-10-01'),SyntaxError);a.throws(()=>parseOrders(1),TypeError)\"",
+            "proof": "node -e \"const {parseOrders,total}=require('./src/orders');const m=require('./src/meter');const a=require('assert');const o=parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01');a.deepStrictEqual(o,[{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]);m.reset();a.strictEqual(total(o),399);a.ok(m.count()<=2);a.throws(()=>parseOrders('id=1;qty=0;price=1;status=open;shipped_at='),RangeError);a.throws(()=>parseOrders('id=1;qty=1;price=1;status=open;shipped_at=2026-10-01'),SyntaxError);a.throws(()=>parseOrders(1),TypeError)\"",
             "skills": []
           }
         ],
@@ -597,12 +597,12 @@
             "id": "A3"
           },
           {
-            "assumption": "Position-6 legalMoves finishes in under 2000 ms, the plan's reading of well inside 10000 ms.",
-            "check": "SLChessBudgetTest.TC_19 reads Limits.getCpuTime() after legalMoves on position 6.",
-            "consumer": "W1",
-            "disposition": "open",
             "id": "A5",
-            "reason": "If a correct engine exceeds 2000 ms, record the time and keep the 46-move assertion."
+            "assumption": "Position-6 legalMoves finishes in under 2000 ms, the plan's reading of well inside 10000 ms.",
+            "disposition": "open",
+            "settle": "SLChessBudgetTest.TC_19 reads Limits.getCpuTime() after legalMoves on position 6.",
+            "reason": "If a correct engine exceeds 2000 ms, record the time and keep the 46-move assertion.",
+            "due_item": "W1"
           },
           {
             "assumption": "This host has no browser tool that can open the board.",
@@ -614,12 +614,12 @@
             "id": "A6"
           },
           {
-            "assumption": "sf project deploy start --target-org de can add this project's metadata and does not delete unrelated org metadata.",
-            "check": "W1's first deploy of the engine slice. Pass when the command exits 0 and names only this project's files.",
-            "consumer": "W1",
-            "disposition": "open",
             "id": "A7",
-            "reason": "Discovery only read the org. The request grants this deploy, and the command has not been run."
+            "assumption": "sf project deploy start --target-org de can add this project's metadata and does not delete unrelated org metadata.",
+            "disposition": "open",
+            "settle": "W1's first deploy of the engine slice. Pass when the command exits 0 and names only this project's files.",
+            "reason": "Discovery only read the org. The request grants this deploy, and the command has not been run.",
+            "due_item": "W1"
           }
         ]
       }
@@ -780,12 +780,12 @@
             "id": "A3"
           },
           {
-            "assumption": "A new Lightning tab is visible to the System Administrator without a permission set or profile edit.",
-            "check": "After deploy, list CustomTab and query PermissionSetTabSetting for a name containing SLChess_Board. Neither read settles visibility. A person opening /lightning/n/SLChess_Board would.",
-            "consumer": "W3",
-            "disposition": "open",
             "id": "A4",
-            "reason": "The same reads list Chess and SLBattle_Board and find no PermissionSetTabSetting row for them among 72711 rows. No browser tool exists, and this run must not add a permission set."
+            "assumption": "A new Lightning tab is visible to the System Administrator without a permission set or profile edit.",
+            "disposition": "open",
+            "settle": "After deploy, list CustomTab and query PermissionSetTabSetting for a name containing SLChess_Board. Neither read settles visibility. A person opening /lightning/n/SLChess_Board would.",
+            "reason": "The same reads list Chess and SLBattle_Board and find no PermissionSetTabSetting row for them among 72711 rows. No browser tool exists, and this run must not add a permission set.",
+            "due_item": "W3"
           },
           {
             "assumption": "This host has no browser tool that can open the board.",

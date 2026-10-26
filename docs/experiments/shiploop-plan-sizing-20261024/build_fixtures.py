@@ -137,10 +137,20 @@ def plan_records(run: Path, item: str) -> dict:
     concerns = (plan.get("concerns") or {}).get(item)
     if concerns:
         records["concerns"] = {item: concerns}
-    rows = [a for a in plan.get("assumptions") or [] if a.get("consumer") in (None, item)]
+    rows = [current_assumption(a) for a in plan.get("assumptions") or []
+            if (a.get("due_item") or a.get("consumer")) in (None, item)]
     if rows:
         records["assumptions"] = rows
     return records
+
+
+def current_assumption(row: dict) -> dict:
+    """An assumption in today's record shape: an open one names `settle`, `reason` and `due_item` (main since the run-5
+    term fixes; a saved run before them wrote `check` and `consumer`), so the seed's navigator accepts it."""
+    if row.get("disposition") != "open" or "consumer" not in row:
+        return row
+    return {"id": row["id"], "assumption": row["assumption"], "disposition": "open",
+            "settle": row.get("settle") or row.get("check"), "reason": row.get("reason"), "due_item": row["consumer"]}
 
 
 def replay_case(run: Path, base: str, item: str, fixture: str, fake: bool, checks: list[str], shape: dict) -> dict:

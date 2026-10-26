@@ -55,7 +55,17 @@ def score(sample: Path) -> dict:
              if (r.get("result") or {}).get("outcome") == "done"]
     steps = len((plans[-1]["result"].get("steps") or ())) if plans else None
     return {"value": int(bool(result.get("pass"))), "verdicts": result.get("verdicts"), "steps": steps,
-            **cost(_read(sample / "metrics.json") or {}, result)}
+            "host_cancelled": host_cancelled(sample), **cost(_read(sample / "metrics.json") or {}, result)}
+
+
+def host_cancelled(sample: Path) -> int:
+    """How many of the slice's host sessions the host itself cancelled (Grok's stopReason "cancelled"). A slice whose
+    every session was cancelled before its item moved is a host failure, not the template's: R3's T 2 (2026-10-26)."""
+    try:
+        text = (sample / "events.jsonl").read_text(errors="ignore")
+    except OSError:
+        return 0
+    return text.count('"stopReason":"cancelled"') + text.count('"stopReason": "cancelled"')
 
 
 def verify() -> list[dict]:

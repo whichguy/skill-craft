@@ -495,6 +495,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not args.id:
         p.error("an experiment id is required")
+    # An option slice.py takes reaches it through `extra`, but argparse reads a separate value word as a positional
+    # (`--timeout 10800` made "10800" an experiment id, 2026-10-26): such an option goes as one word, --timeout=10800.
+    hint = "; an option for slice.py takes its value in the same word, e.g. --timeout=10800"
+    if args.command == "run" and args.pair:
+        p.error(f"run takes one experiment id; unexpected {' '.join(args.pair)}{hint}")
+    if args.command == "queue":
+        unknown = [name for name in [args.id, *args.pair] if name not in load()]
+        if unknown:
+            p.error(f"queue: unknown experiment {', '.join(unknown)}{hint}")
     if args.command == "run":
         if not args.arm:
             p.error("run needs --arm")
