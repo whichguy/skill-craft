@@ -1118,6 +1118,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         # delayed v2 contract from system-test and must still complete a new
         # release plan without retaining a stale replanning barrier.
         for stage in EXPECTED_INNER:
+            if stage == "implement":
+                # The corrective item's step changes a file, so its review runs: a step that changes none gets no review
+                # (advisors panel 2026-10-25, P4).
+                with (repo / DELIVERED).open("a", encoding="utf-8") as handle:
+                    handle.write("corrected\n")
             state, _ = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage,
@@ -1178,6 +1183,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIn("accepted add-work edge", blocked_packet)
 
         for stage in EXPECTED_INNER:
+            if stage == "implement":
+                # The corrective item's step changes a file, so its review runs: a step that changes none gets no review
+                # (advisors panel 2026-10-25, P4).
+                with (repo / DELIVERED).open("a", encoding="utf-8") as handle:
+                    handle.write("corrected\n")
             state, _ = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage,
