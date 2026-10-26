@@ -68,12 +68,12 @@ def sample_state(sample: Path, module, now: float, scorer=None) -> dict:
     folder = sample / "slice"
     if not folder.exists():
         return {"state": "pending"}
+    refused = experiment.host_failure(sample)
+    if refused:  # not the arm's result: it runs again (before "running": a refused slice may end without a result)
+        return {"state": "error", "why": f"host refused: {refused}"[:80]}
     if not (folder / "slice-result.json").exists():
         since = started(sample)
         return {"state": "running", "minutes": (now - since) / 60, "since": since}
-    refused = experiment.host_failure(sample)
-    if refused:  # not the arm's result: it runs again
-        return {"state": "error", "why": f"host refused: {refused}"[:80]}
     try:
         found = (scorer or module.score)(folder)
     except Exception as exc:  # shown as an error slot, never as a pass
