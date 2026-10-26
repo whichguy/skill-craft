@@ -3061,3 +3061,27 @@ Per the SPEC (a run started on pending CI is cancelled if CI fails), the trio wa
 about 9 minutes, and the web-service suite never started. Stopping the task left the stopped run's ShipLoop progress
 observer (`shiploop_progress.py --watch`) orphaned. It was ended by hand, so it could not look like a Grok process to
 the next Grok user. Grok went back to E-EFF1. The trio reruns on the release that fixes CI.
+
+## Run-trace live check: hello on Claude Sonnet 5.5, ShipLoop 1.12.0 (2026-10-25) — status: interim (rerun on the fixing release pending)
+
+Question: does the run trace (`RUN/trace.jsonl`, `shiploop trace`, `RUN/trace.html`, new in 1.12.0) record and show a
+real host run? Case `hello`, `run.py --case hello --host claude --source marketplace` (skill-craft 2.12.0), Claude Sonnet
+5.5 at host default effort; output `~/e2e-runs/20261025/trace-verify-4fd9f1/hello`. PASS on every verdict: done in
+1,382 s, $7.65, 1 session, 28 accepted steps with one send-back of W1's implement. Two other harness runs shared the
+machine, so time and cost are not comparable.
+
+Worked: 120 trace lines in order (81 command, 38 packet, 1 hook); every packet kept as sent and matching its sha (22
+printed as a head, each head kept); navigator refusals carry their full text; the two failed `--check-only` calls count
+as checks; digest, `--json`, `--html`; the page (no console errors, nothing animated on the finished run, legend lists
+only what the run has, local times, no horizontal scroll at 1024 and 375 px). Counts reconcile exactly with
+`flow.py --read-first`; every difference is a counting rule (flow counts failed checks as refusals and sees workspace
+return verbs; the trace sees `red-check`; flow lists only producer packets).
+
+Defects, fixed in 191f272f with tests that fail on 1.12.0: the request view missed intake's sentence readings on 11 of
+27 real intakes since 2026-10-15 (Sonnet and Codex word the citation differently) and then hid intake's summary;
+`workspace start` was recorded twice; `--action` refused the bare hex id the digest prints; plural slips. Separately,
+main's full CI on 1.12.0 failed because routed verbs were traced (fixed in 96f023a2; see the Grok trio entry above).
+
+Not verified on a real run: a keepalive continuation's injected text (the headless session never ended a turn early)
+and a packet reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.12.0/`, journal
+`docs/shiploop-run-trace-journal.md`. Next: rerun `hello` on the release that carries both fixes.
