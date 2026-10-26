@@ -23,10 +23,10 @@
   },
   "id": "ttt-dynamic-start-prelude-unattributed",
   "observer": {
-    "grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
+    "grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
-    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts backchain-check, the record-only Backchain graph check. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged.",
+    "previous_grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
+    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts trace, the run-trace reader added in ShipLoop 1.12.0. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged.",
     "revalidation_history": [
       {
         "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
@@ -57,6 +57,11 @@
         "grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
         "previous_grok_adapter_sha256": "8321e280b4edfb2138bf112e1a8e149271811f5b906eac547950f097ec00f94a",
         "revalidation": "The direct-form ShipLoop verb allowlist now also accepts view, the progress-view command. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged."
+      },
+      {
+        "grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
+        "previous_grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
+        "revalidation": "The direct-form ShipLoop verb allowlist now also accepts backchain-check, the record-only Backchain graph check. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged. (6382dd6f re-pinned this source for improve-pass and kept the earlier text.)"
       }
     ]
   },
