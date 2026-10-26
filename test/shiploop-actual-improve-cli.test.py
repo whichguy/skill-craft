@@ -2631,13 +2631,13 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
         # IMP-11: passes.md at import, one row per pass with the listed fields.
         passes = (self.run / "improve" / self.action / "passes.md").read_text(encoding="utf-8")
-        self.assertIn("| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
-                      passes)
+        self.assertIn("| stage | pass | label | tree changed | result changed | edited | lines | seconds | skill call "
+                      "recorded |", passes)
         row = next(line for line in passes.splitlines() if line.startswith("| test-strategy | 1 |"))
         cells = [cell.strip() for cell in row.strip("|").split("|")]
-        self.assertEqual(cells[2:6], ["trivial", "n", "n", "n"])
-        self.assertTrue(cells[6].isdigit(), row)
-        self.assertEqual(cells[7], "not enforced")  # no Claude session bound this suite's run
+        self.assertEqual(cells[2:7], ["trivial", "n", "n", "n", "0"])
+        self.assertTrue(cells[7].isdigit(), row)
+        self.assertEqual(cells[8], "not enforced")  # no Claude session bound this suite's run
 
     def test_a_result_only_edit_is_an_edit_and_needs_the_reviews_own_check_of_the_changed_result(self):
         """Advisors panel 2026-10-25: a step plan's or test spec's result lies outside the tree, so a review that edited only
@@ -2685,6 +2685,79 @@ class ImprovePassTests(ImproveCliFixture):
         done, _complete, _again = self.printed(out)
         active = self.run_done(done)
         self.assertEqual(active["status"], "active")  # a pass that changed content never ends the loop
+
+    def edited_pass(self, n, text, **review):
+        """Pass ``n`` edits the contract to end with ``text``, commits it and records checks and its review; returns the
+        improve-pass result (the caller says which status it expects)."""
+        self.edit(text)
+        self.write("docs: tighten the example, pass " + str(n) + "\n\nKey learnings: none\n")
+        (self.reviews() / "checks.md").write_text("python3 -m pytest: 1 passed\n", encoding="utf-8")
+        self.write_review(n, **{"label": "non-trivial", "exit": "unsatisfied", "changed": "the example.",
+                                "why": "it changed a file.", **review})
+
+    @staticmethod
+    def steps(n):
+        """Twenty step lines, lines 2..n reworded: pass n's edit over pass n-1's rewords one line."""
+        return "".join("Step " + str(index) + (" holds exactly.\n" if 2 <= index <= n else " holds.\n")
+                       for index in range(20))
+
+    def test_three_small_passes_make_a_non_trivial_pass_name_its_later_stage_defect_or_end_the_review(self):
+        """Haiku 5.5 battleship (2026-10-25): one review ran 12 passes whose edits shrank to 1-4 lines, each labelled
+        non-trivial.  After three passes of 1-10 changed lines, a non-trivial pass names the later-stage defect its change
+        prevents, or is classified trivial and ends the review; both of the refusal's exits are run here."""
+        self.begin()
+        self.edited_pass(1, "".join("Step " + str(index) + " holds.\n" for index in range(20)))
+        out = self.invoke(*self.pass_args()).stdout
+        self.assertGreater(json.loads((self.reviews() / "pass-1.json").read_text(encoding="utf-8"))["lines"], 10)
+        self.assertEqual(self.run_done(self.printed(out)[0])["status"], "active")
+        for n in (2, 3, 4):   # each rewrites one more line: one removed, one added
+            self.edited_pass(n, self.steps(n))
+            out = self.invoke(*self.pass_args()).stdout
+            self.assertEqual(json.loads((self.reviews() / ("pass-" + str(n) + ".json")).read_text(encoding="utf-8"))
+                             ["lines"], 2)
+            self.assertEqual(self.run_done(self.printed(out)[0])["status"], "active")
+        # The trend is shown when it forms, before the pass it binds.
+        self.assertIn("This review's passes 2-4 each changed only a few lines (2, 2, 2; small is 1-10). A further pass is "
+                      "recorded as non-trivial only with the line `Later-stage defect: ", out)
+        self.edited_pass(5, self.steps(5))
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("passes 2-4 each changed only a few lines (2, 2, 2; small is 1-10), so pass 5 is recorded as "
+                      "non-trivial only when it names what would fail later", self.line_one(refused))
+        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
+        # A stage before the reviewed one is no later-stage defect.
+        review = self.reviews() / "review-5.md"
+        text = review.read_text(encoding="utf-8")
+        review.write_text(text.replace("## Handoff", "Later-stage defect: intake: nothing.\n## Handoff"), encoding="utf-8")
+        self.assertIn("each changed only a few lines", self.line_one(self.run_named(refused, status=2).stderr))
+        # Exit 1: name the defect at a later stage.
+        review.write_text(text.replace("## Handoff", "Later-stage defect: implement: step 5's example contradicts the "
+                                       "contract, so implement builds the wrong recovery.\n## Handoff"), encoding="utf-8")
+        out = self.run_named(refused).stdout
+        self.assertEqual(self.run_done(self.printed(out)[0])["status"], "active")
+        # Exit 2: a pass with nothing worth naming is classified trivial, which ends the review.
+        self.write_review(6, label="non-trivial", exit="unsatisfied", found="wording.", changed="none.",
+                          why="it reworded the review.")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("passes 3-5 each changed only a few lines", self.line_one(refused))
+        self.write_review(6)
+        out = self.run_named(refused).stdout
+        self.assertEqual(self.run_done(self.printed(out)[0])["status"], "complete")
+        passes_rows = [json.loads((self.reviews() / ("pass-" + str(n) + ".json")).read_text(encoding="utf-8"))["lines"]
+                       for n in range(2, 7)]
+        self.assertEqual(passes_rows, [2, 2, 2, 2, 0])
+
+    def test_a_pass_whose_size_is_unknown_never_starts_the_trend(self):
+        """A run recorded before passes had a size, or a pass Git could not diff, leaves the gate off (fail safe)."""
+        reviews = self.base / "reviews"
+        reviews.mkdir()
+        for n, lines in ((1, 2), (2, None), (3, 2)):
+            (reviews / ("pass-" + str(n) + ".json")).write_text(json.dumps({"pass": n, "lines": lines}), encoding="utf-8")
+        self.assertIsNone(navigator._small_pass_trend(reviews, 4))
+        (reviews / "pass-2.json").write_text(json.dumps({"pass": 2, "lines": 11}), encoding="utf-8")
+        self.assertIsNone(navigator._small_pass_trend(reviews, 4))
+        (reviews / "pass-2.json").write_text(json.dumps({"pass": 2, "lines": 3}), encoding="utf-8")
+        self.assertEqual(navigator._small_pass_trend(reviews, 4), [2, 3, 2])
+        self.assertIsNone(navigator._small_pass_trend(reviews, 3))   # pass 0 does not exist: two passes are no trend
 
     def test_a_checks_file_older_than_the_last_edit_is_refused_and_the_named_exit_accepts_a_fresh_one(self):
         self.begin()

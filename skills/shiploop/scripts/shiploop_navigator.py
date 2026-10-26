@@ -8461,6 +8461,14 @@ REVIEW_FORM = ("front matter between two `---` lines with `classification:` triv
                "`Read:`, `Found:`, `Changed:`, `Checked:` and `Class:` (what this pass read, found, changed, ran and why "
                "its classification); then a `## Handoff` section (the compact handoff a fresh context continues from)")
 PASSES_FILE = "passes.md"
+# The convergence gate (Haiku 5.5 battleship, 2026-10-25: one review ran 12 passes whose edits shrank to 1-4 lines, each
+# labelled non-trivial; docs/experiments/e2e-haiku55-battleship-20261025/improve-passes.txt).  After SMALL_PASS_RUN
+# passes that each changed 1..SMALL_PASS_LINES lines, a non-trivial pass names the later-stage defect its change
+# prevents, or is classified trivial and ends the review.
+SMALL_PASS_LINES = 10
+SMALL_PASS_RUN = 3
+LATER_DEFECT_LINE = "Later-stage defect: <stage>: <what would fail there without this change>"
+_LATER_DEFECT = re.compile(r"(?m)^\W*Later-stage defect\W*:\s*([a-z-]+)\s*:\s*(\S.*)$")
 _LABEL_LINE = re.compile(r"^(?:#{1,6}\s+)?\**(" + "|".join(REVIEW_LABELS) + r")\**\s*:?\**\s*(.*)$")
 
 
@@ -8518,6 +8526,45 @@ def _producer_checks(root: Path, action_id: str) -> str:
             + ("" if isinstance(record, Mapping) and record.get("passed") else ", not passed") + ")")
 
 
+def _small_pass_trend(reviews: Path, number: int) -> list[int] | None:
+    """The lines each of the ``SMALL_PASS_RUN`` passes before pass ``number`` changed, when every one changed
+    1..``SMALL_PASS_LINES``; None otherwise, or when one is unmeasured (a run recorded before passes had a size)."""
+    sizes = []
+    for earlier in range(number - SMALL_PASS_RUN, number):
+        try:
+            facts = json.loads((reviews / ("pass-" + str(earlier) + ".json")).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        lines = facts.get("lines") if isinstance(facts, dict) else None
+        if earlier < 1 or not isinstance(lines, int) or not 1 <= lines <= SMALL_PASS_LINES:
+            return None
+        sizes.append(lines)
+    return sizes
+
+
+def _trend_text(number: int, sizes: list[int]) -> str:
+    return ("passes " + str(number - len(sizes)) + "-" + str(number - 1) + " each changed only a few lines ("
+            + ", ".join(str(size) for size in sizes) + "; small is 1-" + str(SMALL_PASS_LINES) + ")")
+
+
+def _small_pass_refusal(number: int, sizes: list[int], reviewed: str, review: Path, command: str) -> str:
+    """The convergence gate's refusal of non-trivial pass ``number`` after the small passes ``sizes``: both exits."""
+    return ("This review's " + _trend_text(number, sizes) + ", so pass " + str(number) + " is recorded as non-trivial "
+            "only when it names what would fail later without its change: add the line `" + LATER_DEFECT_LINE + "` to "
+            + str(review) + " (the stage is " + reviewed + " or a later one), or classify the pass trivial, which ends "
+            "this review. Then run: " + command)
+
+
+def _later_stage_defect(text: str, reviewed: str) -> str | None:
+    """The stage a ``Later-stage defect:`` line names, when it is ``reviewed`` or a stage after it."""
+    for match in _LATER_DEFECT.finditer(text):
+        named = match.group(1)
+        if (named in stage_spec.STAGES and reviewed in stage_spec.STAGES
+                and stage_spec.STAGES.index(named) >= stage_spec.STAGES.index(reviewed)):
+            return named
+    return None
+
+
 def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
     """improve-pass: check one review pass, commit its edits, write its evidence, print the runtime's done (IMP-2/5/8).
 
@@ -8566,6 +8613,9 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
                 if not re.search(r"(?m)^\W*" + ident + r"\s*:\s*\S", text)]
     _need(not missing, "Complete " + str(review) + " (missing or invalid: " + ", ".join(missing) + "), then run: "
           + command_again + "\nIts form: " + REVIEW_FORM + ".")
+    trend = _small_pass_trend(reviews, number)
+    _need(not trend or front["classification"] != "non-trivial" or _later_stage_defect(text, child["stage"]),
+          _small_pass_refusal(number, trend or [], child["stage"], review, command_again))
     repo = Path(state["repo"])
     changes = improve_changes.review_changes(root, repo, child["action_id"])
     committed = ""
@@ -8638,6 +8688,19 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     # Edited: either changed; unknown only when neither side was measured.
     edited = (True if pass_changed or result_changed else
               None if pass_changed is None and result_changed is None else False)
+    # The pass's size in lines, tree plus result; unknown when either side is (the convergence gate then never fires).
+    text_now = improve_changes.result_text(root, child["action_id"])
+    try:
+        text_before = (reviews / ("result-" + str(number - 1) + ".json") if number > 1
+                       else root / improve_changes.bind_result_path(child["action_id"])).read_text(encoding="utf-8")
+    except OSError:
+        text_before = None
+    tree_lines = 0 if pass_changed is False else improve_changes.changed_lines(repo, before, tree)
+    result_size = (0 if result_changed is False or (text_now is None and result_now is None)
+                   else improve_changes.result_lines(text_before, text_now))
+    lines = None if tree_lines is None or result_size is None else tree_lines + result_size
+    if text_now is not None:
+        store.atomic_write_text(reviews / ("result-" + str(number) + ".json"), text_now)
     skill_fact = ("recorded " + str(call.get("at", "")) if call is not None else "not enforced (" + str(why) + ")")
     facts = ("ShipLoop facts: files changed since the bind: " + (", ".join(changed) if changed else
                                                                  "none" if changed == [] else "not measured")
@@ -8645,6 +8708,7 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
              + ("; not committed on the instruction: " + no_commit if no_commit else "")
              + "; result " + ("changed since the bind" if result_edited else "unchanged since the bind"
                               if result_edited is False else "not measured")
+             + "; this pass changed " + ("an unmeasured number of" if lines is None else str(lines)) + " lines"
              + "; checks.md " + checks_fact + "; improve skill call " + skill_fact + ".")
     report = {field: front[key] for key, field, _allowed in REVIEW_FRONT}
     report["evidence"] = (review.name + ": " + "; ".join(label + ": " + labels[label] for label in REVIEW_LABELS)
@@ -8654,11 +8718,16 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     store.atomic_write_text(report_path, json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
         "pass": number, "label": front["classification"], "tree": tree, "changed": pass_changed,
-        "result": result_now, "result_changed": result_changed, "edited": edited, "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
+        "result": result_now, "result_changed": result_changed, "edited": edited, "lines": lines,
+        "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
         "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, indent=1) + "\n")
     inline = delegation(state) == guidance.INLINE
+    upcoming = _small_pass_trend(reviews, number + 1)
     print("\n".join([
         "Pass " + str(number) + " of the " + child["stage"] + " review is recorded. " + facts,
+        *(["This review's " + _trend_text(number + 1, upcoming) + ". A further pass is recorded as non-trivial only "
+           "with the line `" + LATER_DEFECT_LINE + "` in its review; otherwise classify it trivial, which ends this "
+           "review."] if upcoming else []),
         "Run the Until Loop runtime's done for this pass exactly as printed (its report is " + str(report_path)
         + ", composed from " + review.name + "):",
         shlex.join([str(part) for part in packet["done_argv"]]) + " < " + shlex.quote(str(report_path)),
@@ -8697,8 +8766,8 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
     rows = ["# Improve passes: the " + child["stage"] + " result (" + child["action_id"] + ")", "",
             *([shadow, ""] if shadow else []),
             "Edited is tree changed or result changed: a step plan's or test spec's result lies outside the tree.",
-            "| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+            "| stage | pass | label | tree changed | result changed | edited | lines | seconds | skill call recorded |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for number, path in found:
         try:
             facts = json.loads((reviews / ("pass-" + str(number) + ".json")).read_text(encoding="utf-8"))
@@ -8712,6 +8781,7 @@ def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any],
             child["stage"], str(number), front.get("classification") or "not recorded",
             *("not measured" if facts.get(key) is None else "y" if facts[key] else "n"
               for key in ("changed", "result_changed", "edited")),
+            "not measured" if facts.get("lines") is None else str(facts["lines"]),
             "not measured" if previous is None else str(round(stamp - previous)),
             call or ("not enforced" if not_enforced is not None else "y")]) + " |")
         previous = stamp

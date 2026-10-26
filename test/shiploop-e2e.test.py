@@ -558,7 +558,8 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             reviews = Path(temp) / "worktree" / ".shiploop-improve" / "test-spec-aaaa1111" / "reviews"
             reviews.mkdir(parents=True)
             (reviews / "review-1.md").write_text("x")
-            (reviews / "pass-1.json").write_text(json.dumps({"changed": False, "result_changed": True, "edited": True}))
+            (reviews / "pass-1.json").write_text(json.dumps({"changed": False, "result_changed": True, "edited": True,
+                                                             "lines": 6}))
             os.utime(bind, (1000, 1000))
             os.utime(reviews / "review-1.md", (1046, 1046))
             older = Path(temp) / "worktree" / ".shiploop-improve" / "step-plan-bbbb2222" / "reviews"
@@ -574,6 +575,8 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             self.assertEqual((child["step-plan-bbbb2222"]["edited"], child["step-plan-bbbb2222"]["edited_basis"]),
                              (False, "tree only"))
             self.assertEqual(got["edited_children"], 1)
+            # Each pass's size in lines (the convergence gate's measure); a run before passes had a size has none.
+            self.assertEqual((child["test-spec-aaaa1111"]["lines"], child["step-plan-bbbb2222"]["lines"]), ([6], None))
 
     def test_no_worktree_means_no_children(self):
         self.assertEqual(metrics.improve_reviews(None)["passes"], 0)
@@ -2969,6 +2972,27 @@ class GateCountsTest(unittest.TestCase):
                         call()
                     self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
                                      str(caught.exception))
+
+    def test_the_restate_and_small_pass_refusals_classify_under_their_gates(self) -> None:
+        """The unverified restatement's refusals and the Improve convergence gate's, built by their gates, never typed."""
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_navigator as navigator
+        import shiploop_unverified as unverified
+        row = {"outcome": "o", "requirement": "R-1", "reason": "r", "lower_layer_check": "TC-1", "settle": "s",
+               "owner": "the user", "due_stage": "handoff"}
+        early = dict(row, outcome="o2", due_stage="release-check")
+        state = {"history": [{"action": "pa", "stage": "product-acceptance", "workitem": None, "outcome": "done"}],
+                 "accepted": {"pa": {"outcome": "done", "unverified": [row, early]}}}
+        done = {"outcome": "done", "summary": "s"}
+        for result in (done, dict(done, unverified=[early]), dict(done, unverified=[row, early])):
+            with self.subTest(result=result), self.assertRaises(unverified.UnverifiedError) as caught:
+                unverified.check_restated(state, "release-check", result)
+            self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "unverified_restate",
+                             str(caught.exception))
+        text = navigator._small_pass_refusal(5, [2, 2, 2], "test-spec", Path("/r/review-5.md"), "CMD")
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + text), "improve_small_passes", text)
 
     SPEC_WRITEBACK = ("ShipLoop navigator: Restore /r/docs/shiploop/spec.md to what HEAD holds plus this "
                       "step's acceptance lines")

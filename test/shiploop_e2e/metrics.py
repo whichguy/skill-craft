@@ -239,6 +239,12 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # An unverified row's requirement (F6: shiploop_unverified.py's ID shape, shiploop_primary.py's living-spec entry).
     "unverified_requirement": re.compile(r"unverified\[\d+\]\.requirement .+? (?:is not one requirement ID|has no "
                                          r"current entry in)"),
+    # A later stage that does not carry the unverified list forward (restate-unverified, 2026-10-26: hello's
+    # release-verify settled R-1 in prose only; shiploop_unverified.check_restated).
+    "unverified_restate": re.compile(r"result restates unverified, the list |unverified (?:drops|keeps) "),
+    # A non-trivial Improve pass after three small-edit passes that names no later-stage defect (Haiku 5.5 battleship,
+    # 2026-10-25; shiploop_navigator.py _improve_pass).
+    "improve_small_passes": re.compile(r"each changed only a few lines \("),
     # A primary requirement's unverified outcome whose lower_layer_check names no test ShipLoop saw pass for it (F6).
     "lower_layer_check": re.compile(r"a primary requirement \(spec primary\), and its lower_layer_check names no test"),
     # An Improve commit that changes code without the Regression test line it owes (F5, shiploop_navigator.py
@@ -987,7 +993,10 @@ def improve_reviews(run_dir: Path | None) -> dict:
             # Seconds from the bind (the review's start) to its last note: a one-pass review is not 0 s.
             suffix = reviews.parent.name.rsplit("-", 1)[-1]
             bind = next((path for path in binds if path.name.endswith(suffix + "-bind.md")), None)
+            # Each pass's size in lines (the convergence gate's measure); absent before passes recorded one.
+            sizes = [f.get("lines") for f in facts if isinstance(f, dict)]
             children.append({"child": reviews.parent.name, "passes": len(notes),
+                             "lines": sizes if any(size is not None for size in sizes) else None,
                              "seconds": round(max(stamps) - min(stamps), 1),
                              "review_seconds": round(max(stamps) - bind.stat().st_mtime, 1) if bind else None,
                              "edited": edited, "edited_basis": basis,
