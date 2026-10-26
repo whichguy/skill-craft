@@ -2593,6 +2593,27 @@ class PlatformPrefixTest(PlatformCase):
                                     if "_salesforce.py" in check), "every org check names the prefix")
 
 
+class DeliverySnapshotRunTest(PlatformCase):
+    """run.py records the delivery snapshot around the checks (SPEC: build step 4). This suite holds the generic fake-host
+    run, so the route test lives here; the scorecard's reading of the snapshot is tested in shiploop-e2e-baseline."""
+
+    def test_a_run_records_the_delivery_before_and_after_its_checks_and_a_regrade_keeps_the_first(self):
+        self.use_case(None)
+        _, result, _ = self.invoke("grok", "done")
+        out = Path(result["output"])
+        before, after = result["delivery"]["before"], result["delivery"]["after"]
+        self.assertTrue(before["observed"] and after["observed"], result["delivery"])
+        self.assertEqual((after["head"], after["tree"], after["status"]), (before["head"], before["tree"], before["status"]),
+                         "a check that passes changes nothing")
+        if before["head"]:
+            self.assertEqual(before["bundle"], "delivery/work.bundle")
+            self.assertTrue((out / "delivery" / "work.bundle").is_file())
+        else:
+            self.assertIn("no commit", before["bundle_unmeasured"])
+        regraded, _ = self.resume("grok", out, "done")
+        self.assertEqual(regraded["delivery"]["before"], before, "a regrade keeps the first run's snapshot")
+
+
 class UnchangedCaseTest(PlatformCase):
     def test_a_case_without_a_platform_gains_nothing_from_any_of_this(self):
         self.use_case(None)

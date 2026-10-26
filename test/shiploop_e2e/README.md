@@ -1777,7 +1777,7 @@ python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
 ```
 
 This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
-`scorecard/3` since build step 3). It reads each run's own records, writes nothing into a run folder and calls no model. A
+`scorecard/4` since build step 4). It reads each run's own records, writes nothing into a run folder and calls no model. A
 folder above run folders is walked to them. Two cards are compared only when their ids are equal.
 
 **Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
@@ -1791,7 +1791,11 @@ minutes, re-orientation minutes.
 
 **Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
 valid.
-- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). It is null when:
+- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). From build step 4 it
+  reads the delivery snapshot in `result.json` (`delivery`: HEAD, tree and `git status` before and after the checks, and
+  a git bundle in `<output>/delivery/work.bundle` that `delivery.restore` rebuilds). It is false when the checks changed
+  the tree, or when a `work/` that still exists changed later, so a torn-down run is graded from its records. A run
+  recorded before the snapshot keeps the live reading. It is null when:
   - the tree can't be read;
   - this run and a run overlapping it wrote the same `/tmp` name;
   - for a case with held-out acceptance, the run's events name a held-out file, the checks folder or the case catalog
@@ -1823,7 +1827,7 @@ python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_
 ```
 
 This is the one scripted rule (SPEC "The promotion contract", contract `promotion/3` since build step 3) that decides whether
-a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/3` cards: run folders, or card files from
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/4` cards: run folders, or card files from
 `scorecard.py --out`.
 
 **The registration, written before the runs,** names:
