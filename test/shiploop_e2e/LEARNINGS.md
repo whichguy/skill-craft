@@ -3160,3 +3160,27 @@ on both sides.
 
 **Not re-run.** The Grok run's recorded verdict stays FAIL. A harness regrade replays the checks recorded at launch.
 The new check's verdict on that delivery is in the evidence file, beside the record.
+
+## Build step 4: the delivery snapshot (2026-10-26) — status: firm for the mechanism and its tests; no live run yet
+
+**Question.** Can grading be reproduced after a run's `work/` is torn down, and can a later change to a delivery be
+seen? This is R6 of the final verdict and build step 4. The owner's go was "fix all these starting with 1".
+
+**Built.**
+- The SPEC clause comes first (`59d9c834`).
+- `delivery.py` records HEAD, tree and `git status` before the checks, with a git bundle, and the same fingerprint
+  after them. They are recorded as `result.json` `delivery`.
+- `scorecard/4` reads correctness from those records:
+  - the checks changed the tree;
+  - or a `work/` that still exists changed later.
+- A torn-down run is graded from its records instead of reading null.
+
+**Done signal** (`ScorecardTest`, `DeliverySnapshotRunTest`):
+- *An archived delivery reproduces grading after teardown.* After `work/` is removed, `delivery.restore` rebuilds the
+  same tree, and the same check gives the same verdict.
+- *A later committed alteration is detected.* A commit made after the run reads as "HEAD moved", and a check's
+  deletion reads as "the checks changed the delivered tree".
+
+**Not yet.** No live run has recorded a snapshot; the next E2E run on this harness is its first. Every run recorded
+before 2026-10-26 keeps the live reading, so the backfill cards are unchanged and the compact fixtures stay
+correctness-null. A fixture with a snapshot comes with the first live one.
