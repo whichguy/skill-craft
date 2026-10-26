@@ -132,7 +132,8 @@ def model(out: Path, exp_ids: list[str], arms: list[str] | None = None, plan: li
     minutes = [s["minutes"] for s in done if s.get("minutes")]
     lanes = parallel or max(len(running), 1)
     left = len(slots) - len(done)
-    eta = now + (left / lanes) * (statistics.mean(minutes) if minutes else 20) * 60
+    # No finished sample with a measured span: no ETA, never a guessed duration (R3 showed one 6 minutes in).
+    eta = now + (left / lanes) * statistics.mean(minutes) * 60 if minutes and left else None
     finished = sorted(((s["at"], exp_id, arm, n, _slot(s)) for (exp_id, arm), states in grid.items()
                        for n, s in enumerate(states, 1) if s["state"] == "done" and s.get("at")), reverse=True)
     events = [{"at": _iso(at), "kind": "done" if slot["state"] == "pass" else "warn",
@@ -151,9 +152,10 @@ def model(out: Path, exp_ids: list[str], arms: list[str] | None = None, plan: li
     return {"plan": plan or [], "columns": arms, "rows": rows, "events": events,
             "progress": {"done": len(done), "total": len(slots), "unit": "samples", "running": len(running),
                          "stamp": time.strftime("%H:%M", time.localtime(now)), "updatedAt": _iso(now),
-                         "eta": time.strftime("%H:%M", time.localtime(eta)) if left else None,
-                         "etaAt": _iso(eta) if left else None},
-            "legend": {"pass": "scored 1", "below": "scored below 1", "note": "number = steps planned, or the value"}}
+                         "eta": time.strftime("%H:%M", time.localtime(eta)) if eta else None,
+                         "etaAt": _iso(eta) if eta else None},
+            "legend": {"pass": "scored 1", "below": "scored below 1", "error": "error: host refused (reruns) or unscored",
+                       "note": "number = steps planned, or the value"}}
 
 
 def main(argv: list[str] | None = None) -> int:
