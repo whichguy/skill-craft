@@ -5,9 +5,9 @@ implement              3151  ask-agent, 16-implement, 19413, True
 test                   4541  inline, 20-test, 19037, True
 carry-forward          5123  inline, 34-carry-forward, 18058, True
 verify                 5299  ask-agent, 22-verify, 18134, True
-test-strategy          6752  inline, 06-test-strategy, 16068, True
-test-spec              8676  inline, 13-test-spec, 14246, True
-spec                   8752  inline, 04-spec, 14356, True
+test-strategy          6286  inline, 06-test-strategy, 16534, True
+spec                   8286  inline, 04-spec, 14822, True
+test-spec              8400  inline, 13-test-spec, 14522, True
 discovery              9369  inline, 02-discovery, 15813, False
 release-plan           9382  inline, 40-release-plan, 16022, False
 system-test-author     9795  inline, 36-system-test-author, 15753, False

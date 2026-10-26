@@ -218,13 +218,21 @@ at its next ShipLoop callback or `next`.
   The head-order tier table gains `owner-notes`.
 - A change note `changes/shiploop/owner-notes.md` (bump: minor), a journal entry, and the quick tier.
 
-Write boundaries. Shiploop 1.12.1 changes `shiploop_protocol.py` (`main`, `_record_command`) and `shiploop_trace.py`
-(`record_packet`): routed verbs are no longer traced, and packet lines are written only while a traced command runs
-(the `shiploop_trace.ACTIVE` flag, set once a current run loads). The build starts by rebasing on it, and keeps to
-these rules:
+Write boundaries. Shiploop 1.13.1 (`a677b55d`, which this design is rebased on) changed `shiploop_protocol.py` and
+`shiploop_trace.py`:
 
-- `note` is a protocol verb. It writes nothing until the run loads as current. A note on a retired or unloadable run,
-  or with bad arguments, leaves the run exactly as it was.
+- routed verbs are no longer traced;
+- `protocol.main` keeps a `_DEPTH` counter, and only the outermost call records the command and resets
+  `shiploop_trace.ACTIVE`;
+- packet lines are written only while `ACTIVE` is set, that is, while a traced command runs on a run that loaded as
+  current.
+
+The build keeps to these rules:
+
+- `note` is a protocol verb, so it is recorded once by the outermost `main` and sets nothing up on a run that is not
+  current. A note on a retired or unloadable run, or with bad arguments, leaves the run exactly as it was.
+- The note's packet-quote ids ride on the packet line, so they are recorded only while `ACTIVE` is set, like every
+  packet line.
 - `shown.json` is written only by `emit`, beside the packet file it already writes, and by a held callback. A held
   callback writes nothing else.
 - Every other refusal, every read-only view, and every routed verb (chain, lint, red-check, backchain-check) leaves the

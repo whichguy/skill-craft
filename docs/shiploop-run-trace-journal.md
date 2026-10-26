@@ -408,7 +408,8 @@ context is cleared between stages? The design, with options and the packet text 
 - trace.html builds the `note` command for the owner to copy. The page cannot write.
 
 Evidence ([head-room.txt](shiploop-owner-notes-evidence/head-room.txt), from
-[head-room.py](shiploop-owner-notes-evidence/head-room.py) on the head-order fixture at `5485b896`): the room a
+[head-room.py](shiploop-owner-notes-evidence/head-room.py) on the head-order fixture, measured at `5485b896`, then
+rerun at `a677b55d` (shiploop 1.13.1) after the rebase with the same worst rows): the room a
 required block has in a printed head at the normal install is 240 characters at plan, 1,715 at step-plan, 3,151 at
 implement, and at least 4,541 everywhere else. So the notes block must shrink to a one-line pointer in the plan head.
 A finding on the side: at a 163-character run directory, the plan head is already 20,160 characters, 160 past Grok's
