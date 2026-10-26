@@ -3085,3 +3085,47 @@ main's full CI on 1.12.0 failed because routed verbs were traced (fixed in 96f02
 Not verified on a real run: a keepalive continuation's injected text (the headless session never ended a turn early)
 and a packet reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.12.0/`, journal
 `docs/shiploop-run-trace-journal.md`. Next: rerun `hello` on the release that carries both fixes.
+
+## Grok release-gate trio on 2.13.2 / ShipLoop 1.13.1 (2026-10-26) — status: firm for the verdicts and the two findings; n=1 per case
+
+**Run.** hello, then battleship and battleship-scoring, one at a time, on Grok 4.7 medium from the marketplace. Gated on
+full CI green at main `63b0392f`, which is test-only on top of 2.13.2. It ran from a fresh worktree with no other
+harness run on the machine, so all three cards are valid on every dimension (Y/Y/Y), the day's first clean timing
+evidence. All three share evaluator `476582a4f064` and oracle `85672ad0c249`. Evidence:
+`docs/experiments/e2e-grok-gate-2132-20261026/`.
+
+| Case | Verdict | Minutes | Cost (lower bound) | Turns | ShipLoop refusals | Improve children | Planning / re-orientation min |
+|---|---|---|---|---|---|---|---|
+| hello | PASS | 68.5 | $26.49 | 361 | 0 | 9 | 26.4 / 15.5 |
+| battleship | PASS, 4/4 checks | 205.5 | $60.89 | 768 | 4 | 16 | 76.7 / 84.8 |
+| battleship-scoring | FAIL, 11/12 checks | 114.0 | $39.44 | 498 | 0 | 10 | 64.9 / 20.5 |
+
+**Released changes seen live, without friction:**
+- prepare's "harness evidence must show a test running";
+- the test stage's new refusal of a surviving mutant without a `mutant_dispositions` entry, which was never raised;
+- the run trace.
+
+**Finding 1: battleship-scoring's FAIL is a harness oracle false fail.**
+- The retention check requires `node --test`'s pass count to grow over the followed run's. It went from 12 to 12
+  (`retention-test-count.txt`).
+- The delivery did test the feature: 134 test lines were added to `test/rules.test.js` and `test/server.test.js`,
+  41 of them asserting the new `shots`, `hits` and `ship` fields. They were folded into the same 11 `test()`
+  declarations.
+- The request never asks for new test cases. The check's anchor, S-11 (knowledge retained and built on), is met: the
+  followed run's tests are kept and still pass.
+- Proposed oracle change: require no fewer passing tests, plus the new behaviour asserted (by a held-out check, or by
+  mutating the new fields). Under build step 3 an oracle change is an experiment of its own, so it is proposed, not
+  made here.
+
+**Finding 2: every run fails fidelity on exactly one unverified entry, and the reader conflates two cases**
+(`unverified-at-release-verify.jsonl`). Product-acceptance defers one acceptance item:
+- **hello:** R-1 is deferred to release-verify, and release-verify settles it ("Returned main prints the greeting;
+  TC_1 passed"). But its result carries no `unverified` key. The fidelity reader takes the last result that carries
+  one, product-acceptance's, so the run reads as unverified.
+  - ShipLoop gap: release-verify (and handoff) should restate the list, `[]` once settled.
+  - Harness gap: `fidelity.end_state` treats "no key" as "no change".
+- **battleship and battleship-scoring:** R-3, the page click, stays open. Grok has no browser runner, and release-verify
+  says so ("the page click stays open"). This unverified result is real.
+
+**Cost picture.** Battleship's re-orientation took 84.8 of 205.5 minutes (41 %), across 7 sessions: Grok ends its turn
+mid-run and the harness resumes it. The 2.10.1 Sonnet run took 23.1 minutes for the same case.

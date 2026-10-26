@@ -1,0 +1,10 @@
+# battleship-scoring retention check 'node --test pass count grows' failed: tests 12 -> 12
+# test()/it() declarations under test/ at the followed run's HEAD c032e194 and at the delivery's HEAD:
+c032e194: 11
+HEAD: 11
+# test files changed by the follow-on:
+ test/rules.test.js  |  59 ++++++++++++++++------------
+ test/server.test.js | 111 ++++++++++++++++++++++++++++++++++++++++++++++------
+ 2 files changed, 134 insertions(+), 36 deletions(-)
+# added assertion lines that name the new fields (shots, hits, ship):
+41

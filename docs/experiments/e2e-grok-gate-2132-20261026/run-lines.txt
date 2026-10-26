@@ -1,0 +1,38 @@
+gate-2132-f7ba78-grok-hello.log: marketplace preflight: origin/main 63b0392f publishes skill-craft 2.13.2 / ShipLoop 1.13.1; grok marketplace add + install (fresh profile) got skill-craft 2.13.2 / Shi
+gate-2132-f7ba78-grok-hello.log: PASS  shiploop e2e case=hello host=grok  output=~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello
+gate-2132-f7ba78-grok-hello.log:   process   PASS  exited rc=0 4110.3s cost=$26.4855 (lower bound: this host's events do not show whether a session never reported) sessions=4
+gate-2132-f7ba78-grok-hello.log:   shiploop  PASS  done
+gate-2132-f7ba78-grok-hello.log:   outcome   PASS  every verdict passed
+gate-2132-f7ba78-grok-hello.log:   committed PASS  HEAD 0b5b5f34 (started at no commit); 6 files in HEAD, 0 uncommitted product paths
+gate-2132-f7ba78-grok-hello.log:   check     PASS  test "$(python3 hello.py)" = 'Hello, world!'
+gate-2132-f7ba78-grok-hello.log:   check     PASS  python3 -m unittest -q
+gate-2132-f7ba78-grok-web.log: marketplace preflight: origin/main 63b0392f publishes skill-craft 2.13.2 / ShipLoop 1.13.1; grok marketplace add + install (fresh profile) got skill-craft 2.13.2 / ShipL
+gate-2132-f7ba78-grok-web.log: marketplace preflight: origin/main 63b0392f publishes skill-craft 2.13.2 / ShipLoop 1.13.1; grok marketplace add + install (fresh profile) got skill-craft 2.13.2 / ShipL
+gate-2132-f7ba78-grok-web.log: PASS  shiploop e2e case=battleship host=grok  output=~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship
+gate-2132-f7ba78-grok-web.log:   process   PASS  exited rc=0 12332.0s cost=$60.8905 (lower bound: this host's events do not show whether a session never reported) sessions=7
+gate-2132-f7ba78-grok-web.log:   shiploop  PASS  done
+gate-2132-f7ba78-grok-web.log:   outcome   PASS  every verdict passed
+gate-2132-f7ba78-grok-web.log:   committed PASS  HEAD c032e194 (started at no commit); 8 files in HEAD, 0 uncommitted product paths
+gate-2132-f7ba78-grok-web.log:   check     PASS  log=$(mktemp); node --test > "$log" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' "$log" && [ $rc -eq 0 ]; r=$?; rm -f "$log"; exit $r
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi battleship'
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e 'fetch(process.env.BASE+"/api/new").then(r=>r.json()).then(g=>{ const id=g.game??g.id??g.gameId; if(id===unde
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"
+gate-2132-f7ba78-grok-web.log: marketplace preflight: origin/main 63b0392f publishes skill-craft 2.13.2 / ShipLoop 1.13.1; grok marketplace add + install (fresh profile) got skill-craft 2.13.2 / ShipL
+gate-2132-f7ba78-grok-web.log: FAIL  shiploop e2e case=battleship-scoring host=grok  output=~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring
+gate-2132-f7ba78-grok-web.log:   process   PASS  exited rc=0 6839.4s cost=$39.4405 (lower bound: this host's events do not show whether a session never reported) sessions=1
+gate-2132-f7ba78-grok-web.log:   shiploop  PASS  done
+gate-2132-f7ba78-grok-web.log:   outcome   FAILED  engine done; at least one verdict failed
+gate-2132-f7ba78-grok-web.log:   committed PASS  HEAD dbc5fe80 (started at c032e194); 8 files in HEAD, 0 uncommitted product paths
+gate-2132-f7ba78-grok-web.log:   check     PASS  log=$(mktemp); node --test > "$log" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' "$log" && [ $rc -eq 0 ]; r=$?; rm -f "$log"; exit $r
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi battleship'
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e 'fetch(process.env.BASE+"/api/new").then(r=>r.json()).then(g=>{ const id=g.game??g.id??g.gameId; if(id===unde
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e "const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',headers:{'content-type':'
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- node -e "const base=process.env.BASE; const post=(b)=>fetch(base+'/api/fire',{method:'POST',headers:{'content-type':'
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- sh -c 'page=$(curl -fsS "$BASE/") && printf "%s" "$page" | grep -qi accuracy'
+gate-2132-f7ba78-grok-web.log:   check     PASS  python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"
+gate-2132-f7ba78-grok-web.log:   check     PASS  git -C "$PRIOR_WORK" ls-files --cached --others --exclude-standard | grep -v '\.log$' | while IFS= read -r f; do [ -e "$f" ] || { echo "missing $f"; ex
+gate-2132-f7ba78-grok-web.log:   check     PASS  node -e 'const fs=require("fs"),path=require("path");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,"package.json"),"utf8"));return 
+gate-2132-f7ba78-grok-web.log:   check     FAIL  count() { (cd "$1" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\2/p' | tail -1; }; before=$(count "$PRIOR_WORK"); after=$(count .); echo
+gate-2132-f7ba78-grok-web.log:   check     PASS  ids() { grep -oE '\bR-[0-9]+\b' "$1/docs/shiploop/spec.md" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids "$PRIOR_WORK" > "$before"; 
+gate-2132-f7ba78-grok-web.log: suite web-service: battleship PASS, battleship-scoring FAIL

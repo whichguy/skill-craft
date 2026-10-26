@@ -1,0 +1,4 @@
+scorecard/3: 3 run(s); floors accuracy/enterprise/fidelity (P pass, F fail, ? unobserved, - n/a); validity correctness/attribution/timing (Y valid, n not, ? not observed)
+  hello grok                 P/-/F  Y/Y/Y    68.5m $26.4855+  361t   0r
+  battleship grok            P/-/F  Y/Y/Y   205.5m $60.8905+  768t   4r
+  battleship-scoring grok    F/-/F  Y/Y/Y   114.0m $39.4405+  498t   0r
