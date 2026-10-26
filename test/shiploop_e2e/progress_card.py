@@ -39,7 +39,9 @@ import status_card  # noqa: E402
 
 
 def band(exp: dict) -> str:
-    """The case's band as a short label, else the experiment's metric."""
+    """The case's band as a short label, else the experiment's metric; a full-item slice (no stop_after) says so."""
+    if not exp.get("stop_after"):
+        return "full item, step-plan to carry-forward"
     shape = (json.loads((HERE / "step_cases.json").read_text()).get(exp["case"]) or {}).get("shape")
     if not shape:
         return exp.get("metric", "")[:48]
@@ -160,7 +162,8 @@ def job_document(found: dict, meta: dict) -> dict:
     """A Live Run Card job: the model, the job's title and status, and its notes merged into the feed (newest 12)."""
     events = sorted(meta.get("notes", []) + found.get("events", []), key=lambda e: e["at"], reverse=True)[:12]
     return {**found, "title": meta["title"], "subtitle": meta.get("subtitle", ""), "status": meta.get("status", "running"),
-            "updatedAt": found["progress"]["updatedAt"], "events": events, "findings": meta.get("findings", [])}
+            "updatedAt": found["progress"]["updatedAt"], "events": events, "findings": meta.get("findings", []),
+            "legend": {**(found.get("legend") or {}), **(meta.get("legend") or {})}}
 
 
 if __name__ == "__main__":
