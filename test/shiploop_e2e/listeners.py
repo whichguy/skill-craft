@@ -177,10 +177,10 @@ def unreaped(leader: int) -> str | None:
 
 
 def end_group(leader: int) -> bool:
-    """SIGKILL the process group ``leader`` leads; True when the signal was delivered. The harness's one group kill: the host
-    sessions (run.launch and run.end_live_hosts), the review and fan-out agents (hosts.run_agent), the browser probe
-    (environment.probe_target and end_live_probes) and the quality phase's test runs and servers (quality.end_group) all end
-    a group here.
+    """SIGKILL the process group ``leader`` leads; True when the signal was delivered. The harness's one group kill of its own
+    children: the host sessions (run.launch and run.end_live_hosts), the review and fan-out agents (hosts.run_agent), the
+    browser probe (environment.probe_target and end_live_probes) and the quality phase's test runs and servers
+    (quality.end_group) all end a group here. A group an earlier, killed invocation left is ``signal_adopted_group``'s.
 
     A group is signalled only while its number is still its leader's, so a number another group took is never signalled. The
     leader must be this process's child and not yet reaped: after a reap its pid, and so the group number, may be reused, and
@@ -202,6 +202,21 @@ def end_group(leader: int) -> bool:
                 return False
     try:
         os.killpg(leader, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
+def signal_adopted_group(pgid: int, number: int) -> bool:
+    """Send ``number`` to a group this process did not start: an earlier invocation's host, or ShipLoop's progress observer, that
+    the run's ledger owns (SPEC "The resource lifecycle"). The harness's second group signal beside ``end_group``, which covers
+    this process's own unreaped children only. The caller (``lifecycle.stop``, the only one) must just have seen the group's
+    leader with its recorded creation identity, or the group holding members ever since; this refuses what no caller may ask,
+    pid 1 or below and this process's own group. True when the signal was delivered."""
+    if pgid <= 1 or pgid == os.getpgrp():
+        return False
+    try:
+        os.killpg(pgid, number)
     except (ProcessLookupError, PermissionError):
         return False
     return True

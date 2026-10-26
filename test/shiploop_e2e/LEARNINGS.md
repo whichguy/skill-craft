@@ -3443,3 +3443,81 @@ new-feature checks and a reference passes them and the pristine regression suite
 **Not done.** No live run has used the case; its first passing focused run gives the style a baseline. R10's Python
 CLI and Flask bases come later. The model can read the base's tests, which are its starting point; only the
 acceptance is held out.
+
+## Build step 7: the minimal resource lifecycle (2026-10-26) — status: firm for the mechanism and its hermetic tests; no live run yet
+
+**Question.** Can runs share the machine and be cleaned up safely? A killed harness must leave a list of what it owns, a
+retry must stop only that, a conflicting run must be refused, and the evidence must outlive the cleanup. This is R19 and
+R20 of the final verdict, build step 7. Basis: the Grok host that worked 28 minutes after its harness died (2026-10-09),
+and ShipLoop's progress observer, which outlived the stopped battleship run (2026-10-18) and chess run 5 (2026-10-24) and
+was ended by hand each time.
+
+**Built.** The SPEC clause comes first ("The resource lifecycle", `ff80c51d`).
+- `lifecycle.py` (new):
+  - The ledger `<output>/resources.jsonl`, appended as the run goes: each process group the harness starts (host
+    sessions in `run.launch`, quality runs through `lifecycle.Recorded`) with its leader's pid, group, `ps` `lstart` and
+    command line; the leases; the data directories, including Claude Code's `~/.claude/projects/<encoded work path>`
+    (55 such folders for E2E runs exist on this machine).
+  - `cleanup` signals a recorded group only while its leader keeps that identity. A gone or reused pid is recorded and
+    never signalled; members of a group whose leader is gone are listed `unverified`. It first adopts ShipLoop's progress
+    observer: the pid its `progress-observer.json` names, only while that process has parent pid 1 and carries the
+    record's `--instance` and `--run-dir`. It is idempotent and deletes no file.
+  - Leases are `flock`s in `${XDG_STATE_HOME:-~/.local/state}/shiploop-e2e/leases`, all or none: the platform (kind, org,
+    prefix) and the declared fixed ports (`quality.refuse_ports`). A held key, or a port this user's process listens on,
+    refuses. The files are removed on release, so a suite's private state home stays empty (`run_suites`' guard).
+  - `orphans` (a recorded group or observer of a dead harness under the runs root), `disk` (2 GB per case) and
+    `contention` (live runs on the same host and model, a record).
+  - `dispose`, manual: removes `work/ home/ marketplace/ build/ quality/` only with the delivery head in result.json, the
+    logs, and a verified bundle that holds the head.
+- `run.py`:
+  - `launch` watches the leader without reaping it (`listeners.unreaped`, polled every 0.1 s; the stop checks keep their
+    2 s tick). When a session ends, it ends the whole group before reaping, and records what was left in it.
+  - A fresh run refuses an orphan or a low disk, then leases, before its folder exists. A `--resume-run` cleans first (the
+    listener reap moved up with it), then refuses and leases. A regrade leases the platform only before a platform
+    cleanup, and skips the cleanup if refused.
+  - A suite refuses once up front and records a refused case as a row. `--preflight-only` probes the leases.
+  - Every invocation that launched a host ends with `cleanup` and records `resources` in result.json.
+
+**Done signal** (`test/shiploop-e2e-lifecycle.test.py`, 19 tests, 7.3 s; registered in `suite_catalog`):
+- *A conflicting lease is refused.* A lease held by another process refuses `take`, naming its holder, and is free once
+  that holder is SIGKILLed. Two leases in one process conflict too (suite threads). A partial set is given back. Through
+  `run.main`, battleship beside a held `port-3000` is refused before its folder or host exists. In a suite, the refused
+  case is a row and hello still passes.
+- *Crash-and-retry cleanup without touching unrelated processes.* `CrashAndRetryTest` runs `run.py` as a subprocess with
+  a hanging fake host that starts a worker in its group, and spawns a decoy with the host's very argv. Then it SIGKILLs the
+  harness. While the orphan lives, another launch is refused, naming the orphan's pid and not the decoy's. The
+  `--resume-run` stops the orphan's whole group by its recorded identity (`resources.cleanup.before_resume.stopped`),
+  finishes the run, and passes. The decoy and its worker survive. A second `lifecycle.py cleanup` stops nothing and adds no
+  row. Unit tests: a recorded pid whose start time differs is `reused`, not signalled, and a leader never seen is
+  `unverified`. A stale observer record that names a lookalike pid adopts nothing.
+- *The evidence survives.* The cleanup deleted no file of the crashed run. `lifecycle.py dispose` removed only the heavy
+  folders, and `delivery.restore` rebuilt the tree, whose `hello.py` prints the expected line. Disposal is refused
+  without a bundle that holds the head, while a recorded group is alive, and while a harness holds the case.
+- Mutants: 9 of 9 killed (`docs/experiments/e2e-lifecycle-20261026/mutants.py`, `mutants-result.txt`). M9 (the
+  observer's instance id unchecked) survived the first version of the test, which had no record naming the lookalike's pid.
+  The test now has one. No mutant widens which processes are signalled. The in-process tests refuse any signal to a group
+  they did not start.
+- The existing harness file (`test/shiploop-e2e.test.py`, 459 tests) passes with the new `launch`.
+- Quick tier, rebased on build step 6 (`c2c7bfb8`): `run-all.sh --group quick --changed-from c2c7bfb8 --jobs 8`, 42
+  suites pass in 232.1 s wall, among them -brownfield, -platform, -chess-salesforce and -lifecycle. The first quick run
+  failed two pins, both fixed:
+  - `GroupKillTest`: S-12 keeps every group signal in `listeners.py`, so the adopted-group signal moved there
+    (`signal_adopted_group`).
+  - `QualityThroughMainTest`: the phase's group set must be `LIVE_HOST_GROUPS`; it is now a `Recorded` that forwards to
+    it, and the test checks both.
+
+**Decisions (reversible).**
+- *Ports.* A declared fixed port is leased, so two runs of Battleship, Checkers or user-listing (all 3000) no longer
+  overlap. No current suite pairs them, and `experiment.py`'s parallel slices run `slice.py`, which this step does not
+  touch.
+- *Disk.* The headroom of 2 GB per case is about three times the largest of 97 run folders measured today: median 22 MB,
+  largest 675 MB (chess run 5b, its throwaway home most of it). Evidence: `run-sizes.json`.
+- *Leaderless groups.* Members of a group whose leader is gone are listed, not signalled: the number can't be proven ours.
+
+**Not covered, or open.**
+- Processes a model starts in a session of its own are found only as listeners (`left_behind`), the observer aside.
+- The browser probe's group and the review and fan-out agents are not recorded.
+- The orphan refusal reads only the runs root.
+- The observer rule needs parent pid 1. Under a Linux subreaper that is not true, so there it adopts nothing (fail safe).
+- A run that delivered nothing has no head to keep, so it can't be disposed of.
+- No live run has written a ledger yet; the next E2E run on this harness is its first.

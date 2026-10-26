@@ -172,6 +172,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-e2e-run-trace.test.py",
     "test/shiploop-e2e-brownfield.test.py",
+    "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
@@ -372,6 +373,9 @@ _DURATION_SECONDS = {
     # the reference delivery and runs the held-out checks and the base's pristine tests (real node) against each, and one fake-host
     # run goes through run.main. Local wall seconds, 2026-10-26: 21.1 s alone.
     "test/shiploop-e2e-brownfield.test.py": 22.0,
+    # The resource lifecycle (lifecycle.py; leases, recorded groups, crash and retry, disposal): 19 tests, real ps, flock and
+    # signals on processes the tests start, one SIGKILLed harness subprocess. 7.3 s locally on 2026-10-26.
+    "test/shiploop-e2e-lifecycle.test.py": 8.0,
     # The packet obligation ledger (test/shiploop_e2e/packet_obligations.json): it renders the 33-packet dry-run walk and the offline
     # step slice on both routes and mutates every anchor; 12 tests, 2.1 s locally on 2026-10-17.
     "test/shiploop-packet-obligations.test.py": 3.0,

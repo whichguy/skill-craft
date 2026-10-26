@@ -1,0 +1,9 @@
+KILLED    M1 no lease refusal
+KILLED    M2 identity always matches
+KILLED    M3 no cleanup before resume
+KILLED    M4 dispose skips evidence
+KILLED    M5 lease file kept
+KILLED    M6 session group not ended
+KILLED    M7 no orphans
+KILLED    M8 no all-or-none release
+KILLED    M9 observer instance unchecked

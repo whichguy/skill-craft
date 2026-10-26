@@ -1,0 +1,959 @@
+{
+ "measured": "2026-10-26, du -sk of every run folder (invocation.json, not under work/) under ~/e2e-runs, depth <= 5",
+ "n": 97,
+ "median_mb": 21.9,
+ "max_mb": 675.1,
+ "total_gb": 6.89,
+ "runs": [
+  {
+   "mb": 3.5,
+   "case": "chess-salesforce",
+   "folder": "~/e2e-runs/20261017/salesforce-chess-int-802e29-audit-20261018T0040Z/evidence",
+   "parts_mb": {
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 7.9,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261010/battleship-1270-sonnet",
+   "parts_mb": {
+    "work": 0.3,
+    "marketplace": 6.4,
+    ".shiploop-runs": 0.7
+   }
+  },
+  {
+   "mb": 8.5,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261026/live-2160-dc5a81-claude-battleship",
+   "parts_mb": {
+    "work": 0.1,
+    "marketplace": 7.9,
+    ".shiploop-runs": 0.3
+   }
+  },
+  {
+   "mb": 8.6,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261026/live-2160-dc5a81-claude-hello",
+   "parts_mb": {
+    "work": 0.2,
+    "marketplace": 7.9,
+    ".shiploop-runs": 0.3
+   }
+  },
+  {
+   "mb": 9.3,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261003/hello",
+   "parts_mb": {
+    "work": 0.5,
+    "marketplace": 5.2,
+    ".shiploop-runs": 2.7
+   }
+  },
+  {
+   "mb": 9.3,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261026/live-sonnet-battleship-01b9b3",
+   "parts_mb": {
+    "work": 0.2,
+    "marketplace": 7.9,
+    ".shiploop-runs": 0.7
+   }
+  },
+  {
+   "mb": 9.5,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261003/v1161-hello",
+   "parts_mb": {
+    "work": 0.5,
+    "marketplace": 5.2,
+    ".shiploop-runs": 2.9
+   }
+  },
+  {
+   "mb": 9.6,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261004/v1200-hello-sonnet",
+   "parts_mb": {
+    "work": 0.5,
+    "marketplace": 5.4,
+    ".shiploop-runs": 2.8
+   }
+  },
+  {
+   "mb": 9.9,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261004/v1190-hello-sonnet",
+   "parts_mb": {
+    "work": 0.5,
+    "marketplace": 5.4,
+    ".shiploop-runs": 2.8
+   }
+  },
+  {
+   "mb": 10.0,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261003/batch-sonnet/hello",
+   "parts_mb": {
+    "work": 0.5,
+    "marketplace": 5.2,
+    ".shiploop-runs": 3.0
+   }
+  },
+  {
+   "mb": 10.3,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261026/live-sonnet-hello-b01d1c",
+   "parts_mb": {
+    "work": 0.3,
+    "marketplace": 7.9,
+    ".shiploop-runs": 1.4
+   }
+  },
+  {
+   "mb": 11.5,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261004/v1190-hello-sonnet-2",
+   "parts_mb": {
+    "work": 0.7,
+    "marketplace": 5.4,
+    ".shiploop-runs": 3.9
+   }
+  },
+  {
+   "mb": 11.9,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261003/batch-sonnet/battleship",
+   "parts_mb": {
+    "work": 0.7,
+    "marketplace": 5.2,
+    ".shiploop-runs": 3.8
+   }
+  },
+  {
+   "mb": 12.1,
+   "case": "battleship-scoring",
+   "folder": "~/e2e-runs/20261003/batch-sonnet/battleship-scoring",
+   "parts_mb": {
+    "work": 1.2,
+    "marketplace": 5.2,
+    ".shiploop-runs": 4.5
+   }
+  },
+  {
+   "mb": 12.2,
+   "case": "seat-reservations",
+   "folder": "~/e2e-runs/20261003/seat-reservations",
+   "parts_mb": {
+    "work": 0.9,
+    "marketplace": 5.2,
+    ".shiploop-runs": 3.7
+   }
+  },
+  {
+   "mb": 12.9,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-rel1270-ref-r1",
+   "parts_mb": {
+    "work": 0.5,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 13.7,
+   "case": "seat-reservations",
+   "folder": "~/e2e-runs/20261003/batch-sonnet/seat-reservations",
+   "parts_mb": {
+    "work": 0.7,
+    "marketplace": 5.2,
+    ".shiploop-runs": 5.0
+   }
+  },
+  {
+   "mb": 13.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-rel1270-ref-r3",
+   "parts_mb": {
+    "work": 0.7,
+    ".shiploop-runs": 3.7
+   }
+  },
+  {
+   "mb": 14.6,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261004/v1180-hello-sonnet",
+   "parts_mb": {
+    "work": 0.3,
+    ".shiploop-runs": 2.8
+   }
+  },
+  {
+   "mb": 14.8,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-1270-claude-2",
+   "parts_mb": {
+    "work": 0.5,
+    "marketplace": 6.4,
+    ".shiploop-runs": 3.3
+   }
+  },
+  {
+   "mb": 16.2,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/hello",
+   "parts_mb": {
+    "work": 0.4,
+    "marketplace": 7.7,
+    ".shiploop-runs": 2.5
+   }
+  },
+  {
+   "mb": 17.1,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-rel1270-ref-r2",
+   "parts_mb": {
+    "work": 0.9,
+    ".shiploop-runs": 5.6
+   }
+  },
+  {
+   "mb": 17.2,
+   "case": "node-fix-bug",
+   "folder": "~/e2e-runs/20261011/slice-fixbug-8e1253de",
+   "parts_mb": {
+    "work": 0.3,
+    ".shiploop-runs": 1.1
+   }
+  },
+  {
+   "mb": 17.4,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261010/checkers-1270-sonnet",
+   "parts_mb": {
+    "work": 0.3,
+    "marketplace": 6.4,
+    "quality": 2.3,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 17.5,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-inside-implement",
+   "parts_mb": {
+    "work": 0.4,
+    ".shiploop-runs": 2.3
+   }
+  },
+  {
+   "mb": 17.5,
+   "case": "node-fix-bug",
+   "folder": "~/e2e-runs/20261017/round0-claude-main",
+   "parts_mb": {
+    "work": 0.3,
+    ".shiploop-runs": 1.1
+   }
+  },
+  {
+   "mb": 17.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261025/trace-verify-1131-b096ae/hello",
+   "parts_mb": {
+    "work": 0.6,
+    "marketplace": 7.8,
+    ".shiploop-runs": 4.9
+   }
+  },
+  {
+   "mb": 17.8,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-inside-implement-write",
+   "parts_mb": {
+    "work": 0.3,
+    ".shiploop-runs": 2.5
+   }
+  },
+  {
+   "mb": 17.8,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-inside-test-strategy-2",
+   "parts_mb": {
+    "work": 0.5,
+    ".shiploop-runs": 2.5
+   }
+  },
+  {
+   "mb": 17.9,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-inside-implement-k2",
+   "parts_mb": {
+    "work": 0.4,
+    ".shiploop-runs": 2.6
+   }
+  },
+  {
+   "mb": 17.9,
+   "case": "seat-reservations",
+   "folder": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+   "parts_mb": {
+    "work": 0.7,
+    "marketplace": 7.7,
+    ".shiploop-runs": 3.6
+   }
+  },
+  {
+   "mb": 18.1,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-inside-implement-mtime",
+   "parts_mb": {
+    "work": 0.4,
+    ".shiploop-runs": 2.5
+   }
+  },
+  {
+   "mb": 18.5,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-after-spec",
+   "parts_mb": {
+    "work": 0.5,
+    ".shiploop-runs": 2.6
+   }
+  },
+  {
+   "mb": 19.0,
+   "case": "node-add-function",
+   "folder": "~/e2e-runs/20261011/slice-clear-verify-28191c5b",
+   "parts_mb": {
+    "work": 0.4,
+    ".shiploop-runs": 1.4
+   }
+  },
+  {
+   "mb": 19.1,
+   "case": "node-add-function",
+   "folder": "~/e2e-runs/20261011/slice-clear-test-inside-28191c5b",
+   "parts_mb": {
+    "work": 0.4,
+    ".shiploop-runs": 1.4
+   }
+  },
+  {
+   "mb": 19.2,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship",
+   "parts_mb": {
+    "work": 0.7,
+    "marketplace": 7.7,
+    "quality": 1.5,
+    ".shiploop-runs": 3.2
+   }
+  },
+  {
+   "mb": 19.3,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261008/r1-checkers-sonnet",
+   "parts_mb": {
+    "work": 0.6,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 19.3,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261008/r1-battleship-sonnet",
+   "parts_mb": {
+    "work": 0.7,
+    ".shiploop-runs": 3.3
+   }
+  },
+  {
+   "mb": 19.5,
+   "case": "node-add-function",
+   "folder": "~/e2e-runs/20261011/slice-clear-implement-28191c5b",
+   "parts_mb": {
+    "work": 0.4,
+    ".shiploop-runs": 1.5
+   }
+  },
+  {
+   "mb": 19.7,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261008/r2-battleship-sonnet",
+   "parts_mb": {
+    "work": 0.6,
+    ".shiploop-runs": 3.6
+   }
+  },
+  {
+   "mb": 19.7,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261008/r3-battleship-sonnet",
+   "parts_mb": {
+    "work": 0.7,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 19.7,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261006/v1220-battleship-sonnet",
+   "parts_mb": {
+    "work": 0.8,
+    ".shiploop-runs": 3.7
+   }
+  },
+  {
+   "mb": 20.0,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship",
+   "parts_mb": {
+    "work": 0.8,
+    "marketplace": 7.8,
+    "quality": 2.4,
+    ".shiploop-runs": 3.1
+   }
+  },
+  {
+   "mb": 20.1,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261008/r3-checkers-sonnet",
+   "parts_mb": {
+    "work": 0.7,
+    ".shiploop-runs": 3.6
+   }
+  },
+  {
+   "mb": 20.2,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261009/s6-inside-test-strategy",
+   "parts_mb": {
+    "work": 0.5,
+    ".shiploop-runs": 3.8
+   }
+  },
+  {
+   "mb": 20.3,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261007/v1230-battleship-sonnet",
+   "parts_mb": {
+    "work": 0.8,
+    ".shiploop-runs": 3.7
+   }
+  },
+  {
+   "mb": 20.7,
+   "case": "csv-report",
+   "folder": "~/e2e-runs/20261024/gate-290-b60ed7-claude-csv-report",
+   "parts_mb": {
+    "work": 0.9,
+    "marketplace": 7.7,
+    ".shiploop-runs": 4.5
+   }
+  },
+  {
+   "mb": 21.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261025/trace-verify-4fd9f1/hello",
+   "parts_mb": {
+    "work": 0.7,
+    "marketplace": 7.8,
+    ".shiploop-runs": 6.7
+   }
+  },
+  {
+   "mb": 21.9,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261010/checkers-1",
+   "parts_mb": {
+    "work": 0.6,
+    "quality": 2.3,
+    ".shiploop-runs": 3.3
+   }
+  },
+  {
+   "mb": 22.0,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261010/battleship-1",
+   "parts_mb": {
+    "work": 0.7,
+    "quality": 2.3,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 23.0,
+   "case": "battleship-scoring",
+   "folder": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring",
+   "parts_mb": {
+    "work": 1.4,
+    "marketplace": 7.8,
+    "quality": 3.3,
+    ".shiploop-runs": 3.8
+   }
+  },
+  {
+   "mb": 24.0,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-sections-r4-1ac83089",
+   "parts_mb": {
+    "work": 0.2,
+    ".shiploop-runs": 3.1
+   }
+  },
+  {
+   "mb": 24.5,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261025/haiku55-max-battleship-d521a8",
+   "parts_mb": {
+    "work": 0.5,
+    ".shiploop-runs": 0.6
+   }
+  },
+  {
+   "mb": 24.9,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261010/pc1i-checkers-sonnet",
+   "parts_mb": {
+    "work": 0.7,
+    "quality": 2.3,
+    ".shiploop-runs": 3.8
+   }
+  },
+  {
+   "mb": 25.6,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-sections-1ac83089",
+   "parts_mb": {
+    "work": 0.8,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 25.6,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-8stage-13d278dd",
+   "parts_mb": {
+    "work": 0.5,
+    ".shiploop-runs": 3.6
+   }
+  },
+  {
+   "mb": 27.0,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-sections-r3-1ac83089",
+   "parts_mb": {
+    "work": 0.7,
+    ".shiploop-runs": 3.9
+   }
+  },
+  {
+   "mb": 27.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-sections-r2-1ac83089",
+   "parts_mb": {
+    "work": 0.8,
+    ".shiploop-runs": 4.4
+   }
+  },
+  {
+   "mb": 29.5,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261010/checkers-sections-1ac83089",
+   "parts_mb": {
+    "work": 0.9,
+    "quality": 2.3,
+    ".shiploop-runs": 3.8
+   }
+  },
+  {
+   "mb": 30.1,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261011/battleship-probe-28191c5b",
+   "parts_mb": {
+    "work": 0.7,
+    "quality": 2.3,
+    ".shiploop-runs": 4.2
+   }
+  },
+  {
+   "mb": 37.9,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261010/checkers-8stage-88d412e9",
+   "parts_mb": {
+    "work": 1.0,
+    "quality": 3.2,
+    ".shiploop-runs": 11.4
+   }
+  },
+  {
+   "mb": 45.5,
+   "case": "checkers",
+   "folder": "~/e2e-runs/20261008/r2-checkers-sonnet",
+   "parts_mb": {
+    "work": 0.9,
+    ".shiploop-runs": 29.1
+   }
+  },
+  {
+   "mb": 50.1,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1-r1b/control-hello-failed-no-session-id",
+   "parts_mb": {
+    "work": 0.2,
+    "home": 30.2,
+    ".shiploop-runs": 0.3
+   }
+  },
+  {
+   "mb": 61.1,
+   "case": "custom",
+   "folder": "~/e2e-runs/20261008/r2-battleship-grok-none",
+   "parts_mb": {
+    "work": 1.1,
+    "home": 35.5,
+    ".shiploop-runs": 4.2
+   }
+  },
+  {
+   "mb": 72.0,
+   "case": "custom",
+   "folder": "~/e2e-runs/20261008/r3-battleship-grok-none",
+   "parts_mb": {
+    "work": 0.4,
+    "home": 38.6,
+    ".shiploop-runs": 7.9
+   }
+  },
+  {
+   "mb": 72.4,
+   "case": "custom",
+   "folder": "~/e2e-runs/20261008/r1-battleship-grok-none",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 42.1,
+    ".shiploop-runs": 2.6
+   }
+  },
+  {
+   "mb": 76.3,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1/treatment-hello",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 48.7,
+    ".shiploop-runs": 2.8
+   }
+  },
+  {
+   "mb": 83.4,
+   "case": "custom",
+   "folder": "~/e2e-runs/20261006/v1220-battleship-grok-medium-none",
+   "parts_mb": {
+    "work": 1.0,
+    "home": 46.5,
+    ".shiploop-runs": 4.7
+   }
+  },
+  {
+   "mb": 86.2,
+   "case": "custom",
+   "folder": "~/e2e-runs/20261007/v1230-battleship-grok-none",
+   "parts_mb": {
+    "work": 0.9,
+    "home": 48.9,
+    ".shiploop-runs": 4.3
+   }
+  },
+  {
+   "mb": 90.9,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1-r1b/control-hello",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 48.7,
+    ".shiploop-runs": 2.9
+   }
+  },
+  {
+   "mb": 95.1,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1-r1b/treatment-hello",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 50.5,
+    ".shiploop-runs": 2.8
+   }
+  },
+  {
+   "mb": 96.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1/control-hello",
+   "parts_mb": {
+    "work": 0.7,
+    "home": 58.1,
+    ".shiploop-runs": 3.7
+   }
+  },
+  {
+   "mb": 108.3,
+   "case": "seat-reservations",
+   "folder": "~/e2e-runs/effort-eeff1/treatment-seat-reservations",
+   "parts_mb": {
+    "work": 0.9,
+    "home": 64.1,
+    ".shiploop-runs": 4.5
+   }
+  },
+  {
+   "mb": 111.8,
+   "case": "battleship-scoring",
+   "folder": "~/e2e-runs/20261011/battleship-scoring-probe-28191c5b",
+   "parts_mb": {
+    "work": 0.5,
+    "quality": 3.8,
+    ".shiploop-runs": 85.2
+   }
+  },
+  {
+   "mb": 114.5,
+   "case": "seat-reservations",
+   "folder": "~/e2e-runs/effort-eeff1/control-seat-reservations",
+   "parts_mb": {
+    "work": 0.9,
+    "home": 68.3,
+    ".shiploop-runs": 3.9
+   }
+  },
+  {
+   "mb": 120.2,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261005/v1210-battleship-grok-medium",
+   "parts_mb": {
+    "work": 1.1,
+    "home": 97.6,
+    ".shiploop-runs": 1.8
+   }
+  },
+  {
+   "mb": 129.7,
+   "case": "chess-salesforce",
+   "folder": "~/e2e-runs/20261017/salesforce-chess-int-802e29",
+   "parts_mb": {
+    "work": 1.1,
+    "home": 66.1,
+    ".shiploop-runs": 6.1,
+    "platform": 0.2
+   }
+  },
+  {
+   "mb": 130.8,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261025/gate-212-8a49cf-grok-hello",
+   "parts_mb": {
+    "work": 0.2,
+    "home": 127.4,
+    ".shiploop-runs": 0.5
+   }
+  },
+  {
+   "mb": 134.9,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261010/hello-1270-claude",
+   "parts_mb": {
+    "work": 0.0,
+    "marketplace": 6.4
+   }
+  },
+  {
+   "mb": 137.6,
+   "case": "battleship-salesforce",
+   "folder": "~/e2e-runs/20261018/bs-release-update-436528",
+   "parts_mb": {
+    "work": 0.5,
+    "home": 128.1,
+    ".shiploop-runs": 1.2,
+    "platform": 0.1
+   }
+  },
+  {
+   "mb": 141.4,
+   "case": "battleship-salesforce",
+   "folder": "~/e2e-runs/20261017/bs-sf-int-b7c77f",
+   "parts_mb": {
+    "work": 1.3,
+    "home": 73.1,
+    ".shiploop-runs": 6.5,
+    "platform": 0.2
+   }
+  },
+  {
+   "mb": 141.5,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261004/v1200-battleship-luna",
+   "parts_mb": {
+    "work": 0.2,
+    "home": 139.9,
+    ".shiploop-runs": 0.3
+   }
+  },
+  {
+   "mb": 160.2,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4",
+   "parts_mb": {
+    "work": 0.7,
+    "quality": 2.3,
+    ".shiploop-runs": 136.0
+   }
+  },
+  {
+   "mb": 171.8,
+   "case": "chess-salesforce",
+   "folder": "~/e2e-runs/20261024/chess-sf-full-ed3292",
+   "parts_mb": {
+    "work": 0.5,
+    "home": 145.5,
+    ".shiploop-runs": 4.5,
+    "platform": 0.1
+   }
+  },
+  {
+   "mb": 173.4,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1-r1/control-hello",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 144.8,
+    ".shiploop-runs": 2.8
+   }
+  },
+  {
+   "mb": 176.6,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261003/battleship-luna",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 163.5,
+    ".shiploop-runs": 1.6
+   }
+  },
+  {
+   "mb": 179.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello",
+   "parts_mb": {
+    "work": 0.6,
+    "home": 149.4,
+    ".shiploop-runs": 4.6
+   }
+  },
+  {
+   "mb": 181.0,
+   "case": "hello",
+   "folder": "~/e2e-runs/effort-eeff1-r1/treatment-hello",
+   "parts_mb": {
+    "work": 0.7,
+    "home": 148.9,
+    ".shiploop-runs": 3.0
+   }
+  },
+  {
+   "mb": 193.9,
+   "case": "battleship-scoring",
+   "folder": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring",
+   "parts_mb": {
+    "work": 0.7,
+    "home": 154.2,
+    "quality": 1.0,
+    ".shiploop-runs": 7.7
+   }
+  },
+  {
+   "mb": 248.1,
+   "case": "chess-salesforce",
+   "folder": "~/e2e-runs/20261019/chess-sf-full-05fe25b",
+   "parts_mb": {
+    "work": 1.2,
+    "home": 181.5,
+    ".shiploop-runs": 7.8,
+    "platform": 0.1
+   }
+  },
+  {
+   "mb": 251.7,
+   "case": "chess-salesforce",
+   "folder": "~/e2e-runs/20261020/chess-sf-full-9e52e8",
+   "parts_mb": {
+    "work": 1.5,
+    "home": 182.9,
+    ".shiploop-runs": 6.2,
+    "platform": 0.1
+   }
+  },
+  {
+   "mb": 255.7,
+   "case": "battleship",
+   "folder": "~/e2e-runs/2026-10-18/battleship-1",
+   "parts_mb": {
+    "work": 0.9,
+    "home": 185.2,
+    ".shiploop-runs": 7.2
+   }
+  },
+  {
+   "mb": 259.5,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261005/v1210-battleship-luna-xhigh",
+   "parts_mb": {
+    "work": 1.1,
+    "home": 225.4,
+    ".shiploop-runs": 4.4
+   }
+  },
+  {
+   "mb": 259.6,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship",
+   "parts_mb": {
+    "work": 1.2,
+    "home": 184.8,
+    "quality": 0.9,
+    ".shiploop-runs": 12.7
+   }
+  },
+  {
+   "mb": 263.7,
+   "case": "hello",
+   "folder": "~/e2e-runs/20261024/gate-290-b60ed7-codex-hello",
+   "parts_mb": {
+    "work": 0.7,
+    "home": 244.1,
+    ".shiploop-runs": 3.4
+   }
+  },
+  {
+   "mb": 420.5,
+   "case": "battleship",
+   "folder": "~/e2e-runs/20261003/v1161-battleship-luna",
+   "parts_mb": {
+    "work": 2.3,
+    "home": 336.2,
+    ".shiploop-runs": 16.9
+   }
+  },
+  {
+   "mb": 675.1,
+   "case": "chess-salesforce",
+   "folder": "~/e2e-runs/20261024/chess-sf-full-12a23d",
+   "parts_mb": {
+    "work": 1.2,
+    "home": 447.8,
+    ".shiploop-runs": 138.6,
+    "platform": 0.2
+   }
+  }
+ ]
+}

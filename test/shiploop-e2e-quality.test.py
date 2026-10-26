@@ -1548,7 +1548,9 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         self.assertEqual(seen["spec"], run.case_quality("q-tiny"))
         self.assertIsNone(seen["kw"]["gate"])
         self.assertNotIn("hosts_used", seen["kw"], "the hosts are the launch records', read by the phase")
-        self.assertIs(seen["kw"]["groups"], run.LIVE_HOST_GROUPS, "the phase's children end with the harness's signal handling")
+        groups = seen["kw"]["groups"]
+        self.assertIs(groups.groups, run.LIVE_HOST_GROUPS, "the phase's children end with the harness's signal handling")
+        self.assertIsInstance(groups, run.lifecycle.Recorded, "and are recorded in the run's ledger (SPEC \"The resource lifecycle\")")
         self.assertTrue(seen["lock_alive"], "the phase runs under the case lock the harness holds")
         self.assertIsNone(seen["stop_clear"])
         self.assertRegex(seen["stop_asked"], r"^stopped by .*q-tiny-claude/stop$")

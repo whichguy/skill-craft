@@ -83,7 +83,9 @@ code is non-zero. A SIGTERM or SIGHUP to the harness (not a SIGHUP the launch ig
 once and is recorded the same way, as `terminated by SIGTERM`; a Ctrl-C does so for a suite. After each host session and after the
 case checks the harness stops the TCP listeners left under the case's output folder and records them as `left_behind` in
 result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
-is running (README, "Launching long runs").
+is running (README, "Launching long runs"). What a run owns is in <output>/resources.jsonl: before a host starts it leases its
+platform and its declared fixed ports (a held one refuses it), an orphan of a killed harness or a low disk refuses it, and a
+--resume-run first stops what the killed harness left, by recorded identity (lifecycle.py; SPEC "The resource lifecycle").
 After the verdicts are written, a delivery that is finished and returned (and only then) is measured on a copy under
 <output>/quality and recorded as `quality` in result.json, beside the verdicts and never as one: a mutation ratio of the
 delivered tests, the held-out acceptance a case declares, the Claude memory writes the events show (quality.py, README
@@ -143,6 +145,7 @@ import environment  # noqa: E402
 import fidelity  # noqa: E402
 import flow  # noqa: E402
 import hosts  # noqa: E402
+import lifecycle  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
 import quality  # noqa: E402
@@ -161,6 +164,7 @@ REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.
 PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
+EXIT_POLL_SECONDS = 0.1  # how soon the end of a host session is seen (its leader is polled, not reaped, until its group is ended)
 # With no resume limit by default, a host that cannot run (its auth expired, its binary broke) or a model that ends every
 # turn without moving the run would be resumed forever. Evidence, not a count of work: this many resumed sessions in a row
 # that left ShipLoop's revision where it was end the loop (the owner's rule for autonomous runs: stop on three
@@ -355,7 +359,8 @@ def quality_record(out: Path, work: Path, name: str, gate: str | None, stop_file
     spec: dict = {}
     try:
         spec = case_quality(name) if name != "custom" else {}
-        return quality.measure(out, work, spec, gate=gate, groups=LIVE_HOST_GROUPS, stop=lambda: quality_stop(stop_file))
+        return quality.measure(out, work, spec, gate=gate, groups=lifecycle.Recorded(LIVE_HOST_GROUPS, out, "quality"),
+                               stop=lambda: quality_stop(stop_file))
     except Exception as exc:
         return quality.failed_block(out, spec, exc)
 
@@ -839,6 +844,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                                 stderr=stderr, env=env, start_new_session=True)
         LIVE_HOST_GROUPS.add(proc.pid)  # a signal to the harness now ends this group (on_termination)
         HOST_THREAD[proc.pid] = threading.get_ident()
+        # In the run's ledger with its leader's creation identity, so a later invocation can stop it if this harness is killed.
+        owned = lifecycle.own(out, proc.pid, "host")
 
         def record(raw: bytes):
             nonlocal line, stop
@@ -869,28 +876,36 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.start()
         deadline = time.monotonic() + timeout
         status = None
+        left: list = []  # what a session that ended left in its own group, ended with it
         try:
-            while proc.poll() is None:
-                if time.monotonic() >= deadline:
-                    status = "timeout"
-                elif (stop_file is not None and stop_file.exists()) or TERMINATION.is_set():
-                    status = "stopped"
-                elif stop_when is not None and stop_when():
-                    status = "interrupted"
-                if status:
-                    # The whole process group: the host and any native workers it started (not yet reaped, so still its own).
-                    listeners.end_group(proc.pid)
-                    proc.wait()
-                    break
-                try:
-                    # Wake the moment the session ends; a plain sleep held the caller for the rest of the tick.
-                    proc.wait(timeout=POLL_SECONDS)
-                except subprocess.TimeoutExpired:
-                    pass
+            # The leader is watched without being reaped (listeners.unreaped), so once it has ended its number is still its group's.
+            next_check = 0.0
+            while listeners.unreaped(proc.pid) == "running":
+                if time.monotonic() >= next_check:
+                    if time.monotonic() >= deadline:
+                        status = "timeout"
+                    elif (stop_file is not None and stop_file.exists()) or TERMINATION.is_set():
+                        status = "stopped"
+                    elif stop_when is not None and stop_when():
+                        status = "interrupted"
+                    if status:
+                        break
+                    next_check = time.monotonic() + POLL_SECONDS
+                time.sleep(EXIT_POLL_SECONDS)  # wake soon after the session ends: the stop checks above keep their own tick
+            if status is None:
+                with contextlib.suppress(listeners.Unobserved):
+                    left = [{"pid": row["pid"], "command": row["command"][:200]}
+                            for row in lifecycle.table().values() if row["pgid"] == proc.pid and row["pid"] != proc.pid]
+            # The whole process group: the host and any native workers it started, or what a session that ended left in it (SPEC
+            # "The resource lifecycle"). Sent while the leader is unreaped, so the number is still its group's; reaped right after.
+            listeners.end_group(proc.pid)
+            proc.wait()
         finally:
             if proc.poll() is not None:
                 LIVE_HOST_GROUPS.discard(proc.pid)  # reaped: its pgid may be reused, so it is never signalled again
                 HOST_THREAD.pop(proc.pid, None)
+                lifecycle.ended(out, owned, "session ended" if status is None else status,
+                                **({"left_in_group": left} if left else {}))
         if status is None:
             # A signal may have killed the group before this loop saw it: that is a stop, not a host failure.
             status = "stopped" if TERMINATION.is_set() else "exited" if proc.returncode == 0 else "failed"
@@ -3778,6 +3793,41 @@ def refuse_stale_listeners(own: Path | None) -> None:
                          + "\n  ".join(lines))
 
 
+def planned_output(requested: Path | None, name: str) -> Path:
+    """Where new_output_dir would put a run's folder, without making it: what the refusals before it read (its runs root and
+    its file system)."""
+    return (requested.expanduser().resolve() if requested is not None
+            else Path(tempfile.gettempdir()) / "shiploop-e2e" / name)
+
+
+def lifecycle_problems(out: Path, runs: int = 1, own: Path | None = None) -> tuple[list[str], dict]:
+    """The refusals of SPEC "The resource lifecycle" made before a host starts, as lines: an orphan of a run under the runs root
+    whose harness is not alive, and a disk below the headroom of the `runs` cases this invocation runs. Also the disk record."""
+    lines = lifecycle.orphan_lines(environment.runs_root(out), own)
+    found = lifecycle.disk(out, runs)
+    if line := lifecycle.disk_line(found):
+        lines.append(line)
+    return lines, found
+
+
+def refuse_lifecycle(out: Path, runs: int = 1, own: Path | None = None) -> dict:
+    """Start nothing beside an orphan or on a disk below the headroom; returns the disk record when there is no refusal."""
+    lines, found = lifecycle_problems(out, runs, own)
+    if lines:
+        raise lifecycle.Refused("no host is started (SPEC \"The resource lifecycle\"):\n  " + "\n  ".join(lines))
+    return found
+
+
+def take_leases(name: str, platform_spec: dict | None, only_platform: bool = False) -> "lifecycle.Lease":
+    """Lease the case's platform state and its declared fixed ports, all or none (lifecycle.take raises Refused)."""
+    ports = [] if only_platform or name == "custom" else list(case_quality(name).get("refuse_ports") or [])
+    lease = lifecycle.take(lifecycle.lease_keys(platform_spec, ports),
+                           {"pid": os.getpid(), "case": name, "since": datetime.now().isoformat(timespec="seconds")}, ports=ports)
+    for note in lease.notes:
+        print(note, flush=True)
+    return lease
+
+
 def run_suite(args, argv: list[str]) -> int:
     """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed.
 
@@ -3801,6 +3851,8 @@ def _run_suite(args, argv: list[str]) -> int:
     # Once, up front (like the version gate): a refusal raised inside a case's worker thread would reach the suite only after
     # the running chains finish, with no suite-result.json. Its cases skip their own check (--suite-name).
     refuse_stale_listeners(None)
+    refuse_lifecycle(planned_output(args.output, "suite-" + args.suite), runs=len(suites[args.suite].get("gate") or [])
+                     + len(suites[args.suite]["cases"]))
     base = new_output_dir(args.output, "suite-" + args.suite)
     os.environ.setdefault(environment.RUNS_ROOT_ENV, str(environment.runs_root(base)))
     passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
@@ -3861,7 +3913,12 @@ def _run_suite(args, argv: list[str]) -> int:
             case_argv = [*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite]
             if prior is not None:
                 case_argv += ["--continue-from", str(prior)]
-            code = main(case_argv)
+            try:
+                code = main(case_argv)
+            except lifecycle.Refused as refused:  # a lease another run holds: this case is not started, the others go on
+                rows.append({"case": case, "pass": False, "refused": str(refused)})
+                print(f"suite {args.suite}: {case} refused: {refused}", flush=True)
+                continue
             outputs[case] = out
             rows.append({"case": case, "pass": code == 0, "output": str(out)})
         return rows
@@ -3929,13 +3986,17 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
-        problems = stale_listener_lines(None)
-        for line in problems:
-            print(f"refused: {line}", flush=True)
-        refused = bool(problems)
+        problems = stale_listener_lines(None) + lifecycle_problems(out, own=out)[0]
         prefix = None if args.prompt else run_prefix(args.platform_prefix, args.case, json.loads(CASES.read_text()))
         RUN_PREFIX = (args.case, prefix) if prefix else None
         spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
+        try:  # would the run get its leases now? Taken and given back at once
+            take_leases("custom" if args.prompt else args.case, spec).close()
+        except lifecycle.Refused as refused:
+            problems.append(str(refused))
+        for line in problems:
+            print(f"refused: {line}", flush=True)
+        refused = bool(problems)
         existing = platform_existing_mode(args.platform_existing, args.case, spec)
         if args.backend not in (None, "anthropic") and args.host == "all":
             raise SystemExit(f"--backend {args.backend} is a Claude host option; name --host claude, not all")
@@ -3978,6 +4039,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
 
     resumed = None
     regrade = False
+    start_disk = None  # the disk headroom checked before this invocation started anything (None: a suite's case or a regrade)
     earlier = {}
     earlier_result: dict = {}
     recorded: dict = {}  # a regrade restates this: the run's own last record
@@ -4082,7 +4144,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         brownfield.resolve(based_on)  # a base that no longer matches its pin is refused before the folder exists
         if not args.suite_name:
             refuse_stale_listeners(None)  # before the folder exists, so a refusal leaves nothing behind
+            start_disk = refuse_lifecycle(planned_output(args.output, name))
+        lease = take_leases(name, platform_spec)  # all or none, before the folder exists (SPEC "The resource lifecycle")
+        held.append(lease)
         out = new_output_dir(args.output, name)
+        lease.bind(out)
         work = out / "work"
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
@@ -4103,6 +4169,18 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if resumed and lock is not None:
         stop_file.unlink(missing_ok=True)  # an earlier invocation's request must not stop this one; only the harness holding the case owns it
     left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
+    retry_cleanup = None  # what a resume stopped of an earlier invocation's processes before it started anything
+    if resumed and not regrade and lock is not None:
+        # Crash and retry (SPEC "The resource lifecycle"): what a killed harness left (its host, the observer) is stopped by its
+        # recorded identity, and a server its model left is reaped, before anything is leased or started. The reap was done just
+        # before the session until 2026-10-26; here it also frees a declared port for the lease below.
+        retry_cleanup = lifecycle.cleanup(out)
+        left_behind.append(listeners.reap(out))
+        if not args.suite_name:
+            start_disk = refuse_lifecycle(out, own=out)
+        lease = take_leases(name, platform_spec)
+        held.append(lease)
+        lease.bind(out)
 
     def engine_now() -> dict | None:
         """Where the ledger stands now (None before ShipLoop has written any state, or where it cannot be read: the record of a
@@ -4325,6 +4403,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     else:
         (out / "prompt.txt").write_text(prompt + "\n")
         (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
+    # Provider contention is observed, not reserved (SPEC "The resource lifecycle"): the live runs on this host and model now.
+    start_contention = None if regrade else lifecycle.contention(out, args.host, args.model)
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host}" + (f" backend={backend}" if backend not in (None, "anthropic") else "")
               + f" model={args.model} effort={args.effort} work={work}", flush=True)
@@ -4376,7 +4456,15 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             # A run whose cleanup never succeeded is cleaned when it is graded again. The lock proves that no harness is running
             # this case, not that no model is: a host runs in its own session and outlives a harness that was killed (SIGKILL
             # drops the lock), so a regrade of such a run must wait until its host is stopped (see --grade-only).
-            guard.arm(platform_spec, out)
+            try:  # and no other run may be using the platform the cleanup acts on (SPEC "The resource lifecycle")
+                platform_lease = take_leases(name, platform_spec, only_platform=True)
+            except lifecycle.Refused as refused:
+                print(f"regrade: this run's platform cleanup did not succeed, but {refused}; no cleanup is run now. Grade it "
+                      f"again later, or clean by hand: {manual_cleanup_command(out, platform_spec)}", flush=True)
+            else:
+                held.append(platform_lease)
+                platform_lease.bind(out)
+                guard.arm(platform_spec, out)
         else:
             # Another harness holds the case (or the lock cannot be taken): its trial may still be using what a cleanup removes.
             print(f"regrade: this run's platform cleanup did not succeed, but {out / listeners.LOCK_NAME} is held by another "
@@ -4387,10 +4475,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # Active time, not wall time: a Mac that slept 10 h spent run 5's 5 h cap with 3.8 h of work (2026-10-25);
     # time.monotonic stops during sleep (mach_absolute_time, CLOCK_MONOTONIC), time.time does not.
     deadline = time.monotonic() + (args.timeout or float("inf"))
-    if resumed and not regrade:
-        # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
-        # not answer the new session's probes: that is how two runs met the same port in round 2.
-        left_behind.append(listeners.reap(out))
     if regrade:
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
@@ -4550,10 +4634,15 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
         at_stop = {"information_only": True, "ran": False,
                    "reason": "could not be computed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
+    run_cleanup = None
     if not regrade:
         # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
         # starts no host, and the run it grades may have a live one.
         left_behind.append(listeners.reap(out))
+        # What the run's ledger says it owns and is still alive, ShipLoop's progress observer adopted first (SPEC "The resource
+        # lifecycle"); the run's data directories are recorded beside it.
+        run_cleanup = lifecycle.cleanup(out)
+        lifecycle.record_directories(out, args.host, work)
     platform_block = None
     keep_not_honoured = None  # why --keep-platform did not keep the platform (None: kept, moot, or not asked)
     keep_moot = False  # --keep-platform where no cleanup was pending (a regrade of a run already cleaned or kept): changes nothing
@@ -4591,6 +4680,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     invalid_trial = bool(platform_block and (platform_block.get("guard_coverage") or {}).get("bypassed"))
     left = (earlier_result.get("left_behind") if regrade
             else listeners.merge_left_behind([earlier_result.get("left_behind") if resumed else None, *left_behind]))
+    # This invocation's resources (a regrade restates the run's own): the ledger holds every invocation's rows.
+    resources = earlier_result.get("resources") if regrade else {
+        "ledger": lifecycle.LEDGER, "leases": [key for handle in held if isinstance(handle, lifecycle.Lease) for key in handle.keys],
+        "contention": start_contention, "disk": start_disk,
+        "cleanup": {**({"before_resume": retry_cleanup} if retry_cleanup is not None else {}), "end": run_cleanup}}
     expect = case.get("chain")
     # An inner-loop seed is graded on its chain; a release slice has none (its items are recorded, not built).
     chain = chain_facts(out, expect) if ((seeded and not sliced) or interrupt_at or expect) else None
@@ -4679,6 +4773,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               **({"platform": platform_block} if platform_block else {}),
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
+              **({"resources": resources} if resources is not None else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "base": based, "delivery": {"before": delivered_before, "after": delivered_after},
@@ -4748,6 +4843,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         print(f"  environment  {line}")
     if line := listeners.left_behind_line(left):
         print(line)
+    for found in ((resources or {}).get("cleanup") or {}).values() if not regrade else ():
+        if line := lifecycle.cleanup_line(found):
+            print(line)
     if at_stop is not None and at_stop["ran"]:
         print(f"            product at stop (information only, engine {at_stop['engine']['status']} at "
               f"{at_stop['engine']['stage']}): {at_stop['passed']}/{at_stop['total']} checks pass in {at_stop['worktree']}"

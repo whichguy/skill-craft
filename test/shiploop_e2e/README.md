@@ -1502,9 +1502,9 @@ SIGTERM does not), and not the review and fan-out agents (`hosts.run_agent`). Wh
 Only a SIGKILL gives the harness no chance to run anything: nothing is written afterwards (no termination record, no
 `result.json`, no baseline row) and the host can outlive the harness, because it starts in a session of its own (the Grok
 host of a round-2 run went on writing for about 28 minutes after the harness died of `exit 241`, a SIGTERM, before this
-handler). Stop any orphan host first (the lsof recipe below finds what still has its working directory under the output
-directory; nothing looks for an orphan host yet), then give the run its records with
-`--resume-run <output directory> --grade-only`.
+handler). Since 2026-10-26 the run's ledger names that host (below): a `--resume-run` stops it first, by its recorded
+identity, and `python3 test/shiploop_e2e/lifecycle.py cleanup <output directory>` does the same without resuming. Then give
+the run its records with `--resume-run <output directory> --grade-only`.
 
 The harness stops what a host leaves listening. A model's background server can outlive its run by far more than
 the task limit: two (`python server.py` and `node server.js`) were found alive about 27 hours after their runs,
@@ -1514,7 +1514,9 @@ each Bash call its own process group; the harness's kill is a group kill of the 
 timeout or an interrupt), which does not reach those groups. Every group kill of the harness (a host session, the review and
 fan-out agents, the browser probe, the quality phase's test runs through `quality.end_group`) is `listeners.end_group`: it signals a group only while its leader is this process's child
 and not yet reaped, and a running leader only if it leads its group, so a number a reaped leader gave up is never signalled
-(an exited, unreaped leader still pins its number, and what it left in the group is ended with it). So when a host session ends, and again after the case
+(an exited, unreaped leader still pins its number, and what it left in the group is ended with it). A group an earlier, killed
+invocation left is signalled only by `listeners.signal_adopted_group`, after `lifecycle.py` has seen its leader's recorded
+identity (below). So when a host session ends, and again after the case
 checks, the harness stops every TCP listener of your user whose working directory or command line lies under the
 case's output folder (SIGTERM, then SIGKILL after 3 s; a path that only shares a name prefix with the folder does not
 count, and neither the harness nor what launched it is ever stopped). It records what it stopped, and what it could
@@ -1535,10 +1537,37 @@ listeners as stale while it is still running: wait for it to end, or stop the se
 harness is running is refused too (nothing is started or stopped, and its stop request is left for that harness); a regrade is
 not. Where `lsof` cannot be read the check is skipped with a printed note.
 
-Not covered: a process that does not listen (a file watcher, `npm --watch`), a UDP or unix-socket server, a server
-whose working directory and command line are both outside the folder, and anything left by a harness that was
-killed without a chance to run (SIGKILL). For those, list what still has its working directory under the run's
-output directory, check each one, and kill it by pid:
+#### What a run owns: leases, cleanup and disposal (`lifecycle.py`)
+
+SPEC "The resource lifecycle" (2026-10-26). A run appends what it owns to `<output>/resources.jsonl` as it goes: every
+process group the harness starts (each host session, each quality-phase run) with its leader's pid, group, `ps` start time
+and command line; the leases; the data directories (with a Claude host, also `~/.claude/projects/<its work directory,
+encoded>`, which Claude Code keeps outside the folder). `resources` in `result.json` carries this invocation's leases, the
+`contention` it saw (live runs under the runs root on the same host and model: observed, never reserved), the disk headroom
+checked, and what its cleanups did.
+
+- **Cleanup** stops a recorded group only while its leader still has its recorded identity; a gone or reused pid is recorded
+  and never signalled, and nothing is chosen by name. It first adopts ShipLoop's progress observer by the pid its own
+  `progress-observer.json` names, only while that process is an orphan carrying the record's instance id and run directory.
+  It runs at the end of every invocation that launched a host and first in a `--resume-run`, it is idempotent, and it deletes
+  no file. A host session's whole group is ended when the session ends. Prints a `cleanup` line when it did something.
+- **Leases.** Before a host starts, a run leases its platform state (kind, org and prefix) and its declared fixed ports
+  (`quality.refuse_ports`), all or none, as `flock`s in `${XDG_STATE_HOME:-~/.local/state}/shiploop-e2e/leases`
+  (`$SHIPLOOP_E2E_LEASES` overrides). A key another harness holds, or a port one of your processes listens on, refuses the
+  run before its folder exists, naming the holder; the lease ends with its harness, SIGKILL included. In a suite a refused
+  case is a `refused` row and the others go on.
+- **Refusals.** A launch, a resume, `--preflight-only` and a suite (once) are refused while a recorded group or observer of a
+  run under the runs root outlives its harness (run the `lifecycle.py cleanup <that output>` the refusal names), and while the
+  output's file system has less than 2 GB free per case.
+- **Disposal** is yours, after inspection: `python3 test/shiploop_e2e/lifecycle.py dispose <output directory>` removes
+  `work/`, `home/`, `marketplace/`, `build/` and `quality/` only when no harness holds the case, no recorded group is alive,
+  and `result.json` (with `delivery.before.head`), the logs and a verified `delivery/work.bundle` holding that head are there.
+  `delivery.restore` rebuilds the delivered tree from the bundle afterwards.
+
+Not covered: a process that does not listen (a file watcher, `npm --watch`) and that a model started in a session of its
+own (ShipLoop's progress observer aside), a UDP or unix-socket server, a server whose working directory and command line
+are both outside the folder. For those, list what still has its working directory under the run's output directory, check
+each one, and kill it by pid:
 
 ```sh
 OUT=/Users/dadleet/e2e-runs/<day>/<suite>/<case>     # the run's output directory, no trailing slash
