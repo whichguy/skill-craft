@@ -102,12 +102,10 @@ with no entry in the spec and a due stage that is not a later stage; it cannot j
 that the list is complete. An outcome of a requirement the spec lists in `primary`
 is accepted only when its `lower_layer_check` is the ID of a test ShipLoop ran and saw
 pass in a case for that requirement; else add-work adds that test. The stage an
-entry is due at, and `handoff`, print the current list and restate it in their own
-`unverified`: drop an entry due there that it observed (the summary names the
-observation), move one it could not observe to a later stage, copy every other entry
-unchanged, `[]` once none stays open. ShipLoop refuses a restatement that is missing,
-drops an entry due later or keeps one due at the stage now ending. The report shows
-the latest list and what later stages settled.
+entry is due at, and `handoff`, restate the current list in their own `unverified`:
+drop an entry due there once observed (the summary says how), move one not observed
+to a later stage, copy the rest; `[]` once none is open. ShipLoop refuses a missing
+restatement, a dropped later entry or a kept due one. The report shows what settled.
 
 ## Tests pass or the step stops
 

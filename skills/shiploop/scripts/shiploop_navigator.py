@@ -8461,10 +8461,10 @@ REVIEW_FORM = ("front matter between two `---` lines with `classification:` triv
                "`Read:`, `Found:`, `Changed:`, `Checked:` and `Class:` (what this pass read, found, changed, ran and why "
                "its classification); then a `## Handoff` section (the compact handoff a fresh context continues from)")
 PASSES_FILE = "passes.md"
-# The convergence gate (Haiku 5.5 battleship, 2026-10-25: one review ran 12 passes whose edits shrank to 1-4 lines, each
-# labelled non-trivial; docs/experiments/e2e-haiku55-battleship-20261025/improve-passes.txt).  After SMALL_PASS_RUN
-# passes that each changed 1..SMALL_PASS_LINES lines, a non-trivial pass names the later-stage defect its change
-# prevents, or is classified trivial and ends the review.
+# The convergence gate (a Haiku 5.5 live run, 2026-10-25: one spec review ran 12 passes whose edits shrank to 1-4 lines,
+# each labelled non-trivial; its journal row is in docs/shiploop-run5-followups-journal-2026-10-25.md).  After
+# SMALL_PASS_RUN passes that each changed 1..SMALL_PASS_LINES lines, a non-trivial pass names the later-stage defect
+# its change prevents, or is classified trivial and ends the review.
 SMALL_PASS_LINES = 10
 SMALL_PASS_RUN = 3
 LATER_DEFECT_LINE = "Later-stage defect: <stage>: <what would fail there without this change>"

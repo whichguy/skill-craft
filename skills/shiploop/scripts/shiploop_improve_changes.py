@@ -19,8 +19,8 @@ in ``inbox/<action>.md`` and returned as ``inbox/<action>-final-result.md``, out
 fingerprints that result, so a pass that edits only the result is counted as an edit (advisors panel, 2026-10-25:
 a tree-only count read test-spec reviews as 0 of 9 edited when 5 of 9 had edited their result).
 
-``changed_lines`` and ``result_lines`` size a pass's edit in lines, for the convergence gate: a Haiku 5.5 review
-(battleship, 2026-10-25) ran 12 passes whose edits shrank to 1-4 lines each and labelled every one non-trivial.
+``changed_lines`` and ``result_lines`` size a pass's edit in lines, for the convergence gate: a Haiku 5.5 spec review
+in a live run (2026-10-25) ran 12 passes whose edits shrank to 1-4 lines each and labelled every one non-trivial.
 """
 
 from __future__ import annotations

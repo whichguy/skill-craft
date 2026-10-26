@@ -2975,7 +2975,8 @@ class UnverifiedWordingTests(unittest.TestCase):
                        "An outcome of a requirement the spec lists in `primary` is accepted only when its "
                        "`lower_layer_check` is the ID of a test ShipLoop ran and saw pass in a case for that requirement; "
                        "else add-work adds that test",
-                       "prints each entry at its due stage and the whole list at `handoff` and in the report"):
+                       "The stage an entry is due at, and `handoff`, restate the current list in their own `unverified`",
+                       "ShipLoop refuses a missing restatement, a dropped later entry or a kept due one"):
             self.assertIn(phrase, skill)
         reference = normalized((REFERENCES / "system-tests.md").read_text(encoding="utf-8"))
         self.assertIn("listed in its `unverified` result with the stage that reports it", reference)
