@@ -636,7 +636,7 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
     if not claude:
         cannot += ["the status display, the model's own text and the printed heads: this host's stream holds tool calls only"]
     if run_trace.covers(traced):
-        cannot.append("a refusal of a command that named no run (a workspace verb on --workspace) or did not parse, when a pipe "
+        cannot.append("a refusal of a command that named no run (a workspace verb on --workspace-root) or did not parse, when a pipe "
                       "hid it: the trace records only commands on the run, so those come from the stream's refusal lines")
     else:
         cannot.append("refusals a pipe hid from the host, every reprint and the keepalive's continuations: "

@@ -282,12 +282,12 @@ and `failures_source.why` says why.
 
 **What the trace cannot hold.** It records only navigator commands that loaded the run. Three kinds of failure are in the
 host stream only:
-- a command that named no run, such as `workspace plan-return --workspace W` (its refusal reads `ShipLoop workspace
+- a command that named no run, such as `workspace plan-return --workspace-root W` (its refusal reads `ShipLoop workspace
   blocked:`);
 - a command line that did not parse (`shiploop complete: error: ...`);
-- the routed verbs `chain`, `lint`, `red-check` and `backchain-check` (`run_trace.ROUTED_VERBS`). Shiploop 1.12.1 stopped
+- the routed verbs `chain`, `lint`, `red-check` and `backchain-check` (`run_trace.ROUTED_VERBS`). Shiploop 1.13.1 stopped
   tracing them, and 1.12.0 traced their exit without text. The harness reads their failures from the stream on every
-  release and leaves 1.12.0's records out, so runs on either side of 1.12.1 count them with one instrument.
+  release and leaves 1.12.0's records out, so runs on either side of 1.13.1 count them with one instrument.
 
 `metrics.outside_trace` tells these apart: no line of the call runs a traced verb with `--run-dir`, or its text is an
 argparse error. A compound line that also runs a traced verb on the run is the trace's. The harness adds them to the

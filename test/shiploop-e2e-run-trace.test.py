@@ -4,9 +4,9 @@
 The fixture is a real ShipLoop run driven through the checkout's CLI in a temporary E2E output folder, with a Claude stream
 written around the calls it made (the CLI's own output as each tool result, stamped on the same clock as the trace):
 init; a `next` that reprints the intake packet; a failed `--check-only` the stream shows (exit 2); three failures the
-harness reads from the stream on every release: a `workspace plan-return --workspace` refusal and a `complete` with no
+harness reads from the stream on every release: a `workspace plan-return --workspace-root` refusal and a `complete` with no
 `--action` (a usage error), neither of which loads the run, and a `lint` that could not run (a routed verb: shiploop 1.12.0
-traced it without text, 1.12.1 not at all); a refused `complete` the model piped through `| tail -1`, so the stream shows
+traced it without text, 1.13.1 not at all); a refused `complete` the model piped through `| tail -1`, so the stream shows
 neither the exit nor the refusal line; a keepalive stop decision that continued the turn; the accepted intake and a reprint
 of the discovery packet. The stream alone counts four failures and misses the refusal; the trace counts the refusal and the
 check, two reprints and one continuation; the harness's list holds all five, in order.
@@ -87,7 +87,7 @@ def traced_output(base: Path) -> Path:
     assert check.returncode != 0, check.stdout + check.stderr
     # Two failures no trace can hold: a workspace verb that names no run, and a command line that does not parse.
     missing = base / "missing-workspace"
-    blocked = shell(f"{cli} workspace plan-return --workspace {missing}", ["workspace", "plan-return", "--workspace", str(missing)])
+    blocked = shell(f"{cli} workspace plan-return --workspace-root {missing}", ["workspace", "plan-return", "--workspace-root", str(missing)])
     assert blocked.returncode != 0 and "ShipLoop workspace blocked" in blocked.stderr, blocked.stdout + blocked.stderr
     usage = shell(f"{cli} complete --run-dir {run}", ["complete", "--run-dir", str(run)])
     assert usage.returncode == 2 and "error:" in usage.stderr, usage.stdout + usage.stderr
@@ -161,7 +161,7 @@ class TracedRun(unittest.TestCase):
         refusal = "ShipLoop navigator: record must contain exactly one shiploop-state fence"
         self.assertFalse(metrics.outside_trace(f"{cli} complete --run-dir {run} --action=nav-1 2>&1 | tail -1", refusal))
         self.assertFalse(metrics.outside_trace(f"RUN={run}; {cli} next --run-dir \"$RUN\"", refusal))
-        self.assertTrue(metrics.outside_trace(f"{cli} workspace plan-return --workspace /e2e/.shiploop-runs/w", refusal))
+        self.assertTrue(metrics.outside_trace(f"{cli} workspace plan-return --workspace-root /e2e/.shiploop-runs/w", refusal))
         self.assertTrue(metrics.outside_trace(f"{cli} lint --run-dir {run} --action=nav-1", "ShipLoop lint could not run: x"))
         self.assertTrue(metrics.outside_trace(f"{cli} red-check --run-dir {run} --action=nav-1", "x"))
         self.assertTrue(metrics.outside_trace(f"{cli} complete --run-dir {run}",

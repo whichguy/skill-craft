@@ -316,13 +316,13 @@ Design (built, all in `test/shiploop_e2e/`; no skill file changed, so no change 
   `navigator.apply`, outside the trace, and still read as covered. A partial trace leaves every count on the stream and
   says why.
 - **What only the stream holds.** The trace records only navigator commands that loaded the run. A command that names no
-  run (`workspace plan-return --workspace W`), one that does not parse, and the routed verbs (`chain`, `lint`, `red-check`,
+  run (`workspace plan-return --workspace-root W`), one that does not parse, and the routed verbs (`chain`, `lint`, `red-check`,
   `backchain-check`) are in the stream only. `metrics.outside_trace` tells such a stream failure: no line of the call runs
   a traced verb with `--run-dir`, or its text is an argparse error. `metrics.traced_failures` adds it to the trace's,
   marked `source: events.jsonl`, ordered by epoch stamps. Workspace refusals were found on the first live traced run
-  (below); the first design dropped them. Routed verbs: the session that started this work reported that shiploop 1.12.1
-  stops tracing them (1.12.0 traced their exit without text), so `run_trace.read` leaves them out on every release, and
-  runs on either side of 1.12.1 count them with one instrument.
+  (below); the first design dropped them. Routed verbs: the session that started this work reported that the fix release
+  stops tracing them (announced as 1.12.1, shipped as 1.13.1; 1.12.0 traced their exit without text), so `run_trace.read`
+  leaves them out on every release, and runs on either side of 1.13.1 count them with one instrument.
 - **`metrics.json`**: `shiploop_failures` and `gate_counts` come from the trace when it covers the run; `failures_source`
   names the file (and why not); `run_trace` keeps the trace's counts beside the stream's own (`stream_failures`). The
   item shape stays `{verb, exit, line}`, plus `check_only` on a failed check. A failed `--check-only` stays in the list
@@ -360,13 +360,13 @@ list: the stream's verb pattern does not know `red-check`, and the `lint` result
 
 `gate_counts` classifies every line `other` on both readings (no signature fires on this run). It catches 5 of 6 by the
 trace's accepted `complete`, against 3 of 6 by the stream's. An earlier reading of the same run, before routed verbs were
-left out, gave 8 and 6 of 8; it is superseded the same day by the 1.12.1 rule. A second traced run
+left out, gave 8 and 6 of 8; it is superseded the same day by the 1.13.1 rule. A second traced run
 (`gate-212-8a49cf-grok-hello`, Grok) has no failures. Its `research` packet was printed 3 times (2 reprints), which no
 stream reading counted.
 
 Evidence: `test/shiploop-e2e-run-trace.test.py`, 15 tests, 2.1 s. The fixture is a real CLI run in a temporary E2E
 folder with a Claude stream written around its calls: a reprinted intake packet, a failed `--check-only` shown to the
-stream, a `workspace plan-return --workspace` refusal and a usage error (neither loads the run), a `lint` that could not
+stream, a `workspace plan-return --workspace-root` refusal and a usage error (neither loads the run), a `lint` that could not
 run (exit 3), a refusal piped through `| tail -1`, a keepalive continuation, the accepted intake and a reprinted discovery
 packet. On it the stream counts 4 failures and misses the refusal; the trace counts 1 refusal, 1 failed check, 4 prints (2 reprints) and 1 continuation;
 `shiploop_failures` holds all 5 failures in order (with a `lint` that could not run, read from the stream), and the

@@ -48,7 +48,7 @@ REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds
                   "failed try); a result the host saved to a file is not read")
 TRACE_REFUSAL_LIMITS = ("read from ShipLoop's run trace: every command that named the run and exited non-zero, a --check-only failure "
                         "flagged, a routed verb's (lint, red-check) with no text; a command that named no run (a workspace verb on "
-                        "--workspace) or did not parse is read from the stream (source events.jsonl), so one a pipe hid is missing, "
+                        "--workspace-root) or did not parse is read from the stream (source events.jsonl), so one a pipe hid is missing, "
                         "as is a command on a wrong --run-dir; a repeat is the same whole first line in the same stage as the "
                         "refusal just before it, neutral about cause")
 EDIT_LIMITS = ("a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git "

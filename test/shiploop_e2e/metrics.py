@@ -695,7 +695,7 @@ ANY_SHIPLOOP_VERB = re.compile(r"shiploop\S*\s+(?P<verb>[a-z][\w-]*)")
 def outside_trace(command: str, text: str) -> bool:
     """Whether a ShipLoop failure the host stream shows is one the run trace cannot hold: its command line did not parse
     (argparse), or no logical line of the command runs a traced verb on a run, because every ShipLoop verb on it is a routed
-    one (run_trace.ROUTED_VERBS) or the line names no --run-dir (``workspace plan-return --workspace W``). A compound line that
+    one (run_trace.ROUTED_VERBS) or the line names no --run-dir (``workspace plan-return --workspace-root W``). A compound line that
     also runs a traced verb on the run is the trace's: a routed verb failing inside it is not added. ``command`` is the call
     as ToolLog keeps it (``invoked``: variables expanded, wrapper scripts appended), ``text`` its result from the refusal on."""
     if run_trace.USAGE_ERROR.search(text or ""):

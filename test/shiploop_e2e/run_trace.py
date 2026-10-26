@@ -20,10 +20,10 @@ accepted outside the trace (the run predates it, or began before an upgrade) or 
 harness seeded (its result is synthetic) is not the model's, so a step slice's trace still covers it.
 
 The trace records only navigator commands that loaded the run. A command that named no run (``workspace plan-return
---workspace W``, whose refusal reads ``ShipLoop workspace blocked:``) or failed on its own command line (argparse:
-``shiploop complete: error: ...``) is in the host stream only, and so are the routed verbs (ROUTED_VERBS): shiploop 1.12.1
+--workspace-root W``, whose refusal reads ``ShipLoop workspace blocked:``) or failed on its own command line (argparse:
+``shiploop complete: error: ...``) is in the host stream only, and so are the routed verbs (ROUTED_VERBS): shiploop 1.13.1
 stopped tracing them, and 1.12.0 traced their exit without text. Their failures are read from the stream on every release,
-so runs on either side of 1.12.1 count them with one instrument, and ``read`` leaves them out of ``failures``.
+so runs on either side of 1.13.1 count them with one instrument, and ``read`` leaves them out of ``failures``.
 ``metrics.outside_trace`` tells such a stream failure, and the readers add it to the trace's, marked with its source.
 """
 from __future__ import annotations
@@ -44,7 +44,7 @@ NO_TEXT = "no refusal text recorded"
 # ``shiploop complete: error: the following arguments are required: --action``): the run is never loaded, so never traced.
 USAGE_ERROR = re.compile(r"^(?:usage: shiploop\b|shiploop(?: [\w-]+)?: error: )", re.M)
 RUN_DIR_FLAG = re.compile(r"--run-dir\b")
-# The verbs shiploop_protocol hands to their own modules before the navigator loads the run: not traced from 1.12.1, traced
+# The verbs shiploop_protocol hands to their own modules before the navigator loads the run: not traced from 1.13.1, traced
 # with an exit and no text in 1.12.0. The harness reads their failures from the host stream on every release.
 ROUTED_VERBS = frozenset(("chain", "lint", "red-check", "backchain-check"))
 
