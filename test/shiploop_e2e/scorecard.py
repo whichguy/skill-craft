@@ -34,9 +34,13 @@ The parts, each read from records the harness already writes:
   files, refusals and retired glossary terms in ShipLoop's replies (``nomenclature``, S-16) are reported beside it; the
   edit list is a heuristic to confirm (SPEC), so it decides nothing. ``improve_reviews`` is left out: on the 2.9.0 runs it
   reads 0 children beside 10 Improve children, a reader that has not followed the Improve route's change.
-* ``efficiency`` (the target): minutes, cost, turns, refusals, Improve children, planning minutes and re-orientation
-  minutes, with the fresh starts and their ``calls_before_grounding`` beside them. The re-orientation window runs to the
-  next accepted action and includes stage work; the calls are what finding the place again cost.
+* ``efficiency`` (the target): minutes, cost, turns, ``tokens`` (processed: input, cache reads, cache writes and output)
+  and ``output_tokens`` (``scorecard/6``, build step 8). Cost, turns and tokens are added over every reported session,
+  stops and resumes included, and ``totals_lower_bound`` says when a launched session never reported, so they cover part
+  of the run (``metrics.lower_bound``; ``sessions.jsonl`` makes that count exact on every host). Diagnostics beside them,
+  never a target (R4): refusals, Improve children, planning minutes, re-orientation minutes, the fresh starts and their
+  ``calls_before_grounding``. The re-orientation window runs to the next accepted action and includes stage work; the
+  calls are what finding the place again cost.
 * ``boundary`` (identity, build step 3): what graded the run (``evaluator``, ``oracle``, ``case``: result.json's
   ``boundary``, recorded from 2026-10-25) and what was graded (``candidate``: ``versions.plugin_sha256``). The promotion
   contract compares a case only across equal grading digests.
@@ -58,7 +62,7 @@ import delivery  # noqa: E402  (delivery.fingerprint and delivery.changed: the d
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
 
-SCORECARD_ID = "scorecard/5"
+SCORECARD_ID = "scorecard/6"
 VERDICTS = ("invoked", "plugin", "process", "shiploop", "committed")
 NOT_YET = "no scripted enterprise rubric yet (design P2)"
 PASS, FAIL, UNOBSERVED, NOT_APPLICABLE = "pass", "fail", "unobserved", "not_applicable"
@@ -299,14 +303,20 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
     if isinstance(starts, list) and len(measured) < len(starts):
         unmeasured["efficiency.reorientation_minutes"] = (f"{len(starts) - len(measured)} of {len(starts)} fresh starts "
                                                           "have no measured re-orientation: a lower bound")
+    tokens = run_metrics.get("tokens") if isinstance(run_metrics.get("tokens"), dict) else {}
     block = {"minutes": minutes, "cost_usd": run_metrics.get("cost_usd"),
-             "cost_lower_bound": metrics.lower_bound(run_metrics), "turns": run_metrics.get("turns"),
+             "totals_lower_bound": metrics.lower_bound(run_metrics), "turns": run_metrics.get("turns"),
+             "tokens": tokens.get("processed"), "output_tokens": tokens.get("output"),
              "refusals": len(run_metrics["shiploop_failures"]) if isinstance(run_metrics.get("shiploop_failures"), list) else None,
              "improve_children": run_metrics.get("improve_children"), "planning_minutes": planning,
              "reorientation_minutes": reorientation, "fresh_starts": len(starts) if isinstance(starts, list) else None,
              "calls_before_grounding": grounding_calls}
+    unmeasured_run = run_metrics.get("unmeasured") or {}
     reasons = {"minutes": "the run's stream has no readable span", "cost_usd": "the host reports no cost",
-               "turns": "the host reports no turns", "planning_minutes": "the planning window did not close",
+               "turns": "the host reports no turns",
+               "tokens": unmeasured_run.get("tokens_processed") or "the metrics predate run tokens (build step 8): regrade",
+               "output_tokens": unmeasured_run.get("tokens_output") or "the metrics predate run tokens (build step 8): regrade",
+               "planning_minutes": "the planning window did not close",
                "reorientation_minutes": (run_metrics.get("fresh_starts_unmeasured") or "no fresh-start record"),
                "fresh_starts": (run_metrics.get("fresh_starts_unmeasured") or "no fresh-start record"),
                "calls_before_grounding": "a measured fresh start records no calls before grounding"}
@@ -377,10 +387,12 @@ def render(cards: list[dict]) -> str:
         e, v = card["efficiency"], card["validity"]
         dims = "/".join(valid_mark[v[k]["valid"]] for k in ("correctness", "attribution", "timing"))
         driver = card["driver"].get("host") or "?"
-        cost = _cell(e["cost_usd"]) if not e["cost_lower_bound"] or e["cost_usd"] is None else f"{e['cost_usd']}+"
+        part = "+" if e["totals_lower_bound"] else ""  # a total that may miss a session that never reported
+        cost = _cell(e["cost_usd"]) + (part if e["cost_usd"] is not None else "")
+        tokens = "-" if e["tokens"] is None else f"{e['tokens'] / 1e6:.1f}M{part}"
         why = "; ".join(f"{k}: {v[k]['why'][0]}" for k in ("correctness", "attribution", "timing") if v[k]["why"])
         lines.append(f"  {(card['case'] or '?') + ' ' + driver:<26} {floors}  {dims}  {_cell(e['minutes'], 'm'):>7} ${cost:<8} "
-                     f"{_cell(e['turns']):>4}t {_cell(e['refusals']):>3}r" + (f"  {why}" if why else ""))
+                     f"{_cell(e['turns']):>4}t {tokens:>7}tok {_cell(e['refusals']):>3}r" + (f"  {why}" if why else ""))
     return "\n".join(lines) + "\n"
 
 

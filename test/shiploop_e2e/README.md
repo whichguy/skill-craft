@@ -1857,7 +1857,7 @@ python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
 ```
 
 This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
-`scorecard/5` since 2026-10-26). It reads each run's own records, writes nothing into a run folder and calls no model. A
+`scorecard/6` since 2026-10-26). It reads each run's own records, writes nothing into a run folder and calls no model. A
 folder above run folders is walked to them. Two cards are compared only when their ids are equal.
 
 **Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
@@ -1868,11 +1868,18 @@ folder above run folders is walked to them. Two cards are compared only when the
   acceptance item whose due stage was accepted later without restating the list is unknown, and the floor is
   `unobserved`, never a pass (SPEC, 2026-10-26). An item still on the latest list is open, and the floor fails.
 
-**The target** is `efficiency`: minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
-minutes, re-orientation minutes. Beside them are `fresh_starts` and `calls_before_grounding`: the tool calls the fresh
-contexts made before they grounded. The re-orientation window runs to the next accepted action, so it includes stage
-work; the calls are what finding the place again cost (Battleship on Grok, 2026-10-26: 84.8 window minutes over 14
-fresh starts, 15 calls).
+**The target** is `efficiency`: minutes, cost, turns, `tokens` and `output_tokens` (build step 8).
+- **Sums over sessions.** Cost, turns and tokens are added over every reported session, stops and resumes included.
+  `tokens` is each session's own input, cache reads, cache writes and output, with Codex's cache reads counted once,
+  inside its input.
+- **The lower-bound flag.** `totals_lower_bound` is true when a launched session never reported, so the sums cover only
+  part of the run. `sessions.jsonl` makes that count exact on every host. A Grok run whose every launch reported is no
+  longer a lower bound (the Grok gate's hello on 2.13.2: 4 launches, $26.49, 44.2M tokens), and the card line marks a
+  partial sum with `+`.
+- **Diagnostics beside the target, never part of it (R4):** refusals, Improve children, planning minutes, re-orientation
+  minutes, `fresh_starts` and `calls_before_grounding`, the tool calls the fresh contexts made before they grounded. The
+  re-orientation window runs to the next accepted action, so it includes stage work; the calls are what finding the
+  place again cost (Battleship on Grok, 2026-10-26: 84.8 window minutes over 14 fresh starts, 15 calls).
 
 **Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
 valid.
@@ -1911,15 +1918,16 @@ step 4's delivery snapshot.
 python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_CARDS ... --candidate RUN_OR_CARDS ... [--json]
 ```
 
-This is the one scripted rule (SPEC "The promotion contract", contract `promotion/3` since build step 3) that decides whether
-a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/5` cards: run folders, or card files from
+This is the one scripted rule (SPEC "The promotion contract", contract `promotion/4` since build step 8) that decides whether
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/6` cards: run folders, or card files from
 `scorecard.py --out`.
 
 **The registration, written before the runs,** names:
 - the cases, each a `regression` (an established requirement) or a `capability` (being improved), optionally with the
   number of attempts each arm must bring (`{"role": "capability", "attempts": 2}`; fewer is UNDECIDED);
 - the required floors (accuracy and fidelity by default);
-- the efficiency metrics in order (`cost_usd`, `minutes`, `turns`; `tokens` arrives with build step 8);
+- the efficiency metrics in order, from `cost_usd`, `minutes`, `turns`, `tokens` and `output_tokens` (a diagnostic such as
+  refusals or Improve children is refused, so reviewing less is never rewarded);
 - a quality tolerance, a relative efficiency tolerance, and any budget.
 
 A run that began before `registered_at` makes the decision UNDECIDED. For card files the run start is unknown, so it is
@@ -1936,9 +1944,12 @@ not checked.
 4. A capability case's share rises: PROMOTE, with its cost per success stated. A slower or dearer correctness fix still
    promotes.
 5. A share falls with no gain: DROP.
-6. At equal quality, each efficiency metric in turn, as all-attempt cost per successful case, compared within a case and
-   only on cards whose timing and attribution are valid: no case dearer and one cheaper beyond the tolerance is
-   PROMOTE; one dearer is DROP; otherwise the next metric is asked.
+6. At equal quality, each efficiency metric in turn, as all-attempt cost per successful case, compared within a case
+   on the cards that are evidence for it: no case dearer and one cheaper beyond the tolerance is PROMOTE; one dearer is
+   DROP; otherwise the next metric is asked.
+   - Minutes need valid timing and attribution.
+   - Cost, turns and tokens need valid attribution and a total that is not a lower bound. So a resumed or overlapped
+     attempt's own dollars and tokens count, and a total that may miss a session is never compared (build step 8).
 7. None decides: UNDECIDED, an inconclusive optimisation.
 
 Every attempt counts, stops and resumes included. No model judgement enters. It decides promotion only, never a run's

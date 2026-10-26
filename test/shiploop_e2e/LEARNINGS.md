@@ -3309,3 +3309,48 @@ do (26351fb9).
 **Lesson.** A test that builds a pinned commit has to tolerate a shallow clone. The quick tier can't show this,
 because it fetches the whole history. Only a full tier can, so a new ref-bound check needs a dispatched full run
 (`gh workflow run ci.yml -f tier=full`) before it can be called CI-safe.
+
+## Build step 8: attempt and token accounting (2026-10-26) — status: firm for the mechanism, its tests and the saved-run reread; no promotion has used tokens yet
+
+**Question.** Build step 8 of the final verdict (R4, R15) is done when totals reconcile stops and resumes and unknown
+tokens cannot produce a claimed token win. Where did the card and the contract stand?
+- Every Grok cost was a lower bound, because Grok's stream marks no session start.
+- The card had no tokens.
+- `promotion.py` compared a lower bound as if it were a total, so a candidate that lost a session's cost could read as
+  cheaper.
+- An invalid timing kept every metric out, so a resumed attempt's cost never counted, against R15.
+
+**Change** (SPEC "Attempt and token accounting"; card `scorecard/6`, contract `promotion/4`).
+- **Reconciliation.** `metrics.reconcile_sessions` matches the harness's launches in `sessions.jsonl` with the host's end
+  events by event line. `unreported_sessions` is now exact on every host where the record covers the stream.
+- **Tokens.** `efficiency.tokens` and `output_tokens` come from each session's own usage, normalised by the launch's host.
+  Codex counts its cache reads inside its input.
+- **The flag.** `totals_lower_bound` (it was `cost_lower_bound`) covers cost, turns and tokens.
+- **The contract.** A lower bound is never compared, in either direction. Minutes need valid timing; the summed metrics
+  need valid attribution only, so a resumed attempt's own dollars count.
+- **Baseline rows** state `lower_bound`. A Grok row is a lower bound by host only when it predates the field.
+
+**Evidence** (`docs/experiments/e2e-token-accounting-20261026/reconciled-saved-runs.json`): metrics recomputed on the 7
+saved runs with a stream, 2026-10-24 to 26.
+- Two Grok runs whose every launch reported are no longer lower bounds: chess-sf-full-ed3292 (5 of 5 launches) and the
+  Grok gate's hello on 2.13.2 (4 of 4; $26.49, 44,239,653 tokens, exactly the sum of its sessions' `total_tokens`).
+- The runs with a launch that never reported stay lower bounds:
+  - chess-sf-full-12a23d (1 of 2);
+  - the cancelled 2.12.0 hello (2 of 3);
+  - Codex hello (1 of 2);
+  - the stopped Haiku run (0 of 1).
+- Claude's csv-report run gives 60,980,238 tokens, cache writes included.
+- Saved cards keep their run-time reading until a regrade rewrites `metrics.json`.
+
+**Tests.**
+- `LaunchReconcileTest` (5): exact totals on the recorded Grok stream with launches; a launch with no end event; a record
+  that starts late; each host's tokens; sums that are null unless every session gives one.
+- Two new `PromotionContractTest` cases: no token win or loss from a total that may miss a session, mixed hosts or a
+  missing count; and a lower-bound cost passes to the next metric.
+- The timing-contamination test now promotes on an overlapped attempt's cost and refuses its minutes.
+- Updated readings in `shiploop-e2e.test.py`: a fake Grok run through `run.main` has `sessions.jsonl`, so it is exact
+  and unmarked.
+
+**Not done.** R4 also asks that `arms.py`'s refusal hard gate go. `arms.py` decides the plan-sizing slice experiments,
+whose R3 round is in flight, so that is its owner's call. A registered budget still drops nothing on a lower bound,
+even one that already exceeds the budget. That is conservative, and recorded here.

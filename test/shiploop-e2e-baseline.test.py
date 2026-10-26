@@ -806,10 +806,14 @@ exit $rc
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
-    def edit_rows(self, **changes_by_index: dict) -> None:
+    def edit_rows(self, drop: tuple = (), **changes_by_index: dict) -> None:
+        """Change rows by index (``r0=...``); ``drop`` removes keys from every row, as a row written before them lacks them."""
         rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
         for index, changes in changes_by_index.items():
             rows[int(index.removeprefix("r"))].update(changes)
+        for row in rows:
+            for key in drop:
+                row.pop(key, None)
         self.baselines.write_text("".join(json.dumps(r) + "\n" for r in rows))
 
     def test_a_run_that_did_not_reach_done_still_writes_its_row_and_compares_with_nothing(self):
@@ -828,7 +832,7 @@ exit $rc
         self.once(binary=self.finish_blocked())
         self.edit_rows(r0={"turns": 301}, r1={"turns": 503})
         code, result, printed = self.once()
-        self.assertIn("turns 301 (lower bound) -> ", printed)  # a Grok figure: marked
+        self.assertIn("turns 301 -> ", printed)  # a Grok row whose launches all reported (build step 8): not marked
         self.assertNotIn("503", printed.split("  baseline")[1].split("\n")[0])
 
     def test_with_only_a_blocked_row_before_it_nothing_is_compared_and_the_report_says_why(self):
@@ -863,18 +867,21 @@ exit $rc
     def line(self, printed: str, prefix: str) -> str:
         return next(ln for ln in printed.splitlines() if ln.startswith(prefix))
 
-    def test_a_grok_comparison_marks_both_sides_as_lower_bounds(self):
-        # the line that printed r1 Grok's '503 -> 301': both figures cover only the sessions that reported
+    def test_a_grok_comparison_of_runs_whose_launches_all_reported_marks_nothing(self):
+        # Build step 8: sessions.jsonl reconciles the launches, so a Grok run whose every launch reported has exact totals
+        # (until then the line marked both sides, as it printed r1 Grok's '503 -> 301').
         self.once()
         _, _, printed = self.once()
         line = self.line(printed, "  baseline  vs")
-        self.assertIn("turns 4 (lower bound) -> 4 (lower bound), cost $0.01 (lower bound) -> $0.01 (lower bound)", line)
+        self.assertIn("turns 4 -> 4, cost $0.01 -> $0.01", line)
+        self.assertEqual(json.loads(self.baselines.read_text().splitlines()[0])["lower_bound"], False)
 
     def test_an_old_grok_row_without_the_marker_is_still_marked_by_its_host(self):
         self.once()
-        self.edit_rows(r0={"unmeasured": []})  # a row from before 073fd4dd lists no unreported_sessions
+        # a row from before 073fd4dd lists no unreported_sessions, and one from before build step 8 states no lower_bound
+        self.edit_rows(drop=("lower_bound",), r0={"unmeasured": []})
         _, _, printed = self.once()
-        self.assertIn("turns 4 (lower bound) -> 4 (lower bound)", self.line(printed, "  baseline  vs"))
+        self.assertIn("turns 4 (lower bound) -> 4,", self.line(printed, "  baseline  vs"))
 
     def test_a_claude_comparison_that_ended_whole_marks_nothing(self):
         self.once("done", host="claude")
@@ -883,7 +890,7 @@ exit $rc
 
     def test_a_row_that_lists_the_session_count_unmeasured_is_marked_whatever_its_host(self):
         self.once("done", host="claude")
-        self.edit_rows(r0={"unmeasured": ["unreported_sessions"]})
+        self.edit_rows(drop=("lower_bound",), r0={"unmeasured": ["unreported_sessions"]})  # a row from before build step 8
         _, _, printed = self.once("done", host="claude")
         line = self.line(printed, "  baseline  vs")
         self.assertRegex(line, r"turns \d+ \(lower bound\) -> \d+, cost \$[\d.]+ \(lower bound\) -> \$[\d.]+,")
@@ -1025,20 +1032,101 @@ class GrokSessionStartTest(unittest.TestCase):
         self.assertIn("unreported_sessions", row["unmeasured"])
 
 
+class LaunchReconcileTest(unittest.TestCase):
+    """SPEC build step 8 (R15): the harness's sessions.jsonl reconciles reported sessions with launches on every host, so
+    a Grok run's totals are exact when every launch reported, and a lower bound only when one did not; tokens are added
+    over the sessions from each host's own usage."""
+
+    ACCEPTED = GrokSessionStartTest.ACCEPTED
+
+    def launches(self, out: Path, rows: list[tuple]) -> None:
+        """sessions.jsonl with one start row per (start line, end line or None, host) and an end row where one ended."""
+        lines = []
+        for n, (start, end, host) in enumerate(rows, 1):
+            lines.append({"row": "start", "n": n, "kind": "first" if n == 1 else "continued", "reason": "start",
+                          "host": host, "model": "m", "t": 1000.0 + n, "events_line": start})
+            if end is not None:
+                lines.append({"row": "end", "n": n, "t": 1100.0 + n, "events_line": end, "status": "exited", "returncode": 0})
+        (out / "sessions.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines))
+
+    def collect(self, stream: list[dict], rows: list[tuple] | None, host: str = "grok") -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = main_tests().write_stream_run(out, stream, self.ACCEPTED)
+            (out / "invocation.json").write_text(json.dumps({"case": "custom", "host": host}))
+            if rows is not None:
+                self.launches(out, rows)
+            return metrics.collect(out, run_dir)
+
+    def test_a_grok_run_whose_launches_all_reported_has_exact_totals(self):
+        stream = GrokSessionStartTest().stream()  # 617 lines: the first launch's end is line 589, the resume's line 616
+        m = self.collect(stream, [(0, 590, "grok"), (590, 617, "grok")])
+        self.assertEqual((m["unreported_sessions"], m["unreported_sessions_at_least"]), (0, None))
+        self.assertNotIn("unreported_sessions", m["unmeasured"])
+        self.assertIs(metrics.lower_bound(m), False, "every launch reported: the cost is the run's, not a part of it")
+        self.assertAlmostEqual(m["cost_usd"], 8.7455, places=4)
+        # without the launch record the same stream stays unknown and a lower bound
+        self.assertIs(metrics.lower_bound(self.collect(stream, None)), True)
+
+    def test_a_launch_whose_lines_hold_no_end_never_reported(self):
+        stream = GrokSessionStartTest().stream()
+        killed = stream[:616]  # the resume was killed with its harness: no end event and no end row
+        m = self.collect(killed, [(0, 590, "grok"), (590, None, "grok")])
+        self.assertEqual(m["unreported_sessions"], 1)
+        self.assertIs(metrics.lower_bound(m), True)
+        self.assertIn("1 session(s) never reported", metrics.cost_text(m))
+        # three launches, the middle one with no end event in its lines: that one never reported
+        self.assertEqual(self.collect(stream, [(0, 590, "grok"), (590, 600, "grok"), (600, 617, "grok")])["unreported_sessions"], 1)
+
+    def test_a_record_that_starts_after_earlier_events_keeps_the_streams_count(self):
+        stream = GrokSessionStartTest().stream()
+        m = self.collect(stream, [(590, 617, "grok")])  # a resume of a run from before sessions.jsonl
+        self.assertIsNone(m["unreported_sessions"])
+        self.assertIs(metrics.lower_bound(m), True)
+
+    def test_each_hosts_own_usage_gives_its_tokens(self):
+        # The three shapes of saved sessions (2026-10-24/25 gates): Grok's total_tokens is input + cache reads + output;
+        # Claude's input leaves out cache reads and writes; Codex's input holds its cache reads.
+        grok = {"input_tokens": 134819, "cache_read_input_tokens": 510976, "cache_creation_input_tokens": 0,
+                "output_tokens": 8746, "reasoning_tokens": 4202, "total_tokens": 654541}
+        claude = {"input_tokens": 406, "cache_creation_input_tokens": 487049, "cache_read_input_tokens": 60290834,
+                  "output_tokens": 201949, "output_tokens_details": {"thinking_tokens": 37689}}
+        codex = {"input_tokens": 9501695, "cache_read_input_tokens": 9266048, "output_tokens": 98510, "reasoning_tokens": 59413}
+        self.assertEqual(metrics.session_tokens(grok, "grok"), (654541, 8746))
+        self.assertEqual(metrics.session_tokens(claude, "claude"), (60980238, 201949))
+        self.assertEqual(metrics.session_tokens(codex, "codex"), (9600205, 98510))
+        self.assertEqual(metrics.session_tokens(codex, None), (None, 98510), "a host not known cannot be normalised")
+        self.assertEqual(metrics.session_tokens(None, "grok"), (None, None))
+
+    def test_run_tokens_add_over_sessions_and_are_null_unless_every_session_gives_one(self):
+        usage = {"input_tokens": 100, "cache_read_input_tokens": 50, "output_tokens": 10}
+        ended = lambda u: {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 0.5, "usage": u}
+        both = self.collect([ended(usage), ended(usage)], [(0, 1, "grok"), (1, 2, "grok")])
+        self.assertEqual((both["tokens"]["processed"], both["tokens"]["output"]), (320, 20))
+        self.assertNotIn("tokens_processed", both["unmeasured"])
+        one_bare = self.collect([ended(usage), ended(None)], [(0, 1, "grok"), (1, 2, "grok")])
+        self.assertEqual((one_bare["tokens"]["processed"], one_bare["tokens"]["output"]), (None, None))
+        self.assertEqual(one_bare["unmeasured"]["tokens_processed"], metrics.SESSION_WITHOUT_USAGE)
+        mixed = self.collect([ended(usage), ended(usage)], [(0, 1, "grok"), (1, 2, "codex")])
+        self.assertEqual(mixed["tokens"]["processed"], 160 + 110, "each session normalised by its own launch's host")
+        recorded = self.collect(GrokSessionStartTest().stream(), [(0, 590, "grok"), (590, 617, "grok")])
+        self.assertIsNone(recorded["tokens"]["processed"], "r1's end events carry no usage")
+
+
 class GrokSessionStartThroughMainTest(main_tests().PrintedCase):
     """What run.main records and prints for a Grok run now that the session count is unknown, not invented."""
 
-    def test_a_grok_run_prints_the_marking_without_a_count_and_the_row_names_the_count_unmeasured(self):
+    def test_a_grok_run_whose_launches_all_reported_prints_no_marking_and_its_row_says_so(self):
+        # Build step 8: the harness's sessions.jsonl counts the launches, so the Grok stream's missing session start no
+        # longer makes the count unknown (GrokSessionStartTest keeps the reading of a run without that record).
         code, result, printed = self.invoke_printed("grok", "done")
         self.assertEqual(code, 0, result)
-        self.assertIsNone(result["metrics"]["unreported_sessions"])
-        note = "(lower bound: this host's events do not show whether a session never reported)"
-        process = next(line for line in printed.splitlines() if line.startswith("  process"))
-        self.assertIn(f"cost=$0.01 {note}", process)
-        self.assertIn(f"cost $0.01 {note}", next(line for line in printed.splitlines() if line.startswith("  metrics   turns")))
+        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
+        self.assertNotIn("lower bound", next(line for line in printed.splitlines() if line.startswith("  process")))
         row = self.last_row()
         self.assertNotIn("unreported_sessions", row)
-        self.assertIn("unreported_sessions", row["unmeasured"])
+        self.assertNotIn("unreported_sessions", row["unmeasured"])
+        self.assertIs(row["lower_bound"], False)
 
     def test_a_claude_run_that_ended_whole_prints_no_marking(self):
         code, result, printed = self.invoke_printed("claude", "done")
@@ -1846,15 +1934,16 @@ class LowerBoundMarkingTest(main_tests().PrintedCase):
         prior = self.prior({"turns": 40, "cost_usd": 2.5, "unreported_sessions": None,
                             "unmeasured": {"unreported_sessions": "Grok marks no session start"}})
         line = self.follow_on(prior)
-        self.assertIn("turns 4 (lower bound) vs 40 (lower bound), cost $0.01 (lower bound) vs $2.5 (lower bound)", line)
+        # this run's launches all reported (build step 8), while the prior's count was unknown and stays marked
+        self.assertIn("turns 4 vs 40 (lower bound), cost $0.01 vs $2.5 (lower bound)", line)
 
     def test_a_prior_that_ended_whole_is_not_marked_and_one_that_predates_the_field_is_not_guessed(self):
         whole = self.follow_on(self.prior({"turns": 40, "cost_usd": 2.5, "unreported_sessions": 0}))
-        self.assertIn("vs 40, cost $0.01 (lower bound) vs $2.5", whole)
+        self.assertIn("turns 4 vs 40, cost $0.01 vs $2.5", whole)
         shutil.rmtree(self.tmp / "prior")
         shutil.rmtree(self.tmp / "follow")
         old = self.follow_on(self.prior({"turns": 40, "cost_usd": 2.5}))
-        self.assertIn("vs 40, cost $0.01 (lower bound) vs $2.5", old)
+        self.assertIn("turns 4 vs 40, cost $0.01 vs $2.5", old)
 
     def test_progress_marks_the_cost_of_a_grok_run_as_it_marks_its_turns(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2119,7 +2208,7 @@ class ScorecardTest(unittest.TestCase):
         for name, (accuracy, fidelity, minutes, cost, turns, refusals, planning, reorientation) in self.WANT.items():
             card = cards[name]
             with self.subTest(run=name):
-                self.assertEqual(card["scorecard"], "scorecard/5")
+                self.assertEqual(card["scorecard"], "scorecard/6")
                 # Graded before build step 3: no grading digest, and the reason says so.
                 self.assertEqual({k: card["boundary"][k] for k in ("evaluator", "oracle", "case")},
                                  {"evaluator": None, "oracle": None, "case": None})
@@ -2134,7 +2223,8 @@ class ScorecardTest(unittest.TestCase):
                 self.assertIsNone(card["validity"]["correctness"]["valid"])
         self.assertEqual(cards["20261024/gate-290-b60ed7-codex-hello"]["fidelity"]["unverified"], 1)
         self.assertEqual(cards["20261020/chess-sf-full-9e52e8"]["fidelity"]["end_status"], "active")
-        self.assertTrue(cards["20261020/chess-sf-full-9e52e8"]["efficiency"]["cost_lower_bound"], "every Grok cost is one")
+        self.assertTrue(cards["20261020/chess-sf-full-9e52e8"]["efficiency"]["totals_lower_bound"],
+                        "a Grok run graded before build step 8 keeps its run-time reading: a lower bound until regraded")
         self.assertEqual(cards["20261024/gate-290-b60ed7-claude-csv-report"]["fidelity"]["retired_terms"], 2)
         checkers = cards["20261010/checkers-1"]["accuracy"]
         self.assertEqual((checkers["acceptance"], checkers["mutation"], checkers["acceptance_required"]),
@@ -2286,14 +2376,14 @@ class ScorecardTest(unittest.TestCase):
     def test_a_value_nothing_measured_is_null_or_unobserved_with_its_reason(self):
         run_dir = self.tmp / "bare"
         run_dir.mkdir()
-        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/5", "run": str(run_dir), "observed": False,
+        self.assertEqual(scorecard.score(run_dir), {"scorecard": "scorecard/6", "run": str(run_dir), "observed": False,
                                                     "reason": "no readable result.json"})
         (run_dir / "result.json").write_text(json.dumps({"case": "hello", "pass": True}))
         card = scorecard.score(run_dir)
         self.assertEqual(card["floors"], {"accuracy": "pass", "enterprise": "not_applicable", "fidelity": "unobserved"})
         self.assertEqual({k: card["validity"][k]["valid"] for k in ("correctness", "attribution", "timing")},
                          {"correctness": None, "attribution": None, "timing": None})
-        self.assertTrue(all(value is None for key, value in card["efficiency"].items() if key not in ("cost_lower_bound", "refusals")))
+        self.assertTrue(all(value is None for key, value in card["efficiency"].items() if key not in ("totals_lower_bound", "refusals")))
         for name in ("efficiency.minutes", "efficiency.cost_usd", "efficiency.turns", "fidelity", "accuracy.mutation",
                      "validity.overlap", "validity.work_tree_after"):
             self.assertIn(name, card["unmeasured"])
@@ -2306,7 +2396,7 @@ class ScorecardTest(unittest.TestCase):
         with contextlib.redirect_stdout(printed):
             self.assertEqual(scorecard.main([str(runs), "--json", "--out", str(self.tmp / "cards.json")]), 0)
         self.assertEqual(len(json.loads(printed.getvalue())["cards"]), 7)
-        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/5")
+        self.assertEqual(json.loads((self.tmp / "cards.json").read_text())["scorecard"], "scorecard/6")
         self.assertEqual({str(p): p.stat().st_mtime_ns for p in runs.rglob("*")}, before, "nothing in a run folder changed")
         inside = runs / "20261010" / "checkers-1" / "cards.json"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
@@ -2316,28 +2406,31 @@ class ScorecardTest(unittest.TestCase):
         text = io.StringIO()
         with contextlib.redirect_stdout(text):
             scorecard.main([str(runs)])
-        self.assertIn("scorecard/5: 7 run(s)", text.getvalue())
+        self.assertIn("scorecard/6: 7 run(s)", text.getvalue())
         self.assertIn("timing: resumed", text.getvalue())
 
 
 def card(case: str, *, passed: bool = True, fidelity: str = "pass", cost: float | None = 5.0, minutes: float = 20.0,
-         correct: bool | None = True, timed: bool | None = True, evaluator: str | None = "e1", candidate: str = "p1") -> dict:
-    """A scorecard/3 card with only what the promotion contract reads; each case has its own catalog entry, so its own digest."""
-    return {"scorecard": "scorecard/5", "observed": True, "case": case,
+         correct: bool | None = True, timed: bool | None = True, evaluator: str | None = "e1", candidate: str = "p1",
+         tokens: int | None = None, lower: bool | None = False, attributed: bool | None = True) -> dict:
+    """A scorecard/6 card with only what the promotion contract reads; each case has its own catalog entry, so its own digest.
+    ``lower`` is the card's totals_lower_bound: a launched session never reported, so cost, turns and tokens are a part."""
+    return {"scorecard": "scorecard/6", "observed": True, "case": case,
             "boundary": {"evaluator": evaluator, "oracle": "o1", "case": f"c-{case}", "candidate": candidate},
             "floors": {"accuracy": "pass" if passed else "fail", "enterprise": "not_applicable", "fidelity": fidelity},
-            "validity": {"correctness": {"valid": correct}, "attribution": {"valid": True}, "timing": {"valid": timed}},
-            "efficiency": {"cost_usd": cost, "minutes": minutes, "turns": 200, "tokens": None}}
+            "validity": {"correctness": {"valid": correct}, "attribution": {"valid": attributed}, "timing": {"valid": timed}},
+            "efficiency": {"cost_usd": cost, "minutes": minutes, "turns": 200, "tokens": tokens, "output_tokens": None,
+                           "totals_lower_bound": lower}}
 
 
 class PromotionContractTest(unittest.TestCase):
-    """test/shiploop_e2e/promotion.py, promotion/3 (SPEC "The promotion contract"; build steps 1 to 3, R1, R2, R3, R13 and R16 of
+    """test/shiploop_e2e/promotion.py, promotion/4 (SPEC "The promotion contract"; build steps 1 to 3 and 8, R1 to R4, R13, R15 and R16 of
     docs/shiploop-e2e-loop-recommendations-2026-10-25.md). Astra's done signals: a slower correctness fix promotes, a
     faster regression drops, an inconclusive optimisation stays undecided (step 1); a missing slice or field blocks
     promotion, and timing contamination preserves independently valid correctness evidence (step 2); a harness or oracle
     change is never part of a candidate's comparison (step 3)."""
 
-    REG = {"contract": "promotion/3", "cases": {"hello": "regression", "battleship": "capability"}}
+    REG = {"contract": "promotion/4", "cases": {"hello": "regression", "battleship": "capability"}}
 
     def reg(self, **changes) -> dict:
         tmp = tempfile.TemporaryDirectory()
@@ -2372,11 +2465,16 @@ class PromotionContractTest(unittest.TestCase):
         gain = promotion.decide(reg, self.arm(card("hello"), card("battleship", passed=False)),
                                 self.arm(card("hello", timed=False), card("battleship", timed=False)))
         self.assertEqual(gain["decision"], "PROMOTE")
-        # ... but at equal quality its lower cost is no evidence.
+        # ... and at equal quality its minutes are no evidence (build step 8: speed needs valid timing) ...
+        faster = promotion.decide(self.reg(efficiency=["minutes"]), self.arm(card("hello"), card("battleship")),
+                                  self.arm(card("hello", minutes=5, timed=False), card("battleship")))
+        self.assertEqual(faster["decision"], "UNDECIDED")
+        self.assertIn("minutes per success is not evidence for hello: timing or attribution not valid", faster["notes"])
+        # ... while its dollars are still its own: an overlapped or resumed attempt counts toward cost (R15).
         cheaper = promotion.decide(reg, self.arm(card("hello"), card("battleship")),
                                    self.arm(card("hello", cost=1.0, timed=False), card("battleship")))
-        self.assertEqual(cheaper["decision"], "UNDECIDED")
-        self.assertIn("timing evidence is not valid for hello", cheaper["reasons"][0])
+        self.assertEqual(cheaper["decision"], "PROMOTE", cheaper["reasons"])
+        self.assertIn("cost_usd per success is lower beyond the tolerance on hello", cheaper["reasons"][0])
 
     def test_a_missing_attempt_or_unknown_quality_is_undecided_never_a_pass(self):
         reg = self.reg(cases={"hello": "regression", "battleship": {"role": "capability", "attempts": 2}})
@@ -2447,6 +2545,35 @@ class PromotionContractTest(unittest.TestCase):
         self.assertEqual(tokens["decision"], "UNDECIDED")
         self.assertIn("tokens per success is not measured", " ".join(tokens["notes"]))
 
+    def test_a_total_that_may_miss_a_session_never_claims_a_win_or_a_loss(self):
+        # Build step 8's done signal: unknown tokens cannot produce a claimed token win.
+        reg = self.reg(efficiency=["tokens"])
+        measured = promotion.decide(reg, self.arm(card("hello", tokens=10_000_000), card("battleship", tokens=8_000_000)),
+                                    self.arm(card("hello", tokens=7_000_000), card("battleship", tokens=8_000_000)))
+        self.assertEqual(measured["decision"], "PROMOTE", measured["reasons"])
+        self.assertIn("tokens per success is lower beyond the tolerance on hello", measured["reasons"][0])
+        for name, control, candidate in (
+                ("a candidate missing a session", card("hello", tokens=10_000_000), card("hello", tokens=7_000_000, lower=True)),
+                ("a control missing a session", card("hello", tokens=6_000_000, lower=True), card("hello", tokens=7_000_000)),
+                ("a card from before the record", card("hello", tokens=10_000_000, lower=None), card("hello", tokens=7_000_000)),
+                ("mixed hosts", card("hello", tokens=10_000_000), card("hello", tokens=7_000_000, attributed=False)),
+                ("a token count not reported", card("hello", tokens=10_000_000), card("hello", tokens=None))):
+            with self.subTest(name):
+                report = promotion.decide(reg, self.arm(control, card("battleship", tokens=8_000_000)),
+                                          self.arm(candidate, card("battleship", tokens=8_000_000)))
+                self.assertEqual(report["decision"], "UNDECIDED", report["reasons"])
+                self.assertIsNone(report["cases"]["hello"]["cost_per_success"]["tokens"][
+                    "candidate" if name in ("a candidate missing a session", "mixed hosts", "a token count not reported")
+                    else "control"])
+
+    def test_a_lower_bound_cost_is_not_compared_and_the_next_metric_is_asked(self):
+        report = promotion.decide(self.reg(), self.arm(card("hello"), card("battleship")),
+                                  self.arm(card("hello", cost=1.0, minutes=10, lower=True), card("battleship")))
+        self.assertEqual(report["decision"], "PROMOTE", "minutes, the next registered metric, still decide")
+        self.assertIn("minutes per success", report["reasons"][0])
+        self.assertIn("cost_usd per success is not evidence for hello: a total that may miss a session that never reported, "
+                      "or attribution not valid", report["notes"])
+
     def test_a_registration_written_after_a_run_began_is_undecided_and_a_bad_one_is_refused(self):
         late = promotion.decide(self.reg(registered_at=2000.0), [(card("hello"), 1500.0), (card("battleship"), 2500.0)],
                                 [(card("hello"), 2600.0), (card("battleship"), 2700.0)])
@@ -2454,9 +2581,12 @@ class PromotionContractTest(unittest.TestCase):
                          ("UNDECIDED", ["the registration was written after a run it judges began"]))
         for bad in ({"contract": "promotion/1", "cases": {"hello": "regression"}},
                     {"contract": "promotion/2", "cases": {"hello": "regression"}},
-                    {"contract": "promotion/3", "cases": {"hello": "important"}},
-                    {"contract": "promotion/3", "cases": {"hello": {"role": "regression", "attempts": 0}}},
-                    {"contract": "promotion/3", "cases": {"hello": "regression"}, "efficiency": ["vibes"]}):
+                    {"contract": "promotion/3", "cases": {"hello": "regression"}},
+                    {"contract": "promotion/4", "cases": {"hello": "important"}},
+                    {"contract": "promotion/4", "cases": {"hello": {"role": "regression", "attempts": 0}}},
+                    {"contract": "promotion/4", "cases": {"hello": "regression"}, "efficiency": ["vibes"]},
+                    {"contract": "promotion/4", "cases": {"hello": "regression"}, "efficiency": ["refusals"]},
+                    {"contract": "promotion/4", "cases": {"hello": "regression"}, "budget": {"improve_children": 3}}):
             with self.subTest(bad=bad), tempfile.TemporaryDirectory() as tmp:
                 (Path(tmp) / "r.json").write_text(json.dumps(bad))
                 with self.assertRaises(SystemExit):
@@ -2469,7 +2599,7 @@ class PromotionContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ):
             os.environ.pop("SHIPLOOP_E2E_RUNS_ROOT", None)
             reg = Path(tmp) / "reg.json"
-            reg.write_text(json.dumps({"contract": "promotion/3", "cases": {"hello": "regression"}}))
+            reg.write_text(json.dumps({"contract": "promotion/4", "cases": {"hello": "regression"}}))
             cards = Path(tmp) / "cards.json"
             with contextlib.redirect_stdout(io.StringIO()):
                 scorecard.main([str(hello), "--out", str(cards)])
@@ -2477,7 +2607,7 @@ class PromotionContractTest(unittest.TestCase):
             with contextlib.redirect_stdout(printed):
                 code = promotion.main(["--registration", str(reg), "--control", str(hello), "--candidate", str(cards), "--json"])
         report = json.loads(printed.getvalue())
-        self.assertEqual((code, report["decision"], report["contract"]), (promotion.EXIT["UNDECIDED"], "UNDECIDED", "promotion/3"))
+        self.assertEqual((code, report["decision"], report["contract"]), (promotion.EXIT["UNDECIDED"], "UNDECIDED", "promotion/4"))
         self.assertIn("no grading digest", report["reasons"][0])
         self.assertIn("card files carry no run start", " ".join(report["notes"]))
 

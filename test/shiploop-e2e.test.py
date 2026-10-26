@@ -2789,16 +2789,19 @@ class MetricsTest(unittest.TestCase):
     def test_no_token_figure_is_made_from_events_that_do_not_carry_it(self):
         text_only = {"type": "assistant", "message": {"content": [{"type": "text", "text": "x"}]}}
         m, _ = self.read([text_only] * 3)  # Claude messages that report no usage
-        self.assertEqual((m["turns"], m["tokens"]), (3, {"input_peak": None}))
-        # A host's end-of-session total is not a per-call context figure, and no output total is built.
+        self.assertEqual((m["turns"], m["tokens"]["input_peak"]), (3, None))
+        # A host's end-of-session total is not a per-call context figure. From build step 8 it is the session's tokens:
+        # the output needs no host, the processed total does (Codex counts cache reads inside its input), and this
+        # stream has no launch record to name one.
         m, _ = self.read([{"type": "end", "num_turns": 9, "total_cost_usd": None, "usage": self.CODEX_USAGE}])
-        self.assertEqual(m["tokens"], {"input_peak": None})
+        self.assertEqual(m["tokens"], {"input_peak": None, "processed": None, "output": self.CODEX_USAGE["output_tokens"]})
+        self.assertEqual(m["unmeasured"]["tokens_processed"], metrics.SESSION_HOST_UNKNOWN)
         # A call that reported its context counts; one that did not neither lowers the peak nor invents a 0.
         m, _ = self.read([{"type": "usage", "usage": {"input_tokens": 1000, "cache_read_input_tokens": 500,
                                                       "output_tokens": 7}},
                           {"type": "usage", "usage": {"output_tokens": 9}}, {"type": "usage"},
                           {"type": "usage", "usage": {"input_tokens": 200}}])
-        self.assertEqual((m["turns"], m["tokens"]), (4, {"input_peak": 1500}))
+        self.assertEqual((m["turns"], m["tokens"]["input_peak"]), (4, 1500))
 
     def test_a_session_killed_before_it_reported_makes_the_cost_a_lower_bound(self):
         init = {"type": "system", "subtype": "init", "model": "m"}
@@ -3520,7 +3523,7 @@ class HostCoverageTest(unittest.TestCase):
             self.assertIsNone(row["turns"])
             self.assertGreater(row["tool_calls"], 0)
         self.assertEqual(m["turns"], 12)  # the session's own total is still reported
-        self.assertEqual(m["tokens"], {"input_peak": None})  # no output figure is built from events
+        self.assertEqual(m["tokens"]["input_peak"], None)  # no output figure is built from events
         self.assertIsNone(m["cost_usd"], "a host that reports no cost has an unknown cost, not $0")
         kept = run.baseline_stages(m["stages"])
         self.assertEqual(kept[0], {"stage": "intake", "outcome": "done", "seconds": 5.0, "turns": None})
@@ -3544,7 +3547,7 @@ class HostCoverageTest(unittest.TestCase):
         self.assertEqual(len(m["model_glue"]), 3, "three git commands by the model")
         self.assertEqual(m["shiploop_failures"], [], "'error: refused' is no ShipLoop refusal line and carries no exit code")
         self.assertEqual([(r["tool_calls"], r["turns"] is not None) for r in m["stages"]], [(3, True), (3, True)])
-        self.assertEqual(m["tokens"], {"input_peak": 10})
+        self.assertEqual(m["tokens"]["input_peak"], 10)
         self.assertEqual(metrics.count(m, "model_glue"), 3)
         self.assertEqual(metrics.count({"unmeasured": {}, "model_glue": [1, 2]}, "model_glue"), 2)
         first = metrics.summary_lines(m)[0]
@@ -3557,7 +3560,8 @@ class HostCoverageTest(unittest.TestCase):
                   {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
         # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports, and nothing in
         # its events marks a session start, so the count of sessions that never reported is unmeasured too.)
-        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens", "unreported_sessions"})
+        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]),
+                         {"window_tokens", "unreported_sessions", "tokens_processed", "tokens_output"})  # its end has no usage
 
     def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
         result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
@@ -4681,7 +4685,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         self.assertIn("no earlier row of mode none", printed)
         self.number_rows(11, 22)
         _, printed = self.run_with("stage")  # [stage, none] then stage: the stage row, found past the none row
-        self.assertIn("planning_review stage): turns 11 (lower bound) -> ", printed)
+        self.assertIn("planning_review stage): turns 11 -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_two_modes_interleaved_each_pick_their_own_last_row(self):
@@ -4689,10 +4693,10 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
             self.run_with(mode)
         self.number_rows(111, 222, 333, 444)
         _, printed = self.run_with("none")
-        self.assertIn("planning_review none): turns 444 (lower bound) -> ", printed)
+        self.assertIn("planning_review none): turns 444 -> ", printed)
         self.number_rows(111, 222, 333, 444, 555)
         _, printed = self.run_with("stage")
-        self.assertIn("planning_review stage): turns 333 (lower bound) -> ", printed)
+        self.assertIn("planning_review stage): turns 333 -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_an_earlier_row_with_no_mode_compares_as_stage_only_when_its_plugin_predates_the_option(self):
@@ -4717,7 +4721,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         _, printed = self.run_with("none")
         self.assertIn("(none vs stage); no earlier row of mode none; ", printed)
         _, printed = self.run_with("stage")  # [old row, none row] then stage: the old row, read as stage
-        self.assertIn("planning_review stage): turns 555 (lower bound) -> ", printed)
+        self.assertIn("planning_review stage): turns 555 -> ", printed)
         self.assertIn("            the earlier row records no mode, read as stage because plugin 1.21.0 predates the option", printed)
 
     def test_a_run_whose_state_named_no_mode_is_compared_with_no_row(self):
@@ -5132,12 +5136,13 @@ class CodexRolloutMetricsTest(unittest.TestCase):
     def test_a_codex_run_with_rollouts_has_calls_window_peak_and_compactions(self):
         m = collect_stream(codex_stream(12), self.ACCEPTED, rollout_files=self.rollouts())
         self.assertEqual((m["model_calls"], m["window_tokens"], m["compactions"]), (4, 10000, 1))
-        self.assertEqual(m["tokens"], {"input_peak": 3000})
+        self.assertEqual(m["tokens"]["input_peak"], 3000)
         for name in ("model_calls", "window_tokens", "compactions"):
             self.assertNotIn(name, m["unmeasured"], name)
-        # What the Codex stream still cannot show stays unmeasured: the four stage and detector counters.
+        # What the Codex stream still cannot show stays unmeasured: the four stage and detector counters, and the processed
+        # tokens, since this stream names no host and Codex counts its cache reads inside its input (build step 8).
         self.assertEqual(set(m["unmeasured"]), {"stage_turns", "truncated_outputs", "cancelled_tool_calls",
-                                                "knowledge_reads"})
+                                                "knowledge_reads", "tokens_processed"})
         self.assertEqual([r["context"] for r in m["stages"]], [
             {"calls": 2, "peak": 3000, "peakPct": 30.0, "compactions": 0},
             {"calls": 1, "peak": 2000, "peakPct": 20.0, "compactions": 1}])
@@ -5147,13 +5152,13 @@ class CodexRolloutMetricsTest(unittest.TestCase):
     def test_a_codex_run_without_rollouts_names_them_as_the_reason(self):
         m = collect_stream(codex_stream(12), self.ACCEPTED)
         self.assertEqual((m["model_calls"], m["window_tokens"], m["compactions"]), (None, None, None))
-        self.assertEqual(m["tokens"], {"input_peak": None})
+        self.assertEqual(m["tokens"]["input_peak"], None)
         for name in ("model_calls", "window_tokens", "compactions"):
             self.assertIn(name, m["unmeasured"], name)
         self.assertIn(rollouts.NO_ROLLOUTS, m["unmeasured"]["model_calls"])
         self.assertIn(rollouts.NO_ROLLOUTS, m["unmeasured"]["window_tokens"])
         self.assertTrue(all("context" not in r for r in m["stages"]))
-        self.assertEqual(len(m["unmeasured"]), 7)  # the five Codex had, and the two new figures
+        self.assertEqual(len(m["unmeasured"]), 8)  # the five Codex had, the two new figures, and the processed tokens
 
     def test_rollouts_are_not_read_when_the_host_reported_per_call_usage(self):
         # A Grok or Claude stream measures its own calls; a stray rollout beside it does not change them.
@@ -5223,7 +5228,8 @@ class ModelCallsAndWindowTest(unittest.TestCase):
         m = collect_stream([{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 4, [])
         self.assertEqual((m["model_calls"], m["turns"]), (4, 4))
         self.assertIsNone(m["window_tokens"])
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions"})  # Grok marks no session start
+        # Grok marks no session start, and this stream's end event carries no usage
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions", "tokens_processed", "tokens_output"})
 
     def test_a_host_with_no_per_call_usage_has_no_call_count_not_zero_calls(self):
         m = collect_stream(codex_stream(3), [])
@@ -5294,8 +5300,8 @@ class HostSignalCountersTest(unittest.TestCase):
             {"type": "auto_compact_completed"},
             {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
         m = collect_stream(stream, self.ACCEPTED)
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions"},
-                         "every detector reads a Grok stream; its events mark no session start")
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions", "tokens_processed", "tokens_output"},
+                         "every detector reads a Grok stream; its events mark no session start; its end has no usage")
         self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
@@ -5352,8 +5358,8 @@ class ModelCallsThroughMainTest(PrintedCase):
         self.assertIn("model_context_window", m["unmeasured"]["window_tokens"])
         for name in ("model_calls", "compactions"):
             self.assertNotIn(name, m["unmeasured"], name)
-        self.assertEqual(json.loads((Path(result["output"]) / "metrics.json").read_text())["tokens"],
-                         {"input_peak": 2000})
+        self.assertEqual(json.loads((Path(result["output"]) / "metrics.json").read_text())["tokens"]["input_peak"],
+                         2000)
         row = self.last_row()
         self.assertEqual(row["compactions"], 0)
         self.assertNotIn("compactions", row["unmeasured"])
@@ -5531,9 +5537,9 @@ class ContextTokensTest(unittest.TestCase):
         quiet = {"input_tokens": 3, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0}
         stream = [message(0, quiet), message(1, self.CLAUDE_USAGE), message(2, quiet)]
         self.assertEqual(collect_stream(stream, [])["tokens"]["input_peak"], 100003)
-        self.assertEqual(collect_stream([{"type": "assistant", "message": {"content": []}}], [])["tokens"],
-                         {"input_peak": None})
-        self.assertEqual(collect_stream(codex_stream(3), [])["tokens"], {"input_peak": None})
+        self.assertEqual(collect_stream([{"type": "assistant", "message": {"content": []}}], [])["tokens"]["input_peak"],
+                         None)
+        self.assertEqual(collect_stream(codex_stream(3), [])["tokens"]["input_peak"], None)
 
 
 class ResumeCliThroughMainTest(PrintedCase):

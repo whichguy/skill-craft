@@ -1151,6 +1151,66 @@ def total_cost(sessions: list[dict]) -> float | None:
     return round(sum(costs), 4)
 
 
+def reconcile_sessions(launched: list[dict] | None, end_lines: list[int]) -> dict | None:
+    """The harness's launches (``sessionlog.read``) against the host's end events (their events.jsonl lines): ``{launched,
+    unreported, hosts}``, where ``hosts`` names, for each end event in order, the host of the launch whose lines hold it.
+
+    A launch covers its own lines: from its start row's ``events_line`` to its end row's, or to the next launch's start
+    when the harness died with its host and wrote no end row. It reported when an end event falls inside. So stops and
+    resumes are counted on every host, Grok's too, whose stream marks no session start (SPEC build step 8). None when the
+    record cannot say: no sessions.jsonl, or a first launch that starts after events already written (a run resumed from
+    one that predates the record), since the sessions before it went unrecorded.
+    """
+    if not launched or not all(isinstance(row.get("events_line"), int) for row in launched) or launched[0]["events_line"] > 0:
+        return None
+    bounds = []
+    for n, row in enumerate(launched):
+        stop = (row.get("end") or {}).get("events_line")
+        if not isinstance(stop, int):
+            stop = launched[n + 1]["events_line"] if n + 1 < len(launched) else None
+        bounds.append((row["events_line"], stop, row.get("host")))
+    owners = [next((n for n, (low, high, _) in enumerate(bounds) if low <= line and (high is None or line < high)), None)
+              for line in end_lines]
+    return {"launched": len(bounds), "unreported": len(bounds) - len({n for n in owners if n is not None}),
+            "hosts": [bounds[n][2] if n is not None else None for n in owners]}
+
+
+def session_tokens(usage, host: str | None) -> tuple[int | None, int | None]:
+    """(processed, output) of one session, from its host's own usage: input, cache reads, cache writes and output.
+
+    Grok and Claude report cache reads beside the input (a Grok session's ``total_tokens`` is exactly input + cache reads +
+    output); Codex reports them inside it, so they are not added twice. The output holds the reasoning on all three.
+    ``processed`` is None when the usage lacks an input or output count or the host is not known.
+    """
+    def count(key: str) -> int | None:
+        value = usage.get(key) if isinstance(usage, dict) else None
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+    given, output = count("input_tokens"), count("output_tokens")
+    if given is None or output is None or host is None:
+        return None, output
+    cached = 0 if host == "codex" else (count("cache_read_input_tokens") or 0) + (count("cache_creation_input_tokens") or 0)
+    return given + cached + output, output
+
+
+NO_SESSION_USAGE = "no session reported its usage"
+SESSION_WITHOUT_USAGE = "a session reported no input or output count"
+SESSION_HOST_UNKNOWN = "a session's host is not known, and hosts count cache reads differently"
+
+
+def run_tokens(sessions: list[dict], hosts: list[str | None]) -> tuple[int | None, int | None, str | None]:
+    """(processed, output, why) over every reported session, ``hosts`` naming each session's host: a figure only when every
+    session gives one, never a part of a total (the lower bound for sessions that never reported is the caller's)."""
+    if not sessions:
+        return None, None, NO_SESSION_USAGE
+    figures = [session_tokens(s.get("usage"), host) for s, host in zip(sessions, hosts)]
+    outputs = [o for _, o in figures]
+    output = sum(outputs) if all(o is not None for o in outputs) else None
+    if any(p is None for p, _ in figures):
+        return None, output, (SESSION_WITHOUT_USAGE if output is None or any(s.get("usage") is None for s in sessions)
+                              else SESSION_HOST_UNKNOWN)
+    return sum(p for p, _ in figures), output, None
+
+
 # Why a planning figure is missing, recorded inside the `planning` block (never in the top-level `unmeasured` map).
 PLANNING_NOT_YET = "no stage has been accepted yet, so there is no planning window"
 PLANNING_NO_START = ("timeline.json records no start time (a run from before the pace line, or no timeline.json), so "
@@ -1964,6 +2024,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     versions: set[str] = set()  # Claude Code builds that opened a session: the host CLI changes between runs of one prompt
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
+    session_lines: list[int] = []  # the events.jsonl line of each host end event: which launch it belongs to (sessions.jsonl)
     for number, event in events(out / "events.jsonl"):
         kind = event.get("type")
         t = stamps.get(number)
@@ -2009,6 +2070,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
             compaction_lines.append(number)
         elif kind in ("end", "result"):
             reported |= context_windows(event)
+            session_lines.append(number)
             # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
             # a figure built here from per-event snapshots or by summing sessions would not be the host's.
             sessions.append({"stop": session_stop(event), "turns": event.get("num_turns"),
@@ -2093,8 +2155,23 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     except Exception as exc:  # noqa: BLE001 - record-only, like fresh_starts above
         context_rows = []
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
-    if grok_stream:
-        unmeasured["unreported_sessions"] = NO_SESSION_START
+    # The harness's launch record reconciles reported sessions with launches on every host (SPEC build step 8); without
+    # it, Grok's stream cannot count a session that never reported, and the other hosts' starts are their stream's.
+    reconciled = reconcile_sessions(sessionlog.read(out), session_lines)
+    if reconciled is not None:
+        never, never_at_least = reconciled["unreported"], None
+    else:
+        never = None if grok_stream else max(0, starts - len(sessions))
+        never_at_least = (1 if usage_since_end else 0) if grok_stream else None
+        if grok_stream:
+            unmeasured["unreported_sessions"] = NO_SESSION_START
+    used = runrecord.hosts_used(out)
+    session_hosts = reconciled["hosts"] if reconciled is not None else [used[0] if len(used) == 1 else None] * len(sessions)
+    processed, output, why_tokens = run_tokens(sessions, session_hosts)
+    if processed is None:
+        unmeasured["tokens_processed"] = why_tokens
+    if output is None:
+        unmeasured["tokens_output"] = why_tokens or SESSION_WITHOUT_USAGE
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
             if figures is not None:
@@ -2119,16 +2196,18 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # Context only: a call's input side is complete when it is sent. Its output count is a streaming
         # snapshot (about 1/17 of the session's own total on a recorded Claude run), so no output figure is built.
         # Codex is the exception: its rollouts report each call's own total (input plus output), see rollouts.py.
-        "tokens": {"input_peak": peak},
+        # The run's tokens, added over its reported sessions from the host's own whole-session usage (session_tokens);
+        # like cost and turns, a lower bound when a launched session never reported (lower_bound).
+        "tokens": {"input_peak": peak, "processed": processed, "output": output},
         "unmeasured": unmeasured,
         "cost_usd": total_cost(sessions),
-        # Null when the stream holds Grok's events: no event marks one of its session starts, so how many sessions never
-        # reported is unknown and cost and turns stay a lower bound (lower_bound). The harness's own launch records, not
-        # this stream, can count them: a launch whose lines hold no `end` event never reported.
-        "unreported_sessions": None if grok_stream else max(0, starts - len(sessions)),
-        # What the stream does prove about a Grok run: model calls after its last `end` (or with no `end`) were made by a
-        # session that never reported, so at least one did. None where the count is exact.
-        "unreported_sessions_at_least": (1 if usage_since_end else 0) if grok_stream else None,
+        # Exact where sessions.jsonl covers the stream: a launch whose lines hold no end event never reported
+        # (reconcile_sessions). Without it, null for a Grok stream: no event marks one of its session starts, so how many
+        # never reported is unknown and cost, turns and tokens stay a lower bound (lower_bound).
+        "unreported_sessions": never,
+        # What the stream does prove about a Grok run without that record: model calls after its last `end` (or with no
+        # `end`) were made by a session that never reported, so at least one did. None where the count is exact.
+        "unreported_sessions_at_least": never_at_least,
         "compactions": None if "compactions" in unmeasured else compactions,
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
@@ -2417,7 +2496,7 @@ def money(value) -> str:
 
 
 def lower_bound(run_metrics: dict) -> bool | None:
-    """Whether the whole-run cost and turns cover only the sessions that reported, by the one predicate every reader shares.
+    """Whether the whole-run cost, turns and tokens cover only the sessions that reported, by the one predicate every reader shares.
 
     True when a session is known not to have reported (``unreported_sessions`` above 0) and when the count is unknown
     for a reason (null, named in ``unmeasured``: Grok's events mark no session start, so a killed session cannot be ruled

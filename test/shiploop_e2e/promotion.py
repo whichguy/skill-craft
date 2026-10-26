@@ -9,7 +9,7 @@ An arm is any mix of run folders (scored with scorecard.py) and card files (`sco
 
 The registration (JSON)::
 
-    {"contract": "promotion/3",
+    {"contract": "promotion/4",
      "registered_at": 1792900000,                       # epoch seconds; a run that began earlier makes the decision UNDECIDED
      "cases": {"hello": "regression",                   # a role, or {"role": ..., "attempts": n}: the expected attempts per arm
                "battleship": {"role": "capability", "attempts": 2}},
@@ -22,15 +22,17 @@ The registration (JSON)::
 The rule, in order: the registration time, coverage (fewer attempts than registered), one evaluator (a case's attempts graded
 by different or unrecorded evaluator, oracle or case digests) and unknown quality (UNDECIDED); a
 fallen regression case (DROP); the budget (DROP); a capability gain (PROMOTE at its stated cost); a fallen capability case
-(DROP); then, at equal quality, each efficiency metric in turn on cards whose timing and attribution are valid: no case
-dearer beyond the tolerance and one cheaper beyond it is PROMOTE, one dearer beyond it is DROP, and otherwise the next
-metric is asked; none deciding is UNDECIDED.
+(DROP); then, at equal quality, each efficiency metric in turn on the cards that are evidence for it (build step 8:
+minutes need valid timing and attribution; cost, turns and tokens need valid attribution and a total that is not a lower
+bound, so a resumed attempt's own cost counts): no case dearer beyond the tolerance and one cheaper beyond it is PROMOTE,
+one dearer beyond it is DROP, and otherwise the next metric is asked; none deciding is UNDECIDED. Refusals and Improve
+children are diagnostics on the card, never a metric here (R4).
 
-An attempt's quality is known only when its card's correctness is valid (``scorecard/5`` validity) and each required floor
+An attempt's quality is known only when its card's correctness is valid (``scorecard/6`` validity) and each required floor
 is ``pass`` or ``fail``: an ``unobserved`` or ``not_applicable`` required floor, or correctness that is false or not
 observed, leaves its case's quality unknown. So a run that overlapped others is still quality evidence, never speed
 evidence (SPEC "The promotion contract", build step 2). Every attempt of a case, in both arms, must carry the same
-``boundary`` digests (``scorecard/5``): a harness or oracle change is an experiment of its own (build step 3).
+``boundary`` digests (``scorecard/6``): a harness or oracle change is an experiment of its own (build step 3).
 """
 
 from __future__ import annotations
@@ -46,11 +48,12 @@ import boundary  # noqa: E402  (boundary.GROUPS: the grading digests)
 import metrics  # noqa: E402  (metrics.span: the one span reader)
 import scorecard  # noqa: E402  (the cards the contract reads)
 
-CONTRACT_ID = "promotion/3"
+CONTRACT_ID = "promotion/4"
 ROLES = ("regression", "capability")
 FLOORS = ("accuracy", "enterprise", "fidelity")
 DEFAULT_FLOORS = ("accuracy", "fidelity")  # enterprise is not_applicable until its rubric exists, so it cannot be required
-METRICS = ("cost_usd", "minutes", "turns", "tokens")  # a card's efficiency fields; tokens arrive with build step 8
+METRICS = ("cost_usd", "minutes", "turns", "tokens", "output_tokens")  # a card's efficiency targets; the rest are diagnostics
+SUMMED = ("cost_usd", "turns", "tokens", "output_tokens")  # added over the run's sessions: a lower bound when one never reported
 EXIT = {"PROMOTE": 0, "DROP": 3, "UNDECIDED": 4}
 
 
@@ -111,16 +114,24 @@ def succeeded(card: dict, floors) -> bool | None:
     return None if any(value not in ("pass", "fail") for value in values) else all(value == "pass" for value in values)
 
 
-def timing_valid(card: dict) -> bool:
-    """Whether a card is evidence of speed or cost: its timing and its attribution are both valid."""
+def comparable(card: dict, metric: str) -> bool:
+    """Whether a card is evidence for ``metric`` (SPEC build step 8): minutes need its timing and attribution valid; a
+    summed metric needs its attribution valid and a total that is not a lower bound, so a resumed or overlapped attempt's
+    own tokens and dollars count, and a total that may miss a session that never reported never does."""
     validity = card.get("validity") or {}
-    return all((validity.get(name) or {}).get("valid") is True for name in ("timing", "attribution"))
+    if (validity.get("attribution") or {}).get("valid") is not True:
+        return False
+    if metric in SUMMED:
+        return (card.get("efficiency") or {}).get("totals_lower_bound") is False
+    return (validity.get("timing") or {}).get("valid") is True
 
 
 def per_success(cards: list[dict], metric: str, successes: int) -> float | None:
-    """All-attempt cost per successful case: the metric summed over every attempt, divided by the successes."""
+    """All-attempt cost per successful case: the metric summed over every attempt, divided by the successes. None when an
+    attempt is not evidence for the metric (``comparable``) or did not measure it."""
     values = [(card.get("efficiency") or {}).get(metric) for card in cards]
-    if successes == 0 or any(not isinstance(value, (int, float)) or isinstance(value, bool) for value in values):
+    if (successes == 0 or not all(comparable(card, metric) for card in cards)
+            or any(not isinstance(value, (int, float)) or isinstance(value, bool) for value in values)):
         return None
     return sum(values) / successes
 
@@ -193,20 +204,23 @@ def decide(reg: dict, control, candidate) -> dict:
     falls = [name for name, delta in shares.items() if delta < -tol]
     if falls:
         return finish("DROP", "quality fell on " + ", ".join(falls) + " with no gain elsewhere")
-    not_timed = sorted({card.get("case") for attempts in arms.values() for card, _ in attempts
-                        if card.get("case") in reg["cases"] and not timing_valid(card)})
-    if not_timed:
-        return finish("UNDECIDED", "equal quality, and the timing evidence is not valid for " + ", ".join(not_timed))
     for metric in reg["efficiency"]:
-        changes, unmeasured = {}, []
-        for name in by_case:
+        changes, unmeasured, not_evidence = {}, [], []
+        for name, sides in by_case.items():
             pair = report["cases"][name]["cost_per_success"][metric]
-            if pair["control"] is None or pair["candidate"] is None:
+            if not all(comparable(card, metric) for cards in sides.values() for card in cards):
+                not_evidence.append(name)
+            elif pair["control"] is None or pair["candidate"] is None:
                 unmeasured.append(name)
             elif pair["control"] > 0:
                 changes[name] = (pair["candidate"] - pair["control"]) / pair["control"]
-        if unmeasured or not changes:
-            report["notes"].append(f"{metric} per success is not measured for " + (", ".join(unmeasured) or "any case"))
+        if not_evidence:
+            report["notes"].append(f"{metric} per success is not evidence for " + ", ".join(not_evidence) + (
+                ": a total that may miss a session that never reported, or attribution not valid" if metric in SUMMED
+                else ": timing or attribution not valid"))
+        if unmeasured or not_evidence or not changes:
+            if unmeasured or not not_evidence:
+                report["notes"].append(f"{metric} per success is not measured for " + (", ".join(unmeasured) or "any case"))
             continue
         dearer = [name for name, change in changes.items() if change > reg["tolerance"]]
         cheaper = [name for name, change in changes.items() if change < -reg["tolerance"]]

@@ -2774,6 +2774,9 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "checks_passed": sum(bool(c.get("pass")) for c in result.get("checks") or []),
             "checks": len(result.get("checks") or []),
             "turns": m.get("turns"), "cost_usd": m.get("cost_usd"),
+            # Whether turns and cost cover only the sessions that reported (metrics.lower_bound): stated on the row from
+            # build step 8, when sessions.jsonl made the count exact on every host, so a Grok row is no longer one by host.
+            "lower_bound": metrics.lower_bound(m),
             "sessions": len((result.get("process") or {}).get("sessions") or []),
             "cancelled_tool_calls": m.get("cancelled_tool_calls"), "model_glue": m.get("model_glue"),
             "tmp_writes": m.get("tmp_writes"),
@@ -2929,10 +2932,13 @@ def previous_row(path: Path, case: str, source: str | None, host: str | None = N
 
 
 def row_lower_bound(row: dict) -> bool | None:
-    """Whether a baseline row's cost and turns cover only the sessions that reported. A row carries no count (it is not a
-    baseline key), so: True when the row lists ``unreported_sessions`` among its unmeasured counters (Grok's events cannot
-    show a session that never reported), and True for any Grok row (the rows from before that listing were written the same
-    way); None otherwise, which is unknown and is not marked."""
+    """Whether a baseline row's cost and turns cover only the sessions that reported. A row from build step 8 on says so
+    itself (``lower_bound``, from metrics.lower_bound). A row whose metrics could not tell (null) or an older row carries no count
+    (it is not a baseline key), so: True when the row lists ``unreported_sessions`` among its unmeasured counters (Grok's
+    events cannot show a session that never reported), and True for any Grok row (the rows from before that listing were
+    written the same way); None otherwise, which is unknown and is not marked."""
+    if row.get("lower_bound") is not None:
+        return row["lower_bound"]
     if "unreported_sessions" in (row.get("unmeasured") or []) or row.get("host") == "grok":
         return True
     return None
