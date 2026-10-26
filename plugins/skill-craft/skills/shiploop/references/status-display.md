@@ -140,6 +140,34 @@ the action of the last packet before it. A `--check-only` failure is a check, no
 a refusal. A run saved before the trace reads from `state.md` and `timeline.json`,
 and what it never recorded shows as "not recorded", not zero.
 
+## Owner notes
+
+The run's owner can write to a running run, and the model sees the note at its
+next step (owner, 2026-10-26):
+
+```sh
+python3 "$CLI" note --run-dir "$RUN_DIR" --text "Reuse the date helper; do not add a library."
+python3 "$CLI" note --run-dir "$RUN_DIR" --file note.md
+```
+
+Each note is `<run>/owner-notes/N<k>.md`, written once. `note` takes no run lock,
+so it never waits for a command the model is running.
+
+- **Quoted.** The next packet quotes every note no accepted step has delivered,
+  right after the reply to a resumed question. A head with little room quotes
+  what fits and names the rest by file; the plan stage's head prints one line.
+- **Held.** If the model runs its callback while a note its packet did not print
+  whole is waiting, ShipLoop holds that callback once and prints the note. The
+  same callback then goes through.
+- **Delivered.** A note is delivered when ShipLoop accepts a step whose packet
+  showed it. Only the script marks that (`owner_notes` in `state.md`); later
+  packets list delivered notes in one line.
+
+A note may hold 2,000 characters, and no `SHIPLOOP-RUN` or `=== ShipLoop`
+marker. A done or halted run refuses one. `trace` shows where each note stands,
+and `trace.html` builds the `note` command to copy, because the page cannot write
+to the run.
+
 The **request view** sets the request, sentence by sentence (`S1..Sn`, joined
 they are the verbatim `request.md`), beside its expansion from the current
 accepted results: intake's reading of each sentence (`S<n> outcome:`,

@@ -29,6 +29,7 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
     {
         "view",
         "trace",
+        "note",
         "workspace",
         "chain",
         "graph-dry-run",

@@ -560,7 +560,8 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
         return
     after = _TRACE.get("after", _TRACE.get("before"))
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
-                         after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
+                         after=after if isinstance(after, dict) else None, error=_TRACE.get("error"),
+                         note=_TRACE.get("note"), held=_TRACE.get("held"))
 
 
 def _saved_state(root: Path) -> Optional[dict]:
@@ -583,6 +584,11 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return shiploop_trace.main(raw_argv[1:], core=core)
     if raw_argv and raw_argv[0] == "hook-status":
         return hook_status(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] == "note":
+        # The owner's note: no run lock (a note never waits for the model's command) and no packet (the model, not the
+        # owner, reads packets).  Recorded once the run loaded as current.
+        import shiploop_owner_notes
+        return shiploop_owner_notes.main(raw_argv[1:], trace_record=_TRACE)
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
     if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
@@ -609,6 +615,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     subs.add_parser("view", help="portable HTML progress snapshot and read-only background observer")
     subs.add_parser("trace", help="read the run trace: every stage done, current or pending, the steps run, each packet "
                                   "as sent, refusals and hook continuations (--action, --json, --html)")
+    subs.add_parser("note", help="the run's owner: leave a note the next packet quotes until a step it was shown in is "
+                                 "accepted (--text or --file)")
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
@@ -843,6 +851,11 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             navigator.emit(core, root, state)
             progress_ready = True
             return 0
+    except navigator.NotesHeld as exc:
+        # Not a refusal of the result: the callback waits once for the owner's notes, which it prints.
+        _TRACE["error"], _TRACE["held"] = str(exc), exc.held
+        print(str(exc), file=sys.stderr)
+        return 2
     except navigator.NavigatorError as exc:
         _TRACE["error"] = str(exc)
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)

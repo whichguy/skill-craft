@@ -23,10 +23,10 @@
   },
   "id": "synthetic-failed-callback-followed-by-exit-zero",
   "observer": {
-    "grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
+    "grok_adapter_sha256": "1ae7162d71dc64a90022cb5e84a18dc960882d314ff0b8ad9c03b7dff761312a",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
-    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts trace, the run-trace reader added in ShipLoop 1.12.0. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged.",
+    "previous_grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
+    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts note, the owner-notes command added in ShipLoop 1.15.0. All five golden attribution expectations replayed unchanged against this source (check_suite.py --suite mock). Original capture provenance, events and expectations are unchanged.",
     "revalidation_history": [
       {
         "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
@@ -62,6 +62,11 @@
         "grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
         "previous_grok_adapter_sha256": "c6fbad88c5ee6fb19d6c4167572ee4338030ed038f9c3a8a9b19de3901936613",
         "revalidation": "The direct-form ShipLoop verb allowlist now also accepts backchain-check, the record-only Backchain graph check. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged. (6382dd6f re-pinned this source for improve-pass and kept the earlier text.)"
+      },
+      {
+        "grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
+        "previous_grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
+        "revalidation": "The direct-form ShipLoop verb allowlist now also accepts trace, the run-trace reader added in ShipLoop 1.12.0. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged."
       }
     ]
   },

@@ -51,6 +51,7 @@ import shiploop_context_index as context_index
 import shiploop_reference as run_reference
 import shiploop_request as request_file
 import shiploop_narrative as narrative
+import shiploop_owner_notes as owner_notes
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 import shiploop_trace as trace
@@ -155,6 +156,7 @@ _STATE_KEYS = frozenset(
         "lint",
         "backchain_passes",
         "planning_review",
+        "owner_notes",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
@@ -521,6 +523,15 @@ def graph(state: Mapping[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...], t
 
 class NavigatorError(ValueError):
     """Raised for a rejected navigator state, control, or result."""
+
+
+class NotesHeld(NavigatorError):
+    """A ``complete`` held once for owner notes its action's packet did not print in full (``shiploop_owner_notes``):
+    its text prints the notes; ``held`` names them."""
+
+    def __init__(self, text: str, held: Sequence[str]) -> None:
+        super().__init__(text)
+        self.held = list(held)
 
 
 def _need(condition: bool, message: str) -> None:
@@ -1457,7 +1468,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
           + FRESH_RUN_HINT)
     missing = sorted(allowed - {"status_reason", "delivery_contract_version", "chain_bindings",
-                                "delegation_hold"} - keys)
+                                "delegation_hold", "owner_notes"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
@@ -1619,6 +1630,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
                            and hold["route"] in DELEGATIONS
                            and hold["route"] != recorded_delegation(state)),
           "invalid delegation hold")
+    _need("owner_notes" not in state or owner_notes.validate(state["owner_notes"], _ACTION_ID),
+          "invalid owner notes record")
     _need(state["lint"] in LINT_MODES,
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
     _need(state["backchain_passes"] in BACKCHAIN_PASSES_MODES,
@@ -2016,6 +2029,10 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     store.atomic_write_text(path, text)
     printed = printed_text(core, root, state, path, text, timeline=timeline)
     print(printed, end="")
+    # Which owner notes this print showed whole, for the callback hold and delivery (only a traced command's print: a
+    # view or a routed verb leaves the run as it was).
+    if trace.ACTIVE and state["status"] == "active" and not state.get("active_improve"):
+        owner_notes.record_shown(root, current_action(state)["id"], printed)
     # The run trace keeps every packet as sent (``next`` rewrites the file above in place); a display record, never state.
     trace.record_packet(root, state, text, printed)
     return text
@@ -2056,13 +2073,15 @@ class _Block(NamedTuple):
     ``name`` is stable (tests and the head table cite it); ``tier`` is P0 (what to do and how it is checked, with the
     pointer lines that say where the whole is), P1 (the stage's own input), lookup and chrome (the file repeats them),
     quoted (data quoted by value) or file (the whole print and the file only).  ``head`` is the text a head prints when it
-    differs from the whole print's, a shorter excerpt.
+    differs from the whole print's, a shorter excerpt.  ``shrink`` lists a required block's shorter forms, fullest first:
+    a head too long for its limit prints the first that fits, or the last (the owner notes: ``shiploop_owner_notes``).
     """
 
     name: str
     tier: str
     lines: list[str]
     head: list[str] | None = None
+    shrink: tuple[list[str], ...] = ()
 
 
 def _text_of(blocks: list[_Block], *, head: bool = False) -> str:
@@ -2087,11 +2106,22 @@ def _select_head(blocks: list[_Block], measure: Callable[[str], int] = len) -> l
     what was left out: the packet's second pointer line says the file holds the knowledge files quoted whole and the
     hand-offs.  ``HEAD_END``, the last line of every print, is never dropped.
     """
-    chosen = [block for block in blocks if block.tier in HEAD_REQUIRED]
-    used = measure(_text_of(chosen, head=True)) + 1 + len(HEAD_END) + 1
     optional = [position for position, block in enumerate(blocks) if block.tier in HEAD_OPTIONAL]
     trailing = bool(optional) and any(block.tier in HEAD_REQUIRED for block in blocks[optional[0]:])
     limit = min(HEAD_LIMIT, HEAD_REQUIRED_END + 1 + len(HEAD_END) + 1) if trailing else HEAD_LIMIT
+    required = {position: block for position, block in enumerate(blocks) if block.tier in HEAD_REQUIRED}
+
+    def required_size() -> int:
+        return measure(_text_of(list(required.values()), head=True)) + 1 + len(HEAD_END) + 1
+
+    # A required block with shorter forms (the owner notes) takes the fullest that keeps the head within its limit, down
+    # to its smallest; the optional blocks fill what is left after it.
+    for position, block in list(required.items()):
+        for form in block.shrink:
+            if required_size() <= limit:
+                break
+            required[position] = block._replace(head=form)
+    used = required_size()
     kept: set[str] = set()
     for block in blocks:
         if block.tier in HEAD_OPTIONAL:
@@ -2100,7 +2130,8 @@ def _select_head(blocks: list[_Block], measure: Callable[[str], int] = len) -> l
                 break  # a prefix: nothing after a block that does not fit is kept
             kept.add(block.name)
             used += size
-    return [block for block in blocks if block.tier in HEAD_REQUIRED or block.name in kept]
+    return [required.get(position, block) for position, block in enumerate(blocks)
+            if block.tier in HEAD_REQUIRED or block.name in kept]
 
 
 def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
@@ -2277,6 +2308,10 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     # The reply a resumed stage acts on is its own input, so a head prints it (file-only until 2026-10-17: the reviewed
     # run's resumed release-verify found it only by opening the packet file, F-20).
     blocks.append(_Block("answered", P1, _answered_lines(root, state)))
+    # The owner's notes no accepted step has delivered yet: the owner's words, beside the reply above (owner decision
+    # 2026-10-26, docs/shiploop-owner-notes-design-2026-10.md).  A head with little room prints a shorter form.
+    notes_block, notes_forms = owner_notes.packet_forms(root, state)
+    blocks.append(_Block("owner-notes", P1, notes_block, shrink=tuple(notes_forms)))
     blocks.extend(_stage_input_blocks(core, root, state, stage, action_id, workitem, inner))
     blocks.append(_Block("result", P0, [
         *_result_contract_lines(root, state, stage, action_id, workitem), ""]))
@@ -2293,6 +2328,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("backchain-route", LOOKUP,
                          [backchain, *cited.backchain, ""] if backchain else []))
     blocks.append(_Block("builds-on", LOOKUP, _builds_on_lines(root, state, stage, workitem)))
+    blocks.append(_Block("owner-notes-delivered", LOOKUP, owner_notes.delivered_lines(root, state)))
     blocks.append(_Block("progress-view", CHROME, [
         f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to track "
         "changes during this ShipLoop run."]))
@@ -2328,7 +2364,8 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         blocks.append(_Block("loop", P0, loop))  # its leading blank line parts it from the block before
     return [block._replace(
         lines=_symbolic_lines(block.lines, core, root, state),
-        head=None if block.head is None else _symbolic_lines(block.head, core, root, state))
+        head=None if block.head is None else _symbolic_lines(block.head, core, root, state),
+        shrink=tuple(_symbolic_lines(form, core, root, state) for form in block.shrink))
         for block in blocks if block.lines]
 
 
@@ -6075,6 +6112,9 @@ PROSE_PATH_LINES = re.compile(
     r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
     r"This stage's result before the add-work: |"
     r"Proposed queue awaiting Improve: |"
+    # The owner-notes lines that name note files (shiploop_owner_notes): a head's one-line floor, the notes a head names
+    # for room, and the delivered list.  A quoted note's own text stays as the owner wrote it.
+    r"Owner notes? N\d+[ ,]|Owner notes already delivered:| {4}N\d+(?:, N\d+)*(?: and N\d+)? (?:is|are) not printed here|"
     # The Improve handoff's lines that name the child's files as prose (its commit-message and review-evidence lines that
     # carry a command stay literal): the opening, the receipt, the owner record, the review and check files.
     r"ShipLoop started this review when the Improve stage began: it wrote the opening |Child latest packet receipt: |"
@@ -9181,6 +9221,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         # runs inside the stage's own loop, whose receipt is still active, so the receipt check waits for the real
         # complete.
         check_only = bool(getattr(args, "check_only", False))
+        if state["status"] == "active" and action_id not in state["accepted"]:
+            # An owner note this action's packet did not print whole holds the callback once, before any gate runs
+            # (owner decision D2, 2026-10-26): the model sees it before this step is committed.
+            held = owner_notes.to_hold(root, state, action_id)
+            if held and owner_notes.mark_held(root, action_id, held):
+                if not check_only:
+                    raise NotesHeld(owner_notes.hold_text(held), [note["id"] for note in held])
+                print(owner_notes.hold_text(held, check_only=True))
         if (state["status"] == "active" and action_id not in state["accepted"]
                 and cursor_stage in loops.STAGES and not check_only):
             # Every inner stage runs one Until Loop (owner decision 2026-10-10): its receipt is checked first.
@@ -9257,6 +9305,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             state = _step_after(root, state)
         updated = apply(state, action_id, submitted)
         if updated != state:
+            # The owner notes this action's packet showed are delivered by its accepted step, in the same save.
+            updated = owner_notes.deliver(root, updated, action_id)
             terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
             if terminal_knowledge_closed:
                 _knowledge_close(state, updated, root, terminal=True)

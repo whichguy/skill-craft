@@ -142,10 +142,12 @@ def record_packet(root: str | Path, state: Mapping[str, Any], text: str, printed
         return False
     child = state.get("active_improve") or {}
     stage, action, item = _cursor(state)
+    import shiploop_owner_notes as owner_notes
+
     return record(root, "packet", action=child.get("improve_action") or (action or {}).get("id"),
                   stage="improve" if child else stage, item=item, reviewed=child.get("stage"),
                   status=state.get("status"), rev=state.get("revision"), chars=len(text), printed=len(printed),
-                  whole=whole, sha=sha, file=file, head_file=head)
+                  whole=whole, sha=sha, file=file, head_file=head, notes=owner_notes.quoted_ids(printed) or None)
 
 
 def cursor_facts(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -166,9 +168,11 @@ def accepted_between(before: Mapping[str, Any], after: Mapping[str, Any]) -> lis
 
 
 def record_command(root: str | Path, argv: Sequence[str], code: int, started: float, *,
-                   before: Mapping[str, Any] | None, after: Mapping[str, Any] | None, error: str | None) -> bool:
+                   before: Mapping[str, Any] | None, after: Mapping[str, Any] | None, error: str | None,
+                   note: str | None = None, held: Sequence[str] | None = None) -> bool:
     """Record one ShipLoop command line that named the run: ``before`` and ``after`` are the saved states around it
-    (``after`` is None when the command saved nothing it could report)."""
+    (``after`` is None when the command saved nothing it could report).  ``note`` is the owner note a ``note`` command
+    wrote, ``held`` the notes a held callback printed; the notes an accepted step delivered come from the two states."""
     verb = argv[0] if argv else ""
     if verb in UNTRACED:
         return False
@@ -176,10 +180,13 @@ def record_command(root: str | Path, argv: Sequence[str], code: int, started: fl
     last = cursor_facts(after) if after is not None else first
     pairs = {name: [(first or {}).get(name), (last or {}).get(name)] for name in ("rev", "stage", "cursor")} if last else {}
     accepted = accepted_between(before, after) if before is not None and after is not None else []
+    known = set((before or {}).get("owner_notes") or {})
+    delivered = sorted((set((after or {}).get("owner_notes") or {}) - known), key=lambda note: int(note[1:]))
     return record(
         root, "command", verb=verb, action=_flag(argv, "--action"), exit=code,
         ms=round((time.monotonic() - started) * 1000), check_only=True if "--check-only" in argv else None,
         **pairs, status=(last or {}).get("status"), accepted=accepted or None, error=error if code else None,
+        note=note, held=list(held) if held else None, delivered=delivered or None,
     )
 
 
@@ -365,6 +372,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
 
     plan = _plan(state, accepted_at, improve_results, tally)
     request = request_model(run, state, accepted_at, improve_results)
+    notes = notes_model(run, state, events, accepted_at)
     counts = Counter(event["kind"] for event in events)
     commands = [event for event in events if event["kind"] == "command"]
     hooks = [event for event in events if event["kind"] == "hook"]
@@ -385,9 +393,11 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "traced": traced, "traced_since": _iso(traced_since), "untraced_steps": legacy,
             "trace_bytes": size, "capped": size >= TRACE_LIMIT,
             "work_items": len(state.get("work_items") or []), "work_index": state.get("work_index"),
+            "cli": str(Path(__file__).resolve().parent / "shiploop"),
         },
         "now": now_block,
         "request": request,
+        "notes": notes,
         "plan": plan,
         "steps": steps,
         "events": events,
@@ -395,6 +405,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "accepted": len(history), "commands": counts["command"], "packets": counts["packet"],
             "reprints": sum(bool(event.get("repeat")) for event in events),
             "refusals": sum(refused(event) for event in commands),
+            "held": sum(bool(event.get("held")) for event in commands),
             "checks_failed": sum(event.get("exit") not in (0, None) and bool(event.get("check_only")) for event in commands),
             "continuations": sum(event.get("decision") == "continue" for event in hooks),
             "stops": sum(event.get("decision") == "allow" for event in hooks),
@@ -404,8 +415,49 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
 
 
 def refused(event: Mapping[str, Any]) -> bool:
-    """A command that exited non-zero, other than a ``--check-only`` run, which reports and never completes."""
-    return event.get("kind") == "command" and event.get("exit") not in (0, None) and not event.get("check_only")
+    """A command that exited non-zero, other than a ``--check-only`` run, which reports and never completes, and a
+    callback held once for owner notes, which refuses nothing the model submitted."""
+    return (event.get("kind") == "command" and event.get("exit") not in (0, None) and not event.get("check_only")
+            and not event.get("held"))
+
+
+def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
+                accepted_at: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Every owner note: its text (screened), when it was written, and where it stands: waiting (no print has shown
+    it), shown (a packet quoted it whole, or a held callback printed it) or delivered (by which step, and whether that
+    step's summary cites its id)."""
+    import shiploop_owner_notes as owner_notes
+
+    done = owner_notes.delivered(state)
+    steps = {entry.get("action"): index for index, entry in enumerate(state.get("history") or [], 1)}
+    results = state.get("accepted") or {}
+    quoted_in: dict[str, list[Any]] = defaultdict(list)
+    held_in: dict[str, list[Any]] = defaultdict(list)
+    for event in events:
+        for note_id in (event.get("notes") or []) if event["kind"] == "packet" else []:
+            if event.get("action") not in quoted_in[note_id]:
+                quoted_in[note_id].append(event.get("action"))
+        for note_id in (event.get("held") or []) if event["kind"] == "command" else []:
+            held_in[note_id].append(event.get("action"))
+    # What the current action's prints showed, from the record the hold reads (the trace may lack a line).
+    shown = owner_notes.read_shown(run)
+    for key, into in (("packet", quoted_in), ("held", held_in)):
+        for note_id in shown.get(key) or []:
+            if shown["action"] not in into[note_id]:
+                into[note_id].append(shown["action"])
+    rows = []
+    for note in owner_notes.notes(run):
+        note_id, action = note["id"], done.get(note["id"])
+        summary = str((results.get(action) or {}).get("summary") or "") if action else ""
+        rows.append({
+            "id": note_id, "at": note["written_at"], "text": _screened(note["text"]), "chars": len(note["text"]),
+            "file": note["file"], "state": "delivered" if action else
+            "shown" if quoted_in.get(note_id) or held_in.get(note_id) else "waiting",
+            "quoted_in": quoted_in.get(note_id, []), "held_in": held_in.get(note_id, []), "delivered_by": action,
+            "step": steps.get(action), "delivered_at": _iso(accepted_at.get(action)) if action else None,
+            "cited": bool(re.search(r"\b" + note_id + r"\b", summary)) if action else None,
+        })
+    return rows
 
 
 def _headline(result: Mapping[str, Any], summary: Any) -> str:
@@ -693,7 +745,13 @@ def event_line(event: Mapping[str, Any]) -> str:
         if rev[0] != rev[1] and rev[1] is not None and not event.get("accepted"):
             stage = event.get("stage") or [None, None]
             text += f" · now {stage[1]} r{rev[1]}"
-        if event.get("exit"):
+        if event.get("note"):
+            text += f" · wrote owner note {event['note']}"
+        if event.get("delivered"):
+            text += " · delivered owner note" + ("s " if len(event["delivered"]) > 1 else " ") + ", ".join(event["delivered"])
+        if event.get("held"):
+            text += " · held for owner note" + ("s " if len(event["held"]) > 1 else " ") + ", ".join(event["held"])
+        elif event.get("exit"):
             text += " · " + ("check: " if event.get("check_only") else "refused: ") + _one_line(event.get("error") or "(no message recorded)")
         return f"{head}{text} · {event.get('ms')} ms"
     if kind == "packet":
@@ -737,6 +795,7 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
             lines.append(f"          {_one_line(now_block['purpose'], 150)}")
         if now_block.get("packet"):
             lines.append(f"Packet:   RUN/{now_block['packet']}")
+    lines.extend(notes_summary(model.get("notes") or []))
     lines.extend(request_summary(model["request"]))
     lines.append("")
     lines.append("Plan (✓ done · ▶ current · ↺ reopened · · pending; ×N accepted N "
@@ -792,7 +851,8 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     if run["traced"]:
         lines.append(f"Totals:   {counts['accepted']} accepted · {_count(counts['commands'], 'command')} · "
                      f"{counts['refusals']} refused · {_count(counts['checks_failed'], 'check')} failed · "
-                     f"{_count(counts['packets'], 'packet')} ({_count(counts['reprints'], 'reprint')}) · "
+                     + (f"{_count(counts['held'], 'callback')} held for owner notes · " if counts.get("held") else "")
+                     + f"{_count(counts['packets'], 'packet')} ({_count(counts['reprints'], 'reprint')}) · "
                      f"{_count(counts['continuations'], 'hook continuation')} · {_count(counts['skills'], 'skill call')}")
     else:
         # Not measured is not zero: a run before the trace recorded no commands, refusals, packets or hook stops.
@@ -801,10 +861,24 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     if run.get("capped"):
         lines.append(f"Note:     the trace reached {TRACE_LIMIT // (1024 * 1024)} MB and stopped growing.")
     lines.append("More:     --action <id> for one action · --json for every field · --html for the page "
-                 f"(RUN/{PAGE})")
+                 f"(RUN/{PAGE}) · the owner leaves a note with `note --run-dir RUN --text …`")
     lines.append(f"RUN:      {run['dir']}")
     lines.append("=== end ShipLoop trace ===")
     return "\n".join(lines) + "\n"
+
+
+def notes_summary(notes: Sequence[Mapping[str, Any]]) -> list[str]:
+    """One digest line for the owner's notes, when there are any: each one's id and where it stands."""
+    if not notes:
+        return []
+    parts = []
+    for note in notes:
+        if note["state"] == "delivered":
+            cited = " (cited)" if note.get("cited") else " (not cited in its summary)"
+            parts.append(f"{note['id']} delivered" + (f" #{note['step']}" if note.get("step") else "") + cited)
+        else:
+            parts.append(f"{note['id']} " + ("shown, not delivered yet" if note["state"] == "shown" else "waiting for a packet"))
+    return [f"Notes:    {_count(len(notes), 'owner note')} · " + " · ".join(parts)]
 
 
 def request_summary(request: Mapping[str, Any]) -> list[str]:
