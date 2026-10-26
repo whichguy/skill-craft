@@ -1,0 +1,65 @@
+{
+ "source": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6 step-plan of W1",
+ "steps": [
+  {
+   "id": "S1",
+   "deps": [],
+   "criteria": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "check": "sh scripts/slchess-s1-check.sh"
+  }
+ ],
+ "criteria": [
+  {
+   "id": "C1",
+   "text": "sourceApiVersion 68.0; .gitignore lists .sf/ and .sfdx/. Confirm by: grep; pass when both match. Inspection. Serves R-1, NFR-4."
+  },
+  {
+   "id": "C2",
+   "text": "Start FEN; 20 sorted moves a2a3 to h2h4; status ongoing; e2e5 throws IllegalMoveException. Confirm by: S1_OK and tap TC_1, TC_2; pass when ok. Exercised. Serves R-2."
+  },
+  {
+   "id": "C3",
+   "text": "Kiwipete 48, both castles; positions 3, 4, 6 are 14, 6, 46; no illegal castle, touching kings, or e7 pin. Confirm by: S1_OK and tap TC_9, TC_12, TC_13, TC_19; pass when ok. Exercised. Serves R-3."
+  },
+  {
+   "id": "C4",
+   "text": "Whole spec R-4 FENs: e2e4, e7e5, g8f6, en passant, four castles, rights, four promotions. Confirm by: S1_OK and tap TC_8, TC_10, TC_11, TC_14; pass when they match. Exercised. Serves R-4."
+  },
+  {
+   "id": "C5",
+   "text": "Fool's and scholar's mate match spec R-5 FENs and checkmate; after g2g4, ongoing and d8h4 legal. Confirm by: S1_OK and tap TC_5, TC_6, TC_7; pass when they match. Exercised. Serves R-5."
+  },
+  {
+   "id": "C6",
+   "text": "Position 6 is 46 with CPU recorded; depth 2 is 400 under 10000 ms. A5 2000 ms may be recorded. Confirm by: S1_OK and tap TC_19, TC_20; pass when counts hold. Exercised. Serves NFR-1."
+  },
+  {
+   "id": "C7",
+   "text": "No forbidden metadata directories; every class name starts with SLChess. Confirm by: the check command; pass when exit 0. Inspection. Serves R-1, NFR-4."
+  }
+ ],
+ "paths": [
+  ".gitignore",
+  "sfdx-project.json",
+  "force-app/main/default/classes/SLChessEngine.cls",
+  "force-app/main/default/classes/SLChessEngine.cls-meta.xml",
+  "force-app/main/default/classes/SLChessEngineTest.cls",
+  "force-app/main/default/classes/SLChessEngineTest.cls-meta.xml",
+  "force-app/main/default/classes/SLChessBudgetTest.cls",
+  "force-app/main/default/classes/SLChessBudgetTest.cls-meta.xml",
+  "scripts/slchess-s1-check.sh",
+  "scripts/slchess-s1-check.apex",
+  "docs/shiploop/environment.md",
+  "docs/shiploop/architecture.md"
+ ],
+ "case": "sf-chess-engine",
+ "expected_value": 0
+}

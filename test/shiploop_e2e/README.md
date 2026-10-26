@@ -1980,3 +1980,33 @@ executables. It runs in normal CI; the live stages never do.
 own with a detailed message. Before starting another run or changing the skill
 or harness, read the last three commit messages
 (`git log -3 --format='%h %s%n%b'`) and carry their learnings forward.
+
+## Template-field experiments
+
+`experiment.py` runs one claim at a time as short step slices and decides between two arms from script scores, never a
+model's judgement (experiments.json lists E1-E5; the plan is in docs/shiploop-template-experiments-journal.md):
+
+```sh
+python3 test/shiploop_e2e/experiment.py verify E1                       # the evaluator tells planted bad from good
+python3 test/shiploop_e2e/experiment.py run E1 --arm A --samples 5 --host grok
+python3 test/shiploop_e2e/experiment.py run E1 --arm T --samples 5 --host grok
+python3 test/shiploop_e2e/experiment.py run E1 --arm B --samples 5 --host grok
+python3 test/shiploop_e2e/experiment.py score E1
+python3 test/shiploop_e2e/experiment.py decide E1 A T                   # and: decide E1 T B
+```
+
+An arm builds its plugin from a git ref in a temporary detached worktree (`slice.py --ref`), and may lay a prompt overlay
+(`overlays/*.json`, `overlay.py`) over that build copy, never the source. `slice.py --seed-at test-strategy|test-spec`
+records the earlier stages from the case (its `seed_records`), and `--stop-after <stage>` ends the host once that stage
+is accepted. Samples land in `$SHIPLOOP_EXPERIMENTS_OUT` (default `~/e2e-runs/experiments`)/`<id>/<arm>/<n>/`.
+
+E6-K1 to E6-K7 (plan sizing, docs/shiploop-plan-sizing-experiment-plan-2026-10-24.md) score whether an item's step plan
+falls inside its case's `shape` band (`evaluators/e6_step_size.py`). Four of their cases replay a saved run at the point
+its step plan started; `docs/experiments/shiploop-plan-sizing-20261024/build_fixtures.py` builds them and `--check`
+proves the committed fixtures still match their sources. A case with `fake_sf` (`{"orgs": "de"}`) runs with `fake_sf.py`
+first on PATH as `sf`, for the host and for the harness's own grading, so it never reaches a real org.
+
+`progress_card.py --out DIR <experiment ids> [--arms T,B,C] [--plan PLAN.json] [--parallel N]` prints a status card for a
+running round as an HTML fragment for an inline widget: a plan strip (done, running, waiting, pending), a progress bar
+with an estimated end, and one slot per sample per arm (scored 1, below 1, running with its minutes, pending) with each
+arm's mean and its latest decide verdict. It reads run folders only.

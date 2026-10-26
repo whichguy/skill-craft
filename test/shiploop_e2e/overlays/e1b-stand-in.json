@@ -1,0 +1,25 @@
+{
+  "about": "E1b (F4, round 2): each test-spec row names on one line the stand-in its oracle rejects, and an assertion that something is absent is paired with an assertion of the exact count or contents, so a version that is right only on the asserted inputs, or drops one rule while keeping totals, fails. Written against 9ed4ec24 (arm T); prompt-only, a row keeps its six keys.",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "test-spec",
+      "old": "suites says whether the target keeps state); a guard that only checks a file is not RED. \"characterisation\" if\n   it already passes.\n",
+      "new": "suites says whether the target keeps state); a guard that only checks a file is not RED. \"characterisation\" if\n   it already passes. End each row's `red` with one line `Stand-in rejected: <the weaker implementation this\n   oracle fails: one rule dropped, right only on these inputs, over the stated budget, or fields valid alone but\n   inconsistent together>`; a row no such stand-in fails rejects nothing: strengthen its oracle. Pair every\n   assertion that something is absent or rejected with one on the exact count or contents, and check a stated\n   budget or limit at its stated value, never at a ceiling the platform enforces first.\n"
+    },
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "test-spec",
+      "old": "   and one case per documented throw or refusal branch.\n",
+      "new": "   and one case per documented throw or refusal branch. In `summary` write `Entry points:` and, per public entry\n   point the item adds or changes, the row IDs that call it and the stand-ins they reject.\n"
+    },
+    {
+      "module": "shiploop_expectations.py",
+      "constant": "CASE_PLACEHOLDERS",
+      "old": "\"red\": \"<how the case fails before the change>\"",
+      "new": "\"red\": \"<how the case fails before the change>; Stand-in rejected: <the simplest wrong implementation this oracle fails>\""
+    }
+  ]
+}

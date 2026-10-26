@@ -225,8 +225,11 @@ class SeedTests(SliceCase):
         for name, case in cases.items():
             if not name.startswith("_"):
                 with self.subTest(name):
-                    self.assertTrue((step_slice.FIXTURES / case["fixture"] / "package.json").is_file())
-                    self.assertEqual(case["work_item"]["id"], "W1")
+                    # A replay case (E6) starts from a saved run's tree, which may hold no package.json (a Salesforce
+                    # project, or a zero-dependency Node app) and keeps that run's item ID.
+                    fixture = step_slice.FIXTURES / case["fixture"]
+                    self.assertTrue(fixture.is_dir() and any(fixture.iterdir()))
+                    self.assertRegex(case["work_item"]["id"], r"^W\d+$")
                     self.assertTrue(case["checks"] and case["expect_paths"])
 
 

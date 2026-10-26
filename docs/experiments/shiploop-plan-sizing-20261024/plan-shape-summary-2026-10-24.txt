@@ -1,0 +1,31 @@
+('claude', 'claude-sonnet-5-5', None): items=39 one-step=10
+  steps per item: n=39 median=3 p90=4 max=5
+  criteria per step: n=99 median=0 p90=3 max=7
+  requirements served per step (steps that name criteria): n=20 median=3 p90=5 max=7
+  implement minutes per step: n=109 median=0.3 p90=0.8 max=13.2
+  cases: battleship 9, battleship-scoring 2, checkers 8, hello 17, seat-reservations 3
+('codex', 'gpt-6-luna', 'max'): items=1 one-step=0
+  steps per item: n=1 median=5 p90=5 max=5
+  criteria per step: n=5 median=0 p90=0 max=0
+  requirements served per step (steps that name criteria): n=0
+  implement minutes per step: n=8 median=8.7 p90=17.4 max=17.4
+  cases: battleship 1
+('codex', 'gpt-6-luna', 'xhigh'): items=1 one-step=0
+  steps per item: n=1 median=5 p90=5 max=5
+  criteria per step: n=5 median=0 p90=0 max=0
+  requirements served per step (steps that name criteria): n=0
+  implement minutes per step: n=5 median=2.2 p90=12.2 max=12.2
+  cases: battleship 1
+('grok', 'grok-4.7', 'medium'): items=20 one-step=14
+  steps per item: n=20 median=1 p90=4 max=6
+  criteria per step: n=35 median=1 p90=6 max=12
+  requirements served per step (steps that name criteria): n=22 median=2 p90=7 max=13
+  implement minutes per step: n=38 median=4.3 p90=12.4 max=21.4
+  cases: battleship 3, battleship-salesforce 1, chess-salesforce 8, custom 8
+(None, None, None): items=2 one-step=2
+  steps per item: n=2 median=1 p90=1 max=1
+  criteria per step: n=2 median=0 p90=0 max=0
+  requirements served per step (steps that name criteria): n=0
+  implement minutes per step: n=2 median=5.3 p90=5.3 max=5.3
+  cases: None 2
+implement Until Loop iterations per receipt (all kinds): {1: 95}

@@ -652,11 +652,13 @@ class ArmsTests(unittest.TestCase):
 class SeededDefectTests(unittest.TestCase):
     def test_the_three_cases_are_the_three_defects_the_plan_names(self) -> None:
         found = {case["seeded_defect"]["id"] for case in seeded_defects.cases().values()}
-        self.assertEqual(found, {"case-insensitive-compare", "numbers-sorted-as-text", "missing-empty-guard"})
+        # E5 of the template experiments (experiments.json) adds a validation that runs before its input is set.
+        self.assertEqual(found, {"case-insensitive-compare", "numbers-sorted-as-text", "missing-empty-guard",
+                                 "validation-before-input"})
 
     def test_a_run_with_no_review_leaves_each_defect_in_a_tree_that_passes_its_own_checks_and_the_fixed_tree_does_not(self) -> None:
         rows = seeded_defects.verify()
-        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(rows), 4)
         for row in rows:
             with self.subTest(case=row["case"]):
                 self.assertTrue(row["naive_survives_its_checks"], "the case's own checks pass on the unreviewed tree")

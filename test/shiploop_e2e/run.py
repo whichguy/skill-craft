@@ -1269,8 +1269,12 @@ def seed_home(work: Path, prompt: str, checks: list[str] | None = None) -> list[
 def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixture: Path | None = None,
              work_item: dict | None = None, delegation: str | None = None, checks: list[str] | None = None,
              home: bool = True, product: Path | None = None, home_fixture: Path | None = None,
-             records: dict | None = None, exclude: list[str] | tuple = ()) -> dict:
+             records: dict | None = None, exclude: list[str] | tuple = (), planning_review: str | None = None,
+             improve_skill: str = "") -> dict:
     """Start a run and record its stages before `stop` as synthetic.
+
+    `planning_review` and `improve_skill` are the run's `--planning-review` and `--improve-skill` options (unset: the
+    engine's default, `stage`); `none` needs the Improve card, since no planning child binds one.
 
     ShipLoop refuses a repository without a commit, so the seed commits a README first, or the whole `fixture`
     directory when one is given (a step slice starts on an existing product). `work_item` is the plan's only item
@@ -1304,8 +1308,10 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
     head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, capture_output=True,
                           text=True, env=git_env).stdout.strip()
     root = out / ".shiploop-runs" / "seed"
+    options = ([f"--planning-review={planning_review}"] if planning_review else []) + \
+        ([f"--improve-skill={improve_skill}"] if improve_skill else [])
     started = subprocess.run([sys.executable, str(cli), "workspace", "start", f"--repo={work}",
-                              f"--workspace-root={root}", f"--delegation={delegation}", f"--prompt={prompt}"],
+                              f"--workspace-root={root}", f"--delegation={delegation}", f"--prompt={prompt}", *options],
                              capture_output=True, text=True, env=git_env)
     if started.returncode:
         raise SystemExit(f"seed: workspace start failed: {(started.stderr or started.stdout)[-2000:]}")
@@ -1347,7 +1353,7 @@ def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-age
     recorded = (f"The test harness recorded its stages before {stage} without doing them: the product the request describes is "
                 "already built and committed in the run's worktree, and the request itself is the specification."
                 if release_slice.delivered(stage) else
-                "The test harness recorded its stages before step-plan without doing them, so the request itself is the "
+                f"The test harness recorded its stages before {stage} without doing them, so the request itself is the "
                 "specification.")
     return (f"A ShipLoop run for the request below is already active, with {route} delegation. {recorded} "
             f"Continue the run now: run `python3 \"{cli}\" next --run-dir \"{run_dir}\"` and "

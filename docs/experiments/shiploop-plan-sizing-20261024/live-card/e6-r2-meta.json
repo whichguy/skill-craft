@@ -1,0 +1,108 @@
+{
+ "title": "E6 R2 · plan sizing on Grok",
+ "subtitle": "Does the generic step bound (Cg) split oversized plans without over-splitting small ones? Grok 4.7 medium, 4 samples per arm.",
+ "status": "done",
+ "notes": [
+  {
+   "at": "2026-10-25T08:47:00-07:00",
+   "kind": "info",
+   "text": "R2 launched: K2, K4, K6, K7 × arms T and Cg × 4 samples, 4 lanes"
+  },
+  {
+   "at": "2026-10-25T08:49:00-07:00",
+   "kind": "warn",
+   "text": "Lanes K4 and K6-K7 relaunched: run refuses --sample with --samples"
+  },
+  {
+   "at": "2026-10-25T09:22:00-07:00",
+   "kind": "info",
+   "text": "Live card started: Claude pushes a new state on every 3.5-minute check"
+  },
+  {
+   "at": "2026-10-25T09:56:30-07:00",
+   "kind": "info",
+   "text": "K2 control ended 0, 1, 0, 1 (bar 0.5): Cg wins K2 if its sample 4 lands in band"
+  },
+  {
+   "at": "2026-10-25T09:57:00-07:00",
+   "kind": "info",
+   "text": "Freed lane took K7 samples 3-4 so the K6-K7 lane is no longer the bottleneck"
+  },
+  {
+   "at": "2026-10-25T09:58:30-07:00",
+   "kind": "done",
+   "text": "K2 decided: Cg supports, 0.75 vs 0.50 with noise 0; the margin is one sample"
+  },
+  {
+   "at": "2026-10-25T09:58:40-07:00",
+   "kind": "info",
+   "text": "Second freed lane took K7 sample 2; R2 now ends about 11:15"
+  },
+  {
+   "at": "2026-10-25T11:23:00-07:00",
+   "kind": "done",
+   "text": "R2 complete: K2 supports Cg; K4, K6 and K7 at the ceiling in both arms; all 32 slices passed"
+  },
+  {
+   "at": "2026-10-25T11:24:00-07:00",
+   "kind": "info",
+   "text": "Cg's gate refused nothing in 28 samples: the countable prose did the work. Grok handed to E-EFF1"
+  }
+ ],
+ "findings": [
+  {
+   "tag": "firm",
+   "status": "firm",
+   "title": "The control reproduces the defect",
+   "text": "T kept the K1 engine in 2 steps in 3 of 4 samples, one with 9 criteria"
+  },
+  {
+   "tag": "interim",
+   "status": "",
+   "title": "A countable bound moves Grok",
+   "text": "B, C and Cg put 10 of 12 K1 plans in band, against 1 of 4 for T"
+  },
+  {
+   "tag": "firm",
+   "status": "firm",
+   "title": "The gate never fired",
+   "text": "0 refusals in 24 samples: the prose bound did all the work"
+  },
+  {
+   "tag": "firm",
+   "status": "firm",
+   "title": "No over-splitting",
+   "text": "Every bug fix stays 1 step; board layers always stay apart"
+  },
+  {
+   "tag": "interim",
+   "status": "",
+   "title": "Generic wording wins K2",
+   "text": "Cg 0.75 vs T 0.50 on the Node engine, noise 0; the margin is one sample"
+  },
+  {
+   "tag": "firm",
+   "status": "firm",
+   "title": "Verdicts measure the planner, not Improve",
+   "text": "Improve changed no step count in 79 samples; the largest step grew 0 characters at the median"
+  },
+  {
+   "tag": "defect",
+   "status": "early",
+   "title": "Improve skips the size limits",
+   "text": "An Improve-revised result bypasses the producer bounds: K4 Cg 2 S1 grew 846 → 1,221 of 1,200 (main too)"
+  },
+  {
+   "tag": "early, n = 1",
+   "status": "early",
+   "title": "Fat criteria dodge the count",
+   "text": "Cg on K2 kept 2 criteria per step but wrote 1,121 characters in them"
+  },
+  {
+   "tag": "early, n = 1",
+   "status": "early",
+   "title": "The bound can swing to many tiny steps",
+   "text": "Cg K2 sample 2: 10 one-behaviour steps; in band, but each step costs an implement and an Improve round"
+  }
+ ]
+}

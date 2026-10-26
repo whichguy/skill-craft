@@ -1,0 +1,292 @@
+<title>Live Run Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centred card that redraws in place; header, plan strip, progress, results grid, then the event feed. */
+:root {
+  --bg: #f4f4f1; --panel: #ffffff; --panel-2: #efefea; --ink: #18191b; --ink-2: #55565b; --ink-3: #8b8c90;
+  --line: rgba(24, 25, 27, 0.10); --line-2: rgba(24, 25, 27, 0.28);
+  --result: #2a78d6; --run: #ba7517; --run-bg: #faeeda; --run-ink: #854f0b;
+  --ok-bg: #eaf3de; --ok-ink: #3b6d11; --bad-bg: #fcebeb; --bad-ink: #a32d2d; --err: #a32d2d;
+  --sheen: rgba(255, 255, 255, 0.55);
+  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121214; --panel: #1b1b1e; --panel-2: #26262a; --ink: #ececea; --ink-2: #b9b9b4; --ink-3: #85857f;
+  --line: rgba(255, 255, 255, 0.10); --line-2: rgba(255, 255, 255, 0.30);
+  --result: #3987e5; --run: #ef9f27; --run-bg: #3a2405; --run-ink: #fac775;
+  --ok-bg: #1d3608; --ok-ink: #c0dd97; --bad-bg: #4a1414; --bad-ink: #f7c1c1; --err: #e24b4a;
+  --sheen: rgba(255, 255, 255, 0.18); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121214; --panel: #1b1b1e; --panel-2: #26262a; --ink: #ececea; --ink-2: #b9b9b4; --ink-3: #85857f;
+  --line: rgba(255, 255, 255, 0.10); --line-2: rgba(255, 255, 255, 0.30);
+  --result: #3987e5; --run: #ef9f27; --run-bg: #3a2405; --run-ink: #fac775;
+  --ok-bg: #1d3608; --ok-ink: #c0dd97; --bad-bg: #4a1414; --bad-ink: #f7c1c1; --err: #e24b4a;
+  --sheen: rgba(255, 255, 255, 0.18); color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.top > div:first-child { flex: 1 1 260px; min-width: 0; }
+.top h1 { font-size: 20px; font-weight: 500; margin: 0; text-wrap: balance; }
+.top .sub { color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+.live { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px;
+  border: 0.5px solid var(--line); background: var(--panel); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); position: relative; }
+.live.on .dot { background: var(--run); }
+.live.done .dot { background: var(--ok-ink); }
+.live.failed .dot, .live.stale .dot { background: var(--err); }
+.live.stale { color: var(--bad-ink); background: var(--bad-bg); border-color: transparent; }
+.live.late { color: var(--run-ink); background: var(--run-bg); border-color: transparent; }
+.ago b { font-weight: 500; color: var(--ink-2); }
+.ago { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.jobs { display: flex; gap: 6px; flex-wrap: wrap; }
+.jobs button { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 8px; border: 0.5px solid var(--line-2);
+  background: transparent; color: var(--ink-2); cursor: pointer; }
+.jobs button[aria-pressed="true"] { background: var(--panel); color: var(--ink); border-color: var(--result); }
+.jobs button:focus-visible, .ev:focus-visible { outline: 2px solid var(--result); outline-offset: 2px; }
+.card { background: var(--panel); border: 0.5px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.plan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 8px; border: 0.5px solid var(--line); }
+.chip svg { width: 13px; height: 13px; flex: none; }
+.chip.done { background: var(--ok-bg); color: var(--ok-ink); border-color: transparent; }
+.chip.running { background: var(--run-bg); color: var(--run-ink); border-color: transparent; }
+.chip.waiting { color: var(--ink-2); border-style: dashed; }
+.chip.pending { color: var(--ink-3); }
+.arrow { color: var(--ink-3); }
+.count { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
+.count b { font-family: var(--mono); font-weight: 500; font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.count b small { font-family: var(--sans); font-size: 14px; color: var(--ink-2); font-weight: 400; letter-spacing: 0; }
+.count span { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; position: relative; margin: 0 0 18px; }
+.fill { height: 100%; width: 0; background: var(--result); border-radius: 5px; transition: width 1.2s cubic-bezier(.2, .8, .2, 1); position: relative; overflow: hidden; }
+.gridwrap { overflow-x: auto; }
+.grid { display: grid; gap: 8px; align-items: center; min-width: 0; }
+.ch { font-size: 13px; font-weight: 500; text-align: center; }
+.rn b { display: block; font-size: 13px; font-weight: 500; }
+.rn span { font-size: 12px; color: var(--ink-3); }
+.cell { background: var(--panel-2); border-radius: 8px; padding: 9px 10px; }
+.slots { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.s { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 28px; }
+.s i { display: block; width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; margin: 2px 0; }
+.s .f { background: var(--result); width: 18px; height: 18px; margin: 0; }
+.s .o { border: 2px solid var(--result); }
+.s .r { border: 2px dashed var(--run); }
+.s .p { border: 1.5px dotted var(--line-2); }
+.s .e { border: 2px solid var(--err); border-radius: 3px; }
+.s em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--ink-3); height: 14px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 6px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.pill.no { background: var(--bad-bg); color: var(--bad-ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 11px; color: var(--ink-3); }
+.legend .s { flex-direction: row; width: auto; gap: 5px; }
+.legend .s .f { width: 10px; height: 10px; }
+.feed h2, .finds h2 { font-size: 13px; font-weight: 500; margin: 0 0 10px; color: var(--ink-2); }
+.feed ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ev { display: grid; grid-template-columns: 56px 10px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 4px 6px; border-radius: 6px; }
+.ev time { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.ev .k { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); align-self: center; }
+.ev .k.done { background: var(--result); } .ev .k.warn { background: var(--run); } .ev .k.error { background: var(--err); }
+.ev p { margin: 0; font-size: 13px; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.finds .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+.find { border: 0.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--ink-2); }
+.find b { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin: 4px 0 3px; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--panel-2); color: var(--ink-2); }
+.tag.firm { background: var(--ok-bg); color: var(--ok-ink); } .tag.early { background: var(--run-bg); color: var(--run-ink); }
+.empty { text-align: center; padding: 36px 18px; color: var(--ink-2); }
+.empty b { display: block; font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+.note { font-size: 11px; color: var(--ink-3); text-align: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .live.on .dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--run); animation: ping 1.8s ease-out infinite; }
+  .s .r { animation: spin 2.2s linear infinite; }
+  .chip.running svg { animation: spin 1.4s linear infinite; }
+  .fill.moving::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, var(--sheen), transparent); animation: sheen 2.6s ease-in-out infinite; }
+  .s .pop { animation: pop 0.7s cubic-bezier(.2, 1.4, .4, 1); }
+  .ev.in { animation: rise 4s ease-out; }
+}
+@keyframes ping { from { transform: scale(0.6); opacity: 0.9 } to { transform: scale(1.8); opacity: 0 } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes sheen { from { transform: translateX(-100%) } to { transform: translateX(260%) } }
+@keyframes pop { 0% { transform: scale(0.3) } 60% { transform: scale(1.25); box-shadow: 0 0 0 6px color-mix(in srgb, var(--result) 25%, transparent) } 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent } }
+@keyframes rise { 0% { transform: translateY(-4px); background: var(--run-bg) } 15% { transform: translateY(0); background: var(--run-bg) } 100% { background: transparent } }
+@media (max-width: 520px) { .count b { font-size: 22px } .card { padding: 14px } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div><h1 id="title">Live run</h1><div class="sub" id="sub">Waiting for the first status</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <span class="live" id="live"><span class="dot" aria-hidden="true"></span><span id="liveText">Connecting</span></span>
+      <span class="ago" id="ago"></span>
+    </div>
+  </header>
+  <nav class="jobs" id="jobs" aria-label="Jobs"></nav>
+  <main id="main">
+    <section class="card empty">
+      <b>No live job yet</b>
+      Claude adds a job here when a long run starts and redraws this card on every check, about every 3.5 minutes.
+    </section>
+  </main>
+  <p class="note" id="note">Status is pushed by Claude from the running session; this page never writes.</p>
+</div>
+
+<script>
+const ICON = {
+  done: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+  running: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 2a6 6 0 1 1-6 6"/></svg>',
+  waiting: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 2h8M4 14h8M5 2c0 3 6 3 6 6s-6 3-6 6M11 2c0 3-6 3-6 6s6 3 6 6"/></svg>',
+  pending: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.2 2.2"><circle cx="8" cy="8" r="5.5"/></svg>'
+};
+const SLOT = { pass: "f", below: "o", running: "r", pending: "p", error: "e" };
+const STALE_MIN = 10;
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const when = iso => { const t = Date.parse(iso || ""); return Number.isFinite(t) ? t : null; };
+const clock = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const span = ms => { const m = Math.max(0, Math.round(ms / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"; };
+const agoText = ms => { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + " s ago" : span(ms) + " ago"; };
+
+let jobs = [], chosen = null, seenSlots = new Map(), seenEvents = new Set(), lastJob = null;
+let db = null, dbState = "Connecting";
+try { chosen = localStorage.getItem("live-run-card.job"); } catch (e) {}
+
+function current() { return jobs.find(j => j.id === chosen) || jobs[0] || null; }
+
+function renderJobs() {
+  const nav = document.getElementById("jobs");
+  if (jobs.length < 2) { nav.innerHTML = ""; return; }
+  const cur = current();
+  nav.innerHTML = jobs.map(j => `<button type="button" id="job-${esc(j.id)}" data-id="${esc(j.id)}" aria-pressed="${j === cur}">${esc(j.title || j.id)}</button>`).join("");
+}
+document.getElementById("jobs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-id]"); if (!b) return;
+  chosen = b.dataset.id; try { localStorage.setItem("live-run-card.job", chosen); } catch (err) {}
+  render();
+});
+
+function slotHtml(slot, key, animate) {
+  const kind = SLOT[slot.state] || "p";
+  const prev = seenSlots.get(key);
+  const pop = animate && prev && prev !== slot.state && (slot.state === "pass" || slot.state === "below" || slot.state === "error");
+  seenSlots.set(key, slot.state);
+  const since = slot.state === "running" && slot.since ? ` data-since="${esc(slot.since)}"` : "";
+  return `<span class="s" title="${esc(slot.tip || slot.state || "pending")}"><i class="${kind}${pop ? " pop" : ""}"></i><em${since}>${esc(slot.label)}</em></span>`;
+}
+
+function render() {
+  renderJobs();
+  const job = current();
+  const main = document.getElementById("main");
+  if (!job) {
+    document.getElementById("title").textContent = "Live run";
+    document.getElementById("sub").textContent = "Waiting for the first status";
+    main.innerHTML = '<section class="card empty"><b>No live job yet</b>Claude adds a job here when a long run starts and redraws this card on every check, about every 3.5 minutes.</section>';
+    tick(); return;
+  }
+  const animate = lastJob === job.id;
+  if (!animate) { seenSlots = new Map(); seenEvents = new Set(); }
+  lastJob = job.id;
+  document.title = (job.title || "Live run") + " · Live Run Card";
+  document.getElementById("title").textContent = job.title || job.id;
+  document.getElementById("sub").textContent = job.subtitle || "";
+  const p = job.progress || {};
+  const done = p.done || 0, total = p.total || 0, pct = total ? Math.round(100 * done / total) : 0;
+  const unit = p.unit ? " " + p.unit : "";
+  const plan = (job.plan || []).map(s => {
+    const st = ICON[s.state] ? s.state : "pending";
+    return `<span class="chip ${st}">${ICON[st]}${esc(s.step)}${s.note ? " · " + esc(s.note) : ""}</span>`;
+  }).join('<span class="arrow" aria-hidden="true">→</span>');
+  const cols = job.columns || [];
+  const rows = job.rows || [];
+  const width = Math.max(cols.length, ...rows.map(r => (r.cells || []).length), 1);
+  let grid = `<div></div>` + cols.map(c => `<div class="ch">${esc(c)}</div>`).join("") + "<div></div>".repeat(width - cols.length);
+  rows.forEach((r, ri) => {
+    grid += `<div class="rn"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></div>`;
+    (r.cells || []).forEach((c, ci) => {
+      const slots = (c.slots || []).map((s, si) => slotHtml(s, `${ri}.${ci}.${si}`, animate)).join("");
+      const v = c.verdict === "supports" ? '<span class="pill ok">supports</span>' : c.verdict === "contradicts" ? '<span class="pill no">contradicts</span>' : c.verdict ? `<span>${esc(c.verdict)}</span>` : "";
+      grid += `<div class="cell"><div class="slots">${slots}</div><div class="foot"><span>${esc(c.summary)}</span>${v}</div></div>`;
+    });
+  });
+  const lg = Object.assign({ pass: "passed", below: "below target", running: "running (minutes)", pending: "pending", note: "" }, job.legend || {});
+  const legend = `<div class="legend"><span class="s"><i class="f"></i>${esc(lg.pass)}</span><span class="s"><i class="o"></i>${esc(lg.below)}</span><span class="s"><i class="r" style="animation:none"></i>${esc(lg.running)}</span><span class="s"><i class="p"></i>${esc(lg.pending)}</span>${lg.note ? `<span>${esc(lg.note)}</span>` : ""}</div>`;
+  const events = (job.events || []).slice(0, 12).map(ev => {
+    const key = (ev.at || "") + "|" + (ev.text || "");
+    const fresh = animate && !seenEvents.has(key);
+    seenEvents.add(key);
+    const t = when(ev.at);
+    return `<li class="ev${fresh ? " in" : ""}"><time>${t ? esc(clock(t)) : ""}</time><span class="k ${esc(ev.kind || "")}"></span><p>${esc(ev.text)}</p></li>`;
+  }).join("");
+  const finds = (job.findings || []).map(f => `<div class="find"><span class="tag ${esc(f.status || "")}">${esc(f.tag || f.status || "finding")}</span><b>${esc(f.title)}</b>${esc(f.text)}</div>`).join("");
+  const moving = job.status === "running" && done < total;
+  main.innerHTML = `
+    <section class="card" aria-label="Progress">
+      ${plan ? `<div class="plan">${plan}</div>` : ""}
+      <div class="count"><b>${done}<small> of ${total}${esc(unit)}</small></b><span id="etaLine">${p.running || 0} running</span></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}" aria-label="${done} of ${total}${esc(unit)} finished"><div class="fill${moving ? " moving" : ""}" id="fill"></div></div>
+      ${rows.length ? `<div class="gridwrap"><div class="grid" style="grid-template-columns:minmax(120px,1.3fr) repeat(${width},minmax(96px,1fr))">${grid}</div></div>${legend}` : ""}
+    </section>
+    ${events ? `<section class="card feed" aria-label="Latest"><h2>Latest</h2><ol>${events}</ol></section>` : ""}
+    ${finds ? `<section class="card finds" aria-label="Findings"><h2>Findings so far</h2><div class="list">${finds}</div></section>` : ""}`;
+  requestAnimationFrame(() => { const f = document.getElementById("fill"); if (f) f.style.width = pct + "%"; });
+  tick();
+}
+
+function tick() {
+  const job = current(), now = Date.now();
+  const live = document.getElementById("live"), text = document.getElementById("liveText"), ago = document.getElementById("ago");
+  if (!job) { live.className = "live"; text.textContent = db ? "Waiting" : (dbState || "Connecting"); ago.textContent = ""; return; }
+  const updated = when(job.updatedAt || (job.progress || {}).updatedAt);
+  const age = updated ? now - updated : null;
+  const status = job.status || "running";
+  let cls = "live", label = "Live";
+  if (status === "done") { cls += " done"; label = "Finished"; }
+  else if (status === "failed") { cls += " failed"; label = "Stopped"; }
+  else if (status === "paused") { label = "Paused"; }
+  else if (age !== null && age > STALE_MIN * 60000) { cls += " stale"; label = "No update for " + span(age); }
+  else { cls += " on"; }
+  live.className = cls; text.textContent = label;
+  const refresh = job.refresh || {};
+  const every = Number(refresh.everySeconds) > 0 ? Number(refresh.everySeconds) * 1000 : null;
+  const due = updated && every ? updated + every : null;
+  if (status === "running" && due && now > due + 60000 && !cls.includes("stale")) {
+    cls = "live late"; label = "Update overdue";
+    live.className = cls; text.textContent = label;
+  }
+  const parts = [];
+  if (refresh.count) parts.push("update " + refresh.count);
+  if (updated) parts.push("updated " + agoText(age));
+  if (status === "running" && due) parts.push(now <= due ? "next by " + clock(due) : "next was due " + clock(due));
+  ago.textContent = parts.join(" · ");
+  const p = job.progress || {}, line = document.getElementById("etaLine");
+  if (line) {
+    const etaAt = when(p.etaAt);
+    let s = (p.running || 0) + " running";
+    if (status === "done" || (p.total && p.done >= p.total)) s += " · complete";
+    else if (etaAt) s += " · ETA about " + clock(etaAt) + (etaAt > now ? " (in " + span(etaAt - now) + ")" : " (due)");
+    else if (p.eta) s += " · ETA about " + p.eta;
+    line.textContent = s;
+  }
+  document.querySelectorAll("em[data-since]").forEach(el => { const t = when(el.dataset.since); if (t) el.textContent = Math.max(0, Math.round((now - t) / 60000)) + "m"; });
+}
+setInterval(tick, 1000);
+
+(async () => {
+  const api = window.claude;
+  db = api && typeof api.use === "function" ? await api.use("db") : null;
+  if (!db) { dbState = "Offline"; document.getElementById("note").textContent = "Open this page on claude.ai, signed in, to see live status."; tick(); return; }
+  db.collection("jobs").orderBy("updatedAt", "desc").limit(8).onSnapshot(snap => {
+    jobs = snap.docs.filter(d => d.exists).map(d => Object.assign({ id: d.id }, d.data()));
+    render();
+  }, err => {
+    dbState = "Disconnected";
+    document.getElementById("note").textContent = err && err.code === "revoked" ? "Live status is no longer available here." : "The live feed stopped. Reload the page to reconnect.";
+    tick();
+  });
+})();
+render();
+</script>
