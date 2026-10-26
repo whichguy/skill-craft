@@ -376,7 +376,8 @@ on quickly before the breadth of everything is checked.
   `hello` covers in its focused suite and as the batch gate, or
   `parallel-graph`, whose cases have no qualified passing baseline and stay
   opt-in (`--case`), or `hosted-platform`, whose cases deploy to a real hosted
-  org and need the owner's go for each deploy. A style joins breadth once its focused suite has passed
+  org and need the owner's go for each deploy, or `brownfield`, whose one case
+  (`user-listing`, build step 6) has not run live, so it has no baseline. A style joins breadth once its focused suite has passed
   (Promotion); until then the breadth claim leaves it out by name
   (amended 2026-10-16: the claim said every style while breadth held three
   of five).
@@ -540,6 +541,39 @@ and two decisions are compared only under the same id.
     card as diagnostics. A registration may name only minutes, cost, turns, tokens or output tokens as an efficiency
     metric or a budget, so minimising reviews or refusals is never rewarded. `arms.py`'s refusal gate, which compares slice
     arms for the plan-sizing experiments, is not changed here: its round is in flight and its owner decides.
+- **A brownfield case (amended 2026-10-26, build step 6; R10 of the final verdict).** Until this step every case started
+  from an empty folder, so every oracle graded greenfield work. A brownfield case starts from an existing project and is
+  graded fail-to-pass and pass-to-pass, as SWE-bench grades a repository task. The card and the contract keep their ids:
+  the scorecard already reads requiredness from the case.
+  - *The base.* A case's `base` names a project under `fixtures/` and pins it with the digest of its files (`digest`,
+    made as `boundary.files_digest` makes one).
+    - Before the host starts, the harness copies the base into `work/` and commits it. The run records `base` (the
+      fixture, its digest and the commit it starts from) in `invocation.json` and `result.json`.
+    - A fixture that no longer matches its pin is refused before anything starts. The pin is part of the case's catalog
+      entry, so `boundary.case` changes whenever the base does.
+    - The run's commits, and the `committed` verdict, count from the base commit, as a follow-on's count from the
+      followed run's head.
+    - A base case takes neither `--continue-from` nor `--seed-at`.
+  - *Pass-to-pass.* The base's own tests run at their pristine bytes against the delivered source, apart from the
+    delivery's own tests (`checks/base_tests.py pristine`). The delivered tree is copied, the base's test files are
+    written over the copy, and only they run. So a delivery that edits or deletes a base test cannot make it pass. Held-out
+    checks of the existing API are pass-to-pass too.
+  - *Fail-to-pass.* The held-out acceptance checks of the new feature. Each acceptance check declares its `grade`,
+    `fail-to-pass` or `pass-to-pass`.
+  - *Calibration.* The acceptance block's `calibration` names a committed reference implementation built on the base. A
+    hermetic test, with no model call, shows:
+    - the base fails every fail-to-pass check and passes every pass-to-pass check and the pristine suite;
+    - the reference passes every check and the pristine suite;
+    - each targeted broken variant fails exactly the checks its defect reads. A variant that breaks a base module and
+      edits the base's tests to match passes its own suite and fails the pristine one;
+    - an independently written alternative passes every check and the pristine suite.
+  - *Requiredness.* The case declares acceptance, so the accuracy floor requires it. An acceptance that was not observed
+    leaves the floor `unobserved`, never a pass.
+  - *The first case.* `user-listing`, style `brownfield`, extends `fixtures/node-base` with user filtering and
+    pagination, an API that stays compatible and checked boundary inputs. The base holds a latent defect the request does
+    not name: `paginate` drops a partial last page. Breadth leaves the style out until its focused suite has passed.
+  - *What this does not do.* The base's tests are visible, since the model starts from them; only the acceptance is held
+    out. It is one base and one task family: R10's Python CLI and Flask bases come later. No live run has used it yet.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
