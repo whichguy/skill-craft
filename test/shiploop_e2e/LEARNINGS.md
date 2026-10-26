@@ -3184,3 +3184,27 @@ seen? This is R6 of the final verdict and build step 4. The owner's go was "fix 
 **Not yet.** No live run has recorded a snapshot; the next E2E run on this harness is its first. Every run recorded
 before 2026-10-26 keeps the live reading, so the backfill cards are unchanged and the compact fixtures stay
 correctness-null. A fixture with a snapshot comes with the first live one.
+
+## Build step 5: calibrating the Battleship game check (2026-10-26) — status: firm
+
+**Question.** Does `checks/battleship_game.py` reject the broken games the prompt rules out, and accept correct games
+written independently of the ones it was tuned on? This is R7/R9 of the final verdict and build step 5, approved by
+the owner.
+
+**Method.** Targeted defects of the prompt's sentences, two independently written correct games (another id key, the
+standard five-ship fleet placed at random, extra reply fields, refusing or answering shots after the end), and 15
+saved real deliveries, each served with its own `node server.js`.
+
+**Result** (`docs/experiments/e2e-oracle-calibration-20261026/battleship-game-calibration.txt`):
+- Before the fix, the check **passed a game that ends after two of its ships sink**. It knew only "more than one ship"
+  (the local prompt gives no fleet size). That was its one gap.
+- The other targeted defects already failed: sunk on the first hit, never sunk, over after the first sink.
+- The fix: after the end, fire at the cells not yet fired. A hit or sunk there means a ship was afloat, which fails
+  with exit 8.
+- After the fix, all 11 broken variants fail with their own reasons. Both independent games and all 15 real
+  deliveries pass.
+
+**Learning.** Calibrating against defects found a real oracle gap that seven stubs and eleven real deliveries had not
+shown. Passing real deliveries only shows that a check doesn't reject good work. It takes targeted defects to show it
+rejects bad work. The next oracles to calibrate are csv-report and seat-reservations, which have no held-out oracle
+(R7's missing items).
