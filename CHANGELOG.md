@@ -2,6 +2,18 @@
 
 Written by scripts/release.py.
 
+## 2026-10-26
+
+### skill-craft 2.14.0
+
+- Skills: shiploop-run-review 0.4.0
+
+### shiploop-run-review 0.4.0
+
+- The static `run-review.html` links each visit to its action in the run's `flow.html` (`flow.html#action=<nav id>`), from
+  the open visit card and from a Flow column in the visits table, when the run's folder has a `flow.html`. Seeded visits,
+  which the flow viewer does not draw as rows, have no link; the shared page shows none.
+
 ## 2026-10-25
 
 ### skill-craft 2.13.2
