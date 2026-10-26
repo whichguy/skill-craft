@@ -1,8 +1,8 @@
 # ShipLoop owner notes: design
 
-Status: **proposed 2026-10-25; waiting for the owner to choose D1 to D5.** Nothing in packets, verbs or tests has
-changed yet. Journal: [shiploop-run-trace-journal.md](shiploop-run-trace-journal.md). Evidence:
-[shiploop-owner-notes-evidence/](shiploop-owner-notes-evidence/).
+Status: **approved 2026-10-26 as recommended (D1c, D2b, D3, D4, D5a) and built**, with the six changes listed in
+[As built](#as-built-2026-10-26). Proposed 2026-10-25. Journal: [shiploop-run-trace-journal.md](shiploop-run-trace-journal.md).
+Evidence: [shiploop-owner-notes-evidence/](shiploop-owner-notes-evidence/).
 
 ## The ask
 
@@ -230,13 +230,47 @@ Write boundaries. Shiploop 1.13.1 (`a677b55d`, which this design is rebased on) 
 The build keeps to these rules:
 
 - `note` is a protocol verb, so it is recorded once by the outermost `main` and sets nothing up on a run that is not
-  current. A note on a retired or unloadable run, or with bad arguments, leaves the run exactly as it was.
+  current. A note on a retired or unloadable run, or with bad arguments, leaves the run exactly as it was. (As built:
+  a refused note leaves every run as it was, a done or halted one included; only a written note is a trace line.)
 - The note's packet-quote ids ride on the packet line, so they are recorded only while `ACTIVE` is set, like every
   packet line.
-- `shown.json` is written only by `emit`, beside the packet file it already writes, and by a held callback. A held
-  callback writes nothing else.
-- Every other refusal, every read-only view, and every routed verb (chain, lint, red-check, backchain-check) leaves the
-  run byte-identical. The shiploop-chain, backchain-check, cross-run and navigator-contract suites pin this.
+- `shown.json` is written only by `emit`, beside the packet file it already writes, and by a held callback (or a
+  `--check-only` run that printed a waiting note). Beyond that, a held callback writes what every callback writes: the
+  attempt counter (`callback-attempts`) and its trace line. (Corrected 2026-10-26: this said "writes nothing else";
+  the Sol review showed the counter and the trace line.)
+- Every read-only view and every routed verb (chain, lint, red-check, backchain-check) leaves the run byte-identical,
+  and a run without notes gets no `owner-notes/` at all. The shiploop-chain, backchain-check, cross-run and
+  navigator-contract suites pin this.
+
+## As built (2026-10-26)
+
+The build follows the design, with six changes found while building and in the independent review:
+
+| Design said | Built | Why |
+|---|---|---|
+| a note of up to 8 KB, each quoted up to 1,200 characters, the rest named by file | a note of up to 2,000 characters (`NOTE_LIMIT`), always quoted whole; a note over the limit is refused with "put the detail in a repo file and name it in the note" | a note too long to quote whole could never be delivered (D3 needs a packet that showed it whole), so every step's callback would be held for it |
+| the renderer breaks the run marker and the end line inside a quoted note | `note` refuses a note that holds `SHIPLOOP-RUN`, `=== ShipLoop` or `=== end ShipLoop`, and a control character; quotes stay verbatim | simpler, and the quote is exactly what the owner wrote; the reader skips any file in `owner-notes/` that breaks the same rule |
+| an entry for `RUN/owner-notes/` in the context-index map, if its budget allows | no entry | the map is at 3,820 of its 3,850 bytes, and every packet names `RUN/owner-notes/` whenever a note exists (quoted, named by file, or in the delivered line) |
+| (not covered) | a hold that cannot record itself in `shown.json` is not made, and a print whose shown record cannot be written counts as not shown | an unrecorded hold would hold every later callback; both failures leave the note undelivered, so it is quoted again |
+| the note limit counts its characters | the limit counts the note as a packet quotes it, indentation included; continuation lines are indented 6 spaces | Sol review: a 1,999-character note of 1,000 short lines quoted at 17,000 characters, fit no head, and would have been held at every step and never delivered |
+| `note` checks the run, then reads its input | it reads and checks its input first, and records a trace line only for a written note | Sol review: a slow `--file` read let the run halt between the check and the write, and a refused note added a line to a finished run's trace |
+
+Known limits, kept as they are (Sol review, 2026-10-26):
+
+- **The one-line floor can pass the cut.** It is the smallest form a required block has. A head whose required text
+  leaves less room than the floor prints past 20,000 characters by the difference, as required text already does when
+  it alone is too long (F1). The held callback still prints the note whole.
+- **A run halted in the instant between `note`'s status check and its write** gets a note no step reads. That is
+  harmless, and the page shows it as waiting.
+- **A `--check-only` run that printed a waiting note** records it as shown even when a later gate refuses the draft.
+  The note was printed before the gate ran, so the real callback is not held for it.
+- **The shown ids are read back from the print** (`quoted_ids`, anchored inside the notes block). Returning them from
+  the head selection would mean threading them through `printed_text` and every caller; the parse is tested against
+  forged quote lines.
+
+Lines that name note files (the head's one-line floor, the notes a head names for room, the delivered list) are prose
+lines in `PROSE_PATH_LINES`, so they print `RUN/owner-notes/…`. With the absolute path, the plan head's floor for four
+notes printed 20,024 characters; with the symbol it prints 19,944.
 
 ## Follow-ups found while measuring
 

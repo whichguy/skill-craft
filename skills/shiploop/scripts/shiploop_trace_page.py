@@ -108,7 +108,7 @@ summary .c { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end
 .kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
 .kind.command { color: var(--accent); } .kind.packet { color: var(--green); } .kind.hook { color: var(--violet); }
 .kind.skill { color: var(--amber); } .kind.accepted { color: var(--green); } .kind.refused { color: var(--red); }
-.kind.check { color: var(--amber); }
+.kind.check, .kind.held { color: var(--amber); }
 .ev.check pre { background: var(--amber-soft); }
 .ev .body { min-width: 0; overflow-wrap: anywhere; }
 .ev pre, .viewer pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; margin: 6px 0 0;
@@ -126,7 +126,7 @@ summary .c { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end
 footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
 .request { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .request h3 { font-size: 13px; margin: 0 0 6px; }
-.request .verbatim, .item .verbatim { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 var(--sans); max-height: 320px; overflow: auto;
+.request .verbatim, .item .verbatim, .note-card .verbatim { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 var(--sans); max-height: 320px; overflow: auto;
   background: var(--chip); border-radius: 8px; padding: 10px 12px; margin: 0; }
 .stage-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .stage-list li { display: grid; grid-template-columns: 18px 110px 1fr; gap: 6px; align-items: baseline; font-size: 13px; }
@@ -149,6 +149,17 @@ details.more > div { border-top: 1px solid var(--line); padding: 8px 14px; }
 .item:last-child { border-bottom: 0; }
 .item ol { margin: 6px 0 0 18px; padding: 0; }
 .item li { margin: 2px 0; }
+.notes { display: grid; gap: 10px; }
+.note-card { display: grid; gap: 6px; }
+.note-card .meta strong { color: var(--ink); }
+.composer { display: grid; gap: 8px; border-left: 4px solid var(--accent); }
+.composer .where { font-weight: 600; }
+.composer textarea { font: 13px/1.5 var(--sans); width: 100%; resize: vertical; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.composer pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; background: var(--chip); border-radius: 8px;
+  padding: 8px 10px; min-height: 1.5em; }
+.composer pre:empty::before { content: "the command appears here"; color: var(--muted); font-style: italic; }
+button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 720px) {
   .request { grid-template-columns: 1fr; }
   .sentence { grid-template-columns: 34px 1fr; }
@@ -312,6 +323,53 @@ const TRACE = /*TRACE-DATA*/null;
   }
   const BADGE = {steps: "b", runs: "b", back: "b back", imp: "b imp", ref: "b ref"};
 
+  // ---------------------------------------------------------------- owner notes
+  // Where each note stands (shiploop_owner_notes): waiting for a print, shown (quoted whole, or printed by a held
+  // callback), delivered (a step whose packet showed it was accepted).
+  const NOTE_STATE = {waiting: ["amber", "waiting for a packet"], shown: ["violet", "shown, not delivered yet"],
+    delivered: ["green", "delivered"]};
+  const shellQuote = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'";
+  function notesSection() {
+    const notes = TRACE.notes || [];
+    const open = ["active", "paused", "blocked"].includes(run.status);
+    if (!notes.length && !open) return null;
+    const cards = notes.map((note) => {
+      const [tone, label] = NOTE_STATE[note.state] || ["", note.state];
+      const facts = [];
+      if (note.quoted_in.length) facts.push("quoted whole in the packet of " + note.quoted_in.map(short).join(", "));
+      if (note.held_in.length) facts.push("printed by a held callback of " + note.held_in.map(short).join(", "));
+      if (note.delivered_by) facts.push("delivered by step #" + (note.step || "?") + " (" + short(note.delivered_by) + ")"
+        + (note.delivered_at ? " at " + clock(note.delivered_at) : "") + (note.cited ? "; its summary cites " + note.id : "; its summary does not cite " + note.id));
+      return el("div", {class: "card note-card"},
+        el("div", {class: "meta"}, el("strong", {}, note.id), el("span", {title: note.at}, "written " + when(note.at)),
+          el("span", {class: "tag " + tone}, label), el("span", {class: "mono"}, "RUN/" + note.file)),
+        el("pre", {class: "verbatim"}, note.text),
+        facts.length ? el("div", {class: "meta"}, facts.join(" · ")) : null);
+    });
+    return el("section", {}, el("h2", {}, "Owner notes"),
+      el("div", {class: "notes"}, cards.length ? cards : el("p", {class: "note"}, "No notes yet."), open ? composer() : null));
+  }
+  // The page is a file and cannot write to the run: it builds the command for the owner to run.
+  function composer() {
+    const box = el("textarea", {rows: 3, placeholder: "Write a note for the run's next step…", "aria-label": "Owner note"});
+    box.value = store.get("draft", "");
+    const command = el("pre", {class: "mono"});
+    const copy = el("button", {class: "primary", onclick: () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(command.textContent).catch(() => {}); }}, "Copy command");
+    const update = () => {
+      store.set("draft", box.value);
+      const text = box.value.trim();
+      command.textContent = text ? "python3 " + shellQuote(run.cli) + " note --run-dir " + shellQuote(run.dir) + " --text " + shellQuote(text) : "";
+      copy.disabled = !text;
+    };
+    box.addEventListener("input", update);
+    update();
+    return el("div", {class: "card composer"}, el("div", {class: "where"}, "Leave a note"),
+      el("div", {class: "meta"}, "This page cannot write to the run. Run the command in a terminal: the next packet quotes the note "
+        + "until a step it was shown in is accepted, and a callback made before the model saw it is held once to show it."),
+      box, command, el("div", {class: "row-actions"}, copy));
+  }
+
   // ---------------------------------------------------------------- request: original beside expanded
   function requestSection() {
     const req = TRACE.request;
@@ -396,14 +454,20 @@ const TRACE = /*TRACE-DATA*/null;
   }
 
   // ---------------------------------------------------------------- timeline
+  const isHeld = (ev) => ev.kind === "command" && !!(ev.held && ev.held.length);
+  const isRefusal = (ev) => ev.kind === "command" && !!ev.exit && !ev.check_only && !isHeld(ev);
   function eventRow(ev) {
     const failed = ev.kind === "command" && ev.exit;
-    const refusal = failed && !ev.check_only;
-    const kind = failed ? (ev.check_only ? "check" : "refused") : ev.kind;
+    const held = isHeld(ev);
+    const refusal = isRefusal(ev);
+    const kind = failed ? (held ? "held" : ev.check_only ? "check" : "refused") : ev.kind;
     let body = [];
     if (ev.kind === "command") {
       body.push(el("span", {class: "mono"}, ev.verb + (ev.action ? " " + short(ev.action) : "")), " → exit " + ev.exit);
       for (const a of ev.accepted || []) body.push(" · ", el("span", {class: "tag green"}, "accepted " + where(a) + " (" + a.outcome + ")"));
+      if (ev.note) body.push(" · ", el("span", {class: "tag violet"}, "wrote owner note " + ev.note));
+      if (ev.delivered) body.push(" · ", el("span", {class: "tag green"}, "delivered " + ev.delivered.join(", ")));
+      if (held) body.push(" · ", el("span", {class: "tag amber"}, "held once for " + ev.held.join(", ")));
       const rev = ev.rev || [];
       if (rev[0] === null || rev[0] === undefined) { if (ev.stage && ev.stage[1]) body.push(" · at " + ev.stage[1]); }
       else if (rev[0] !== rev[1] && rev[1] !== undefined && rev[1] !== null) body.push(" · r" + rev[0] + "→r" + rev[1]);
@@ -414,6 +478,7 @@ const TRACE = /*TRACE-DATA*/null;
       body.push(where(ev) + (ev.reviewed ? " (reviewing " + ev.reviewed + ")" : "") + " · " + num(ev.chars) + " chars · ",
         ev.whole ? "printed whole" : "printed head " + num(ev.printed) + " chars", " ");
       if (ev.repeat) body.push(el("span", {class: "tag"}, "reprint, same text"));
+      if (ev.notes) body.push(el("span", {class: "tag violet"}, "quotes " + ev.notes.join(", ")), " ");
       body.push(el("button", {onclick: () => openPacket(ev.file, "Packet: " + where(ev), clock(ev.at) + " · " + num(ev.chars) + " chars")}, "view packet"));
       if (ev.head_file) body.push(" ", el("button", {onclick: () => openPacket(ev.head_file, "Printed head: " + where(ev))}, "view printed head"));
     } else if (ev.kind === "hook") {
@@ -442,8 +507,7 @@ const TRACE = /*TRACE-DATA*/null;
   }
 
   function matches(ev) {
-    const refusal = ev.kind === "command" && ev.exit && !ev.check_only;
-    if (ui.refusalsOnly && !refusal) return false;
+    if (ui.refusalsOnly && !isRefusal(ev)) return false;
     if (!ui.kinds.includes(ev.kind)) return false;
     if (ui.query) return JSON.stringify(ev).toLowerCase().includes(ui.query.toLowerCase());
     return true;
@@ -475,7 +539,7 @@ const TRACE = /*TRACE-DATA*/null;
       if (filtering && !events.length) return;
       const step = steps.get(group.action);
       const packet = group.events.find((e) => e.kind === "packet");
-      const refused = group.events.filter((e) => e.kind === "command" && e.exit && !e.check_only).length;
+      const refused = group.events.filter(isRefusal).length;
       const hooks = group.events.filter((e) => e.kind === "hook").length;
       const packets = group.events.filter((e) => e.kind === "packet").length;
       const isNow = group.action === nowAction;
@@ -523,7 +587,7 @@ const TRACE = /*TRACE-DATA*/null;
   function render() {
     const app = document.getElementById("app");
     app.classList.toggle("multiday", MULTIDAY);
-    app.replaceChildren(...[header(), nowCard(), requestSection(), plan(), timeline(),
+    app.replaceChildren(...[header(), nowCard(), notesSection(), requestSection(), plan(), timeline(),
       el("footer", {}, "Written by ", el("span", {class: "mono"}, "shiploop trace"), " from ", el("span", {class: "mono"}, run.dir),
         " · trace.jsonl " + num(run.trace_bytes) + " bytes" + (run.capped ? " (stopped growing at its cap)" : "") +
         " · state.md stays the authority; this page is a display.")].filter(Boolean));
@@ -533,7 +597,8 @@ const TRACE = /*TRACE-DATA*/null;
     clearTimeout(timer);
     if (run.status !== "active" || !ui.live) return;
     timer = setTimeout(() => {
-      const busy = viewer.classList.contains("open") || document.activeElement && document.activeElement.type === "search";
+      const typing = document.activeElement && (document.activeElement.type === "search" || document.activeElement.tagName === "TEXTAREA");
+      const busy = viewer.classList.contains("open") || typing;
       if (busy) return schedule();
       store.set("scroll", window.scrollY);
       location.reload();

@@ -415,12 +415,95 @@ implement, and at least 4,541 everywhere else. So the notes block must shrink to
 A finding on the side: at a 163-character run directory, the plan head is already 20,160 characters, 160 past Grok's
 cut (design follow-up F1).
 
-Status: waiting for the owner to choose D1 to D5. No packet, verb or test has changed.
+Status: waiting for the owner to choose D1 to D5. No packet, verb or test has changed. (Superseded 2026-10-26: the
+owner approved the design as recommended; built, next entry.)
+
+## 2026-10-26: owner notes built (firm)
+
+Owner, 2026-10-26: "Approved: build owner notes as recommended (D1c, D2b, D3, D4, D5a)." Built on origin/main
+`6b6ce383` (no ShipLoop script changed since `a677b55d`, so the head-room measurement holds):
+
+- `shiploop note --run-dir RUN --text|--file` (`shiploop_owner_notes.py`, routed in `protocol._main` before the run
+  lock, never prints a packet);
+- the required block `owner-notes` after `answered`, with shorter head forms that `_select_head` picks (a `shrink`
+  field on `_Block`), and the lookup block `owner-notes-delivered`;
+- the hold at the top of `complete` (`NotesHeld`, printed alone by `protocol`);
+- delivery in the accepted save (`owner_notes` in `state.md`, an optional key);
+- the shown record, `owner-notes/shown.json`, written by `emit` only while `trace.ACTIVE`;
+- in the trace: note, held and delivered ids on command lines; quoted ids on packet lines; the notes model and its
+  digest line; the page's Owner notes panel with a composer that builds the `note` command.
+
+Measured with notes (normal install, head-order fixture):
+
+| Head | Printed characters | Notes quoted |
+|---|---|---|
+| plan, 1 note | 19,902 | none; the one-line floor |
+| plan, 4 notes | 19,944 | none; the one-line floor |
+| step-plan, 4 notes | 19,971 (inline), 19,922 (ask-agent) | all four |
+| implement, 4 notes | 19,506 (inline), 19,693 (ask-agent) | all four |
+
+Found while building:
+
+- **The floor printed an absolute path.** Packet paths become `RUN/…` symbols only on lines in `PROSE_PATH_LINES`,
+  and a test fails on any other line that carries a path. The four-note floor printed 20,024 characters until its
+  lines were listed there; with the symbol it prints 19,944.
+- **The trace was not enough.** It was the brief's starting point, but a note must not be lost, so the text lives in
+  `owner-notes/`.
+- **A Grok adapter edit has two pins.** It needed the verb list (`test_grok_adapter`) and a re-pin of the five host
+  trace fixtures' adapter sha256 (`ff330030` → `1ae7162d`, the old pin moved to `revalidation_history`).
+  `check_suite.py --suite mock` replays their golden expectations unchanged: 39 tests OK.
+
+Independent review: gpt-6.1-sol, effort medium, read-only. It was given the diff and the six invariants, not my
+conclusions. Raw output: `sol-owner-notes-data.json` in this session's scratchpad (not kept in the repo).
+
+| # | Finding (Sol's severity) | Outcome |
+|---|---|---|
+| 1 | P1: an unwritable `shown.json` holds every callback, and fails `emit` after printing | already fixed in the checkout, after the diff was taken: an unrecordable hold is not made, and an unrecorded print counts as not shown. Pinned by `test_a_shown_record_that_cannot_be_written_never_holds_and_never_delivers`, which fails with the guard removed (exit 2, held) |
+| 2 | P2: a held callback also writes `callback-attempts` and a trace line | true of every callback; the design's invariant was worded too strongly and is corrected |
+| 3 | P2: a refused note adds a trace line, even to a done run | fixed: only a written note is traced. Pinned in `test_a_halted_run_refuses_a_note` and the refusal test |
+| 4 | P2: a slow `--file` read races a halt | fixed: the input is read and checked before the run's state. The same-instant race is documented as harmless |
+| 5 | P2: the one-line floor can pass 20,000 when the required text leaves less room than the floor | kept, documented: required text already does this (F1), and the hold prints the note whole |
+| 6 | P2: a 1,999-character note of 1,000 lines quoted at 17,000 characters, so it was never delivered | fixed: the limit counts the quote, indentation included; continuation lines are indented 6 spaces. Pinned by `test_a_long_many_line_note_is_refused_by_the_size_of_its_quote` |
+| 7 | P2: a refused `--check-only` still records a printed note as shown | kept, documented: the note was printed before the gate ran |
+
+Sol found no defect against delivery-only-when-shown (invariant 3), page script injection or composer quoting
+(invariant 6). It called `quoted_ids` (parsing the print) needless coupling; that is kept and documented in the design.
+
+Decided against: an entry in the context-index map, because the map is at 3,820 of its 3,850 bytes and the packets
+name `RUN/owner-notes/` whenever a note exists. A SKILL.md line is also left out, because the card is at 30,488 of its
+30,500 bytes.
+
+Evidence: `test/shiploop-owner-notes.test.py`, 15 tests through the real CLI and the head-order fixture, all pass. The
+page was checked in the browser: notes in all three states, a held row that is not counted as refused, no console
+errors, no horizontal scroll at 375 px, and the composer's command (with apostrophes) run in zsh, writing the note's
+text back exactly.
+
+Verification (load average 50 to 72 from other sessions):
+
+- **Quick tier** (`run_suites.py --group quick --changed-from 6b6ce383 --jobs 8`): PASS, 36 suites, 567.2 s wall.
+- **The suites the trace work's lesson names** (run-directory snapshots and the callback path), run beside it:
+  - rehydration, backchain-check, e2e (345 s), chain-planning-context, loophole-gates, callback-contract (84 tests),
+    chain (43 tests) and chain-lifecycle (52 tests): all pass.
+  - cross-run failed 3 of 10 under that load. The `progress-observer.json` heartbeat moved between two snapshots, a
+    file this change does not touch. Rerun alone at load 14, it passed all 10.
+- **Rerun after the review fixes**, which landed while the tier ran: owner-notes (15), trace (25), test-groups (46),
+  package-integrity (11), domain-words (5), retired-terms (6) and cross-run (10). All pass.
+
+- **After rebasing onto `26351fb9`** (shiploop 1.14.0 released upstream, so this change ships as 1.15.0): the quick
+  tier (`--changed-from 26351fb9`, 37 suites, 156.4 s, load 7 to 17) failed only test-groups. Upstream had also added
+  a suite and bumped the same count line to 103, so git merged the two edits as one. The pins are now 104 and 159.
+  test-groups (46), cross-run (10), callback-contract (87), the mock replay (39) and the Grok adapter tests (39) all
+  pass on the rebased branch.
+- **After rebasing onto `a558143c`** (each suite gets a private state home, and the runner fails a suite that leaves
+  state there): the quick tier (`--changed-from a558143c`) PASS, 37 suites including shiploop-owner-notes, 164.5 s.
+  The suite now calls `state_home.isolate()` like its siblings; run alone, it leaves nothing in an outer
+  `XDG_STATE_HOME`.
+
+Not run: the full tier, and a live ShipLoop run on a real host with a note written during a step.
 
 ## Open (exploratory)
 
-- **Owner feedback during a run** (the "nice to have"): design proposed (entry above); the build waits for the owner's
-  choice.
+- **Owner feedback during a run**: built (entry above). Not verified on a live host run.
 - ~~**E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
   `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.~~ Superseded 2026-10-25: built,
   see "the E2E harness reads the trace" above; the exporter follows through `metrics.json`. The 1.13.1 rerun shows

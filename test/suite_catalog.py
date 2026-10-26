@@ -146,6 +146,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-keepalive.test.py",
     "test/shiploop-skill-calls.test.py",
     "test/shiploop-trace.test.py",
+    "test/shiploop-owner-notes.test.py",
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
@@ -380,6 +381,8 @@ _DURATION_SECONDS = {
     "test/shiploop-loophole-gates.test.py": 15.0,  # measured locally 2026-10-24: 12 dodge rows, one real-CLI run each
     "test/shiploop-e2e-status-card.test.py": 0.5,  # measured locally 2026-10-26: 10 tests, 0.46 s wall
     "test/shiploop-trace.test.py": 16.0,  # measured locally 2026-10-25: 14 tests, 16.0 s wall; real-CLI runs to discovery
+    # measured locally 2026-10-26: 13 tests, 31.4 s wall; real-CLI runs to discovery and the head-order fixture's renders
+    "test/shiploop-owner-notes.test.py": 32.0,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 

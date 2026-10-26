@@ -378,7 +378,7 @@ class TierTests(unittest.TestCase):
     this pins them."""
 
     P0 = {"header", "top", "goal", "loop", "status", "duties", "result"}
-    LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "backchain-route"}
+    LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "owner-notes-delivered", "backchain-route"}
     CHROME = {"progress-view", "pause"}
     FILE = {"delegation", "halt", "pass-log", "run-context", "last-accepted", "deltas", "lint-records", "unverified",
             "change-inventory", "chain", "discovery-links"}
@@ -403,7 +403,7 @@ class TierTests(unittest.TestCase):
                 self.assertEqual(tiers.get("quoted", navigator.QUOTED), navigator.QUOTED)
                 for name, tier in tiers.items():
                     if tier == navigator.P1:
-                        self.assertIn(name, {"answered", "work-item", "revisit", "concerns", "step", "commit-scope",
+                        self.assertIn(name, {"answered", "owner-notes", "work-item", "revisit", "concerns", "step", "commit-scope",
                                              "expectation-results", "queue-rule", "test-rules", "rerun", "observed",
                                              "workspace-return", "delivery", "lint-commands", "improve-lessons"})
                 self.assertEqual([name for name in tiers if name not in
