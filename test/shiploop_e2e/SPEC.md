@@ -407,8 +407,8 @@ design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R1 and R16, Astr
 quality first, then tokens, then time.
 
 A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
-`promotion/3` (it was `promotion/1` until build step 2 and `promotion/2` until build step 3). It reads scorecards
-(`scorecard.py`, `scorecard/5` since 2026-10-26) of a control arm and a candidate arm. Changing the rule takes a new id,
+`promotion/4` (it was `promotion/1` until build step 2, `promotion/2` until build step 3 and `promotion/3` until build
+step 8). It reads scorecards (`scorecard.py`, `scorecard/6` since 2026-10-26) of a control arm and a candidate arm. Changing the rule takes a new id,
 and two decisions are compared only under the same id.
 
 - **Pre-registered.** Before the runs, a registration file names:
@@ -460,8 +460,9 @@ and two decisions are compared only under the same id.
   - *Coverage.* A registration may name how many attempts each case expects. An arm with fewer is missing evidence, and
     the decision is UNDECIDED.
   - *What the decision reads.* A case's quality is taken only from cards whose correctness is valid; any other card
-    leaves that case's quality unknown. Efficiency is compared only on cards whose timing and attribution are both valid.
-    So a run that overlapped others still counts as evidence of quality, and never as evidence of speed.
+    leaves that case's quality unknown. Efficiency was compared only on cards whose timing and attribution are both
+    valid; build step 8 splits that by metric. So a run that overlapped others still counts as evidence of quality, and
+    never as evidence of speed.
 - **The evaluator boundary (amended 2026-10-25, build step 3; R13 of the final verdict).** The contract is now
   `promotion/3`, reading `scorecard/3`. Grading stays outside the candidate's control.
   - *Fingerprints.* A run records `boundary` in `result.json` when it is graded, and a regrade records its own. It holds
@@ -512,6 +513,33 @@ and two decisions are compared only under the same id.
     reading.
   - *Reproducing.* `delivery.restore` rebuilds the delivered tree from the bundle, so its checks can be run again after
     teardown.
+- **Attempt and token accounting (amended 2026-10-26, build step 8; R4 and R15 of the final verdict).** The card is
+  `scorecard/6` and the contract `promotion/4`. A total covers every session the harness launched, and a total that may
+  miss one is never compared.
+  - *Sessions reconcile with launches.* `sessions.jsonl` has a start row for every host launch, stops and resumes
+    included, and the event lines each session covers. A launched session reported when the host's events in its range
+    hold an end event (`end` or `result`). `unreported_sessions` counts the launched sessions that did not.
+    - Where `sessions.jsonl` covers the whole stream, this count is exact on every host.
+    - Until this step a Grok run's count was unknown, because its stream marks no session start, so every Grok cost was
+      a lower bound.
+    - A run without `sessions.jsonl`, or whose first recorded session starts after events already written, keeps the
+      stream's count.
+  - *Tokens.* `efficiency.tokens` is the tokens the run's sessions processed: each reported session's input, cache reads,
+    cache writes and output, added over the sessions. Codex counts its cache reads inside its input, so they are not added
+    twice; the host of a session is its launch row's. `efficiency.output_tokens` is the output alone, which holds the
+    reasoning where the host reports reasoning inside it (Grok, Claude, Codex). Each is null, with its reason, when a
+    session reported no usage or its host is not known.
+  - *A lower bound is not a total.* Cost, turns and tokens are sums over sessions. When a launched session did not report,
+    they cover only part of the run, and the card's `totals_lower_bound` is true (it was `cost_lower_bound`). The contract
+    reads such an attempt's summed metrics as not measured: a candidate whose total may miss a session cannot claim to be
+    cheaper, and a control's cannot make the candidate look dearer.
+  - *Validity by metric.* Minutes need the card's timing and attribution valid. The summed metrics need attribution
+    valid and a total that is not a lower bound: a resumed or overlapped run's tokens and dollars are still its own, so a
+    stopped and resumed attempt counts toward cost (R15). Until this step an invalid timing kept every metric out.
+  - *Diagnostics are not targets (R4).* Refusals, Improve children, fresh starts and calls before grounding stay on the
+    card as diagnostics. A registration may name only minutes, cost, turns, tokens or output tokens as an efficiency
+    metric or a budget, so minimising reviews or refusals is never rewarded. `arms.py`'s refusal gate, which compares slice
+    arms for the plan-sizing experiments, is not changed here: its round is in flight and its owner decides.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
