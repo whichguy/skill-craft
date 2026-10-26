@@ -408,7 +408,7 @@ quality first, then tokens, then time.
 
 A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
 `promotion/3` (it was `promotion/1` until build step 2 and `promotion/2` until build step 3). It reads scorecards
-(`scorecard.py`, `scorecard/3`) of a control arm and a candidate arm. Changing the rule takes a new id,
+(`scorecard.py`, `scorecard/4` since build step 4) of a control arm and a candidate arm. Changing the rule takes a new id,
 and two decisions are compared only under the same id.
 
 - **Pre-registered.** Before the runs, a registration file names:
@@ -490,6 +490,19 @@ and two decisions are compared only under the same id.
   - *What this does not do.* The hosts run unsandboxed, so a model can read any file the user can, git objects included.
     Withholding closes the default path. A tool call that names a held-out file is detected; a read that never names
     the file is not. Full read isolation needs the held-out files outside the repository, and CI's tests of them rule that out today.
+- **The delivery snapshot (amended 2026-10-26, build step 4; R6 of the final verdict).** The card is `scorecard/4`.
+  A torn-down run can still be graded, and an alteration of the delivery is seen.
+  - *Snapshot.* Before the checks run, the harness records the delivered `work/`: HEAD, tree, and `git status`. It also
+    archives the tree as a git bundle, `<output>/delivery/work.bundle`. After the checks it records the same
+    fingerprint again. Both are in `result.json` as `delivery`. A regrade keeps the first run's "before", since the tree
+    may already have been checked once.
+  - *Correctness reads the records.* It is false when the fingerprint after the checks differs from the one before. A
+    check that deleted or edited a tracked file shows here, as E4's deleted `page.html` did. When `work/` still exists,
+    it is also false if `work/` now differs from what the checks left: a later commit or edit. So a run whose `work/` is gone is
+    graded from its records, and its correctness is no longer null. A run recorded before this step keeps the live
+    reading.
+  - *Reproducing.* `delivery.restore` rebuilds the delivered tree from the bundle, so its checks can be run again after
+    teardown.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
