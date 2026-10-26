@@ -1,0 +1,33 @@
+{
+  "experiment": "E3",
+  "claim": "Given the same revisit that quotes a model's file-guard advice, the arm's own RED texts (base-run refusal, test-spec RED rule, earlier-item gate) decide whether the redone focused command guards on file existence.",
+  "arms": [
+    "A",
+    "T"
+  ],
+  "arm_specs": {
+    "A": {
+      "ref": "288075c9"
+    },
+    "T": {
+      "ref": "9ed4ec24"
+    }
+  },
+  "n": [
+    3,
+    3
+  ],
+  "means": [
+    1.0,
+    1.0
+  ],
+  "spread": null,
+  "difference": 0.0,
+  "gate": null,
+  "gate_rates": [
+    null,
+    null
+  ],
+  "verdict": "inconclusive",
+  "reason": "the first arm needs scored samples 1-4 for the A/A spread"
+}

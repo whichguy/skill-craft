@@ -632,10 +632,12 @@ def memory_writes(events_path: Path) -> list[dict]:
 
 
 def held_out_markers(blocks: list[dict]) -> list[str]:
-    """What names a held-out check in a host's events: its module, the checks folder, the variable the checks run under and
-    the catalog the harness reads them from."""
+    """What names a held-out check in a host's events: its module, its calibration files (a reference implementation, by
+    file name without the suffix), the checks folder, the variable the checks run under and the catalog the harness reads
+    them from."""
     names = {"E2E_CHECKS", "shiploop_e2e/checks", "shiploop_e2e/cases.json"}
     names.update(block["module"] for block in blocks)
+    names.update(Path(path).stem for block in blocks for path in block.get("calibration") or [])
     return sorted(names)
 
 
@@ -753,7 +755,8 @@ def measure(out: Path, work: Path, spec: dict, *, gate: str | None, groups: set,
         notes.append(f"memory_writes covers Claude's Write/Edit/MultiEdit calls only; this run was also worked on by "
                      f"{', '.join(host for host in used if host != 'claude')}, whose events it does not read")
     if facts["held_out_seen"] is not None:
-        notes.append("held_out_seen counts event lines that name a held-out script, the checks folder or E2E_CHECKS; 0 is not proof "
+        notes.append("held_out_seen counts event lines that name a held-out script, a calibration file, the checks folder or "
+                     "E2E_CHECKS; 0 is not proof "
                      "the model never read the script: the harness prints the path of checks/ in its own command line and resume prompt")
     if gate is not None:
         block["reason"] = gate

@@ -1,0 +1,27 @@
+{
+ "question": "E2: do the battleship case checks on origin/main 31933a73 still pass the 2026-10-16 audit broken server (no fleet, gameOver from the start, placeholder test)?",
+ "fixture": "docs/experiments/shiploop-e2e-audit-20261016/grading/battleship-fixture",
+ "checks": [
+  {
+   "check": 1,
+   "returncode": 0,
+   "passed": true
+  },
+  {
+   "check": 2,
+   "returncode": 0,
+   "passed": true
+  },
+  {
+   "check": 3,
+   "returncode": 0,
+   "passed": true
+  },
+  {
+   "check": 4,
+   "returncode": 0,
+   "passed": true
+  }
+ ],
+ "all_passed": true
+}

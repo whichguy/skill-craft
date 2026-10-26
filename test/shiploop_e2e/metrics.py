@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 import re
 
+import glossary
 import rollouts
 import runrecord
 import sessionlog
@@ -139,6 +140,137 @@ TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is s
 # A coarse filter: which replies counters.py reads. The precise patterns (counters.IMPROVE_COMMITTED, counters.ITEM_COMMITTED) stay in
 # counters.py, so a reworded announcement (release 1.27 reworded the work item's) changes one pattern there, not a second copy here.
 KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s ")
+
+
+# Named ShipLoop refusal gates (run-insights gate_counts), each a regex read against a refusal's own first line --
+# the same text ``failure_line`` keeps in ``shiploop_failures[i]["line"]``, cut to 200 characters, so a signature
+# must sit inside that budget (checked against two live runs: chess-sf-full-9e52e8, 13 refusals, and
+# chess-sf-full-05fe25b, 5 refusals -- every one of those 18 lines matched a row below, none fell to "other").
+# Read from the gates' own refusal text: shiploop_navigator.py (handoff faults section 3115-3219, length limits
+# 2998-3027, record fields 2626-2658), shiploop_test_loop.py (the base run, 1751), shiploop_mutation.py (409),
+# shiploop_concerns.py (56-150), shiploop_assumptions.py (52-142), shiploop_expectations.py (339-399) and
+# shiploop_knowledge_home.py (317). A line matching no row counts under "other". New gates are one line each,
+# with no other reader to update; a gate not yet seeded (its refusal text not read here) stays a commented
+# placeholder below rather than an empty or guessed pattern.
+GATE_SIGNATURES: dict[str, re.Pattern] = {
+    # Consumer hand-off faults (_handoff_fault / _Fault, shiploop_navigator.py ~3151-3219): a done result's
+    # follows, assumptions, test_cases, step notes or lessons the next stage cannot use.
+    "handoff_placeholders": re.compile(r"Replace placeholders in |that has real values,"),
+    "handoff_follows": re.compile(r"follows is a list of the R-<n> and AD-<n>|Add follows to \S|Fix the follows IDs in \S"),
+    # "Fix the consumers" is the wording before run-5 batch R3 (2026-10-24), kept so older runs still classify.
+    "handoff_open_items": re.compile(r"Add assumptions to \S|Fix the (?:due stages|consumers) in \S|Fix the evidence in \S"),
+    "handoff_test_cases": re.compile(r"Not listed by a focused command of|Add test_cases to \S|Add the missing cases to \S|"
+                                     r"Fix the case IDs in \S|Fix the case criteria in \S|Fix case requirements in \S"),
+    "handoff_step_notes": re.compile(r"Add (?:learned and decisions|learned|decisions) to \S|Fix learned_from in \S"),
+    "handoff_lessons": re.compile(r"Add lessons to \S"),
+    # The step plan's or run's written spec diverged from HEAD plus this step's acceptance lines (shiploop_navigator.py).
+    "spec_writeback": re.compile(r"Restore \S*spec\.md to what HEAD holds"),
+    # A living-file entry (R-<n>/AD-<n>) went missing from docs/shiploop (shiploop_knowledge_home.py:317).
+    "knowledge_gate": re.compile(r"Restore the lost "),
+    # A packet-printed field (criteria, concern rows, a step's task or check, a work item's context) is over the
+    # character budget the packet prints it whole at (shiploop_navigator.py:2998-3027, shiploop_concerns.py:109).
+    "producer_limits": re.compile(r"characters(?: together)?; the limit is"),
+    # red_na / retired_tests record-field shape (shiploop_navigator.py:2626-2658).
+    "record_fields": re.compile(r"is a non-empty list of \{|entries each need "),
+    # concerns shape and coverage (shiploop_concerns.py).
+    "concerns_gate": re.compile(r"concern rows are|concerns is (?:an object|a list)|unknown concern|concern \S+ is "
+                                r"(?:listed|mapped) twice|concerns names items that are not in work_items|no step "
+                                r"delivers|concerns maps concerns the plan does not give"),
+    # An open plan assumption's due_item and an expectation's "from" must name each other both ways
+    # (shiploop_expectations.py:396-399).
+    "assumptions_due_item": re.compile(r"expectations cite from .+, which is not an open plan assumption|"
+                                       r"open plan assumptions .+ name .+ as (?:due_item|consumer)"),
+    # Open-item (assumptions) record shape (shiploop_assumptions.py).
+    "assumptions_gate": re.compile(r"assumption \S+ is listed twice|assumptions is a list of"),
+    # Expectations: a step's expectations must list every changed path and the path's presence on the item's lint
+    # base must match the expectation's state (shiploop_expectations.py:339-390).
+    "expectations_gate": re.compile(r"must list expectations: the facts its steps build on|names steps the result "
+                                    r"does not list|have no expectation listing them in paths|needs an absent "
+                                    r"expectation\.|needs a works or broken expectation\."),
+    # Improve stage misuse: --check-only has no draft to preview there (shiploop_navigator.py).
+    "improve_checkonly": re.compile(r"the Improve stage has no draft to check"),
+    # improve-pass gates: no bound Improve stage, the review loop already ended or is not active, the improve
+    # skill was not invoked, or the review file is missing or incomplete (shiploop_navigator.py:8095-8149).
+    "improve_pass": re.compile(r"Write this pass's review to |This review loop has already ended|No active review "
+                               r"loop to record a pass|Run the improve skill on this .* result first|\(missing or "
+                               r"invalid:"),
+    # Improve ended on an unchanged trivial pass, but the worktree moved since the review was bound (shiploop_navigator.py:4232).
+    "improve_stale_files": re.compile(r"ended on one unchanged trivial pass, but these files changed"),
+    # complete --check-only replays the base run's own refusal (shiploop_navigator.py:4075).
+    "check_only_base_run": re.compile(r"ShipLoop check-only: the base run would refuse this result"),
+    # The focused/regression commands on the item's base are not all passing (shiploop_test_loop.py:1751).
+    "base_run_not_done": re.compile(r"ShipLoop base run: test is not done"),
+    # A mutation a focused test should have caught slipped through (shiploop_mutation.py:409).
+    "mutation_not_done": re.compile(r"ShipLoop mutation check: test is not done"),
+    # complete expected a model-written result file that was never written (shiploop_navigator.py:7714).
+    "missing_result_file": re.compile(r"no result file at "),
+    # Until Loop receipt checks for an inner stage's loop (shiploop_loops.py:275-767). The receipt was called the
+    # "terminal packet" until R4 of the run-5 batch (2026-10-24); both texts match, so runs 3 and 4 still classify.
+    "loop_receipt": re.compile(r"a loop receipt needs an action id|is not the current inner action|the Until Loop "
+                               r"(?:terminal packet|receipt) must be a JSON object|the run is not in an inner stage, so "
+                               r"it has no stage loop"),
+    # A focused command whose every test ID an earlier item's step plan made focused (run-4 quality Q2,
+    # shiploop_navigator.py _check_focused_ids_new).
+    "focused_ids_new": re.compile(r"step plan already made focused: it tests an earlier item's behaviour"),
+    # A focused command that starts with a file guard or a printed path, which fakes RED (run-5 batch F2,
+    # shiploop_navigator.py _check_focused_guards).
+    "focused_guard": re.compile(r"checks for a file or prints a path before its tests run"),
+    # The test layers (run-5 batch F1, shiploop_test_layers.py and shiploop_navigator.py _check_submitted_layers):
+    # the rows' shape and rules, an item's own rows, and the printed size.
+    "test_layers": re.compile(r"lists test_layers: one row per|test_layers (?:repeats|gives|marks a unit|is a list of|"
+                              r"and targets print as)|test_layers\[\d+\]|the run recorded no test layers"),
+    # Each step-plan criterion's confirm (F1).
+    "confirm": re.compile(r"each criterion says confirm:|are inspected, but name no test_layers row|are executed, "
+                          r"but every command naming them only searches text|'s confirm is one of"),
+    # A surviving mutant with no disposition at the test stage, or a malformed disposition (advisors panel P5).
+    "mutant_disposition": re.compile(r"with no disposition:|mutant_dispositions(?:\[\d+\])?(?:\.\w+)? (?:is|needs) "),
+    # Prepare's harness evidence that shows no test running (run 5a's browser probe; run-5 follow-up), ahead of the
+    # broader harness_runs row, whose "harness_runs evidence" would match it first.
+    "harness_evidence": re.compile(r"shows no test run ShipLoop can read|ran no test \(the runner selected none\)"),
+    # Prepare's proof that each prerequisite harness runs (F1).
+    "harness_runs": re.compile(r"lists harness_runs|harness_runs (?:has no run|is a list of|evidence)|"
+                               r"harness_runs\[\d+\]"),
+    # Where the tests run, and how a test still fails on an item's base there (F1), and each command's target (F3).
+    "targets": re.compile(r"lists targets: where the tests run|targets is a list of|targets\[\d+\]|which is no "
+                          r"test-strategy targets row"),
+    # The spec's primary requirements (run-5 batch F6, shiploop_primary.py check_spec and canonical).
+    "primary": re.compile(r"a done spec result lists primary:|primary (?:lists (?:at least|an ID)|still holds the "
+                          r"template|names |is a list of the R-<n>|is allowed only)"),
+    # An unverified row's requirement (F6: shiploop_unverified.py's ID shape, shiploop_primary.py's living-spec entry).
+    "unverified_requirement": re.compile(r"unverified\[\d+\]\.requirement .+? (?:is not one requirement ID|has no "
+                                         r"current entry in)"),
+    # A primary requirement's unverified outcome whose lower_layer_check names no test ShipLoop saw pass for it (F6).
+    "lower_layer_check": re.compile(r"a primary requirement \(spec primary\), and its lower_layer_check names no test"),
+    # An Improve commit that changes code without the Regression test line it owes (F5, shiploop_navigator.py
+    # _regression_refusal). F4's entry_points and stand_in_rejected were dropped by the owner (2026-10-24).
+    "improve_regression_test": re.compile(r"Add a line `Regression test: <"),
+    # New gates land as one row each, read from the gate's own refusal text when it ships, never guessed.
+}
+
+# A ShipLoop CLI call's own ``--action=<id>`` (or ``--action <id>``), read from the expanded command text: the
+# action a `complete`/`next`/`improve-*` call submits a result for, so a later accepted `complete` of the same id
+# is what "caught" a refusal of it (gate_counts). Not every call names one (``next`` while nothing is bound).
+ACTION_ARG = re.compile(r"--action[= ](\S+)")
+
+# Test-quality dodges a gate does not refuse (dodge_counts), beside GATE_SIGNATURES: ported from the template
+# experiments' evaluators E2 (e2_layers.source_search, inspected_ui) and E3 (e3_red._GUARD) on f14d4ec4, which showed
+# these are only visible at full-run scale. Read from the run's accepted step-plan results and mutation records.
+# A command whose every program only searches text (shiploop_test_layers.SEARCH_PROGRAMS, plus file tests and prints).
+DODGE_SEARCH_PROGRAMS = frozenset(("grep", "egrep", "fgrep", "rg", "ag", "ack", "test", "[", "[[", "ls", "stat",
+                                   "find", "printf", "echo", "cat"))
+# A source file a grep can read in place of running it; documentation and data files are not code.
+DODGE_CODE_FILE = re.compile(r"\.(?:c|cc|cjs|cls|cpp|cs|go|h|java|js|jsx|kt|mjs|php|py|rb|rs|sh|swift|trigger|ts|tsx|"
+                             r"vue|svelte|html|css)\b|(?:^|[\s'\"=])(?:src|lib|app|force-app|public)/", re.I)
+# A file-existence guard or a print-only path ahead of the tests, which fakes RED (e3_red._GUARD), or a require of a
+# module checked for existence rather than run (require.resolve).
+DODGE_GUARD = re.compile(r"(^|&&|\|\||;|\(|\bif|\bthen)\s*!?\s*(test\s+(!\s+)?-[efsd]\s|\[\[?\s+(!\s+)?-[efsd]\s|ls\s|"
+                         r"stat\s|printf\s+'%s\\n'\s|echo\s+\S+\.\w+\s*(&&|;|$))|existsSync\([^)]*\)\s*\|\||"
+                         r"require\.resolve\(")
+# A criterion with no structured confirm whose text says it is confirmed by inspection (e2_layers._INSPECT/_EXEC).
+DODGE_INSPECT = re.compile(r"\b(inspect\w*|inspection)\b", re.I)
+DODGE_EXECUTED = re.compile(r"\b(exercised|executed|confirm: executed)\b", re.I)
+RECORD_BLOCK = re.compile(r"```shiploop-state\n(.*?)\n```", re.S)
+MUTATION_RECORD = re.compile(r"^(?P<action>.+)-mutation(?P<n>\d+)\.md$")
 
 
 def failure_line(shown: str, limit: int | None = 200) -> str:
@@ -342,6 +474,14 @@ class ToolLog:
         # Read by counters.py, on every host: the replies (KEPT_REPLY) of calls, each call's first result only, with whether the
         # call named a packet file (a model reading the file is not ShipLoop printing a head) and the line it is at in events.jsonl.
         self.replies: list[dict] = []
+        # Read by gate_counts: every call that named a ShipLoop verb (SHIPLOOP_COMMAND), in stream order, with the
+        # action id its ``--action=`` named (None when it named none) and whether its own result was accepted (None
+        # until the result arrives). Never exported as part of ``failures``, whose shape test/shiploop-e2e.test.py
+        # pins exactly.
+        self.action_log: list[dict] = []
+        # ``failures``'s own call id, same order and length as ``failures``: a second, internal list rather than a
+        # new key on each failure dict, which other readers (progress.py, packets.py, run.py) take as {verb, exit, line}.
+        self.failure_call_ids: list = []
 
     def call(self, t, call_id, tool: str, arg: dict, event: int | None = None):
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
@@ -372,6 +512,11 @@ class ToolLog:
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
             "packet": "/packets/" in expanded or "/packets/" in str(target or ""),
             "whole": "offset" not in arg and "limit" not in arg, "file": str(target or "")}
+        verb = SHIPLOOP_COMMAND.search(self.calls[key]["invoked"])
+        if verb:
+            action = ACTION_ARG.search(self.calls[key]["invoked"])
+            self.action_log.append({"call_id": call_id, "t": t, "verb": verb.group("verb"),
+                                    "action": action.group(1) if action else None, "accepted": None})
         if command:
             reasons = glue_reasons(expanded)
             self.shared.update(tmp_writes(expanded))
@@ -446,6 +591,11 @@ class ToolLog:
         if first and KEPT_REPLY.search(shown):
             self.replies.append({"event": event, "packet": bool(call.get("packet")), "text": shown})
         exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
+        if first:  # gate_counts: this call's own result, accepted when it is neither a refusal nor a failed exit
+            for entry in reversed(self.action_log):
+                if entry["call_id"] == call_id:
+                    entry["accepted"] = not (refusal or exited)
+                    break
         if call_id in self.failed or not (refusal or exited):
             return
         self.failed.add(call_id)
@@ -455,6 +605,198 @@ class ToolLog:
         self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code, "line": failure_line(source)})
         self.failure_events.append({"event": event, "line": failure_line(source, None)})
         self.failure_of[call_id] = self.failures[-1]
+        self.failure_call_ids.append(call_id)
+
+
+def refusal_gate(line: str) -> str:
+    """The named gate a ShipLoop refusal's own first line matches (GATE_SIGNATURES, first row that matches wins),
+    or "other" for a line no row's signature covers."""
+    return next((name for name, pattern in GATE_SIGNATURES.items() if pattern.search(line)), "other")
+
+
+def nomenclature(tools: ToolLog, path: Path | None = None) -> dict:
+    """Retired ShipLoop terms in what ShipLoop printed to this run (E2E SPEC S-16, added 2026-10-24).
+
+    For each retired term of the glossary's block (``glossary.retired_terms``): how many of the run's kept ShipLoop
+    replies (packets, printed or read, and commit replies) and refusal first lines hold it, and the first such line
+    with its events.jsonl line.  A record beside the verdicts, never a verdict.  The glossary read is the checkout's, so
+    an older run is held to today's retired terms; ``glossary_sha256`` names the version read.  ``unmeasured`` says why
+    when the glossary cannot be read.
+    """
+    source = path or glossary.GLOSSARY
+    try:
+        terms, digest = glossary.retired_terms(source), glossary.digest(source)
+    except (OSError, ValueError) as exc:
+        return {"unmeasured": str(exc)[:200]}
+    texts = [(reply.get("event"), str(reply.get("text") or "")) for reply in tools.replies]
+    texts += [(found.get("event"), str(found.get("line") or "")) for found in tools.failure_events]
+    retired: dict[str, dict] = {}
+    for event, text in texts:
+        for term in terms:
+            match = term["regex"].search(text)
+            if not match:
+                continue
+            row = retired.setdefault(term["retired"], {"use": term["use"], "texts": 0, "first": None})
+            row["texts"] += 1
+            if row["first"] is None:
+                start = text.rfind("\n", 0, match.start()) + 1
+                end = text.find("\n", match.end())
+                row["first"] = {"event": event, "line": text[start:end if end >= 0 else None].strip()[:200]}
+    return {"glossary_sha256": digest, "texts_scanned": len(texts), "retired": retired}
+
+
+def nomenclature_text(record: dict) -> str:
+    """``term N`` per retired term the run's ShipLoop output held, most frequent first."""
+    rows = sorted((record.get("retired") or {}).items(), key=lambda item: (-item[1]["texts"], item[0]))
+    return ", ".join(f"{name} {row['texts']}" for name, row in rows)
+
+
+def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
+    """Per gate: how many of this run's ShipLoop refusals it fired, and how many of those it caught.
+
+    ``fired`` is how many of ``tools.failures`` classify under the gate (``refusal_gate`` on the refusal's own
+    line); a refusal naming no row counts under "other", so new gates become visible there before they are seeded.
+    ``caught`` is how many of a gate's refusals were followed, later in the stream, by an accepted `complete` of
+    the same action id (the refusing call's own ``--action=``, read by ``tools.action_log``); when the id cannot
+    be read, the next `complete` call afterwards (of any action) stands in, as the owner's fallback rule says.
+    A refusal whose own call cannot be found in ``action_log`` (should not happen: every refused call named a
+    ShipLoop verb) is fired but never caught.
+    """
+    index_by_call: dict = {}
+    for position, entry in enumerate(tools.action_log):
+        index_by_call[entry["call_id"]] = position  # last occurrence: a reused id (Codex) is this call, not an older one
+    counts: dict[str, dict[str, int]] = {}
+    for call_id, failure in zip(tools.failure_call_ids, tools.failures):
+        row = counts.setdefault(refusal_gate(failure["line"]), {"fired": 0, "caught": 0})
+        row["fired"] += 1
+        start = index_by_call.get(call_id)
+        if start is None:
+            continue
+        action = tools.action_log[start].get("action")
+        later = [entry for entry in tools.action_log[start + 1:] if entry.get("verb") == "complete"]
+        if action is not None:
+            caught = any(entry.get("action") == action and entry.get("accepted") for entry in later)
+        else:
+            caught = bool(later) and bool(later[0].get("accepted"))
+        row["caught"] += int(caught)
+    return counts
+
+
+def _record(path: Path) -> dict | None:
+    """The shiploop-state JSON block of one ShipLoop record file, or None."""
+    try:
+        found = RECORD_BLOCK.search(path.read_text(errors="replace"))
+        return json.loads(found.group(1)) if found else None
+    except (OSError, ValueError):
+        return None
+
+
+def search_only_command(command: str) -> bool:
+    """Whether every program ``command`` runs only searches or prints text (no runner, interpreter or deploy)."""
+    programs = []
+    for segment in re.split(r"&&|\|\||[;|\n]", command):
+        words = segment.strip().lstrip("(").split()
+        while words and (words[0] in ("!", "env", "command", "exec", "time", "if", "then", "else", "fi")
+                         or re.match(r"^\w+=", words[0])):
+            words = words[1:]
+        if words and words[0] != "cd":
+            programs.append(words[0].rsplit("/", 1)[-1].lower())
+    return bool(programs) and all(program in DODGE_SEARCH_PROGRAMS for program in programs)
+
+
+def guarded_command(command: str) -> bool:
+    """Whether ``command`` holds a file-existence guard or a print-only path that can fake RED."""
+    return bool(DODGE_GUARD.search(command))
+
+
+def plan_dodges(plan: dict) -> dict:
+    """One step plan's dodges: grep-only checks on code files split by the confirm of the criteria they serve, guarded
+    commands, and criteria confirmed by inspection.
+
+    ``executed`` lists the commands of each executed criterion that every one of its test commands only searches, a
+    code file among them: what the step-plan gate refuses (``layers.check_confirms``), judged per criterion as the gate
+    judges it, so a grep beside a real test is not one.  ``searched`` (a docstring or contract duty) and ``unmatched``
+    (a test command naming no criterion, and every step proof) are context: a command naming no criterion confirms
+    nothing, and a step's proof is followed by the item's real tests."""
+    criteria = {str(c.get("id")): c for c in plan.get("criteria") or [] if isinstance(c, dict)}
+    rows = [(str(c.get("command") or ""), [str(i) for i in c.get("criteria") or ()], c.get("suite"))
+            for c in plan.get("test_commands") or [] if isinstance(c, dict)]
+    proofs = [str(s.get("proof") or s.get("check") or "") for s in plan.get("steps") or [] if isinstance(s, dict)]
+
+    def code_search(command: str) -> bool:
+        return bool(command) and search_only_command(command) and bool(DODGE_CODE_FILE.search(command))
+
+    grep = {"searched": [], "executed": [], "unmatched": []}
+    for cid, criterion in criteria.items():
+        naming = [command for command, ids, _suite in rows if cid in ids]
+        if criterion.get("confirm") == "executed" and naming and all(search_only_command(c) for c in naming) \
+                and any(code_search(c) for c in naming):
+            grep["executed"].extend(c for c in naming if c not in grep["executed"])
+    for command, ids, _suite in rows:
+        confirms = {criteria[i].get("confirm") for i in ids if i in criteria}
+        if code_search(command) and command not in grep["executed"]:
+            kind = "unmatched" if not confirms else "searched" if confirms == {"searched"} else None
+            if kind and command not in grep[kind]:
+                grep[kind].append(command)
+    grep["unmatched"].extend(c for c in dict.fromkeys(proofs) if code_search(c) and c not in grep["unmatched"])
+    guarded = sorted({command for command, _ids, suite in rows if suite == "focused" and guarded_command(command)})
+    inspected = [cid for cid, c in criteria.items() if c.get("confirm") == "inspected" or (
+        "confirm" not in c and DODGE_INSPECT.search(str(c.get("text") or ""))
+        and not DODGE_EXECUTED.search(str(c.get("text") or "")))]
+    return {"grep": grep, "guarded": guarded, "inspected": inspected}
+
+
+def surviving_mutants(run_dir: Path | None) -> int | None:
+    """Mutants that survived, from each action's last counted ``tests/<action>-mutation<N>.md``; None with no record."""
+    folder = run_dir / "tests" if run_dir else None
+    if folder is None or not folder.is_dir():
+        return None
+    last: dict[str, tuple[int, Path]] = {}
+    for path in folder.glob("*-mutation*.md"):
+        found = MUTATION_RECORD.match(path.name)
+        if found and int(found["n"]) >= last.get(found["action"], (-1, path))[0]:
+            last[found["action"]] = (int(found["n"]), path)
+    if not last:
+        return None
+    return sum(int((_record(path) or {}).get("survived") or 0) for _n, path in last.values())
+
+
+def dodge_counts(run_dir: Path | None) -> dict:
+    """Run-level test-quality dodges (the template experiments E2/E3), counted over every accepted step-plan result.
+
+    ``grep_executed`` (grep-only checks on code files serving an executed criterion; step-plan refuses these, so 0 shows
+    the gate held), ``guarded`` (focused commands with a file guard) and ``surviving_mutants`` sum into ``dodges``.
+    ``grep_searched`` (a docstring or contract duty) and ``grep_unmatched`` (no criterion, or a step's proof) are context;
+    ``inspected`` (criteria confirmed by inspection) is its own count. ``surviving_mutants`` is None when the run wrote no
+    mutation record. ``plans`` 0 means nothing was measured."""
+    folder = run_dir / "results" if run_dir else None
+    plans = []
+    if folder is not None and folder.is_dir():
+        for path in sorted(folder.glob("*.md")):
+            record = _record(path)
+            if isinstance(record, dict) and record.get("stage") == "step-plan" and isinstance(record.get("result"), dict):
+                plans.append((record.get("action") or path.stem, plan_dodges(record["result"])))
+    counts = {"plans": len(plans),
+              "grep_searched": sum(len(p["grep"]["searched"]) for _a, p in plans),
+              "grep_executed": sum(len(p["grep"]["executed"]) for _a, p in plans),
+              "grep_unmatched": sum(len(p["grep"]["unmatched"]) for _a, p in plans),
+              "guarded": sum(len(p["guarded"]) for _a, p in plans),
+              "inspected": sum(len(p["inspected"]) for _a, p in plans),
+              "surviving_mutants": surviving_mutants(run_dir)}
+    counts["dodges"] = counts["grep_executed"] + counts["guarded"] + (counts["surviving_mutants"] or 0)
+    counts["by_action"] = {action: p for action, p in plans
+                           if any(p["grep"].values()) or p["guarded"] or p["inspected"]}
+    return counts
+
+
+def dodge_text(counts: dict) -> str:
+    """``Test-quality dodges: N (...)`` for the printed report."""
+    mutants = counts.get("surviving_mutants")
+    return (f"Test-quality dodges: {counts['dodges']} over {plural(counts['plans'], 'step plan')} "
+            f"(grep-only on code for an executed criterion {counts['grep_executed']}; guarded RED {counts['guarded']}; "
+            f"surviving mutants " + ("none recorded" if mutants is None else str(mutants)) + "); "
+            f"inspected criteria {counts['inspected']}; context: {counts['grep_searched']} searched greps, "
+            f"{counts['grep_unmatched']} greps with no criterion")
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -617,17 +959,41 @@ def improve_reviews(run_dir: Path | None) -> dict:
 
     A child's passes are its review-<n>.md files; seconds is the time between its first and last note, so a long
     child shows where review passes, not stages, spent the run. Used to decide whether repeat passes are wasted.
+    ``review_seconds`` runs from the review's bind record to its last note (a one-pass review is not 0 s), and
+    ``edited`` reads the passes' records (``edited``, else the older tree-only ``changed``, named by ``edited_basis``).
+    A review folder sits at ``.shiploop-improve/<stage>-<id>/reviews`` (every chess run so far: runs 3, 4 and 5 read
+    0 children until 2026-10-25) or one level deeper (``<run>/<child>/reviews``); both are read.
     """
     root = run_dir.parent / "worktree" / ".shiploop-improve" if run_dir else None
     children = []
-    for reviews in sorted(root.glob("*/*/reviews")) if root and root.is_dir() else []:
+    folders = sorted({*root.glob("*/reviews"), *root.glob("*/*/reviews")}) if root and root.is_dir() else []
+    binds = sorted((run_dir / "improve").glob("*-bind.md")) if run_dir and (run_dir / "improve").is_dir() else []
+    for reviews in folders:
         notes = sorted(reviews.glob("review-*.md"))
         if notes:
             stamps = [n.stat().st_mtime for n in notes]
+            facts = []
+            for record in sorted(reviews.glob("pass-*.json")):
+                try:
+                    facts.append(json.loads(record.read_text(encoding="utf-8")))
+                except (OSError, ValueError):
+                    continue
+            # Edited (advisors panel 2026-10-25): a pass's tree or result changed. Runs before result tracking recorded
+            # only the tree, which misses an edit to a step plan's or test spec's result; their basis says so.
+            marks = [f.get("edited", f.get("changed")) for f in facts if isinstance(f, dict)]
+            edited = True if True in marks else None if not marks or None in marks else False
+            basis = ("tree and result" if any(isinstance(f, dict) and "edited" in f for f in facts)
+                     else "tree only" if facts else "not recorded")
+            # Seconds from the bind (the review's start) to its last note: a one-pass review is not 0 s.
+            suffix = reviews.parent.name.rsplit("-", 1)[-1]
+            bind = next((path for path in binds if path.name.endswith(suffix + "-bind.md")), None)
             children.append({"child": reviews.parent.name, "passes": len(notes),
                              "seconds": round(max(stamps) - min(stamps), 1),
+                             "review_seconds": round(max(stamps) - bind.stat().st_mtime, 1) if bind else None,
+                             "edited": edited, "edited_basis": basis,
                              "bytes": sum(n.stat().st_size for n in notes)})
     return {"children": len(children), "passes": sum(c["passes"] for c in children),
+            "edited_children": sum(1 for c in children if c["edited"] is True),
             "max_passes": max((c["passes"] for c in children), default=0), "per_child": children}
 
 
@@ -1289,6 +1655,226 @@ def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[d
     return blocks
 
 
+# The eight sources context_window_rows tallies a window's result and output characters into. Order is the order a
+# row's ``bytes`` and ``context_summary``'s totals report them, never read for meaning.
+WINDOW_SOURCES = ("shiploop_packets", "shiploop_reads", "product_reads", "run_record_reads", "knowledge_reads",
+                 "shell_output", "web", "model_text", "other")
+# FILE_CLASSES names that are ShipLoop's own skill files (its scripts, references and cards): reading one fills the
+# context with ShipLoop's own text, the same text shiploop_packets tallies when the CLI prints it instead.
+SHIPLOOP_FILE_CLASSES = ("script", "reference", "entry_card", "improve_card", "adapter")
+# FILE_CLASSES names that are the run's own written record (results, lint, tests, an Improve child's handoff and
+# files): read back, these are what the run itself produced under its run directory, not knowledge or product source.
+RUN_RECORD_FILE_CLASSES = ("run_file", "result_record", "handoff", "child_record")
+WEB_TOOL = re.compile(r"web[ _]?search|web[ _]?fetch", re.I)
+
+
+def _window_bytes_table() -> dict:
+    return {name: 0 for name in WINDOW_SOURCES}
+
+
+def window_source(tool: str, arg: dict, shown: str) -> str:
+    """Which of the eight context_window_rows sources one tool result's characters belong to.
+
+    Built on ``classify_call``'s own reading of the same call (a packet print or read, a ShipLoop script or
+    reference, a run record, a knowledge file): a file-content tool (Read/Grep and their Grok names) that names none
+    of those is a product read, any other shell result that named no ShipLoop/run/knowledge path is shell output, and
+    a web-search tool is ``web``. ``other`` is what is left: a write, an edit, a directory listing, anything this
+    call's own classification does not place.
+    """
+    if WEB_TOOL.search(tool):
+        return "web"
+    if tool == "get_command_or_subagent_output":  # Grok's read of a background command's own output
+        return "shell_output"
+    info = classify_call(tool, arg, shown)
+    cls, bucket = info["cls"], info["bucket"]
+    if bucket in ("packet_output", "shiploop_messages") or cls == "packet_file":
+        return "shiploop_packets"
+    if cls in SHIPLOOP_FILE_CLASSES:
+        return "shiploop_reads"
+    if cls in RUN_RECORD_FILE_CLASSES:
+        return "run_record_reads"
+    if cls == "knowledge":
+        return "knowledge_reads"
+    if info["read"] or tool in SEARCH_TOOLS:
+        return "product_reads" if info["path"] else "other"
+    if str(arg.get("command") or "").strip():
+        return "shell_output"
+    return "other"
+
+
+def _window_top_label(tool: str, arg: dict) -> str:
+    """A short label for one tool result in a context window's ``top`` list: the command, collapsed to one line, or
+    the path it names, else the tool's own name."""
+    command = str(arg.get("command") or "").strip()
+    if command:
+        return " ".join(command.split())[:80]
+    return call_target(arg) or tool
+
+
+def _context_boundaries(sessions: list[dict] | None, compaction_lines: list[int]) -> list[tuple[int, str]]:
+    """Every line that starts a context window, in line order: line 0 (the stream's own start, kept even where a
+    session or a compaction also marks it), each session ``sessionlog.read`` recorded (a run with no sessions.jsonl
+    gives ``None``: then only compactions split the stream) and each compaction line. A line two kinds would mark
+    keeps the first in this order, since line 0 is always the start of something and a session row is never a
+    compaction's own line."""
+    points: dict[int, str] = {0: "start"}
+    for row in sessions or []:
+        line = row.get("events_line")
+        if isinstance(line, int):
+            points.setdefault(line, "session")
+    for line in compaction_lines:
+        if isinstance(line, int):
+            points.setdefault(line, "compaction")
+    return sorted(points.items())
+
+
+def _event_context_tokens(event: dict) -> int | None:
+    """The context-token figure one event's own usage reports, Grok's per-call ``usage`` event or Claude's
+    per-message snapshot, whichever shape the event carries; None for any other event or an unreported figure."""
+    if event.get("type") == "usage":
+        return context_tokens(event.get("usage"))
+    if event.get("type") == "assistant":
+        return context_tokens((event.get("message") or {}).get("usage"))
+    return None
+
+
+def _server_tool_round(event: dict) -> bool:
+    """Whether one event is a Grok native (server-side) web search or page-open round: a request/response the model
+    ran itself mid-turn, billed as input tokens but never shown to the client (its ``tool_call_update`` carries only
+    ``action``/``id``/``status`` -- no ``content`` or ``output_for_prompt`` -- so it is already 0 result characters
+    through ``result_text``). A turn can run several of these before its one ``usage`` event, and that event's input
+    then sums every round's growing input, which is not the context at any single point (confirmed on a recorded
+    run: a usage event after 9 such rounds reported context 498,847; the next ordinary usage event reported 136,051,
+    up only ~25k from the 111,715 before the batch). So a round is counted (``server_tool_rounds``), but the usage
+    event that follows one or more of them is never read for ``peak_tokens``."""
+    raw = event.get("rawOutput")
+    action = raw.get("action") if isinstance(raw, dict) else None
+    return event.get("type") == "tool_call_update" and isinstance(action, dict) and action.get("type") in (
+        "search", "open_page")
+
+
+def context_window_rows(out: Path, run_dir: Path | None = None, *, stamps: dict | None = None,
+                        accepted: list[dict] | None = None, pending: str | None = None,
+                        sessions: list[dict] | None = None, compaction_lines: list[int] | None = None) -> list[dict]:
+    """One row for every context window a run had: the span from the run's start, a recorded session start, or a
+    compaction, to the next one of those or the end of the stream. Answers what filled the context between the
+    compactions a live Grok run hits every few minutes -- ShipLoop's own printed packets, the scripts and references
+    it reads, product source, the run's own record files, knowledge files, other shell output, web calls, or the
+    model's own generated text -- so a packet-template redesign can be aimed at what is actually large.
+
+    Boundaries: line 0, every row ``sessionlog.read`` recorded (``sessions`` None: a run from before sessions.jsonl,
+    or one with none; then only compactions split the stream) and every compaction line (Grok's own
+    ``auto_compact_completed``, the line numbers ``collect`` already finds for ``fresh_starts``; a run on a host that
+    writes none is one open window). Each row: ``start``/``end`` (the runner's own stamps, None where it kept none for
+    the window), ``minutes``, ``stages`` (every accepted stage whose own window, ``stage_windows``'s, overlaps this
+    one, in the order it was accepted), ``peak_tokens`` (the largest per-call context figure any event in the window
+    reported that is not a server round's own inflated usage event -- see ``_server_tool_round`` -- None where none
+    qualified), ``server_tool_rounds`` (native web search/page-open rounds in the window: billed input, never
+    context, counted by number and never added to ``bytes``), ``compacted`` (whether a compaction closes the window),
+    ``bytes`` (characters of every tool result and of the model's own text, by ``window_source``) and ``top`` (its
+    five largest single tool results). Never packet text or a tool result verbatim: counts and short labels only.
+
+    Record-only, like ``fresh_starts``: nothing here is a verdict. ``accepted``, ``pending``, ``stamps`` and
+    ``sessions`` let ``collect`` pass what it already read, so a caller that reads the run directory once is not read
+    twice; a standalone caller (the CLI, a test, a recompute script) leaves them out and they are read here instead.
+    """
+    out = Path(out)
+    path = out / "events.jsonl"
+    if stamps is None:
+        stamps = timeline(out / "timeline.jsonl")
+    if accepted is None:
+        state = engine_state(run_dir)
+        accepted, pending = stage_results(run_dir, state), pending_stage(state)
+    if sessions is None:
+        sessions = sessionlog.read(out)
+    if compaction_lines is None:
+        compaction_lines = [number for number, event in events(path) if event.get("type") == "auto_compact_completed"]
+    stage_entries = list(zip([row["stage"] for row in accepted] + ([pending] if pending else []),
+                             stage_windows(accepted, stamps, pending)))
+    boundaries = _context_boundaries(sessions, compaction_lines)
+    boundary_lines = [line for line, _kind in boundaries]
+    windows = [{"lines": [], "peak": None, "bytes": _window_bytes_table(), "top": [], "server_tool_rounds": 0}
+              for _ in boundaries]
+    calls: dict = {}  # call id -> (tool, arg); one log for the whole pass, so a result is placed by its own line
+    rounds_since_usage = 0  # server rounds since the last usage figure (across the whole pass, not per window)
+    for number, event in events(path):
+        window = windows[bisect.bisect_right(boundary_lines, number) - 1]
+        window["lines"].append(number)
+        for call_id, tool, arg in tool_call_events(event):
+            calls[call_id] = (tool, arg)
+        if _server_tool_round(event):
+            window["server_tool_rounds"] += 1
+            rounds_since_usage += 1
+        tokens = _event_context_tokens(event)
+        if tokens is not None:
+            is_usage = event.get("type") == "usage"
+            if not is_usage or rounds_since_usage == 0:
+                window["peak"] = tokens if window["peak"] is None else max(window["peak"], tokens)
+            if is_usage:
+                rounds_since_usage = 0
+        for call_id, shown in result_text(event):
+            size = len(shown)
+            if not size:
+                continue
+            tool, arg = calls.get(call_id, ("", {}))
+            source = window_source(tool, arg, shown)
+            window["bytes"][source] += size
+            window["top"].append({"tool": tool, "label": _window_top_label(tool, arg), "bytes": size})
+        text = _assistant_text(event)
+        if event.get("type") == "thought":  # Grok's reasoning stream: chunks _assistant_text does not read
+            text += str(event.get("data") or "")
+        if text:
+            window["bytes"]["model_text"] += len(text)
+    rows = []
+    for index, (line, _kind) in enumerate(boundaries):
+        window = windows[index]
+        held = [stamps[n] for n in window["lines"] if n in stamps]
+        start_t = stamps.get(line, held[0] if held else None)
+        end_t = held[-1] if held else start_t
+        active: list = []
+        for stage_name, bounds in stage_entries:
+            if (bounds is not None and start_t is not None and end_t is not None
+                    and spans_overlap((bounds[0], bounds[1]), (start_t, end_t)) and stage_name not in active):
+                active.append(stage_name)
+        rows.append({
+            "start": start_t, "end": end_t,
+            "minutes": round((end_t - start_t) / 60, 2) if start_t is not None and end_t is not None else None,
+            "stages": active, "peak_tokens": window["peak"], "server_tool_rounds": window["server_tool_rounds"],
+            "compacted": index + 1 < len(boundaries) and boundaries[index + 1][1] == "compaction",
+            "bytes": window["bytes"], "top": sorted(window["top"], key=lambda row: -row["bytes"])[:5],
+        })
+    return rows
+
+
+def context_summary(rows: list[dict]) -> dict:
+    """Totals, shares and the median window over every row ``context_window_rows`` built: ``{}`` for a run with none
+    (a run whose events.jsonl holds nothing), never a reason to read the empty totals below as a measurement.
+
+    ``share`` is each source's fraction of the run's total bytes (None where the total is 0, never a divide); ``top_sources``
+    ranks the sources themselves by total bytes, so the biggest contributor across the whole run reads directly, not just
+    per window. ``median_minutes`` and ``median_window_bytes`` read a run from a saved metrics.json the same way
+    ``summary_lines`` reads other medians: the one implementation, ``_median``. ``server_tool_rounds`` is the run's
+    total native web search/page-open rounds (billed input, kept apart from ``bytes``'s ``web``; see
+    ``_server_tool_round``).
+    """
+    if not rows:
+        return {}
+    totals = _window_bytes_table()
+    for row in rows:
+        for source, size in row["bytes"].items():
+            totals[source] = totals.get(source, 0) + size
+    grand = sum(totals.values())
+    share = {source: (round(size / grand, 4) if grand else None) for source, size in totals.items()}
+    minutes = [row["minutes"] for row in rows if row["minutes"] is not None]
+    window_totals = [sum(row["bytes"].values()) for row in rows]
+    ranked = sorted(((source, size) for source, size in totals.items() if size), key=lambda pair: -pair[1])
+    return {"windows": len(rows), "compactions": sum(1 for row in rows if row["compacted"]),
+            "server_tool_rounds": sum(row["server_tool_rounds"] for row in rows),
+            "bytes": totals, "share": share, "total_bytes": grand,
+            "median_minutes": _median(minutes), "median_window_bytes": _median(window_totals),
+            "top_sources": [{"source": source, "bytes": size} for source, size in ranked]}
+
+
 def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None) -> dict:
     """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
     passes an empty one); without it the log is this call's own. It is fed through ``ToolLog.feed``, the one reader the
@@ -1413,6 +1999,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
     if context and "unmeasured" not in context:
         compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
+    sessions_recorded = None  # set inside the try below; kept bound here so context_window_rows can reuse it on a failure
     try:
         sessions_recorded = sessionlog.read(out)
         notes = []
@@ -1433,6 +2020,11 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         fresh_note = "; ".join(notes) or None
     except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
         fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
+    try:
+        context_rows = context_window_rows(out, run_dir, stamps=stamps, accepted=accepted, pending=pending,
+                                           sessions=sessions_recorded, compaction_lines=compaction_lines)
+    except Exception as exc:  # noqa: BLE001 - record-only, like fresh_starts above
+        context_rows = []
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if grok_stream:
         unmeasured["unreported_sessions"] = NO_SESSION_START
@@ -1471,6 +2063,15 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
         "shiploop_failures": tools.failures,
+        # Per named gate (GATE_SIGNATURES): how many times it refused ("fired") and how many of those refusals the
+        # run then got past ("caught": the same action id's next accepted complete). Never 0 for a gate that fired
+        # nothing -- it is simply absent; an unclassified refusal is under "other".
+        "gate_counts": gate_counts(tools),
+        # Test-quality dodges no gate refuses (dodge_counts): grep-only checks on code, guarded REDs, inspected criteria,
+        # surviving mutants. A record, never a verdict.
+        "dodges": dodge_counts(run_dir),
+        # Retired glossary terms in ShipLoop's printed packets and refusals (S-16): a record, never a verdict.
+        "nomenclature": nomenclature(tools),
         # Claude's tool_use / tool_result blocks only (main thread): what the model ran and how it used the packets. A
         # record, never a verdict; None on the hosts whose events this harness has no such reading of.
         "tool_use": tools.tool_use(run_dir) if claude_calls and not grok else None,
@@ -1488,6 +2089,10 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
         "fresh_starts": fresh_list,
         "fresh_starts_unmeasured": fresh_note,
+        # What filled the context between compactions (and from the run's start, and to its end): one row per window,
+        # record-only like fresh_starts, plus the run-level totals and shares context_summary reduces them to.
+        "context_windows": context_rows,
+        "context_summary": context_summary(context_rows),
         # The first and last stamp of the stream (a resumed run's covers all its launches): the interval another run's
         # span is compared with to count overlap. None where the runner wrote no timeline.
         "span": span(stamps),
@@ -1567,7 +2172,7 @@ def verifications(run_dir: Path | None) -> dict:
     """The checks ShipLoop itself ran and recorded (tests/<action>-verify<N>.md), case-agnostic.
 
     ``could_not_run`` counts the attempts where no command reached a verdict
-    about the product (it timed out, could not start, or was skipped on budget).
+    about the product (it timed out, could not start, or, before 2026-10-24, was skipped on budget).
     Those refuse their stage without being evidence against it, so a run with
     any of them is reporting an environment problem, not a product one.
     ``red`` counts the records in which a command ran red (a run whose own status is `red`): the test stage's base run
@@ -1837,6 +2442,13 @@ def tool_use_text(use: dict) -> str:
             + ("none on disk" if disk is None else f"{plural(disk['files'], 'packet file')} on disk ({disk['bytes']:,} bytes)"))
 
 
+def gate_counts_text(gates: dict[str, dict[str, int]]) -> str:
+    """One line per named gate that fired at least once, busiest first: ``name fired (caught N)``."""
+    ordered = sorted(gates.items(), key=lambda item: (-item[1]["fired"], item[0]))
+    return ", ".join(f"{name} {row['fired']}" + (f" (caught {row['caught']})" if row["caught"] else "")
+                     for name, row in ordered)
+
+
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
 
@@ -1859,6 +2471,12 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "
                 f"{metrics['improve_reviews']['max_passes']} in one child)"
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
+    if metrics.get("gate_counts"):
+        lines.append("ShipLoop gates: " + gate_counts_text(metrics["gate_counts"]))
+    if (metrics.get("dodges") or {}).get("plans"):
+        lines.append(dodge_text(metrics["dodges"]))
+    if (metrics.get("nomenclature") or {}).get("retired"):
+        lines.append("Retired terms in ShipLoop's output: " + nomenclature_text(metrics["nomenclature"]))
     if metrics.get("planning"):
         lines.append(planning_text(metrics["planning"]))
     if metrics.get("tool_use"):
@@ -1885,10 +2503,12 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
 # never 0. Every function reads files and calls nothing else; no host, model or ShipLoop command runs here.
 # ======================================================================================================================
 
-# The last line of a printed head (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
-HEAD_END = "=== end ShipLoop head ==="
-# As a line: the packet's second pointer line names it inside a sentence near the top of every print, cut or not.
-HEAD_END_LINE = re.compile(r"^" + re.escape(HEAD_END) + r"$", re.M)
+# The last line of every print (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
+# Its name before R4 of the run-5 batch (2026-10-24), which a saved run keeps, is HEAD_END_UNTIL_R4.
+HEAD_END = "=== end ShipLoop print ==="
+HEAD_END_UNTIL_R4 = "=== end ShipLoop head ==="
+# Either name, as a line: the packet's second pointer line names it inside a sentence near the top of every print, cut or not.
+HEAD_END_LINE = re.compile(r"^(?:" + re.escape(HEAD_END) + "|" + re.escape(HEAD_END_UNTIL_R4) + r")$", re.M)
 COLD_CALLS = 12  # the calls after a break (a compaction, a fresh session, the run's start) that count as cold
 SCRIPTS = Path(__file__).resolve().parents[2] / "skills" / "shiploop" / "scripts"
 READ_TOOLS = ("Read", "read_file")

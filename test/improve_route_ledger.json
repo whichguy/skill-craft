@@ -1,13 +1,15 @@
 {
- "_about": "The Improve obligation ledger (ShipLoop efficiency plan U18): one row per paragraph or list item of the four sources the Improve card's ShipLoop route replaces (skills/improve/SKILL.md as it stood before the split, references/review-policy.md, references/callback-evidence.md, runtime/until-loop/ADAPTER.md), and of the new text. `file` and `head` (the first five words, whitespace-normalized) say where the source block stands now: SKILL.md (the router, which a ShipLoop child loads), standalone-route.md (the five standalone sections moved whole, text unchanged but for three links) or its own file. `route` is a phrase of references/shiploop-route.md that carries the obligation for a ShipLoop child; a row with no `route` phrase and not in the router names why in `reason` (standalone-only, illustrative, or covered by another row). test/improve-route.test.py fails when a block of those files has no row, when a `head` or `route` phrase is gone, or when a row has neither a phrase, nor a reason, nor a place in the router. A unit that moves an obligation changes its row in the same commit.",
+ "_about": "The Improve obligation ledger (ShipLoop efficiency plan U18): one row per paragraph or list item of the four sources the Improve card's ShipLoop route replaces (skills/improve/SKILL.md as it stood before the split, references/review-policy.md, references/callback-evidence.md, runtime/until-loop/ADAPTER.md), and of the new text. `file` and `head` (the first five words, whitespace-normalized) say where the source block stands now: SKILL.md (the router, which a ShipLoop child loads), standalone-route.md (the five standalone sections moved whole, text unchanged but for three links) or its own file. `route` is a phrase of references/shiploop-route.md that carries the obligation for a ShipLoop child; a row with no `route` phrase and not in the router names why in `reason` (standalone-only, illustrative, or covered by another row). test/improve-route.test.py fails when a block of those files has no row, when a `head` or `route` phrase is gone, or when a row has neither a phrase, nor a reason, nor a place in the router. A unit that moves an obligation changes its row in the same commit. Since 2026-10-24 the route is a core (shiploop-route.md, what every child reads) and five case files the core names with the case that opens them; a `route` phrase may stand in any of them. A row whose phrase stands only in the long form (shiploop-route-rules.md) names in `core` the phrase of the core that carries its obligation for a normal pass, or says in `long_form_only` why a normal pass needs nothing more.",
  "schema": "improve-route-ledger/v1",
  "snapshot": "5e0ef0d0 (the integration base the split started from)",
  "bounds": {
   "router_bytes": 10500,
-  "router_measured": 10271,
-  "route_bytes": 47800,
-  "route_measured": 47358,
-  "why": "Plan U18: the router bound is the plan's 10,000 bytes, which held (the base card's kept sections are 9,475 characters; the route choice and two links bring it to 9,995 bytes). The route bound is set from the measured text, never by trimming an obligation: it holds the policy of four sources (the base card, review-policy.md, callback-evidence.md, ADAPTER.md: 72 KB in all) once each, the handoff's ownership, recovery and return text moved word for word, and the fixed review inputs of improve_prompt (8.3 KB). The plan's first guess for the route was 8,192 bytes. Merged onto INT (U2, U19, U21): the router is 9,977 bytes (U2's shorter description); the route grew to 47,513 bytes because a ShipLoop child now ends each pass with improve-pass, which writes the runtime report from the review file, and the route says so (rows A30, S34); the bound was raised from 46,000 to 48,000, no obligation trimmed. Merged with main's Improve 0.4.4 (upstream Until Loop 0.10.0 vendored byte-identical, 2026-10-18): the lean returns (U21) and the one-unchanged-pass stop rule are dropped, so rows A37 and C33 name the full-return phrase again, A52 is gone with ADAPTER.md's lean-returns block and A15 follows upstream's new head; the route is 47,358 bytes and its bound is now 47,800. The router is 10,271 bytes: main's paragraph on `start --isolated` grew it past 10,000, so its bound was raised to 10,500, no obligation trimmed."
+  "router_measured": 10384,
+  "route_bytes": 10000,
+  "route_measured": 9675,
+  "why": "Plan U18: the router bound is the plan's 10,000 bytes, which held (the base card's kept sections are 9,475 characters; the route choice and two links bring it to 9,995 bytes). The route bound is set from the measured text, never by trimming an obligation: it holds the policy of four sources (the base card, review-policy.md, callback-evidence.md, ADAPTER.md: 72 KB in all) once each, the handoff's ownership, recovery and return text moved word for word, and the fixed review inputs of improve_prompt (8.3 KB). The plan's first guess for the route was 8,192 bytes. Merged onto INT (U2, U19, U21): the router is 9,977 bytes (U2's shorter description); the route grew to 47,513 bytes because a ShipLoop child now ends each pass with improve-pass, which writes the runtime report from the review file, and the route says so (rows A30, S34); the bound was raised from 46,000 to 48,000, no obligation trimmed. Merged with main's Improve 0.4.4 (upstream Until Loop 0.10.0 vendored byte-identical, 2026-10-18): the lean returns (U21) and the one-unchanged-pass stop rule are dropped, so rows A37 and C33 name the full-return phrase again, A52 is gone with ADAPTER.md's lean-returns block and A15 follows upstream's new head; the route is 47,358 bytes and its bound is now 47,800. The router is 10,271 bytes: main's paragraph on `start --isolated` grew it past 10,000, so its bound was raised to 10,500, no obligation trimmed. Split into a core and case files (2026-10-24, run 4's context measure: the route was read whole 13 times across the run's Improve stages, 629 KB): `route_bytes` now bounds the core, shiploop-route.md, which every ShipLoop child reads, at the plan's 10,000 bytes (measured 9,675); `route_set_bytes` bounds the core and its five case files together (measured 59,077): the old route's text moved there word for word, except its opening paragraph, the review inputs' intro sentence and two sentences the one-pass stop rule (5e377ff7) had left stale (the Exit rule's one-pass Git check, the Assess step's two cycles), and the core restates every every-pass rule as a one-liner. The router is 10,384 bytes: two sentences say the route is a short core.",
+  "route_set_measured": 59077,
+  "route_set_bytes": 59500
  },
  "rows": [
   {
@@ -105,7 +107,8 @@
    "id": "S19",
    "file": "skills/improve/references/standalone-route.md",
    "head": "For every standalone cycle, read",
-   "route": "**Decision rationale.**"
+   "route": "**Decision rationale.**",
+   "core": "Make the record substantive"
   },
   {
    "id": "S20",
@@ -117,7 +120,8 @@
    "id": "S21",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **Scope:** retain any named",
-   "route": "**Scope.** Keep the named branch range"
+   "route": "**Scope.** Keep the named branch range",
+   "core": "**Scope** is `context.scope`"
   },
   {
    "id": "S22",
@@ -135,19 +139,22 @@
    "id": "S24",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **Evidence location:** retain each",
-   "route": "Keep a host-visible record of each completed cycle"
+   "route": "Keep a host-visible record of each completed cycle",
+   "core": "6. **Record** the pass"
   },
   {
    "id": "S25",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **Commit policy:** after required",
-   "route": "**The commit.** After required checks pass"
+   "route": "**The commit.** After required checks pass",
+   "core": "Commit only with the handoff's `improve-commit`"
   },
   {
    "id": "S26",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **One callback is one",
-   "route": "**One callback is one full cycle.**"
+   "route": "**One callback is one full cycle.**",
+   "core": "One callback is one full cycle"
   },
   {
    "id": "S27",
@@ -158,8 +165,9 @@
   {
    "id": "S28",
    "file": "skills/improve/references/standalone-route.md",
-   "head": "- **Exit rule:** repeat until",
-   "route": "**Exit rule.**"
+   "head": "- **Exit rule:** by default,",
+   "route": "**Exit rule.**",
+   "core": "Only the runtime decides, from the contract and Git, whether another pass follows"
   },
   {
    "id": "S29",
@@ -183,25 +191,29 @@
    "id": "S32",
    "file": "skills/improve/references/standalone-route.md",
    "head": "Retain the parent-supplied **Current context",
-   "route": "**The opening.**"
+   "route": "**The opening.**",
+   "core": "`CHILD/opening.md` and task text are claims to check against current artifacts"
   },
   {
    "id": "S33",
    "file": "skills/improve/references/standalone-route.md",
    "head": "Before each `done`, compare the",
-   "route": "compare it with `context.request` and the prior"
+   "route": "compare it with `context.request` and the prior",
+   "core": "Copy findings forward"
   },
   {
    "id": "S34",
    "file": "skills/improve/references/standalone-route.md",
    "head": "Use compact Markdown inside the",
-   "route": "Write it as the review file's `## Handoff` section"
+   "route": "Write it as the review file's `## Handoff` section",
+   "core": "`## Handoff`: a compact summary replacing the previous one"
   },
   {
    "id": "S35",
    "file": "skills/improve/references/standalone-route.md",
    "head": "Every `done` report must include",
-   "route": "**Handoff before each `done`.**"
+   "route": "**Handoff before each `done`.**",
+   "core": "`## Handoff`: a compact summary replacing the previous one"
   },
   {
    "id": "S36",
@@ -214,35 +226,40 @@
    "file": "skills/improve/references/standalone-route.md",
    "head": "Include preparing a cumulative summary",
    "route": "derives the outcome, key changes and check state itself",
-   "reason": "the caller-facing summary is a standalone obligation; a ShipLoop review keeps the whole run's account in its handoff and review files and ShipLoop writes the summary"
+   "reason": "the caller-facing summary is a standalone obligation; a ShipLoop review keeps the whole run's account in its handoff and review files and ShipLoop writes the summary",
+   "core": "ShipLoop derives the outcome, key changes and check state"
   },
   {
    "id": "S38",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **Key implemented changes:** what",
    "route": "derives the outcome, key changes and check state itself",
-   "reason": "part of the standalone caller-facing summary (see the row above)"
+   "reason": "part of the standalone caller-facing summary (see the row above)",
+   "core": "ShipLoop derives the outcome, key changes and check state"
   },
   {
    "id": "S39",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **What was learned:** consequential",
    "route": "derives the outcome, key changes and check state itself",
-   "reason": "part of the standalone caller-facing summary (see the row above)"
+   "reason": "part of the standalone caller-facing summary (see the row above)",
+   "core": "ShipLoop derives the outcome, key changes and check state"
   },
   {
    "id": "S40",
    "file": "skills/improve/references/standalone-route.md",
    "head": "- **Validation and remaining work:**",
    "route": "derives the outcome, key changes and check state itself",
-   "reason": "part of the standalone caller-facing summary (see the row above)"
+   "reason": "part of the standalone caller-facing summary (see the row above)",
+   "core": "ShipLoop derives the outcome, key changes and check state"
   },
   {
    "id": "S41",
    "file": "skills/improve/references/standalone-route.md",
    "head": "Synthesize from the final handoff",
    "route": "Pass lessons for later steps to",
-   "reason": "the summary's synthesis rules are the standalone caller's; the lessons and --final-result routes are the ShipLoop child's"
+   "reason": "the summary's synthesis rules are the standalone caller's; the lessons and --final-result routes are the ShipLoop child's",
+   "core": "lessons for later steps go to `complete --notes`"
   },
   {
    "id": "S42",
@@ -267,13 +284,15 @@
    "file": "skills/improve/references/standalone-route.md",
    "head": "Preserve the shared policy and",
    "route": "Add no nested plan-convergence loop",
-   "reason": "standalone-only in its interpretation half (building the start contract); the execution half is in the route: follow the returned packet, external operations, no nested loop"
+   "reason": "standalone-only in its interpretation half (building the start contract); the execution half is in the route: follow the returned packet, external operations, no nested loop",
+   "core": "nest a loop"
   },
   {
    "id": "S46",
    "file": "skills/improve/references/standalone-route.md",
    "head": "The runtime validates action identity",
-   "route": "does not verify that a commit was made"
+   "route": "does not verify that a commit was made",
+   "long_form_only": "informative limit of the runtime (it verifies no commit, test or judgment); it adds no step to a pass, whose core steps already record checks and commits as evidence"
   },
   {
    "id": "N01",
@@ -293,19 +312,22 @@
    "id": "R01",
    "file": "skills/improve/references/review-policy.md",
    "head": "Policy ID: improve/review-policy/v1",
-   "route": "`improve/review-policy/v1`"
+   "route": "`improve/review-policy/v1`",
+   "core": "bind the [review policy](review-policy.md)"
   },
   {
    "id": "R02",
    "file": "skills/improve/references/review-policy.md",
    "head": "This declarative policy defines the",
-   "route": "declarative, not an execution"
+   "route": "declarative, not an execution",
+   "core": "bind the [review policy](review-policy.md)"
   },
   {
    "id": "R03",
    "file": "skills/improve/references/review-policy.md",
    "head": "Before a consumer applies this",
-   "route": "state what the"
+   "route": "state what the",
+   "core": "bind the [review policy](review-policy.md)"
   },
   {
    "id": "R04",
@@ -317,7 +339,8 @@
    "id": "R05",
    "file": "skills/improve/references/review-policy.md",
    "head": "- the precise candidate scope,",
-   "route": "**Scope.** Keep the named branch range"
+   "route": "**Scope.** Keep the named branch range",
+   "core": "**Scope** is `context.scope`"
   },
   {
    "id": "R06",
@@ -329,19 +352,22 @@
    "id": "R07",
    "file": "skills/improve/references/review-policy.md",
    "head": "- the durable evidence locations",
-   "route": "**Where the review goes.**"
+   "route": "**Where the review goes.**",
+   "core": "6. **Record** the pass"
   },
   {
    "id": "R08",
    "file": "skills/improve/references/review-policy.md",
    "head": "- the commit policy, including",
-   "route": "**The commit.** After required checks pass"
+   "route": "**The commit.** After required checks pass",
+   "core": "Commit only with the handoff's `improve-commit`"
   },
   {
    "id": "R09",
    "file": "skills/improve/references/review-policy.md",
    "head": "- the callback that receives",
-   "route": "Parent callback; run only after the runtime returned complete"
+   "route": "Parent callback; run only after the runtime returned complete",
+   "core": "run the handoff's callback (`complete`) only after the runtime returned `complete`"
   },
   {
    "id": "R10",
@@ -359,43 +385,50 @@
    "id": "R12",
    "file": "skills/improve/references/review-policy.md",
    "head": "For each distinct review cycle,",
-   "route": "Preserve these ordered obligations"
+   "route": "Preserve these ordered obligations",
+   "core": "One callback is one full cycle"
   },
   {
    "id": "R13",
    "file": "skills/improve/references/review-policy.md",
    "head": "1. **Review.** Inspect the current",
-   "route": "1. **Review.**"
+   "route": "1. **Review.**",
+   "core": "2. **Review** the candidate"
   },
   {
    "id": "R14",
    "file": "skills/improve/references/review-policy.md",
    "head": "2. **History-informed plan.** Select only",
-   "route": "2. **History-informed plan.**"
+   "route": "2. **History-informed plan.**",
+   "core": "3. **Plan** only worthwhile, authorized work"
   },
   {
    "id": "R15",
    "file": "skills/improve/references/review-policy.md",
    "head": "3. **Apply.** Apply the accepted",
-   "route": "3. **Apply.**"
+   "route": "3. **Apply.**",
+   "core": "4. **Apply** it within scope"
   },
   {
    "id": "R16",
    "file": "skills/improve/references/review-policy.md",
    "head": "4. **Checks.** Establish relevant cases",
-   "route": "4. **Checks.**"
+   "route": "4. **Checks.**",
+   "core": "5. **Check** after your last edit"
   },
   {
    "id": "R17",
    "file": "skills/improve/references/review-policy.md",
    "head": "5. **Record.** Retain evidence for",
-   "route": "5. **Record.**"
+   "route": "5. **Record.**",
+   "core": "6. **Record** the pass"
   },
   {
    "id": "R18",
    "file": "skills/improve/references/review-policy.md",
    "head": "6. **Assess.** Count a pass",
-   "route": "6. **Assess.**"
+   "route": "6. **Assess.**",
+   "core": "Only the runtime decides, from the contract and Git, whether another pass follows"
   },
   {
    "id": "R19",
@@ -407,7 +440,8 @@
    "id": "R20",
    "file": "skills/improve/references/review-policy.md",
    "head": "At final assessment, compare the",
-   "route": "At final assessment compare the candidate"
+   "route": "At final assessment compare the candidate",
+   "core": "Remove an artifact only if this work made it"
   },
   {
    "id": "R21",
@@ -425,49 +459,57 @@
    "id": "C02",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "For every active callback, retain",
-   "route": "Keep a host-visible record of each completed cycle"
+   "route": "Keep a host-visible record of each completed cycle",
+   "core": "6. **Record** the pass"
   },
   {
    "id": "C03",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "1. **Candidate and scope.** State",
-   "route": "1. **Candidate and scope:**"
+   "route": "1. **Candidate and scope:**",
+   "core": "Read, Found, Changed, Checked and Class become"
   },
   {
    "id": "C04",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "2. **History.** Record that the",
-   "route": "2. **History:**"
+   "route": "2. **History:**",
+   "core": "keep the useful lessons in that review's record"
   },
   {
    "id": "C05",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "3. **Review and plan.** State",
-   "route": "3. **Review and plan:**"
+   "route": "3. **Review and plan:**",
+   "core": "Read, Found, Changed, Checked and Class become"
   },
   {
    "id": "C06",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "4. **Work and checks.** Record",
-   "route": "4. **Work and checks:**"
+   "route": "4. **Work and checks:**",
+   "core": "A failed, stale or unrun check is no evidence"
   },
   {
    "id": "C07",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "5. **Commit and learning.** When",
-   "route": "5. **Commit and learning:**"
+   "route": "5. **Commit and learning:**",
+   "core": "commits or why none"
   },
   {
    "id": "C08",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "6. **Assessment.** State the report",
-   "route": "6. **Assessment:**"
+   "route": "6. **Assessment:**",
+   "core": "Read, Found, Changed, Checked and Class become"
   },
   {
    "id": "C09",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "The host may retain detailed",
-   "route": "run-isolated artifact"
+   "route": "run-isolated artifact",
+   "core": "link long output"
   },
   {
    "id": "C10",
@@ -479,31 +521,36 @@
    "id": "C11",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "Keep each iteration's learning-oriented record",
-   "route": "**Decision rationale.**"
+   "route": "**Decision rationale.**",
+   "core": "Make the record substantive"
   },
   {
    "id": "C12",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "For each consequential decision, explain",
-   "route": "in connected prose"
+   "route": "in connected prose",
+   "core": "[full text](callback-evidence.md#decision-rationale-and-learning)"
   },
   {
    "id": "C13",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "- Identify the concrete problem",
-   "route": "retrievable locators"
+   "route": "retrievable locators",
+   "core": "the influence behind it and a locator"
   },
   {
    "id": "C14",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "- Explain how that detail",
-   "route": "alternatives actually considered"
+   "route": "alternatives actually considered",
+   "core": "the alternatives"
   },
   {
    "id": "C15",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "- Where interactions mattered, describe",
-   "route": "components and boundaries where interactions mattered"
+   "route": "components and boundaries where interactions mattered",
+   "core": "[full text](callback-evidence.md#decision-rationale-and-learning)"
   },
   {
    "id": "C16",
@@ -515,65 +562,75 @@
    "id": "C17",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "Capture the decision basis as",
-   "route": "Keep material failed approaches"
+   "route": "Keep material failed approaches",
+   "core": "failed approaches"
   },
   {
    "id": "C18",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "When prior commits contributed, integrate",
-   "route": "beside the decision it informed"
+   "route": "beside the decision it informed",
+   "core": "cite a commit (`Learned-from:`) only if you read it and it helped"
   },
   {
    "id": "C19",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "Write the full explanation in",
-   "route": "no extra mandatory heading, reference quota or state file"
+   "route": "no extra mandatory heading, reference quota or state file",
+   "long_form_only": "a prohibition on adding structure (no extra heading, reference quota or state file); a pass that follows the core adds none"
   },
   {
    "id": "C20",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "The runtime requires a nonblank",
-   "route": "**The concise report.**"
+   "route": "**The concise report.**",
+   "core": "never intended actions or sample claims"
   },
   {
    "id": "C21",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "For example, a material first",
    "route": "**The concise report.**",
-   "reason": "illustrative: the example reports show the content the route lists (candidate, review result, work and check result, commit receipt, remaining gap)"
+   "reason": "illustrative: the example reports show the content the route lists (candidate, review result, work and check result, commit receipt, remaining gap)",
+   "core": "never intended actions or sample claims"
   },
   {
    "id": "C22",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "```text Candidate abc123 plus scoped",
    "route": "**The concise report.**",
-   "reason": "illustrative example report (see the row above)"
+   "reason": "illustrative example report (see the row above)",
+   "core": "never intended actions or sample claims"
   },
   {
    "id": "C23",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "A later qualifying no-change review",
    "route": "**The concise report.**",
-   "reason": "illustrative: a later no-change report (see the rows above)"
+   "reason": "illustrative: a later no-change report (see the rows above)",
+   "core": "never intended actions or sample claims"
   },
   {
    "id": "C24",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "```text Candidate def456 unchanged in",
    "route": "**The concise report.**",
-   "reason": "illustrative example report (see the rows above)"
+   "reason": "illustrative example report (see the rows above)",
+   "core": "never intended actions or sample claims"
   },
   {
    "id": "C25",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "These examples describe reported facts;",
-   "route": "no substitute for doing the work"
+   "route": "no substitute for doing the work",
+   "core": "Never fabricate a record to submit `trivial`"
   },
   {
    "id": "C26",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "If a receipt is saved",
-   "route": "round-trip it through a JSON library"
+   "route": "round-trip it through a JSON library",
+   "long_form_only": "a ShipLoop child types no report JSON (improve-pass writes it); saving a receipt by hand is the recovery file's case"
   },
   {
    "id": "C27",
@@ -585,7 +642,8 @@
    "id": "C28",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "For the example above, a",
-   "route": "A later handoff keeps the baseline and scope by reference"
+   "route": "A later handoff keeps the baseline and scope by reference",
+   "core": "HEAD and scoped edits"
   },
   {
    "id": "C29",
@@ -597,25 +655,29 @@
    "id": "C30",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "The final handoff must retain",
-   "route": "Keep the whole run's key"
+   "route": "Keep the whole run's key",
+   "core": "keep the run's key changes and lessons"
   },
   {
    "id": "C31",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "The script stores the latest",
-   "route": "**Limits.**"
+   "route": "**Limits.**",
+   "long_form_only": "informative limit of the runtime (it cannot wake the host or prove a report true); no step of a pass"
   },
   {
    "id": "C32",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "Do not fabricate a host",
-   "route": "Do not fabricate a record to submit `trivial`"
+   "route": "Do not fabricate a record to submit `trivial`",
+   "core": "Never fabricate a record to submit `trivial`"
   },
   {
    "id": "C33",
    "file": "skills/improve/references/callback-evidence.md",
    "head": "After `done`, consume the returned",
-   "route": "**Consume every `done` return in full.**"
+   "route": "**Consume every `done` return in full.**",
+   "core": "a passing test or a trivial review does not end the loop"
   },
   {
    "id": "A01",
@@ -627,56 +689,65 @@
    "id": "A02",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "You are the executor of",
-   "route": "you are the executor of a script-owned loop"
+   "route": "you are the executor of a script-owned loop",
+   "core": "the script owns state and transitions"
   },
   {
    "id": "A03",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "For authorized execution, always start",
-   "route": "ShipLoop wrote the contract and started the runtime before your review"
+   "route": "ShipLoop wrote the contract and started the runtime before your review",
+   "core": "ShipLoop wrote the contract and started the runtime"
   },
   {
    "id": "A04",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Apply this section first. When",
-   "route": "**Start.**"
+   "route": "**Start.**",
+   "core": "1. **Receipt.** Read `CHILD/packet.json`"
   },
   {
    "id": "A05",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- Skip interpretation. Do not",
-   "route": "Skip interpretation"
+   "route": "Skip interpretation",
+   "core": "edit or retype the contract"
   },
   {
    "id": "A06",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- Start the run with",
    "route": "ShipLoop wrote the contract and started the runtime before your review",
-   "reason": "ShipLoop runs the start command; a child never starts the runtime"
+   "reason": "ShipLoop runs the start command; a child never starts the runtime",
+   "core": "ShipLoop wrote the contract and started the runtime"
   },
   {
    "id": "A07",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- The file wins over",
-   "route": "The contract file wins"
+   "route": "The contract file wins",
+   "core": "it wins over any copy"
   },
   {
    "id": "A08",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- Before starting, check the",
-   "route": "Read the receipt `CHILD/packet.json`"
+   "route": "Read the receipt `CHILD/packet.json`",
+   "core": "Read `CHILD/packet.json`"
   },
   {
    "id": "A09",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- Never write or edit",
-   "route": "never write it: the runtime writes every packet there"
+   "route": "never write it: the runtime rewrites it at every step",
+   "core": "never write it (the runtime rewrites it at every step)"
   },
   {
    "id": "A10",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Then follow \"Follow the returned",
-   "route": "The parent submits its own callback"
+   "route": "The parent submits its own callback",
+   "core": "on `Route: inline` it alone submits ShipLoop callbacks"
   },
   {
    "id": "A11",
@@ -688,13 +759,15 @@
    "id": "A12",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Use the actual existing absolute",
-   "route": "A packet grants no tool access or permission"
+   "route": "A return grants no tool access or permission",
+   "core": "never proof or permission"
   },
   {
    "id": "A13",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "If given an issued callback",
-   "route": "there is no shared current-run pointer"
+   "route": "there is no shared current-run pointer",
+   "long_form_only": "a ShipLoop child's run handle is its receipt, which the handoff prints; run discovery without a handle is the recovery file's case"
   },
   {
    "id": "A14",
@@ -773,31 +846,36 @@
    "id": "A26",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Before each `done`, supply a",
-   "route": "**Handoff before each `done`.**"
+   "route": "**Handoff before each `done`.**",
+   "core": "`## Handoff`: a compact summary replacing the previous one"
   },
   {
    "id": "A27",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Within the user's authorized scope,",
-   "route": "**The latest return owns the next action.**"
+   "route": "**The latest return owns the next action.**",
+   "core": "The latest return owns the next action"
   },
   {
    "id": "A28",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "For each active return, **execute",
-   "route": "**Execute, then `done`.**"
+   "route": "**Execute, then `done`.**",
+   "core": "One callback is one full cycle"
   },
   {
    "id": "A29",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "One callback covers **one complete",
-   "route": "One callback covers one complete iteration"
+   "route": "One callback covers one complete iteration",
+   "core": "One callback is one full cycle"
   },
   {
    "id": "A30",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Only after that execution (or",
-   "route": "**The report** reaches the packet's exact `done_argv` as JSON on stdin"
+   "route": "**The report** reaches the receipt's exact `done_argv` as JSON on stdin",
+   "core": "Its front matter fills the runtime report"
   },
   {
    "id": "A31",
@@ -809,49 +887,57 @@
    "id": "A32",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- `exit_assessment`: `satisfied`, `unsatisfied`, or",
-   "route": "- `exit_assessment`:"
+   "route": "- `exit_assessment`:",
+   "core": "`exit`: `satisfied` only after checking every exit clause"
   },
   {
    "id": "A33",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- `continuation_assessment`: `allowed`, `blocked`, or",
-   "route": "- `continuation_assessment`:"
+   "route": "- `continuation_assessment`:",
+   "core": "`continuation`: `allowed`, `blocked`"
   },
   {
    "id": "A34",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- `evidence`: actual observations, checks,",
-   "route": "- `evidence`:"
+   "route": "- `evidence`:",
+   "core": "never intended actions or sample claims"
   },
   {
    "id": "A35",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- `handoff`: the complete compact",
-   "route": "- `handoff`: always required"
+   "route": "- `handoff`: always required",
+   "core": "`## Handoff`: a compact summary replacing the previous one"
   },
   {
    "id": "A36",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "`done` means **this action is",
-   "route": "`done` finishes this action and selects no state"
+   "route": "`done` finishes this action and selects no state",
+   "core": "the script owns state and transitions"
   },
   {
    "id": "A37",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Consume the full return value",
-   "route": "**Consume every `done` return in full.**"
+   "route": "**Consume every `done` return in full.**",
+   "core": "a passing test or a trivial review does not end the loop"
   },
   {
    "id": "A38",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- `active`: communicate the returned",
-   "route": "`active`: communicate the factual status"
+   "route": "`active`: communicate the factual status",
+   "core": "`active`: report the facts and do the next pass"
   },
   {
    "id": "A39",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "- `complete` or `stopped`: follow",
-   "route": "`complete` or `stopped`: follow the terminal instruction"
+   "route": "`complete` or `stopped`: follow the terminal instruction",
+   "core": "`complete`: [return](#return-and-final_result)"
   },
   {
    "id": "A40",
@@ -869,7 +955,8 @@
    "id": "A42",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "When a parent names a",
-   "route": "never write it: the runtime writes every packet there"
+   "route": "never write it: the runtime rewrites it at every step",
+   "core": "never write it (the runtime rewrites it at every step)"
   },
   {
    "id": "A43",
@@ -917,7 +1004,8 @@
    "id": "A50",
    "file": "skills/improve/runtime/until-loop/ADAPTER.md",
    "head": "Communicate meaningful status changes to",
-   "route": "**Status to the user.**"
+   "route": "**Status to the user.**",
+   "core": "Report status in Markdown from returned facts"
   },
   {
    "id": "A51",

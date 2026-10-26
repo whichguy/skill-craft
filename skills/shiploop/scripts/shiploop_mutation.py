@@ -22,14 +22,15 @@ After ``loop_run`` passes on the candidate, ShipLoop:
   threshold: equivalent mutants make a threshold refuse good tests, and the owner's rule is no invented thresholds.
 
 The record ``tests/<action>-mutation<N>.md`` holds every mutant and the totals, passed or not (the E2E harness reads
-the kill count as a measure).  A refused check counts toward ``MAX_REFUSED_RUNS`` with the base and candidate runs;
+the kill count as a measure).  A refused check counts in ``refused_runs`` with the base and candidate runs;
 ``count=False`` (``complete --check-only``) writes ``tests/<action>-mutation-check-only.md`` and never counts.
 
-Known limits, the same as the base run's: ignored files other than ``DEPENDENCY_DIRS`` are absent from the copy (so
-the unmutated run may fail there, and the check then records that it could not judge and passes); a command that names
-the checkout by an absolute path runs the checkout, not the copy.  The operators are textual, so a token inside a
-construct the cheap scan does not recognise (a regex literal, a heredoc, a raw string with an unusual delimiter) can be
-mutated; such a mutant either breaks the file (killed) or survives, and only a check with no kill at all refuses.
+Known limits, the same as the base run's: ignored files other than the platform cards' dependency directories
+(``dependency_directories``) are absent from the copy (so the unmutated run may fail there, and the check then records
+that it could not judge and passes); a command that names the checkout by an absolute path runs the checkout, not the
+copy.  The operators are textual, so a token inside a construct the cheap scan does not recognise (a regex literal, a
+heredoc, a raw string with an unusual delimiter) can be mutated; such a mutant either breaks the file (killed) or
+survives, and only a check with no kill at all refuses.
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Collection, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_lint as lint
 import shiploop_store as store
@@ -51,30 +52,61 @@ MUTANT_SAMPLE = 8
 MUTANT_TIMEOUT_SECONDS = 120.0
 MUTANT_TIMEOUT_FACTOR = 3.0
 MUTANT_TIMEOUT_SLACK_SECONDS = 10.0
-# The whole check (the unmutated run and every mutant) stays inside this budget; a mutant it leaves out is recorded
-# ``not-run``.
-MUTATION_BUDGET_SECONDS = 600.0
 SCHEMA = "shiploop-test-mutation/v1"
 # A file larger than this is not mutated (a generated or vendored file, not something the item wrote by hand).
 MAX_FILE_BYTES = 512 * 1024
-# The platform cards: a card's ``## Remote tests`` section lists, one backticked prefix per bullet, the commands that test
-# a deployed copy of the product rather than the checkout (owner rule: platform detail lives only in the cards).
+# The platform cards (owner rule: platform detail lives only in the cards), one backticked item per bullet: a card's
+# ``## Remote tests`` section lists the command prefixes that test a deployed copy of the product rather than the
+# checkout, and its ``## Dependency directories`` section the ignored directories a runner is installed in.
 PLATFORM_CARDS = Path(__file__).resolve().parent.parent / "references" / "platforms"
-_REMOTE_PREFIX = re.compile(r"^\s*[-*]\s+`([^`]+)`")
+_CARD_BULLET = re.compile(r"^\s*[-*]\s+`([^`]+)`")
+
+
+def _card_bullets(heading: str, cards: Path) -> List[Tuple[str, str]]:
+    """(card name, item) for each backticked bullet a platform card lists under ``## <heading>``."""
+    found: List[Tuple[str, str]] = []
+    for card in sorted(Path(cards).glob("*.md")):
+        section = card.read_text(encoding="utf-8").split("\n## " + heading, 1)
+        if len(section) < 2:
+            continue
+        for line in section[1].split("\n## ", 1)[0].splitlines():
+            match = _CARD_BULLET.match(line)
+            if match:
+                found.append((card.stem, " ".join(match.group(1).split())))
+    return found
 
 
 def remote_test_commands(cards: Path = PLATFORM_CARDS) -> List[Tuple[str, str]]:
     """(card name, command prefix) for each prefix a platform card lists under ``## Remote tests``."""
-    found: List[Tuple[str, str]] = []
-    for card in sorted(Path(cards).glob("*.md")):
-        section = card.read_text(encoding="utf-8").split("\n## Remote tests", 1)
-        if len(section) < 2:
-            continue
-        for line in section[1].split("\n## ", 1)[0].splitlines():
-            match = _REMOTE_PREFIX.match(line)
-            if match:
-                found.append((card.stem, " ".join(match.group(1).split())))
-    return found
+    return _card_bullets("Remote tests", cards)
+
+
+def dependency_directories(cards: Path = PLATFORM_CARDS) -> List[str]:
+    """Every directory name a platform card lists under ``## Dependency directories``, once each, in card order.
+
+    The base run's worktree and this check's copy hold only tracked files, so each listed directory that exists in the
+    checkout is linked in from there and a runner installed in it can start.  A card lists only directories a command
+    reads as input, never build output: a linked build directory would show the base the candidate's built product."""
+    return list(dict.fromkeys(name for _card, name in _card_bullets("Dependency directories", cards)))
+
+
+def remote_card(command: str) -> Optional[Tuple[str, str]]:
+    """(card name, prefix) when ``command`` runs a test a platform card lists under ``## Remote tests``, else None."""
+    text = " ".join(str(command).split())
+    return next(((card, prefix) for card, prefix in remote_test_commands()
+                 if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+
+
+def split_remote(commands: Sequence[Mapping[str, Any]], stateful: Collection[str] = ()) \
+        -> Tuple[List[Mapping[str, Any]], List[str]]:
+    """(the commands that run on the checkout, the remote ones left out) for the mutant runs (run-5 batch I2, F3).
+
+    A mutant lives only in the checkout's copy, so a command that tests a deployed target beside local ones could never
+    kill one; running it would only spend time.  Remote means a platform card's Remote tests, or a test-strategy
+    target that keeps state (``stateful``)."""
+    remote = [str(row.get("command", "")) for row in commands
+              if remote_card(str(row.get("command", ""))) is not None or row.get("target") in stateful]
+    return [row for row in commands if str(row.get("command", "")) not in remote], remote
 
 
 def _remote_reason(commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
@@ -83,12 +115,9 @@ def _remote_reason(commands: Sequence[Mapping[str, Any]]) -> Optional[str]:
 
     A mutant lives only in a temporary copy of the checkout; a command that tests the deployed product never sees it,
     so every mutant would survive and the check would refuse good tests (a live run, 2026-10-18: 0 of 8 killed)."""
-    prefixes = remote_test_commands()
     matched = []
     for row in commands:
-        text = " ".join(str(row.get("command", "")).split())
-        hit = next(((card, prefix) for card, prefix in prefixes
-                    if re.search(r"(?:^|[\s;&|(])" + re.escape(prefix) + r"(?:$|\s)", text)), None)
+        hit = remote_card(str(row.get("command", "")))
         if hit is None:
             return None
         matched.append(hit)
@@ -250,19 +279,15 @@ def _focused(state: Mapping[str, Any], work_item: str) -> List[Dict[str, Any]]:
 
 
 def _run_focused(runner: Any, commands: Sequence[Mapping[str, Any]], cwd: Path, timeout: float,
-                 environment: Mapping[str, str], clock: Callable[[], float],
-                 deadline: float) -> Tuple[str, str, float]:
+                 environment: Mapping[str, str], clock: Callable[[], float]) -> Tuple[str, str, float]:
     """Run the focused commands until one fails: (``killed``|``survived``|``timeout``|``not-run``, by, seconds)."""
     started = clock()
     for row in commands:
-        left = deadline - clock()
-        if left <= 1.0:
-            return "not-run", "the " + str(int(MUTATION_BUDGET_SECONDS)) + "-second budget ran out", clock() - started
-        fields, _output = test_loop._run_command(runner, row["command"], cwd, min(timeout, left), environment, clock)
+        fields, _output = test_loop._run_command(runner, row["command"], cwd, timeout, environment, clock)
         status = fields.get("status")
         if status == "timeout":
             return "timeout", row["command"], clock() - started
-        if status in ("error", "skipped"):
+        if status == "error":
             return "not-run", row["command"] + ": " + str(fields.get("stderr") or "")[:200], clock() - started
         if fields.get("exit") != 0:
             return "killed", row["command"], clock() - started
@@ -270,8 +295,7 @@ def _run_focused(runner: Any, commands: Sequence[Mapping[str, Any]], cwd: Path, 
 
 
 def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit: Optional[str],
-           runner: Any, env: Optional[Mapping[str, str]], clock: Optional[Callable[[], float]],
-           budget: float) -> Dict[str, Any]:
+           runner: Any, env: Optional[Mapping[str, str]], clock: Optional[Callable[[], float]]) -> Dict[str, Any]:
     """Make, run and judge the mutants; return the record (without attempt or counted)."""
     import shiploop_item_scope as item_scope  # imports shiploop_test_loop: resolved at call time
 
@@ -284,6 +308,14 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     if remote:
         record["skipped"] = remote
         return record
+    commands, skipped = split_remote(commands, test_loop.stateful_targets(state))
+    record["commands"] = [row["command"] for row in commands]
+    if skipped:
+        record["remote_commands_skipped"] = skipped
+        if not commands:
+            record["skipped"] = ("every focused command tests a deployed target or one that keeps state between runs, "
+                                 "which a mutant in the checkout's copy never reaches")
+            return record
     base = lint.read_base(root, work_item)
     if base is not None and base_commit:
         base = test_loop._at_commit(base, base_commit)
@@ -317,13 +349,12 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     runner = runner or lint.run_argv
     clock = clock or time.monotonic
     environment = dict(os.environ if env is None else env)
-    deadline = clock() + budget
     tree = test_loop._BaseTree(root, {**base, "tree": current, "commit": ""}, [])
     try:
         with tree as cwd:
             record["cwd"] = str(cwd)
             status, by, seconds = _run_focused(runner, commands, cwd, test_loop.COMMAND_TIMEOUT_SECONDS, environment,
-                                               clock, deadline)
+                                               clock)
             record["unmutated"] = {"status": "passed" if status == "survived" else status, "by": by,
                                    "seconds": round(seconds, 3)}
             if status != "survived":
@@ -340,7 +371,7 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
                 lines[mutant["line"] - 1] = mutant["mutated"] + ending
                 try:
                     target.write_bytes("".join(lines).encode("utf-8"))
-                    status, by, seconds = _run_focused(runner, commands, cwd, timeout, environment, clock, deadline)
+                    status, by, seconds = _run_focused(runner, commands, cwd, timeout, environment, clock)
                 finally:
                     target.write_bytes(original)
                 row = {key: mutant[key] for key in ("file", "line", "column", "operator", "original", "replacement")}
@@ -359,6 +390,80 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     return record
 
 
+# What a surviving mutant may be recorded as instead of a test that kills it (advisors panel 2026-10-25, P5): a
+# mutation no input the contract allows can tell apart, a change outside product behaviour (a tool's generated file), or
+# one no test this runner can run reaches (a remote-only path).  Not a kill-rate target: a test that kills it removes it.
+DISPOSITIONS = ("equivalent", "out-of-scope", "not-exercisable")
+DISPOSITION_SHAPE = ('{"mutant": "<file:line:column, as the refusal lists it>", "disposition": "equivalent" | '
+                     '"out-of-scope" | "not-exercisable", "evidence": "<why it cannot be killed, and where that shows>"}')
+
+
+class DispositionError(ValueError):
+    """A ``mutant_dispositions`` field that is malformed; the message names the field, its shape and the fix."""
+
+
+def mutant_id(row: Mapping[str, Any]) -> str:
+    """How a refusal and a disposition name one mutant: ``file:line:column``."""
+    return str(row["file"]) + ":" + str(row["line"]) + ":" + str(row["column"])
+
+
+def canonical_dispositions(value: Any) -> List[Dict[str, str]]:
+    """A test result's ``mutant_dispositions``: one row per surviving mutant it explains (shape only; the mutation
+    check matches the rows to its survivors)."""
+    if not isinstance(value, list):
+        raise DispositionError("mutant_dispositions is a list of " + DISPOSITION_SHAPE)
+    rows = []
+    for index, row in enumerate(value):
+        where = "mutant_dispositions[" + str(index) + "]"
+        if not isinstance(row, Mapping) or set(row) != {"mutant", "disposition", "evidence"}:
+            raise DispositionError(where + " is " + DISPOSITION_SHAPE)
+        if row["disposition"] not in DISPOSITIONS:
+            raise DispositionError(where + ".disposition is one of " + ", ".join(DISPOSITIONS))
+        for key in ("mutant", "evidence"):
+            if not isinstance(row[key], str) or not row[key].strip() or row[key].strip().startswith("<"):
+                raise DispositionError(where + "." + key + " needs a real value: " + DISPOSITION_SHAPE)
+        rows.append({key: str(row[key]).strip() for key in ("mutant", "disposition", "evidence")})
+    return rows
+
+
+def _reusable(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
+              base_commit: Optional[str]) -> Optional[Dict[str, Any]]:
+    """The latest mutation record of this action made on the same candidate tree with the same focused commands, so a
+    resubmission that changes only ``mutant_dispositions`` does not run the mutants again (Codex, panel P5)."""
+    commands, _skipped = split_remote(_focused(state, work_item), test_loop.stateful_targets(state))
+    base = lint.read_base(root, work_item)
+    if base is None or not commands:
+        return None
+    if base_commit:
+        base = test_loop._at_commit(base, base_commit)
+    paths = [test_loop.mutation_check_only_path(action_id)]
+    paths += [mutation_path(action_id, number) for number in range(1, test_loop._mutation_count(root, action_id) + 1)]
+    found = []
+    for relative in paths:
+        try:
+            record = store.read_record(root / relative)
+        except (OSError, store.StorageError):
+            continue
+        if isinstance(record, Mapping) and not record.get("skipped") and record.get("mutants"):
+            found.append((str(record.get("created_at") or ""), relative, record))
+    if not found:
+        return None
+    created, relative, record = max(found)
+    if record.get("commands") != [row["command"] for row in commands]:
+        return None
+    try:
+        current = _current_tree(root, base)
+    except lint.LintError:
+        return None
+    if record.get("candidate_tree") != current:
+        return None
+    reused = {key: value for key, value in record.items() if key not in ("attempt", "counted", "passed", "disposition",
+                                                                        "reused", "advisory", "action", "seconds")}
+    reused.update(created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  reused={"path": relative, "created_at": created})
+    return reused
+
+
 def _describe(row: Mapping[str, Any]) -> str:
     return (str(row["file"]) + ":" + str(row["line"]) + ": " + repr(row["original"]) + " -> "
             + repr(row["replacement"]))
@@ -368,29 +473,39 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
                    result: Optional[Mapping[str, Any]] = None, *, count: bool = True,
                    base_commit: Optional[str] = None, runner: Any = None,
                    env: Optional[Mapping[str, str]] = None, clock: Optional[Callable[[], float]] = None,
-                   budget: float = MUTATION_BUDGET_SECONDS, **_options: Any) -> List[str]:
+                   **_options: Any) -> List[str]:
     """The test stage's mutation check, after ``loop_run`` passed; raises ``TestLoopError`` with the refusal.
 
     Writes ``tests/<action>-mutation<N>.md`` (``count=False``: ``tests/<action>-mutation-check-only.md``, never
     counted) and returns its summary line.  Refused only when at least one mutant ran and none was killed; that
-    refusal counts toward ``MAX_REFUSED_RUNS``.  ``result`` is accepted for the gate's uniform call and not read.
+    refusal counts in ``refused_runs``.  ``result`` is accepted for the gate's uniform call and not read.
     """
-    del result
     root = Path(root)
     refused = test_loop.refused_runs(root, action_id)
-    if count and refused >= test_loop.MAX_REFUSED_RUNS:
-        raise test_loop.TestLoopError(test_loop._cap_refusal(root, test_loop.STAGES[0], refused, str(
-            root / mutation_path(action_id, test_loop._mutation_count(root, action_id)))))
     started = time.monotonic()
-    record = _check(root, state, work_item, base_commit=base_commit, runner=runner, env=env, clock=clock,
-                    budget=budget)
+    previous = _reusable(root, state, work_item, action_id, base_commit) if runner is None else None
+    record = previous if previous is not None else _check(root, state, work_item, base_commit=base_commit,
+                                                          runner=runner, env=env, clock=clock)
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
-    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0
+    # A mixed item left its remote commands out (I2, F3): a mutant in code only they reach survives whatever the local
+    # tests assert, so its survivors are recorded, not refused.
+    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0 \
+        and not record.get("remote_commands_skipped")
+    # Every survivor the zero-kill rule lets through gets a disposition (advisors panel 2026-10-25, P5): before, a partial
+    # survival passed silently, and run 3's survivor at the engine's bounds check was never looked at.
+    given = {row.get("mutant") for row in (result or {}).get("mutant_dispositions") or () if isinstance(row, Mapping)}
+    undisposed = [] if refuse else [row for row in record["mutants"]
+                                    if row["status"] == "survived" and mutant_id(row) not in given]
+    if undisposed:
+        record["undisposed"] = [mutant_id(row) for row in undisposed]
+    if record["mutants"] and record["killed"] == 0 and record.get("remote_commands_skipped"):
+        record["advisory"] = ("no mutant was killed, but the remote commands this check left out may be the only tests "
+                              "that reach the mutated code; recorded, not refused")
     # A check that could not judge anything (no focused command, no item base, no mutant, a copy that was not green)
     # passes, and says ``skipped`` so no reader takes it for a proof; one that refused is ``failed`` as before.
-    record.update(passed=not refuse,
-                  disposition="failed" if refuse else "skipped" if record.get("skipped") else "passed")
+    record.update(passed=not refuse and not undisposed,
+                  disposition="failed" if refuse or undisposed else "skipped" if record.get("skipped") else "passed")
     if count:
         record["attempt"] = test_loop._next_attempt(root, action_id)
         relative = mutation_path(action_id, test_loop._mutation_count(root, action_id) + 1)
@@ -404,8 +519,20 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
         summary = ("mutation: " + str(record["killed"]) + " of " + str(len(record["mutants"]))
                    + " mutants of the changed product lines killed by the focused tests"
                    + (" (" + str(record["not_run"]) + " not run)" if record["not_run"] else ""))
+    if undisposed:
+        lines = ["ShipLoop mutation check: test is not done. " + str(len(undisposed)) + " of " + str(len(record["mutants"]))
+                 + " mutants of this item's changed product lines survived the focused tests, with no disposition:"]
+        lines += ["- " + mutant_id(row) + ": " + _describe(row) for row in undisposed]
+        lines.append("For each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or "
+                     "record why it cannot be killed in mutant_dispositions, one entry per mutant: " + DISPOSITION_SHAPE
+                     + ". equivalent: no input the contract allows tells them apart; out-of-scope: not product "
+                     "behaviour, such as a tool's generated file; not-exercisable: no test this runner can run reaches "
+                     "it. Do not weaken an oracle or change required behaviour to lower the count. Then submit done "
+                     "again: while the candidate and the focused commands stay as they are, this run is reused. Full "
+                     "output: " + str(root / relative) + ".")
+        raise test_loop.TestLoopError("\n".join(lines))
     if not refuse:
-        return [summary]
+        return [summary + ("; reused the run of " + str(record["reused"]["created_at"]) if record.get("reused") else "")]
     lines = ["ShipLoop mutation check: test is not done. ShipLoop made " + str(len(record["mutants"]))
              + " one-token changes (mutants) to this item's changed product lines, applied each alone in a temporary "
              "copy of the candidate and ran the focused commands; every command still passed for every one, so the "
@@ -423,7 +550,6 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
 
 __all__ = (
     "MUTANT_SAMPLE",
-    "MUTATION_BUDGET_SECONDS",
     "OPERATORS",
     "candidates",
     "mutation_check",

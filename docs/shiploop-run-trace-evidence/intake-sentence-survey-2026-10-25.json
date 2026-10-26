@@ -1,0 +1,201 @@
+{
+ "question": "Does the trace reader map each request sentence to intake's reading on real runs?",
+ "corpus": "every accepted intake under ~/e2e-runs (state.md newer than 2026-10-15) whose summary cites S<n>; seeded slices excluded",
+ "released": "skill-craft 2.12.0 / ShipLoop 1.12.0 (5485b896)",
+ "fixed": "this commit",
+ "runs": 27,
+ "all_mapped_released": 16,
+ "none_mapped_released": 11,
+ "all_mapped_fixed": 27,
+ "rows": [
+  {
+   "run": "2026-10-18/battleship-1",
+   "sentences": 5,
+   "mapped_released": 5,
+   "mapped_fixed": 5,
+   "shape": "S1 outcome: a si"
+  },
+  {
+   "run": "20261017/bs-sf-int-b7c77f",
+   "sentences": 26,
+   "mapped_released": 26,
+   "mapped_fixed": 26,
+   "shape": "S1 outcome: a si"
+  },
+  {
+   "run": "20261017/salesforce-chess-int-802e29",
+   "sentences": 22,
+   "mapped_released": 22,
+   "mapped_fixed": 22,
+   "shape": "S1 outcome: a pu"
+  },
+  {
+   "run": "20261017/salesforce-chess-int-802e29-audit-20261018T0040Z/evidence",
+   "sentences": 22,
+   "mapped_released": 22,
+   "mapped_fixed": 22,
+   "shape": "S1 outcome: a pu"
+  },
+  {
+   "run": "20261019/chess-sf-full-05fe25b",
+   "sentences": 22,
+   "mapped_released": 22,
+   "mapped_fixed": 22,
+   "shape": "S1 outcome: an A"
+  },
+  {
+   "run": "20261020/chess-sf-full-9e52e8",
+   "sentences": 22,
+   "mapped_released": 22,
+   "mapped_fixed": 22,
+   "shape": "S1 outcome: a Sa"
+  },
+  {
+   "run": "20261024/chess-sf-full-12a23d",
+   "sentences": 22,
+   "mapped_released": 22,
+   "mapped_fixed": 22,
+   "shape": "S1 outcome: a ne"
+  },
+  {
+   "run": "20261024/chess-sf-full-ed3292",
+   "sentences": 22,
+   "mapped_released": 22,
+   "mapped_fixed": 22,
+   "shape": "S1 outcome: buil"
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-batch/battleship",
+   "sentences": 5,
+   "mapped_released": 0,
+   "mapped_fixed": 5,
+   "shape": "S1: outcome = sm"
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-batch/hello",
+   "sentences": 1,
+   "mapped_released": 0,
+   "mapped_fixed": 1,
+   "shape": "S1: Outcome: hel"
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-batch/seat-reservations",
+   "sentences": 7,
+   "mapped_released": 0,
+   "mapped_fixed": 7,
+   "shape": "S1: outcome - sm"
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-claude-csv-report",
+   "sentences": 8,
+   "mapped_released": 0,
+   "mapped_fixed": 8,
+   "shape": "S1: outcome = re"
+  },
+  {
+   "run": "20261024/gate-290-b60ed7-codex-hello",
+   "sentences": 1,
+   "mapped_released": 0,
+   "mapped_fixed": 1,
+   "shape": "S1: Deliver hell"
+  },
+  {
+   "run": "20261025/gate-2100-96810d-claude-web/battleship",
+   "sentences": 5,
+   "mapped_released": 0,
+   "mapped_fixed": 5,
+   "shape": "S1: outcome - sm"
+  },
+  {
+   "run": "20261025/gate-2100-96810d-claude-web/battleship-scoring",
+   "sentences": 5,
+   "mapped_released": 0,
+   "mapped_fixed": 5,
+   "shape": "S1 (add scoring "
+  },
+  {
+   "run": "20261025/gate-212-8a49cf-grok-hello",
+   "sentences": 1,
+   "mapped_released": 1,
+   "mapped_fixed": 1,
+   "shape": "S1 outcome: add "
+  },
+  {
+   "run": "20261025/haiku55-max-battleship-d521a8",
+   "sentences": 5,
+   "mapped_released": 5,
+   "mapped_fixed": 5,
+   "shape": "S1 outcome: a ze"
+  },
+  {
+   "run": "20261025/trace-verify-4fd9f1/hello",
+   "sentences": 1,
+   "mapped_released": 0,
+   "mapped_fixed": 1,
+   "shape": "S1 (create hello"
+  },
+  {
+   "run": "effort-eeff1-r1/control-hello",
+   "sentences": 1,
+   "mapped_released": 0,
+   "mapped_fixed": 1,
+   "shape": "S1 (create hello"
+  },
+  {
+   "run": "effort-eeff1-r1/treatment-hello",
+   "sentences": 1,
+   "mapped_released": 1,
+   "mapped_fixed": 1,
+   "shape": "S1 outcome: hell"
+  },
+  {
+   "run": "effort-eeff1-r1b/control-hello",
+   "sentences": 1,
+   "mapped_released": 1,
+   "mapped_fixed": 1,
+   "shape": "S1 outcome: repo"
+  },
+  {
+   "run": "effort-eeff1-r1b/control-hello-failed-no-session-id",
+   "sentences": 1,
+   "mapped_released": 0,
+   "mapped_fixed": 1,
+   "shape": "S1 maps to hello"
+  },
+  {
+   "run": "effort-eeff1-r1b/treatment-hello",
+   "sentences": 1,
+   "mapped_released": 1,
+   "mapped_fixed": 1,
+   "shape": "S1 outcome: hell"
+  },
+  {
+   "run": "effort-eeff1/control-hello",
+   "sentences": 1,
+   "mapped_released": 1,
+   "mapped_fixed": 1,
+   "shape": "S1 outcome: add "
+  },
+  {
+   "run": "effort-eeff1/control-seat-reservations",
+   "sentences": 7,
+   "mapped_released": 7,
+   "mapped_fixed": 7,
+   "shape": "S1 outcome: a sm"
+  },
+  {
+   "run": "effort-eeff1/treatment-hello",
+   "sentences": 1,
+   "mapped_released": 0,
+   "mapped_fixed": 1,
+   "shape": "S1: outcome is h"
+  },
+  {
+   "run": "effort-eeff1/treatment-seat-reservations",
+   "sentences": 7,
+   "mapped_released": 7,
+   "mapped_fixed": 7,
+   "shape": "S1 outcome: a sm"
+  }
+ ]
+}

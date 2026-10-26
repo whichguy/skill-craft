@@ -118,13 +118,14 @@ cannot read passes only with `ids` that all appear; a regression command without
 `test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
 because the plan changed is a plan change: report `send-back` with the reason, and the redone step plan starts the count again.
-Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` once its runs used the 11 refused
-runs or its latest attempt could not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
+Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` when its latest attempt could
+not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
 rerun commands another stage recorded and have no `send-back` to lower a floor, so they are not held to one; a run whose count
 ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
 to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
 needs a fixed count to be held to a floor; and the base run sees only tracked files and the dependency directories it links in
-(`node_modules`, `.venv`, `venv`), and a command that names the checkout by an absolute path runs there, not on the base.
+(those the platform cards list under Dependency directories), and a command that names the checkout by an absolute path runs
+there, not on the base.
 A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
 an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
 regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
@@ -158,16 +159,14 @@ and the handoff say so.
 
 ### Runs that reached no verdict
 
-A command that times out, cannot start, or is skipped because the invocation's
-budget ran out reached no verdict about the product. It still refuses the stage,
-because nothing is accepted on unrun tests, but the attempt is recorded
-`could-not-run` and does not spend one of the 11. A timeout is not a diagnosis:
-it can mean a deadlock, a broken test, a suite too slow for the budget, or an
-external dependency. Because those attempts never reach the 11, the routes out
+A command that times out or cannot start reached no verdict about the product.
+It still refuses the stage, because nothing is accepted on unrun tests, but the
+attempt is recorded `could-not-run` and does not count as a refused run. A
+timeout is not a diagnosis: it can mean a deadlock, a broken test, a suite too
+slow for the per-command timeout, or an external dependency. The routes out
 are explicit: a hang in this item's own code, test or fixture is yours to fix
 here and is not a blocker; if the recorded command is itself wrong or too slow
-to fit the run's budget (a skipped command is that case: the same ones are
-skipped every time), report the stage's remedy instead of retrying it, and
+to finish within its per-command timeout, report the stage's remedy instead of retrying it, and
 ShipLoop accepts it on its own record of the attempt without a new loop packet;
 report `blocked` only for what the user, an access grant or an outside
 dependency must supply.
@@ -190,7 +189,7 @@ to retain the requirement section, test path/selector and actual result location
 as distinct locators; planned cases and source inspection are not passing evidence.
 
 Define expected behavior before implementation when possible. In the spec, name
-observable acceptance criteria. Before source code, the step-plan and test-spec
+observable acceptance lines. Before source code, the step-plan and test-spec
 results contain a compact criteria matrix: each stable case ID maps its
 requirement or `T-` ID to preconditions/input, expected output/state/side
 effect, planned test path/selector, check command, and environment/fixture. This is the durable pre-code plan, not a new result schema
@@ -780,7 +779,7 @@ observations; `handoff` reconciles the final evidence.
 
 At `product-acceptance`, reassess the selected browser/service/API views against
 the whole product, not only the final item. Match the checks to every
-acceptance criterion. Review expected-versus-observed outcomes, test adequacy,
+acceptance line. Review expected-versus-observed outcomes, test adequacy,
 function/API contracts, README accuracy, and environment identity. Required
 blocked/not-run checks remain unfinished. Product changes discovered here use
 corrective work items through `add-work`, including documentation-only fixes, not
@@ -801,6 +800,28 @@ environment/version, manual versus automated evidence, and limitations without
 copying logs. Show generic ShipLoop proposals separately. Passing declared
 commands does not prove that cases or documentation are semantically complete;
 the host must perform this review and report uncertainty honestly.
+
+## Test layers
+
+Test-strategy records, before any code, which harness tests each part of the code at each layer and where the tests
+run (`scripts/shiploop_test_layers.py`). "Surface" keeps its meaning above: where a requirement is observed.
+
+- `test_layers`: `[{"code", "layer": "unit" | "component" | "e2e", "harness", "status": "available" |
+  "prerequisite" | "unverified", "reason"}]`, where `code` names a module, component or page the run writes. All code
+  has a unit or component row, and neither layer is `unverified`: a missing harness there is `prerequisite` work.
+  Only an e2e layer with no runner stays unverified. `test_layers_na` (the reason) replaces the list only when the run
+  writes no code; a step plan whose paths hold code then lists the item's own rows in `test_layers`.
+- `targets`: `[{"target", "keeps_state": "yes" | "no", "base_state_route"}]`. A target that keeps state between runs
+  says how a test still fails on an item's base there (a clean target, a destructive or ordered deploy, or an
+  inventory check).
+- Prepare's `harness_runs`: `[{"code", "layer", "command", "evidence"}]`, one per prerequisite row, the command that
+  ran one test with the harness and its saved output.
+- Each step-plan criterion's `confirm`: `executed` (a recorded command runs the behaviour; a command that only
+  searches text does not), `searched` (text the item writes) or `inspected` (with `code` and `layer` naming an
+  unverified row).
+
+The prepare, step-plan, test-spec and test packets print both lists as required text, grouped by layer, harness and
+status; their printed lines are kept within 1,200 characters, so the step-plan head still fits the host's cut.
 
 ## Design basis
 

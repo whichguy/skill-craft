@@ -13,10 +13,17 @@ tree with that snapshot:
 * When the end-of-work review changed the tree, ShipLoop reruns every completed
   item's recorded test commands before accepting.  An unchanged tree keeps the
   recorded passes: nothing is rerun.
+
+The tree is not the whole candidate: a stage whose product is its result block (a step plan, a test spec) is reviewed
+in ``inbox/<action>.md`` and returned as ``inbox/<action>-final-result.md``, outside the tree.  ``result_identity``
+fingerprints that result, so a pass that edits only the result is counted as an edit (advisors panel, 2026-10-25:
+a tree-only count read test-spec reviews as 0 of 9 edited when 5 of 9 had edited their result).
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple
@@ -55,12 +62,31 @@ def snapshot_tree(run_dir: Path, repo: Path) -> str:
     return snap["tree"] if snap else ""
 
 
+def result_identity(run_dir: Path, action: str) -> Optional[str]:
+    """A fingerprint of the result block under review: the final result once one is written, else the inbox result the
+    review edits in place; ``None`` when neither can be read (unknown, never "unchanged").  The parsed block is hashed,
+    so a verbatim copy into the final-result file is not an edit."""
+    for name in (action + "-final-result.md", action + ".md"):
+        path = Path(run_dir) / "inbox" / name
+        if not path.is_file():
+            continue
+        try:
+            record = store.read_record(path)
+        except store.StorageError:
+            return None
+        block = record.get("result", record) if isinstance(record, Mapping) else record
+        return hashlib.sha256(json.dumps(block, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return None
+
+
 def bind_writes(run_dir: Path, repo: Path, action: str) -> Dict[str, str]:
-    """The snapshot record written when an Improve child is bound (none outside Git)."""
+    """The snapshot record written when an Improve child is bound (none outside Git): the tree and the result's
+    fingerprint, the baselines a pass's edits are measured against."""
     snap = _snapshot(Path(run_dir), Path(repo))
     if snap is None:
         return {}
-    return {bind_path(action): store.dumps(snap, "ShipLoop Improve bind snapshot")}
+    return {bind_path(action): store.dumps(dict(snap, result=result_identity(Path(run_dir), action)),
+                                           "ShipLoop Improve bind snapshot")}
 
 
 def _diff(top: Path, left: str, right: str) -> List[str]:
@@ -113,7 +139,7 @@ def commit_refusal(paths: List[str], message_path: str, command: str, complete_c
             + "".join("- " + path + "\n" for path in paths)
             + "improve-commit commits exactly these files and needs a \"Key learnings:\" line in the message "
               "(\"Key learnings: none\" when nothing was learned); a git commit typed by hand skips that check.\n"
-              "Then run the complete command again: " + complete_command + "\n"
+              "Then run the callback again: " + complete_command + "\n"
               "If the user or repository said not to commit, record their instruction instead: "
             + complete_command + " --no-commit \"<their instruction>\"")
 
@@ -129,5 +155,5 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return list(seen.values())
 
 
-__all__ = ("bind_path", "bind_writes", "commit_refusal", "rerun_commands", "review_changes", "snapshot_tree",
-           "uncommitted")
+__all__ = ("bind_path", "bind_writes", "commit_refusal", "rerun_commands", "result_identity", "review_changes",
+           "snapshot_tree", "uncommitted")

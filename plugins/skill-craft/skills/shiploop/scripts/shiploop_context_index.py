@@ -54,7 +54,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/status.md", "the status block as of the last save", "you want the run position"),
     ("RUN/reference.md", "run-wide rules (#rules), blocked (#blocked), outcomes (#outcomes), recovery (#recovery), "
                          "policies (#policies)", "a packet says `reference#<anchor>`"),
-    ("RUN/packets/", "every packet in full, one file per action", "the printed packet was cut or lost"),
+    ("RUN/packets/", "every packet in full, one file per action; sent/ keeps each as sent", "the printed packet was cut or lost"),
     ("RUN/results/", "each accepted result, one file per action (listed below)", "a stage builds on one"),
     ("RUN/inbox/", "the result you write for the current action", "before its callback"),
     ("RUN/notes/", "your notes; notes/<action>.md is the optional pass log", "after a reset, if the log exists"),
@@ -73,7 +73,8 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/run-baseline.txt", "the commit the run began from; spec diffs run against it", "a diff since the run began"),
     ("RUN/skill-calls.jsonl", "the Skill-tool calls the session made in this run (the Improve stage's gate reads it)",
      "an Improve stage refuses for a missing skill call"),
-    ("RUN/report.html, progress.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
+    ("RUN/trace.jsonl", "each command, packet, refusal and hook stop, in order", "what happened? `shiploop trace`"),
+    ("RUN/report.html, progress.html, trace.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
      ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
      "journal, lock, counter; no workflow state", "the user asks how the run stands"),
     ("KNOWLEDGE/spec.md", "the living spec: R-<n> requirements", "a stage quotes it"),
@@ -241,7 +242,7 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
              f"- Action {action_id} ({stage}); result file {root / 'inbox' / (action_id + '.md')}",
              f"- Pass log ({PASS_LOG_RULE}): {pass_log_path(root, action_id)}"]
     if "loop-terminal" in row.complete_runs:  # every inner stage: its Until Loop receipt (shiploop_loops.receipt_path)
-        lines.append(f"- Loop receipt (the runtime writes every packet here, the last one terminal): "
+        lines.append(f"- Loop receipt (the runtime rewrites it at every step, the final state last): "
                      f"{root / 'loops' / (action_id + '-terminal.json')}")
     runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
     if runs:
@@ -251,8 +252,8 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
         lines.append(f"- ShipLoop runs of this step's Proof: {len(proofs)}, latest {proofs[-1]}")
     item = action.get("workitem")
     if item and state.get("revisions", {}).get(item):
-        lines.append(f"- {item} has gone back to step-plan {state['revisions'][item]} of "
-                     f"{stage_spec.MAX_SEND_BACKS} times")
+        lines.append(f"- {item} has gone back to step-plan {state['revisions'][item]} "
+                     f"time{'' if state['revisions'][item] == 1 else 's'}")
     child = state.get("active_improve")
     if isinstance(child, Mapping) and child.get("skill"):
         import shiploop_standalone_improve as standalone  # lazy: only runs with a bound child

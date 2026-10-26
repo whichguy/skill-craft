@@ -1,0 +1,85 @@
+{
+ "question": "E2b: does checks/battleship_game.py reject the audit's broken server and accept every saved real Battleship delivery that passed?",
+ "method": "each delivery's work/ copied (node_modules and .git left out) to a scratch folder; old check 4 (the 10x10 sweep) and the new check run there through checks/serve.py with node server.js; 2026-10-24",
+ "deliveries": "~/e2e-runs/<path>/work, the runs whose result.json says pass for battleship, battleship-scoring or a custom battleship prompt",
+ "rows": [
+  {
+   "delivery": "20261006/v1220-battleship-grok-medium-none",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261006/v1220-battleship-sonnet",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261007/v1230-battleship-sonnet",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261008/r1-battleship-sonnet",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261008/r2-battleship-grok-none",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261008/r2-battleship-sonnet",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261008/r3-battleship-sonnet",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261010/battleship-1",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261011/battleship-probe-28191c5b",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261011/battleship-scoring-probe-28191c5b",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "20261016/battleship-e2eaudit-4dd3b4b4",
+   "old_check_4_exit": 0,
+   "game_check_exit": 0,
+   "game_check_fail": null
+  },
+  {
+   "delivery": "docs/experiments/shiploop-e2e-audit-20261016/grading/battleship-fixture",
+   "old_check_4_exit": 0,
+   "game_check_exit": 5,
+   "game_check_fail": "FAIL: gameOver became true on shot 1 at (0,0), a miss: the game ends when the last ship sinks"
+  }
+ ],
+ "summary": {
+  "real_deliveries": 11,
+  "real_accepted": 11,
+  "audit_fixture_rejected": true,
+  "old_check_rejected_any": false
+ }
+}

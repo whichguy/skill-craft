@@ -1,0 +1,60 @@
+{
+ "case": "csv-report",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "versions": {
+  "source": "marketplace",
+  "plugin_version": "2.9.0",
+  "shiploop_version": "1.9.0"
+ },
+ "outcome_class": "PASS",
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "process": {
+  "pass": true
+ },
+ "shiploop": {
+  "pass": true
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "quality": {},
+ "resumed_run": null,
+ "environment": {
+  "mixed_host": false,
+  "environments": [
+   {
+    "host": "claude",
+    "host_build": null
+   }
+  ]
+ },
+ "left_behind": {
+  "observed": true,
+  "survived": []
+ }
+}

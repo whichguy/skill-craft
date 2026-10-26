@@ -109,7 +109,10 @@ class InlineImproveTests(unittest.TestCase):
         for relative in ("scripts/capture_evidence.py", "references/legacy-standalone.md",
                          "references/evidence-capture.md"):
             self.assertFalse((IMPROVE / relative).exists(), relative)
-        for card in (IMPROVE / "SKILL.md", IMPROVE / "README.md", STANDALONE, IMPROVE / "references" / "shiploop-route.md",
+        route_files = ("shiploop-route.md", "shiploop-route-rules.md", "shiploop-route-recovery.md",
+                       "shiploop-route-ask-agent.md", "shiploop-route-cases.md", "shiploop-review-inputs.md")
+        for card in (IMPROVE / "SKILL.md", IMPROVE / "README.md", STANDALONE,
+                     *(IMPROVE / "references" / name for name in route_files),
                      IMPROVE / "references" / "review-policy.md",
                      IMPROVE / "references" / "callback-evidence.md"):
             body = flat(card)

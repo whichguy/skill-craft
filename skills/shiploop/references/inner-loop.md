@@ -19,11 +19,11 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 - `test-spec` writes one `### <ID>` case per criterion a test confirms, before any
   code changes; ShipLoop refuses a case ID that no focused command lists, and a
   focused ID with no case. Cases due at a later stage go under `## Due later` (read
-  by verify and `system-test-author`); criteria confirmed only by a check command or
-  inspection go under `## Not tested here`.
+  by verify and `system-test-author`); criteria confirmed `searched` or `inspected`
+  go under `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
 - `implement` makes one step per action. The lint gate runs on every step and an
-  Improve child reviews every accepted step. Tests are written later, at `test`.
+  Improve stage reviews every accepted step. Tests are written later, at `test`.
 - `test` writes the specified tests and makes every recorded command pass;
   ShipLoop then runs its own base and candidate runs.
 - `document` is issued only when the item's real diff touches a code or test
@@ -45,16 +45,16 @@ contract `loops/<action>-contract.json` (`shiploop_loops.contract_writes`): the
 stage's work, its exit condition (the stage's Done-when lines, numbered) and its
 repeat condition. The packet's loop block says `RUN the Until Loop now, once,
 before any work`, then prints the start command,
-`python3 <runtime script> start --receipt <receipt> < <contract>`, and says to follow each packet it prints
+`python3 <runtime script> start --receipt <receipt> < <contract>`, and says to follow each instruction it prints
 until the receipt's status is complete or stopped. Only the test stage's packet
 prints the argument (`----- BEGIN until-loop ARGUMENT -----` to END), as its
 floors use its numbering. Every other stage prints `Contract: <abs> · Receipt:
 <abs>`, and the runtime states the contract's Work, Exit and Repeat in each
-packet it prints (decision 20). The block ends with the result: list the receipt
+instruction it prints (decision 20). The block ends with the result: list the receipt
 in `evidence_refs`, run the callback, and if that refuses for the loop, run the
 start command again; it also lists the five fields of the runtime's done report.
-The `--receipt` makes the runtime write every packet, the terminal one last, to
-`loops/<action>-terminal.json`. Never write or edit the receipt. A second start
+The `--receipt` makes the runtime rewrite the receipt at every step, the final state last,
+at `loops/<action>-terminal.json`. Never write or edit the receipt. A second start
 on one receipt resets the loop (the runtime does not refuse it), so the RUN line
 says to run an active receipt's `next_argv` instead, and once the receipt exists
 the block leads with the resume line in place of the RUN line and the start
@@ -110,9 +110,8 @@ A fixable problem is never `blocked`. When a work item's goal proves wrong or
 unachievable while it is being built, from `test-spec` through
 `verify`, the stage reports `send-back`: the item goes back to
 `step-plan` with that result as evidence, and its earlier results from the step
-plan on stop counting as current. Each work item may be sent back twice; after that
-ShipLoop refuses `send-back` and the stage reports `blocked` with `awaiting` a decision
-and a question. A script-run loop has no iteration limit: it runs until its
+plan on stop counting as current. No count of send-backs stops an item;
+state.md `revisions` records how many there were. A script-run loop has no iteration limit: it runs until its
 exit condition holds. One that stops blocked because the item's goal proved wrong
 reports `send-back`; a cancelled loop is refused, because a user's stop is the
 packet's `pause` command. The per-item

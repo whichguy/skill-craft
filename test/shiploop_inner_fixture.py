@@ -54,6 +54,28 @@ def no_concerns_map(item_ids: Iterable[str]) -> dict[str, list[dict[str, str]]]:
             for item in item_ids}
 
 
+def fixture_test_layers() -> dict[str, Any]:
+    """A done test-strategy's test layers (run-5 batch F1, F3) for a synthetic run: one part of the code, whose unit layer
+    the fixture's own commands test, every test on the checkout.  The default for suites whose intent is not the layers
+    (a run that records test_layers_na needs each step plan with code paths to list its own rows)."""
+    return {"test_layers": [{"code": "fixture code", "layer": "unit", "harness": "the fixture's recorded commands",
+                          "status": "available", "reason": "synthetic run"}], "targets": []}
+
+
+def fixture_primary(state: Mapping[str, Any]) -> dict[str, Any]:
+    """A done spec's primary requirements (run-5 batch F6) for a synthetic run: R-1, whose entry this writes into the
+    living spec when it is missing, as a spec stage writes its requirements before its done."""
+    knowledge_support.write_spec(state)
+    return {"primary": ["R-1"]}
+
+
+def executed_criteria(criteria: Any) -> Any:
+    """``criteria`` with ``confirm: executed`` on each row that lacks one (run-5 batch F1): the fixture default."""
+    if not isinstance(criteria, list):
+        return criteria
+    return [dict(row, confirm=row.get("confirm", "executed")) if isinstance(row, Mapping) else row for row in criteria]
+
+
 def test_cases_for(plan: Mapping[str, Any]) -> list[dict[str, str]]:
     """One case per focused id of a step plan, naming the command's first criterion and the fixture's R-1."""
     criteria = [str(row.get("id")) for row in plan.get("criteria") or () if isinstance(row, Mapping)] or ["C1"]
@@ -105,6 +127,8 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
             result["paths"] = ["src/**"]
         if result.get("test_commands") and "criteria" not in result:
             result["criteria"] = [{"id": "C1", "text": "Synthetic criterion."}]
+        if "criteria" in result:
+            result["criteria"] = executed_criteria(result["criteria"])
         if result.get("test_commands") and not any(isinstance(row, Mapping) and row.get("suite") == "check"
                                                    for row in result["test_commands"]):
             result.setdefault("check_na", "Synthetic fixture: these files have no lint, type or build command.")
@@ -115,7 +139,7 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
                 step["criteria"] = [row["id"] for row in result["criteria"]]
             result["steps"] = [step]
         # Every step records its Proof (implement-step fix plan 4.1); a fixture that is not about it proves nothing.
-        result["steps"] = [dict(step, skills=step.get("skills", []), check=step.get("check", "true"))
+        result["steps"] = [dict(step, skills=step.get("skills", []), proof=step.get("proof", "true"))
                            if isinstance(step, Mapping) else step for step in result["steps"]]
         if "expectations" not in result:
             result["expectations"] = expectations_for(repo, result["steps"], run_dir, _current_item(state))
@@ -208,6 +232,11 @@ class RunDriver(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result.setdefault("concerns", no_concerns_map(
                 str(row.get("id")) for row in queue if isinstance(row, Mapping)))
+        if stage == "spec" and result.get("outcome") == "done":
+            result = {**fixture_primary(state), **result}   # run-5 batch F6
+        if stage == "test-strategy" and result.get("outcome") == "done":
+            for key, value in fixture_test_layers().items():   # run-5 batch F1, F3
+                result.setdefault(key, value)
         if stage == "step-plan" and result.get("outcome") == "done":
             result.setdefault("paths", list(self.PATHS))
         if stage in assumptions.OPEN_ITEM_STAGES and result.get("outcome") == "done":
@@ -259,4 +288,4 @@ class RunDriver(unittest.TestCase):
 
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
-           "no_concerns_map", "prepare")
+           "fixture_primary", "no_concerns_map", "prepare")

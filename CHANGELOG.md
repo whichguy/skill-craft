@@ -2,6 +2,418 @@
 
 Written by scripts/release.py.
 
+## 2026-10-25
+
+### skill-craft 2.13.2
+
+- Skills: shiploop-e2e-audit 0.7.9
+
+### shiploop-e2e-audit 0.7.9
+
+- The host trace fixtures are re-pinned to the Grok adapter that knows `trace`; all five golden attribution expectations
+  replay unchanged (`check_suite.py --suite mock` passes again).
+
+### skill-craft 2.13.1
+
+- Skills: shiploop 1.13.1, shiploop-e2e-audit 0.7.8
+
+### shiploop 1.13.1
+
+- The run trace records only navigator commands on a current run and the packets they print. `chain`, `lint`,
+  `red-check` and `backchain-check` are not traced, so their read-only views, record-only checks and refusals leave the
+  run directory exactly as it was (1.12.0 appended to `trace.jsonl` there).
+- Run trace, after its first real host run: the request view now reads intake's sentence readings however the host words
+  them (`S1: outcome = …`, `S1: Outcome: …`, `S2 (paraphrase): boundary - …`, `S1 maps to …`, as well as `S1 outcome: …`);
+  before, 11 of 27 real intakes that cite every sentence read as "intake read 0 of N", and the terminal request view then
+  hid intake's summary too. An intake summary that cites no sentence now stays in that view. `workspace start` is one
+  command in the trace (it ran init, or next on a re-entry, and both were recorded); `trace --action` takes an id without
+  its `nav-` prefix (the hex the digest prints); and the digest's totals say "1 packet", "1 reprint", "1 check failed",
+  "of 1 sentence".
+
+### shiploop-e2e-audit 0.7.8
+
+- The Grok adapter's list of direct ShipLoop subcommands includes `trace`, the run-trace reader added in ShipLoop 1.12.0.
+
+### skill-craft 2.13.0
+
+- Skills: shiploop 1.13.0
+
+### shiploop 1.13.0
+
+- An Improve review's pass record counts an edit of the reviewed result, not only of the tree. A step plan's or a test
+  spec's result lies outside the tree (`RUN/inbox/<action>.md`, then `<action>-final-result.md`), so a review that edited
+  only its result read "tree changed: n".
+  - Each `pass-<n>.json` records the result's fingerprint, `result_changed` and `edited`, beside the tree's `changed`.
+  - `passes.md` shows the three columns.
+  - A review that changed only the result must leave its own `checks.md`, written after its last edit of the result.
+    ShipLoop's producer-check summary no longer replaces it.
+  - The planning experiment exit no longer asks for "the two existing qualifying reviews": one trivial pass ends a
+    review.
+- Every mutant that survives the test stage's mutation check needs a test that kills it, or a disposition. Before, the
+  check refused only when no mutant was killed, so a partial survival passed silently.
+  - **Dispositions:** the test result's new `mutant_dispositions` lists one entry per survivor, each with its evidence:
+    - `equivalent`: no input the contract allows tells them apart;
+    - `out-of-scope`: not product behaviour, such as a tool's generated file;
+    - `not-exercisable`: no test this runner can run reaches it.
+  - **Refusal:** it lists each survivor as `file:line:column` and names both exits. It is not a kill-rate target, and it
+    forbids weakening an oracle to lower the count.
+  - **Reuse:** a resubmission that changes only the dispositions reuses the latest mutation run while the candidate
+    tree and the focused commands are unchanged, so no mutant runs again.
+  - **End of work:** the end-of-work review checks that a later edit has not made a recorded disposition untrue, and
+    that a claimed kill has a run behind it.
+- The procedure walk validates a derived expected result instead of only asking that it be replayable. It is printed in
+  the planning review focus, in the spec and test-strategy duties and in test-spec's duty 4.
+  - It names the spec rule that permits each action that decides the outcome, and recomputes the expected result from
+    the checked walk.
+  - A helper that applies the actions without checking that each is permitted, or the product under test alone, does
+    not count as a check.
+  - The review focus covers cases the review itself adds or changes. The review records the case, the method and the
+    recomputed result, or marks it `NOT-REPLAYED: <reason>`, which leaves it open.
+- A test spec revised after a send-back is reviewed where it changed, when the version accepted before the send-back was
+  itself reviewed:
+  - the cases that changed, were added or were dropped, with the IDs listed;
+  - the cases that depend on them;
+  - whether every requirement the earlier version covered is still covered.
+  Unchanged cases are not reviewed again. An earlier version that was never reviewed keeps the whole test spec in scope.
+- An inline implement step that changed no file since it began starts no step review. Its Proof still runs as the gate.
+  ShipLoop records the tree the step ended at beside the tree it began from, and the Improve checkpoint compares the two.
+  Every implement-step review's `passes.md` also records, without applying it, what the IMP-4 trigger would have done:
+  review only the first step of the item's current plan, and only a change to code or test files.
+
+### skill-craft 2.12.0
+
+- Skills: shiploop 1.12.0
+
+### shiploop 1.12.0
+
+- Prepare's `harness_runs` evidence must show a test running. The saved output is read by the same runner readers the
+  test stage uses, and it must show at least one test. Before, the gate checked only that the evidence file existed,
+  and run 5a passed it with a browser page that said it was not the component under test.
+  - An output ShipLoop cannot read is refused. The refusal names the runners ShipLoop reads and the stack's platform
+    card, and says "report blocked" for a harness that cannot be run that way.
+  - An output whose runner selected no test is refused too.
+  - The prepare duty now says to save the runner's own output, summary included.
+- Run trace: every run appends `RUN/trace.jsonl`, one line per command that names the run (verb, exit code, revision,
+  stage and action before and after, results accepted, refusal text), per printed packet (kept as sent in
+  `packets/sent/<sha>.md`, since `next` rewrites `packets/<action>.md`) and per keepalive stop decision (with the text the
+  hook put into the turn). `shiploop trace --run-dir RUN` reads it: every stage done, current, reopened or pending, the steps
+  run, recent events; `--action ID` shows one action's packets as sent, commands and refusals; `--request` shows the
+  original request beside its expansion by planning (intake's reading of each sentence, every planning result, the living
+  spec's requirements, work items with their steps, assumptions, owner answers); `--json` gives the whole
+  model; `--html` writes the self-contained `RUN/trace.html`, which the progress observer keeps current. Runs saved before
+  the trace still read from `state.md` and `timeline.json`.
+
+### skill-craft 2.11.0
+
+- Skills: shiploop 1.11.0
+
+### shiploop 1.11.0
+
+- A result revised by an Improve review now meets the same size limits as a submitted one (step task 700 characters,
+  proof 600, a step's criteria 1,200, a work item's context and open assumptions). Before, the Improve import skipped
+  these limits, so a review could lengthen a step plan past what its implement packet is sized to print.
+- The test-stage judge no longer calls a command "passed" when it exits 0 but its
+  own output reports a failed test (a wrapper or build step swallowing the
+  runner's real nonzero exit). The refusal for that case now names the runner's
+  tally instead of the bare, misleading `exit 0`.
+- ShipLoop no longer stops work on a count or a clock (owner, 2026-10-24: no artificially imposed limits):
+  - No refused-run cap: `done` is judged on every submission however many runs were refused (was 11), and the packet
+    still shows the tally. The test stage's remedy opens without a loop receipt only after a run that could not run.
+  - No send-back cap: a work item or an outer target can be sent back any number of times (was 2); `revisions` still
+    counts them, and packets say "send-back N" instead of "N of 2".
+  - No keepalive release after 22 continuations without an accepted result; Grok's own 8-continuation turn cap stays.
+  - No whole-run time budget for the test stage (was 1,800 s), the mutation check (600 s) or the lint pass (120 s), and
+    no 200-file lint cap: every command, mutant and changed file runs. Each command keeps its own hang guard.
+- The step-plan template now gives each step a countable size: at most 4 criteria and 3 product files (a file that only
+  describes another changed file counts with it; tests, docs and its proof script do not). A second module or layer, two
+  separately confirmable behaviours or two outcomes joined with "and" make another step. Each step's `paths` now name
+  every file it changes, and on a remote-only target the steps share one proof script. The unused `STEP_SIZING`
+  constant, an older copy of the sizing rule, is removed.
+
+### skill-craft 2.10.1
+
+- Skills: shiploop 1.10.1
+
+### shiploop 1.10.1
+
+- - The lint pass resolves each catalogued linter's matched files, marker and tool once per pass instead of once
+    per phase: `_discover`'s fix-apply and report phases previously each re-checked the marker file and re-walked
+    `PATH` for every row, even though neither changes within one pass. No behavior change.
+
+### skill-craft 2.10.0
+
+- Skills: shiploop 1.10.0
+
+### shiploop 1.10.0
+
+- - **eslint now applies its own fix too**, through a separate `--fix-dry-run --format json` call made only when
+    fixing is allowed this pass (its regular report call stays unchanged and always runs, since fix-dry-run's own
+    messages are numbered against the hypothetical fixed text, not the real file). A fix to a plain `.js`/`.mjs`/
+    `.cjs` file is additionally checked with `node --check` before it is applied, written beside the real file so
+    Node's module-type resolution matches; `.ts`/`.tsx`/`.jsx`/`.vue` rely on the same scope and line-ending guards
+    every other fixable tool already has. This completes the formatter-autofix round in
+    `discovered-formatter-autofix.md`: eslint was the one tool in that round needing its own fix call.
+- - **The script-owned lint pass applies more fixes itself, instead of leaving them for the model or for Improve to
+    redo by hand:** prettier, black and gofmt now apply their fix exactly like ruff already does — journal-first,
+    only on lines the work item changed, sha256-checked before writing — rather than only reporting what they would
+    rewrite. A path more than one fixable tool matches (for example a `.py` file both ruff and black touch) gets
+    each tool's fix applied in the catalog's listed order, one tool to completion before the next starts, and the
+    pending journal still records exactly one entry per path.
+  - **The catalog gains five more languages:** clang-format (C/C++/Obj-C) and `terraform fmt` apply fixes the same
+    way; ktlint (Kotlin), phpcs (PHP) and rubocop (Ruby) report findings, since this round found no confirmed way to
+    apply their fix safely without mutating a file directly. Rust, Dockerfile, C#/.NET, Java and SQL are
+    deliberately left out, each for a specific, checked reason recorded in `lint-catalog.md`.
+
+### skill-craft 2.9.2
+
+- Skills: improve 0.7.1
+
+### improve 0.7.1
+
+- Align standalone instructions and README diagrams with the existing one-review
+  gate: a completed trivial pass may include trivial polish and still needs current
+  exit evidence. Honor an explicit user-requested count over the default, including
+  in the bundled adapter. Preserve the cumulative handoff without requiring two
+  reviews, and cover reported classifications after committed edits in the runtime
+  regression.
+
+### skill-craft 2.9.1
+
+- Skills: shiploop 1.9.1
+
+### shiploop 1.9.1
+
+- - **The base run's dependency directories come from the platform cards:** the test stage's base run and mutation check
+    link an ignored directory in from the checkout only when a platform card lists it under `## Dependency directories`.
+    The Node card lists `node_modules`, and the Python card `.venv` and `venv`, so those stacks behave as before. A stack
+    that installs its runner elsewhere adds one bullet to its card, not a change to the engine. A card lists only
+    directories a command reads as input, never build output.
+- - **A base run's not-run refusal gives the exit code:** when a focused command ran none of its test IDs on the item's
+    base, the refusal now starts with how it exited, for example `exited 3 and printed nothing: it did not run …`, before
+    the existing advice and the output's last lines. It states only what the record holds; it does not guess whether the
+    command failed to start or asserted before its first print.
+- - **Refusals say the current terms:** four refusals still used words the 2.9.0 renames retired. Three said "run the same
+    complete command again" (the spec write-back gate, a retired `blocked_by` field and an unsupported result field);
+    they now say "run the same callback again". One said an open plan assumption "whose consumer is" a work item; it now
+    says "whose due_item is". Each phrase was split across two string literals, so the line-based term check missed it;
+    run 5 printed two of them.
+- - **The unread refusal points at the platform card:** when a base run names a test ID but no line says whether it
+    passed, the refusal asks for a reporter that marks each outcome on the line that names it and points at the stack's
+    platform card. The Python card now names `pytest -v` and `python -m unittest -v`, and the Node card Jest's
+    `--verbose`, beside its existing `node --test` reporters.
+
+## 2026-10-24
+
+### skill-craft 2.9.0
+
+- Skills: improve 0.7.0, shiploop 1.9.0, shiploop-e2e-audit 0.7.7, shiploop-run-review 0.3.2
+
+### improve 0.7.0
+
+- - **Expected failure:** the ShipLoop review inputs say "an expected failure" where they said "expected RED", matching
+    ShipLoop's one term for a baseline failure that a repair fixes.
+  - **Stage result:** the route's `final_result` case says "a complete stage result", as the handoff's "Stage result"
+    record now does.
+- - **ShipLoop route terms:** the ShipLoop route files and the card's ShipLoop section call the Until Loop's record
+    (`CHILD/packet.json`) the receipt, never a terminal or child packet, and the parent's `complete` the callback, as
+    ShipLoop's glossary now does.
+- A ShipLoop review now reads a short core of the ShipLoop route at each Improve stage:
+  `references/shiploop-route.md` is 9.7 KB (it was 47 KB, read whole at every stage) and holds every
+  rule a normal pass needs beyond the handoff. It names the file to open, and when, for each case:
+  `shiploop-route-recovery.md` (an error, stopped or blocked return, lost state, a half-done pass, the
+  stopped child, the inline route's text), `shiploop-route-ask-agent.md` (`Route: ask-agent`),
+  `shiploop-review-inputs.md` (the fixed review inputs, one section per condition),
+  `shiploop-route-cases.md` (independent review, later decisions, external operations,
+  `verify_script`, `final_result`) and `shiploop-route-rules.md` (the long form of the core's rules).
+  The old route's text moved there word for word; no obligation was dropped.
+
+### shiploop 1.9.0
+
+- - **Criterion and requirement:** a criterion is only a step plan's `C<n>`, and a requirement is only a spec entry
+    `R-<n>`. The conditions inside a requirement are its acceptance lines (spec, plan and product-acceptance duties, the
+    spec stage's goal and exit conditions, and the references). An implement step's exit condition and Work line say
+    "each criterion assigned to this step"; verify compares each criterion's Confirm-by clause. The glossary defines
+    acceptance line, and the retired-term suite refuses "acceptance criteria" and a step's "requirement".
+- - **Due stage and due item:** an open item's `consumer` is now `due_stage` (the later stage it is due at), matching
+    `unverified[].due_stage`. On the plan's open assumptions, which name a work item, it is `due_item`. The duties,
+    templates, refusals ("Fix the due stages", "names due_item"), renderers ("due:"), the report's Due column and
+    planning-experiments.md say so. "Consumer" now means only the person or system that uses what the run delivers
+    (`consumer_checks`, `consumer_entry`, a delivery contract), as the glossary records; the old open-item wording is
+    retired.
+- - **A file guard is refused at step-plan:** a done step plan is refused when a focused command checks for a file
+    (`test`, `[` or `[[` with `-e`, `-f`, `-d` or `-s`; `ls`; `stat`) or prints a path before its tests run. A `test`
+    that compares values is a test, not a guard. On the item's base that
+    guard fails on the missing file and prints its own message, so it fakes RED. The refusal says to run the tests
+    directly: a test of new code that fails to load on the base is a real failure, and ShipLoop reads it.
+  - **The red placeholder states the bar:** a test case's `red` asks for the assertion that fails on the base because the
+    behaviour is missing, not because a file is.
+- - **Glossary:** `references/glossary.md` is the one place a ShipLoop term is defined. It covers about 30 terms
+    (stage and step, criterion and requirement, confirm, Proof and check, test layers, surface, target, base run, RED and
+    expected failure, open item, due stage and others). It notes which terms the coming renames settle, and it lists
+    the retired terms in a block that `test/shiploop-retired-terms.test.py` reads. navigator.md links it.
+- - **An end-of-work code fix names its regression test:** at the end-of-work review (carry-forward), improve-commit
+    refuses a commit that changes code, not only tests, without a `Regression test:` line naming the test in the same
+    commit that fails without the fix; ShipLoop checks that a test file in the commit holds it. `Regression test: none:
+    <why>` is the other exit. Step and planning reviews owe no line. The Improve handoff states the rule beside the other
+    message rules.
+- The Improve handoff's top line now says `ROUTE` is the Improve skill's short route core, which has
+  every pass's rules and names the file for recovery, `final_result` and the review inputs, so a
+  review reads about 9.7 KB of route per stage instead of 47 KB. The handoff's `Review passes:` line
+  no longer speaks of two consecutive trivial passes: the loop ends at the first pass that finds only
+  trivial changes or none. `improve-context.md` points at the files the inline and ask-agent route
+  text moved to.
+- - **The look-back reaches the model:** an inline implement packet's look-back is now required head text, one line per
+    commit (subject and its Key learnings, up to 320 characters each). Before, it sat last among the optional blocks: in a
+    live run it was in every implement packet file and in none of the printed heads, and no step cited an earlier commit.
+- - **A long commit subject keeps the learnings:** the look-back cuts each commit's subject to 100 characters before it
+    adds the Key learnings, so a long subject no longer fills the 320-character line and leaves the learnings out.
+- - **The spec records primacy:** a done spec result lists `primary`, the requirements (R-<n>) that carry the request's
+    primary outcomes: what the user asked for directly. ShipLoop refuses a missing or empty list, the template entry,
+    an ID that is not R-<n> or is listed twice, and an ID with no current entry in KNOWLEDGE/spec.md. The gate runs on
+    `complete` and on the Improve stage's import.
+  - **Every unverified row names its requirement and its lower-layer check:** each product-acceptance `unverified` entry
+    is `{outcome, requirement, reason, lower_layer_check, settle, owner, due_stage}`. `requirement` is one R-<n> with a
+    current entry in the spec; `lower_layer_check` is the executed check below the e2e layer that shows the outcome's
+    logic works.
+  - **The gate on a primary requirement:** an outcome of a requirement in `primary` is accepted only when its
+    `lower_layer_check` is the ID of a test that ShipLoop ran and saw pass (a passed run in its own test records of an
+    accepted work-item stage) in a test case for that requirement. For any other requirement a stated reason may stand
+    in for the check. The refusal names the passed IDs, or add-work with one corrective work item that adds the missing
+    unit or component test, in the add-work shape the packets print.
+  - **Packets quote it by value:** product-acceptance prints a required Primary requirements block, with each primary
+    requirement and the tests that passed for it. The unverified rows printed at their due stage and at handoff show the
+    requirement and the lower-layer check, and the report's table gains both columns.
+  - **Texts:** the spec duty asks for `primary`; the product-acceptance duty names the two new fields; the Checked-by
+    lines of both stages name the new refusals. The glossary defines "primary requirement" and "lower-layer check".
+- - **Proof:** a step's command, which ShipLoop runs at the step's done, is now `steps[].proof`; it was `check`. The
+    step-plan duty, template, refusals, Step block and references say `proof`.
+  - **Settle:** an open item's and an unverified outcome's way to be settled is now `settle`: open `assumptions[].settle`
+    and `unverified[].settle`. A probed assumption keeps `check`, because its probe is a command.
+  - **Check, defined:** `check` now means only a command judged by its exit code: an expectation's check, a probed
+    assumption's probe, the service-is-back check and the `check` rows of the recorded commands. The glossary records
+    it.
+  - **State version 9:** a run saved at version 8 is refused with the reason and the fresh-run route.
+- - **Quality rules from a product review of a live run:**
+    - step-plan: behaviour is confirmed by running it whenever any runner can, and inspection confirms only text or
+      wiring. A count or prefix check proves nothing where a criterion names an exact value. A new check script is listed
+      in `paths` or kept in RUN/scratch.
+    - test-strategy: name each code surface's native unit harness; an absent one is prerequisite work, never N/A. Record
+      whether a target keeps state between runs, and how a base-state failure is produced there.
+    - test-spec: RED comes from the missing behaviour, given what earlier items left deployed; a file guard is not RED.
+      Pair each absence assertion with a presence or count assertion, drop assertions that cannot fail, and test each
+      documented throw or refusal branch.
+    - verify: "not a quoted case" is no reason to leave a path untested, and each requirement's Confirm-by clause is
+      compared with the assertions that exist.
+    - spec: non-functional bounds are numeric and inside any hard platform limit, and excluded domain rules are listed.
+    - product-acceptance: an outcome evidenced only by inspection or a deferred assumption is not accepted.
+    - Improve: the end review also looks for grep-only checks, parsers that miss cross-field validity, a pitfall fixed in
+      one place only, and failure states without a next action; each of its fixes comes with a test that fails before
+      it. The step review also flags a scaled-down UI that drops assistive state and a server entry point with no
+      declared access posture.
+- - **An item brings its own tests:** a done step plan is refused when a focused command lists only test IDs that an
+    earlier work item's step plan already made focused. That command is the earlier item's regression. A new focused ID
+    beside old ones passes.
+  - **A printed path is not a load failure:** the base run no longer reads a line that is only a file path as a load
+    failure of an added file, so a `printf <new file> && test -f <new file>` guard no longer fakes RED. The base rule
+    and the not-run refusal ask for a failure caused by the missing behaviour.
+- - **Remote commands are left out per command:** the mutation check runs only the focused commands that run on the
+    checkout and records the remote ones it skipped. Before, one remote command beside local ones spent the budget on
+    mutants it could never reach. When every command is remote, the check is skipped with the reason. When some were
+    left out and no mutant was killed, the survivors are recorded with an advisory, not refused: the mutated code may be
+    reachable only by the remote tests.
+  - **RED unobserved is printed:** verify (for its item) and product-acceptance (for every item) print the focused
+    commands the base run left out as remote, so no failure on the old code was seen and the candidate runs are their
+    only evidence.
+- - **Base run on a hosted target:** the test stage's base run no longer runs a command that a platform card lists under
+    Remote tests. Such a command tests a deployed target, which already holds the item's change, so a new test passed
+    there and was refused for no fault of its own. Running it also deployed the base's files. The record names the card
+    and the reason, and the candidate runs still judge the tests. When every command is remote, the base run records
+    skipped, as the mutation check does.
+- - **Improve stage, review and child:** a result now "starts an Improve stage" (the `improve` action with its own id),
+    the work that stage does is the Improve review, and "Improve child" names only the Until Loop child runtime (its
+    contract, state and CHILD folder: bound, active, stopped, restarted). The schedule sentences in navigator.md,
+    run-options.md, improve-stages.md, the command cards, the planning-review refusals and `--planning-review`'s help say
+    stage or review; the glossary defines all three and a retired-term row keeps "starts an Improve child" out.
+  - **Callback:** refusals say "run the same callback again" (not "the same complete command"), and the loop texts, the
+    Improve handoff, the parent return, SKILL.md and the agent card say "the callback". The CLI verb is still
+    `complete`.
+  - **Print marker and receipt:** every print now ends with `=== end ShipLoop print ===` (it was
+    `=== end ShipLoop head ===`, which also ended whole packets). The Until Loop's record (an inner stage's `loops/<action>-terminal.json`, an
+    Improve child's `CHILD/packet.json`) is its receipt, never a "terminal packet", and what the runtime prints at each
+    step is an instruction, so "packet" means only what ShipLoop prints for a stage. The loop refusals ("no receipt
+    exists at ..."), the Until Loop block's follow and receipt lines, the Done-when line and the child's `child receipt`
+    resource say so.
+- - **Commands name the target they run on:** a test command may name, in `target`, the test-strategy targets row it runs
+    on, or leave it out for a command on the checkout. When a target keeps state between runs, the step plan's template
+    asks for it. A done step plan is refused when a command names a row that does not exist. A focused and a regression
+    row with the same command fold into one only when they name the same target, which the folded row keeps.
+  - **A target that keeps state is remote, on any platform:** the base run and the mutation check leave out a command
+    whose target keeps state, because that target already holds the item's change. Before, only a platform card's
+    Remote tests list could mark a command remote.
+- - **One term per concept** (the 2026-10-24 nomenclature audit):
+    - **Test layers:** test-strategy's new rows are `test_layers`, keyed `code` and `layer` (`test_layers_na` when the
+      run writes no code). "Surface" keeps its meaning: where a requirement is observed.
+    - **Send back:** "Revise" is gone from the test and validate-existing duties. The `/shiploop-complete` card lists
+      the four outcomes, without the retired `repeat` and `replan`.
+    - **Blocked:** the shared rules now match the blocked rule. Only a person or an outside service unblocks a stage;
+      a missing tool or a command that does not run what it claims is repair work.
+    - **Stage:** a graph position is a "stage", never a "step", in the shared rules, the reference, the Improve handoff
+      and the command card.
+    - **Expected failure:** this replaces "expected-RED" for a baseline repair. "Characterisation" is spelled one way.
+    - **Private store:** a sensitive locator goes in an authorized private store, never in the committed KNOWLEDGE/.
+    - **Remote test:** the Salesforce card no longer says to list org-bound tests in `red_na`; the base run skips remote
+      tests.
+    - **Bound and destination:** an NFR has a bound, and a send-back has a destination.
+    - **Unconfirmable:** implement no longer lets a criterion be "unconfirmable", since a condition no command can
+      confirm is not a criterion.
+- - **Test layers are result fields:**
+    - A done test-strategy lists `test_layers`. Each row covers one part of the code the run writes (`code`: a module,
+      component or page) at one layer (unit, component or e2e) and gives its harness, a status (available,
+      prerequisite or unverified) and a reason.
+    - It also lists `targets`: where the tests run, whether that place keeps state, and, if it does, how a test still
+      fails on an item's base there (`base_state_route`).
+    - `test_layers_na` replaces `test_layers` only when the run writes no code.
+  - **The test-strategy gate:**
+    - All code needs a unit or component row, and neither of those layers may be unverified. A missing harness at
+      them is `prerequisite` work.
+    - Rows may not repeat.
+    - The printed lines must fit 1,200 characters.
+  - **Prepare proves each prerequisite:** prepare's `harness_runs` records, for each prerequisite row, the command that
+    ran one test with the harness and its saved output.
+  - **Each step-plan criterion says `confirm`:**
+    - `executed`: a recorded command runs the behaviour. A command that only searches text (grep and its kin) is not
+      enough.
+    - `searched`: for text the item writes.
+    - `inspected`: names an unverified row, by `code` and `layer`.
+  - **Item rows:** when the run recorded `test_layers_na` and a step plan's paths hold code, that step plan lists the
+    item's own rows.
+  - **Packets quote the fields by value:**
+    - prepare, step-plan, test-spec and test print a required Test layers block, grouped by layer, harness and status,
+      with each row's reason where it is not available, and a Test targets block;
+    - criteria lines show how each criterion is confirmed.
+  - **One term per concept in the stage texts:**
+    - test-strategy's layers are unit, component and e2e;
+    - test-spec names a case's Test layers row (code and layer) and keeps "surface" for where the case is observed;
+    - RED points at the Test targets block;
+    - verify's send-back is worded by `confirm`.
+  - **The implement review focus is shorter**, so the improve-commit line stays inside the handoff's first 4,500
+    characters. A server entry point's access posture joins the public entry point line.
+
+### shiploop-e2e-audit 0.7.7
+
+- - **Nomenclature check (E2E SPEC S-16):** the audit reads a run's `nomenclature` record and checks the packets the
+    model acted on against ShipLoop's glossary. A retired term, two terms for one concept or one term in two meanings is
+    a workflow finding. A repair checks the terms it adds, reuses or retires against the glossary, and updates the
+    glossary in the same commit.
+
+### shiploop-run-review 0.3.2
+
+- - **The stage catalog follows the engine's spec goal:** the spec row's purpose says "acceptance lines", as ShipLoop
+    does since its criterion and requirement rename. The catalog is regenerated from the engine's stage table with
+    `export.py --stages`.
+- - **Settle:** the export reads ShipLoop's renamed `unverified[].settle` (it was `check`) into the page's existing
+    `check` column, so a run on the new ShipLoop still shows what each unverified outcome's owner does.
+
 ## 2026-10-20
 
 ### skill-craft 2.8.0

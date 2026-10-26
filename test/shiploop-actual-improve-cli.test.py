@@ -171,6 +171,10 @@ class ImproveCliFixture(unittest.TestCase):
                 self.producer.setdefault("assumptions", [])
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
+            if stage == "spec":
+                self.producer = {**inner_fixture.fixture_primary(self.state), **self.producer}   # run-5 batch F6
+            if stage == "test-strategy":
+                self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
         if stage in stage_spec.INNER:
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
@@ -199,7 +203,7 @@ class ImproveCliFixture(unittest.TestCase):
         self.state = state
         self.action = self.state["action"]["id"]
         self.producer = {"outcome": "done", "summary": "Fixture spec evidence.",
-                         "evidence_refs": self.parent_evidence_refs}
+                         "evidence_refs": self.parent_evidence_refs, **inner_fixture.fixture_primary(state)}
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
@@ -244,6 +248,8 @@ class ImproveCliFixture(unittest.TestCase):
             "summary": "Fixture local-skill assessment; synthetic prior navigation is setup only.",
             "evidence_refs": self.parent_evidence_refs,
         }
+        if stage == "spec":
+            self.producer.update(inner_fixture.fixture_primary(state))
         if stage == "plan":
             self.producer["assumptions"] = []
             self.producer["concerns"] = inner_fixture.no_concerns_map(
@@ -253,7 +259,7 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
             self.producer["paths"] = ["src/**"]
             self.producer["steps"] = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"],
-                                       "criteria": [], "check": "true", "skills": []}]
+                                       "criteria": [], "proof": "true", "skills": []}]
             self.producer["expectations"] = [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
                                               "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]
         self.producer.update(producer_extra or {})
@@ -911,7 +917,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             "never edit the receipt": "Never write or edit the receipt",
             "recover an active child": "use its exact next_argv once to recover",
             "restart a stopped child": "--restart-stopped",
-            "return only after the terminal packet": "Return order:",
+            "return only after the final receipt": "Return order:",
             "pause without losing the child": "Pause parent without losing child",
             "import through the Improve stage's complete": "2. When the improve skill has completed, run: ",
         }
@@ -970,7 +976,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Always excluded: .until-loop, .shiploop-improve", contract["context"]["scope"])
         self.assertIn("No push", contract["context"]["authority"])
         locators = {r["purpose"]: r["locator"] for r in contract["context"]["resources"]}
-        self.assertEqual(locators["latest child packet receipt"], str(receipt))
+        self.assertEqual(locators["child receipt"], str(receipt))
         self.assertEqual(locators["review evidence directory (review-<n>.md per pass, checks.md)"],
                          str(receipt.parent / "reviews"))
         route = Path(locators["exact parent return instructions"]).read_text(encoding="utf-8")
@@ -1020,7 +1026,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             action = state["action"]["id"]
             result = run / "inbox" / (action + ".md")
             store.write_record(result, {"outcome": "done", "summary": "Fixture " + _predecessor + " result.",
-                                        **({"evidence_refs": self.parent_evidence_refs} if _predecessor == "spec" else {})})
+                                        **({"evidence_refs": self.parent_evidence_refs,
+                                            **inner_fixture.fixture_primary(state)} if _predecessor == "spec" else {})})
             printed = cli("complete", "--run-dir", run, "--action", action, "--result", result)
             state = store.read_record(run / "state.md")
         child = state["active_improve"]
@@ -1158,6 +1165,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         git("config", "commit.gpgsign", "false")
         git("config", "core.hooksPath", "/dev/null")
         git("commit", "--allow-empty", "-qm", "empty initial scope baseline")
+        # setUp's spec wrote the living spec its primary list names (run-5 batch F6); kept out of Git here, so the parent's
+        # knowledge commit at the import does not move HEAD in a test of what the child leaves.
+        (self.repo / ".git/info").mkdir(parents=True, exist_ok=True)
+        with (self.repo / ".git/info/exclude").open("a", encoding="utf-8") as handle:
+            handle.write("docs/shiploop/\n")
         initial_head = git("rev-parse", "HEAD")
         self.assertEqual(git("show", "--format=", "--name-only", "HEAD"), "")
 
@@ -1226,7 +1238,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """
         baseline = self.repo / "docs/current-system.md"
         delta = self.base / "incoming-spec.md"
-        baseline.parent.mkdir(parents=True)
+        baseline.parent.mkdir(parents=True, exist_ok=True)   # setUp's spec wrote docs/shiploop/spec.md (F6)
         baseline.write_text(
             "# Current system\n\n## as-of-v1\nObserved: polling runs missed jobs once.\n",
             encoding="utf-8",
@@ -1290,7 +1302,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         )
         local_card.parent.mkdir(parents=True)
         local_card.write_text("# Release evidence triage\n", encoding="utf-8")
-        input_contract.parent.mkdir(parents=True)
+        input_contract.parent.mkdir(parents=True, exist_ok=True)   # setUp's spec wrote docs/shiploop/spec.md (F6)
         input_contract.write_text("# Release contract\n\n## current-input\n", encoding="utf-8")
         validation.parent.mkdir(exist_ok=True)
         validation.write_text("def test_current_contract():\n    pass\n", encoding="utf-8")
@@ -1376,7 +1388,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
     def commit_architecture(self) -> Path:
         """docs/shiploop/architecture.md with two decisions, committed in the product repository as an earlier run's home."""
         architecture = self.repo / "docs/shiploop/architecture.md"
-        architecture.parent.mkdir(parents=True)
+        architecture.parent.mkdir(parents=True, exist_ok=True)   # setUp's spec wrote the living spec there (F6)
         architecture.write_text(self.ARCHITECTURE, encoding="utf-8")
         self.home_git("init", "-q")
         self.home_git("add", "-A")
@@ -1535,6 +1547,27 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(state["accepted"][self.action]["evidence_refs"], [str(note)])
         self.assertEqual(state["improve_results"][self.action]["receipt"]["final_result"]["evidence_refs"], [str(note)])
 
+    def test_a_revised_final_result_over_a_producer_bound_is_refused_and_one_within_imports(self):
+        """E6 plan sizing F32 (2026-10-25): the Improve import ran every final-result gate but the producer bounds, so a
+        Grok step-plan review lengthened step S1's criteria from 846 to 1,221 characters and the run stored it over the
+        1,200 a later implement packet prints whole. A revised result now meets the bounds a submitted one meets."""
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        steps = [dict(step) for step in seed["steps"]]
+        steps[0]["task"] = str(steps[0].get("task") or "") + " " + "and the revised wording repeats it." * 25
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, steps=steps))
+        before = (self.run / "state.md").read_bytes()
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("step " + str(steps[0]["id"]) + "'s task is", refused.stderr)
+        self.assertIn("characters; the limit is 700", refused.stderr)
+        self.assertEqual(before, (self.run / "state.md").read_bytes())
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, summary=seed["summary"] + " Reviewed."))
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.current_stage(state), "test-spec")
+        self.assertEqual(state["accepted"][self.action]["summary"], seed["summary"] + " Reviewed.")
+
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
         import types
@@ -1601,7 +1634,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             state = store.read_record(run / "state.md")
         action = state["action"]["id"]
         result_path = run / "inbox" / (action + ".md")
-        store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
+        store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer",
+                                         **inner_fixture.fixture_primary(state)})
         self.invoke(CLI, "complete", "--run-dir", run, "--action", action, "--result", result_path)
         before = (run / "state.md").read_bytes()
         cold = subprocess.run([sys.executable, "-B", str(CLI), "next", "--run-dir", str(run)], cwd="/",
@@ -1666,7 +1700,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.action = navigator.current_action(state)["id"]
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, {"outcome": "done", "summary": "Fixture spec evidence.",
-                                        "evidence_refs": self.parent_evidence_refs})
+                                        "evidence_refs": self.parent_evidence_refs, **inner_fixture.fixture_primary(state)})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(CARD)
         completion, receipt = self.completion_receipt()
@@ -1776,6 +1810,10 @@ class LoopContractShapeTests(unittest.TestCase):
                     self.assertNotIn(gone, text)
 
 
+# The end-of-work review's producer: the last item's carry-forward, which records its skill decision.
+END_OF_WORK = {"skill": {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}}
+
+
 class ImproveCommitContractTests(ImproveCliFixture):
     """improve-commit through the real CLI: what it checks, in what order, and that every refusal's named exit works.
 
@@ -1796,6 +1834,10 @@ class ImproveCommitContractTests(ImproveCliFixture):
                 self.producer.setdefault("assumptions", [])
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
+            if stage == "spec":
+                self.producer = {**inner_fixture.fixture_primary(self.state), **self.producer}   # run-5 batch F6
+            if stage == "test-strategy":
+                self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
         if stage in stage_spec.INNER:
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
@@ -1813,13 +1855,13 @@ class ImproveCommitContractTests(ImproveCliFixture):
         return subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, text=True,
                               env=self.environment).stdout
 
-    def begin(self, stage="test-strategy"):
+    def begin(self, stage="test-strategy", producer_extra=None):
         self.git("init", "-q")
         self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "-A")
         self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "base")
         self.base_commit = self.git("rev-parse", "HEAD").strip()
         (self.repo / "scratch.txt").write_text("the user's own uncommitted note\n", encoding="utf-8")
-        self._start_parent_at_stage(stage, [str(self.product_contract)])
+        self._start_parent_at_stage(stage, [str(self.product_contract)], producer_extra=producer_extra)
         self.message = bridge.receipt_path(self.bound).with_name("commit-message.md")
         self.message.parent.mkdir(parents=True, exist_ok=True)
         self.commit_args = [CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve,
@@ -1939,7 +1981,8 @@ class ImproveCommitContractTests(ImproveCliFixture):
             summary = ("Spec drafted.\n\n## Scope\nIn scope: the widget.\n\n## Environment\nPython.\n"
                        if stage == "spec" else "Fixture " + stage + " result.")
             store.write_record(result, {"outcome": "done", "summary": summary,
-                                        **({"evidence_refs": [str(self.product_contract)]} if stage == "spec" else {})})
+                                        **({"evidence_refs": [str(self.product_contract)],
+                                            **inner_fixture.fixture_primary(state)} if stage == "spec" else {})})
             done = cli("complete", "--run-dir", run, "--action", action, "--result", result)
             state = store.read_record(run / "state.md")
         self.assertNotIn("could not start", done.stdout + done.stderr)
@@ -2261,6 +2304,74 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertIn("remote change", done)
         self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), [])
 
+    def code_change(self, test_text=None):
+        """A fix to product code, and the test file that shows it when ``test_text`` is given."""
+        (self.repo / "src").mkdir(exist_ok=True)
+        (self.repo / "src" / "calc.py").write_text("def calc(x):\n    return 1 / x if x else 0\n", encoding="utf-8")
+        if test_text is not None:
+            (self.repo / "tests").mkdir(exist_ok=True)
+            (self.repo / "tests" / "test_calc.py").write_text(test_text, encoding="utf-8")
+
+    def test_an_end_of_work_code_fix_names_its_test_in_the_commit_and_the_named_exit_commits(self):
+        """Run-5 batch F5: the end-of-work review fixes code after the tests ran, so its commit names the test, in the
+        same commit, that fails without the fix."""
+        self.begin("carry-forward", producer_extra=END_OF_WORK)
+        self.code_change()
+        self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\n")
+        first = self.refused()
+        line = self.line_one(first)
+        self.assertTrue(line.startswith("Add a line `Regression test: <the ID of the test in this commit that fails "
+                                        "without the fix>`"), line)
+        self.assertIn("this commit changes code (src/calc.py)", line)
+        self.code_change("from src.calc import calc\n\ndef test_calc_rejects_zero():\n    assert calc(0) == 0\n")
+        self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: test_calc_other\n")
+        self.assertIn("no test file in this commit holds test_calc_other", self.line_one(self.refused()))
+        # The named exit: the test this commit adds, by its ID.
+        self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\nRegression test: test_calc_rejects_zero\n")
+        self.run_named(first)
+        self.assertIn("Regression test: test_calc_rejects_zero", self.head_message())
+        self.assertEqual(sorted(self.git("show", "--name-only", "--format=", "HEAD").split()),
+                         ["src/calc.py", "tests/test_calc.py"])
+
+    def test_none_with_a_reason_is_the_other_exit_and_a_test_only_or_planning_commit_owes_no_line(self):
+        self.begin("carry-forward", producer_extra=END_OF_WORK)
+        self.code_change()
+        self.write("fix: rename\n\nKey learnings: none\nRegression test: none:\n")
+        self.assertIn("Regression test: none: <why no test can show this fix>", self.line_one(self.refused()))
+        self.write("fix: rename\n\nKey learnings: none\nRegression test: none: a local rename; no behaviour moves\n")
+        self.invoke(*self.commit_args)
+        self.assertIn("Regression test: none: a local rename", self.head_message())
+        # A commit that changes only tests is the test itself: no line is owed.
+        (self.repo / "tests").mkdir(exist_ok=True)
+        (self.repo / "tests" / "test_more.py").write_text("def test_more():\n    assert True\n", encoding="utf-8")
+        self.write("test: one more\n\nKey learnings: none\n")
+        self.invoke(*self.commit_args)
+
+    def test_a_planning_review_code_change_owes_no_regression_line(self):
+        self.begin()  # test-strategy: a planning review, which F5 does not gate
+        self.code_change()
+        self.write("docs: x\n\nKey learnings: none\n")
+        self.invoke(*self.commit_args)
+
+    def test_the_regression_test_is_found_when_the_run_works_in_a_subdirectory_of_the_checkout(self):
+        """Sol pass 2, finding 3: review_changes names paths from the Git toplevel, not from the run's repository."""
+        top = self.base / "mono"
+        (top / "app" / "tests").mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(top)], check=True, capture_output=True, env=self.environment)
+        (top / "app" / "tests" / "test_calc.py").write_text("def test_calc_rejects_zero():\n    pass\n", encoding="utf-8")
+        pending = ["app/src/calc.py", "app/tests/test_calc.py"]
+        message = "fix\n\nKey learnings: none\nRegression test: test_calc_rejects_zero\n"
+        self.assertEqual(navigator._regression_refusal(top / "app", {"stage": "carry-forward"}, message, pending,
+                                                       self.base / "m.md", "CMD"), "")
+
+    def test_a_step_review_code_fix_owes_no_regression_line(self):
+        """F5 is end-of-work only (owner decision): a step review's code fix commits without the line."""
+        path = self.base / "commit-message.md"
+        for stage in ("implement", "test-strategy"):
+            with self.subTest(stage):
+                self.assertEqual(navigator._regression_refusal(self.repo, {"stage": stage}, "x\n", ["src/calc.py"],
+                                                               path, "CMD"), "")
+
     def start_child(self):
         """The frozen contract and parent-return.md ShipLoop wrote when it started the child at the transition."""
         receipt = bridge.receipt_path(self.bound)
@@ -2287,7 +2398,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
                 self.assertIn(needed, route)
         self.assertLess(route.index("improve-commit --run-dir="), route.index(" complete --run-dir="))
         self.assertLess(route.index("improve-pass --run-dir="), route.index("improve-commit --run-dir="))
-        self.assertIn("The child never runs the complete command", route)
+        self.assertIn("The child never runs the callback", route)
 
     def test_the_command_parent_return_prints_runs_and_commits_at_the_planning_stage(self):
         """Route test: what a cleared child finds in the file the contract names is a command that works."""
@@ -2412,7 +2523,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertNotIn("Stage exactly these paths", stderr)
         self.write("docs: tighten\n\nKey learnings: exact examples catch drift.\n")
         self.run_named(stderr)
-        again = next(row for row in stderr.splitlines() if row.startswith("Then run the complete command again: "))
+        again = next(row for row in stderr.splitlines() if row.startswith("Then run the callback again: "))
         argv = shlex.split(again.split(": ", 1)[1])  # the refusal prints it: a cleared parent needs no other packet
         self.assertEqual(argv[2], "complete")
         self.assertEqual(argv[-1], "--action=" + self.improve)  # the refusal names the Improve stage's id
@@ -2520,13 +2631,35 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
         # IMP-11: passes.md at import, one row per pass with the listed fields.
         passes = (self.run / "improve" / self.action / "passes.md").read_text(encoding="utf-8")
-        self.assertIn("| stage | pass | label | tree changed | seconds | skill call recorded |", passes)
+        self.assertIn("| stage | pass | label | tree changed | result changed | edited | seconds | skill call recorded |",
+                      passes)
         row = next(line for line in passes.splitlines() if line.startswith("| test-strategy | 1 |"))
         cells = [cell.strip() for cell in row.strip("|").split("|")]
-        self.assertEqual(cells[2:4], ["trivial", "n"])
-        self.assertTrue(cells[4].isdigit(), row)
-        self.assertEqual(cells[5], "not enforced")  # no Claude session bound this suite's run
-        self.assertIn("Re-decide the Improve stop rule (IMP-4) at 10 step-stage reviews with at least 3 edits", passes)
+        self.assertEqual(cells[2:6], ["trivial", "n", "n", "n"])
+        self.assertTrue(cells[6].isdigit(), row)
+        self.assertEqual(cells[7], "not enforced")  # no Claude session bound this suite's run
+
+    def test_a_result_only_edit_is_an_edit_and_needs_the_reviews_own_check_of_the_changed_result(self):
+        """Advisors panel 2026-10-25: a step plan's or test spec's result lies outside the tree, so a review that edited only
+        its result read "tree changed: n" (test-spec reviews: 0 of 9 edited by that column, 5 of 9 in fact), and ShipLoop's
+        checks.md summary for an unchanged tree replaced the review's own check of the changed result."""
+        self.begin()
+        record = store.read_record(self.input)
+        record["summary"] = str(record.get("summary", "")) + " The review made it exact."
+        store.write_record(self.input, record)
+        self.write_review(label="non-trivial", exit="unsatisfied", found="the summary was vague.",
+                          changed="the result's summary.", why="it changed the result.")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("record how you checked the changed result", self.line_one(refused))
+        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
+        (self.reviews() / "checks.md").write_text("Re-read the changed summary against the spec: consistent.\n",
+                                                  encoding="utf-8")
+        out = self.run_named(refused).stdout
+        self.assertIn("result changed since the bind", out)
+        self.assertIn("checks.md written by the review after its last edit of the result", out)
+        facts = json.loads((self.reviews() / "pass-1.json").read_text(encoding="utf-8"))
+        self.assertEqual((facts["changed"], facts["result_changed"], facts["edited"]), (False, True, True))
+        self.assertTrue((self.reviews() / "checks.md").read_text(encoding="utf-8").startswith("Re-read"))
 
     def test_an_edit_without_key_learnings_is_refused_and_the_named_exit_commits_and_records_the_pass(self):
         self.begin()
@@ -2673,9 +2806,9 @@ class ImprovePassTests(ImproveCliFixture):
 
     def test_the_implement_step_focus_names_an_unexercised_language_behaviour(self):
         """IMP-10 (kept only if the seeded string-comparison defect is caught at pass 1 in the live round, U31)."""
-        self.assertIn("- a language or library behaviour the change relies on that no command has\n  exercised "
-                      "(comparison and case rules, null and empty values, visibility,\n  ordering): run a one-line "
-                      "probe or read its primary documentation;", prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
+        self.assertIn("- a language or library behaviour the change relies on and no command has\n  exercised "
+                      "(comparison and case rules, null and empty values, visibility,\n  ordering): probe it in one "
+                      "line or read its primary documentation;", prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
 
     def test_focus_ids_are_off_by_default_and_when_on_a_review_must_answer_each_one(self):
         """IMP-6 (its own commit, default off): with FOCUS_IDS on, the handoff numbers the focus conditions F1..Fn and

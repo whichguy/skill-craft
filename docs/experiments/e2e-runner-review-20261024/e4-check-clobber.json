@@ -1,0 +1,62 @@
+{
+ "question": "E4: why did the release-gate Battleship run (Claude Sonnet, 2.9.0 marketplace, engine done) fail checks 3 and 4?",
+ "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship",
+ "finding": "a harness false fail: the product commits page.html and server.js reads it at start (fs.readFileSync(path.join(__dirname, 'page.html'))); check 2 runs `curl ... -o page.html && grep ...; rm -f page.html` in work/, so it overwrote and then deleted the product's own file, and every later check's server died with ENOENT. The product repository was left with ' D page.html'.",
+ "regrade": {
+  "method": "work/ copied to a scratch folder, page.html restored with git checkout, checks run one by one through run.run_checks on the wave 1 branch",
+  "results": {
+   "1 node --test": true,
+   "3 one fire": true,
+   "4 old sweep": true,
+   "battleship_game.py": true,
+   "2 page piped to grep (no file)": true,
+   "2 page as shipped": true,
+   "3 one fire after the shipped check 2": false
+  },
+  "after": "page.html deleted again by the shipped check 2"
+ },
+ "same_pattern": {
+  "page.html": [
+   "battleship checks[1]",
+   "battleship-scoring checks[2]",
+   "checkers checks[1]"
+  ],
+  "node-test.log": [
+   "battleship checks[0]",
+   "checkers checks[0]"
+  ],
+  ".ids-before/.ids-after": [
+   "battleship-scoring retention[3]"
+  ],
+  "out.txt/err.txt": [
+   "temperature-report checks[4,5]",
+   "unit-converter checks[6]",
+   "word-report checks[6]",
+   "temperature-plain checks[4,5]"
+  ]
+ },
+ "not_covered_by": "CheckHygieneTest.test_checks_leave_no_untracked_file_behind keeps a file whose name no check uses",
+ "fixed_regrade": {
+  "method": "the same copy, page.html restored, the four battleship checks as the fix writes them (page piped from a variable, node --test to mktemp, check 4 battleship_game.py), all in one run_checks call as a live run makes it",
+  "results": [
+   {
+    "check": 1,
+    "pass": true
+   },
+   {
+    "check": 2,
+    "pass": true
+   },
+   {
+    "check": 3,
+    "pass": true
+   },
+   {
+    "check": 4,
+    "pass": true
+   }
+  ],
+  "git_status_after": "clean"
+ },
+ "fix": "12 check and retention lines now write scratch output to mktemp or a shell variable; CheckScratchFileTest scans every line and runs them all against a product that commits page.html and the scratch names (53 failures on the old cases.json, 0 on the new)"
+}

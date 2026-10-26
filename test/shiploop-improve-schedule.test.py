@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
@@ -19,7 +20,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shiploop_inner_fixture import no_concerns_map  # noqa: E402
+from shiploop_inner_fixture import fixture_primary, no_concerns_map, fixture_test_layers  # noqa: E402
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -69,6 +70,48 @@ def full_packet(head):
     """The complete packet: the file a ``Full packet:`` pointer names, else the head itself (a short packet is whole)."""
     row = next((r for r in head.splitlines() if r.startswith("Full packet: ")), None)
     return Path(row.removeprefix("Full packet: ").split(" - ", 1)[0]).read_text(encoding="utf-8") if row else head
+
+
+class RevisedCaseScopeTests(unittest.TestCase):
+    """P3 of the 2026-10-25 advisors panel: a test spec revised after a send-back is reviewed where it changed.
+
+    Chess run 5b's two test-spec re-reviews read all 25 cases when one had changed (TC_28 for W1, then TC_19 for W2),
+    and runs 3 and 4 add two more with no edit. An earlier version that was never reviewed keeps the whole spec in scope.
+    """
+    CASES = [{"id": "TC_1", "criterion": "C1", "oracle": "a"}, {"id": "TC_2", "criterion": "C2", "oracle": "b"},
+             {"id": "TC_3", "criterion": "C3", "oracle": "c"}]
+
+    def state(self, *, reviewed=True, revised=None):
+        history = [{"workitem": "W1", "stage": "test-spec", "outcome": "done", "action": "nav-spec1"},
+                   {"workitem": "W1", "stage": "implement", "outcome": "send-back", "action": "nav-back"}]
+        child = {"stage": "test-spec", "action_id": "nav-spec2",
+                 "seed_result": {"test_cases": revised if revised is not None else self.CASES}}
+        return {"history": history, "accepted": {"nav-spec1": {"test_cases": self.CASES}},
+                "improve_results": {"nav-spec1": {}} if reviewed else {}}, child
+
+    def scope(self, state, child):
+        with mock.patch.object(nav, "_current_work_item", return_value="W1"):
+            return " ".join(nav._revised_case_scope(state, child))
+
+    def test_the_review_takes_the_changed_added_and_dropped_cases_and_the_coverage(self):
+        revised = [dict(self.CASES[0]), dict(self.CASES[1], oracle="b, exact"), {"id": "TC_4", "criterion": "C4"}]
+        text = self.scope(*self.state(revised=revised))
+        self.assertIn("changed (TC_2), were added (TC_4) or were dropped (TC_3)", text)
+        self.assertIn("RUN/results/nav-spec1.md", text)
+        self.assertIn("The 1 unchanged cases were reviewed then: do not review them again.", text)
+        self.assertIn("every requirement the earlier version covered is still covered", text)
+
+    def test_an_unchanged_revision_checks_only_the_coverage(self):
+        self.assertIn("no case changed", self.scope(*self.state()))
+
+    def test_an_earlier_version_that_was_never_reviewed_keeps_the_whole_spec_in_scope(self):
+        self.assertEqual(self.scope(*self.state(reviewed=False)), "")
+
+    def test_a_first_visit_or_another_stage_adds_nothing(self):
+        state, child = self.state()
+        state["history"] = state["history"][:1]
+        self.assertEqual(self.scope(state, child), "")
+        self.assertEqual(self.scope(self.state()[0], dict(child, stage="step-plan")), "")
 
 
 class ImproveScheduleTests(unittest.TestCase):
@@ -191,11 +234,11 @@ class ImproveScheduleTests(unittest.TestCase):
         # LOST OBLIGATION (re-cut 2026-10-11): the goal and done-when list the review judges the result against were
         # only in the old Improve packet's head; neither the new packet nor the handoff file states them.
         self.assertIn("Reviewing the returned spec result. Goal:", handoff)
-        self.assertIn("- every request outcome maps to at least one acceptance criterion", handoff)
+        self.assertIn("- every request outcome maps to at least one acceptance line", handoff)
         self.assertNotIn("Capture separate durable review files", handoff)
         text = " ".join(handoff.split())
-        # P12: the child writes review-<n>.md per pass; the complete command picks the passes itself.
-        self.assertIn("The complete command imports the last two passes", text)
+        # P12: the child writes review-<n>.md per pass; the callback picks the passes itself.
+        self.assertIn("The callback imports the last two passes", text)
         self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
 
@@ -242,8 +285,8 @@ class ImproveScheduleTests(unittest.TestCase):
                 # W1's carry-forward leaves W2 pending, so it is not the end review.
                 with self.assertRaisesRegex(
                         nav.NavigatorError,
-                        "Improve child is at " + target + ", a stage that does not start an "
-                        r"Improve child in this run \(planning_review: stage\)"):
+                        "active Improve child is at " + target + ", a stage that does not start an "
+                        r"Improve stage in this run \(planning_review: stage\)"):
                     nav.validate(forged)
 
     def test_improve_record_at_a_non_planning_step_is_refused(self):
@@ -318,7 +361,7 @@ class ImproveScheduleTests(unittest.TestCase):
             with self.subTest(status=label):
                 packet = nav.render(None, run, stopped_state)
                 for callback in ("Callback for this stage", "Next command (bind",
-                                 "Callback for this Improve child"):
+                                 "Callback for this Improve stage"):
                     self.assertNotIn(callback, packet)
 
     def test_a_recorded_card_is_the_value_the_packet_prints_and_its_body_line_names_no_origin(self):
@@ -439,7 +482,7 @@ class PlanningReviewScheduleTests(unittest.TestCase):
                 if refused:
                     with self.assertRaisesRegex(
                             nav.NavigatorError,
-                            "Improve child is at spec, a stage that does not start an Improve child in "
+                            "active Improve child is at spec, a stage that does not start an Improve stage in "
                             r"this run \(planning_review: none\)"):
                         nav.validate(forged)
                 else:
@@ -449,7 +492,7 @@ class PlanningReviewScheduleTests(unittest.TestCase):
         """GUARD for stage (passes on the unchanged code); none gets the same gate, not a lighter one."""
         open_entry = dict(DONE, assumptions=[{
             "id": "A1", "assumption": "A server seam exists.", "disposition": "open",
-            "check": "import it", "reason": "not run", "consumer": "W9"}])
+            "settle": "import it", "reason": "not run", "due_item": "W9"}])
         for mode in ("stage", "none"):
             with self.subTest(mode=mode):
                 with self.assertRaisesRegex(nav.NavigatorError, "W9"):
@@ -469,7 +512,7 @@ class PlanningReviewScheduleTests(unittest.TestCase):
         packet = nav.render(None, run, plan)
         for absent in ("improve-reconcile", "Planning experiments guide", "Planning investigation notebook",
                        "its Improve child evaluates", "mandatory actual Improve handoff",
-                       "starts this action's Improve child", "Proposed queue awaiting Improve"):
+                       "starts this action's Improve stage", "Proposed queue awaiting Improve"):
             self.assertNotIn(absent, packet)
         # A producer packet no longer announces its Improve child at all (re-cut 2026-10-11, item 2); the none-mode
         # sentence is gone with it, and the stage-mode promise below is gone too.
@@ -533,6 +576,10 @@ class CliRunCase(unittest.TestCase):
         if state["stage"] == "plan" and merged.get("outcome") == "done" and "concerns" not in merged:
             queue = merged.get("work_items", state["work_items"])
             merged["concerns"] = no_concerns_map(row["id"] for row in queue if isinstance(row, dict))
+        if state["stage"] == "spec" and merged.get("outcome") == "done":
+            merged = {**fixture_primary(state), **merged}                      # run-5 batch F6
+        if state["stage"] == "test-strategy" and merged.get("outcome") == "done":
+            merged = {**fixture_test_layers(), **merged}                       # run-5 batch F1, F3
         path = run / "inbox" / (action + ".md")
         store.write_record(path, merged)
         return self.cli("complete", "--run-dir", run, "--action", action, "--result", path)
@@ -612,7 +659,7 @@ class PlanningReviewNoneCliTests(CliRunCase):
         store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
         before = (run / "state.md").read_bytes()
         refused = self.cli("next", "--run-dir", run, status=2)
-        self.assertIn("a stage that does not start an Improve child in this run (planning_review: none)",
+        self.assertIn("a stage that does not start an Improve stage in this run (planning_review: none)",
                       refused.stdout + refused.stderr)
         self.assertNotIn("Traceback", refused.stdout + refused.stderr)
         self.assertEqual((run / "state.md").read_bytes(), before)
@@ -666,7 +713,7 @@ class PlanningReviewNoneCliTests(CliRunCase):
         run = self.start("none")
         self.advance_to(run, "plan")
         open_entry = [{"id": "A1", "assumption": "A server seam exists.", "disposition": "open",
-                       "check": "import it", "reason": "not run", "consumer": "W9"}]
+                       "settle": "import it", "reason": "not run", "due_item": "W9"}]
         action = self.saved(run)["action"]["id"]
         path = run / "inbox" / (action + ".md")
         store.write_record(path, dict(DONE, assumptions=open_entry))

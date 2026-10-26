@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -797,6 +798,22 @@ class TestRules(FakeOrg):
                 self.assertEqual(proc.stdout.strip().splitlines()[-1].split(";")[0], "rules: 0 of 19 markers passed")
                 self.assertIn(part, proc.stdout)
                 self.assertNotIn("Traceback", self.out(proc))
+
+    def test_a_run_under_another_prefix_sends_apex_that_names_only_that_prefix(self) -> None:
+        # run.py --platform-prefix (SPEC: a hosted-platform run's prefix): the oracle's classes are renamed, nothing else.
+        sent = []
+
+        def run_apex(org, work, name, script):
+            sent.append(script)
+            return "", run_script(script.replace("SLBtlHk0001", "SLBattle"), engine()), ""
+        with mock.patch.object(bs.sfc, "run_apex", side_effect=run_apex):
+            ok, lines = bs.do_rules("de", None, "SLBtlHk0001")
+        self.assertTrue(ok, lines[-1])
+        self.assertEqual(lines[-1], "rules: 19 of 19 markers passed; failed: none")
+        self.assertEqual(len(sent), len(bs.scenarios()))
+        self.assertFalse([script for script in sent if "SLBattle" in script])
+        self.assertTrue(all("SLBtlHk0001Controller." in script or "SLBtlHk0001Engine." in script for script in sent))
+        self.assertEqual([s.replace("SLBtlHk0001", "SLBattle") for s in sent], [script for _name, script in bs.scenarios()])
 
     def test_output_that_is_not_a_game_fails_without_a_traceback(self) -> None:
         proc = self.run_check(*self.RULES, env={"FAKE_SF_APEX": self.canned(game_a="{not json", game_b="[]")})

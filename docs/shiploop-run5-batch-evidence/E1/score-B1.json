@@ -1,0 +1,31 @@
+{
+  "experiment": "E1",
+  "arm": "B",
+  "sample": 1,
+  "value": 1,
+  "own_tests_pass": true,
+  "killed": [
+    "empty",
+    "lenient"
+  ],
+  "stand_ins": {
+    "empty": {
+      "result": "killed",
+      "exit": 1
+    },
+    "lenient": {
+      "result": "killed",
+      "exit": 1
+    }
+  },
+  "error_rows": 2,
+  "test_cases": 4,
+  "slice_pass": true,
+  "slice_verdicts": {
+    "process": true,
+    "stopped": true,
+    "no_overshoot": true
+  },
+  "seconds": 1037.0,
+  "commit": "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+}

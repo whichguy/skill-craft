@@ -23,7 +23,7 @@ record('terminal next response', nextResp);
 record('complete flag', nextResp.complete);
 record('actions on terminal response', nextResp.actions);
 record('next_argv on terminal response', nextResp.next_argv);
-record('next_argv points at dispatch.js next?', JSON.stringify(nextResp.next_argv).includes('"next"') && nextResp.next_argv[nextResp.next_argv.length - 2] === 'next');
+record('next_argv present on terminal response?', nextResp.next_argv !== undefined); // adapted: guard undefined (the fix)
 
 // Follow it one more time to see if it just loops on the same terminal state.
 const followed = lib.cliOk(...['next', dir]);

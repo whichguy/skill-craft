@@ -73,23 +73,61 @@ repository directory, then the Git top level: a marker file, a
 actionlint, none needed), it resolves the tool from `node_modules/.bin` for
 node tools, then from `PATH`, and runs it in the run's repository directory on
 the changed files of that type. A configured but missing tool produces a
-recommendation. Formatters (prettier, black, gofmt) report each region they
-would rewrite; ShipLoop does not apply their output.
+recommendation. A row marked `fixable` in the catalog data (eslint, prettier,
+black, gofmt, clang-format, terraform fmt today) applies its fix exactly like
+ruff — journal-first, only on lines this work item changed, sha256-checked —
+before any row's findings are reported. eslint's own fix-dry-run call is
+separate from its report call (its fix output's accompanying messages are
+numbered against the hypothetical fixed text, not the real file, so they are
+never used for reporting); every other fixable row's single call serves as
+both the fix candidate and, when withheld, the report diff. A row without
+the `fixable` mark (tsc, mypy, markdownlint-cli2, yamllint, actionlint,
+ktlint, phpcs, rubocop) only ever reports.
+
+Every fixable row but `terraform fmt` also needs its own marker (a config
+file the repository itself placed) before it fixes anything, confirming the
+repository actually opted into that tool's style — the same reason `gofmt`
+still needs `go.mod` even though Go formatting, like Terraform's, has no
+project-level configuration to respect. `terraform fmt` is the deliberate
+exception (`require_marker: false`, like `actionlint`'s): reaching this row
+at all already means the work item is editing a `.tf`/`.tfvars` file, which
+is unambiguous evidence of deliberate Terraform work in a way a stray `.go`
+or `.js` file is not, and `terraform fmt`'s own output is a fixed, purely
+whitespace-level canonical style with no way to disagree with it beyond not
+running it.
 
 | Linter | Files | Configured by | Output |
 | --- | --- | --- | --- |
-| eslint | JS/TS, Vue | `eslint.config.*`, `.eslintrc*`, `package.json` `eslintConfig` | JSON |
-| prettier | JS/TS, JSON, CSS, Markdown, YAML, HTML | `.prettierrc*`, `prettier.config.*`, `package.json` `prettier` | formatted stdin |
+| eslint (fixable) | JS/TS, Vue | `eslint.config.*`, `.eslintrc*`, `package.json` `eslintConfig` | JSON |
+| prettier (fixable) | JS/TS, JSON, CSS, Markdown, YAML, HTML | `.prettierrc*`, `prettier.config.*`, `package.json` `prettier` | formatted stdin |
 | tsc | TS | `tsconfig.json` (project run, findings kept for changed files) | `path(line,col)` |
 | mypy | Python | `mypy.ini`, `.mypy.ini`, `[tool.mypy]` | lines |
-| black | Python | `[tool.black]` | diff |
+| black (fixable) | Python | `[tool.black]` | formatted stdin |
 | markdownlint-cli2 | Markdown | `.markdownlint-cli2.*`, `.markdownlint.*` | lines |
 | yamllint | YAML | `.yamllint*` | parsable lines |
 | actionlint | `.github/workflows/*.yml` | nothing; runs when on PATH | lines |
-| gofmt | Go | `go.mod` | diff |
+| gofmt (fixable) | Go | `go.mod` | formatted stdin |
+| clang-format (fixable) | C/C++/Obj-C | `.clang-format`, `_clang-format` | formatted stdin |
+| terraform fmt (fixable) | Terraform/HCL | nothing; runs when on PATH | formatted stdin |
+| ktlint | Kotlin | nothing; runs when on PATH | lines |
+| phpcs | PHP | `phpcs.xml*`, `.phpcs.xml*` | lines |
+| rubocop | Ruby | `.rubocop.yml`, `.rubocop_todo.yml` | lines |
 
 A discovered finding on a line the item changed counts as new. One elsewhere in
 a changed file is reported as not compared with the base and never gates.
+
+**Deliberately not catalogued yet**, each for a specific, checked reason
+rather than an oversight: Rust (`rustfmt` has no confirmed way to combine
+stdin input with a project's own `rustfmt.toml` — no `--assume-filename`-
+equivalent flag — so a stdin fix could silently apply the wrong style);
+Dockerfile (`hadolint`; `Dockerfile` has no file extension, and this
+catalog's matching is suffix-based — needs a small follow-up to how a row
+can match, not a catalog change); C#/.NET (`dotnet format` works at
+project/solution scope, not a single file); Java (`checkstyle`'s exact
+plain-format field layout isn't confirmed); SQL (`sqlfluff` supports stdin
+but its parseable output format isn't confirmed). Report-only additions are
+low-risk to get slightly wrong (a finding just doesn't parse); a `fixable`
+one is not, so none of these is added on an unconfirmed guess.
 
 **Safety pins (code, not catalog):**
 
@@ -114,19 +152,32 @@ a changed file is reported as not compared with the base and never gates.
   `--isolated --select F,E9`; a file only ruff's built-in excludes skip there
   counts as uncovered, not as excluded by the repository.
 - ShellCheck without a `.shellcheckrc` runs with `-S warning --norc`.
-- A fix is applied all or nothing per file, only when every changed hunk lies on
-  a line this work item changed, to a regular single-link file inside the
-  repository whose sha256 is unchanged since it was read. Line endings and mode
-  bits are preserved. A pending journal `<run>/lint/pending-<action>.patch` is
-  written before any product file changes. An unconsumed journal is shown on
-  every packet until the next pass adopts it: that pass keeps it under
-  `<run>/lint/logs/` and names it once in its block. A fix whose syntax guard
-  does not complete is withheld. Identical blobs count as mirrors only under
-  the same file name, and never when empty.
-- The whole pass has a wall-clock budget of about 120 seconds (60 per tool
-  call) that also bounds Git plumbing; files over 2 MB and changed-line diffs
-  too large to attribute are not fixed, and skipped tools and files are
-  reported.
+- A fix — ruff's or any `fixable` discovered row's — is applied all or nothing
+  per file, only when every changed hunk lies on a line this work item
+  changed, to a regular single-link file inside the repository whose sha256
+  is unchanged since it was read. Line endings and mode bits are preserved. A
+  pending journal `<run>/lint/pending-<action>.patch` is written before any
+  product file changes; it is one entry per path, not one per fixer, so a
+  path two fixers both touch in the same pass (for example ruff then black on
+  one `.py` file) still gets a single, correct diff from the pass's start to
+  its end, never two sections for the same path. An unconsumed journal is
+  shown on every packet until the next pass adopts it: that pass keeps it
+  under `<run>/lint/logs/` and names it once in its block. A fix whose syntax
+  guard does not complete is withheld (ruff and eslint's plain `.js`/`.mjs`/
+  `.cjs` files, each via its own `node --check`-class guard; the other
+  fixable tools are pure reformatters and trusted once they exit cleanly).
+  eslint's guard writes its scratch copy beside the real file, not under a
+  separate tmp directory, so Node's module-type resolution (`package.json`
+  `"type"`, and `.mjs`/`.cjs`'s own override) still matches the real file's.
+  Identical blobs count as mirrors only under the same file name, and never
+  when empty. `fixable` rows apply in the catalog's own listed order, one
+  row fully applied before the next starts, so a file more than one fixable
+  row matches (today, only eslint and prettier overlap) composes correctly
+  instead of one tool's fix clobbering another's.
+- The pass has no wall-clock budget and no file-count cap: every changed file
+  in scope is read and linted. Each tool call has a 60-second hang guard and
+  each Git call its own; files over 2 MB and changed-line diffs too large to
+  attribute are not fixed, and a tool that timed out is reported.
 
 ## Not run by ShipLoop
 
@@ -278,7 +329,17 @@ recommendations naming the searched `PATH`. ShipLoop never installs anything.
       "ok": [
         0,
         1
-      ]
+      ],
+      "fixable": true,
+      "argv_fix": [
+        "{bin}",
+        "--fix-dry-run",
+        "--format",
+        "json",
+        "--no-color",
+        "{files}"
+      ],
+      "fix_hint": "eslint --fix"
     },
     {
       "name": "prettier",
@@ -327,6 +388,7 @@ recommendations naming the searched `PATH`. ShipLoop never installs anything.
       "ok": [
         0
       ],
+      "fixable": true,
       "fix_hint": "prettier --write"
     },
     {
@@ -394,16 +456,16 @@ recommendations naming the searched `PATH`. ShipLoop never installs anything.
       "bin": "black",
       "argv": [
         "{bin}",
-        "--check",
-        "--diff",
-        "--quiet",
-        "{file}"
+        "--stdin-filename",
+        "{file}",
+        "-q",
+        "-"
       ],
-      "format": "diff",
+      "format": "stdin-diff",
       "ok": [
-        0,
-        1
+        0
       ],
+      "fixable": true,
       "fix_hint": "black"
     },
     {
@@ -488,15 +550,134 @@ recommendations naming the searched `PATH`. ShipLoop never installs anything.
       ],
       "bin": "gofmt",
       "argv": [
-        "{bin}",
-        "-d",
-        "{file}"
+        "{bin}"
       ],
-      "format": "diff",
+      "format": "stdin-diff",
       "ok": [
         0
       ],
+      "fixable": true,
       "fix_hint": "gofmt -w"
+    },
+    {
+      "name": "clang-format",
+      "suffixes": [
+        ".c",
+        ".h",
+        ".cc",
+        ".cpp",
+        ".cxx",
+        ".hpp",
+        ".hh",
+        ".hxx",
+        ".m",
+        ".mm"
+      ],
+      "markers": [
+        ".clang-format",
+        "_clang-format"
+      ],
+      "bin": "clang-format",
+      "argv": [
+        "{bin}",
+        "--assume-filename={file}"
+      ],
+      "format": "stdin-diff",
+      "ok": [
+        0
+      ],
+      "fixable": true,
+      "fix_hint": "clang-format -i"
+    },
+    {
+      "name": "terraform fmt",
+      "suffixes": [
+        ".tf",
+        ".tfvars"
+      ],
+      "markers": [],
+      "require_marker": false,
+      "bin": "terraform",
+      "argv": [
+        "{bin}",
+        "fmt",
+        "-"
+      ],
+      "format": "stdin-diff",
+      "ok": [
+        0
+      ],
+      "fixable": true,
+      "fix_hint": "terraform fmt"
+    },
+    {
+      "name": "ktlint",
+      "suffixes": [
+        ".kt",
+        ".kts"
+      ],
+      "markers": [],
+      "require_marker": false,
+      "bin": "ktlint",
+      "argv": [
+        "{bin}",
+        "{files}"
+      ],
+      "format": "lines",
+      "ok": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "phpcs",
+      "suffixes": [
+        ".php"
+      ],
+      "markers": [
+        "phpcs.xml",
+        "phpcs.xml.dist",
+        ".phpcs.xml",
+        ".phpcs.xml.dist"
+      ],
+      "bin": "phpcs",
+      "argv": [
+        "{bin}",
+        "--report=emacs",
+        "--no-colors",
+        "{files}"
+      ],
+      "format": "lines",
+      "ok": [
+        0,
+        1,
+        2
+      ],
+      "fix_hint": "phpcbf"
+    },
+    {
+      "name": "rubocop",
+      "suffixes": [
+        ".rb"
+      ],
+      "markers": [
+        ".rubocop.yml",
+        ".rubocop_todo.yml"
+      ],
+      "bin": "rubocop",
+      "argv": [
+        "{bin}",
+        "--format",
+        "emacs",
+        "--no-color",
+        "{files}"
+      ],
+      "format": "lines",
+      "ok": [
+        0,
+        1
+      ],
+      "fix_hint": "rubocop -a"
     }
   ],
   "project_scripts": [

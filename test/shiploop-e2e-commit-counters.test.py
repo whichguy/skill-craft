@@ -429,6 +429,17 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
         self.assertIsNone(flow.HEAD_END_LINE.search(cut))
         self.assertIsNone(metrics.HEAD_END_LINE.search(cut))
         self.assertIsNotNone(metrics.HEAD_END_LINE.search(whole))
+        # A saved run printed before R4 (2026-10-24) closes with the line's earlier name, and still reads the same way.
+        old = top.replace(end, counters.HEAD_END_UNTIL_R4)
+        old_cut, old_whole = old + "Current stage guidance:\nmore\n", old + "Current stage guidance:\nmore\n" + counters.HEAD_END_UNTIL_R4 + "\n"
+        self.assertEqual(counters.head_or_why(old_cut), (None, counters.NOT_WHOLE_BEFORE_CLOSING))
+        head, why = counters.head_or_why(old_whole)
+        self.assertIsNone(why)
+        self.assertTrue(head.rstrip().endswith(counters.HEAD_END_UNTIL_R4))
+        for reader in (counters, flow, metrics):
+            self.assertEqual(reader.HEAD_END_UNTIL_R4, "=== end ShipLoop head ===")
+            self.assertIsNotNone(reader.HEAD_END_LINE.search(old_whole))
+            self.assertIsNone(reader.HEAD_END_LINE.search(old_cut))
 
     def test_a_head_printed_by_this_layout_is_measured_whole_and_a_cut_one_is_not(self):
         """Review of 2026-10-16: the status block moved ahead of the duties, so the old reader (head = up to the status

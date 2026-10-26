@@ -1,0 +1,19 @@
+{
+  "experiment": "E2",
+  "arm": "T",
+  "sample": 1,
+  "value": null,
+  "prerequisite": false,
+  "deferred_ui": false,
+  "ui_criteria": 0,
+  "inspected_ui": [],
+  "source_search_checks": [],
+  "slice_pass": false,
+  "slice_verdicts": {
+    "process": false,
+    "stopped": false,
+    "no_overshoot": true
+  },
+  "seconds": 1366.5,
+  "commit": "9ed4ec24f8481a1841820033a35d31804ebb9dab"
+}

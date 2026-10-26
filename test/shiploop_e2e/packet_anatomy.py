@@ -145,6 +145,8 @@ RULES: tuple[Rule, ...] = (
     _r("unverified-and-deltas", r"^(Unverified|Plan assumptions recorded open|Open unverified|Answered|Replan|Revise|"
        r"Sent back|The user answered|Earlier answer|That is product-acceptance's list only|Product-acceptance listed these)"),
     _r("unverified-and-deltas", r"^- (A\d+ \(consumer|.* \| reason: )"),
+    # Product-acceptance's primary requirements and the tests that passed for each (run-5 batch F6, shiploop_primary).
+    _r("unverified-and-deltas", r"^Primary requirements", "bullets"),
     # --- state / locator lines and recovery (_run_rules)
     _r("state-locators", r"^(State|Result records|Result inbox|Accepted history|Repository locator|CLI locator|"
        r"ShipLoop skill card|Run directory locator|Keepalive marker|Owner):"),
@@ -156,7 +158,8 @@ RULES: tuple[Rule, ...] = (
     _r("recovery", r"^Recovery \(reprints this head"),
     _r("stage-rules", r"^Never end the turn while a ShipLoop command is still running\."),
     _r("progress-view", r"^Progress view: "),
-    _r("head-end", r"^=== end ShipLoop head ===$"),
+    # The closing line of every print: "print" since R4 of the run-5 batch (2026-10-24), "head" from 2026-10-16 to then.
+    _r("head-end", r"^=== end ShipLoop (print|head) ===$"),
     _r("recovery", r"^(Retain these locators and recovery command|After interruption, check the paths|"
        r"Recovery only reads the saved state|Execute this packet in this conversation|"
        r"Give the executing agent only the current action packet)"),
@@ -248,7 +251,7 @@ RULES: tuple[Rule, ...] = (
     _r("tail-callbacks", r"^(Improve: |Pause without consuming the action|Halt \(terminal)"),
     # --- Improve child packet (_render_improve)
     _r("improve-contract", r"^(Current action: Improve|Parent step remains pending)"),
-    _r("improve-step-result", r"^Step result \(untrusted evidence", "before", r"^Selected Improve skill:"),
+    _r("improve-step-result", r"^Stage result \(untrusted evidence", "before", r"^Selected Improve skill:"),
     _r("improve-binding", r"^(Selected Improve skill|Bound Until Loop|Until Loop root|Child workspace|"
        r"Read the selected Improve skill)"),
     _r("improve-review-focus", r"^(Planning|Final|Release|End)[^\n]* review focus\.", "until",

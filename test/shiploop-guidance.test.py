@@ -594,7 +594,7 @@ class GuidanceTests(unittest.TestCase):
             "test-strategy": "required surface, due stage, owner, prerequisites",
             "test-spec": "One `test_cases` row per ID the step plan's focused commands list",
             "test": "Each case ends as:",
-            "step-plan": "Confirm by: <command, observation or inspection>; pass when <expected result>",
+            "step-plan": "Confirm by: <what a command observes>; pass when <expected result>",
             "implement": "Each iteration edits first.",
             "verify": "Criterion or check unachievable as planned: report send-back naming it.",
             "product-acceptance": "pending release verification",
@@ -832,7 +832,7 @@ class GuidanceTests(unittest.TestCase):
         pins the text a cleared model is given; whether a model reviewer acts on it is a live qualification."""
         walk = normalized(prompts.PROCEDURE_WALK)
         own = ("A plan is not a run; a setup change makes an earlier observation stale.",
-               "its locator in `oracle` or the open item's `check`", "An unreachable start is an open prerequisite")
+               "its locator in `oracle` or the open item's `settle`", "An unreachable start is an open prerequisite")
         state = self.state()
         producers: list[str] = []
         reviews: list[str] = []
@@ -843,8 +843,8 @@ class GuidanceTests(unittest.TestCase):
             if stage in prompts.REVIEW_FOCUS_DUTY_STAGES:
                 with self.subTest(stage=stage, boundary="producer"):
                     duty = text[text.index("Before you submit, fix any of these in"):]
-                    self.assertIn("an ordered procedure (calls, commands, interactions) that cannot happen as written. "
-                                  + walk, duty)
+                    self.assertIn("an ordered procedure (calls, commands, interactions), or an expected result derived "
+                                  "from one, that cannot happen as written. " + walk, duty)
                     producers.append(stage)
             if stage == "test-spec":
                 with self.subTest(stage=stage, boundary="producer"):
@@ -880,7 +880,7 @@ class GuidanceTests(unittest.TestCase):
 
     def test_a_procedure_locator_reaches_every_stage_that_consumes_its_case_or_open_item(self) -> None:
         """W2-C (implement-step fix plan T26, T29): a procedure is carried by its locator, not copied.  The case's
-        `oracle` and an open item's `check` name it; every stage that quotes the case (implement and its Improve, test,
+        `oracle` and an open item's `settle` name it; every stage that quotes the case (implement and its Improve, test,
         verify, system-test-author) or the open item (its consumer) is given that locator cold, and the later-owned
         procedure stays an open item, its observer unresolved, until its consumer stage.  The observing outer stages
         say a changed setup voids an earlier observation (their own duty text: the consumer's half of the rule).  This
@@ -892,9 +892,9 @@ class GuidanceTests(unittest.TestCase):
         open_locator = "HOME/architecture.md ## Real-boundary checks RB-2"
         cases = [dict(plans.TEST_CASES[0], oracle="Procedure " + case_locator + ", through the public call"),
                  plans.TEST_CASES[1]]
-        later = {"id": "A1", "disposition": "open", "consumer": "release-verify", "owner": "a person with access",
+        later = {"id": "A1", "disposition": "open", "due_stage": "release-verify", "owner": "a person with access",
                  "assumption": "TC-1's criterion C1 (R-1) on the released consumer surface is unobserved",
-                 "check": "Run " + open_locator + " on the released candidate; report what it shows",
+                 "settle": "Run " + open_locator + " on the released candidate; report what it shows",
                  "reason": "no route to that surface from this host"}
         extras = {"plan": {"work_items": [plans.CASE["work_item"]]}, "step-plan": plans.PLAN,
                   "test-spec": {"test_cases": cases, "assumptions": [later]}}
@@ -1084,13 +1084,15 @@ class GuidanceTests(unittest.TestCase):
                         }
                         self.assertIn(anchor, headings)
 
-    def test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_red_na_route(self) -> None:
-        """An org-run Apex test: the reporter the reader can use, and why a new test cannot fail on the base (the unread route)."""
+    def test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_remote_test_route(self) -> None:
+        """An org-run Apex test: the reporter the reader can use, and why the base run leaves it out (a remote test, which
+        e074ccd3 made the base run skip; the card no longer sends a model to red_na)."""
         card = " ".join((REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8").split())
         for phrase in ("with a reporter it can read", "--result-format tap", "an `ok` or `not ok` line per test",
                        "put the outcome word after the test name", "refused as unread",
-                       "cannot fail unless the command deploys the tree first", "`red_na`"):
+                       "so it is a remote test (Remote tests below)", "the test stage's base run does not run it"):
             self.assertIn(phrase, card)
+        self.assertNotIn("red_na", card.split("## Remote tests")[0])
 
     def test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check(self) -> None:
         """Packet review 2026-10-17 (F-7, X-1) and the implement-step plan's access row: the consumer's entry route and
@@ -1989,7 +1991,7 @@ class GuidanceTests(unittest.TestCase):
             "no route on this host per the discovery and test-strategy records",
             "does not block this result",
             "Record it as an open item in `assumptions`: case ID, who does what, what they report, "
-            "owner (a person), due stage (handoff, or the stage whose external effect it gates) as `consumer`",
+            "owner (a person), due stage (handoff, or the stage whose external effect it gates) as `due_stage`",
             "Submit done once every other due check and ShipLoop's rerun pass",
             "handoff reports it unverified, never as a pass",
             "Report blocked with `awaiting` only when a later stage takes an external, "
@@ -2732,8 +2734,8 @@ class CaseEndStateTests(unittest.TestCase):
             "A case that cannot run here (a browser or account this host cannot reach) is unachievable",
             "Leave its command out of `system_commands`",
             "Record it as an open item in `assumptions`: `assumption` = case ID and the requirement left unverified; "
-            "`check` = who does what and reports what; `owner`; `reason` it cannot run here; `consumer` = the due "
-            "stage (handoff, or the stage whose external effect it gates)",
+            "`settle` = who does what and reports what; `owner`; `reason` it cannot run here; `due_stage` = handoff, "
+            "or the stage whose external effect it gates",
             "Report blocked only when nothing else can proceed",
         ):
             self.assertIn(clause, duty)
@@ -2951,13 +2953,28 @@ class UnverifiedWordingTests(unittest.TestCase):
             self.assertIn(phrase, duty)
         self.assertNotIn("blocked_by", duty)  # S-14: a person-only outcome does not stop the run (blocked_by is retired)
 
+    def test_the_spec_names_its_primary_requirements_and_each_unverified_entry_its_lower_layer_check(self) -> None:
+        # Run-5 batch F6: the duties name the fields the gates hold, in the glossary's terms.
+        spec = normalized(prompts.DUTIES["spec"])
+        self.assertIn("List in `primary` the R-<n> that carry the request's primary outcomes, what the user asked for "
+                      "directly", spec)
+        duty = normalized(prompts.DUTIES["product-acceptance"])
+        for phrase in ("the `requirement` (R-<n>) it maps to", "`lower_layer_check` (the passed unit or component test "
+                       "of its logic, from the Primary requirements lines; a requirement not in `primary` may give why "
+                       "none exists)", "report add-work for an executable lower-layer check"):
+            self.assertIn(phrase, duty)
+
     def test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints(self) -> None:
         # S-3: the card agrees with the script. The four faults are the ones the stage's Checked-by line names.
         skill = normalized((REFERENCES / "test-loop.md").read_text(encoding="utf-8"))  # moved from the card by U22
         for phrase in ("a done `product-acceptance` lists it in `unverified`",
-                       "(outcome, reason, check, owner, due stage)", "`[]` says every outcome was observed",
-                       "ShipLoop refuses a missing list, an incomplete or placeholder entry and a due stage that is "
-                       "not a later stage", "it cannot judge that the list is complete",
+                       "(outcome, requirement, reason, lower-layer check, settle, owner, due stage)",
+                       "`[]` says every outcome was observed",
+                       "ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement with no entry "
+                       "in the spec and a due stage that is not a later stage", "it cannot judge that the list is complete",
+                       "An outcome of a requirement the spec lists in `primary` is accepted only when its "
+                       "`lower_layer_check` is the ID of a test ShipLoop ran and saw pass in a case for that requirement; "
+                       "else add-work adds that test",
                        "prints each entry at its due stage and the whole list at `handoff` and in the report"):
             self.assertIn(phrase, skill)
         reference = normalized((REFERENCES / "system-tests.md").read_text(encoding="utf-8"))

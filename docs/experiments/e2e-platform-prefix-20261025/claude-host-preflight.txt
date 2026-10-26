@@ -1,0 +1,21 @@
+# run.py --preflight-only --case battleship-salesforce --platform-prefix SLBtlHkd9a4 --host claude --model claude-haiku-5-5 --effort max --source checkout, 2026-10-25
+# the platform record (preflight.json .platform): pinned startup files and the shell resolution problems
+shell_path_pinned: []
+- `sf` resolves to /opt/homebrew/bin/sf under `/bin/sh -lc`, not to the wrapper <preflight>/claude/platform/bin/sf: the model's shell would run the real command, outside the case's policy
+- `sfdx` resolves to /opt/homebrew/bin/sfdx under `/bin/sh -lc`, not to the wrapper <preflight>/claude/platform/bin/sfdx: the model's shell would run the real command, outside the case's policy
+- `osascript` resolves to /usr/bin/osascript under `/bin/sh -lc`, not to the wrapper <preflight>/claude/platform/bin/osascript: the model's shell would run the real command, outside the case's policy
+- `open` resolves to /usr/bin/open under `/bin/sh -lc`, not to the wrapper <preflight>/claude/platform/bin/open: the model's shell would run the real command, outside the case's policy
+- `sf` resolves to /opt/homebrew/bin/sf under `/bin/bash -lc`, not to the wrapper <preflight>/claude/platform/bin/sf: the model's shell would run the real command, outside the case's policy
+- `sfdx` resolves to /opt/homebrew/bin/sfdx under `/bin/bash -lc`, not to the wrapper <preflight>/claude/platform/bin/sfdx: the model's shell would run the real command, outside the case's policy
+- `osascript` resolves to /usr/bin/osascript under `/bin/bash -lc`, not to the wrapper <preflight>/claude/platform/bin/osascript: the model's shell would run the real command, outside the case's policy
+- `open` resolves to /usr/bin/open under `/bin/bash -lc`, not to the wrapper <preflight>/claude/platform/bin/open: the model's shell would run the real command, outside the case's policy
+- `sf` resolves to /opt/homebrew/bin/sf under `/bin/zsh -c`, not to the wrapper <preflight>/claude/platform/bin/sf: the model's shell would run the real command, outside the case's policy
+- `sfdx` resolves to /opt/homebrew/bin/sfdx under `/bin/zsh -c`, not to the wrapper <preflight>/claude/platform/bin/sfdx: the model's shell would run the real command, outside the case's policy
+- `sf` resolves to /opt/homebrew/bin/sf under `/bin/zsh -lc`, not to the wrapper <preflight>/claude/platform/bin/sf: the model's shell would run the real command, outside the case's policy
+- `sfdx` resolves to /opt/homebrew/bin/sfdx under `/bin/zsh -lc`, not to the wrapper <preflight>/claude/platform/bin/sfdx: the model's shell would run the real command, outside the case's policy
+- `osascript` resolves to /usr/bin/osascript under `/bin/zsh -lc`, not to the wrapper <preflight>/claude/platform/bin/osascript: the model's shell would run the real command, outside the case's policy
+- `open` resolves to /usr/bin/open under `/bin/zsh -lc`, not to the wrapper <preflight>/claude/platform/bin/open: the model's shell would run the real command, outside the case's policy
+- `sf` resolves to /opt/homebrew/bin/sf under `/bin/zsh -ilc`, not to the wrapper <preflight>/claude/platform/bin/sf: the model's shell would run the real command, outside the case's policy
+- `sfdx` resolves to /opt/homebrew/bin/sfdx under `/bin/zsh -ilc`, not to the wrapper <preflight>/claude/platform/bin/sfdx: the model's shell would run the real command, outside the case's policy
+- `osascript` resolves to /usr/bin/osascript under `/bin/zsh -ilc`, not to the wrapper <preflight>/claude/platform/bin/osascript: the model's shell would run the real command, outside the case's policy
+- `open` resolves to /usr/bin/open under `/bin/zsh -ilc`, not to the wrapper <preflight>/claude/platform/bin/open: the model's shell would run the real command, outside the case's policy

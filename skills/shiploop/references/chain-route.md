@@ -34,7 +34,7 @@ Implementation chains are the opt-in `delegation: ask-agent` route. Under
 Dispatcher execution graph; its actual Improve loop (`stage` runs) reviews them. ShipLoop then
 issues one `implement` packet per step, in that order, in the execution checkout
 in this conversation: each packet names its step, its helper `skills`, the steps
-already accepted and the ones still to come. An Improve child reviews each
+already accepted and the ones still to come. An Improve stage reviews each
 accepted step, and the callback after the last step's review moves to `test`. No chain binding, Ask Agent or native workers, and no Plan Dispatcher.
 Which steps are done is read from the run's history, so recovery reprints the
 current step. `chain bind` refuses a fresh binding on an inline run before any

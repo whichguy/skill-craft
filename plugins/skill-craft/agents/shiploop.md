@@ -16,7 +16,7 @@ other model sessions. The selected `SKILL.md` defines all lifecycle, protocol,
 and existing-owner recovery rules;
 do not substitute a lifecycle recorded in an older agent card.
 
-Follow the script's current action packet and exact completion callback. Preserve
+Follow the script's current action packet and exact callback. Preserve
 its repository, CLI, run-directory, and recovery locators in durable handoff
 material; recover the same run after interruption rather than initializing a
 replacement or choosing a successor yourself.

@@ -195,6 +195,14 @@ if any(arg.startswith("--require") for arg in sys.argv[1:]):
 sys.exit(0)
 '''
 
+# A controllable "syntax check": fails only on a planted marker, never real JS parsing.
+NODE_CHECK_STUB = r'''
+import json, os, sys
+with open(os.environ["STUB_LOG"], "a") as log:
+    log.write(json.dumps(["node"] + sys.argv[1:]) + "\n")
+sys.exit(1 if "SYNTAXERR" in open(sys.argv[-1]).read() else 0)
+'''
+
 
 def write_stub(directory: Path, name: str) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
@@ -212,17 +220,34 @@ with open(os.environ["STUB_LOG"], "a") as log:
     log.write(json.dumps([name] + argv + ["cwd=" + os.getcwd()]) + "\n")
 if name == "eslint":
     files = [arg for arg in argv if arg.startswith("./")]
+    fix_mode = "--fix-dry-run" in argv
     out = []
     for path in files:
+        text = open(path).read()
+        fixed = text.replace(" FIXME", "") if fix_mode else text
         messages = [{"line": number, "column": 1, "ruleId": "stub/rule", "severity": 2, "message": "stub finding"}
-                    for number, line in enumerate(open(path).read().splitlines(), 1) if "LINTME" in line]
-        out.append({"filePath": os.path.abspath(path), "messages": messages})
+                    for number, line in enumerate(fixed.splitlines(), 1) if "LINTME" in line]
+        entry = {"filePath": os.path.abspath(path), "messages": messages}
+        if fix_mode and fixed != text:
+            entry["output"] = fixed
+        out.append(entry)
     print(json.dumps(out))
     sys.exit(1 if any(entry["messages"] for entry in out) else 0)
-if name == "prettier":
+if name in ("prettier", "black", "gofmt", "clang-format", "terraform"):
     text = sys.stdin.read()
     sys.stdout.write("".join(line.rstrip() + "\n" for line in text.splitlines()))
     sys.exit(0)
+if name in ("ktlint", "phpcs", "rubocop"):
+    if os.environ.get("STUB_EXIT_OVERRIDE"):
+        sys.exit(int(os.environ["STUB_EXIT_OVERRIDE"]))
+    suffix = {"ktlint": (".kt", ".kts"), "phpcs": (".php",), "rubocop": (".rb",)}[name]
+    found = False
+    for path in [arg for arg in argv if arg.endswith(suffix)]:
+        for number, line in enumerate(open(path).read().splitlines(), 1):
+            if "LINTME" in line:
+                print(path + ":" + str(number) + ":1: stub finding")
+                found = True
+    sys.exit(1 if found else 0)
 if name == "tsc":
     found = False
     for root, _dirs, names in os.walk("."):
@@ -455,16 +480,20 @@ class LintPassTests(Fixture):
         self.assertIn("timed out (process group killed)", payload["block"])
         self.assertEqual(payload["counts"]["timeouts"], 1)
 
-    def test_whole_pass_budget_reports_skipped_work(self):
-        self.commit({"a.py": "x = 1\n"})
+    def test_a_pass_has_no_budget_and_no_file_cap_so_every_changed_file_is_read(self):
+        # Owner 2026-10-24: no run caps.  The 120-second pass budget and the 200-file cap are gone: 205 changed files
+        # (more than the old cap) are all in scope, and nothing says a budget ran out.
+        self.assertFalse(hasattr(lint, "BUDGET_SECONDS") or hasattr(lint, "MAX_FILES"))
+        names = ["m" + str(number) + ".py" for number in range(205)]
+        self.commit({name: "x = 1\n" for name in names})
         self.base()
-        self.edit({"a.py": "y = 2  # lint\n"})
-        payload = self.run_pass(budget=0.0)
-        self.assertIn("Skipped because the " + str(int(lint.BUDGET_SECONDS)) + "-second pass budget ran out: reading a.py", payload["block"])
-        self.assertIn("- a.py: not in scope: the pass budget ran out before this file was read", payload["block"])
-        self.assertEqual(payload["counts"]["uncovered"], 1)
+        self.edit({name: "y = 2\n" for name in names})
+        payload = self.run_pass(mode="report")
+        self.assertNotIn("budget", payload["block"])
+        self.assertNotIn("-file cap", payload["block"])
+        self.assertEqual(payload["counts"]["uncovered"], 0)
 
-    def test_git_plumbing_is_bounded_by_the_remaining_budget(self):
+    def test_git_plumbing_is_bounded_by_its_own_hang_guards(self):
         seen = []
         real = lint._git
 
@@ -476,9 +505,10 @@ class LintPassTests(Fixture):
         self.base()
         self.edit({"a.py": "y = 2\n", "README.md": "two\n"})
         with mock.patch.object(lint, "_git", spy):
-            self.run_pass(mode="report", budget=3.0)
+            self.run_pass(mode="report")
         self.assertTrue(seen)
-        self.assertTrue(all(timeout <= 3.0 for _verb, timeout in seen), seen)
+        guards = (lint.GIT_TIMEOUT_SECONDS, lint.SNAPSHOT_TIMEOUT_SECONDS)
+        self.assertTrue(all(timeout in guards for _verb, timeout in seen), seen)
         # Every changed text file reads its base blob: discovered linters gate on changed lines.
         self.assertEqual([verb for verb, _timeout in seen].count("cat-file"), 2)
 
@@ -797,7 +827,7 @@ class LintPassTests(Fixture):
         item = lint._File({"status": "M", "path": "a.py", "old": "a.py"})
         item.data = b"x = 1\n"
         timeout = {"status": "timeout", "exit": None}
-        for after, before in ((timeout, None), (timeout, timeout), (None, None)):
+        for after, before in ((timeout, None), (timeout, timeout)):
             invoker = mock.Mock()
             invoker.run.side_effect = [after, before]
             with self.subTest(after=after, before=before):
@@ -929,6 +959,10 @@ def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True) 
     stage = nav.current_stage(state)
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
+    if stage == "spec" and result.get("outcome") == "done":
+        result = {**inner.fixture_primary(state), **result}                 # run-5 batch F6
+    if stage == "test-strategy" and result.get("outcome") == "done":
+        result = {**inner.fixture_test_layers(), **result}                  # run-5 batch F1, F3
     if stage == "plan" and result.get("outcome") == "done" and "concerns" not in result:
         queue = result.get("work_items", state["work_items"])
         result = dict(result, concerns=inner.no_concerns_map(
@@ -1299,6 +1333,166 @@ class DiscoveredLinterTests(Fixture):
         self.assertEqual([(row["path"], row["line"]) for row in prettier], [("a.md", 2)])
         self.assertIn("formatting differs from prettier output on lines 2-2; run prettier --write a.md",
                       prettier[0]["message"])
+        # prettier is fixable, but this pass is report-only: the fix is previewed, never applied.
+        self.assertIn("NOT APPLIED (report-only pass): a.md", payload["block"])
+        self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo   \n")
+
+    def test_prettier_fix_is_applied_on_the_lines_this_item_changed(self):
+        self.commit({".prettierrc": "{}\n", "a.md": "one\n"})
+        write_tool(self.bin, "prettier")
+        self.base()
+        self.edit({"a.md": "one\ntwo   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo\n")
+        self.assertIn("a.md", payload["applied"])
+        # prettier's own finding clears; git diff --check (Tier 0) still reports against the pass's entry
+        # snapshot, taken before this fix -- a separate, pre-existing characteristic this change does not alter.
+        self.assertFalse([row for row in payload["gating"] if row["message"].startswith("prettier: ")])
+
+    def test_black_fix_is_withheld_when_fixing_is_disabled_this_pass(self):
+        self.commit({"pyproject.toml": "[tool.black]\n", "a.py": "x = 1\n"})
+        write_tool(self.bin, "black")
+        self.base()
+        self.edit({"a.py": "x = 1\ny = 2   \n"})
+        payload = self.run_pass(mode="report")
+        self.assertIn("NOT APPLIED (report-only pass): a.py", payload["block"])
+        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2   \n")
+
+    def test_gofmt_fix_is_applied_and_findings_no_longer_gate(self):
+        self.commit({"go.mod": "module x\n", "a.go": "package main\n"})
+        write_tool(self.bin, "gofmt")
+        self.base()
+        self.edit({"a.go": "package main\nfunc f() {}   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.go").read_text(), "package main\nfunc f() {}\n")
+        self.assertIn("a.go", payload["applied"])
+        self.assertFalse([row for row in payload["gating"] if row["message"].startswith("gofmt: ")])
+
+    def test_clang_format_fix_is_applied(self):
+        self.commit({".clang-format": "{}\n", "a.c": "int main() {}\n"})
+        write_tool(self.bin, "clang-format")
+        self.base()
+        self.edit({"a.c": "int main() {}\nint g() {}   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.c").read_text(), "int main() {}\nint g() {}\n")
+        self.assertIn("a.c", payload["applied"])
+
+    def test_terraform_fmt_fix_is_applied(self):
+        self.commit({"a.tf": 'resource "x" "y" {}\n'})
+        write_tool(self.bin, "terraform")
+        self.base()
+        self.edit({"a.tf": 'resource "x" "y" {}\nresource "x" "z" {}   \n'})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.tf").read_text(), 'resource "x" "y" {}\nresource "x" "z" {}\n')
+        self.assertIn("a.tf", payload["applied"])
+
+    def test_ktlint_reports_findings(self):
+        self.commit({"a.kt": "fun main() {}\n"})
+        write_tool(self.bin, "ktlint")
+        self.base()
+        self.edit({"a.kt": "fun main() {}\nval x = 1 // LINTME\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.kt", 2)])
+
+    def test_phpcs_reports_findings(self):
+        self.commit({"phpcs.xml": "<ruleset></ruleset>\n", "a.php": "<?php\n"})
+        write_tool(self.bin, "phpcs")
+        self.base()
+        self.edit({"a.php": "<?php\n$x = 1; // LINTME\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.php", 2)])
+
+    def test_phpcs_fatal_exit_is_a_tool_failure_not_silently_clean(self):
+        """PHPCS 3.x's exit 3 is a processing error (bad ruleset, uncaught exception), not a clean scan; it
+        must never be read as "no findings"."""
+        self.commit({"phpcs.xml": "<ruleset></ruleset>\n", "a.php": "<?php\n"})
+        write_tool(self.bin, "phpcs")
+        self.base()
+        self.edit({"a.php": "<?php\n$x = 1;\n"})
+        payload = self.run_pass(mode="report", env=self.env(STUB_EXIT_OVERRIDE="3"))
+        self.assertIn("phpcs exited 3", payload["block"])
+        self.assertEqual(payload["gating"], [])
+
+    def test_rubocop_reports_findings(self):
+        self.commit({".rubocop.yml": "\n", "a.rb": "puts 1\n"})
+        write_tool(self.bin, "rubocop")
+        self.base()
+        self.edit({"a.rb": "puts 1\nx = 1 # LINTME\n"})
+        payload = self.run_pass(mode="report")
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.rb", 2)])
+
+    def test_ruff_and_black_fixes_on_the_same_file_both_apply(self):
+        self.commit({"pyproject.toml": "[tool.black]\n", "a.py": "x = 1\n"})
+        write_tool(self.bin, "black")
+        self.base()
+        self.edit({"a.py": "x = 1  # fixme\ny = 2   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
+        # One applied entry for a.py, not one per fixer -- a path two fixers both touch must revert once.
+        self.assertEqual(payload["applied"].count("a.py"), 1)
+        self.assertEqual(payload["patch"].count("--- a/a.py"), 1)  # one consolidated journal entry
+        self.assertEqual(payload["block"].count("Revert this file's fix: "), 1)
+
+    def test_eslint_fix_is_applied_via_fix_dry_run(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\nvar y = 2 LINTME\n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\nvar y = 2 LINTME\n")
+        self.assertIn("a.js", payload["applied"])
+        self.assertEqual([(row["path"], row["line"]) for row in payload["gating"]], [("a.js", 3)])
+        eslint_calls = [argv for argv in self.logged() if argv[0] == "eslint"]
+        self.assertEqual(len(eslint_calls), 2)
+        self.assertTrue(any("--fix-dry-run" in call for call in eslint_calls))
+        self.assertTrue(any("--fix-dry-run" not in call for call in eslint_calls))
+
+    def test_eslint_fix_that_touches_an_unchanged_line_is_withheld(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one FIXME\ntwo\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "one FIXME\ntwo\nthree\n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "one FIXME\ntwo\nthree\n")
+        self.assertIn("NOT APPLIED (would change a line this work item did not touch; whole file withheld): "
+                      "a.js", payload["block"])
+
+    def test_eslint_fix_is_not_blocked_by_a_pre_existing_syntax_error(self):
+        """Mirrors ruff's own baseline comparison: a file node already can't parse never has its otherwise-safe
+        eslint fix blamed and withheld for that pre-existing condition."""
+        (self.bin / "node").write_text("#!" + sys.executable + "\n" + NODE_CHECK_STUB)
+        (self.bin / "node").chmod(0o755)
+        self.commit({"eslint.config.js": "export default []\n",
+                     "a.js": "// SYNTAXERR already broken\nvar z = 1\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "// SYNTAXERR already broken\nvar z = 1\nvar x = 1 FIXME\n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "// SYNTAXERR already broken\nvar z = 1\nvar x = 1\n")
+        self.assertIn("a.js", payload["applied"])
+
+    def test_eslint_fix_is_not_attempted_in_report_mode(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        self.base()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\n"})
+        self.run_pass(mode="report")
+        eslint_calls = [argv for argv in self.logged() if argv[0] == "eslint"]
+        self.assertEqual(len(eslint_calls), 1)
+        self.assertNotIn("--fix-dry-run", eslint_calls[0])
+
+    def test_eslint_and_prettier_fixes_on_the_same_file_both_apply(self):
+        self.commit({"eslint.config.js": "export default []\n", ".prettierrc": "{}\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        write_tool(self.bin, "prettier")
+        self.base()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\nvar y = 2   \n"})
+        payload = self.run_pass()
+        self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\nvar y = 2\n")
+        # One applied entry for a.js, not one per fixer -- a path two fixers both touch must revert once.
+        self.assertEqual(payload["applied"].count("a.js"), 1)
+        self.assertEqual(payload["patch"].count("--- a/a.js"), 1)  # one consolidated journal entry
+        self.assertEqual(payload["block"].count("Revert this file's fix: "), 1)
 
     def test_tsc_project_findings_count_only_in_changed_files(self):
         self.commit({"tsconfig.json": "{}\n", "src/a.ts": "let a = 1;\n", "src/b.ts": "let b = TSBAD;\n"})
@@ -1359,7 +1553,7 @@ class InvokerLogTests(unittest.TestCase):
 
     def run_tool(self, logs: Path, **kw):
         runner = lambda argv, cwd, timeout, input_bytes=b"", env=None: ("ok", 0, b"out\n", b"")  # noqa: E731
-        invoker = lint._Invoker(logs, logs, "t", {}, budget=60.0, tool_timeout=10.0, clock=time.monotonic, runner=runner)
+        invoker = lint._Invoker(logs, logs, "t", {}, tool_timeout=10.0, clock=time.monotonic, runner=runner)
         invoker.run(["tool"], what="x", **kw)
         return sorted(path.name for path in logs.iterdir())
 
@@ -1457,6 +1651,32 @@ class GateTests(Fixture):
                                                             "changed"):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
+
+    def test_prettier_auto_fix_refuses_once_then_accepts(self):
+        self.commit({".prettierrc": "{}\n", "a.md": "one\n"})
+        write_tool(self.bin, "prettier")
+        state = self.start()
+        self.edit({"a.md": "one\ntwo   \n"})
+        with self.patched_env():
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.md on lines this work item "
+                                                            "changed"):
+                complete(self.run_dir, state)
+            self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo\n")
+            complete(self.run_dir, state)
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
+
+    def test_eslint_auto_fix_refuses_once_then_accepts(self):
+        self.commit({"eslint.config.js": "export default []\n", "a.js": "one\n"})
+        write_tool(self.bin, "eslint")
+        state = self.start()
+        self.edit({"a.js": "one\nvar x = 1 FIXME\n"})
+        with self.patched_env():
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.js on lines this work item "
+                                                            "changed"):
+                complete(self.run_dir, state)
+            self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\n")
             complete(self.run_dir, state)
         self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
 

@@ -26,7 +26,7 @@ likewise selects the simulated run's
 [Backchain passes option](backchain-route.md#backchain-passes-option), default `one`, and changes the
 Backchain stage packets the trace prints. `--planning-review stage|none` selects the simulated run's
 [planning review option](run-options.md#planning-review-option), default `stage`: `stage` changes no
-packet; `--planning-review none` simulates a run with no Improve child at `spec`, `test-strategy`,
+packet; `--planning-review none` simulates a run with no Improve stage at `spec`, `test-strategy`,
 `plan`, `step-plan` or `test-spec`, and the built-in scenarios are then the none schedule (the
 same names; the Improve completions the trace pairs with those five producers are absent).
 

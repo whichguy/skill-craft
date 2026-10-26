@@ -88,7 +88,7 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
     if (requested or navigator.DEFAULT_PLANNING_REVIEW) != "none":
         return
     need(bool(card), "--planning-review none needs --improve-skill=<absolute selected Improve SKILL.md>: with no "
-                     "Improve child at the planning stages nothing else binds the card before the first item's "
+                     "Improve stage at the planning stages nothing else binds the card before the first item's "
                      "stage Until Loops, which read it. Start the run again with the flag.")
     import shiploop_standalone_improve as standalone
     try:
@@ -233,7 +233,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
     start.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                        help="new run: Backchain planning child passes, one (default), converge or none")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
-                       help="new run: which planning results start an Improve child, stage (default) or none")
+                       help="new run: which planning results start an Improve stage, stage (default) or none")
     for name in ("plan-return", "review-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -356,7 +356,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
             print(f"Receipt: {root / 'return-receipt.md'}")
             print(f"Original checkout/branch and baseline: {root / 'workspace.md'}")
             print("Return does not advance ShipLoop. Recover the current packet, finish its "
-                  "remaining duties, then submit its exact completion call:")
+                  "remaining duties, then submit its exact callback:")
             print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                               "next", "--run-dir", str(root / "run")]))
         return 0
@@ -512,12 +512,75 @@ def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
     return None
 
 
+# What the run trace records about the command in progress: the run directory, the saved state before the verb (set
+# only once that state loaded as a current run), whether init created the run, and the refusal text.  Set by
+# ``_main``, read by ``main`` once the command has finished.  A command on a retired or unloadable run, or one whose
+# command line did not parse, records nothing: it must leave that directory as it was.
+_TRACE: dict[str, Any] = {}
+# How many ``main`` calls are running.  A command another one runs (``workspace start`` runs init, or next on an
+# identical re-entry) is part of that command line: only the outermost is recorded, with the run the inner one loaded.
+_DEPTH = [0]
+
+
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
+    """Dispatch one ShipLoop command line and record it in the run trace; returns the process exit code."""
+    import shiploop_trace
+
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    outermost = not _DEPTH[0]
+    if outermost:
+        _TRACE.clear()
+    _DEPTH[0] += 1
+    started = time.monotonic()
+    code = 2
+    try:
+        code = _main(core, argv)
+        return code
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else 2
+        raise
+    finally:
+        _DEPTH[0] -= 1
+        if outermost:  # an inner command's packets stay in the trace until the command line that ran it ends
+            shiploop_trace.ACTIVE = False
+            _record_command(raw_argv, code, started)
+
+
+def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
+    """Append the finished command to its run's trace.  The state after it was captured inside the run lock, so a
+    command that ran next is never credited to this one; a refused command saved nothing, so its after is its before.
+    The routed verbs (chain, lint, red-check, backchain-check) are not traced: their views and record-only checks
+    must leave the run as it was."""
+    import shiploop_trace as trace
+
+    root = _TRACE.get("root")
+    if not raw_argv or raw_argv[0] in trace.UNTRACED or root is None:
+        return
+    if _TRACE.get("before") is None and not _TRACE.get("created"):
+        return
+    after = _TRACE.get("after", _TRACE.get("before"))
+    trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
+                         after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
+
+
+def _saved_state(root: Path) -> Optional[dict]:
+    """``state.md`` as saved, or None when it cannot be read (the trace then records no after-state)."""
+    try:
+        state = store.read_record(root / "state.md")
+    except (OSError, ValueError, store.StorageError):
+        return None
+    return state if isinstance(state, dict) else None
+
+
+def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     """Dispatch one ShipLoop command line; returns the process exit code."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "view":
         import shiploop_progress
         return shiploop_progress.main(raw_argv[1:], core=core)
+    if raw_argv and raw_argv[0] == "trace":
+        import shiploop_trace
+        return shiploop_trace.main(raw_argv[1:], core=core)
     if raw_argv and raw_argv[0] == "hook-status":
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
@@ -544,6 +607,8 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     )
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("view", help="portable HTML progress snapshot and read-only background observer")
+    subs.add_parser("trace", help="read the run trace: every stage done, current or pending, the steps run, each packet "
+                                  "as sent, refusals and hook continuations (--action, --json, --html)")
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
@@ -589,7 +654,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
                              help="new run: Backchain planning child passes, one (default), converge or none")
             sub.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
-                             help="new run: which planning results start an Improve child, stage (default) or none")
+                             help="new run: which planning results start an Improve stage, stage (default) or none")
         if name == "delegation":
             sub.add_argument("--set", dest="delegation_value", choices=navigator.DELEGATIONS, required=True,
                              help="execution delegation for this run's future assignments")
@@ -656,6 +721,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         print("ShipLoop blocked: run directory must not be a symlink", file=sys.stderr)
         return 2
     root = unresolved_root.resolve()
+    _TRACE["root"] = root
     if args.command != "init" and not root.is_dir():
         # Only init may create a run directory; the lock would otherwise
         # materialize a mistyped --run-dir (or a stray repo .shiploop/).
@@ -686,6 +752,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                     print(f"ShipLoop blocked: saved run state cannot be loaded: {exc}",
                           file=sys.stderr)
                     return 2
+                _TRACE["before"] = existing
+                import shiploop_trace
+                shiploop_trace.ACTIVE = True  # this command's packets go in the trace
                 if args.command == "init":
                     # Idempotent entry must never substitute a saved request for
                     # a new one.
@@ -712,6 +781,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                     core, root, existing, args,
                     completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
                 )
+                # The run trace's after-state, read while this command still holds the lock.
+                _TRACE["after"] = (existing if args.command in ("status", "context", "report")
+                                   else _saved_state(root))
                 if args.command in PACKET_VERBS:
                     import shiploop_keepalive
                     health = shiploop_keepalive.health_notice(str(root))
@@ -757,6 +829,9 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
             navigator.save(root, state)
+            _TRACE["created"], _TRACE["after"] = True, state
+            import shiploop_trace
+            shiploop_trace.ACTIVE = True
             # The run baseline (consumer contract, owner decision D3): what the execution checkout held before any
             # commit of this run, so later packets can quote the spec and architecture diff since then.  A note, never
             # a refusal.
@@ -769,6 +844,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             progress_ready = True
             return 0
     except navigator.NavigatorError as exc:
+        _TRACE["error"] = str(exc)
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
         print("Read the current packet with next; the rejected request did not advance the graph.",
               file=sys.stderr)
@@ -776,6 +852,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
               "turn over a refused callback.", file=sys.stderr)
         return 2
     except (ProtocolError, store.StorageError, OSError, KeyError, ValueError, TypeError) as exc:
+        _TRACE["error"] = str(exc)
         print(f"ShipLoop blocked: {exc}", file=sys.stderr)
         # A rejected result may have changed only the in-memory candidate.
         # Rehydrate the durable cursor; never suggest an inferred next stage.

@@ -975,7 +975,7 @@ class NavigatorContractTests(unittest.TestCase):
             " ".join(improve.split()),
         )
         self.assertIn(
-            "non-functional criteria, existing-spec reconciliation",
+            "non-functional requirements, existing-spec reconciliation",
             prompts.IMPROVE_SCOPES["spec"],
         )
 
@@ -1267,7 +1267,7 @@ class NavigatorContractTests(unittest.TestCase):
             " ".join(prompts.DUTIES["research"].split()),
         )
         self.assertIn(
-            "measurable bound or observable criterion",
+            "numeric bound inside any hard platform limit or an observable acceptance line",
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
@@ -1293,9 +1293,11 @@ class NavigatorContractTests(unittest.TestCase):
         criterion on the candidate.
         """
         authoring = (  # step-plan's numbered duty (2026-10-11 dedupe) says each of these once, in item 2 and item 7
-            "`<condition>. Confirm by: <command, observation or inspection>; pass when <expected result>`",
-            "say whether it must be exercised or inspection suffices",
-            "A docs or coverage criterion gets a command check (a search for the required terms)",
+            "`<condition>. Confirm by: <what a command observes>; pass when <expected result>`",
+            # The criterion's confirm field (run-5 batch F1) replaced "say whether it must be exercised or inspection
+            # suffices" and the docs-criterion bullet.
+            "`executed` when a recorded command runs the behaviour (a text search runs nothing)",
+            "`searched` for text the item writes (documentation, a docstring, a listed term), named by a search command",
             "A condition no command can confirm is not a criterion: list it in the summary as an open item",
             "with `Confirm by: unconfirmable here — <what would confirm it>`",
             # "confirm an external oracle (golden file, fixture, snapshot) agrees with the task" moved word for word to
@@ -1306,13 +1308,14 @@ class NavigatorContractTests(unittest.TestCase):
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
             "download, install or fetch nothing",
             "report send-back, naming the criterion or command and the case",
-            "the criterion text does not say `Confirm by: unconfirmable here`",
+            # A condition no command can confirm is not a criterion (step-plan), so no criterion carries "unconfirmable".
+            "confirming it needs an absent tool, runtime, access or authority;",
             f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
             "with existing behaviour kept at the conflict point",
         )
         parent = (
             "Stale, skipped, missing or other-candidate, command, configuration or target evidence confirms nothing",
-            "whose `Confirm by:` needs execution: report send-back",
+            "A criterion confirmed `searched` or `inspected` whose condition needs execution: report send-back",
             # The verify duty keeps the send-back route (its closing item) in the re-cut's wording.
             "Criterion or check unachievable as planned: report send-back naming it",
         )
@@ -1534,7 +1537,7 @@ class NavigatorContractTests(unittest.TestCase):
             "harness, case and suite locators",
             "setup/test/teardown (including justified stateless cases)",
             "sharing noninterference, failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost",
-            "authoring and expected RED do not require future production behavior to pass.",
+            "authoring and an expected failure do not require future production behavior to pass.",
             "remote-resident definitions",
             "framework availability",
             "authorized invocation",
@@ -1580,7 +1583,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("Consume discovery's baseline (Initial repository baseline guide)", strategy)
         self.assertIn("earliest", plan)
         self.assertIn("repair", plan)
-        self.assertIn("passing characterization of unchanged application behaviour", plan)
+        self.assertIn("passing characterisation of unchanged application behaviour", plan)
         self.assertIn("rerun the original initial check", prepare)
         # baseline's per-item revalidation moved to validate-existing (coverage-plan-validate.json): ShipLoop reruns
         # each expectation's check on the item base, and a broken foundation is a failed expectation to repair.
@@ -1746,7 +1749,7 @@ class NavigatorContractTests(unittest.TestCase):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
-                    self.assertIn("complete command imports the last two passes", normalized_packet)
+                    self.assertIn("callback imports the last two passes", normalized_packet)
                     # The review files print as the handoff's CHILD symbol, defined once with the child's directory (on
                     # the handoff's top line beside ROUTE, plan U18).
                     self.assertIn("CHILD = " + str(child_dir) + " · ROUTE = ", normalized_packet)
@@ -2166,7 +2169,7 @@ class NavigatorContractTests(unittest.TestCase):
             ),
         }
         retired = ("every producer attempt result is followed", "Improve cadence",
-                   "ShipLoop starts an Improve child after planning results")
+                   "ShipLoop starts an Improve stage after planning results")
         for delegation in prompts.DELEGATIONS:
             for stage in EXPECTED_STAGES:
                 with self.subTest(delegation=delegation, stage=stage):
@@ -3452,7 +3455,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
     PLANNING = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan")
     REVIEWED = {"stage": set(PLANNING), "none": {"system-test-author", "release-plan"}}
     CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
-    NONE_LINE = "Improve: no Improve child starts after this result in this run (planning_review: none)"
+    NONE_LINE = "Improve: no Improve stage starts after this result in this run (planning_review: none)"
     # Every sentence of an unreviewed planning stage's packet that names Improve and is not rewritten: why it may stay.
     ALLOWED = {
         "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
@@ -3510,7 +3513,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
                 for stage in self.PLANNING:
                     with self.subTest(mode=mode, delegation=delegation, stage=stage):
                         packet = self.flat(self.packet(stage, mode, delegation))
-                        self.assertNotIn("starts this action's Improve child", packet)
+                        self.assertNotIn("starts this action's Improve stage", packet)
                         self.assertNotIn(self.NONE_LINE, packet)
                         self.assertFalse([line for line in self.packet(stage, mode, delegation).splitlines()
                                           if line.startswith("Improve:")])
@@ -3528,13 +3531,13 @@ class PlanningReviewNoneTest(unittest.TestCase):
                 for stage in ("intake", "spec", "implement", "release-plan"):
                     with self.subTest(mode=mode, delegation=delegation, stage=stage):
                         text = self.flat(prompts.prompt(stage, delegation=delegation, planning_review=mode))
-                        self.assertNotIn("ShipLoop starts an Improve child after planning results", text)
+                        self.assertNotIn("ShipLoop starts an Improve stage after planning results", text)
                         self.assertNotIn("after the carry-forward that leaves no work item pending", text)
                 with self.subTest(mode=mode, delegation=delegation, line="implement"):
-                    self.assertNotIn("starts this step's Improve child",
+                    self.assertNotIn("starts this step's Improve stage",
                                      self.flat(self.packet("implement", mode, delegation)))
                 with self.subTest(mode=mode, delegation=delegation, line="carry-forward"):
-                    self.assertNotIn("end-of-work Improve child",
+                    self.assertNotIn("end-of-work Improve stage",
                                      self.flat(self.packet("carry-forward", mode, delegation)))
 
     def test_each_swapped_sentence_is_in_the_stage_text_once_and_the_none_text_in_its_place(self) -> None:
@@ -3711,7 +3714,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
                 for mode in self.MODES:
                     packet = self.flat(self.packet("step-plan", mode, delegation))
                     self.assertNotIn(self.NONE_LINE, packet)
-                    self.assertNotIn("starts this action's Improve child", packet)
+                    self.assertNotIn("starts this action's Improve stage", packet)
         plan = self.flat(prompts.duty("plan", planning_review="none"))
         self.assertIn("Add no item for step planning, validation, build, test, documentation, verification, commit or review", plan)
         self.assertNotIn("remains a draft until that loop completes", plan)
@@ -3730,7 +3733,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
     SKILL = ROOT / "skills" / "shiploop"
     AUDIT = ROOT / "skills" / "shiploop-e2e-audit"
     STAGES = r"(?:planning|\bspec(?:ification)?\b|test-strategy|\bplan\b|step-plan|test-spec|\bglobal plan)"
-    REVIEW = (r"(?:Improve(?:'s)?(?: skill)? (?:review|child|handoff|loop|checkpoint|packet|campaign|reviews)"
+    REVIEW = (r"(?:Improve(?:'s)?(?: skill)? (?:review|stage|child|handoff|loop|checkpoint|packet|campaign|reviews)"
               r"|reviews? each planning result)")
     PROMISE = re.compile(rf"(?:{STAGES}[^.]{{0,100}}{REVIEW}|{REVIEW}[^.]{{0,100}}{STAGES})", re.IGNORECASE)
     QUALIFIED = re.compile(r"planning_review|--planning-review|planning review option|`none`|`stage`"
@@ -3764,12 +3767,24 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "the per-step implement child starts in every mode; the list item says so",
         ("README.md", "(and, for the last item, its Improve child is imported), the script selects the next item's "
                       "`step-plan`"): EVERY_MODE,
-        ("references/carry-forward.md", "I[End-of-work Improve child, then system-test-author]"): EVERY_MODE,
-        ("references/navigator.md", "each implement step is reviewed by its own Improve child"):
+        ("references/carry-forward.md", "I[End-of-work Improve stage, then system-test-author]"): EVERY_MODE,
+        ("references/navigator.md", "each implement step is reviewed by its own Improve stage"):
             "the per-step implement child starts in every mode (owner decision 5, 2026-10-10); the sentence names "
             "test-spec only as the source of the tests",
         ("references/workspace-lifecycle.md", "once no Improve child is active (the end-of-work child and the "
                                                "`release-plan` child have been imported)"): EVERY_MODE,
+        # R4 (2026-10-24) names the schedule "Improve stage", so the scan reads that phrase too; these sentences use it.
+        ("references/navigator.md", "The Improve stages after each `implement` step, `system-test-author`, `release-plan` "
+                                    "and the last `carry-forward` start in both modes"): EVERY_MODE,
+        ("references/run-options.md", "The Improve stages after each `implement` step, `system-test-author`, "
+                                      "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
+        ("references/navigator.md", "R -->|Reviewed planning stage, implement step or last carry-forward| I[Improve stage"):
+            "a diagram edge taken only by a stage the option reviews ('Reviewed planning stage'); the text after the "
+            "diagram states both schedules",
+        ("references/planning-experiments.md", "imports it with the Improve stage's `complete`"):
+            "says how the plan child's confirmation is imported; the file opens with what a `planning_review: none` run lacks",
+        ("../shiploop-e2e-audit/harness/README.md", "An action with an Improve record needs its Improve stage's `complete`"):
+            "says how a recorded Improve stage is completed; promises none",
         ("references/delivery-authority.md", "Before an Improve campaign converges, resolve contradictions"):
             "names any Improve campaign, not a planning child; the specification and the plan are the example's documents",
         ("references/environment-lifecycle.md", "not permission to execute inside `plan` or its Improve review"):
@@ -3848,8 +3863,8 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         self.assertIn("`planning_review`", when)
         self.assertIn("`none`", when)
         for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
-                       "`improve-reconcile`", "plan-time experiments", "no Improve child reviews", "`--backchain-passes none`",
-                       "its first `implement` step starts an Improve child", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
+                       "`improve-reconcile`", "plan-time experiments", "no Improve review covers", "`--backchain-passes none`",
+                       "its first `implement` step starts an Improve stage", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
                        "refuse `--planning-review none` without"):
             with self.subTest(stated=stated):
                 self.assertIn(stated, option)
@@ -3857,7 +3872,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "README.md": ("`--planning-review stage|none`", "`--planning-review none`", "`--planning-review none` requires it"),
             "commands/shiploop.md": ("(required with `--planning-review none`)",),
             "commands/shiploop-complete.md": ("planning_review", "a `none` run has no Plan Improve child"),
-            "references/navigator.md": ("`stage` or `none`", "starts no Improve child",
+            "references/navigator.md": ("`stage` or `none`", "starts no Improve stage",
                                         "a `--planning-review none` run is refused without `--improve-skill`"),
             "references/state-files.md": ("`stage` or `none`",
                                           "holds only the records of each `implement` step, `system-test-author`"),
@@ -4138,6 +4153,12 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                     str(row.get("id")) for row in queue if isinstance(row, dict)))
             if stage == "step-plan":
                 result.setdefault("follows", [])
+                if "criteria" in result:
+                    result["criteria"] = inner_fixture.executed_criteria(result["criteria"])
+            if stage == "spec":
+                result = {**inner_fixture.fixture_primary(state), **result}    # run-5 batch F6
+            if stage == "test-strategy":
+                result = {**inner_fixture.fixture_test_layers(), **result}     # run-5 batch F1, F3
             if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
                          "release-verify"):
                 result.setdefault("assumptions", [])
@@ -4169,7 +4190,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             "paths": [self.STEP_PLAN_NOTES],
             "test_commands": [], "test_commands_na": "A documentation-only item: no test command applies.",
             "steps": [{"id": "S1", "task": "Write notes.md.", "deps": [], "criteria": [],
-                       "check": "test -f " + self.STEP_PLAN_NOTES, "paths": [self.STEP_PLAN_NOTES], "skills": []}],
+                       "proof": "test -f " + self.STEP_PLAN_NOTES, "paths": [self.STEP_PLAN_NOTES], "skills": []}],
             "expectations": expectations,
         }
 
@@ -4373,11 +4394,31 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             self.git("commit", "-qm", subject + "\n\nKey learnings:\n- " + name)
         lines = navigator.look_back_lines(self.state(), "implement")
         text = "\n".join(lines)
-        self.assertIn("fix: second", text)
-        self.assertIn("feat(W0/S1): first", text)
+        self.assertIn("fix: second | learned: two.txt", text)  # one line per commit: subject and its Key learnings
+        self.assertIn("feat(W0/S1): first | learned: one.txt", text)
         self.assertNotIn("docs(shiploop)", text)
         self.assertNotIn("base", text.split("\n", 1)[1])        # two commits only
+        self.assertEqual(len(lines), 3)
         self.assertEqual(navigator.look_back_lines(self.state(), "test"), [])
+        # Run-5 batch I1: a long subject is cut to its own cap, so the learnings still print.
+        (self.repo / "three.txt").write_text("three")
+        self.git("add", "three.txt")
+        self.git("commit", "-qm", "feat(W1/S2): " + "a very long subject " * 20 + "\n\nKey learnings:\n- the bound held")
+        newest = navigator.look_back_lines(self.state(), "implement")[1]
+        self.assertIn("\u2026 | learned: the bound held", newest)
+        self.assertLessEqual(len(newest.split(" | learned:")[0]), len("- ") + 12 + 1 + navigator.LOOK_BACK_SUBJECT)
+
+    def test_a_printed_implement_head_carries_the_look_back(self) -> None:
+        # Chess run 4 (2026-10-20): the look-back was in all four implement packet files and in none of the nine printed
+        # heads (it was the last optional block), and no step cited an earlier commit.  It is required head text now.
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        state = self.state()
+        head = navigator.packet_head(self.core, self.run_dir, state, self.run_dir / "packets" / "x.md")
+        self.assertIn("Look back: the last ", head)
+        block = navigator._producer_blocks(self.core, self.run_dir, state, None, path=self.run_dir / "packets" / "x.md")
+        self.assertEqual(next(b.tier for b in block if b.name == "look-back"), navigator.P1)
 
     def test_complete_check_only_runs_the_gates_and_accepts_nothing(self) -> None:
         self.start()
@@ -4444,7 +4485,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                         "steps": ["S2"], "paths": ["more.md"], "check": "test ! -e more.md"}])
                 plan["paths"] = ["notes.md", "more.md"]
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
-                                      "check": "test -f more.md", "paths": ["more.md"], "skills": []})
+                                      "proof": "test -f more.md", "paths": ["more.md"], "skills": []})
                 self.accept(plan)
                 for planning in ("step-plan", "test-spec"):
                     child = self.state().get("active_improve")
@@ -4480,12 +4521,12 @@ class ProducerBoundTests(unittest.TestCase):
                 {"id": "W2", "title": "t", "context": "c" * 2_501}]})
 
     def test_an_items_open_assumptions_past_1200_together_are_refused(self) -> None:
-        row = {"id": "A1", "disposition": "open", "assumption": "a" * 600, "check": "b" * 300, "reason": "c" * 300,
-               "consumer": "W1"}
+        row = {"id": "A1", "disposition": "open", "assumption": "a" * 600, "settle": "b" * 300, "reason": "c" * 300,
+               "due_item": "W1"}
         navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row]})  # exactly 1,200
         with self.assertRaisesRegex(navigator.NavigatorError, r"open assumptions of W1 \(1,201 characters\)"):
             navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row, dict(
-                row, id="A2", assumption="d", check="", reason="")]})
+                row, id="A2", assumption="d", settle="", reason="")]})
 
 
 class ConcernMapTests(unittest.TestCase):

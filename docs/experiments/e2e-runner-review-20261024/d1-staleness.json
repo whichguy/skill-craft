@@ -1,0 +1,42 @@
+{
+ "battleship | None/None/None": {
+  "date": "2026-09-26",
+  "shiploop_version": "0.38.0"
+ },
+ "battleship | claude/claude-sonnet-5-5/None": {
+  "date": "2026-10-16",
+  "shiploop_version": "1.4.0"
+ },
+ "battleship-scoring | None/None/None": {
+  "date": "2026-09-27",
+  "shiploop_version": "0.39.0"
+ },
+ "battleship-scoring | claude/claude-sonnet-5-5/None": {
+  "date": "2026-10-11",
+  "shiploop_version": "0.59.0"
+ },
+ "checkers | claude/claude-sonnet-5-5/None": {
+  "date": "2026-10-11",
+  "shiploop_version": "0.59.0"
+ },
+ "csv-report | None/None/None": {
+  "date": "2026-09-27",
+  "shiploop_version": "0.44.1"
+ },
+ "custom | grok/grok-4.7/medium": {
+  "date": "2026-10-06",
+  "shiploop_version": "0.54.0"
+ },
+ "hello | None/None/None": {
+  "date": "2026-10-04",
+  "shiploop_version": "0.51.0"
+ },
+ "hello | claude/claude-sonnet-5-5/None": {
+  "date": "2026-10-11",
+  "shiploop_version": "0.59.0"
+ },
+ "seat-reservations | None/None/None": {
+  "date": "2026-09-27",
+  "shiploop_version": "0.40.0"
+ }
+}

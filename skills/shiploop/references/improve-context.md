@@ -10,7 +10,7 @@ create a worker or a fresh context for each review iteration. The parent remains
 ShipLoop's control channel and alone may run the Improve stage's verified `complete --action=<improve id>`
 (it takes `--notes`, `--final-result` and `--no-commit`, no `--result`), with
 no separate record to submit, after
-the runtime has written the terminal packet to the receipt and every candidate writer has stopped. A parent
+the runtime has written its final receipt and every candidate writer has stopped. A parent
 pause retains the child; an unfinished child route is not proof that its
 executor stopped. A direct `/improve` call remains the normal standalone
 entrypoint and needs no bound packet; this binding is only the automatic
@@ -24,8 +24,9 @@ this run's Improve stage". The child's files stay under the reviewed action
 `packets/<improve id>.md` (`packets/<improve id>-bind.md` before a card is bound); it holds two
 lines, the improve skill call on the handoff and the `complete` callback, and the handoff file
 (`handoff.md` beside the receipt) holds this review's facts, its focus and its exact commands; what is the same in
-every review (ownership of both routes, recovery, the stopped-child route, exclusions, the `final_result` rules, the
-fixed review inputs) is in the Improve skill's `references/shiploop-route.md`, which the handoff names (`ROUTE`). (Before 2026-10-11 the model
+every review is in the Improve skill's `references/shiploop-route.md`, which the handoff names (`ROUTE`): a short core
+with every rule a normal pass needs, which names the file for each case (ownership of the ask-agent route, recovery and
+the stopped-child route, the `final_result` rules, the fixed review inputs) and when to open it. (Before 2026-10-11 the model
 wrote the opening, ran `improve-start --opening` and finished with `improve-complete`.)
 
 ## Route by the run's delegation
@@ -55,8 +56,9 @@ apply to both routes.
 ## Default route: the parent runs Improve (`delegation: inline`)
 
 The inline route's text, "Keep the invoking parent alive and run this Improve
-invocation inline." and the runtime lines that follow it, is in the route file
-(`Route: inline` in the handoff); a handoff no longer prints it. The parent conversation runs the selected
+invocation inline." and the runtime lines that follow it, is in the Improve skill's
+`references/shiploop-route-recovery.md` (`Route: inline` in the handoff), and the route's core states
+its rules for every pass; a handoff no longer prints it. The parent conversation runs the selected
 Improve card's ShipLoop whole-skill subcall once, in the exact Child
 workspace; its review iterations share this context. Do not hand the invocation
 to Ask Agent, a native worker or an extra worktree, and write no `host-owner.md`.
@@ -64,7 +66,7 @@ Run its reviews and checks in this conversation too; start no reviewer,
 test-runner or executor agent unless the user asked for independent review. Do
 not clear, hand off or pause for a clear during the invocation. This
 conversation is both executor and parent: the only candidate writer until the
-runtime returns a terminal packet, then the sole submitter of ShipLoop
+runtime writes its final receipt, then the sole submitter of ShipLoop
 callbacks. No script checks who executes; the Improve stage's `complete` imports this child
 from its receipt and the reviews directory's `review-<n>.md`/`checks.md` files.
 
@@ -93,11 +95,14 @@ After each review pass, write `reviews/review-<n>.md` (front matter `classificat
 run `improve-pass --action <improve id>`. In this order it refuses until the improve skill's call is
 recorded (where the hooks enforce it), refuses a review missing its form, commits the pass's uncommitted
 edits with `commit-message.md` (the `improve-commit` rules below; `--no-commit` carries a user's
-instruction not to commit), writes `checks.md` itself when the tree is unchanged since the bind and refuses
-a `checks.md` older than the review's last edit otherwise, then writes `report-<n>.json` and
-`pass-<n>.json` and prints the runtime's `done` for the pass (literal, with the report as standard input)
-and the stage's `complete`. It runs neither. At import `complete` writes `RUN/improve/<reviewed
-action>/passes.md`: one row per pass (stage, pass, label, tree changed, seconds, skill call recorded).
+instruction not to commit), writes `checks.md` itself when neither the tree nor the reviewed result changed
+since the bind (keeping a `checks.md` the review wrote), refuses a `checks.md` older than the review's last
+edit of the tree or of its result otherwise, then writes `report-<n>.json` and `pass-<n>.json` (with the
+tree's and the result's fingerprints, `changed`, `result_changed` and `edited`) and prints the runtime's
+`done` for the pass (literal, with the report as standard input) and the stage's `complete`. It runs
+neither. The reviewed result is `RUN/inbox/<action>-final-result.md` once written, else `RUN/inbox/<action>.md`,
+which lies outside the tree. At import `complete` writes `RUN/improve/<reviewed action>/passes.md`: one row
+per pass (stage, pass, label, tree changed, result changed, edited, seconds, skill call recorded).
 When the hooks enforce the call and the loop ended without one, `complete` refuses and names
 `improve-start --restart-stopped`: a call after the loop ended would review nothing.
 
@@ -113,6 +118,9 @@ learnings: none` when nothing was learned; a review that changed no file makes n
 commit and is not asked for one); `Learned-from: <commit id> <what it
 contributed>` lines are optional and checked; `--remote-change` with a `Remote
 change:` line records a change to a remote system as a commit with no files. A
+commit that changes code, not only tests, at the end-of-work review also needs a
+`Regression test:` line: the test in the same commit that fails without the fix,
+or `none: <why no test can show it>`. A
 refusal's first line is the fix and the command to run next.
 
 ShipLoop starts the runtime once, before any review work, with
@@ -124,7 +132,7 @@ context. Do not write or edit it. `improve-start` only restarts: it requires
 `--restart-stopped`, takes no opening, and archives a stopped child, or one whose single unchanged
 pass the change gate refused, before starting it again; it refuses while the receipt shows the
 review still running. Recover a started child from its receipt instead. Only after the runtime
-has written the terminal packet,
+has written its final receipt,
 run the packet's callback (`complete --action=<improve id>`, with no separate record: it imports the reviews
 directory's own `review-<n>.md`/`checks.md`). It refuses a `review-<n>.md` of three or more
 sentences when all but one of them repeat a review of another Improve stage of this run: run
@@ -145,8 +153,8 @@ reprinted child receipt locator. For an active child use the saved receipt's
 exact `next_argv` once; for a complete child validate and import without
 rerunning Improve. Start another runtime for this action only through the
 stopped-child restart route below. Missing
-active-child ephemeral state, a lost terminal packet, or a start that may have
-run before its packet was saved is incomplete, never success or permission to
+active-child ephemeral state, a lost final receipt, or a start that may have
+run before its receipt was saved is incomplete, never success or permission to
 start over. Recover in one conversation at a time; if an earlier conversation
 may still be writing the candidate, confirm it stopped before continuing.
 
@@ -253,7 +261,7 @@ packets and verbose logs behind their existing locators rather than copying
 them into child context.
 
 For the initial Plan Improve child (only a `planning_review: stage` run has one; `none` starts no
-Improve child at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`), retain the packet's experiment objective
+Improve stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`), retain the packet's experiment objective
 and exit criteria, applicable original constraints, current source/action
 locators, and decision consequences in that compact context. Keep essential
 findings and rationale inline; locators cannot replace critical reasoning.
@@ -353,7 +361,8 @@ Loop runtime is not supported and is refused at bind and import.
 
 This route applies when the run's delegation is `ask-agent`, including a saved
 run without the setting. Its route text begins "Keep the invoking
-parent alive and follow Improve's selected context ownership." (the route file, `Route: ask-agent`). One fresh native
+parent alive and follow Improve's selected context ownership." (the Improve skill's
+`references/shiploop-route-ask-agent.md`, `Route: ask-agent`). One fresh native
 worker owns the whole invocation. The worker retains useful within-loop context
 while the parent receives a compact return and durable locators. This reduces
 parent-context growth, not necessarily total tokens or latency.
@@ -415,7 +424,7 @@ read with its sibling `host-owner.md` before work resumes.
 Append the returned native job/thread handle, any host-exposed delegate identity,
 and later collection or stopped evidence without replacing earlier entries. The
 absence of a returned handle is never proof that launch did not happen. Keep the
-raw child packet as exact runtime JSON; `host-owner.md` is a host coordination
+raw child receipt as exact runtime JSON; `host-owner.md` is a host coordination
 record, not another runtime state machine, graph field, or success receipt.
 Never change `state.md` to track the agent; its run-level `delegation` value is
 run configuration, not an owner record. Announce the assignment and current
@@ -497,7 +506,7 @@ its first owner. Do not label a recovered binding new because its files are abse
 Once sole ownership is established, recover the same parent with `next` and the
 same child from its saved packet. For an active child use its exact `next_argv`;
 for a complete child validate and import without rerunning Improve. Missing
-active-child ephemeral state or a lost terminal packet is incomplete, never success or
+active-child ephemeral state or a lost final receipt is incomplete, never success or
 permission to start over. A resumed host may recover the same invocation in a
 fresh worker only after the old owner is confirmed stopped or never launched. No
 automatic return is promised after the parent session ends.

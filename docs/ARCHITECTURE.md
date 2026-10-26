@@ -99,7 +99,10 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   `e2e-apparatus`) select from the one canonical inventory in
   `test/suite_catalog.py`. `--group quick [--changed-from REF]` runs a light
   fixed baseline plus the light suites matching the files changed since REF; it
-  is partial evidence, never a full-regression claim. No installed AI host or engine is required; core's bundled mock also
+  is partial evidence, never a full-regression claim. `--group prompt` runs the
+  four packet-size suites and the packet obligation ledger plus the changed
+  suites, the loop for a ShipLoop prompt edit. `--jobs N` (default: CPU count, capped at 8) runs suites side by
+  side and still reports them in catalog order. No installed AI host or engine is required; core's bundled mock also
   covers marketplace-style binding from an empty unrelated directory.
 - Release boundary: `python3 scripts/check-release-boundary.py --base REV` (**implemented**)
   runs in CI's separate `release-boundary` job. Ordinary commits need a

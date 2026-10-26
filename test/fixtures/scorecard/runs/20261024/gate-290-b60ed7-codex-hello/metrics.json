@@ -1,0 +1,115 @@
+{
+ "span": {
+  "started": 1792894017.72,
+  "ended": 1792901512.557
+ },
+ "cost_usd": null,
+ "unreported_sessions": 1,
+ "claude_code_version": null,
+ "nomenclature": {
+  "retired": {}
+ },
+ "unmeasured": {
+  "stage_turns": "kept",
+  "truncated_outputs": "kept",
+  "cancelled_tool_calls": "kept",
+  "knowledge_reads": "kept"
+ },
+ "turns": 120,
+ "shiploop_failures": [
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  {}
+ ],
+ "improve_children": 9,
+ "planning": {
+  "window": {
+   "closed": true,
+   "through": "test-spec",
+   "seconds": 3082.0,
+   "host_seconds": 3096.3,
+   "before_engine_seconds": 14.3
+  }
+ },
+ "fresh_starts": [
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 311.7
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 71.6
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 346.5
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 139.0
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 245.4
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 2.8
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 264.6
+   }
+  },
+  {
+   "reorientation": {
+    "measured": true,
+    "seconds": 270.4
+   }
+  }
+ ],
+ "fresh_starts_unmeasured": null,
+ "fidelity": {
+  "end_state": {
+   "status": "done",
+   "unverified": {
+    "entries": 1
+   }
+  },
+  "evidence": {
+   "counts": {
+    "skipped": 0
+   }
+  },
+  "edits": {
+   "script_owned": [
+    {},
+    {},
+    {}
+   ]
+  },
+  "refusals": {
+   "count": 9,
+   "repeated": 0
+  }
+ }
+}

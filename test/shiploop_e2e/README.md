@@ -73,7 +73,7 @@ with `--plugin-dir` for a checkout build, so a line from a checkout run is compl
 find the build by itself), when a run starts and again when it ends with ShipLoop still active, so a later
 session that finds only the task log has it even if the harness was killed.
 `invocation.json` keeps the host's argv and not those flags, so a resume without them
-would run with the default `--timeout` (10800 s). For that reason a regrade (`--grade-only`)
+would run with none of the run's limits (there is no default `--timeout`). For that reason a regrade (`--grade-only`)
 prints no command at its end, only a pointer to the one printed when the run started (its own
 flags are the grader's), and a run that wrote no ShipLoop state prints the start line only
 (`--resume-run` refuses it).
@@ -335,6 +335,12 @@ failed ShipLoop commands, truncations, compactions, ended sessions). It never
 prints packet text or run markers, so a ShipLoop keepalive in the watching
 session cannot bind to the run.
 
+For the owner's illustrated status updates, `python3 test/shiploop_e2e/status_card.py MODEL.json` (or the model on
+stdin) prints a card as an HTML fragment for an inline widget: a plan strip (done, running, waiting, pending, each with
+an icon), a progress bar with an estimated end, and a grid of units by variants with one slot per sample or attempt
+(passed, below target, running, pending, error). The JSON model is documented in its docstring; the caller builds it
+from whatever it watches. It reads and writes nothing else.
+
 ### The fidelity block
 
 `metrics.json` carries `fidelity` (built by `test/shiploop_e2e/fidelity.py` through `run._main`, so a regrade with
@@ -551,17 +557,23 @@ each fails open (a part that cannot be made says so, with its reason, and the ru
   regraded, not refused (the point of a regrade is old runs): its entries have `environment: null` and `host_build: null` with
   their reasons, and its `start` says why it was not recorded.
 - `overlap`: which neighbouring runs had host events while this one did, read-only, at the end of the run, from the first and last
-  `timeline.jsonl` stamp of this run and of each folder beside it in the same parent folder. Each entry has `folder`, `case`,
+  `timeline.jsonl` stamp of this run and of each run folder under the runs root (`root` in the record:
+  `$SHIPLOOP_E2E_RUNS_ROOT`, else the output's grandparent, else its parent where the grandparent is the home folder, the
+  temporary folder or `/`; so `~/e2e-runs/<day>/<run>` reads every day's runs; a suite sets the variable for its cases to
+  the suite folder's root, so `~/e2e-runs/<day>/<suite>/<case>` reads every day's runs too). The walk does not enter a run folder or a hidden
+  folder, and a timeline last written before this run began is counted in `ended_before` and not read. Each entry has `folder`
+  (its path under the root), `case`,
   `hosts` (null with `hosts_reason` where its launch records cannot be read), `overlapped_seconds` and
   `started_offset_seconds` (the neighbour's start minus this run's: negative when it was already running, positive when it
   began later). A count taken when a run starts would miss the second kind: of the nine round runs of 2026-10-08 all nine
   overlapped another run and three saw an overlap begin more than a second after their own start. Limits: `timeline.jsonl` holds
   host events only, so a span is first to last host event; it counts a pause between sessions, and it misses the setup before the
   first event and the case checks, the product-at-stop run and the reap after the last (34.6 s and 37.4 s on the r1 and r3 Grok
-  runs, by the review's measurement), so the seconds are neither an upper nor a lower bound. A run started with `--output` in
-  another folder, and a sibling with no timeline yet, are not seen; a sibling whose timeline cannot be read is named in
-  `siblings_unreadable`. `runs: []` means the neighbours read had no host events in common with this run, not that nothing else
-  ran. The baseline row has no overlap field and no rule excludes an overlapped run.
+  runs, by the review's measurement), so the seconds are neither an upper nor a lower bound. A run outside the root, and a
+  neighbour with no timeline yet, are not seen; a neighbour whose timeline cannot be read is named in `siblings_unreadable`.
+  `runs: []` means the neighbours read had no host events in common with this run, not that nothing else ran. The baseline row
+  carries `overlapped_runs` (the count of `runs`, null where the record was not observed), and no rule excludes on it. A run
+  started beside live harness runs under its root prints a `concurrent` line naming them (never a refusal).
 - `start.browser`: the browser capability record, present as a probe only where something declares the need: a case's
   `needs` in `cases.json` (the three browser cases do, each with its `needs_source`) or `--need browser`. **A custom prompt
   (`--prompt`) declares none by itself**, which is why the Grok runs that motivated the record, all case `custom`, would have
@@ -668,8 +680,9 @@ Run the runs you compare one after the other. Concurrent runs share the CPU, the
 ports, so two runs whose wall time or per-call cost are set side by side (a before/after pair, a host or model comparison)
 are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
 The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. A baseline
-row has no overlap field. Two records say what overlapped, and neither excludes a run: `result.json` carries
-`environment.overlap` for the run, which names the neighbours in the same parent folder whose host events overlapped (not the
+row carries `overlapped_runs`, the count its run's own record saw. Two records say what overlapped, and neither excludes a run:
+`result.json` carries `environment.overlap` for the run, which names the run folders under the runs root whose host events
+overlapped (not the
 checks or setup around them; neither an upper nor a lower bound); and a row carries `started` and `ended` (the first and last
 stamp of the run's stream, epoch seconds), from which `--baseline-report` counts how many rows overlapped another recorded
 run's span. That count is neither a floor nor a ceiling: it misses a run that wrote no row and a row written before the span
@@ -765,6 +778,14 @@ how many recorded builds. A fact one side does not record is `unknown`, not gues
 python3 test/shiploop_e2e/run.py --baseline-report [--baseline FILE] [--runs DIR ...] [--json]
 ```
 
+**After each release, before a long case:** `--baseline-report --release-gate` adds one line per case style: the last pass a
+marketplace run recorded in the baseline file (case, date, skill-craft and ShipLoop versions, driver) and how many ShipLoop
+releases origin/main made after it, read from the local origin/main ref (nothing is fetched; a ref that cannot be read is
+named and the passes are still listed). With `--json` it is the `release_gate` key; without the flag the report is unchanged. A
+record, not a gate. Basis: the 2026-10-24 runner review found that no case had passed from the marketplace for fifteen ShipLoop
+releases (`docs/experiments/e2e-runner-review-20261024/d1-staleness.json`) and nothing printed it; the SPEC asks that a batch be
+verified smallest first (the `batch` suite) before a costlier case.
+
 Read-only: it starts no host, probes no CLI and writes nothing, and always exits 0 (an input that is missing, and a record
 that cannot be read, are named in the report and never stop it). It unions the baseline file with the run folders by the
 run's recorded `output`, so a run that a baseline file and a folder both describe is one record. A run folder is found at any
@@ -831,7 +852,7 @@ the run directory or Improve receipts, hand-built loop contracts), listed with
 the reason so a reviewer can confirm them. Both are defined by ShipLoop's own
 paths and verbs, never by a case's tools. `script_verifications` also counts
 `could_not_run`: attempts where no command reached a verdict about the product (a
-timeout, a command that could not be spawned, or one skipped when the invocation's
+timeout, a command that could not be spawned, or, in runs before 2026-10-24, one skipped when the invocation's
 budget ran out). They refuse their stage without counting as product failures. A
 non-zero count means the run could not tell, because of an environment problem or a
 product hang; it does not say the product is wrong. It also counts `red`: the records in
@@ -1005,7 +1026,7 @@ shown to have changed it by these counts, never by cost or wall time (a same-bui
   - `head_bytes` is the bytes ShipLoop first printed for the packet, as the host recorded the reply. One reader for all three hosts
     (`metrics.ToolLog.replies`): Claude's `tool_result` block, Grok's final `output_for_prompt` (after its own `exit: N` line) and
     Codex's after the harness translator. A reply holds the whole head only when it runs from the head's `ShipLoop navigator |` line
-    to its own closing line (the line `=== end ShipLoop head ===` from 2026-10-16, read as a line from 2026-10-17 because the packet's second pointer line quotes it inside a sentence near the top of every print; before 2026-10-16 the status block's, or the narrative block's when one follows), carries the packet's `Full packet:`
+    to its own closing line (the line `=== end ShipLoop print ===` from 2026-10-24, `=== end ShipLoop head ===` from 2026-10-16, read as a line from 2026-10-17 because the packet's second pointer line quotes it inside a sentence near the top of every print; before 2026-10-16 the status block's, or the narrative block's when one follows), carries the packet's `Full packet:`
     line (alone on its line before 2026-10-17, then followed by ` - ` and the sentence that says when to open the file) and has its callback and keepalive lines unshortened; what comes before it (a command's own output, Grok's exit line) and
     after it (the host's `Shell cwd was reset` note, output the model chained) is not the head. A call that names a packet file (the
     model reading it) is never a print. When a packet was printed more than once the first whole print counts.
@@ -1112,8 +1133,12 @@ uses it on purpose. Publish (`scripts/release.py`, then
   keepalive hook into the isolated profile before launch (`shiploop-hook install --host
   grok`) and reports the keepalive's decisions in `result.json`. A headless session
   also ends whenever the model ends its turn; when that happens while ShipLoop's run is
-  still `active`, the harness resumes the same session (`grok --resume`, default 20
-  times, `--max-resumes`) with a prompt to run `shiploop next`, within the timeout.
+  still `active`, the harness resumes the same session (`grok --resume`) with a prompt to run
+  `shiploop next`, with no limit on resumes unless `--max-resumes` sets one, and within the
+  timeout if one was given. Three resumed sessions in a row that leave ShipLoop's revision where
+  it was end the loop (`RESUME_STALL`), because resuming again would never end: "resumed host
+  failed …" (FAILED) when every one of them failed (an expired auth, a broken binary), else
+  "resumed host made no ShipLoop progress …" (STOPPED; the printed command continues the run).
   Turns and cost add up across the sessions that reported (`unreported_sessions`
   counts those that did not).
 - **Grok** runs with a throwaway `HOME`. Its `.grok` holds only a symlink to
@@ -1126,9 +1151,10 @@ uses it on purpose. Publish (`scripts/release.py`, then
   `--plugin-dir`, so your plugins and hooks stay out and none of your account's
   claude.ai connectors load (a plain launch loaded 15 of them and 174 tools,
   some connected, into an unattended run); `~/.claude/CLAUDE.md` still loads.
-- Grok has no spend cap; its runs are bounded by `--max-turns` and the timeout.
-  Claude runs also get `--max-budget-usd` (default 40; a chained case such as battleship-scoring can cost
-  more than 10 across its resumes).
+- No run gets a turn, spend, time or resume limit by default (owner, 2026-10-24: "I do not want to have any
+  limit on the number of turns"). Pass `--max-turns`, `--timeout`, `--max-resumes` or, on Claude,
+  `--max-budget-usd` to set one; Grok has no spend cap of its own. `run.py`, `slice.py` and `iterate.py`
+  share these defaults.
 
 ### Platform hooks (`platform`)
 
@@ -1246,6 +1272,32 @@ Credentials: every command output the harness stores or prints goes through `run
 itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it; `guard_coverage` (above) tells a model that never reached the wrapper and a command that starts sf by a path outside it, not every other way round. A harness that is killed with SIGKILL
 cannot clean up: run the cleanup command printed at the start, then resume (or, with its host stopped, `--resume-run <output> --grade-only`, which finds the pending record and cleans).
 
+#### A run's own prefix (`--platform-prefix`)
+
+A hosted-platform case names everything it creates with its catalog prefix (`SLBattle`, `SLChess`). Its preflight, guard,
+checks and cleanup act only on that prefix. So a kept app blocks the next run of the same case: the preflight finds it,
+and `--platform-existing update` would deploy over it.
+
+`--platform-prefix P` gives one run its own prefix. `run.py` renames each spelling of the catalog's prefix everywhere the
+case names it: in the prompt, the checks, the platform commands and the guard. Salesforce spells a prefix two ways:
+classes, tabs, apps and permission sets use `SLBattle`, and a component uses `slBattle` (`chess_salesforce.lwc_prefix`).
+The rules oracles rename the classes in their anonymous Apex the same way (`chess_salesforce.renamed`). An example:
+
+```sh
+python3 test/shiploop_e2e/run.py --case battleship-salesforce --platform-prefix SLBtlHk7f3a --keep-platform --output <dir> ...
+```
+
+That run deploys `SLBtlHk7f3aEngine`, `slBtlHk7f3aBoard`, `SLBtlHk7f3a_Board`, `SLBtlHk7f3a` and `SLBtlHk7f3a_Access`.
+It leaves a kept `SLBattle` app alone.
+
+The rules:
+- P is a capital letter and then 3 to 19 letters or digits.
+- P shares no beginning with any case's prefix, ignoring case, because the preflight, guard and cleanup match by a
+  case-insensitive beginning. Add a random suffix to make it unique.
+- `invocation.json` and `result.json` record `platform_prefix`, and a resume keeps it.
+- It does not go with `--suite` or `--seed-at`.
+- `boundary.case` is the digest of the renamed entry.
+
 #### Keeping what a run made (`--keep-platform`)
 
 The cleanup is the default and stays the default: a run leaves the platform as it found it. `--keep-platform` is the one option that
@@ -1310,7 +1362,9 @@ the cleanup would then refuse to delete anything. A resume reuses its run's fold
 Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
 timeout it was given and the harness is signalled (see below; its host is a separate process group), so the limit is
 whatever the launcher set and not a platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
-kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
+kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). The harness sets no timeout of its own, so a run launched
+as a task needs one: pass `--timeout` (seconds) below the task's limit, with margin. The deadline counts active time
+(`time.monotonic`), so a machine's sleep spends none of it. Margin matters because the
 deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
 each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
 ending: the harness writes metrics.json, result.json and the export, writes no baseline row, and prints the command
@@ -1458,7 +1512,8 @@ case's built product is committed in the worktree, so a run starts at the releas
 **The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
 `run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
 the run moved past item W1, left the inner loop, or stopped being active. A completed slice is never resumed.
-Grok and Codex sessions that end before the slice is complete are resumed, up to `--max-resumes`.
+Grok and Codex sessions that end before the slice is complete are resumed, with no limit unless `--max-resumes` sets
+one; a session that fails (a non-zero exit) is not resumed.
 
 **The verdicts**, written to `slice-result.json`:
 
@@ -1502,7 +1557,7 @@ python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --cl
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
-host is ended before it writes its `result` event; `--max-budget-usd` still caps the spend.
+host is ended before it writes its `result` event; there is no spend cap unless `--max-budget-usd` sets one.
 
 **The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a
 full run, only the last copy of each packet is available.
@@ -1610,7 +1665,7 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 | `metrics.reading_path(OUT)`, or `python3 test/shiploop_e2e/metrics.py reading-path OUT [--limit-events N]` | Where the characters the model took in came from: ShipLoop prints, files by class (entry card, packet file, Improve card, ADAPTER, references, knowledge, scripts), an Improve child's handoff, the Until Loop runtime. Cold (the first 12 calls after a break: the start, a compaction, a fresh session) against warm. How each ShipLoop command was typed (`piped_shiploop_calls`, `variable_built_shiploop_calls`, what the status display could read), prints a pipe cut (`shiploop_print_cut`, with N), packet files opened (`packet_file_opens`: whole, slice or none per producer stage), symbolic pointers followed, gates a run skipped (`skipped_gates`, including "no mutants"), `warm_next_calls`, the Improve skill invoked per Improve stage (Claude only), quoted knowledge that reached the model by file. `--limit-events N` reads the first N lines of the stream, which is how a snapshot taken while a run was live is read again. |
 | `metrics.stage_share(OUT)` | What a planning stage takes of the planning window: the stage's authoring time (accept to accept less its Improve child) and the span of its calls that name Backchain, as shares of the window on the engine clock. |
 | `clear.orientation(events, clear_line)` | What a fresh session read before its first state-changing call, by class, and how long that took. The S-6 verdict still counts only redone state-changing calls. Claude's stream only. |
-| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from. |
+| `arms.py CONTROL CANDIDATE --aa A B` (or one folder holding `control/`, `candidate/`, `aa-1/`, `aa-2/`) | Hard gates first (redone work, refusals and warm `next` calls above control plus the A/A spread, a lost ledger obligation, a flipped SPEC clause, an Improve stage with no improve call on Claude, a lower seeded-defect catch), then the bytes the model took in and read to orient, each against the A/A spread, then time (never decides). Exit 0 with a decision, 2 inside the spread or when the byte metrics disagree, 3 with nothing to decide from: no common slice, a slice one arm lacks, or a hard-gate field not measured on both arms (since build step 2; a measured gate failure still rejects). |
 | `seeded_defects.py verify` / `score OUT` | The three planted-defect cases (`node-seeded-*`): a request whose obvious implementation carries a defect the case's own checks do not exercise. `verify` proves each probe fails on the unreviewed tree and passes on the fixed one; `score` runs the probes on a slice's graded export (`OUT/export`). A record, never a verdict. |
 | `obligations.py` with `packet_obligations.json` | The packet obligation ledger: what every packet must carry, in the printed head or the packet file, checked on the 33-packet dry-run walk and the offline step slice on both routes. `--arm-checks DIR` writes the rows a checkout loses to `DIR/arm-checks.json` for `arms.py`. Its suite is `test/shiploop-packet-obligations.test.py`. |
 | `home_fixtures.py [long\|small\|empty]` | Generated, neutral knowledge homes (about 16/14/6 KB, and a few hundred characters) and the per-stage packet sizes over them, with `fingerprints` to show a change left a home's packets byte-identical. |
@@ -1715,6 +1770,96 @@ command printed by the run that first deployed it (its snapshot is the org witho
 stop, look at Setup > Deployment Status in the org: a deploy the host started can outlive its command. Hermetic checks (no real
 org): `bash test/run-all.sh --group quick`, the suites `shiploop-e2e-release-slice`, `-battleship-salesforce`, `-platform`.
 
+## The scorecard: one card per run
+
+```sh
+python3 test/shiploop_e2e/scorecard.py RUN [RUN ...] [--json] [--out FILE]
+```
+
+This is the objective of the self-improving loop (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`; id
+`scorecard/3` since build step 3). It reads each run's own records, writes nothing into a run folder and calls no model. A
+folder above run folders is walked to them. Two cards are compared only when their ids are equal.
+
+**Floors.** Each is `pass`, `fail`, `unobserved` or `not_applicable`.
+- **accuracy:** every verdict, plus the hidden acceptance when the case declares it. Requiredness belongs to the case
+  (`cases.json`), so a declared acceptance that was not observed makes the floor `unobserved`, never a pass.
+- **enterprise:** `not_applicable` until its rubric exists.
+- **fidelity:** the engine ended done, with no unverified entry and no skipped evidence.
+
+**The target** is `efficiency`: minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
+minutes, re-orientation minutes.
+
+**Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
+valid.
+- **correctness** is false when the delivered `work/` changed after delivery (E4's deleted `page.html`). It is null when:
+  - the tree can't be read;
+  - this run and a run overlapping it wrote the same `/tmp` name;
+  - for a case with held-out acceptance, the run's events name a held-out file, the checks folder or the case catalog
+    (`quality.held_out_seen` above 0), or that was not recorded.
+- **attribution** is false when hosts or host builds were mixed.
+- **timing** is false when the run overlapped other runs under its runs root, was resumed, wasn't attributable to one
+  build, or left listeners alive.
+
+So an overlapped run is still evidence of quality, never of speed.
+
+**Boundary** (build step 3) records what graded the run and what was graded:
+- `evaluator`, `oracle` and `case`: `result.json`'s `boundary`, which `run.py` records each time it grades, a regrade
+  included. They are the digests of the harness's code, its `checks/` and the case's catalog entry (`boundary.py`).
+- `candidate`: `versions.plugin_sha256`, the plugin tree the host loaded.
+
+Runs graded before 2026-10-25 have no grading digests, and `unmeasured.boundary` says so.
+
+Refusals, retired glossary terms and script-owned edits to confirm are reported beside the fidelity floor and decide
+nothing. A value nothing measured is null, with its reason in `unmeasured`.
+
+The tests are `ScorecardTest` in `test/shiploop-e2e-baseline.test.py`, over compact extracts of real runs in
+`test/fixtures/scorecard` (`extract.py`). Those extracts hold no `work/` tree, so their correctness is null until build
+step 4's delivery snapshot.
+
+## The promotion contract: promote, drop or undecided
+
+```sh
+python3 test/shiploop_e2e/promotion.py --registration REG.json --control RUN_OR_CARDS ... --candidate RUN_OR_CARDS ... [--json]
+```
+
+This is the one scripted rule (SPEC "The promotion contract", contract `promotion/3` since build step 3) that decides whether
+a candidate change to ShipLoop is promoted. It reads the two arms' `scorecard/3` cards: run folders, or card files from
+`scorecard.py --out`.
+
+**The registration, written before the runs,** names:
+- the cases, each a `regression` (an established requirement) or a `capability` (being improved), optionally with the
+  number of attempts each arm must bring (`{"role": "capability", "attempts": 2}`; fewer is UNDECIDED);
+- the required floors (accuracy and fidelity by default);
+- the efficiency metrics in order (`cost_usd`, `minutes`, `turns`; `tokens` arrives with build step 8);
+- a quality tolerance, a relative efficiency tolerance, and any budget.
+
+A run that began before `registered_at` makes the decision UNDECIDED. For card files the run start is unknown, so it is
+not checked.
+
+**The rule, in order:**
+1. Any of these is UNDECIDED, never a pass:
+   - fewer attempts than registered;
+   - a case whose attempts were graded by different evaluator, oracle or case digests, or by unrecorded ones (a harness
+     or oracle change is an experiment of its own);
+   - quality unknown: a card whose correctness is not valid, or a required floor that is neither pass nor fail.
+2. A regression case's success share falls: DROP.
+3. Over the registered budget: DROP.
+4. A capability case's share rises: PROMOTE, with its cost per success stated. A slower or dearer correctness fix still
+   promotes.
+5. A share falls with no gain: DROP.
+6. At equal quality, each efficiency metric in turn, as all-attempt cost per successful case, compared within a case and
+   only on cards whose timing and attribution are valid: no case dearer and one cheaper beyond the tolerance is
+   PROMOTE; one dearer is DROP; otherwise the next metric is asked.
+7. None decides: UNDECIDED, an inconclusive optimisation.
+
+Every attempt counts, stops and resumes included. No model judgement enters. It decides promotion only, never a run's
+`pass`, exit code or baseline row.
+
+Exit codes: 0 PROMOTE, 3 DROP, 4 UNDECIDED, 1 for a registration that cannot be used. The tests are `PromotionContractTest`
+in `test/shiploop-e2e-baseline.test.py`, including Astra's three decision examples and real gate cards. The 2.9.0 gate
+runs record no grading digests, so they can't promote anything; they also overlapped, so they could never have promoted
+an efficiency change.
+
 ## Review one run
 
 ```sh
@@ -1766,15 +1911,28 @@ and every finding to `test/shiploop_e2e/LEARNINGS.md` and commits it with a
 detailed message (outcome, evidence, proposals, rejected findings, what to
 apply next). Reviewer and improver both read the last three commit messages, so
 each iteration builds on the learnings of the ones before. The improver may
-change only `skills/shiploop/`,
-`changes/shiploop/` and `test/`, and commits with explicit paths. The harness
-then checks the commit's scope itself and runs the quick test tier.
+change only the candidate: `skills/shiploop/`, `changes/shiploop/` and
+ShipLoop's own tests (`test/shiploop-*`, the `test/shiploop_*` helpers,
+`test/fixtures/shiploop-*`, `test/experiments/shiploop_*`). It may not change the
+E2E harness, its suites, the test runner or the suite catalog. It commits with
+explicit paths. The harness then checks the commit's scope itself and runs the
+quick test tier.
+
+The evaluator boundary (SPEC "The promotion contract", build step 3; `boundary.py`):
+- Each iteration's journal entry records the run's evaluator, oracle, case and candidate digests.
+- While the improver works, the held-out files are withheld from its worktree, marked skip-worktree in that worktree's
+  own index, and restored before the harness's quick tier. The held-out files are each case's acceptance module and its
+  `calibration` files.
+- The improver's tool calls are searched for the held-out files' names. Prose doesn't count, because the SPEC in its
+  prompt names them.
+- The checkout that grades the runs must have the same evaluator, oracle and case digests after the improver as before.
 
 It stops at `--iterations` (at most 10), after two consecutive clean reviews of
 passing runs (an unusable review is journaled with its outcome, resets the streak
 and applies nothing), when the improver commits nothing twice in a row, when a run never
-reached the skill under test, when the improver strays outside its scope, or on
-a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
+reached the skill under test, when the improver crosses the evaluator boundary
+(what grades the runs changed, or its events name a held-out file or can't be
+read), when it strays outside its scope, or on a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
 every iteration: verdicts, cost, findings applied and rejected, commits and tests.
 
 Nothing is published. When the branch is worth shipping, review it, merge it,

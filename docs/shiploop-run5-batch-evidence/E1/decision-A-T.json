@@ -1,0 +1,33 @@
+{
+  "experiment": "E1",
+  "claim": "A producer that must name the weaker implementation each oracle rejects writes tests that kill the planted stand-ins more often than one only told to avoid weak checks.",
+  "arms": [
+    "A",
+    "T"
+  ],
+  "arm_specs": {
+    "A": {
+      "ref": "288075c9"
+    },
+    "T": {
+      "ref": "9ed4ec24"
+    }
+  },
+  "n": [
+    3,
+    3
+  ],
+  "means": [
+    1.0,
+    1.0
+  ],
+  "spread": null,
+  "difference": 0.0,
+  "gate": null,
+  "gate_rates": [
+    null,
+    null
+  ],
+  "verdict": "inconclusive",
+  "reason": "the first arm needs scored samples 1-4 for the A/A spread"
+}

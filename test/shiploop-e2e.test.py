@@ -34,6 +34,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import boundary  # noqa: E402
 import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
@@ -533,6 +534,47 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             self.assertEqual([(c["passes"], c["seconds"], c["bytes"]) for c in got["per_child"]],
                              [(3, 120.0, 30), (1, 0.0, 10)])
 
+    def test_a_review_folder_one_level_down_is_read_as_the_runs_write_it(self):
+        """Runs 3, 4 and 5 keep .shiploop-improve/<stage>-<id>/reviews; the reader saw 0 children until 2026-10-25."""
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp) / "run"
+            run_dir.mkdir()
+            for child, count in (("spec-1d6d2aa8", 3), ("implement-0d7e1c02", 2)):
+                reviews = Path(temp) / "worktree" / ".shiploop-improve" / child / "reviews"
+                reviews.mkdir(parents=True)
+                for n in range(1, count + 1):
+                    (reviews / f"review-{n}.md").write_text("x")
+            got = metrics.improve_reviews(run_dir)
+            self.assertEqual((got["children"], got["passes"], got["max_passes"]), (2, 5, 3))
+
+    def test_a_result_only_edit_counts_as_an_edited_review_and_a_one_pass_review_is_timed_from_its_bind(self):
+        """Advisors panel 2026-10-25: a test spec's result lies outside the tree, so a tree-only count read 0 of 9 test-spec
+        reviews as edited (5 of 9 had edited their result); and a one-pass review measured first note to last note: 0 s."""
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp) / "run"
+            (run_dir / "improve").mkdir(parents=True)
+            bind = run_dir / "improve" / "nav-aaaa1111-bind.md"
+            bind.write_text("bind")
+            reviews = Path(temp) / "worktree" / ".shiploop-improve" / "test-spec-aaaa1111" / "reviews"
+            reviews.mkdir(parents=True)
+            (reviews / "review-1.md").write_text("x")
+            (reviews / "pass-1.json").write_text(json.dumps({"changed": False, "result_changed": True, "edited": True}))
+            os.utime(bind, (1000, 1000))
+            os.utime(reviews / "review-1.md", (1046, 1046))
+            older = Path(temp) / "worktree" / ".shiploop-improve" / "step-plan-bbbb2222" / "reviews"
+            older.mkdir(parents=True)
+            (older / "review-1.md").write_text("x")
+            (older / "pass-1.json").write_text(json.dumps({"changed": False}))  # a run before result tracking
+            got = metrics.improve_reviews(run_dir)
+            child = {c["child"]: c for c in got["per_child"]}
+            self.assertEqual((child["test-spec-aaaa1111"]["edited"], child["test-spec-aaaa1111"]["edited_basis"]),
+                             (True, "tree and result"))
+            self.assertEqual((child["test-spec-aaaa1111"]["seconds"], child["test-spec-aaaa1111"]["review_seconds"]),
+                             (0.0, 46.0))
+            self.assertEqual((child["step-plan-bbbb2222"]["edited"], child["step-plan-bbbb2222"]["edited_basis"]),
+                             (False, "tree only"))
+            self.assertEqual(got["edited_children"], 1)
+
     def test_no_worktree_means_no_children(self):
         self.assertEqual(metrics.improve_reviews(None)["passes"], 0)
         with tempfile.TemporaryDirectory() as temp:
@@ -808,6 +850,20 @@ class ExpectationTest(HarnessCase):
         self.assertEqual(code, 0, result)
         self.assertFalse((Path(result["output"]) / "mismatch.md").exists())
 
+    def test_run_deadlines_count_active_time_and_strptime_is_loaded_at_start(self):
+        """Run 5 (2026-10-24/25): a 10 h sleep spent the 5 h wall-clock cap after 3.8 h of work, and a mid-run
+        interpreter swap removed the lazily imported _strptime. Deadlines read time.monotonic, which stops during
+        sleep, in run.py and slice.py alike; with no --timeout (the default since 2026-10-24) the deadline is infinite.
+        _strptime is imported at start."""
+        source = (ROOT / "test" / "shiploop_e2e" / "run.py").read_text(encoding="utf-8")
+        for name in ("run.py", "slice.py"):
+            text = (ROOT / "test" / "shiploop_e2e" / name).read_text(encoding="utf-8")
+            wall = [line.strip() for line in text.splitlines() if "deadline" in line and "time.time()" in line]
+            self.assertEqual(wall, [], name)
+            self.assertIn('deadline = time.monotonic() + (args.timeout or float("inf"))', text, name)
+        self.assertRegex(source, r"(?m)^import _strptime\b")
+        self.assertIn("_strptime", sys.modules)  # importing run loaded it
+
     def test_budget_is_should_level_and_read_from_the_run_timeline(self):
         run_dir = self.tmp / "run"
         run_dir.mkdir()
@@ -1065,6 +1121,221 @@ class IterateConvergenceTest(unittest.TestCase):
         journal = self.iterate([("exited", VALID_EMPTY_REVIEW), ("failed", ""), ("exited", VALID_EMPTY_REVIEW)], 3)
         self.assertNotIn("clean review (streak 2)", journal)
         self.assertIn("reached --iterations 3", journal)
+
+
+ACTIONABLE_REVIEW = ('```json\n' + json.dumps({
+    "outcome": "Delivered, with one gap.", "missing_considerations": [], "optimizations": [],
+    "learnings": [{"title": "Name the port", "severity": "material", "preserves_premise": True, "evidence": "e", "proposal": "p",
+                   "files": ["skills/shiploop/SKILL.md"]}],
+    "harness": {"learning_retention": {"answer": "keep", "proposals": []}}}) + '\n```')
+
+
+class FakeImprover(FakeReviewer):
+    """The reviewer replies in turn; a call whose working directory is the improver's worktree runs `act(worktree, events)`."""
+
+    def __init__(self, replies: list, worktree: Path, act):
+        super().__init__(replies)
+        self.worktree, self.act, self.seen = worktree, act, {}
+
+    def env(self, home, git_config=None):  # the improver passes the user's git config too
+        return {"HOME": str(home)}
+
+    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+        if Path(cwd) != self.worktree:
+            return super().run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate)
+        Path(events_path).write_text("")
+        Path(stderr_path).write_text("")
+        self.seen["files"] = sorted(path.relative_to(cwd).as_posix() for path in Path(cwd).rglob("*.py")
+                                    if ".git" not in path.parts)
+        self.seen["status"] = subprocess.run(["git", "-C", str(cwd), "status", "--porcelain"], capture_output=True,
+                                             text=True, check=True).stdout
+        self.act(Path(cwd), Path(events_path))
+        return {"status": "exited", "returncode": 0, "elapsed_seconds": 0}
+
+
+# The suite catalog's path, in two parts: the catalog gives a suite the source of every test helper its text names
+# (its _suite_sources), and the catalog's own source names paths this suite does not cover.
+SUITE_CATALOG = "test/suite" + "_catalog.py"
+
+
+class IterateBoundaryTest(unittest.TestCase):
+    """The evaluator boundary in iterate.py (SPEC "The promotion contract", build step 3, R13 of the final verdict). Astra's
+    done signal: a candidate cannot modify grader inputs or read protected holdout instances, and the hashes stay unchanged."""
+
+    HELD_OUT = ["test/fixtures/quality/reference_checkers.py", "test/shiploop_e2e/checks/checkers_accept.py"]
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        # The checkout that grades the runs: its harness code, its checks and its catalog.
+        self.harness = self.tmp / "grader" / "test" / "shiploop_e2e"
+        (self.harness / "checks").mkdir(parents=True)
+        (self.harness / "run.py").write_text("# the harness\n")
+        (self.harness / "checks" / "checkers_accept.py").write_text("CHECKS = {}\n")
+        acceptance = {"module": "checkers_accept", "calibration": [self.HELD_OUT[0]], "start": "node server.js", "checks": []}
+        (self.harness / "cases.json").write_text(json.dumps({"checkers": {"prompt": "p", "quality": {"acceptance": acceptance}}}))
+        # The improver's worktree, with the same held-out files committed.
+        self.repo = self.tmp / "worktree"
+        for path, text in ((self.HELD_OUT[1], "CHECKS = {}\n"), (self.HELD_OUT[0], "# a correct implementation\n"),
+                           ("skills/shiploop/SKILL.md", "# ShipLoop\n"), ("test/shiploop_e2e/LEARNINGS.md", "# learnings\n")):
+            (self.repo / path).parent.mkdir(parents=True, exist_ok=True)
+            (self.repo / path).write_text(text)
+        for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"], ["config", "user.email", "t@example.invalid"],
+                    ["add", "."], ["commit", "-q", "-m", "base"]):
+            subprocess.run(["git", "-C", str(self.repo), *cmd], check=True)
+
+    def git(self, *args: str) -> str:
+        return subprocess.run(["git", "-C", str(self.repo), *args], capture_output=True, text=True, check=True).stdout
+
+    def commit(self, worktree: Path, *paths: str) -> None:
+        for path in paths:
+            (worktree / path).parent.mkdir(parents=True, exist_ok=True)
+            (worktree / path).write_text("changed\n")
+        subprocess.run(["git", "-C", str(worktree), "add", *paths], check=True)
+        subprocess.run(["git", "-C", str(worktree), "commit", "-q", "-m", "improve"], check=True)
+
+    def grading(self):
+        return (mock.patch.object(iterate, "HERE", self.harness), mock.patch.object(iterate.runner, "CASES", self.harness / "cases.json"))
+
+    def improve(self, act) -> tuple[dict, dict]:
+        fake = FakeImprover([], self.repo, act)
+        args = iterate.argparse.Namespace(case="checkers", host="grok", model=None, effort=None, permission_mode="auto",
+                                          improve_max_turns=None, max_budget_usd=None, improve_timeout=10)
+        with contextlib.ExitStack() as stack:
+            for patch in (*fake.patches(), *self.grading()):
+                stack.enter_context(patch)
+            change = iterate.improve(self.repo, [], self.tmp / f"stage-{len(list(self.tmp.glob('stage-*')))}", args)
+        return change, fake.seen
+
+    def test_a_candidate_change_keeps_the_boundary_and_never_sees_the_held_out_files(self):
+        before = {path: (self.repo / path).read_bytes() for path in self.HELD_OUT}
+        change, seen = self.improve(lambda worktree, events: self.commit(worktree, "skills/shiploop/SKILL.md",
+                                                                         "test/shiploop-lint.test.py"))
+        self.assertFalse(set(self.HELD_OUT) & set(seen["files"]), "withheld while the improver worked")
+        self.assertEqual(seen["status"], "", "withholding is not an uncommitted change")
+        self.assertEqual(change["withheld"], self.HELD_OUT)
+        self.assertEqual({path: (self.repo / path).read_bytes() for path in self.HELD_OUT}, before, "restored as they were")
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assertFalse([line for line in self.git("ls-files", "-v").splitlines() if line.startswith("S ")],
+                         "no skip-worktree flag is left behind")
+        self.assertEqual((change["out_of_scope"], change["held_out_named"], change["grading"]["changed"]), ([], 0, []))
+        self.assertEqual(change["grading"]["before"], change["grading"]["after"], "the hashes stay unchanged")
+        self.assertIsNone(iterate.boundary_crossing(change))
+
+    def test_a_change_to_what_grades_the_runs_crosses_the_boundary(self):
+        for target, group in (("checks/checkers_accept.py", "oracle"), ("run.py", "evaluator"), ("cases.json", "case")):
+            with self.subTest(target=target):
+                self.setUp()
+
+                def tamper(worktree, events, target=target):
+                    path = self.harness / target
+                    if target == "cases.json":
+                        cases = json.loads(path.read_text())
+                        cases["checkers"]["quality"]["acceptance"]["checks"] = [{"id": "easier"}]
+                        path.write_text(json.dumps(cases))
+                    else:
+                        path.write_text(path.read_text() + "# weakened\n")
+                change, _ = self.improve(tamper)
+                self.assertEqual(change["grading"]["changed"], [group])
+                self.assertIn(f"the improver changed what grades the runs ({group} digest",
+                              iterate.boundary_crossing(change))
+
+    def test_a_tool_call_that_names_a_held_out_file_crosses_the_boundary(self):
+        # The SPEC is in the improver's prompt and names these files, so prose that names one proves nothing: only calls count.
+        prose = {"type": "assistant", "message": {"content": [{"type": "text", "text": f"The SPEC withholds {self.HELD_OUT[0]}."}]}}
+        change, _ = self.improve(lambda worktree, events: events.write_text(json.dumps(prose) + "\n"))
+        self.assertEqual(change["held_out_named"], 0)
+        self.assertIsNone(iterate.boundary_crossing(change))
+
+        def peek(worktree, events):
+            events.write_text(json.dumps(prose) + "\n" + json.dumps(
+                {"type": "tool_call", "toolName": "bash", "rawInput": {"command": f"git show HEAD:{self.HELD_OUT[0]}"}}) + "\n")
+        change, _ = self.improve(peek)
+        self.assertEqual(change["held_out_named"], 1)
+        self.assertIn("tool calls name a held-out file 1 time(s)", iterate.boundary_crossing(change))
+        change, _ = self.improve(lambda worktree, events: events.unlink())
+        self.assertIsNone(change["held_out_named"])
+        self.assertIn("cannot be ruled out", iterate.boundary_crossing(change))
+
+    def test_the_harness_its_suites_the_runner_and_the_catalog_are_out_of_scope(self):
+        change, _ = self.improve(lambda worktree, events: self.commit(
+            worktree, "test/shiploop_e2e/run.py", "test/shiploop-e2e.test.py", SUITE_CATALOG, "test/run-all.sh",
+            "test/shiploop-lint.test.py", "test/shiploop_example_support.py", "changes/shiploop/x.md"))
+        self.assertEqual(sorted(change["out_of_scope"]), ["test/run-all.sh", "test/shiploop-e2e.test.py",
+                                                          "test/shiploop_e2e/run.py", SUITE_CATALOG])
+
+    def test_the_loop_stops_and_journals_when_the_improver_changes_what_grades(self):
+        def tamper(worktree, events):
+            (self.harness / "checks" / "checkers_accept.py").write_text("CHECKS = {}  # weakened\n")
+            self.commit(worktree, "skills/shiploop/SKILL.md")
+        real_run = subprocess.run
+
+        def no_build(argv, *a, **kw):
+            return (subprocess.CompletedProcess(argv, 0) if any(str(part).endswith("build-packages.py") for part in argv)
+                    else real_run(argv, *a, **kw))
+
+        def passing_run(argv):
+            out = Path(argv[argv.index("--output") + 1])
+            out.mkdir(parents=True)
+            (out / "result.json").write_text(json.dumps({
+                "pass": True, "host": "grok", "model": "m", "effort": "medium",
+                "process": {"status": "exited", "returncode": 0, "elapsed_seconds": 1},
+                "cli": {"num_turns": 1, "cost_usd": None}, "shiploop": {"status": "done", "stage": "done", "report_html": True},
+                "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True},
+                "boundary": {"evaluator": "e" * 12, "oracle": "o" * 12, "case": "c" * 12}, "versions": {"plugin_sha256": "p" * 12}}))
+            return 0
+
+        fake = FakeImprover([("exited", ACTIONABLE_REVIEW)] * 3, self.repo, tamper)
+        with contextlib.ExitStack() as stack:
+            for patch in (*fake.patches(), *self.grading()):
+                stack.enter_context(patch)
+            stack.enter_context(mock.patch.object(iterate, "new_worktree", return_value=(self.repo, "auto/test")))
+            stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
+            stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            iterate.main(["--case", "checkers", "--host", "grok", "--iterations", "3", "--output", str(self.tmp / "out")])
+        journal = (self.tmp / "out" / "LEARNINGS.md").read_text()
+        self.assertIn(f"- boundary: evaluator {'e' * 12}, oracle {'o' * 12}, case {'c' * 12}, candidate {'p' * 12}", journal)
+        self.assertIn("- stopped: the improver changed what grades the runs (oracle digest", journal)
+        self.assertNotIn("quick tier:", journal, "nothing graded on the changed oracle")
+        self.assertNotIn("## Iteration 2", journal)
+
+
+class BoundaryTest(unittest.TestCase):
+    """test/shiploop_e2e/boundary.py: the digests and the held-out list (build step 3)."""
+
+    def test_candidate_paths(self):
+        for path, allowed in (("skills/shiploop/SKILL.md", True), ("changes/shiploop/x.md", True),
+                              ("test/shiploop-lint.test.py", True), ("test/shiploop_example_support.py", True),
+                              ("test/fixtures/shiploop-keepalive/a", True), ("test/experiments/shiploop_chain/a.py", True),
+                              ("test/shiploop_e2e/checks/battleship_game.py", False), ("test/shiploop-e2e-quality.test.py", False),
+                              (SUITE_CATALOG, False), ("test/run-all.sh", False), ("skills/improve/SKILL.md", False),
+                              ("test/fixtures/quality/reference_checkers.py", False)):
+            with self.subTest(path=path):
+                self.assertEqual(boundary.candidate_path(path), allowed)
+
+    def test_the_digests_read_bytes_and_ignore_compiled_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp)
+            (harness / "checks" / "__pycache__").mkdir(parents=True)
+            (harness / "run.py").write_text("x\n")
+            (harness / "README.md").write_text("docs are not the evaluator\n")
+            (harness / "checks" / "a.py").write_text("y\n")
+            first = boundary.fingerprint(harness, {"prompt": "p"})
+            (harness / "checks" / "__pycache__" / "a.cpython-313.pyc").write_bytes(b"\0")
+            (harness / "README.md").write_text("edited\n")
+            self.assertEqual(boundary.fingerprint(harness, {"prompt": "p"}), first)
+            (harness / "checks" / "a.py").write_text("z\n")
+            self.assertEqual(boundary.changed(first, boundary.fingerprint(harness, {"prompt": "p"})), ["oracle"])
+            self.assertEqual(boundary.changed(first, boundary.fingerprint(harness, None)), ["oracle", "case"])
+            self.assertEqual(boundary.fingerprint(harness, None)["unmeasured"], {"case": "a custom prompt has no catalog entry"})
+
+    def test_the_held_out_files_are_the_acceptance_modules_and_their_calibration(self):
+        # The paths are not read here: this suite runs in the improver's worktree, where they are withheld. That they
+        # exist is checked in test/shiploop-e2e-quality.test.py, which no candidate change selects.
+        acceptance = {"module": "m_accept", "calibration": ["test/fixtures/quality/ref.py"]}
+        self.assertEqual(boundary.held_out_files({"a": {"quality": {"acceptance": acceptance}}, "b": {"prompt": "p"}}),
+                         ["test/fixtures/quality/ref.py", "test/shiploop_e2e/checks/m_accept.py"])
 
 
 class LearningsTest(unittest.TestCase):
@@ -1794,6 +2065,151 @@ class CheckHygieneTest(unittest.TestCase):
             dropped = run.run_checks(work, [check], env={"PRIOR_WORK": str(prior)})[0]
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
+class CheckScratchFileTest(unittest.TestCase):
+    """A case check writes nothing into the product's folder (2026-10-24 runner review, E4): the release-gate Battleship run
+    failed because check 2 fetched the page to work/page.html and removed it, and that product commits a page.html its
+    server reads at start, so the check deleted it and every later check's server died. Scratch output goes to mktemp or a
+    shell variable. docs/experiments/e2e-runner-review-20261024/e4-check-clobber.json."""
+
+    # A redirect or a curl -o into a relative name with an extension or a leading dot; `=>` and `>=` are JavaScript.
+    WRITES = re.compile(r"(?:(?<![=\-<>&0-9])\d?>\s*|-o\s+)(\.[\w-]+|[A-Za-z_][\w-]*\.[A-Za-z]+)\b")
+    # The lines E4 found, kept as the scan's controls.
+    OLD = ("node --test > node-test.log 2>&1; rc=$?; rm -f node-test.log",
+           "python3 \"$E2E_CHECKS/serve.py\" -- sh -c 'curl -fsS \"$BASE/\" -o page.html && grep -qi battleship page.html; "
+           "rc=$?; rm -f page.html; exit $rc'",
+           "ids \"$PRIOR_WORK\" > .ids-before; ids . > .ids-after",
+           "printf '' | python3 measure.py > out.txt 2> err.txt")
+    SENTINELS = ("page.html", "node-test.log", "out.txt", "err.txt", ".ids-before", ".ids-after")
+
+    def lines(self):
+        for name, case in json.loads(run.CASES.read_text()).items():
+            for kind in ("checks", "retention"):
+                for index, line in enumerate(case.get(kind) or []):
+                    yield name, kind, index, line, case
+
+    def test_no_case_check_writes_a_relative_file_and_the_scan_flags_the_lines_e4_found(self):
+        for old in self.OLD:
+            self.assertTrue(self.WRITES.search(old), old)
+        found = [(name, kind, index, self.WRITES.findall(line)) for name, kind, index, line, _ in self.lines()
+                 if self.WRITES.search(line)]
+        self.assertEqual(found, [], "write scratch output to mktemp or a variable, never into the product's folder")
+
+    def product(self, root: Path) -> Path:
+        work = root / "work"
+        (work / "test").mkdir(parents=True)
+        (work / "server.js").write_text(
+            "const http=require('node:http'),fs=require('node:fs'),path=require('node:path');\n"
+            "const PAGE=fs.readFileSync(path.join(__dirname,'page.html'));\n"
+            "http.createServer((q,s)=>{if(q.url==='/'){s.writeHead(200,{'content-type':'text/html'});return s.end(PAGE);}"
+            "s.writeHead(404);s.end();}).listen(Number(process.env.PORT||3000),'127.0.0.1');\n")
+        (work / "test" / "ok.test.js").write_text("require('node:test')('ok', () => {});\n")
+        for name in self.SENTINELS:
+            (work / name).write_text("<title>Battleship</title> Checkers accuracy\n" if name == "page.html" else f"the product's {name}\n")
+        subprocess.run(["git", "init", "-q", str(work)], check=True)
+        subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm",
+                        "product"], check=True)
+        return work
+
+    def test_a_product_that_commits_page_html_and_the_scratch_names_keeps_them_through_every_case_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = self.product(Path(tmp))
+            prior = Path(tmp) / "prior"
+            shutil.copytree(work, prior)
+            before = {name: (work / name).read_bytes() for name in self.SENTINELS}
+            page_checks = {}
+            for name, kind, index, line, case in self.lines():
+                if case.get("platform"):
+                    continue  # a hosted case's checks call a real org
+                result = run.run_checks(work, [line], timeout=60, env={"PRIOR_WORK": str(prior)})[0]
+                if "grep -qi" in line and "$BASE/" in line:
+                    page_checks[(name, index)] = result
+                with self.subTest(case=name, kind=kind, index=index):
+                    status = subprocess.run(["git", "-C", str(work), "status", "--porcelain"], capture_output=True,
+                                            text=True).stdout
+                    self.assertEqual(status, "", f"{name} {kind}[{index}] changed the product's tracked files")
+                    self.assertEqual({n: (work / n).read_bytes() for n in self.SENTINELS}, before)
+            self.assertEqual(sorted(page_checks), [("battleship", 1), ("battleship-scoring", 2), ("checkers", 1)])
+            for key, result in page_checks.items():
+                self.assertTrue(result["pass"], (key, result["output"]))
+            # The control: E4's line deletes the page, which is what this test exists to catch.
+            run.run_checks(work, [self.OLD[1]], timeout=60)
+            self.assertFalse((work / "page.html").exists())
+
+
+BATTLESHIP_STUB = r'''
+import json, os, sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+MODE = sys.argv[1]
+FLEET = [[(0, c) for c in range(5)], [(2, c) for c in range(4)], [(4, c) for c in range(3)], [(6, 0), (7, 0)]]
+games = {}
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def send(self, body):
+        data = json.dumps(body).encode()
+        self.send_response(200); self.send_header("content-type", "application/json"); self.end_headers(); self.wfile.write(data)
+    def do_GET(self):
+        gid = "g" if MODE == "constant-id" else str(len(games))
+        games[gid] = {"shots": 0, "hit": set(), "over": False}
+        self.send({"game": gid, **({"gameOver": True} if MODE == "audit" else {})})
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["content-length"])))
+        g, cell = games[str(body["game"])], (body["row"], body["col"])
+        g["shots"] += 1
+        if MODE == "all-sunk":
+            return self.send({"result": "sunk", "gameOver": True})
+        if MODE in ("audit", "constant-id"):
+            return self.send({"result": "miss", "gameOver": True})
+        if MODE == "no-fleet":
+            return self.send({"result": "miss", "gameOver": g["shots"] >= 100})
+        if MODE == "never-ends":
+            return self.send({"result": "miss", "gameOver": False})
+        if MODE == "bad-result":
+            return self.send({"result": "splash", "gameOver": False})
+        if g["over"]:
+            return self.send({"result": "miss", "gameOver": MODE != "restarts"})
+        ship = next((s for s in FLEET if cell in s), None)
+        result = "miss"
+        if ship:
+            g["hit"].add(cell)
+            result = "sunk" if all(c in g["hit"] for c in ship) else "hit"
+        g["over"] = all(c in g["hit"] for s in FLEET for c in s)
+        self.send({"result": result, "gameOver": g["over"]})
+HTTPServer(("127.0.0.1", int(os.environ["PORT"])), H).serve_forever()
+'''
+
+
+class BattleshipGameCheckTest(unittest.TestCase):
+    """checks/battleship_game.py, the Battleship case's game check (2026-10-24 runner review, E2): it must reject the audit's
+    server with no fleet and the three stubs of the 2026-10-04 review, and accept a game that plays. The eleven saved real
+    deliveries it accepted are listed in docs/experiments/e2e-runner-review-20261024/e2b-game-check.json."""
+
+    def verdict(self, mode: str) -> tuple[int, str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "stub.py").write_text(BATTLESHIP_STUB)
+            done = subprocess.run([sys.executable, str(run.HERE / "checks" / "serve.py"), "--start",
+                                   f"{shlex.quote(sys.executable)} stub.py {mode}", "--",
+                                   sys.executable, str(run.HERE / "checks" / "battleship_game.py")],
+                                  cwd=tmp, capture_output=True, text=True, timeout=120, stdin=subprocess.DEVNULL)
+        return done.returncode, done.stdout + done.stderr
+
+    def test_a_game_that_plays_passes_and_every_stub_that_only_answers_in_shape_fails(self):
+        for mode, code in (("plays", 0), ("audit", 5), ("all-sunk", 5), ("no-fleet", 5), ("constant-id", 5),
+                           ("never-ends", 4), ("bad-result", 3), ("restarts", 7)):
+            with self.subTest(mode=mode):
+                returncode, output = self.verdict(mode)
+                self.assertEqual(returncode, code, output)
+                if code:
+                    self.assertIn("FAIL:", output)
+
+    def test_the_case_runs_it_through_serve_py_in_place_of_the_sweep_that_passed_the_audit_server(self):
+        cases = json.loads(run.CASES.read_text())
+        line = 'python3 "$E2E_CHECKS/serve.py" -- python3 "$E2E_CHECKS/battleship_game.py"'
+        self.assertEqual(cases["battleship"]["checks"][3], line)
+        self.assertIn(line, cases["battleship-scoring"]["checks"], "the follow-on keeps the game playing")
+        self.assertFalse([c for c in cases["battleship"]["checks"] if "for(let r=0;r<10" in c], "the old sweep is gone")
+
+
 def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
                          stage: str | None = None, inner: dict | None = None,
                          started: float | bool | None = None) -> None:
@@ -2433,6 +2849,181 @@ class MetricsTest(unittest.TestCase):
             text = progress.report(out)
         self.assertIn("turns 2, peak context n/a", text)
 
+
+
+class GateCountsTest(unittest.TestCase):
+    """metrics.gate_counts (owner's per-gate fired/caught measurement): classify each ShipLoop refusal by
+    GATE_SIGNATURES, and tell whether the same action id's complete was later accepted."""
+
+    def test_nomenclature_counts_each_retired_term_in_shiploop_output(self) -> None:
+        """S-16's record: a retired glossary term in a printed packet or a refusal is counted with its first line;
+        the glossary is read from the checkout and named by digest; an unreadable glossary is unmeasured."""
+        tools = metrics.ToolLog()
+        tools.replies.append({"event": 4, "packet": False,
+                              "text": "ShipLoop navigator | test-strategy | revision 3\nName an expected-RED control.\n"})
+        tools.replies.append({"event": 9, "packet": True, "text": "ShipLoop navigator | prepare | revision 4\nNothing.\n"})
+        tools.failure_events.append({"event": 12, "line": "ShipLoop navigator: blocked_by is retired: ..."})
+        record = metrics.nomenclature(tools)
+        self.assertEqual(record["texts_scanned"], 3)
+        self.assertEqual(len(record["glossary_sha256"]), 64)
+        self.assertEqual(record["retired"]["expected-RED (a baseline repair)"],
+                         {"use": "expected failure", "texts": 1,
+                          "first": {"event": 4, "line": "Name an expected-RED control."}})
+        self.assertEqual(record["retired"]["blocked_by"]["first"]["event"], 12)
+        self.assertEqual(metrics.nomenclature_text(record), "blocked_by 1, expected-RED (a baseline repair) 1")
+        self.assertIn("Retired terms in ShipLoop's output: ",
+                      " ".join(metrics.summary_lines(dict(self.collect([]), nomenclature=record))))
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertIn("unmeasured", metrics.nomenclature(tools, Path(temp) / "missing.md"))
+        self.assertEqual(metrics.nomenclature(metrics.ToolLog())["retired"], {})
+
+    def test_each_test_layer_refusal_classifies_under_its_own_gate(self) -> None:
+        """The F1 rows read the gates' own refusal text: built here by the gate functions, never typed."""
+        spec = importlib.util.spec_from_file_location(
+            "shiploop_test_layers_for_metrics", ROOT / "skills/shiploop/scripts/shiploop_test_layers.py")
+        layers = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(layers)
+        row = {"code": "board", "layer": "unit", "harness": "jest", "status": "available", "reason": "runner"}
+        command = {"command": "grep -q Board src/board.js", "criteria": ["C1"]}
+        faults = {
+            "test_layers": [lambda: layers.check_rows([row, row]), lambda: layers.check_rows([dict(row, layer="e2e")]),
+                            lambda: layers.check_rows([dict(row, status="unverified")]),
+                            lambda: layers.canonical_rows([{"code": "x"}])],
+            "confirm": [lambda: layers.check_confirms([{"id": "C1"}], [row], []),
+                        lambda: layers.check_confirms([{"id": "C1", "confirm": "inspected", "code": "board",
+                                                        "layer": "unit"}], [row], []),
+                        lambda: layers.check_confirms([{"id": "C1", "confirm": "executed"}], [row], [command])],
+            "harness_runs": [lambda: layers.check_harness_runs([dict(row, status="prerequisite")], [])],
+            "targets": [lambda: layers.canonical_targets([{"target": "org", "keeps_state": "yes",
+                                                           "base_state_route": "n/a"}])],
+        }
+        for gate, calls in faults.items():
+            for call in calls:
+                with self.subTest(gate=gate), self.assertRaises(layers.LayerError) as caught:
+                    call()
+                self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
+                                 str(caught.exception))
+
+    def test_the_focused_guard_and_command_target_refusals_classify_under_their_gates(self) -> None:
+        """F2's guard and F3's target refusals, built by the navigator's own gates, never typed."""
+        sys.path.append(str(ROOT / "skills/shiploop/scripts"))
+        import shiploop_navigator as navigator
+        guarded = {"outcome": "done", "test_commands": [{"command": "test -f a.js && node --test", "suite": "focused"}]}
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator._check_focused_guards("step-plan", guarded)
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "focused_guard")
+        org = {"target": "org", "keeps_state": "yes", "base_state_route": "a clean org"}
+        state = {"history": [{"action": "ts1", "stage": "test-strategy", "workitem": None, "outcome": "done"}],
+                 "accepted": {"ts1": {"outcome": "done", "targets": [org]}}}
+        with mock.patch.object(navigator, "_test_strategy_layers", return_value=([], [org])), \
+                mock.patch.object(navigator, "_test_strategy_result", return_value={}):
+            for command in ({"command": "npm test", "suite": "focused", "target": "the org"},):
+                plan = {"outcome": "done", "summary": "s", "test_commands": [command]}
+                with self.subTest(command=command), self.assertRaises(navigator.NavigatorError) as caught:
+                    navigator._check_submitted_layers(state, "step-plan", plan)
+                self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "targets",
+                                 str(caught.exception))
+
+    def test_the_improve_regression_test_refusal_classifies_under_its_own_gate(self) -> None:
+        """F5's refusal, built by the navigator's own gate, never typed."""
+        sys.path.append(str(ROOT / "skills/shiploop/scripts"))
+        import shiploop_navigator as navigator
+        with tempfile.TemporaryDirectory() as temp:
+            text = navigator._regression_refusal(Path(temp), {"stage": "carry-forward"}, "fix\n\nKey learnings: none\n",
+                                                 ["src/calc.py"], Path(temp) / "commit-message.md", "CMD")
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + text), "improve_regression_test", text)
+
+    def test_each_primary_requirement_refusal_classifies_under_its_own_gate(self) -> None:
+        """The F6 rows read the gates' own refusal text: built here by the gate functions, never typed."""
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_primary as primary
+        import shiploop_unverified as unverified
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            (repo / "docs/shiploop").mkdir(parents=True)
+            (repo / "docs/shiploop/spec.md").write_text("## Requirements\n\n- R-1: Play.\n", encoding="utf-8")
+            done = {"outcome": "done", "summary": "s"}
+            row = {"outcome": "o", "requirement": "R-1", "reason": "r", "lower_layer_check": "TC-9", "settle": "s",
+                   "owner": "the user", "due_stage": "handoff"}
+            state = {"repo": str(repo), "work_items": [],
+                     "history": [{"action": "sp", "stage": "spec", "workitem": None, "outcome": "done"}],
+                     "accepted": {"sp": dict(done, primary=["R-1"])}}
+            faults = {
+                "primary": [lambda: primary.check_spec(repo, "spec", done),
+                            lambda: primary.check_spec(repo, "spec", dict(done, primary=["R-9"])),
+                            lambda: primary.check_spec(repo, "spec", dict(done, primary=[primary.PLACEHOLDER])),
+                            lambda: primary.canonical("R-1")],
+                "unverified_requirement": [
+                    lambda: primary.check_unverified(repo, state, "product-acceptance",
+                                                     dict(done, unverified=[dict(row, requirement="R-9")])),
+                    lambda: unverified.check_submitted("product-acceptance",
+                                                       dict(done, unverified=[dict(row, requirement="R-1 and R-2")]))],
+                "lower_layer_check": [lambda: primary.check_unverified(repo, state, "product-acceptance",
+                                                                       dict(done, unverified=[row]))],
+            }
+            for gate, calls in faults.items():
+                for call in calls:
+                    with self.subTest(gate=gate), self.assertRaises(ValueError) as caught:
+                        call()
+                    self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
+                                     str(caught.exception))
+
+    SPEC_WRITEBACK = ("ShipLoop navigator: Restore /r/docs/shiploop/spec.md to what HEAD holds plus this "
+                      "step's acceptance lines")
+
+    def collect(self, stream: list[dict]) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            (out / "timeline.jsonl").write_text("\n".join(json.dumps({"line": n, "t": 100.0 + n})
+                                                           for n in range(len(stream))) + "\n")
+            return metrics.collect(out, None)
+
+    def test_two_refusals_of_one_gate_one_caught_one_not_plus_an_unknown_refusal(self):
+        def call(call_id: str, action: str) -> dict:
+            return {"type": "tool_call", "toolCallId": call_id,
+                    "rawInput": {"command": f"python3 x/shiploop complete --run-dir r --action={action}"}}
+
+        def refuse(call_id: str, line: str) -> dict:
+            return {"type": "tool_call_update", "toolCallId": call_id,
+                    "rawOutput": {"exit_code": 2, "output_for_prompt": line}}
+
+        stream = [
+            call("a1", "nav-AAA"), refuse("a1", self.SPEC_WRITEBACK),              # fires spec_writeback
+            call("a2", "nav-AAA"),                                                 # same action, retried
+            {"type": "tool_call_update", "toolCallId": "a2",
+             "rawOutput": {"exit_code": 0, "output_for_prompt": "ShipLoop navigator | plan | revision 1"}},
+            call("b1", "nav-BBB"), refuse("b1", self.SPEC_WRITEBACK),              # fires spec_writeback, never caught
+            call("c1", "nav-CCC"), refuse("c1", "ShipLoop navigator: a brand-new refusal no row covers yet"),
+            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0},
+        ]
+        m = self.collect(stream)
+        self.assertEqual(len(m["shiploop_failures"]), 3)
+        self.assertEqual(m["gate_counts"], {"spec_writeback": {"fired": 2, "caught": 1}, "other": {"fired": 1, "caught": 0}})
+
+    def test_an_unreadable_action_id_catches_on_the_next_complete_of_any_action(self):
+        stream = [
+            {"type": "tool_call", "toolCallId": "a1", "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}},
+            {"type": "tool_call_update", "toolCallId": "a1",
+             "rawOutput": {"exit_code": 2, "output_for_prompt": self.SPEC_WRITEBACK}},
+            {"type": "tool_call", "toolCallId": "a2", "rawInput": {"command": "python3 x/shiploop complete --run-dir r --action=nav-ZZZ"}},
+            {"type": "tool_call_update", "toolCallId": "a2",
+             "rawOutput": {"exit_code": 0, "output_for_prompt": "ShipLoop navigator | plan | revision 1"}},
+            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0},
+        ]
+        m = self.collect(stream)
+        self.assertEqual(m["gate_counts"], {"spec_writeback": {"fired": 1, "caught": 1}})
+
+    def test_summary_lines_shows_gate_counts_only_when_there_are_any(self):
+        self.assertEqual(metrics.gate_counts_text({"spec_writeback": {"fired": 2, "caught": 1},
+                                                   "other": {"fired": 1, "caught": 0}}),
+                         "spec_writeback 2 (caught 1), other 1")
+        self.assertNotIn("ShipLoop gates", "\n".join(metrics.summary_lines(
+            dict(shiploop_failures=[], gate_counts={}, model_glue=[], asked_user=[], sessions=[], cost_usd=0.0,
+                 unmeasured={}, improve_children=0, improve_reviews={}, script_verifications={
+                     "passed": 0, "records": 0, "could_not_run": 0, "red": 0}, turns=0, stages=[]))))
 
 
 class CodexRunTest(HarnessCase):
@@ -3372,6 +3963,29 @@ class TerminationThroughMainTest(PrintedCase):
         self.assertEqual((t["sessions"], t["session_stops"]), (3, ["cancelled", "unknown", "unknown"]))
         self.assertEqual((t["process_status"], t["returncode"]), ("failed", 1))
         self.assertEqual(t["resume_stop"], "resume budget spent (2)")
+
+    def test_with_no_resume_limit_a_host_that_keeps_failing_ends_the_loop_on_the_third_stalled_failure(self):
+        """No resume limit is the default (owner 2026-10-24), so a resumed host that can never run (an expired auth, a
+        broken binary) would be resumed forever. Three resumed sessions in a row that fail while ShipLoop's revision stands
+        still end the loop as the host's failure. The --timeout only keeps a regression from hanging the suite."""
+        code, result, _ = self.invoke_printed("grok", "crash-resumed", "--timeout", "300")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual(t["sessions"], 1 + run.RESUME_STALL)
+        self.assertEqual(t["resume_stop"], "resumed host failed 3 times in a row with ShipLoop still at revision 25 "
+                                           "(last exit code 1)")
+        self.assertEqual(result["outcome_class"], "FAILED")
+
+    def test_with_no_resume_limit_a_session_that_ends_without_moving_the_run_is_resumed_three_times_then_stopped(self):
+        """The same evidence for a host that exits cleanly: a model that ends every turn with ShipLoop's revision where it
+        was would otherwise spend forever. The harness ends that run (STOPPED), and the printed command continues it."""
+        code, result, printed = self.invoke_printed("grok", "stuck", "--timeout", "300")
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["sessions"], t["resume_stop"]),
+                         (1 + run.RESUME_STALL, "resumed host made no ShipLoop progress 3 times in a row (revision 25)"))
+        self.assertEqual(result["outcome_class"], "STOPPED")
+        self.assertIn("--resume-run", printed)
 
     def test_claude_is_not_resumable_and_its_own_stop_is_recorded(self):
         code, result, _ = self.invoke_printed("claude", "done")
@@ -5100,8 +5714,32 @@ class GradeOnlyTest(PrintedCase):
 class ResumeCommandTest(PrintedCase):
     """The harness prints the exact command that continues the run, before any host spend and again when it is left active.
 
-    invocation.json keeps the host argv but not the harness flags, so a command with only --resume-run would fall
-    back to the default --timeout (10800 s), which is above the limit of a launching task."""
+    invocation.json keeps the host argv but not the harness flags, so a command with only --resume-run would drop the
+    run's limits: there is no default --timeout, so it could outlive the task that launched it."""
+
+    def test_no_limit_is_set_unless_one_is_asked_for_and_the_printed_command_names_none(self):
+        """Owner 2026-10-24: no turn, spend, time or resume limit by default. The three drivers share the defaults, the
+        host argv carries no --max-turns or --max-budget-usd, and the printed command adds none and still round-trips."""
+        args = run.parser().parse_args(["--host", "grok", "--model", "m"])
+        self.assertEqual((args.max_turns, args.max_budget_usd, args.timeout, args.max_resumes), (None, None, None, None))
+        import slice as slice_driver  # the slice driver beside run.py (not the builtin)
+        sliced = slice_driver.parser().parse_args([])
+        self.assertEqual((sliced.max_turns, sliced.max_budget_usd, sliced.timeout, sliced.max_resumes),
+                         (None, None, None, None))
+        words = shlex.split(run.resume_command(Path("/o/run"), args))
+        for flag in ("--timeout", "--max-resumes", "--max-budget-usd"):
+            self.assertNotIn(flag, words)
+        again = run.parser().parse_args(words[2:])
+        again.resume_run = None
+        self.assertEqual(vars(again), vars(args))
+        common = dict(prompt="p", cwd=Path("/w"), model="m", effort=None, permission_mode="auto", max_turns=None,
+                      max_budget_usd=None)
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("grok", "claude"):
+                with self.subTest(host=name):
+                    argv = hosts.HOSTS[name]().argv(prompt_file=Path(tmp) / "prompt.txt", **common)
+                    self.assertNotIn("--max-turns", argv)
+                    self.assertNotIn("--max-budget-usd", argv)
 
     def commands(self, printed: str) -> list[list[str]]:
         lines = [ln for ln in printed.splitlines() if "--resume-run" in ln]
@@ -6272,7 +6910,7 @@ class LeftBehindReadmeTest(unittest.TestCase):
     def test_the_readme_says_to_run_compared_runs_one_after_the_other_and_what_that_cannot_promise(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
         for phrase in ("Run the runs you compare one after the other", "`--serial` for a suite",
-                       "The suite default of 3 parallel chains stays", "no overlap field", "a discipline and not a guarantee"):
+                       "The suite default of 3 parallel chains stays", "carries `overlapped_runs`", "a discipline and not a guarantee"):
             self.assertIn(phrase, readme)
 
     def test_the_spec_carries_the_rules_this_code_serves(self):

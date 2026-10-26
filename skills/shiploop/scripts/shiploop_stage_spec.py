@@ -38,7 +38,7 @@ ENTRY_RUNS = frozenset({
     "advisory-lint",       # lint the item's changes, auto-fixing on the first entry
 })
 COMPLETE_RUNS = frozenset({
-    "loop-terminal",       # check the stage's Until Loop terminal packet against the contract rebuilt from state
+    "loop-terminal",       # check the stage's Until Loop receipt against the contract rebuilt from state
     "lint-gate",           # refuse done while a new finding on a changed line is unwaived
     "expectation-check",   # rerun every expectation check and require each to match its state
     "test-base",           # run the item's tests on the base checkout: no new test ID passes; sets the floor
@@ -53,6 +53,9 @@ PHASES = ("prelude", "inner", "outer")
 # stage reruns with this result as evidence); add-work (product work is missing: new work items are built, then the run
 # resumes at system-test-author).  "repeat" is gone: it was never used in 1,845 results, and `next` restarts a stage.
 OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work"})
+# The add-work result's shape, one text for the packets' outcome shapes and every refusal that names add-work as its exit.
+ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective items fix>", "work_items": '
+                  '[{"id": "<new id>", "title": "...", "context": "..."}]}')
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
 # and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
@@ -63,13 +66,12 @@ OUTCOMES = frozenset({"done", "blocked", "send-back", "add-work"})
 IMPROVE_RULES = ("always", "last-item", "step", "first-item")
 
 # A work item whose goal proves wrong while it is being built goes back to its
-# step plan with the evidence, at most MAX_SEND_BACKS times; after that the user
-# decides (blocked, awaiting an answer).
+# step plan with the evidence.  No count of send-backs stops it (owner 2026-10-24:
+# no run caps); state.md ``revisions`` records how many there were.
 SEND_BACK_TO = "step-plan"
-MAX_SEND_BACKS = 2
 # Two OUTER stages run a plan another OUTER stage wrote: system-test runs system-test-author's, release-verify runs
 # release-plan's.  A wrong record there goes back to the stage that wrote it, which reruns with the result as evidence,
-# then every stage after it (run-insights N5, build plan S1.5).  Each target has its own budget of MAX_SEND_BACKS.
+# then every stage after it (run-insights N5, build plan S1.5).  Each target has its own count in ``revisions``.
 OUTER_SEND_BACK_TO: Mapping[str, str] = MappingProxyType({"system-test": "system-test-author",
                                                           "release-verify": "release-plan"})
 
@@ -79,11 +81,11 @@ def send_back_target(stage: str) -> str:
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
-STEP_CRITERIA_CONDITION = ("each requirement assigned to this step is satisfied and none of the others is broken, shown "
+STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
                            "by a command or file after the last edit, and no later step's work is in the change")
 # Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
 # is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
-STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its check in the step plan) exited 0"
+STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
 # after this many genuine fix attempts ends the stage as send-back. No script counts the attempts; the model applies it, and
 # test/shiploop-stage-spec.test.py pins every prose copy to this value.
@@ -263,17 +265,17 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="Define each requirement and its acceptance criteria as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
+        goal="Define each requirement and its acceptance lines as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
         short_goal='specify the requirements',
         done_when=(
-            "every request outcome maps to at least one acceptance criterion",
-            "each criterion is independently verifiable and says how it will be confirmed",
+            "every request outcome maps to at least one acceptance line",
+            "each acceptance line is independently verifiable and says how it will be confirmed",
             "non-functional requirements are assessed, or excluded with a reason",
             "unaffected existing requirements are preserved",
         ),
         develop="Define behaviour, error handling and consumer outcomes before any code.",
-        test="State positive, failure and boundary expectations for each criterion.",
-        deploy="Name the consumer surface where each criterion must be observed.",
+        test="State positive, failure and boundary expectations for each acceptance line.",
+        deploy="Name the consumer surface where each acceptance line must be observed.",
         improve="always",
         reads=("intake", "discovery", "research"),
         blocks=frozenset({"backchain", "interaction-design"}),
@@ -329,7 +331,7 @@ _ROWS = (
     ),
     # ------------------------------------------------------------------ inner
     # Owner decision 2026-10-10: eight stages in five phases (Plan: step-plan, test-spec; Validate existing; Build:
-    # implement per step with an Improve child after each, test, document; Verify; Carry forward).  Each stage's work
+    # implement per step with an Improve stage after each, test, document; Verify; Carry forward).  Each stage's work
     # runs as one Until Loop with a ShipLoop-written contract (entry run loop-contract); its exit conditions are the
     # done_when lines below, and the gate rechecks by script what it can.  Evidence and the coverage review of the
     # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
@@ -340,7 +342,7 @@ _ROWS = (
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
             "steps lists every implementation step in the order to do them",
-            "each step declares deps, the criteria it satisfies and its check, one command that proves those criteria "
+            "each step declares deps, the criteria it satisfies and its proof, one command that proves those criteria "
             "using only this step and accepted earlier steps, every criterion is satisfied by a step, and no step only "
             "changes test files (unless the whole item is tests)",
             "concerns maps each concern the plan gave this item to the steps that deliver it",
@@ -705,15 +707,15 @@ def with_outcome(outcome: str) -> tuple[str, ...]:
 
 
 def with_improve(rule: str) -> frozenset[str]:
-    """Stages whose accepted result starts an Improve child under ``rule``."""
+    """Stages whose accepted result starts an Improve stage under ``rule``."""
     return frozenset(row.name for row in _ROWS if row.improve == rule)
 
 
 # Run-level planning review option (state key ``planning_review``): which planning results start an
-# Improve child.  A value is registered together with the behaviour it selects, so no commit records
+# Improve stage.  A value is registered together with the behaviour it selects, so no commit records
 # a value the engine ignores.  ``stage`` is today's behaviour: every stage whose rule is ``always``
-# starts its own child.  ``none`` starts none at the five planning stages the option covers; the
-# children after system-test-author and release-plan and the last carry-forward's rule are not the
+# starts its own Improve stage.  ``none`` starts none at the five planning stages the option covers; the
+# Improve stages after system-test-author and release-plan and the last carry-forward's rule are not the
 # option's, so they keep running.  New CLI-created runs record DEFAULT_PLANNING_REVIEW; a saved run
 # without the key is refused (one supported version), and no verb changes it mid-run.
 PLANNING_REVIEW_MODES = ("stage", "none")
@@ -722,7 +724,7 @@ PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan"
 
 
 def reviewed_stages(mode: str) -> frozenset[str]:
-    """Stages whose accepted result can start an Improve child under planning review ``mode`` (a "first-item" stage
+    """Stages whose accepted result can start an Improve stage under planning review ``mode`` (a "first-item" stage
     only for the first work item and for an item that was sent back)."""
     if mode not in PLANNING_REVIEW_MODES:
         raise ValueError(f"unknown planning review option: {mode!r}")

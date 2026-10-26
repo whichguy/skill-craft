@@ -193,34 +193,27 @@ against 0 of 15 without it (Sonnet, three trials per cell). No run without the
 planning reviews exists, so the rate of defects that escape without them is
 unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
-**S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop.)
-- **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11". It is not a clause this
-  serves. It bounds a stage's acceptance gate, not a loop, and says so.
-- **Three limits, each a constant that a test pins against every prose copy**
-  (`test/shiploop-stage-spec.test.py`):
-  1. **Refused runs.** At a stage whose `complete` reruns the recorded commands (the test stage and
-     `verify`), ShipLoop accepts `done` only after its own run of every listed command passes. After
-     `shiploop_test_loop.MAX_REFUSED_RUNS` (11) refused runs for one action, `done` is no longer accepted, and the
-     stage's remedy outcome is: `revise` back to the step plan, or `blocked` where the stage allows only that. A
-     run that could not run (a timeout, a command that cannot start, or one skipped on budget) never counts
-     toward the 11.
-  2. **Genuine fix attempts.** In the step exit criteria the model applies (the implement duty, implement's
-     loop contract and the chain step contract), the same check still failing after `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix
-     attempts ends the stage as `revise`. No script counts these attempts; it is the model's stopping rule, as
-     the step exit criteria were before.
-  3. **Keepalive release.** The keepalive hook lets one session's turn end after
-     `shiploop_keepalive.STUCK_CONTINUATIONS` (22, twice the refused-run cap) continuations with no accepted
-     result. This releases a turn only. Nothing is accepted or refused, and the run stays active and resumable.
-- **What is not capped.** None of the three caps a loop. The Until Loop that runs the iterations keeps its frozen
-  contract, its counted iterations and its stated exit and repeat conditions, with no iteration limit. An
-  iteration that keeps making progress is never cut short. The caps bound only how often a stage may submit a
-  candidate that ShipLoop's own rerun rejects, so a check that cannot pass as planned returns to the step plan
-  instead of being resubmitted indefinitely. Every inner stage's Until Loop, the Improve loops and the
-  Backchain child are unchanged.
-- **Basis.** Until 2026-10-10 the refused-run cap was 7, the fix-attempt cap 3 and the continuation release 14. The
-  2026-10-10 packet-concision review flagged them as possibly conflicting with this clause, and the owner chose
-  to keep them as gate bounds at the higher values. Record: docs/shiploop-packet-concision-2026-10-10.md
-  ("Open").
+**S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop; amended 2026-10-24:
+the refused-run cap, the send-back cap and the keepalive release are removed.)
+- **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11", superseded on 2026-10-24
+  by "Remove any other artificially imposed limits by our scripts": ShipLoop runs everything in a single context with
+  no limit on turns.
+- **One limit remains, a constant that a test pins against every prose copy** (`test/shiploop-stage-spec.test.py`):
+  **genuine fix attempts.** In the step exit criteria the model applies (the implement duty, implement's loop
+  contract and the chain step contract), the same check still failing after
+  `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix attempts ends the stage as `revise`. No script counts
+  these attempts; it is the model's stopping rule.
+- **Removed 2026-10-24.** No count of refused runs stops `done` (the packet still prints the tally); no count of
+  send-backs refuses a `send-back`; no count of keepalive continuations without an accepted result releases a turn;
+  the test stage, the mutation check and the lint pass have no whole-run time budget, and the lint pass no file-count
+  cap. Each command keeps its own hang guard (a per-command timeout), which stops that command, never the run.
+- **What is not capped.** No loop is capped. The Until Loop that runs the iterations keeps its frozen contract, its
+  counted iterations and its stated exit and repeat conditions, with no iteration limit. An iteration that keeps
+  making progress is never cut short. Every inner stage's Until Loop, the Improve loops and the Backchain child are
+  unchanged.
+- **Basis.** Until 2026-10-10 the refused-run cap was 7, the fix-attempt cap 3 and the continuation release 14; from
+  2026-10-10 to 2026-10-24 they were 11, 7 and 22, and a work item had two send-backs. Record:
+  docs/shiploop-packet-concision-2026-10-10.md ("Open") and docs/shiploop-run5-batch-journal-2026-10-24.md.
 
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
 spec, environment, test strategy, architecture with its numbered decisions,
@@ -303,6 +296,15 @@ script's text as written, once per milestone. The model never composes,
 paraphrases or estimates progress itself, and never repeats unchanged status
 (owner, 2026-09-27).
 
+**S-16 One term per concept.** A model reads one packet at a time, cold, so two
+names for one thing make it guess, and so does one name for two things. Every
+packet, duty, refusal, reference and test uses each term in the one meaning
+ShipLoop's glossary (`skills/shiploop/references/glossary.md`) defines. A
+renamed term changes everywhere in one commit, with the glossary updated and
+the old term added to its retired list, so it never returns as a live
+synonym. A change that evolves a term says so in its commit and change note
+(owner, 2026-10-24).
+
 ## Change admission
 
 No change is planned, let alone made, before its negative consequences have
@@ -313,7 +315,7 @@ the plan item and summarised in the commit message:
 - **Adversarial evaluation first.** Before the change is planned, attack it:
   argue the case against it as a hostile reviewer would. At minimum ask how it
   could:
-  - weaken any clause S-1..S-15, including ones it does not target;
+  - weaken any clause S-1..S-16, including ones it does not target;
   - break another style, host, language or platform than the one that
     motivated it;
   - fail silently, or pass the tests while failing a live run;
@@ -340,6 +342,10 @@ the plan item and summarised in the commit message:
   touch, and why it does not weaken any of them. "Removes duplication" or
   "shortens a packet" must say which obligation, check or safeguard is kept and
   where.
+- **Nomenclature** (S-16): the terms the change adds, reuses or retires, each
+  checked against the glossary. A new term for a concept the glossary already
+  names, or a second meaning for a glossary term, is not admitted. A rename
+  updates the glossary and its retired list in the same commit.
 - **Evidence**: the hermetic tests that prove the statement, plus the E2E
   suite that confirms it live (see below). A change that alters behaviour on
   purpose names the behaviour, the clause that asks for it, and the runs whose
@@ -382,6 +388,111 @@ on quickly before the breadth of everything is checked.
 - Each suite records its own baselines (per case: verdicts, turns, cost,
   sessions, cancellations, glue, ShipLoop failures) so a run is compared with
   the same case's history, never across styles.
+- **A hosted-platform run's prefix (added 2026-10-25).** The owner asked for a Haiku 5.5 Battleship run published to org
+  `de`, which already holds a kept `SLBattle` app. A hosted-platform case names everything it creates with its catalog
+  prefix, and its preflight, guard, checks and cleanup act only on that prefix.
+
+  `run.py --platform-prefix P` renames the prefix for one run, everywhere the case names it: the prompt, the checks,
+  the platform commands and the guard. So a kept app of the same case stays untouched.
+  - P must not share a beginning with any case's prefix, ignoring case. Otherwise that case's preflight, guard or
+    cleanup would take the run's items for its own, or the reverse.
+  - A resume keeps its run's prefix.
+  - It does not go with `--suite`, or with `--seed-at`, because the seeded product carries the case's own names.
+  - The case digest (`boundary.case`) is of the renamed entry. So arms under different prefixes are not compared.
+
+## The promotion contract (added 2026-10-25)
+
+Anchor: the owner's directive of 2026-10-25 (the E2E loop drives a self-improving ShipLoop), the final verdict on the loop's
+design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R1 and R16, Astra at max), and the owner's eval priority:
+quality first, then tokens, then time.
+
+A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
+`promotion/3` (it was `promotion/1` until build step 2 and `promotion/2` until build step 3). It reads scorecards
+(`scorecard.py`, `scorecard/3`) of a control arm and a candidate arm. Changing the rule takes a new id,
+and two decisions are compared only under the same id.
+
+- **Pre-registered.** Before the runs, a registration file names:
+  - the cases;
+  - which are *regression* cases (established requirements, which must not fall) and which are *capability* cases (being
+    improved);
+  - the primary efficiency metric and its tolerance;
+  - any budget.
+
+  A registration written after a run it judges is refused: the decision is UNDECIDED.
+- **Coverage and evidence.** Every registered case needs a card in both arms. A floor the registration requires that is
+  null on a card leaves its case's quality unknown. By default the required floors are accuracy and fidelity; enterprise
+  has no measure yet, so it cannot be required. Either gap makes the decision UNDECIDED; it is never read as a pass.
+- **Quality first.** A case's quality is the share of its launched attempts that met every measured floor. Stops and
+  resumes are attempts too.
+  - If a regression case's share falls, beyond its tolerance, the decision is DROP, whatever else improved.
+  - If a capability case's share rises, the decision is PROMOTE, with the costs stated: a demonstrated quality gain wins
+    even when it is slower or dearer. The one exception is a pre-registered budget the candidate exceeds, which is DROP.
+  - A capability case that falls, with no gain elsewhere, is DROP.
+- **Then efficiency, only at equal quality.** The primary metric is all-attempt cost per successful case, where cost is
+  the registered measure: tokens once the scorecard has them, otherwise cost in dollars, turns or minutes.
+  - It is compared within a case, and only on cards whose validity says they are comparable.
+  - The candidate is PROMOTE when it is lower beyond the tolerance, and DROP when it is higher beyond it.
+  - Otherwise it is UNDECIDED: an inconclusive optimisation is neither shipped nor discarded on this evidence.
+- **No model judgement enters** (S-9). A judge's findings may propose checks, never a decision.
+- **Required evidence and validity (amended 2026-10-25, build step 2; R2 and R3 of the final verdict).** The contract is now
+  `promotion/2`, reading `scorecard/2`. Unobserved required evidence never passes. Contamination voids only the claims it
+  touches.
+  - *Floors.* Each floor is `pass`, `fail`, `unobserved` or `not_applicable`. **Requiredness belongs to the case**
+    (`cases.json`): a case that declares hidden acceptance requires it. A declared acceptance that was not observed makes
+    the accuracy floor `unobserved`, not a pass, as `scorecard/1` had it. Mutation stays a record until its own step.
+    Enterprise is `not_applicable` until its rubric exists.
+  - *Validity.* There are three dimensions, each `valid` true, false or null, where null means not observed and is never
+    valid:
+    - **correctness** is false when a check changed the delivered tree. It is null when the run overlapped others while
+      writing shared `/tmp` names, since shared state can't be ruled out, or when the delivered tree can no longer be read.
+    - **attribution** is false when hosts or host builds were mixed.
+    - **timing** is false when the run overlapped other runs, was resumed, mixed hosts or builds, or left listeners alive.
+      It is null when any of those was not observed.
+  - *Coverage.* A registration may name how many attempts each case expects. An arm with fewer is missing evidence, and
+    the decision is UNDECIDED.
+  - *What the decision reads.* A case's quality is taken only from cards whose correctness is valid; any other card
+    leaves that case's quality unknown. Efficiency is compared only on cards whose timing and attribution are both valid.
+    So a run that overlapped others still counts as evidence of quality, and never as evidence of speed.
+- **The evaluator boundary (amended 2026-10-25, build step 3; R13 of the final verdict).** The contract is now
+  `promotion/3`, reading `scorecard/3`. Grading stays outside the candidate's control.
+  - *Fingerprints.* A run records `boundary` in `result.json` when it is graded, and a regrade records its own. It holds
+    a digest of the bytes of each of these:
+    - `evaluator`: the harness's code, `test/shiploop_e2e/*.py` and `*.cjs`;
+    - `oracle`: `checks/`;
+    - `case`: the case's entry in `cases.json`.
+
+    The candidate's digest is `versions.plugin_sha256`, the plugin tree the host loaded. The card carries all four.
+  - *One evaluator per comparison.* Every attempt of a case, in both arms, must carry the same evaluator, oracle and case
+    digests. A card without them, or two that differ, makes the decision UNDECIDED. So a harness or oracle change is an
+    experiment of its own, never part of a candidate's. `arms.py` compares slice bytes, not graded results, and is not
+    covered yet.
+  - *Held-out files.* A case's held-out files are:
+    - its acceptance module, `checks/<module>.py`;
+    - the files its acceptance block names as `calibration`. For Checkers that is
+      `test/fixtures/quality/reference_checkers.py`, a correct implementation.
+
+    `held_out_seen` also counts the event lines that name a calibration file. If a run's events name a held-out file,
+    the checks folder or the case catalog, its result is not independent evidence, and its correctness is null.
+  - *The improver (`iterate.py`).* It may change only the candidate:
+    - `skills/shiploop/` and `changes/shiploop/`;
+    - ShipLoop's own tests: `test/shiploop-*`, the `test/shiploop_*` helpers, `test/fixtures/shiploop-*` and
+      `test/experiments/shiploop_*`.
+
+    It may never change the E2E harness (`test/shiploop_e2e/`, `test/shiploop-e2e*`), the test runner or the suite
+    catalog. Until this step it could edit all of `test/`.
+
+    Each iteration records the four digests. After the improver works, the evaluator, oracle and case digests of the
+    checkout that grades must be unchanged, or the loop stops. The held-out files are withheld from the improver's
+    worktree while it works, and restored before the harness's own quick tier. The improver's tool calls are searched
+    for the held-out files' names: any call that names one stops the loop as a possible exposure. Only calls are
+    searched, because this SPEC is in the improver's prompt and names these files, so prose that names one proves
+    nothing.
+  - *What this does not do.* The hosts run unsandboxed, so a model can read any file the user can, git objects included.
+    Withholding closes the default path. A tool call that names a held-out file is detected; a read that never names
+    the file is not. Full read isolation needs the held-out files outside the repository, and CI's tests of them rule that out today.
+- **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
+  records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
+  verdict"). The contract is the one place that turns them into a promotion decision.
 
 ## How the harness checks the clauses
 
@@ -391,11 +502,11 @@ on quickly before the breadth of everything is checked.
 | S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts), counted per command on every host: a script the model wrote that wraps the CLI hides its ShipLoop calls from it, so Claude's `tool_use.scratch_scripts` lists those scripts and their runs beside it, and a Claude glue of 0 is a lower bound |
 | S-6 | runs survive compaction and session resumes without losing their place; `sessions.jsonl` (added 2026-10-09: every host launch and every session end, written by the harness) and `fresh_starts` in metrics.json: for every fresh session and every compaction, what the model did from the fresh start to the next accepted action (tool calls, seconds, its first grounding call, whether the recovery command was repeated as told, ShipLoop failures, files written again). Recorded beside the verdicts and never scored; see "A fresh context is recorded, not scored" |
 | S-7 | truncated outputs, peak context, compactions, packet head size; per-stage `context` (model calls, peak, share of the window; a stage with no events carries none, and a Grok `usage` event is a model call like a Claude message) and, for Claude, `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
-| S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the Improve stage is an action of its own, so its packet is its own entry `<improve stage id>`, and `<improve stage id>-bind` before a card is bound, with stage `improve`; a run of the older layout has `<action>-improve` beside the producer's), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line (`=== end ShipLoop head ===` from 2026-10-16, when the status block moved ahead of the stage's duties; before that the status block's end, or the narrative block's), with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it, while S-6's clear-the-context probe, not these bytes, decides whether a shorter packet is allowed |
+| S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the Improve stage is an action of its own, so its packet is its own entry `<improve stage id>`, and `<improve stage id>-bind` before a card is bound, with stage `improve`; a run of the older layout has `<action>-improve` beside the producer's), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line (`=== end ShipLoop print ===` from 2026-10-24, `=== end ShipLoop head ===` from 2026-10-16, when the status block moved ahead of the stage's duties; before that the status block's end, or the narrative block's), with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it, while S-6's clear-the-context probe, not these bytes, decides whether a shorter packet is allowed |
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which the test stage's base run passes by design; amended 2026-10-11, was a test-red record or a probe), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
-| S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the sibling output folders whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run. A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
+| S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the run folders under the runs root whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run (amended 2026-10-24: under the runs root, not only the same parent folder; see Parallel work). A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
 | S-12 | identity of a run, null where unknown (added 2026-10-09): `plugin_sha256` (one digest of the installed plugin tree: file paths and bytes, `__pycache__`, `*.pyc` and symlinks left out, taken when the run is launched), `prompt_sha256` (the case prompt, before the sentence `--planning-review none` appends, with the run's own output folder masked), `host_build`, `started` and `ended` (the stream's first and last stamp), `planning_seconds` (the closed planning window, the engine's clock) and `local_head`, on every baseline row and in `result.json`. A null among them carries its reason in `identity_unmeasured`. Records, never verdicts; `run.py --baseline-report` reads them |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew); `product_at_stop` (added 2026-10-09; replaces `shiploop.worktree_checks`): for a run whose ShipLoop did not reach `done`, the case checks run against ShipLoop's unreturned worktree, with the engine's status and stage, each check's return code and whether it timed out, and counts. Information only: checks graded in the worktree stay dropped as a verdict (a run that never delivered must not pass), so it never touches `checks`, `committed`, `pass` or the exit code. Absent for a run that passed; `ran: false` with its reason where there was nothing to run. A feature spec the run removed is not a missing file: `knowledge_facts` and the follow-on retention checks read the living spec and the files the prior repository tracks, never a feature spec. The Run Review exporter lists a removed spec as a kept `history-only` row of the return plan (the knowledge follow-up keeps it); that needs no code change |
 | S-11 (what a run leaves for the next), S-5 | `commits` in metrics.json only (added 2026-10-10): the commits made during the run in the product repository (every ref; after the head a follow-on or seeded run started from, all of a fresh run's), counted by who made them: `improve` (named by ShipLoop's own `improve-commit` reply in the host's tool results, because the Improve card does not fix a message shape; so a lower bound: an Improve commit whose reply the host's events do not hold, cut by the model's pipe or made where the host records no reply, is counted under `other`), `script` (ShipLoop's other commits: knowledge, the spec retire commit (`docs(shiploop): retire <feature> spec: checked its requirement IDs against the living spec`), empty baseline, leftovers, work-item and chain merge commits, by their ShipLoop-owned subject or ShipLoop's own reply) and `other` (the rest, the model's own commits). The classes sum to the commits counted. Each class counts `with_lessons` (a lessons section as `shiploop_lessons.lessons` reads it, the one reader ShipLoop's `improve-commit` gate also reads with, so the harness and the gate cannot disagree about what counts); `improve` also counts `cited` (a `Learned-from` line, as `shiploop_lessons.citations` reads it, whose token is a commit ID that resolves to a commit in the repository) and `cited_earlier_run` (a cited commit that predates the run). Presence only: the text of a section is never judged, so `Key learnings: none` counts. Null, with the reason in `commits_unmeasured`, where the repository, the starting head or the host's events cannot be read. Record-only, no threshold; a later change to what ShipLoop commits or prints is compared with the saved runs' counts, never with cost or wall time |
@@ -403,8 +514,9 @@ on quickly before the breadth of everything is checked.
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
+| S-16 | the hermetic `test/shiploop-retired-terms.test.py`: no retired glossary term in the text a model reads (ShipLoop's card, references, command cards and scripts, and the Improve skill's ShipLoop route files), outside the files a row allows; `nomenclature` in metrics.json (added 2026-10-24): each retired term found in the run's kept ShipLoop replies (packets, printed or read, and commit replies) and refusal first lines, with its count and first line, and the digest of the glossary read. The glossary read is the checkout's, so an older run is held to today's retired terms. A record beside the verdicts, never a verdict |
 | S-1, S-4, S-5, S-6, S-9, S-10 (as evidence, never a verdict) | `fidelity` in metrics.json only (added 2026-10-09; not in result.json or a baseline row, like `planning`): the evidence class of each accepted action against the check its stage declares (script, loop, file, note, sentence, skipped, with the records behind it), ShipLoop's verify records read as JSON (a focused or regression row whose counts are null is unmeasured, never a pass), the model's edits of script-owned files and its name-pattern kills and `git commit`/`add` commands as listed facts with event numbers, each ShipLoop refusal with whether the same first line came back, and the engine's end state. Heuristic rows are lists to confirm, not counts to trust: no hit is not proof and a hit can be quoted text, and they say so. Every part fails open and an input it cannot read is `unmeasured` with the reason; the paths in the block are relative to the run folder (`<run>`) and the home folder (`~`), so a block names no machine |
-| S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken last and only from a finished, committed delivery, and in no baseline row: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts, whether the tests load each file, the caught mutants confirmed by a second run, the timeouts, the declared-port refusals and the page script no operator reaches), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check; null where the events cannot be read), the Claude memory writes the events show, and `hosts_used` / `mixed_host` from the launch records. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
+| S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken last and only from a finished, committed delivery, and in no baseline row: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts, whether the tests load each file, the caught mutants confirmed by a second run, the timeouts, the declared-port refusals and the page script no operator reaches), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check or a calibration file; null where the events cannot be read), the Claude memory writes the events show, and `hosts_used` / `mixed_host` from the launch records. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
@@ -486,6 +598,27 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   does not close the known limit above: the baseline row still carries no
   overlap field and no rule excludes an overlapped run, so a comparison cannot
   rule one out from the row alone. This is a discipline, not a guarantee.
+  Amended 2026-10-24 (anchors "Concurrency must not change a verdict" and "Runs
+  compared on wall time or per-call cost run one after the other"): record (1)
+  reads every run folder under a **runs root**, not only the same parent folder.
+  The root is `$SHIPLOOP_E2E_RUNS_ROOT` where set, else the output's grandparent,
+  else its parent where the grandparent is the home folder, the temporary
+  folder or the file system root; a suite case reads its suite folder's root
+  (the suite sets the variable for its cases, so `<runs>/<day>/<suite>/<case>`
+  reads `<runs>`, not `<runs>/<day>`, and a reader after the run finds the
+  suite by its `suite-result.json`); the walk does not enter a run folder or a
+  hidden folder, and a neighbour whose timeline was last written before this run
+  began is counted in `ended_before` and not read. Each neighbour is named by its
+  path under the root. A run outside the root is still not seen. The baseline
+  row now carries `overlapped_runs`, the count record (1) saw (null where it was
+  not observed), which narrows the known limit: a row says how many neighbours
+  its run saw, and no rule excludes on it. A run started beside live harness
+  runs under its root prints a `concurrent` line naming them; it is never a
+  refusal. Basis: chess run 5 (`<runs>/20261024/chess-sf-full-ed3292`) ran
+  beside sixteen E6 slices under `<runs>/e6-r1-20261024/…/slice` for 4.5 hours
+  summed, and its record, read by the same-parent rule, named none of them,
+  while its report compared its minutes with runs 3 and 4, which ran alone
+  (docs/experiments/e2e-runner-review-20261024, E1).
 - Agents do not replace evidence: an agent's analysis is a lead, and a
   claim it makes is checked against the event log or a script before it
   drives a change (Change admission).
@@ -569,8 +702,9 @@ stands at the commit under test.
   refused before a host starts. Basis: a Claude run built from a checkout was
   given a bare `shiploop next` (the marketplace route lost 13 turns to the same
   prompt, fixed in 7c1f1014); the command the harness prints for continuing a run
-  carries the harness flags too, because a resume that falls back to the default
-  `--timeout` can outlive the task that launched it. It is printed only where
+  carries the harness flags too, because a resume that drops the run's `--timeout`
+  runs with no time limit (none is the default since 2026-10-24) and can outlive
+  the task that launched it. It is printed only where
   those flags are the run's own: not by a regrade (`--grade-only`), whose flags
   are the grader's, and not for a run that wrote no ShipLoop state, which
   `--resume-run` refuses.
@@ -610,11 +744,12 @@ stands at the commit under test.
   verdict" for `environment`, S-11 for `product_at_stop`, S-14 for
   `outcome_class`; a blocked result's honesty is a model judgement S-9 excludes
   as evidence). None of them changes `pass`, the exit code, a verdict, a baseline
-  rule or the control flow, and each fails open: a part that cannot be read is
+  rule or the control flow (the promotion contract, above, reads them to decide whether a candidate change is
+  promoted; that is not a run's verdict), and each fails open: a part that cannot be read is
   recorded as not observed with its reason, and the run goes on. A blocked run is
   never resumed or answered because a class names it (S-14). The record names
   what was measured and its limit: `overlap` is the first to the last host event
-  of this run and of the siblings in the same parent folder, neither an upper nor
+  of this run and of the run folders under its runs root, neither an upper nor
   a lower bound (see Parallel work); the host CLI build is read from the launch
   record and never probed here, so it is null, with `identity_unmeasured.host_build`, for a
   launch that recorded none and for every Claude launch (Claude's build is

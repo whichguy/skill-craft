@@ -73,7 +73,7 @@ Keep three logical records; reuse existing homes instead of copying full specs:
 | Record | Meaning and lifetime |
 | --- | --- |
 | Prior baseline for this run | As-of documented/observed behavior, evidence and limits, captured before the change; a frozen note or retrievable immutable revision. |
-| Incoming change spec | This request's delta, acceptance criteria and preserve/add/modify/retire decisions, with user-request/decision basis and baseline references. |
+| Incoming change spec | This request's delta, acceptance lines and preserve/add/modify/retire decisions, with user-request/decision basis and baseline references. |
 | Maintained product knowledge | Current cumulative accepted intent and separately labeled recovered observations, outside disposable run storage, revalidated by later requests. |
 
 Once consumed, do not silently rewrite the prior baseline to match changed code.

@@ -191,7 +191,7 @@ class PromptTests(unittest.TestCase):
 
     def test_supporting_stages_carry_their_code_quality_duties(self):
         expected = {
-            "step-plan": "A new or changed public entry point: add a criterion that it checks its arguments and carries a contract",
+            "step-plan": "A new or changed public entry point: a criterion that it checks its arguments, executed by its",
             "test-spec": "Each new or changed public entry point: one rejection case per constraint",
             "test": "Each new or changed public entry point gets rejection cases",
             "system-test-author": "shared helpers check their arguments",

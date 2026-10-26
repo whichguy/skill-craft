@@ -59,7 +59,7 @@ class ImproveChangesTests(unittest.TestCase):
         self.assertIn("did not commit them:\n- app.py\n- new_test.py", refusal)
         self.assertEqual(refusal.splitlines()[0], "Commit this review's changes first: write the message to "
                          "/run/commit-message.md with a file tool, then run: python3 shiploop improve-commit --x")
-        self.assertIn("Then run the complete command again: python3 shiploop complete --x\n", refusal)
+        self.assertIn("Then run the callback again: python3 shiploop complete --x\n", refusal)
         self.assertEqual(refusal.splitlines()[-1], "If the user or repository said not to commit, record their instruction "
                          "instead: python3 shiploop complete --x --no-commit \"<their instruction>\"")
         self.assertNotIn("receipt", refusal)

@@ -1,0 +1,34 @@
+{
+  "experiment": "E1b",
+  "claim": "Against subtle stand-ins (one rule dropped, right only on tested inputs, over budget below a hard limit, fields inconsistent together), a producer that names on each row the stand-in its oracle rejects and pairs absence with count assertions kills more of them than one only told to avoid weak checks.",
+  "arms": [
+    "T",
+    "B"
+  ],
+  "arm_specs": {
+    "T": {
+      "ref": "9ed4ec24"
+    },
+    "B": {
+      "ref": "9ed4ec24",
+      "overlay": "overlays/e1b-stand-in.json"
+    }
+  },
+  "n": [
+    4,
+    4
+  ],
+  "means": [
+    1.0,
+    1.0
+  ],
+  "spread": null,
+  "difference": 0.0,
+  "gate": null,
+  "gate_rates": [
+    null,
+    null
+  ],
+  "verdict": "ceiling",
+  "reason": "every sample of both arms scored 1: the case does not separate the arms at this bound, so change the case before adding samples"
+}

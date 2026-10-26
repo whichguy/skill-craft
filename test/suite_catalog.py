@@ -142,8 +142,10 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-privacy.test.py",
     "test/shiploop-reference-routing.test.py",
     "test/shiploop-domain-words.test.py",
+    "test/shiploop-retired-terms.test.py",
     "test/shiploop-keepalive.test.py",
     "test/shiploop-skill-calls.test.py",
+    "test/shiploop-trace.test.py",
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
@@ -162,13 +164,16 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-release-slice.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",
+    "test/shiploop-e2e-status-card.test.py",
     "test/shiploop-e2e-efficiency.test.py",
+    "test/shiploop-e2e-dodges.test.py",
     "test/shiploop-e2e-owner-page.test.py",
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
+    "test/shiploop-loophole-gates.test.py",
 )
 
 # Measured in the audited full GitHub qualification.  Every known duration is
@@ -350,6 +355,8 @@ _DURATION_SECONDS = {
     # arms.py, the planted-defect cases (real node, six short probes) and the audit probes (one child process each). Local wall
     # seconds, 2026-10-17: 8.1 s at load average about 6, one serial run. Far under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-efficiency.test.py": 9.0,
+    # The run-level dodge counters (metrics.dodge_counts): 10 fixture tests, well under a second locally on 2026-10-24.
+    "test/shiploop-e2e-dodges.test.py": 0.5,
     # The owner page (owner_page.py, flow.read_first) on the saved Claude step slice: 12 tests, 7.2 s locally on 2026-10-17.
     "test/shiploop-e2e-owner-page.test.py": 8.0,
     # The template-field experiments (experiment.py, overlay.py, evaluators/): 22 tests, three seeds on the checkout's CLI, an
@@ -361,10 +368,14 @@ _DURATION_SECONDS = {
     # The efficiency journal's rows (synthetic and the checkout's own): 11 tests, a few milliseconds.
     "test/shiploop-efficiency-journal.test.py": 0.1,
     "test/shiploop-domain-words.test.py": 2.6,  # measured locally 2026-10-17: 5 tests, one scan of skills/shiploop per planted word
+    "test/shiploop-retired-terms.test.py": 0.5,  # measured locally 2026-10-24: 5 tests, one scan per glossary retired term
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
     "test/shiploop-callback-contract.test.py": 69.1,
+    "test/shiploop-loophole-gates.test.py": 15.0,  # measured locally 2026-10-24: 12 dodge rows, one real-CLI run each
+    "test/shiploop-e2e-status-card.test.py": 0.2,  # measured locally 2026-10-24: 5 tests, 0.12 s wall
+    "test/shiploop-trace.test.py": 16.0,  # measured locally 2026-10-25: 14 tests, 16.0 s wall; real-CLI runs to discovery
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
@@ -523,6 +534,7 @@ SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, _APPARATUS_SUITE)
 GROUPS = (
     "all",
     "quick",
+    "prompt",
     "core",
     "shiploop",
     "shiploop-1",
@@ -586,6 +598,13 @@ def validate_catalog() -> None:
     shard_ids = [suite.id for shard in SHIPLOOP_SHARDS for suite in shard]
     if len(shard_ids) != len(SHIPLOOP_SUITES) or set(shard_ids) != {suite.id for suite in SHIPLOOP_SUITES}:
         raise ValueError("ShipLoop shard partition is not exhaustive and disjoint")
+    # A renamed suite would otherwise drop out of a selection rule without a word.
+    named = {*_QUICK_CORE_IDS, *_HUB_SUITE_IDS, *_SHIPLOOP_PROMPT_IDS, *_SHIPLOOP_PACKET_IDS,
+             *(i for ids in _PATH_SUITE_IDS.values() for i in ids),
+             *(i for ids in _PREFIX_SUITE_IDS.values() for i in ids)}
+    unknown = named - set(identifiers)
+    if unknown:
+        raise ValueError("selection rules name unknown suites: " + ", ".join(sorted(unknown)))
 
 
 # ---------------------------------------------------------------- quick tier
@@ -608,13 +627,10 @@ _PATH_SUITE_IDS = {
     "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
     # The E2E spec is read by three suites, found by its path now that its file name is generic.
     "test/shiploop_e2e/SPEC.md": ("shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"),
-    # The packet obligation ledger and its checker, and the code that writes the text the ledger's anchors live in.
+    # The packet obligation ledger and its checker; the code that writes the text its anchors live in is in
+    # _SHIPLOOP_PACKET_SOURCES.
     "test/shiploop_e2e/packet_obligations.json": ("shiploop-packet-obligations",),
     "test/shiploop_e2e/obligations.py": ("shiploop-packet-obligations",),
-    "skills/shiploop/scripts/shiploop_navigator.py": ("shiploop-packet-obligations",),
-    "skills/shiploop/scripts/shiploop_prompts.py": ("shiploop-packet-obligations",),
-    "skills/shiploop/scripts/shiploop_loops.py": ("shiploop-packet-obligations",),
-    "skills/shiploop/scripts/shiploop_narrative.py": ("shiploop-packet-obligations",),
     # The E2E journal and the baseline data are read by these suites alone (test-economy review 2026-10-17, row 1).
     "test/shiploop_e2e/LEARNINGS.md": ("shiploop-e2e", "release-preflight"),
     "test/shiploop_e2e/baselines.jsonl": ("shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e"),
@@ -675,8 +691,11 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),
     "docs/experiments/shiploop-eff-journal-rows/": ("shiploop-efficiency-journal",),
     "docs/shiploop-efficiency-journal-": ("shiploop-efficiency-journal",),
-    # Any ShipLoop text may gain a domain word: the denylist lint (about 3 s) reads the whole skill folder.
-    "skills/shiploop/": ("shiploop-domain-words",),
+    # Any ShipLoop text may gain a domain word or bring back a retired term: the denylist lint (about 3 s) and the
+    # glossary's retired-term scan (under 1 s) read the whole skill folder.
+    "skills/shiploop/": ("shiploop-domain-words", "shiploop-retired-terms"),
+    # The Improve skill's ShipLoop route files are text a ShipLoop child reads, scanned for retired terms too.
+    "skills/improve/references/shiploop-": ("shiploop-retired-terms",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
     # The vendored Until Loop runtime: one suite pins its provenance and hashes, one starts it from a read-only installed
     # copy. Their file names select nothing, so an edit of the runtime ran neither (the stop-rule branch's F2).
@@ -714,6 +733,29 @@ _GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--
 
 _ROOT = Path(__file__).resolve().parents[1]
 
+# The packet-size suites: each renders packets offline and holds their heads under the cut, in order and complete
+# (about 25 s together).  A prompt or packet source change is the edit most likely to break them, yet the hub rule
+# selected none of them for shiploop_prompts.py: on 2026-10-25 two quick runs after a step-plan prompt edit missed them,
+# and a third, wider run caught a head over its cut.
+PACKET_SIZE_IDS = (
+    "shiploop-packet-completeness",
+    "shiploop-step-packets",
+    "shiploop-packet-recut",
+    "shiploop-head-order",
+)
+
+# The code that writes packet text: the prompt catalog, the navigator that assembles each packet, the stage spec
+# that orders the stages, and the loop and narrative text the packet obligation ledger anchors in.  Each selects the
+# packet-size suites and the ledger beside whatever its name or the hub rule selects.
+_SHIPLOOP_PACKET_SOURCES = frozenset({
+    "skills/shiploop/scripts/shiploop_prompts.py",
+    "skills/shiploop/scripts/shiploop_navigator.py",
+    "skills/shiploop/scripts/shiploop_stage_spec.py",
+    "skills/shiploop/scripts/shiploop_loops.py",
+    "skills/shiploop/scripts/shiploop_narrative.py",
+})
+_SHIPLOOP_PACKET_IDS = (*PACKET_SIZE_IDS, "shiploop-packet-obligations")
+
 # ShipLoop's prompt surface: the skill card, its references and its commands
 # reach models through packets that these suites render and check.
 _SHIPLOOP_PROMPT_IDS = (
@@ -722,10 +764,7 @@ _SHIPLOOP_PROMPT_IDS = (
     "shiploop-reference-routing",
     "shiploop-delegation",
     "shiploop-packet-bounds",
-    "shiploop-packet-completeness",
-    "shiploop-step-packets",
-    "shiploop-packet-recut",
-    "shiploop-head-order",
+    *PACKET_SIZE_IDS,
     "shiploop-reference",
     "shiploop-navigator-dry-run",
 )
@@ -808,7 +847,8 @@ def targeted(changed: Iterable[str]) -> set[str]:
     shiploop_navigator.py or a test helper reaches its consumers; a hub that more
     than HUB_REFERENCE_LIMIT suites reference, and ShipLoop's entrypoint, select
     the fixed hub consumer set instead.  ShipLoop's prompt surface selects the
-    packet suites.  A path in _ROW_ONLY_PATHS selects its row, and nothing from
+    packet suites, and a packet source the packet-size suites, whatever the hub
+    rule picks.  A path in _ROW_ONLY_PATHS selects its row, and nothing from
     the prefix, consumer or hub rules.
     """
 
@@ -838,6 +878,8 @@ def targeted(changed: Iterable[str]) -> set[str]:
             ids.update(consumers if len(consumers) <= HUB_REFERENCE_LIMIT else _HUB_SUITE_IDS)
         if path == "skills/shiploop/SKILL.md" or path.startswith(_SHIPLOOP_PROMPT_PREFIXES):
             ids.update(_SHIPLOOP_PROMPT_IDS)
+        if path in _SHIPLOOP_PACKET_SOURCES:
+            ids.update(_SHIPLOOP_PACKET_IDS)
         if path in _SHIPLOOP_WIDE_PATHS:
             ids.update(_HUB_SUITE_IDS)
     return ids
@@ -851,10 +893,25 @@ def quick(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
     return tuple(suite for suite in SUITES if suite.id in ids and _light(suite))
 
 
+def prompt(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
+    """The prompt tier: the packet suites plus the light suites whose own files changed.
+
+    The packet suites are the packet-size suites and the obligation ledger, whose
+    anchors are literal phrases in the prompt text: the 2.11.0 release failed CI
+    there after a rewrap split one across two source lines, while the four
+    packet-size suites passed locally.  It is the local loop for a prompt or
+    packet edit, about 25 s; quick stays the gate before a push.
+    """
+
+    paths = set(changed)
+    ids = set(_SHIPLOOP_PACKET_IDS) | {suite.id for suite in SUITES if suite.path in paths}
+    return tuple(suite for suite in SUITES if suite.id in ids and _light(suite))
+
+
 def select(groups: Iterable[str], changed: Iterable[str] = ()) -> tuple[Suite, ...]:
     """Return the deduplicated union in catalog order for named local groups.
 
-    ``changed`` (repository-relative paths) only affects the quick group.
+    ``changed`` (repository-relative paths) only affects the quick and prompt groups.
     """
 
     requested = tuple(groups)
@@ -867,6 +924,8 @@ def select(groups: Iterable[str], changed: Iterable[str] = ()) -> tuple[Suite, .
     for group in requested:
         if group == "quick":
             selected.update(suite.id for suite in quick(changed))
+        elif group == "prompt":
+            selected.update(suite.id for suite in prompt(changed))
         elif group.startswith("shiploop-") and group[-1:] in {"1", "2", "3"}:
             selected.update(suite.id for suite in SHIPLOOP_SHARDS[int(group[-1]) - 1])
         else:

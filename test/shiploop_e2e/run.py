@@ -109,7 +109,9 @@ from collections import Counter
 import contextlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import functools
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -125,10 +127,15 @@ import tempfile
 import threading
 import time
 
+# datetime.strptime imports _strptime on its first call. Load it now: run 5a (2026-10-24) crashed at its end when
+# Homebrew swapped the interpreter under the running process and that module was no longer on disk.
+import _strptime  # noqa: E402,F401
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import boundary  # noqa: E402
 import counters  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
@@ -152,6 +159,11 @@ REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.
 PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
+# With no resume limit by default, a host that cannot run (its auth expired, its binary broke) or a model that ends every
+# turn without moving the run would be resumed forever. Evidence, not a count of work: this many resumed sessions in a row
+# that left ShipLoop's revision where it was end the loop (the owner's rule for autonomous runs: stop on three
+# no-progress iterations).
+RESUME_STALL = 3
 # Hosts this process has started and not yet reaped, by the pid of the leader of the group it leads. A host starts in a
 # session of its own (start_new_session=True), so a SIGTERM to the harness does not reach it: on 2026-10-08 the Grok host of a
 # round-2 run went on working for about 28 minutes after the harness died of one, with nothing collecting its events.
@@ -225,7 +237,7 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
     """Name, prompt, checks and the case it follows (None for a fresh start)."""
     if args.prompt:
         return "custom", args.prompt, args.check or [], None
-    cases = json.loads(CASES.read_text())
+    cases = catalog()
     if args.case not in cases:
         raise SystemExit(f"unknown case {args.case!r}; known: {', '.join(sorted(cases))}")
     case = cases[args.case]
@@ -238,11 +250,79 @@ def case_quality(name: str) -> dict:
     """The quality measures a case declares: its own entry, else the one of the case it follows (a follow-on is measured by its
     followed case's declaration unless it names its own). ``{}`` for a case that declares none, and for a name that is not a
     case. Kept apart from load_case, whose four values callers unpack."""
-    cases = json.loads(CASES.read_text())
+    cases = catalog()
     case = cases.get(name) or {}
     own, earlier = case.get("quality") or {}, (cases.get(case.get("follows")) or {}).get("quality") or {}
     found = {key: own.get(key) or earlier.get(key) for key in ("mutation", "acceptance", "refuse_ports")}
     return {key: value for key, value in found.items() if value}
+
+
+# The platform prefix this run uses in place of its case's (--platform-prefix): (case name, prefix), or None. _main sets it once for
+# the run it starts or resumes and main clears it, so every reader of the case (catalog) sees the same renamed text.
+RUN_PREFIX: tuple[str, str] | None = None
+PLATFORM_PREFIX_SHAPE = re.compile(r"[A-Z][A-Za-z0-9]{3,19}")
+
+
+def catalog() -> dict:
+    """cases.json as this run reads it: with --platform-prefix, the run's case renamed (with_prefix)."""
+    cases = json.loads(CASES.read_text())
+    if RUN_PREFIX and RUN_PREFIX[0] in cases:
+        cases[RUN_PREFIX[0]] = with_prefix(cases[RUN_PREFIX[0]], RUN_PREFIX[1])
+    return cases
+
+
+@functools.cache
+def salesforce_library():
+    """checks/chess_salesforce.py, the Salesforce library both platform cases share, loaded by path (it is an oracle, not a module
+    of this folder)."""
+    spec = importlib.util.spec_from_file_location("shiploop_e2e_chess_salesforce", HERE / "checks" / "chess_salesforce.py")
+    library = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(library)
+    return library
+
+
+def prefix_spellings(kind: str, prefix: str) -> tuple[str, ...]:
+    """Every spelling a platform kind gives a prefix in a case's text. Salesforce names Apex classes, tabs, apps and permission
+    sets with it as it is (SLBattle) and a component with its leading capitals lowered (slBattle: lwc_prefix)."""
+    if kind == "salesforce":
+        return prefix, salesforce_library().lwc_prefix(prefix)
+    raise SystemExit(f"--platform-prefix: a {kind!r} platform does not say how its items spell a prefix")
+
+
+def with_prefix(case: dict, prefix: str) -> dict:
+    """The case with its platform prefix renamed everywhere its text names it (the prompt, the checks, every platform command and
+    the guard): each spelling of the catalog's prefix becomes the same spelling of `prefix` (SPEC: a hosted-platform run's prefix)."""
+    platform = case["platform"]
+    text = json.dumps(case)
+    for old, new in zip(prefix_spellings(platform["kind"], platform["prefix"]), prefix_spellings(platform["kind"], prefix)):
+        text = text.replace(old, new)
+    return json.loads(text)
+
+
+def run_prefix(asked: str | None, name: str, cases: dict, *, resuming: bool = False, earlier: str | None = None) -> str | None:
+    """The prefix a run uses in place of its case's, or None for the case's own; `cases` is the catalog as written.
+
+    A resume keeps the prefix its run started with (invocation.json). A new prefix must be a capital letter and 3 to 19 letters or
+    digits, for a case whose platform has a prefix, and must share no beginning with any case's prefix, ignoring case: the preflight,
+    the guard and the cleanup match items by a case-insensitive beginning, so either run would take the other's items for its own."""
+    if resuming:
+        if asked and asked != earlier:
+            raise SystemExit(f"--platform-prefix {asked}: this run started with "
+                             + (f"prefix {earlier}" if earlier else "its case's own prefix") + ", and a resume keeps its run's prefix")
+        return earlier
+    if not asked:
+        return None
+    if not ((cases.get(name) or {}).get("platform") or {}).get("prefix"):
+        raise SystemExit(f"--platform-prefix: case {name!r} has no platform prefix to rename")
+    if not PLATFORM_PREFIX_SHAPE.fullmatch(asked):
+        raise SystemExit(f"--platform-prefix {asked}: a prefix is a capital letter and 3 to 19 letters or digits (it begins class "
+                         "and component names)")
+    for other, spec in sorted(cases.items()):
+        theirs = str(((spec.get("platform") or {}).get("prefix") if isinstance(spec, dict) else None) or "")
+        if theirs and (asked.lower().startswith(theirs.lower()) or theirs.lower().startswith(asked.lower())):
+            raise SystemExit(f"--platform-prefix {asked}: it shares a beginning with case {other!r}'s prefix {theirs}, so that "
+                             "case's preflight, guard and cleanup would take this run's items for its own, or the reverse")
+    return asked
 
 
 def quality_stop(stop_file: Path) -> str | None:
@@ -361,12 +441,18 @@ def card_version(card: Path) -> str | None:
     return match.group(1) if match else None
 
 
-def released_versions() -> dict:
-    """What the marketplace serves now: the catalog and ShipLoop versions on origin/main."""
-    git("fetch", "-q", "origin")
+def published_versions() -> dict:
+    """The skill-craft and ShipLoop versions origin/main's catalog publishes, read from the local ref (nothing is fetched)."""
     catalog = json.loads(git("show", "origin/main:.claude-plugin/marketplace.json"))
     plugin = next(p for p in catalog["plugins"] if p["name"] == PLUGIN_NAME)
     shiploop = re.search(r"^version:[ \t]*(\S+)", git("show", f"origin/main:plugins/{PLUGIN_NAME}/skills/shiploop/SKILL.md"), re.M)
+    return {"catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None}
+
+
+def released_versions() -> dict:
+    """What the marketplace serves now: the catalog and ShipLoop versions on origin/main."""
+    git("fetch", "-q", "origin")
+    published = published_versions()
     # A pending change note on main is source the marketplace does not serve yet: release.py has not run.
     pending = [name for name in git("ls-tree", "-r", "--name-only", "origin/main", "changes/").split()
                if name.endswith(".md") and name != "changes/README.md"]
@@ -374,8 +460,7 @@ def released_versions() -> dict:
     local = git("rev-parse", "HEAD").strip()
     # Behind origin/main is fine (the plugin comes from the marketplace); unpublished local commits are not.
     behind = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", local, origin_main]).returncode == 0
-    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind,
-            "catalog_version": plugin.get("version"), "shiploop_version": shiploop.group(1) if shiploop else None,
+    return {"origin_main": origin_main, "local_head": local, "local_behind_main": behind, **published,
             "unreleased": pending, "ci": main_ci(origin_main)}
 
 
@@ -693,7 +778,7 @@ def display_held() -> bool:
 def declared_needs(name: str, args, earlier: dict | None = None) -> list[str]:
     """The needs this launch declares (SPEC: a record exists only where something declares its need): the case's, the
     ``--need`` flags', and those the run's own first launch recorded. A custom prompt declares none by itself."""
-    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    case = catalog().get(name, {}) if name != "custom" else {}
     found = [*case.get("needs", []), *(args.need or []), *((earlier or {}).get("needs") or [])]
     return list(dict.fromkeys(found))
 
@@ -768,11 +853,11 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
 
         reader = threading.Thread(target=pump, daemon=True)
         reader.start()
-        deadline = time.time() + timeout
+        deadline = time.monotonic() + timeout
         status = None
         try:
             while proc.poll() is None:
-                if time.time() >= deadline:
+                if time.monotonic() >= deadline:
                     status = "timeout"
                 elif (stop_file is not None and stop_file.exists()) or TERMINATION.is_set():
                     status = "stopped"
@@ -916,8 +1001,10 @@ def resume_command(out: Path, args) -> str:
     """
     parts = ["python3", str(Path(__file__).resolve()), "--resume-run", str(out), "--host", args.host,
              "--model", args.model, *(["--effort", args.effort] if args.effort else []),
-             "--timeout", str(args.timeout), "--max-resumes", str(args.max_resumes),
-             "--max-budget-usd", str(args.max_budget_usd), "--permission-mode", args.permission_mode]
+             *(["--timeout", str(args.timeout)] if args.timeout else []),
+             *(["--max-resumes", str(args.max_resumes)] if args.max_resumes is not None else []),
+             *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
+             "--permission-mode", args.permission_mode]
     binary = getattr(args, args.host + "_bin")
     if binary != parser().get_default(args.host + "_bin"):
         parts += [f"--{args.host}-bin", binary]
@@ -1257,7 +1344,7 @@ def seed_materials(name: str, stage: str | None) -> dict | None:
     if name == "custom":
         raise SystemExit(f"--seed-at {stage} starts after the build and needs a case that declares its built product "
                          "(seed_product, seed_home and seed_release in cases.json): a custom --prompt has none")
-    return release_slice.materials(name, json.loads(CASES.read_text()).get(name) or {}, stage)
+    return release_slice.materials(name, catalog().get(name) or {}, stage)
 
 
 def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent", stage: str = "step-plan") -> str:
@@ -1662,7 +1749,7 @@ def case_platform(name: str) -> dict | None:
     """The validated `platform` object of a named case, None for a case without one (and for a custom prompt)."""
     if name == "custom":
         return None
-    spec = (json.loads(CASES.read_text()).get(name) or {}).get("platform")
+    spec = (catalog().get(name) or {}).get("platform")
     if spec is None:
         return None
     return validate_platform(name, spec)
@@ -2181,10 +2268,10 @@ def run_platform_command(command: str, cwd: Path, env: dict, timeout: int = PLAT
     proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, errors="replace", start_new_session=True)
     interrupts, code, output = 0, None, ""
-    deadline = time.time() + timeout
+    deadline = time.monotonic() + timeout
     while True:
         try:
-            output, _ = proc.communicate(timeout=max(1, deadline - time.time()))
+            output, _ = proc.communicate(timeout=max(1, deadline - time.monotonic()))
             code = proc.returncode
             break
         except subprocess.TimeoutExpired:
@@ -2500,6 +2587,11 @@ def parser() -> argparse.ArgumentParser:
                         "run kept (--keep-platform): the items already there are the baseline, the snapshot records them, and the "
                         "cleanup removes only what the run adds beyond it (with --keep-platform nothing is removed). A resume keeps "
                         "its run's mode. Not with --suite")
+    p.add_argument("--platform-prefix", metavar="PREFIX",
+                   help="a case with a platform: name everything this run creates there with PREFIX instead of the case's own "
+                        "prefix, renamed everywhere the case names it (the prompt, the checks, the platform commands and the guard), "
+                        "so a kept app of the same case is left alone. A capital letter and 3 to 19 letters or digits, sharing no "
+                        "beginning with any case's prefix. A resume keeps its run's prefix. Not with --suite or --seed-at")
     p.add_argument("--keep-platform", action="store_true",
                    help="a case with a platform: when the run ends normally with a finished delivery (ShipLoop done, every "
                         "case check passed), do not run the platform cleanup; keep what the run made there for a person to "
@@ -2546,12 +2638,15 @@ def parser() -> argparse.ArgumentParser:
                    help="pull skill-craft from the marketplace into a fresh profile, print what main publishes "
                         "and what the host installed, and exit non-zero if the version gate refuses")
     p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
-    p.add_argument("--max-turns", type=int, default=10000)
-    p.add_argument("--max-budget-usd", type=float, default=40.0, help="claude only; grok has no spend cap")
+    p.add_argument("--max-turns", type=int, default=None,
+                   help="a turn limit for the host session; default: none (the owner wants no turn limit)")
+    # No limit is imposed unless one is asked for (owner 2026-10-24: no turn, spend, time or resume limit by default).
+    p.add_argument("--max-budget-usd", type=float, default=None, help="claude only, default none; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--timeout", type=int, default=10800, help="seconds before the host is killed")
-    p.add_argument("--max-resumes", type=int, default=20,
-                   help="grok only: resume the same session this many times while ShipLoop is still active")
+    p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
+    p.add_argument("--max-resumes", type=int, default=None,
+                   help="grok only: resume the same session at most this many times while ShipLoop is still active; "
+                        "default: no limit")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
     p.add_argument("--max-parallel", type=int, default=3,
                    help="suites: run up to this many independent case chains at once (default 3)")
@@ -2574,6 +2669,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--runs", type=Path, nargs="+",
                    help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
     p.add_argument("--json", action="store_true", help="with --baseline-report: print JSON instead of text")
+    p.add_argument("--release-gate", action="store_true",
+                   help="with --baseline-report: also print, per case style, the last pass a marketplace run recorded and how "
+                        "many ShipLoop releases origin/main made since (the local ref; nothing is fetched)")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
@@ -2624,6 +2722,29 @@ def baseline_stages(stages: list | None) -> list | None:
     return [{k: row[k] for k in keep if k in row} for row in stages if isinstance(row, dict)]
 
 
+def concurrent_line(out) -> str | None:
+    """The line printed when a run starts beside other live harness runs under its runs root (``environment.alive_runs``), so
+    a run meant for a timing comparison is not started there by mistake (SPEC "Parallel work"). Printed only, never a refusal,
+    and a scan that fails prints nothing: the run's own overlap record, read at its end, says what overlapped."""
+    try:
+        alive = environment.alive_runs(out)
+    except Exception:  # noqa: BLE001 - a notice that cannot be made is left out, never raised
+        return None
+    if not alive:
+        return None
+    return (f"  concurrent  {len(alive)} other harness run(s) alive under {environment.runs_root(out)}: "
+            f"{', '.join(alive[:5])}{' …' if len(alive) > 5 else ''}; a wall-time or cost comparison with this run is not clean")
+
+
+def overlapped_runs(result: dict) -> int | None:
+    """How many neighbouring runs the run's own overlap record saw (``environment.overlap``), for the baseline row; null where
+    the record was not observed. A record, never an exclusion: no baseline rule reads it."""
+    seen = (result.get("environment") or {}).get("overlap")
+    if isinstance(seen, dict) and seen.get("observed") is True and isinstance(seen.get("runs"), list):
+        return len(seen["runs"])
+    return None
+
+
 def baseline_row(result: dict, style: str | None, suite: str | None,
                  planning_review: str = metrics.NOT_RECORDED) -> dict:
     """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites).
@@ -2664,6 +2785,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "local_head": versions.get("local_head") or (versions.get("released") or {}).get("local_head"),
             "started": (result.get("span") or {}).get("started"), "ended": (result.get("span") or {}).get("ended"),
             "planning_seconds": m.get("planning_seconds"),
+            "overlapped_runs": overlapped_runs(result),
             "output": result.get("output")}
     reasons = result.get("identity_unmeasured") if isinstance(result.get("identity_unmeasured"), dict) else {}
     row["identity_unmeasured"] = {name: reasons.get(name) or PREDATES for name in IDENTITY_FIELDS if row[name] is None}
@@ -3250,10 +3372,85 @@ def render_report(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+RELEASE_GATE_CLASSES = ("counted", "no driver recorded")  # a finished run that passed; an old row names no driver
+SHIPLOOP_RELEASE = re.compile(r"\bshiploop \d")  # a release commit's subject names each skill it shipped with its version
+
+
+def release_commits() -> list[tuple[float, str]]:
+    """(commit time, subject) of every release commit on origin/main, read from the local ref (nothing is fetched)."""
+    lines = git("log", "origin/main", "--grep=^release:", "--format=%ct%x09%s").splitlines()
+    return [(float(when), subject) for when, _, subject in (line.partition("\t") for line in lines) if when.isdigit()]
+
+
+def release_gate(baseline: Path | None, published: dict | None = None,
+                 releases: list[tuple[float, str]] | None = None) -> dict:
+    """Per style of the case catalog: the last pass a marketplace run recorded in the baseline file, what origin/main publishes
+    now, and how many ShipLoop releases origin/main made after that pass (SPEC "Promotion" and "Choose the verification runs
+    from a coverage map"). Basis: the 2026-10-24 runner review (D1) found that no case had passed from the marketplace since
+    2026-10-10, fourteen releases earlier, and nothing printed it. A record: it gates nothing. ``published`` and ``releases``
+    default to the local origin/main ref; a ref that cannot be read is named, and the passes are still listed."""
+    cases = json.loads(CASES.read_text())
+    styles = sorted({case["style"] for case in cases.values() if case.get("style")})
+    rows = []
+    if baseline is not None and baseline.is_file():
+        for line in baseline.read_text().splitlines():
+            with contextlib.suppress(ValueError):
+                row = json.loads(line)
+                if isinstance(row, dict):
+                    rows.append(row)
+    unread = None
+    try:
+        published = published if published is not None else published_versions()
+        releases = releases if releases is not None else release_commits()
+    except Exception as exc:  # noqa: BLE001 - the passes are listed whatever the ref says
+        published, releases, unread = None, None, " ".join(str(exc).split())[:200] or type(exc).__name__
+    by_style = {}
+    for style in styles:
+        passes = [row for row in rows if row.get("pass") is True and _source_name(row.get("source")) == "marketplace"
+                  and (cases.get(row.get("case")) or {}).get("style") == style]
+        last = passes[-1] if passes else None  # the file is appended in run order
+        if last is None:
+            by_style[style] = None
+            continue
+        when = last.get("ended") if isinstance(last.get("ended"), (int, float)) else None
+        if when is None:
+            with contextlib.suppress(TypeError, ValueError):
+                when = datetime.strptime(str(last.get("date")), "%Y-%m-%dT%H:%M:%S%z").timestamp()
+        since = (None if releases is None or when is None
+                 else sum(1 for stamp, subject in releases if stamp > when and SHIPLOOP_RELEASE.search(subject)))
+        by_style[style] = {"case": last.get("case"), "date": str(last.get("date") or "")[:10] or None,
+                           "plugin_version": last.get("plugin_version"), "shiploop_version": last.get("shiploop_version"),
+                           "driver": "/".join(str(last.get(k) or "-") for k in ("host", "model", "effort")) if last.get("host") else None,
+                           "shiploop_releases_since": since}
+    return {"baseline": str(baseline) if baseline else None, "published": published, "unread": unread, "styles": by_style}
+
+
+def render_release_gate(gate: dict) -> str:
+    """The release gate as text: one line per style."""
+    published = gate["published"]
+    head = (f"origin/main publishes skill-craft {published['catalog_version']} / ShipLoop {published['shiploop_version']}"
+            if published else f"origin/main could not be read ({gate['unread']})")
+    lines = [f"release gate: {head}; the last marketplace pass per style in {gate['baseline']}"]
+    for style, last in gate["styles"].items():
+        if last is None:
+            lines.append(f"  {style:<17} no marketplace pass recorded")
+            continue
+        since = last["shiploop_releases_since"]
+        lines.append(f"  {style:<17} {last['case']} {last['date']}, skill-craft {last['plugin_version']} / ShipLoop "
+                     f"{last['shiploop_version']} ({last['driver'] or 'driver not recorded'}); "
+                     + ("ShipLoop releases since not known" if since is None else f"{since} ShipLoop release(s) since"))
+    return "\n".join(lines) + "\n"
+
+
 def baseline_report_main(args) -> int:
-    """`--baseline-report`: print the report (JSON with --json). Reads files only and always exits 0."""
+    """`--baseline-report`: print the report (JSON with --json), and with --release-gate the last marketplace pass per style.
+    Reads files and the local origin/main ref only, and always exits 0."""
     report = baseline_report(args.baseline, args.runs or [])
-    print(json.dumps(report, indent=1) if args.json else render_report(report), end="\n" if args.json else "")
+    gate = release_gate(args.baseline) if args.release_gate else None
+    if args.json:
+        print(json.dumps({**report, "release_gate": gate} if gate else report, indent=1))
+    else:
+        print(render_report(report) + ("\n" + render_release_gate(gate) if gate else ""), end="")
     return 0
 
 
@@ -3340,6 +3537,8 @@ RESUME_STOP_CLASSES = (
     ("no host session id to resume", "FAILED"),
     ("run deadline spent", "STOPPED"),
     ("resume budget spent", "STOPPED"),
+    ("resumed host failed ", "FAILED"),
+    ("resumed host made no ShipLoop progress ", "STOPPED"),
     ("stopped by ", "STOPPED"),
     ("terminated by ", "STOPPED"),
 )
@@ -3555,7 +3754,21 @@ def refuse_stale_listeners(own: Path | None) -> None:
 
 
 def run_suite(args, argv: list[str]) -> int:
-    """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
+    """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed.
+
+    A case's neighbours are its suite's: its overlap record and its concurrent line read the runs root of the suite folder,
+    not of the case folder one level deeper (2026-10-24: the release-gate batch under <runs>/<day>/<suite>/<case> saw only
+    its day's runs, while a case run alone beside it saw the experiment slices in another folder). A root the caller
+    named in the environment is kept, and the environment is restored when the suite ends."""
+    named = os.environ.get(environment.RUNS_ROOT_ENV)
+    try:
+        return _run_suite(args, argv)
+    finally:
+        if named is None:
+            os.environ.pop(environment.RUNS_ROOT_ENV, None)
+
+
+def _run_suite(args, argv: list[str]) -> int:
     suites = json.loads(SUITES.read_text())
     if args.suite not in suites or args.suite.startswith("_"):
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
@@ -3564,6 +3777,7 @@ def run_suite(args, argv: list[str]) -> int:
     # the running chains finish, with no suite-result.json. Its cases skip their own check (--suite-name).
     refuse_stale_listeners(None)
     base = new_output_dir(args.output, "suite-" + args.suite)
+    os.environ.setdefault(environment.RUNS_ROOT_ENV, str(environment.runs_root(base)))
     passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
     it = iter(argv)
     for token in it:
@@ -3655,6 +3869,7 @@ def main(argv: list[str] | None = None) -> int:
     """Run one case (or a suite) and return the exit code; see _main."""
     held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
     guard = PlatformGuard()  # a case's platform cleanup, armed inside once the model may start, run here whatever happens
+    global RUN_PREFIX
     try:
         return _main(argv, held, guard)
     finally:
@@ -3662,9 +3877,11 @@ def main(argv: list[str] | None = None) -> int:
         guard.print_kept()  # last, so it ends the log: when --keep-platform kept a finished delivery, what is still there and how to remove it
         for handle in held:
             handle.close()
+        RUN_PREFIX = None  # one run's: the next run in this process (a suite's, iterate's) reads the catalog as written
 
 
 def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = None) -> int:
+    global RUN_PREFIX
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
@@ -3677,10 +3894,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.platform_existing and (args.suite or args.baseline_report):
         raise SystemExit("--platform-existing is the mode of one run of a case with a platform: it does not go with --suite or "
                          "--baseline-report")
+    if args.platform_prefix and (args.suite or args.baseline_report or args.seed_at):
+        raise SystemExit("--platform-prefix renames the prefix of one run of a case with a platform: it does not go with --suite "
+                         "or --baseline-report, nor with --seed-at, whose seeded product carries the case's own names")
     if args.baseline_report:
         return baseline_report_main(args)
-    if args.runs or args.json:
-        raise SystemExit("--runs and --json belong to --baseline-report")
+    if args.runs or args.json or args.release_gate:
+        raise SystemExit("--runs, --json and --release-gate belong to --baseline-report")
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
@@ -3688,6 +3908,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         for line in problems:
             print(f"refused: {line}", flush=True)
         refused = bool(problems)
+        prefix = None if args.prompt else run_prefix(args.platform_prefix, args.case, json.loads(CASES.read_text()))
+        RUN_PREFIX = (args.case, prefix) if prefix else None
         spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
         existing = platform_existing_mode(args.platform_existing, args.case, spec)
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
@@ -3731,6 +3953,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        prefix = run_prefix(args.platform_prefix, name, json.loads(CASES.read_text()), resuming=True,
+                            earlier=earlier.get("platform_prefix"))
+        RUN_PREFIX = (name, prefix) if prefix else None  # the checks, prompt and platform it recorded are renamed already
         planning_review = planning_review_choice(args.planning_review, earlier)
         # The platform the run started with (invocation.json), not whatever cases.json says now: its cleanup is what undoes it.
         seed_built = None  # a resume continues the run the seed made
@@ -3800,6 +4025,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                    "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
+        if args.platform_prefix and args.prompt:
+            raise SystemExit("--platform-prefix: a custom --prompt has no case prefix to rename")
+        prefix = run_prefix(args.platform_prefix, args.case, json.loads(CASES.read_text()))
+        RUN_PREFIX = (args.case, prefix) if prefix else None
         name, prompt, checks, follows = load_case(args)
         seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
@@ -4030,6 +4259,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment,
+                  **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
                   "planning_review": planning_review, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
@@ -4052,6 +4282,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
+            if line := concurrent_line(out):
+                print(line, flush=True)
             if platform_spec:
                 linked = [link["name"] for link in platform_state["home_links"] or [] if link["linked"]]
                 guarded = (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "") + (
@@ -4102,7 +4334,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   f"ended, or clean by hand: {manual_cleanup_command(out, platform_spec)}", flush=True)
     if platform_spec and regrade:
         platform_before = earlier_platform.get("before")
-    deadline = time.time() + args.timeout
+    # Active time, not wall time: a Mac that slept 10 h spent run 5's 5 h cap with 3.8 h of work (2026-10-25);
+    # time.monotonic stops during sleep (mach_absolute_time, CLOCK_MONOTONIC), time.time does not.
+    deadline = time.monotonic() + (args.timeout or float("inf"))
     if resumed and not regrade:
         # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
         # not answer the new session's probes: that is how two runs met the same port in round 2.
@@ -4113,7 +4347,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     else:
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
-        process = session(cli, work, out, env, args.timeout, watch=not args.quiet,
+        process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
@@ -4133,19 +4367,25 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
                          allow=host_allow)
-        process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
+        process = session(argv, work, out, env, max(60, deadline - time.monotonic()), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
                          kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
-    # run is still active, resume that same session (bounded) instead of losing the run.
+    # run is still active, resume that same session instead of losing the run.
     resume_stop = ("not evaluated (regraded)" if regrade
                    else None if host.resumable else "host is not resumable")
     stop_seen = not regrade and process["status"] == "stopped"  # a requested stop ended the host
-    while host.resumable and not regrade and len(sessions) <= args.max_resumes:
+    # Resumed sessions in a row that left ShipLoop's revision unchanged (None before ShipLoop wrote any state counts too).
+    stalled, failures, launched_at, resumed_any = 0, 0, None, False
+    while host.resumable and not regrade and (args.max_resumes is None or len(sessions) <= args.max_resumes):
         state = grade_shiploop(out)
         session_id = last_session_id(out / "events.jsonl")
-        remaining = int(deadline - time.time())
+        remaining = deadline - time.monotonic()
+        if resumed_any:
+            moved = state.get("revision") != launched_at
+            stalled = 0 if moved else stalled + 1
+            failures = 0 if moved else failures + (process["status"] == "failed")
         # No run yet means the session ended before ShipLoop wrote its state; a
         # run that is paused, blocked, halted or done is not resumed. (A question
         # waiting for a person is a view of blocked, not a status of its own.)
@@ -4163,13 +4403,21 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if remaining <= 60:
             resume_stop = "run deadline spent"
             break
+        if stalled >= RESUME_STALL:
+            # Every stalled session failed: the host cannot run (FAILED). Otherwise the harness ends a run that stopped moving.
+            resume_stop = (f"resumed host failed {stalled} times in a row with ShipLoop still at revision "
+                           f"{state.get('revision')} (last exit code {process['returncode']})" if failures == stalled
+                           else f"resumed host made no ShipLoop progress {stalled} times in a row (revision "
+                                f"{state.get('revision')})")
+            break
         if not args.quiet:
-            print(f"resume {len(sessions)}/{args.max_resumes}: session {session_id} ended with ShipLoop "
+            print(f"resume {len(sessions)}/{args.max_resumes if args.max_resumes is not None else 'no limit'}: session {session_id} ended with ShipLoop "
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id, allow=host_allow)
+        launched_at, resumed_any = state.get("revision"), True
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
                          told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)
@@ -4225,7 +4473,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
-    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    case = catalog().get(name, {}) if name != "custom" else {}
     # A release slice starts without the product in the source checkout: the checks that read it wait for the return.
     sliced = bool(seeded) and release_slice.delivered(seeded.get("stage"))
     release_spec = release_slice.release_spec(case)
@@ -4364,6 +4612,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
               "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
+              # What graded this run (SPEC: the evaluator boundary): the harness's code, its checks/ and the case entry read
+              # above. A regrade records its own; promotion.py compares a case only across equal digests.
+              "boundary": boundary.fingerprint(HERE, case),
+              **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),  # the case digest above is of the renamed entry
               "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
               "span": run_metrics["span"],
               "identity_unmeasured": identity_unmeasured,
@@ -4394,7 +4646,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
     print(f"  flow      {flow_record(out)}")
-    style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
+    style = catalog().get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
     # A baseline measures one host running a case from the start to its end; a resumed run is not one, and neither is
     # a run the harness ended: its engine still active (a deadline, a requested stop, a spent resume budget) or its host

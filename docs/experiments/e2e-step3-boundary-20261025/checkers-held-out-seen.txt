@@ -1,0 +1,6 @@
+# quality.held_out_seen and acceptance on the saved Checkers runs with a quality block (read 2026-10-25)
+~/e2e-runs/20261010/checkers-1/result.json held_out_seen=0 acceptance=6/6
+~/e2e-runs/20261010/checkers-1270-sonnet/result.json held_out_seen=0 acceptance=6/6
+~/e2e-runs/20261010/checkers-8stage-88d412e9/result.json held_out_seen=0 acceptance=6/6
+~/e2e-runs/20261010/checkers-sections-1ac83089/result.json held_out_seen=0 acceptance=6/6
+~/e2e-runs/20261010/pc1i-checkers-sonnet/result.json held_out_seen=0 acceptance=6/6

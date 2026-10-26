@@ -17,11 +17,11 @@ flowchart TD
     K --> N{Items left?}
     R --> N
     N -->|yes| S[Next item's step-plan]
-    N -->|no| I[End-of-work Improve child, then system-test-author]
+    N -->|no| I[End-of-work Improve stage, then system-test-author]
 ```
 
 Only the successful `carry-forward` that leaves no work item pending starts an
-Improve child. That end-of-work review covers every executed item together
+Improve stage. That end-of-work review covers every executed item together
 (code, tests, documentation and the queue) before the OUTER stages. If it adds
 work items, the review moves to the new last item's carry-forward.
 

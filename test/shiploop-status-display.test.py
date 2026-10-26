@@ -347,6 +347,9 @@ class StatusBlockTests(unittest.TestCase):
         cursor = loops.cursor(state)
         if cursor is not None:
             intended.add(root / loops.contract_path(cursor[1]))
+        # The run trace: a line per command and each packet kept as sent (references/status-display.md#run-trace).
+        intended.add(root / "trace.jsonl")
+        intended.update(path for path in after if path.parent == root / "packets" / "sent")
         self.assertEqual(set(after) - set(before), intended)
         self.assertEqual({path: data for path, data in after.items() if path not in intended}, before)
         written = packet_path.read_text(encoding="utf-8")

@@ -10,6 +10,9 @@ timeline.jsonl lines, state.md fence) and only the keys the harness reads:
   recorded/<date>/<run>.json      pass, host, process (status, returncode, regraded) and termination of each recorded result.json
   engine/<run>/state.md           the navigator state reduced to status, stage, status_reason, the last history entry and
                                   the accepted record of the last history action (the blocked detail lives there)
+  runs-root/<path>/               chess runs 3, 4 and 5 and every run folder under the runs root that overlapped one of them
+                                  (2026-10-24, E1 of docs/experiments/e2e-runner-review-20261024): invocation.json and the
+                                  timeline extract, at the folder's path under the root (`extract.py runs-root` rebuilds only these)
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ ROUND_RUNS = [f"20261008/{prefix}-{app}" for prefix in ("r1", "r2", "r3")
 ROUND_RUNS = [run for run in ROUND_RUNS if (RUNS / run).is_dir()]
 RECORDED = ["20261007/v1230-battleship-grok-none", "20261007/v1230-battleship-sonnet", *ROUND_RUNS]
 ENGINE_RUNS = ["20261007/v1230-battleship-grok-none", "20261008/r1-battleship-grok-none", "20261008/r3-battleship-grok-none"]
+CHESS_RUNS = ["20261019/chess-sf-full-05fe25b", "20261020/chess-sf-full-9e52e8", "20261024/chess-sf-full-ed3292"]
 FENCE = re.compile(r"```shiploop-state\n(?P<json>.*?)\n```", re.S)
 
 
@@ -39,14 +43,29 @@ def launch_record(record: dict) -> dict:
     return keep
 
 
+def copy_run(src: Path, dst: Path) -> None:
+    """One run folder's extract: its launch records and the first two and last two timeline stamps."""
+    dst.mkdir(parents=True, exist_ok=True)
+    for path in sorted(src.glob("invocation*.json")):
+        (dst / path.name).write_text(json.dumps(launch_record(json.loads(path.read_text())), indent=1) + "\n")
+    lines = [line for line in (src / "timeline.jsonl").read_text().splitlines() if line.strip()]
+    (dst / "timeline.jsonl").write_text("\n".join(lines[:2] + lines[-2:]) + "\n")
+
+
 def rounds() -> None:
     for run in ROUND_RUNS:
-        src, dst = RUNS / run, HERE / "rounds" / run.split("/")[1]
-        dst.mkdir(parents=True, exist_ok=True)
-        for path in sorted(src.glob("invocation*.json")):
-            (dst / path.name).write_text(json.dumps(launch_record(json.loads(path.read_text())), indent=1) + "\n")
-        lines = [line for line in (src / "timeline.jsonl").read_text().splitlines() if line.strip()]
-        (dst / "timeline.jsonl").write_text("\n".join(lines[:2] + lines[-2:]) + "\n")
+        copy_run(RUNS / run, HERE / "rounds" / run.split("/")[1])
+
+
+def runs_root() -> None:
+    """The chess runs and their neighbours, found by the harness's own reader over the whole runs root."""
+    sys.path.insert(0, str(HERE.parents[2] / "test" / "shiploop_e2e"))
+    import environment  # noqa: E402  (the reader under test finds the neighbours; the test replays it on the extracts)
+    keep = set(CHESS_RUNS)
+    for run in CHESS_RUNS:
+        keep |= {entry["folder"] for entry in environment.overlap(RUNS / run)["runs"]}
+    for run in sorted(keep):
+        copy_run(RUNS / run, HERE / "runs-root" / run)
 
 
 def recorded() -> None:
@@ -87,8 +106,11 @@ def engine() -> None:
 if __name__ == "__main__":
     if not RUNS.is_dir():
         sys.exit(f"the saved runs are not here: {RUNS}")
-    for folder in ("rounds", "recorded", "engine"):
+    only_root = sys.argv[1:] == ["runs-root"]
+    for folder in ("runs-root",) if only_root else ("rounds", "recorded", "engine", "runs-root"):
         shutil.rmtree(HERE / folder, ignore_errors=True)
-    rounds()
-    recorded()
-    engine()
+    if not only_root:
+        rounds()
+        recorded()
+        engine()
+    runs_root()

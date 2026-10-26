@@ -82,9 +82,11 @@ class SendBackTests(unittest.TestCase):
         self.assertNotEqual(nav.current_action(state)["id"], old_action)
         self.assertEqual(state["history"][-1]["outcome"], "send-back")
 
-    def test_the_budget_is_two_send_backs_per_item_then_the_user_decides(self) -> None:
+    def test_no_count_of_send_backs_stops_an_item_and_blocked_still_ends_it(self) -> None:
+        # Owner 2026-10-24: no run caps.  Three send-backs (one more than the old cap of 2) are each accepted.
+        self.assertFalse(hasattr(nav.stage_spec, "MAX_SEND_BACKS"))
         state = drive_to("implement")
-        for used in (1, 2):
+        for used in (1, 2, 3):
             state = submit(state, SEND_BACK)
             self.assertEqual(state["revisions"], {"W1": used})
             # Walk step-plan (with its Improve stage) back to implement.
@@ -99,9 +101,7 @@ class SendBackTests(unittest.TestCase):
                 else:
                     state = nav.finish_improve(state, action, step["receipt"], step.get("final_result"))
             self.assertEqual(nav.current_stage(state), "implement")
-        with self.assertRaisesRegex(nav.NavigatorError, "used its 2 send-backs.*report blocked awaiting a decision"):
-            submit(state, SEND_BACK)
-        # The refusal names its exit, so the exit goes through the real gate: a blocked result awaiting the user's answer.
+        # The named exit still goes through the real gate: a blocked result awaiting the user's answer.
         blocked = submit(state, {"outcome": "blocked",
                                  "awaiting": {"kind": "answer", "question": "Which criterion yields: C1 or C2?",
                                               "options": ["C1", "C2"],
@@ -173,11 +173,11 @@ class SendBackTests(unittest.TestCase):
         state = drive_to("test")
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
         self.assertIn("Allowed outcomes: done | blocked | send-back (", packet)
-        self.assertIn("2 of 2 left for this item", packet)
+        self.assertNotIn(" left for this item", packet)
         state = submit(state, SEND_BACK)
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
         # The one-line status (packet review U5) has no "(sent back ...)" suffix; the revisit block says it (U4).
-        self.assertIn("Revisit: test sent W1 back to step-plan (1 of 2 send-backs)", packet)
+        self.assertIn("Revisit: test sent W1 back to step-plan (send-back 1)", packet)
 
     def test_a_redone_step_plan_packet_names_the_previous_plan_and_the_send_back_result(self) -> None:
         state = drive_to("implement")
@@ -267,7 +267,7 @@ class SendBackTests(unittest.TestCase):
         plan, spec_before = last_action(state, "step-plan", "done"), last_action(state, "test-spec", "done")
         state = submit(state, SEND_BACK)
         sent_back = state["history"][-1]["action"]
-        why = ("Revisit: implement sent W1 back to step-plan (1 of 2 send-backs)", '"' + SEND_BACK["summary"] + '"',
+        why = ("Revisit: implement sent W1 back to step-plan (send-back 1)", '"' + SEND_BACK["summary"] + '"',
                "Evidence: " + result_path(sent_back) + ".")
         keep = "Keep unchanged rows with their IDs: carry over as written every row the send-back result"
 
@@ -395,20 +395,22 @@ class SendBackTests(unittest.TestCase):
         # T17 (implement-step fix plan): a run saved before each step recorded its Proof (state version 6) has its own
         # reason too; no Proof is ever made up for it.
         # N5 (four outcomes, `awaiting`): a run saved by state version 7 is refused by the version check like any other.
-        for version, reason in ((3, "state version 3 is not the supported version 8"),
+        # R1 (2026-10-24, a step's `proof`, an open item's `settle`): a run saved by state version 8 has its own reason.
+        for version, reason in ((3, "state version 3 is not the supported version 9"),
                                 (4, "seventeen-stage inner loop \\(state version 4\\)"),
-                                (5, "state version 5 is not the supported version 8"),
+                                (5, "state version 5 is not the supported version 9"),
                                 (6, "before each implementation step recorded its Proof \\(state version 6\\)"),
-                                (7, "state version 7 is not the supported version 8")):
+                                (7, "state version 7 is not the supported version 9"),
+                                (8, "saved with state version 8, whose step plans call each step's command `check`")):
             wrong_version = deepcopy(state)
             wrong_version["version"] = version
             with self.subTest(version=version), self.assertRaisesRegex(
                     nav.NavigatorError, reason + ".*fresh --run-dir"):
                 nav.validate(wrong_version)
 
-    def test_revisions_must_name_real_items_within_the_budget(self) -> None:
+    def test_revisions_must_name_real_items_with_a_positive_count(self) -> None:
         state = drive_to("implement")
-        for bad in ({"W9": 1}, {"W1": 0}, {"W1": 3}):
+        for bad in ({"W9": 1}, {"W1": 0}):
             broken = deepcopy(state)
             broken["revisions"] = bad
             with self.subTest(revisions=bad), self.assertRaisesRegex(nav.NavigatorError, "revisions must map"):
@@ -445,15 +447,20 @@ class OuterSendBackTests(unittest.TestCase):
                 again = walk(sent, outer_rows(target, stage))
                 self.assertEqual(nav.current_stage(again), stage)
 
-    def test_the_outer_budget_is_two_send_backs_per_target_then_the_user_decides(self) -> None:
+    def test_no_count_of_outer_send_backs_stops_a_target_and_blocked_still_ends_it(self) -> None:
+        # Owner 2026-10-24: no run caps.  Three send-backs per target (one more than the old cap of 2) are accepted.
         for stage, target in self.PAIRS:
             with self.subTest(stage=stage):
                 state = drive_to(stage)
-                for count in (1, 2):
+                for count in (1, 2, 3):
                     state = walk(submit(state, OUTER_SEND_BACK), outer_rows(target, stage))
                     self.assertEqual(state["revisions"], {target: count})
-                with self.assertRaisesRegex(nav.NavigatorError, "has used its 2 send-backs.*report blocked"):
-                    submit(state, OUTER_SEND_BACK)
+                blocked = submit(state, {"outcome": "blocked",
+                                         "awaiting": {"kind": "answer", "question": "Which clause yields?",
+                                                      "options": ["A", "B"],
+                                                      "no_default": "Either choice changes the product."},
+                                         "summary": "The plan cannot observe the clause; the user decides."})
+                self.assertEqual(blocked["status"], "blocked")
 
     def test_the_packet_states_the_target_and_the_redone_stage_names_the_send_back_result(self) -> None:
         for stage, target in self.PAIRS:
@@ -462,11 +469,11 @@ class OuterSendBackTests(unittest.TestCase):
                 packet = nav.render(dry_run.CORE, dry_run.RUN, state)
                 self.assertIn("send-back (", packet)
                 self.assertIn("back to " + target, packet)
-                self.assertIn("2 of 2 left", packet)
+                self.assertNotIn(" left)", packet)
                 sent = submit(state, OUTER_SEND_BACK)
                 action = last_action(sent, stage, "send-back", item=None)
                 packet = nav.render(dry_run.CORE, dry_run.RUN, sent)
-                self.assertIn("Revisit: " + stage + " sent the run back to " + target + " (1 of 2 send-backs)", packet)
+                self.assertIn("Revisit: " + stage + " sent the run back to " + target + " (send-back 1)", packet)
                 self.assertIn("RUN/results/" + action + ".md", packet)
                 previous = last_action(state, target, "done", item=None)
                 self.assertIn("Your previous accepted " + target + " result: RUN/results/" + previous + ".md", packet)
@@ -483,12 +490,12 @@ class OuterSendBackTests(unittest.TestCase):
         self.assertEqual({stage: test_loop._remedy(stage) for stage in ("test", "system-test", "release-verify")},
                          {"test": "send-back", "system-test": "add-work", "release-verify": "add-work"})
 
-    def test_outer_revisions_must_name_a_send_back_target_within_the_budget(self) -> None:
+    def test_outer_revisions_must_name_a_send_back_target_with_a_positive_count(self) -> None:
         state = drive_to("release-verify")
         good = deepcopy(state)
-        good["revisions"] = {"W1": 1, "system-test-author": 2, "release-plan": 1}
+        good["revisions"] = {"W1": 1, "system-test-author": 2, "release-plan": 5}
         nav.validate(good)
-        for bad in ({"release": 1}, {"release-plan": 3}):
+        for bad in ({"release": 1}, {"release-plan": 0}):
             broken = deepcopy(state)
             broken["revisions"] = bad
             with self.subTest(revisions=bad), self.assertRaisesRegex(nav.NavigatorError, "revisions must map"):

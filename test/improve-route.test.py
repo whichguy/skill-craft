@@ -2,11 +2,16 @@
 """The Improve router, the ShipLoop route and the standalone route (ShipLoop efficiency plan, unit U18).
 
 * skills/improve/SKILL.md is a router within a journaled byte bound; the five standalone sections moved whole to
-  references/standalone-route.md; what a ShipLoop child needs from the four old sources is in references/shiploop-route.md.
+  references/standalone-route.md; what a ShipLoop child needs from the four old sources is in the ShipLoop route: since
+  2026-10-24 a core under 10,000 bytes (references/shiploop-route.md, what every child reads at every Improve stage) and five
+  case files the core names with the case that opens them (live run 4 read the 47 KB route whole at each of 13 stages).
 * test/improve_route_ledger.json has a row for every obligation block of those files, and every row is anchored: a block that
-  gains no row, a head or route phrase that vanishes, a row with no phrase and no reason, fails here.
+  gains no row, a head or route phrase that vanishes, a row with no phrase and no reason, fails here; a row whose phrase
+  stands only in the long form names the core phrase that carries it for a normal pass (or why a pass needs nothing more).
+* The core names every case file with its condition, each case file says when to read it, and what the core leaves to the
+  handoff (the commit message rules, the notes file, the scratch directory) is in every handoff.
 * The handoff ShipLoop writes opens with what a cleared child needs (the read-tool sentence, CHILD, ROUTE, the one command)
-  inside 2,000 characters, and holds the focus, the commit command and the complete command inside 4,500 (the real CLI path
+  inside 2,000 characters, and holds the focus, the commit command and the callback inside 4,500 (the real CLI path
   is 96 characters; the walk's is 8, so the bound is tested with 88 characters reserved per command).
 * The review inputs that left the handoff are the route's, word for word.
 """
@@ -28,7 +33,14 @@ POLICY = IMPROVE / "references" / "review-policy.md"
 EVIDENCE = IMPROVE / "references" / "callback-evidence.md"
 ADAPTER = IMPROVE / "runtime" / "until-loop" / "ADAPTER.md"
 LEDGER = ROOT / "test" / "improve_route_ledger.json"
+LONG_FORM = IMPROVE / "references" / "shiploop-route-rules.md"
+RECOVERY = IMPROVE / "references" / "shiploop-route-recovery.md"
+ASK_AGENT_ROUTE = IMPROVE / "references" / "shiploop-route-ask-agent.md"
+INPUTS = IMPROVE / "references" / "shiploop-review-inputs.md"
+CORE_LIMIT = 10_000             # the core every ShipLoop child reads per Improve stage (2026-10-24)
 sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(ROOT / "test"))
+from shiploop_improve_route import CASE_FILES, ROUTE_FILES, route_text  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
@@ -114,15 +126,21 @@ class LedgerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.ledger = json.loads(LEDGER.read_text(encoding="utf-8"))
-        cls.route = flat(ROUTE.read_text(encoding="utf-8"))
+        cls.route = flat(route_text())                      # the core and every case file
+        cls.core = flat(ROUTE.read_text(encoding="utf-8"))
+        cls.long_form = flat(LONG_FORM.read_text(encoding="utf-8"))
 
     def test_the_router_and_the_route_stay_within_their_journaled_bounds(self):
         bounds = self.ledger["bounds"]
         self.assertLessEqual(len(ROUTER.read_bytes()), bounds["router_bytes"])
         self.assertLessEqual(len(ROUTE.read_bytes()), bounds["route_bytes"])
+        # The core is what every Improve stage reads: its bound never rises past the plan's 10,000 bytes.
+        self.assertLessEqual(bounds["route_bytes"], CORE_LIMIT)
+        self.assertLessEqual(sum(len(path.read_bytes()) for path in ROUTE_FILES), bounds["route_set_bytes"])
         # A bound is set from the measured text, so it cannot drift far above it unjournaled.
         self.assertLessEqual(bounds["router_bytes"] - bounds["router_measured"], 500)
         self.assertLessEqual(bounds["route_bytes"] - bounds["route_measured"], 500)
+        self.assertLessEqual(bounds["route_set_bytes"] - bounds["route_set_measured"], 500)
         self.assertTrue(bounds["why"])
 
     def test_every_block_of_the_five_files_has_a_row_and_every_row_a_block(self):
@@ -152,6 +170,24 @@ class LedgerTests(unittest.TestCase):
                     self.assertIn(flat(row["route"]), self.route, row["id"])
                 else:
                     self.assertGreaterEqual(len(row.get("reason", "")), 20, row["id"])
+
+    def test_an_obligation_only_the_long_form_states_is_carried_by_the_core(self):
+        # The core is all a normal pass reads besides the handoff: a rule whose route phrase stands only in the long form
+        # names the core phrase that states it, or why a normal pass needs nothing more.  A case file's rows need neither:
+        # the core names the case that opens their file (CoreTests).
+        carried = 0
+        for row in self.ledger["rows"]:
+            with self.subTest(row=row["id"]):
+                if row.get("core"):
+                    self.assertIn(flat(row["core"]), self.core, row["id"])
+                    carried += 1
+                phrase = flat(row.get("route") or "")
+                if phrase and phrase in self.long_form and phrase not in self.core:
+                    self.assertTrue(row.get("core") or len(row.get("long_form_only", "")) >= 20,
+                                    row["id"] + ": its phrase stands only in the long form")
+                elif not row.get("core"):
+                    self.assertNotIn("long_form_only", row, row["id"])
+        self.assertGreater(carried, 60)
 
     def test_the_old_card_sections_are_all_accounted_for(self):
         # SKILL.md before the split had 46 blocks (S01-S46): they stand in the router or the standalone route.
@@ -188,7 +224,8 @@ class RouterTests(unittest.TestCase):
         self.assertIn("[the ShipLoop route](shiploop-route.md)", standalone_text)
 
     def test_every_markdown_anchor_into_the_split_files_resolves(self):
-        files = [ROUTER, STANDALONE, ROUTE, POLICY, EVIDENCE, IMPROVE / "README.md", ROOT / "docs" / "improve-research.md"]
+        files = [ROUTER, STANDALONE, *ROUTE_FILES, POLICY, EVIDENCE, IMPROVE / "README.md",
+                 ROOT / "docs" / "improve-research.md"]
         checked = 0
         for path in files:
             for match in re.finditer(r"\]\(([^)\s]+?)(?:#([^)\s]+))?\)", path.read_text(encoding="utf-8")):
@@ -196,7 +233,7 @@ class RouterTests(unittest.TestCase):
                 if target.startswith(("http:", "https:", "mailto:")):
                     continue
                 resolved = path if target == "" else (path.parent / target).resolve()
-                if resolved not in {ROUTER, STANDALONE, ROUTE, POLICY, EVIDENCE}:
+                if resolved not in {ROUTER, STANDALONE, *ROUTE_FILES, POLICY, EVIDENCE}:
                     continue          # only the files this split touched: other documents' anchors are not this test's
                 if anchor and resolved.suffix == ".md":
                     self.assertIn(anchor, anchors(resolved), f"{path.relative_to(ROOT)} -> {target}#{anchor}")
@@ -209,16 +246,57 @@ class RouterTests(unittest.TestCase):
         self.assertLessEqual(printed, anchors(ROUTE))
 
 
+class CoreTests(unittest.TestCase):
+    """The core (2026-10-24): small, and it names each case file with the case that opens it."""
+
+    def test_the_core_names_every_case_file_with_its_condition_and_each_says_when_to_read_it(self):
+        core = ROUTE.read_text(encoding="utf-8")
+        self.assertLessEqual(len(core.encode()), CORE_LIMIT)
+        cases = core[core.index("## Cases: read only when"):]
+        for path in CASE_FILES:
+            with self.subTest(case=path.name):
+                if path == LONG_FORM:
+                    # the long form is named beside the rules it extends, for a question a rule leaves
+                    self.assertIn("[long form](shiploop-route-rules.md)", core)
+                    self.assertIn("only for a question a rule here leaves", flat(core))
+                else:
+                    self.assertRegex(cases, r"(?m)^- \[[^]]+\]\(" + re.escape(path.name) + r"\)[^\n]*:")
+                text = path.read_text(encoding="utf-8")
+                opening = flat(text.split("\n## ", 1)[0])
+                self.assertIn("(shiploop-route.md", opening)              # it links back to the core
+                self.assertRegex(opening, r"[Rr]ead (this file only when|a section only when)"
+                                 r"|[Oo]pen a section below only when|[Aa] normal pass does not open this file")
+
+    def test_a_normal_pass_needs_no_case_file(self):
+        # What every pass does, from the receipt to the return, stands in the core itself.
+        core = flat(ROUTE.read_text(encoding="utf-8"))
+        for needed in ("the last seven reachable Git commit messages in full", "`self-review (inline default)`",
+                       "Read `CHILD/packet.json`; never write it", "run its `next_argv` once", "`improve-pass`",
+                       "`CHILD/reviews/review-<n>.md`", "`checks.md` first", "`improve-commit`", "never `git commit`",
+                       "`classification`: `trivial` only for", "`exit`: `satisfied` only after checking every exit clause",
+                       "`## Handoff`:", "**Current learnings**", "Never fabricate a record to submit `trivial`",
+                       "run the handoff's callback (`complete`) only after the runtime returned `complete`",
+                       "Omit `final_result` when the step result is unchanged", "Maintained requirements",
+                       "changes no product code"):
+            self.assertIn(flat(needed), core, needed)
+        # and it sends a plain compaction back to its own first step, not to the recovery file
+        self.assertIn("After a plain compaction, step 1 is the recovery.", core)
+
+
 class RouteContentTests(unittest.TestCase):
     def test_the_review_inputs_are_the_prompts_fixed_text_word_for_word(self):
-        route = flat(ROUTE.read_text(encoding="utf-8"))
-        # the inline wording is the route's; the ask-agent wording is its note
+        inputs = flat(INPUTS.read_text(encoding="utf-8"))
+        # the inline wording is the file's; the ask-agent wording is its note.  The file puts each paragraph under the
+        # heading of its condition, so a paragraph, not the whole text, is the unit kept word for word.
         tail = prompts.IMPROVE_REVIEW_INPUTS_TAIL
         for delegated, inline in prompts._INLINE_IMPROVE_REPLACEMENTS:
             tail = tail.replace(delegated, inline)
-        self.assertIn(flat(prompts.IMPROVE_REVIEW_INPUTS_HEAD), route)
-        self.assertIn(flat(tail), route)
-        self.assertIn("dispatch step's task/ready/done contract remains the sole assignment", route)
+        paragraphs = [part for text in (prompts.IMPROVE_REVIEW_INPUTS_HEAD, tail) for part in text.split("\n\n")
+                      if part.strip()]
+        self.assertEqual(len(paragraphs), 10)
+        for paragraph in paragraphs:
+            self.assertIn(flat(paragraph), inputs, paragraph[:60])
+        self.assertIn("dispatch step's task/ready/done contract remains the sole assignment", inputs)
         # and improve_prompt is still the composition of the opening, the scope, those two texts and the stage's paragraphs
         for stage in prompts.STAGES:
             for delegation in (prompts.INLINE, prompts.ASK_AGENT):
@@ -232,10 +310,10 @@ class RouteContentTests(unittest.TestCase):
                     self.assertLess(len(own), len(full) // 2)
 
     def test_the_handoff_texts_that_moved_here_are_in_the_route(self):
-        route = ROUTE.read_text(encoding="utf-8")
-        # verbatim prefixes of both routes, from the constants that used to print them in every handoff
-        self.assertIn(flat(prompts.INLINE_IMPROVE_CONTEXT.strip()), flat(route))
-        self.assertIn(flat(prompts.IMPROVE_INNER_CONTEXT.strip()), flat(route))
+        # verbatim prefixes of both routes, from the constants that used to print them in every handoff: the inline one in
+        # the recovery file, the ask-agent one in its own file
+        self.assertIn(flat(prompts.INLINE_IMPROVE_CONTEXT.strip()), flat(RECOVERY.read_text(encoding="utf-8")))
+        self.assertIn(flat(prompts.IMPROVE_INNER_CONTEXT.strip()), flat(ASK_AGENT_ROUTE.read_text(encoding="utf-8")))
 
 
 class HandoffTests(unittest.TestCase):
@@ -352,6 +430,22 @@ class HandoffTests(unittest.TestCase):
                     whole = stage in nav.REQUEST_WHOLE_STAGES
                     self.assertEqual("Original request (preserve user scope" in text, whole)
                     self.assertEqual(nav.REQUEST_POINTER in text, not whole)
+
+    def test_what_the_core_leaves_to_the_handoff_is_in_every_handoff(self):
+        # The core says the commit message rules are in the handoff (plan stage: parent-return.md, which its start writes).
+        for route, handoffs in self.walks.items():
+            for stage, text in handoffs.items():
+                with self.subTest(route=route, stage=stage):
+                    if stage == "plan":
+                        self.assertIn("run the improve-commit command in CHILD/parent-return.md; its message rules are "
+                                      "there", text)
+                    else:
+                        self.assertIn("`Key learnings: <what this iteration taught", text)
+                        self.assertIn("`Learned-from: <commit id> <what it contributed>`", text)
+                        self.assertIn("`Remote change: <system alias>", text)
+                    self.assertIn("Optional, for later steps: lessons in", text)       # complete --notes
+                    self.assertIn("Scratch directory (your temporary files, not /tmp)", text)
+                    self.assertIn("short core has every pass's rules", text)       # the top line says what ROUTE is
 
     def test_the_implement_handoff_is_within_pilot_a(self):
         for route, handoffs in self.walks.items():

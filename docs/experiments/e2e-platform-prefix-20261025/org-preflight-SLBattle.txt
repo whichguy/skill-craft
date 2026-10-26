@@ -1,0 +1,2 @@
+# Read-only preflight of org de for prefix SLBattle (battleship_salesforce.py preflight), 2026-10-25
+org 'de' is not clean: found ApexClass SLBattleController, ApexClass SLBattleEngine, ApexClass SLBattleEngineTest, ApexClass SLBattleGameTest, ApexClass SLBattleRulesTest, LightningComponentBundle slBattleBoard, CustomTab SLBattle_Board, CustomApplication SLBattle, PermissionSet SLBattle_Access before the run; nothing was deployed

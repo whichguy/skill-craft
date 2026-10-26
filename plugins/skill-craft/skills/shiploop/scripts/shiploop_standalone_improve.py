@@ -6,7 +6,7 @@ bound ephemeral Until Loop runtime owns that loop's private state.  This
 module deliberately does not invoke that runtime, write its state, or infer
 Improve convergence.  The host follows the selected Improve card; once the
 host reports a completed child, ShipLoop uses these functions to bind the
-child and import its host-preserved terminal packet.
+child and import its host-preserved final receipt.
 """
 
 from __future__ import annotations
@@ -617,13 +617,13 @@ def _ephemeral_terminal_packet(
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
     """Validate the exact complete packet saved by the bound ephemeral runtime."""
     _need(isinstance(packet, Mapping) and set(packet) == _TERMINAL_PACKET_FIELDS,
-          "Until Loop terminal packet has an unsupported schema")
-    _need(packet.get("status") == "complete", "Until Loop terminal packet is not complete")
+          "Until Loop receipt has an unsupported schema")
+    _need(packet.get("status") == "complete", "Until Loop receipt is not complete")
     state_file = _text(packet.get("state_file"), "Until Loop terminal state_file")
     _need(Path(state_file).is_absolute(), "Until Loop terminal state_file must be absolute")
     _terminal_state_absent(state_file)
     packet_workspace = _workspace(packet.get("workspace"), "Until Loop terminal workspace")
-    _need(packet_workspace == workspace, "Until Loop terminal packet is bound to another workspace")
+    _need(packet_workspace == workspace, "Until Loop receipt is bound to another workspace")
     _text(packet.get("work"), "Until Loop terminal work")
     conditions = packet.get("conditions")
     _need(isinstance(conditions, Mapping) and set(conditions) == {"exit", "repeat"},
@@ -643,11 +643,11 @@ def _ephemeral_terminal_packet(
         progress.get("required_trivial_reviews"), "Until Loop terminal required trivial reviews"
     )
     _need(required_reviews >= 1,
-          "Until Loop terminal packet does not meet Improve's minimum of one trivial review")
+          "Until Loop receipt does not meet Improve's minimum of one trivial review")
     # The runtime closes on one trivial pass only when it saw the workspace unchanged (Git tree).
     _need(trivial_streak >= required_reviews
           or (unchanged_first_pass and trivial_streak == 1 and action_number == 1),
-          "Until Loop terminal packet does not meet its required trivial-review gate")
+          "Until Loop receipt does not meet its required trivial-review gate")
     _need(trivial_streak <= action_number,
           "Until Loop terminal progress has an incoherent trivial streak")
     context = _ephemeral_context(packet.get("context"))
@@ -668,20 +668,20 @@ def _ephemeral_terminal_packet(
     _text(packet.get("instruction"), "Until Loop terminal instruction")
     _need(packet.get("next_argv") is None and packet.get("done_argv") is None
           and packet.get("report_schema") is None,
-          "Until Loop terminal packet still exposes a callback")
-    return _copy(dict(packet), "Until Loop terminal packet"), context, report
+          "Until Loop receipt still exposes a next or done command")
+    return _copy(dict(packet), "Until Loop receipt"), context, report
 
 
 def _ephemeral_stopped_packet(
     packet: Mapping[str, Any], *, workspace: Path, binding_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
-    """Validate the exact stopped packet saved by the bound ephemeral runtime."""
+    """Validate the exact stopped receipt saved by the bound ephemeral runtime."""
     _need(isinstance(packet, Mapping) and set(packet) == _TERMINAL_PACKET_FIELDS,
-          "Until Loop stopped packet has an unsupported schema")
-    _need(packet.get("status") == "stopped", "Until Loop stopped packet is not stopped")
+          "Until Loop stopped receipt has an unsupported schema")
+    _need(packet.get("status") == "stopped", "Until Loop stopped receipt is not stopped")
     _terminal_state_absent(packet.get("state_file"))
     packet_workspace = _workspace(packet.get("workspace"), "Until Loop stopped workspace")
-    _need(packet_workspace == workspace, "Until Loop stopped packet is bound to another workspace")
+    _need(packet_workspace == workspace, "Until Loop stopped receipt is bound to another workspace")
     _text(packet.get("work"), "Until Loop stopped work")
     conditions = packet.get("conditions")
     _need(isinstance(conditions, Mapping) and set(conditions) == {"exit", "repeat"},
@@ -717,15 +717,15 @@ def _ephemeral_stopped_packet(
     _text(packet.get("instruction"), "Until Loop stopped instruction")
     _need(packet.get("next_argv") is None and packet.get("done_argv") is None
           and packet.get("report_schema") is None,
-          "Until Loop stopped packet still exposes a callback")
-    return _copy(dict(packet), "Until Loop stopped packet"), context, report
+          "Until Loop stopped receipt still exposes a next or done command")
+    return _copy(dict(packet), "Until Loop stopped receipt"), context, report
 
 
 def _complete_ephemeral(
     binding: Mapping[str, Any], receipt: Mapping[str, Any], *, action: str,
     binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Import a host-preserved terminal packet from the ephemeral runtime.
+    """Import a host-preserved final receipt from the ephemeral runtime.
 
     The packet proves only that the host saved a structurally valid terminal
     response.  Its report fields remain agent declarations; this bridge does
@@ -733,11 +733,11 @@ def _complete_ephemeral(
     semantics, checks, candidate scope, or future freshness.
     """
     packet_relative = _receipt_relative(binding, action)
-    packet_raw = _read_workspace(workspace, packet_relative, "Until Loop terminal packet")
+    packet_raw = _read_workspace(workspace, packet_relative, "Until Loop receipt")
     packet, context, report = _ephemeral_terminal_packet(
-        _json(packet_raw, "Until Loop terminal packet"), workspace=workspace, binding_id=binding_id,
+        _json(packet_raw, "Until Loop receipt"), workspace=workspace, binding_id=binding_id,
     )
-    _runtime_wrote_receipt(packet, binding, "Until Loop terminal packet")
+    _runtime_wrote_receipt(packet, binding, "Until Loop receipt")
     checked_receipt = _receipt(receipt, workspace, workspace_value)
     single = bool(packet["progress"].get("unchanged_first_pass"))
     # The trivial passes the loop ended on: its required_trivial_reviews (one since 2026-10-20), or the one unchanged pass.
@@ -749,7 +749,7 @@ def _complete_ephemeral(
     evidence_digests = _reference_digests(workspace, checked_receipt)
     prefix = f"improve/{action}"
     archive: dict[str, str] = {
-        f"{prefix}/terminal.json": _utf8(packet_raw, "Until Loop terminal packet"),
+        f"{prefix}/terminal.json": _utf8(packet_raw, "Until Loop receipt"),
     }
     evidence_writes, evidence_entries = _evidence_archives(workspace, action, checked_receipt)
     archive.update(evidence_writes)
@@ -770,9 +770,9 @@ def _complete_ephemeral(
         "evidence": evidence_entries,
         "receipt": checked_receipt,
         "stale_check_note": (
-            "This import records a host-preserved structurally valid terminal Until Loop packet "
-            "and current declared local evidence. It does not prove the packet was issued by the "
-            "runtime, review or check claims, candidate scope, semantic Improve convergence, or "
+            "This import records a host-preserved structurally valid final Until Loop receipt "
+            "and current declared local evidence. It does not prove the runtime wrote the receipt, nor "
+            "the review or check claims, candidate scope, semantic Improve convergence, or "
             "future freshness; those remain the selected Improve skill and parent action's responsibility."
         ),
     }
@@ -784,18 +784,18 @@ def _settle_incomplete_ephemeral(
     binding: Mapping[str, Any], receipt: Mapping[str, Any], *, action: str,
     binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Import one host-preserved stopped packet for an incomplete plan reconciliation."""
+    """Import one host-preserved stopped receipt for an incomplete plan reconciliation."""
     packet_relative = _receipt_relative(binding, action)
-    packet_raw = _read_workspace(workspace, packet_relative, "Until Loop stopped packet")
+    packet_raw = _read_workspace(workspace, packet_relative, "Until Loop stopped receipt")
     packet, context, report = _ephemeral_stopped_packet(
-        _json(packet_raw, "Until Loop stopped packet"), workspace=workspace, binding_id=binding_id,
+        _json(packet_raw, "Until Loop stopped receipt"), workspace=workspace, binding_id=binding_id,
     )
-    _runtime_wrote_receipt(packet, binding, "Until Loop stopped packet")
+    _runtime_wrote_receipt(packet, binding, "Until Loop stopped receipt")
     checked_receipt = _incomplete_receipt(receipt, workspace, workspace_value)
     submission = _copy(dict(receipt), "incomplete Improve receipt submission")
     prefix = f"improve/{action}"
     archive: dict[str, str] = {
-        f"{prefix}/terminal.json": _utf8(packet_raw, "Until Loop stopped packet"),
+        f"{prefix}/terminal.json": _utf8(packet_raw, "Until Loop stopped receipt"),
     }
     evidence_writes, evidence_entries, evidence_digests = _incomplete_evidence_snapshot(
         workspace, action, checked_receipt,
@@ -820,10 +820,10 @@ def _settle_incomplete_ephemeral(
         "submission": submission,
         "receipt": checked_receipt,
         "stale_check_note": (
-            "This import records a host-preserved structurally valid stopped Until Loop packet, "
-            "the observed absence of the packet-reported state_file path, and current declared "
+            "This import records a host-preserved structurally valid stopped Until Loop receipt, "
+            "the observed absence of the receipt-reported state_file path, and current declared "
             "local evidence. That missing path does not authenticate the selected worker's death. "
-            "This import does not prove the packet was issued by the runtime, establish review "
+            "This import does not prove the runtime wrote the receipt, establish review "
             "claims, candidate scope, semantic Improve convergence, or future freshness. "
             "The parent must collect or cancel the actual worker before this settlement."
         ),

@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
@@ -1390,6 +1391,21 @@ class TestDeployedAndTests(FakeOrg):
 
 
 class TestRules(FakeOrg):
+    def test_a_run_under_another_prefix_sends_apex_that_names_only_that_prefix(self) -> None:
+        # run.py --platform-prefix (SPEC: a hosted-platform run's prefix): the oracle's classes are renamed, nothing else.
+        sent = []
+        expected = {name: dict(marks) for name, _script, marks in cs.rule_cases()}
+
+        def run_apex(org, work, name, script):
+            sent.append(script)
+            return "", expected[name], ""
+        with mock.patch.object(cs, "run_apex", side_effect=run_apex):
+            ok, lines = cs.do_rules("de", None, "SLChsHk0001")
+        self.assertTrue(ok, lines[-1])
+        self.assertFalse([script for script in sent if "SLChess" in script])
+        self.assertTrue(all("SLChsHk0001Engine." in script or "SLChsHk0001Controller." in script for script in sent))
+        self.assertEqual([s.replace("SLChsHk0001", "SLChess") for s in sent], [script for _n, script, _m in cs.rule_cases()])
+
     def canned(self, **override) -> Path:
         values = {marker: expected for _name, _script, marks in cs.rule_cases() for marker, expected in marks}
         values.update(override)

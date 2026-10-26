@@ -1077,7 +1077,7 @@ Question: does the `battleship-scoring` retention check that guards the earlier 
 - **Change (one catalog line).** `ids()` runs `grep -oE '\bR-[0-9]+\b'` (JSON-escaped `\\b`), the engine's rule in grep's syntax. Not `grep -ow 'R-[0-9]+'`: BSD grep (macOS `/usr/bin/grep`) reads 1 of the 2 ids in `R-1 R-1a R-2` where the engine reads 2. A dropped id still fails in every form and is named in the check's output (`missing: R-2`).
 - **Tests** (`RetentionIdCountTest`, the last class in `test/shiploop-e2e.test.py`; the real shell command from `cases.json` run through `run.run_checks`): five spec forms (heading, bullet, bold bullet, table row, mixed line `R-1 R-1a R-2`), each passing when every id is kept with the printed count equal to the engine's, and failing with the dropped id named when one is lost; a spec with no ids still fails; a drift guard that extracts the pattern from the catalog line, requires it verbatim with a real backslash, and compares what `grep -oE` finds with `_REQUIREMENT_ID.findall` on eight sample texts. On the base (`git archive a1a3-integ-7f216e` with only the new test file copied over) 7 subtests fail: bold bullet, table row and mixed line in both form tests, and the drift guard; heading and bullet pass on both (the old pattern read them). Mutation check: restoring `grep -owE 'R-[0-9]+'` in the catalog fails the mixed-line subtests and the drift guard.
 - **Limits: what is not guarded, and why.** Each was checked against `cases.json` and `run.run_checks` on 2026-10-04.
-  - The Battleship checks are protocol checks. Three constructed stubs pass all four `battleship` checks (re-run through `run.run_checks`: PPPP each): a server that answers every fire with `sunk` and `gameOver: true`; one that has no fleet, counts shots per game and answers `miss`, ending the game at the 100th shot; one whose page says no game is playable, with one constant game id and `miss` plus `gameOver: true` on every fire. The checks read the response shape and that a 10x10 sweep ends the game, not fleet placement, ship sizes or hit and sink counts. Rule correctness belongs to the product's own tests and ShipLoop's own system test (S-9: the evidence is a script-run check); the harness does not repeat it. Reopens if a returned Battleship candidate passes all four checks yet fails the rules in review or system test. The plan measured a variant of check 4 that also counts `sunk` results: it rejected all three stubs and accepted the real products; it is not kept as code.
+  - The Battleship checks are protocol checks. Three constructed stubs pass all four `battleship` checks (re-run through `run.run_checks`: PPPP each): a server that answers every fire with `sunk` and `gameOver: true`; one that has no fleet, counts shots per game and answers `miss`, ending the game at the 100th shot; one whose page says no game is playable, with one constant game id and `miss` plus `gameOver: true` on every fire. The checks read the response shape and that a 10x10 sweep ends the game, not fleet placement, ship sizes or hit and sink counts. Rule correctness belongs to the product's own tests and ShipLoop's own system test (S-9: the evidence is a script-run check); the harness does not repeat it. Reopens if a returned Battleship candidate passes all four checks yet fails the rules in review or system test. The plan measured a variant of check 4 that also counts `sunk` results: it rejected all three stubs and accepted the real products; it is not kept as code. *[superseded 2026-10-24: the 2026-10-16 audit found the same gap with a server that has no fleet, and the owner approved a game check (runner review plan item 1.2). `checks/battleship_game.py` replaces check 4: it rejects that server and all three stubs here, and it accepts all 11 saved real deliveries (`docs/experiments/e2e-runner-review-20261024/e2b-game-check.json`). See the entry "E2E runner review and wave 1".]*
   - Coordinates are assumed 0-based. The checks fire rows 0 to 9, columns 0 to 9 and (0, 0); the prompt says "10x10 grid" and names no base, so a product that rejects row 0 or column 0 fails.
   - A check that times out or cannot start reads as a product FAIL. `run_checks` records `pass: false` with `returncode: null` and output `timeout` after 180 s, and a command that cannot start inside `sh -c` (126 or 127, `node` missing) is a plain non-zero. A1 treats these as could-not-run only inside ShipLoop's own test loop, not in this harness's grading. Read a failing check's output before reading it as a product defect.
   - Ports 39171 to 39176 are fixed (three checks per case; `grep -o 'PORT=[0-9]*'` on `cases.json` finds exactly these six, and no other case uses a fixed port). One suite cannot collide with itself, because the chain that uses them runs its two cases in order. Two runs grading at once on one machine (two suites, or a suite beside a `--case` run) share them, and a stale server from an earlier run holds its port and answers in place of the product (README, "Launching long runs"). A collision reads as a product FAIL.
@@ -2542,3 +2542,595 @@ Learnings:
 
 Evidence: `/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/` and the failed first attempt
 `/Users/dadleet/e2e-runs/20261020/chess-sf-full-b89b42/`.
+
+## The Salesforce chess case, live run 5: 5a blocked by a host update; 5b the first full pass (2026-10-24/25, skill-craft 2.9.0 / ShipLoop 1.9.0 from the marketplace) — status: interim (n=1, one host)
+
+Run 4's flags plus `--timeout 18000`, in org `de` after the kept SLChess app was removed with the case's own
+`chess_salesforce.py cleanup --platform-dir <run 4>/platform`. Full account (with the comparison to runs 3 and 4) is
+`docs/e2e-salesforce-chess-journal.md` F12, and the report is https://claude.ai/artifact/Noh6HwBwhsKFnCRnDV647s
+(version 4).
+
+**Run 5a** (`/Users/dadleet/e2e-runs/20261024/chess-sf-full-ed3292`) **was blocked after 93 min, at W1 implement.**
+- Grok had moved from 1.0.62 (run 4) to 1.0.70. Its auto mode refused `cd <worktree> && … && sf project deploy start
+  --target-org de` twice, as "a remote stateful mutation". Run 4 had sent the same command shape 15 times under the
+  same host_allow.
+- Nothing reached the org. ShipLoop reported `blocked` (a person must act) rather than faking a deploy.
+- run.py then crashed at its end: Homebrew had swapped the interpreter under the running process (a lazy `_strptime`).
+  2.9.1 fixes that.
+
+**Run 5b** (`/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d`) used `--permission-mode bypassPermissions`. That
+was the owner's choice; the sf guard still keeps every `sf` call in org `de` and the prefix.
+- **It PASSED:** ShipLoop reached `done` and handoff in 284.3 active minutes (61 stages, 6 of 6 release stages).
+  Every check passed: project, deployed, tests (27, 0 failing), rules, committed (45 commits). It is the first chess
+  run to pass.
+- The Mac slept for 9.8 h at 1% battery, which spent the 5 h wall-clock cap. The coordinator resumed the run; 2.9.1
+  counts deadlines in active time.
+- Its harness came from an uncommitted worktree (the owner's no-default-limits edits, +50/-39, landed on main later), so the
+  host got no `--max-turns`. The result stands: it set `--timeout 18000` explicitly, used 1,265 turns, and resumed 0
+  times. A run's harness should be a commit; record the harness tree's state with the run (F12).
+
+Learnings so far:
+- **A host update is an experiment variable.** Record the host build per run, and treat a change as non-comparable.
+- **The 2.9.0 gates held in normal use, with 7 distinct refusals, each fixed in stage:**
+  - the step-size limit split W1 into 6 behaviour steps;
+  - F3's targets left the remote Apex tests out of the base run, and verify printed "RED unobserved";
+  - F5's regression line came on both end-of-work fixes (TC_B4_promotionQueen, TC_B6_newGame).
+- **A gate that checks only that evidence exists can be dodged.** In 5a, prepare's `harness_runs` evidence was a
+  browser probe page that said it was not the component. 5b's evidence was a real jest render test. The evidence must
+  show a test ran.
+- **Retired terms survived in refusals split across string literals.** 2.9.1 scans the strings a script can print.
+
+## E2E runner review and wave 1: overlap under the runs root, a Battleship game check, a release-gate line (2026-10-24, origin/main 31933a73) — status: firm for E1, E2, E2b, E3 and D1; the release-gate runs are in a later entry
+
+**Question.** Is the E2E runner sufficient, and what should change? The plan is `docs/shiploop-e2e-runner-review-plan-2026-10-24.md`; its evidence is in `docs/experiments/e2e-runner-review-20261024/`.
+
+**Answer.** The instrument is sufficient. As it was being run, it verified one Salesforce case on Grok and nothing else.
+
+- **D1: no case had passed from the marketplace since 2026-10-10** (ShipLoop 0.59.0), fifteen ShipLoop releases earlier. The two later off-Salesforce passes were checkout runs.
+  - cli-files and stateful-service last passed on 2026-09-27.
+  - No Codex run had ever written a result.
+  - Evidence: `d1-staleness.json`, and `--baseline-report --release-gate` (below).
+- **E1: the overlap record missed the runs that overlapped chess run 5.** It read only the same parent folder. Sixteen E6 slices under `e6-r1-20261024/…/slice` overlapped run 5 for 4.5 h summed, and run 5's own regraded `result.json` lists none of them. Runs 3 and 4 ran alone. So run 5's minutes are no clean comparison with theirs. Evidence: `e1-overlap.json`, `overlap_probe.py`.
+- **E2: on 2.9.0 the four Battleship checks still passed the 2026-10-16 audit's broken server.** It has no fleet, `gameOver` is true from the start, and its one test is a placeholder. Evidence: `e2-oracle.json`.
+- **E3: the run records are not bloated.** 25 of the 33 `metrics.json` blocks of run 4 have a reader; the 8 without one total 981 bytes. Pruning outputs was rejected. Evidence: `e3-consumers.json`.
+- Also seen:
+  - No retained run folder holds a `review.json`, so `review.py` and `iterate.py` are unused. That decision is the owner's.
+  - Chess run 5 ended BLOCKED at W1 implement after 1.5 h: the session guard blocked a deploy to `de`. Its `shiploop_progress.py --watch` outlived it, as on 2026-10-18. *[corrected 2026-10-25: the block was Grok 1.0.70's own auto mode refusing `sf project deploy` ("Auto mode blocked this action … remote stateful mutation"), not the harness's `sf` guard; inner-loop, which watched runs 5a and 5b live.]*
+
+**Changes on `feat/e2e-wave1-6e86ad`.** Each is a record or a check, and none changes a baseline rule.
+
+1. **The overlap record reads the whole runs root** (`environment.runs_root`, `run_folders`, `overlap`; SPEC amended first in its own commit).
+   - The root:
+     - `$SHIPLOOP_E2E_RUNS_ROOT` when set;
+     - else the output's grandparent;
+     - else the parent, where the grandparent is the home folder, the temporary folder or `/`.
+   - The walk does not enter a run folder or a hidden folder.
+   - A timeline last written before the run began is counted in `ended_before` and not read.
+   - A neighbour is named by its path under the root.
+   - The baseline row gains `overlapped_runs`.
+   - A run started beside live harness runs prints a `concurrent` line (`run.concurrent_line`). It is never a refusal.
+   - On `~/e2e-runs` it finds the 16 for run 5 and 0 for runs 3 and 4, in about 0.1 s. Without the mtime filter, reading all 462 timelines took 2.9 s.
+   - The plan's `--runs-root` flag was not built. The variable and the default cover the owner's layout, and a flag would have to ride every printed resume command.
+2. **`checks/battleship_game.py` replaces Battleship's check 4**, the 10x10 sweep. battleship-scoring adds it as well.
+   - Every result is miss, hit or sunk.
+   - `gameOver` is not true before the shot that ends the game, and that shot is a `sunk`.
+   - At least two ships have sunk by then: "a fleet".
+   - A shot after the end does not report the game as running again.
+   - E2b: it rejects the audit server, and it accepts all 11 saved real deliveries (Claude and Grok, 2026-10-06 to 2026-10-16). The old check 4 accepted all 12.
+   - This reverses the 2026-10-04 "protocol checks" limit above, now marked superseded.
+3. **`--baseline-report --release-gate`** prints, per case style, the last marketplace pass and the ShipLoop releases since, read from the local origin/main ref (`run.release_gate`, `run.published_versions`, now shared with `released_versions`). It is opt-in, so the committed report pins are unchanged.
+
+**Tests:**
+- `OverlapTest`: 5 new tests, including the E1 replay on compact extracts in `test/fixtures/e2e-environment/runs-root`, built by `extract.py runs-root`. The round test's neighbours are now named `20261008/<run>`.
+- `BaselineRowIdentityTest`: `overlapped_runs`.
+- `BattleshipGameCheckTest`: eight Python stubs through `serve.py --start`, and the case pin.
+- `ReleaseGateTest`: 3 tests.
+
+
+## Release gate on 2.9.0 (2026-10-24, marketplace, harness at origin/main 31933a73) — status: firm for the verdicts and figures (n=1 per cell); interim for what the cost and planning figures mean (14-15 ShipLoop releases separate them from the last rows)
+
+**Question.** Does 2.9.0 pass the gate SPEC asks for before a costlier case? That is the `batch` suite (hello as the gate, then seat-reservations, battleship and battleship-scoring), csv-report to complete breadth, and one hello per other host. Plan item 1.5; this is the first marketplace gate run on any 2.x release (D1 of the entry above).
+
+| Run | Host | Verdict | Minutes | Cost | Turns | Notes |
+|---|---|---|---|---|---|---|
+| hello (gate) | Claude Sonnet 5.5 | PASS | 10.3 | $4.18 | 197 | 2/2 checks; the 2026-10-10 row had 117 turns and $2.01 |
+| seat-reservations | Claude Sonnet 5.5 | PASS | 20.9 | $6.01 | 256 | 4/4 checks; first stateful pass since 2026-09-27; 5 refusals, each fixed |
+| battleship | Claude Sonnet 5.5 | FAIL, false | 21 | $6.36 | 269 | engine done and committed; checks 3 and 4 failed because check 2 deleted the product's `page.html` (E4) |
+| battleship-scoring | Claude Sonnet 5.5 | skipped | | | | its predecessor failed |
+| csv-report | Claude Sonnet 5.5 | PASS | 30.2 | $10.00 | 354 | 5/5 checks; first cli-files pass since 2026-09-27; 10 refusals, none repeated |
+| hello | Codex Luna xhigh | PASS after one resume | ~125 | not reported | 120+ (lower bound) | stopped at the 110 min `--timeout` at release-verify, then resumed in place (14 min); first Codex run to reach done; resumed, so no baseline row |
+| hello | Grok 4.7 medium | not run | | | | other sessions' Grok runs (E6 slices, chess `chess-sf-full-12a23d`) were live throughout |
+
+**Findings:**
+- **2.9.0 passes every style it reached, on Claude.** smoke, stateful-service and cli-files passed. web-service failed only through the harness.
+- **E4, a harness false fail.** Check 2 runs `curl … -o page.html …; rm -f page.html` in `work/`. The product commits a `page.html` its server reads at start, so the check overwrote and deleted it, and the next checks' servers died with ENOENT. The product's repository was left with ` D page.html`.
+  - A copy with the file restored passes every check, the new game check included.
+  - The same scratch-file pattern sits in nine more check lines: `node-test.log`, `.ids-*` and `out.txt`/`err.txt`.
+  - Evidence: `docs/experiments/e2e-runner-review-20261024/e4-check-clobber.json`. The fix awaits the owner. *[superseded 2026-10-25: the owner approved the fix, and it is made: see "Case checks write nothing into the product's folder".]*
+- **Codex at xhigh is far slower on a hello.**
+  - Planning took 51.4 min against Claude's 7.4. That is over the owner's 30-minute planning ceiling on the smallest case.
+  - Improve took 26.6 min in 5 children, with 348,612 output tokens (64% reasoning).
+  - The product checks passed at the stop; only the last stages were left.
+- **E5: the overlap records of these runs.**
+  - The old rule saw 0-2 neighbours.
+  - The wave 1 reader saw 8 for csv-report and 20 for Codex hello, but only 2-3 for the suite cases: the grandparent of `<runs>/<day>/<suite>/<case>` is the day folder.
+  - Fixed on the branch (suite cases read the suite folder's root): the suite cases then see 7-8, the E6 slices included.
+  - Evidence: `e5-gate-overlap.json`.
+- Costs and turns are higher than the last rows (hello 117 → 197 turns), but 15 ShipLoop releases lie between them, so this is a description, not a regression claim.
+
+The four Claude rows are appended to `baselines.jsonl`, including Battleship's false fail exactly as recorded. Evidence: `~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/`, `-claude-csv-report/` and `-codex-hello/` (with `-resume.log`).
+
+
+## Case checks write nothing into the product's folder (2026-10-25, E4 fix) — status: firm for the fix and its tests; the live Battleship rerun needs the branch on main
+
+**Question.** How can the checks be stopped from deleting the product's files, as E4 found?
+
+**Change (owner approved, 2026-10-25).** 12 check and retention lines in `cases.json` wrote scratch output into `work/` and then removed it. They now write to `mktemp` or a shell variable:
+- the three page checks (battleship, battleship-scoring, checkers) keep the page in a variable, so `curl`'s own failure still fails the check;
+- `node --test` logs go to `mktemp` (battleship, checkers);
+- the scoring retention check keeps its id lists in `mktemp` files;
+- the four parallel-graph cases' stdout and stderr go to `mktemp`, created after each line's existence guard, so a missing program leaves no temporary file.
+
+**Tests: `CheckScratchFileTest`** in `test/shiploop-e2e.test.py`.
+- A static scan of every check and retention line for a redirect or `curl -o` into a relative name. The four lines E4 found are kept as controls, and the scan must flag them.
+- A product that commits `page.html` (its `server.js` reads it at start, as the gate's product did) and the five other scratch names. Every check and retention line of every non-hosted case runs against it.
+  - After each line, `git status` is clean and the files are byte for byte unchanged.
+  - The three page checks pass.
+  - The E4 line, run last as the control, deletes `page.html`.
+- On the old `cases.json` the two tests fail 53 times; on the new one they pass, in 14 s.
+
+**Regrade.** The gate's Battleship product was copied and its `page.html` restored. All four fixed Battleship checks pass, the new game check included, and its repository stays clean. So the web-service verdict on 2.9.0 is a pass, once a live run on the fixed harness confirms it (`e4-check-clobber.json` `fixed_regrade`).
+
+**Next.** Live Battleship and battleship-scoring runs need these checks on origin/main, because the version gate refuses a marketplace run from a branch with unpublished commits.
+
+
+## The scorecard (P1 of the self-improving loop): one card per run, backfilled on the 2.9.0 gate (2026-10-25) — status: firm for the reader and the backfill figures; interim for what the floors should be (enterprise is not measured yet)
+
+**Question.** Can one versioned card per run carry the loop's objective from records the harness already writes? The design
+is `docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`, P1 (owner approved, 2026-10-25).
+
+**Built.** `test/shiploop_e2e/scorecard.py`, id `scorecard/1`. It is read-only, calls no model and writes nothing into a run
+folder.
+- Floors: accuracy, enterprise and fidelity. Enterprise is null until the P2 rubric exists.
+- Target: efficiency.
+- A validity block marks a run not comparable when it was resumed, ran on mixed hosts, changed host build, overlapped
+  runs under its root, left listeners alive, or had its delivered tree change after delivery.
+- Readers it shares: `environment.overlap`, `metrics.lower_bound`.
+- A finished suite's case now reads the suite folder's runs root through its `suite-result.json` (`environment.runs_root`,
+  SPEC amended first).
+
+**Reproduces the journal.** On chess runs 3 and 4 the card gives:
+- re-orientation 107.9 and 74.0 min;
+- refusals 5 and 13;
+- planning 78.1 and 73.8 min;
+- Grok cost marked as a lower bound.
+
+These are the figures the entries above cite.
+
+**Backfill** (`docs/experiments/e2e-scorecard-p1-20261025/backfill.txt`, nine runs):
+- **Accuracy floor:** passes for hello, seat-reservations and csv-report on Claude, hello on Codex, and Checkers. It fails
+  for Battleship, the E4 false fail, and for chess runs 3-5, which stopped or were blocked.
+- **Fidelity floor:** fails wherever an entry stayed unverified. That is Codex hello at release-verify, the 2026-10-10
+  Checkers run, and chess run 4, whose engine was still active.
+  - The first draft also failed every passing run. Its floor read the script-owned edit list, and its type check was
+    wrong.
+  - SPEC calls that list "a list to confirm", so it is now reported and decides nothing.
+- **Validity:** no gate run is a clean timing basis. Each overlapped 7-20 runs under `~/e2e-runs`. Battleship is also
+  marked for its deleted `page.html`, and the card found that on its own.
+- **S-16:** csv-report's ShipLoop texts used the retired term "complete command" twice. inner-loop saw the same in chess
+  run 5b's refusals.
+- `metrics.improve_reviews` reads 0 children on runs with 10 Improve children: a stale reader, left out of the card.
+
+**From `inner-loop` (2026-10-25).** It watched chess runs 5a and 5b live and sent:
+- a list of stop-now signals and run-to-the-end signals;
+- which of them a script can read;
+- seven things the scorecard should measure next.
+
+All of it is in the design's triage table and its scorecard/2 list. It also reported that its 2.9.1 patch touches
+`run.py` (monotonic deadlines, `import _strptime`).
+
+**Tests:** `ScorecardTest`, 6 tests in `test/shiploop-e2e-baseline.test.py`, over compact extracts of the 7 runs in
+`test/fixtures/scorecard`. It covers:
+- the figures above;
+- validity, including a fixture whose committed `page.html` is deleted;
+- a host build that changed;
+- nulls with their reasons;
+- a CLI that never writes inside a run.
+
+`OverlapTest` gains the `suite-result.json` root.
+
+## Consulting on the E2E loop: five sources merged, a final verdict from Astra at max (2026-10-25) — status: firm for the verdict and the checked corrections; interim for the build order (none of it built)
+
+**Question** (owner): what should improve in the E2E loops, how should the judge be used, and how do we decide mid-run
+whether to stop, fix and restart, or finish and evaluate? The owner asked that every recommendation be merged with its
+source and rationale, then put to Astra at max, the source the owner trusts most, for a final verdict.
+
+**Sources:**
+- GPT-6 Astra: xhigh twice, then max. Owner rule: design questions go to Astra at max.
+- DeepSeek v4.1 Flash at high, then max. Owner rule: DeepSeek and Kimi run in their highest mode for design questions.
+  The runner's highest is `--effort max`; there is no larger Flash model.
+- The inner-loop session's live notes on chess runs 5a and 5b.
+- This session's runner review.
+
+The merge is `docs/shiploop-e2e-loop-recommendations-2026-10-25.md`: 38 items, each with its sources and a check against
+the code. It went to Astra at max for verdicts, and to DeepSeek at max as a cross-check.
+
+**Verdict:** 10 ACCEPT, 27 MODIFY, 1 REJECT.
+- R23 is WATCH, not a kill. It overrides inner-loop's "three identical refusals or 15 min silent is fatal", because SPEC
+  allows eleven refused check runs before revision or blocking.
+- Quality gains become promotable (R1).
+- Missing required evidence blocks a decision (R2).
+- Validity splits into correctness, attribution and timing (R3).
+- Refusal and review counts become diagnostics, and the target becomes all-attempt tokens per successful case (R4).
+- The evaluator is frozen outside the candidate's control (R13).
+- The owner's Grok 4.7 medium is the driver now; the Sonnet pilot is deferred (R32).
+- A live run inside `release.py` is rejected (R34).
+
+**Corrections that changed this session's own claims**, each checked:
+- **E2b already had negative controls.** It rejected the audit server, `BattleshipGameCheckTest` has seven broken stubs,
+  and Checkers has `reference_checkers.py --defect`. What is missing is independently correct alternative implementations
+  and oracles for csv-report and seat-reservations.
+- **`quality.py` counts a mutant timeout as killed,** so R5 needs a new operator id.
+- **10 of 12 cases carry no quality block,** the batch gate `hello` among them.
+- **The design's "`held_out_seen` already detects a leak" overclaimed.** The design now says the guard is structural.
+- **DeepSeek errors, checked and rejected:** "2.9.1 does not exist" (it read a pre-release worktree), and "0 is not proof
+  is not in `quality.py`".
+
+**Omissions both reviewers added:**
+- freeze the mapping from requirements to independent checks before generation;
+- bind qualification to the published artifact's digest;
+- a longitudinal brownfield holdout;
+- a promotion path when no A/A spread exists;
+- oracle read access, not only edit access;
+- an epoch spend ledger.
+
+**Build order (Astra):**
+1. the promotion contract and its SPEC amendment;
+2. required evidence and validity dimensions;
+3. the evaluator boundary;
+4. the delivery snapshot;
+5. one calibrated oracle;
+6. one Node brownfield case;
+7. the resource lifecycle;
+8. attempt and token accounting;
+9. the coverage and exposure manifest;
+10. one epoch.
+
+Shadow triage follows. The design doc is amended to match.
+
+**Biggest remaining risk** (Astra): optimising incomplete oracles. A deterministic controller can keep promoting software
+that passes its checks and misses the user's real requirements.
+
+## Build step 1: the promotion contract (2026-10-25) — status: firm for the rule and its tests; interim for its tolerances (none calibrated on real arms yet)
+
+**Question.** Can one scripted, pre-registered rule decide whether a candidate ShipLoop change is promoted, putting
+quality first and efficiency second, from the scorecards alone? This is step 1 of Astra's build order (R1 and R16;
+`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`), and the owner approved it on 2026-10-25.
+
+**Built:**
+- SPEC "The promotion contract" (contract id `promotion/1`), amended first in its own commit.
+- `test/shiploop_e2e/promotion.py`. It reads the two arms' cards (run folders, or `scorecard.py --out` files) under a
+  registration written before the runs. Rules:
+  - coverage gaps and unmeasured required floors are UNDECIDED;
+  - a fallen regression case is DROP;
+  - over budget is DROP;
+  - a capability gain is PROMOTE at its stated cost;
+  - at equal quality, all-attempt cost per success decides, metric by metric, on comparable cards only.
+
+  Exit 0, 3 or 4.
+- Enterprise cannot be a required floor yet, because every `scorecard/1` card has it null. The default required floors
+  are accuracy and fidelity. The SPEC commit was amended once, before any push, to say so.
+
+**Done signal** (Astra's): the three examples are a test.
+- A slower, dearer change that makes the capability case pass is PROMOTE.
+- A faster, cheaper change that breaks an established requirement is DROP.
+- Equal quality, with costs within the tolerance, is UNDECIDED.
+
+**Also tested:**
+- missing coverage and an unmeasured floor;
+- a regression beside a gain;
+- a gain over budget;
+- all attempts counted;
+- the metric order;
+- non-comparable timing;
+- tokens not measured yet;
+- a registration written after a run began, and invalid registrations;
+- the CLI on a real gate card.
+
+That last case is UNDECIDED: the 2.9.0 gate runs all overlapped other runs, so that evidence cannot promote an efficiency
+change.
+
+**Open:**
+- The tolerances (10 % relative, 0 share) are unmeasured defaults, to calibrate on the first real arms.
+- Steps 2 (required evidence per case and validity dimensions) and 8 (tokens) will change what the contract reads, under a
+  new id.
+
+## Build step 2: required evidence per case and validity in three dimensions (2026-10-25) — status: firm for the rule, its tests and the re-read; interim for torn-down runs (correctness null until step 4)
+
+**Question.** Can missing evidence be stopped from passing, and can overlap be stopped from discarding good correctness
+evidence? This is step 2 of Astra's build order (R2, R3), approved by the owner on 2026-10-25.
+
+**Built.** The SPEC was amended first. Then:
+- **`scorecard/2`.** Floors are pass, fail, unobserved or not_applicable, and requiredness is the case's (`cases.json`).
+  Validity has three dimensions:
+  - correctness: a delivered tree changed after delivery, or a `/tmp` name shared with an overlapping run, read from that
+    run's own `metrics.tmp_writes`;
+  - attribution: mixed hosts or builds;
+  - timing: overlap, resume, unattributable, leftovers.
+
+  Null is never valid.
+- **`promotion/2`.** Per-case `attempts` is the expected-slice manifest. Quality is read only from correctness-valid
+  cards, and efficiency only from cards valid on both timing and attribution.
+- **`arms.decide`.** It refuses a slice one arm lacks and a hard-gate field unmeasured on both arms. A measured gate
+  failure still rejects. Astra's probe had made the candidate win in both cases.
+
+**Done signal (Astra).**
+- A missing slice or field blocks promotion: `PromotionContractTest` covers an attempt short, an unobserved floor and
+  correctness not valid; `ArmsTests` covers a one-sided slice and an unmeasured gate.
+- Timing contamination preserves independently valid correctness evidence: an overlapped candidate's quality gain still
+  promotes, and its lower cost does not. A declared acceptance that was not observed is now `unobserved`; `scorecard/1`
+  read it as a pass, which is the fail-first case.
+
+**Re-read live** (`docs/experiments/e2e-step2-validity-20261025/backfill-v2.txt`):
+- The 2.9.0 gate runs are correctness Y, timing n. They overlapped 7-8 runs, so they now count as quality evidence;
+  `/1`'s one `comparable` flag had voided them.
+- Battleship is correctness n, from E4's deleted `page.html`.
+- Codex hello is timing n, because it was resumed.
+- Chess run 4 and the Checkers run are Y on all three dimensions.
+- The compact fixtures have no `work/`, so their correctness is null. That is honest for a torn-down run, and build
+  step 4's delivery snapshot is the fix.
+
+**Tests:**
+- `ScorecardTest` (8) and `PromotionContractTest` (8) in `test/shiploop-e2e-baseline.test.py`;
+- `ArmsTests` gains one test.
+
+`scorecard/1` and `promotion/1` are replaced, with no shim (one supported version).
+
+
+## Sonnet confirmation of the fixed Battleship checks (2026-10-25) — status: firm
+
+**Question.** Do the Battleship checks fixed in wave 1 pass a real delivery and leave it untouched? The live check is
+`battleship_game.py`, which fires at every cell and asserts the game ends exactly once. The fix also stopped the checks
+writing scratch files into `work/` (E4). The owner asked for this run on 2026-10-25.
+
+**Run.** It was the `web-service` suite (battleship, then battleship-scoring) on Claude Sonnet 5.5, from the marketplace
+(skill-craft 2.10.1). It ran from the gate worktree, output `~/e2e-runs/20261025/gate-2100-96810d-claude-web`.
+
+**Result** (`docs/experiments/e2e-step3-boundary-20261025/sonnet-battleship-run-lines.txt`,
+`sonnet-battleship-scorecard3.txt`):
+- battleship: PASS, 4 of 4 checks, 23.1 minutes, $6.64, 277 turns.
+- battleship-scoring: PASS, 12 of 12 checks, 23.5 minutes, $7.39, 317 turns.
+- Both are correctness Y and attribution Y under `scorecard/3`. Under E4's checks the gate's Battleship run was
+  correctness n, because a check had deleted the committed `page.html`. These fixed checks left the delivered tree clean.
+- Timing is n for both: each overlapped 2 other runs (E-EFF1's frozen experiment). So they are quality evidence and never
+  speed evidence.
+- Neither has grading digests: both were graded before build step 3 recorded them.
+
+## Build step 3: the evaluator boundary (2026-10-25) — status: firm for the improver's boundary and the comparison rule; interim for the run agent's reads (detected by name, not prevented)
+
+**Question.** Can a candidate be stopped from changing what grades it, or reading the held-out checks, with the grading
+hashes shown unchanged? This is step 3 of Astra's build order (R13: "freeze grading outside the candidate's control:
+evaluator tests out of edit permissions, holdout data out of model access"). The owner approved it on 2026-10-25.
+
+**Found before building:**
+- `iterate.py`'s `ALLOWED_PREFIXES` included all of `test/`. An improver could edit the oracles in `checks/`, the harness,
+  `cases.json`, the suite catalog, or the quick-tier runner that gates its own commit.
+- The improver's worktree held the held-out `checkers_accept.py` and its calibration reference
+  `reference_checkers.py`, a correct Checkers implementation.
+- Nothing recorded which harness or oracle graded a run. So `promotion.py` could compare a control graded by one oracle
+  with a candidate graded by an edited one.
+
+**Built.** The SPEC was amended first, in its own commit. Then:
+- **`boundary.py`.** It gives three grading digests, all byte digests: `evaluator` (the harness's `*.py` and `*.cjs`),
+  `oracle` (`checks/`) and `case` (the catalog entry). `candidate_path` says what the improver may change. The held-out
+  files are each acceptance module plus its `calibration` files. `withheld` takes them out of a worktree using
+  skip-worktree in that worktree's own index, so no shared sparse-checkout config is touched. `named` counts the event
+  lines that name one.
+- **`run.py`.** It records `boundary` in `result.json` each time it grades, a regrade included.
+- **`scorecard/3`.** The card carries `boundary`, with the candidate taken from `versions.plugin_sha256`. Correctness is
+  null when a run's events name a held-out file, the checks folder or the case catalog, or when that was not recorded,
+  for a case with held-out acceptance.
+- **`promotion/3`.** A case's attempts, in both arms, must share all three grading digests. Otherwise the decision is
+  UNDECIDED, so a harness or oracle change is its own experiment.
+- **`iterate.py`.**
+  - The improver's scope is the skill, its notes and ShipLoop's own tests, never the E2E harness, its suites, the
+    runner or the catalog.
+  - The held-out files are withheld while it works and restored before the quick tier.
+  - Each iteration journals the four digests.
+  - The loop stops when the grading checkout's digests changed, or when the improver's tool calls name a held-out file,
+    or when its events can't be read. Only tool calls count: the SPEC is in the improver's prompt and names these files.
+    The first draft also searched the model's prose, which this review caught before commit.
+- **`cases.json`.** Checkers' acceptance block names its `calibration`. `quality.held_out_seen` counts that name too.
+
+**Checked for safety:** only `shiploop-e2e-quality` loads `checkers_accept`. No candidate-path change selects that suite
+(`suite_catalog.targeted` over all 120 files in `skills/shiploop` and `changes/shiploop`), so withholding cannot redden
+the improver's own quick tier. The five saved Checkers runs with a quality block all recorded `held_out_seen` 0
+(`docs/experiments/e2e-step3-boundary-20261025/checkers-held-out-seen.txt`). So the new correctness rule voids none of
+them.
+
+**Done signal (Astra)** — `IterateBoundaryTest` (5) and `BoundaryTest` (3) in `test/shiploop-e2e.test.py`. Each fails on
+the old code:
+- *Cannot modify grader inputs.* The improver's commits to `test/shiploop_e2e/run.py`, `test/shiploop-e2e.test.py`,
+  `test/suite_catalog.py` and `test/run-all.sh` are out of scope; ShipLoop's own tests are not. An edit to the grading
+  checkout's oracle, harness or case entry crosses the boundary. Run end to end, `iterate.main` journals the stop and
+  grades nothing on the changed oracle.
+- *Cannot read protected holdout instances.* While the improver works, its worktree lists neither held-out file, and
+  `git status` stays clean. Afterwards both are back byte for byte, with no skip-worktree flag left. A tool call that
+  names one stops the loop, and so do unreadable events. Prose that names one does not: that is the negative control.
+- *The hashes stay unchanged.* For a legitimate candidate, the grading digests before and after are equal.
+- Also tested: `PromotionContractTest` covers mixed and unrecorded grading digests (UNDECIDED), and a changed candidate
+  digest (still decides). `ScorecardTest` covers a held-out name voiding correctness, and the card's boundary.
+  `shiploop-e2e-quality` checks that a calibration file's name counts.
+
+**What it does not do.** The hosts run unsandboxed: a model can read any file the user can, git objects included.
+Withholding closes the default path. A tool call that names the file is detected; a read that never names it is not. Full
+isolation would need the held-out files outside the repository, and CI's tests of them rule that out today. `arms.py`
+compares slice bytes and is not fingerprinted yet.
+
+**Consequence.** Every run graded before 2026-10-25 has no grading digest, so `promotion/3` is UNDECIDED on it. That is
+by design: no promotion has yet been decided on those runs, and step 10's first epoch will run fresh arms.
+
+## A run's own platform prefix, and why a Claude-host Salesforce run is refused (2026-10-25) — status: firm
+
+**Question.** Can a Haiku 5.5 Battleship run be published to org `de` without colliding with the earlier runs kept
+there? The owner asked for that run on 2026-10-25, "with a unique name and schema because we have lots of runs in that
+Salesforce org".
+
+**Found** (`docs/experiments/e2e-platform-prefix-20261025/`):
+- A read-only preflight for `SLBattle` refused. The org holds a kept app: 5 Apex classes, `slBattleBoard`, the tab,
+  the app and the permission set (`org-preflight-SLBattle.txt`). So a default run cannot start.
+  `--platform-existing update` would deploy over that app.
+- Both rules oracles hard-coded their class names in their anonymous Apex: Battleship 10 times, chess 30.
+
+**Built** (SPEC "A hosted-platform run's prefix"; README "A run's own prefix"):
+- `run.py --platform-prefix P` renames each Salesforce spelling of the case's prefix (`SLBattle`, `slBattle`) in the
+  prompt, the checks, the platform commands and the guard. It does so through one run-scoped reader, `catalog()`.
+- P must share no case-insensitive beginning with any case's prefix. A resume keeps P.
+- The oracles rename their classes where they send the Apex (`chess_salesforce.renamed`).
+- Tests: `PlatformPrefixTest` (4: run.main end to end with the fakes) and one oracle test each in the Battleship and
+  chess suites. The quick tier passed, 45 of 45 suites.
+
+**Then the run itself was refused, correctly** (`claude-host-preflight.txt`):
+- The Claude host runs under the real HOME (`hosts.Host.env` is `os.environ`), so `pin_shell_path` writes no startup
+  file.
+- Under every login shell (`sh -lc`, `bash -lc`, `zsh -lc`, `zsh -ilc`), `sf` resolves to `/opt/homebrew/bin/sf`
+  instead of `sf_guard.py`.
+- The model could then reach every app in the org. This is the hole that made chess run 1 invalid on 2026-10-16.
+
+**Sign-in probes** (`claude-signin-probes.txt`): Claude Code 2.1.310 answers "Not logged in" under each of:
+- a throwaway HOME;
+- a throwaway HOME with `~/.claude.json` linked in;
+- a throwaway HOME with `CLAUDE_CONFIG_DIR=~/.claude`.
+
+Under the real HOME it answers. So on macOS a Claude-host Salesforce run cannot be guarded today. Grok and Codex get a
+throwaway HOME and can be.
+
+**Decision (owner).** Haiku 5.5 runs the local `battleship` case at max effort instead. The Salesforce cases stay on
+Grok, each with its own `--platform-prefix`.
+
+**Open:**
+- A Claude-host Salesforce run first needs Claude Code to sign in under an isolated HOME without the harness handling a
+  credential. That is research, not a fix.
+
+## Haiku 5.5 at max effort on Battleship: stopped in the spec's Improve loop (2026-10-25) — status: firm for this run (n=1); interim as a Haiku finding
+
+**Question.** How does ShipLoop do on the local `battleship` case with Claude Haiku 5.5 at max effort? The owner
+approved it on 2026-10-25 as a one-off exception to "never Haiku". The run used the Claude host, `--source checkout` at
+`eedb4a19` (CI green, plugin digest `2dbee8c342b9`), output `~/e2e-runs/20261025/haiku55-max-battleship-d521a8`.
+
+**Result** (`docs/experiments/e2e-haiku55-battleship-20261025/`): STOPPED by the owner's "stop anything that might be
+running away", at 2079 s (34.6 min). The engine was still active at `spec`, nothing was returned, and every product
+check failed. It is not a pass.
+- `scorecard/3`: accuracy F, fidelity unobserved; correctness Y, attribution Y; timing n, because it overlapped 4 runs.
+- 453 turns and 0 refusals. No cost was reported, because the stop came before the host's result event.
+- It is the first run that records its grading digests: evaluator `036dee1a3463`, oracle `6c353db0383a`, case
+  `53252bfd577e`.
+
+**What happened.**
+- Haiku navigated cleanly: it bound the CLI, followed each receipt's `next_argv` as written, committed Improve passes
+  through `improve-commit`, and had no refusal in 35 minutes.
+- It reached spec in about 7 minutes.
+- The spec's Improve child then never ended (`improve-passes.txt`). After the first pass (29 lines), each pass changed
+  9, 7, 5, 3 and then 1 to 4 lines, 12 passes in about 22 minutes. Each was a real but tiny tightening: name the exact
+  title, name each rejected request, name the cells of the concurrent-shot check, and so on.
+- Improve's stop rule ("a pass finds only trivial changes or none") is the model's own judgement. Haiku at max effort
+  never judged a pass trivial.
+
+**Interpretation, interim (n=1).** This is a convergence property of the model's triviality judgement, not a script
+defect. ShipLoop's loops are deliberately unbounded (owner rule), so a model that always finds one more 2-line edit
+never leaves the stage. For comparison, the Sonnet 5.5 runs of the same case finished the whole case in 23 minutes.
+
+Candidate follow-ups, for the owner:
+- a script-measured shrinkage signal, for example passes whose diff is below N lines, recorded in the run's
+  diagnostics;
+- or a script-owned stop on an edit-size trend.
+
+The second would change the unbounded-loop rule, so it needs the owner's decision.
+
+## Grok release-gate trio on 2.12.0: cancelled at hello's spec, because main's CI failed (2026-10-25) — status: firm
+
+The trio (hello, then battleship and battleship-scoring) started at 15:53 on Grok 4.7 medium from the marketplace, at
+skill-craft 2.12.0 / ShipLoop 1.12.0, while main's CI was pending. That CI then failed in `full / e2e-apparatus`,
+`full / shiploop-1`, `full / shiploop-2` and `hermetic`:
+- read-only views now leave a `trace.jsonl` behind;
+- the Grok adapter's direct-subcommand allow list lacks the new `trace` command.
+
+Both are regressions of the run-trace change, which the progress-status session owns and has been told about.
+
+Per the SPEC (a run started on pending CI is cancelled if CI fails), the trio was stopped at hello's spec stage after
+about 9 minutes, and the web-service suite never started. Stopping the task left the stopped run's ShipLoop progress
+observer (`shiploop_progress.py --watch`) orphaned. It was ended by hand, so it could not look like a Grok process to
+the next Grok user. Grok went back to E-EFF1. The trio reruns on the release that fixes CI.
+
+## Run-trace live check: hello on Claude Sonnet 5.5, ShipLoop 1.12.0 (2026-10-25) — status: interim (rerun on the fixing release pending)
+
+Question: does the run trace (`RUN/trace.jsonl`, `shiploop trace`, `RUN/trace.html`, new in 1.12.0) record and show a
+real host run? Case `hello`, `run.py --case hello --host claude --source marketplace` (skill-craft 2.12.0), Claude Sonnet
+5.5 at host default effort; output `~/e2e-runs/20261025/trace-verify-4fd9f1/hello`. PASS on every verdict: done in
+1,382 s, $7.65, 1 session, 28 accepted steps with one send-back of W1's implement. Two other harness runs shared the
+machine, so time and cost are not comparable.
+
+Worked: 120 trace lines in order (81 command, 38 packet, 1 hook); every packet kept as sent and matching its sha (22
+printed as a head, each head kept); navigator refusals carry their full text; the two failed `--check-only` calls count
+as checks; digest, `--json`, `--html`; the page (no console errors, nothing animated on the finished run, legend lists
+only what the run has, local times, no horizontal scroll at 1024 and 375 px). Counts reconcile exactly with
+`flow.py --read-first`; every difference is a counting rule (flow counts failed checks as refusals and sees workspace
+return verbs; the trace sees `red-check`; flow lists only producer packets).
+
+Defects, fixed in 191f272f with tests that fail on 1.12.0: the request view missed intake's sentence readings on 11 of
+27 real intakes since 2026-10-15 (Sonnet and Codex word the citation differently) and then hid intake's summary;
+`workspace start` was recorded twice; `--action` refused the bare hex id the digest prints; plural slips. Separately,
+main's full CI on 1.12.0 failed because routed verbs were traced (fixed in 96f023a2; see the Grok trio entry above).
+
+Not verified on a real run: a keepalive continuation's injected text (the headless session never ended a turn early)
+and a packet reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.12.0/`, journal
+`docs/shiploop-run-trace-journal.md`. Next: rerun `hello` on the release that carries both fixes.
+
+## Grok release-gate trio on 2.13.2 / ShipLoop 1.13.1 (2026-10-26) — status: firm for the verdicts and the two findings; n=1 per case
+
+**Run.** hello, then battleship and battleship-scoring, one at a time, on Grok 4.7 medium from the marketplace. Gated on
+full CI green at main `63b0392f`, which is test-only on top of 2.13.2. It ran from a fresh worktree with no other
+harness run on the machine, so all three cards are valid on every dimension (Y/Y/Y), the day's first clean timing
+evidence. All three share evaluator `476582a4f064` and oracle `85672ad0c249`. Evidence:
+`docs/experiments/e2e-grok-gate-2132-20261026/`.
+
+| Case | Verdict | Minutes | Cost (lower bound) | Turns | ShipLoop refusals | Improve children | Planning / re-orientation min |
+|---|---|---|---|---|---|---|---|
+| hello | PASS | 68.5 | $26.49 | 361 | 0 | 9 | 26.4 / 15.5 |
+| battleship | PASS, 4/4 checks | 205.5 | $60.89 | 768 | 4 | 16 | 76.7 / 84.8 |
+| battleship-scoring | FAIL, 11/12 checks | 114.0 | $39.44 | 498 | 0 | 10 | 64.9 / 20.5 |
+
+**Released changes seen live, without friction:**
+- prepare's "harness evidence must show a test running";
+- the test stage's new refusal of a surviving mutant without a `mutant_dispositions` entry, which was never raised;
+- the run trace.
+
+**Finding 1: battleship-scoring's FAIL is a harness oracle false fail.**
+- The retention check requires `node --test`'s pass count to grow over the followed run's. It went from 12 to 12
+  (`retention-test-count.txt`).
+- The delivery did test the feature: 134 test lines were added to `test/rules.test.js` and `test/server.test.js`,
+  41 of them asserting the new `shots`, `hits` and `ship` fields. They were folded into the same 11 `test()`
+  declarations.
+- The request never asks for new test cases. The check's anchor, S-11 (knowledge retained and built on), is met: the
+  followed run's tests are kept and still pass.
+- Proposed oracle change: require no fewer passing tests, plus the new behaviour asserted (by a held-out check, or by
+  mutating the new fields). Under build step 3 an oracle change is an experiment of its own, so it is proposed, not
+  made here.
+
+**Finding 2: every run fails fidelity on exactly one unverified entry, and the reader conflates two cases**
+(`unverified-at-release-verify.jsonl`). Product-acceptance defers one acceptance item:
+- **hello:** R-1 is deferred to release-verify, and release-verify settles it ("Returned main prints the greeting;
+  TC_1 passed"). But its result carries no `unverified` key. The fidelity reader takes the last result that carries
+  one, product-acceptance's, so the run reads as unverified.
+  - ShipLoop gap: release-verify (and handoff) should restate the list, `[]` once settled.
+  - Harness gap: `fidelity.end_state` treats "no key" as "no change".
+- **battleship and battleship-scoring:** R-3, the page click, stays open. Grok has no browser runner, and release-verify
+  says so ("the page click stays open"). This unverified result is real.
+
+**Cost picture.** *Corrected 2026-10-26: the first reading was wrong.* It read Battleship's
+`reorientation_minutes`, 84.8 of 205.5 minutes, as overhead across its 7 Grok sessions; Grok ends its turn mid-run and
+the harness resumes it. inner-loop pointed out that the window runs to the next accepted action, so it includes the
+stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). Measured here, `calls_before_grounding`
+for the 7 fresh starts was 2, 1, 0, 0, 1, 0, 0: 4 calls in all. So re-orientation itself cost almost nothing, and the
+84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
+again. The 2.10.1 Sonnet run took 23.1 minutes for the same case.

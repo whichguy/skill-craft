@@ -9,8 +9,8 @@ found none.
   launch and at the end of the run, and whether the host ran under a display hold;
 * ``hosts_used`` and one entry per launch, read through ``runrecord`` (the one reader of the launch records), so a run that two
   hosts worked on is named so;
-* ``overlap``: the sibling output folders whose ``timeline.jsonl`` span overlaps this run's, read at the end of the run and only
-  for reading;
+* ``overlap``: the run folders under the runs root (``runs_root``) whose ``timeline.jsonl`` span overlaps this run's, read at
+  the end of the run and only for reading;
 * a browser capability record, only where a case or ``--need browser`` declares one.
 
 The host CLI build is not read here: a launch record carries ``host_build`` where the harness captured it at launch, and the
@@ -181,9 +181,69 @@ def restated_start(out) -> dict:
 
 # ---------------------------------------------------------------- overlap with the neighbouring runs
 
-OVERLAP_BASIS = ("the first and last host event of this run and of each sibling folder in the same parent folder (timeline.jsonl holds "
+OVERLAP_BASIS = ("the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds "
                  "host events only): it counts a pause between sessions, and misses the setup before the first event and the checks "
-                 "and reap after the last, so the seconds are neither an upper nor a lower bound")
+                 "and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen")
+# Where the neighbouring runs are looked for, when the default (``runs_root``) is not the folder that holds them.
+RUNS_ROOT_ENV = "SHIPLOOP_E2E_RUNS_ROOT"
+# A file a run folder holds: the walk stops there, because a run's work tree, home and platform folders hold no other run.
+RUN_MARKERS = ("timeline.jsonl", "invocation.json", listeners.LOCK_NAME)
+# A neighbour whose timeline was last written this long before this run's first stamp ended before it began: not read.
+# The margin covers a coarse file clock; a stamp is taken before its line is written, so the file is never older than it.
+ENDED_BEFORE_MARGIN = 2.0
+
+
+def runs_root(out) -> Path:
+    """The folder whose run folders are this run's neighbours: ``$SHIPLOOP_E2E_RUNS_ROOT`` when set, else the output's
+    grandparent, so ``<runs>/<day>/<run>`` sees every day's runs and the folders an experiment nests its slices in
+    (2026-10-24: chess run 5 under ``<runs>/20261024/`` and sixteen E6 slices under ``<runs>/e6-r1-20261024/…/slice`` ran
+    together, and a same-parent rule saw none of them).  The grandparent is never the home folder, the temporary folder or
+    the file system root, which hold far more than runs: there the parent is the root (the default output folder
+    ``$TMPDIR/shiploop-e2e/<run>`` gives ``$TMPDIR/shiploop-e2e``)."""
+    named = os.environ.get(RUNS_ROOT_ENV)
+    if named:
+        return Path(named).expanduser()
+    parent = Path(out).absolute().parent
+    if (parent / "suite-result.json").is_file():
+        return runs_root(parent)  # a finished suite's case: its suite folder's root, as run_suite set it during the run
+    grand = parent.parent
+    too_wide = {os.path.realpath(place) for place in (Path.home(), tempfile.gettempdir(), grand.anchor)}
+    return parent if grand == parent or os.path.realpath(grand) in too_wide else grand
+
+
+def run_folders(root) -> list[Path]:
+    """Every run folder under ``root``, sorted: a folder holding one of ``RUN_MARKERS``.  The walk does not go below a run
+    folder or into a hidden folder.  Read-only, and an unreadable folder is passed over (os.walk's default)."""
+    found = []
+    for here, folders, files in os.walk(root):
+        if any(marker in files or marker in folders for marker in RUN_MARKERS):  # a timeline.jsonl that is a folder is a run too
+            found.append(Path(here))
+            folders[:] = []
+            continue
+        folders[:] = sorted(name for name in folders if not name.startswith("."))
+    return sorted(found)
+
+
+def _home(path: Path) -> str:
+    """A path under ``~`` as ``~/…``, so a record names no machine where it can; any other path as it is."""
+    with contextlib.suppress(ValueError):
+        return "~/" + Path(path).absolute().relative_to(Path.home()).as_posix()
+    return str(path)
+
+
+def _shown(path: Path, root: Path) -> str:
+    """A run folder as a record shows it: relative to the runs root (a sibling is its name), else as ``_home`` shows it."""
+    with contextlib.suppress(ValueError):
+        return path.relative_to(root).as_posix()
+    return _home(path)
+
+
+def alive_runs(out) -> list[str]:
+    """The other run folders under the runs root whose harness is alive now (it holds ``.harness-lock``), as records show them.
+    Printed when a run starts, so a run meant for a timing comparison is not started beside others by mistake; never a refusal."""
+    root, own = runs_root(out), os.path.realpath(out)
+    return [_shown(folder, root) for folder in run_folders(root)
+            if os.path.realpath(folder) != own and listeners.case_alive(folder)]
 
 
 def overlap(out) -> dict:
@@ -191,26 +251,32 @@ def overlap(out) -> dict:
 
     A count taken at the start of a run misses an overlap that begins later: of the nine round runs of 2026-10-08 all nine
     overlapped another run, and three saw the overlap begin more than a second after their own start.  So the whole span is
-    compared, at the end.  ``started_offset_seconds`` is the sibling's start minus this run's: negative when it was already
-    running, positive when it began later.  Siblings in other parent folders are not seen.
+    compared, at the end.  ``started_offset_seconds`` is the neighbour's start minus this run's: negative when it was already
+    running, positive when it began later.  The neighbours are the run folders under ``runs_root`` (``siblings_read`` counts the
+    spans read, ``ended_before`` the timelines last written before this run began, which are not read); a run outside the
+    root is not seen.
     """
     out = Path(out)
     mine = metrics.span(out / "timeline.jsonl")  # the one span reader (finite stamps, first <= last)
     if mine["started"] is None:
         return unobserved("this run's timeline.jsonl has no readable stamp")
     own = (mine["started"], mine["ended"])
-    try:
-        folders = sorted(path for path in out.parent.iterdir() if path.is_dir() and path.name != out.name)
-    except OSError as exc:
-        return unobserved(f"the folder beside this run could not be listed: {exc}")
-    runs, read, unreadable = [], 0, []
+    root = runs_root(out)
+    if not root.is_dir():
+        return unobserved(f"the runs root {_home(root)} is not a folder")
+    folders = [folder for folder in run_folders(root) if os.path.realpath(folder) != os.path.realpath(out)]
+    runs, read, unreadable, ended_before = [], 0, [], 0
     for folder in folders:
         timeline = folder / "timeline.jsonl"
         if not (timeline.exists() or timeline.is_symlink()):
             continue  # not a run, or one that has not had an event yet: not seen
+        with contextlib.suppress(OSError):
+            if timeline.is_file() and timeline.stat().st_mtime < own[0] - ENDED_BEFORE_MARGIN:
+                ended_before += 1
+                continue
         theirs = metrics.span(timeline)
         if theirs["started"] is None:
-            unreadable.append(folder.name)  # there, and no span can be read from it: named, never dropped silently
+            unreadable.append(_shown(folder, root))  # there, and no span can be read from it: named, never dropped silently
             continue
         read += 1
         other = (theirs["started"], theirs["ended"])
@@ -224,11 +290,12 @@ def overlap(out) -> dict:
         hosts = None if bad or not launched else runrecord.hosts_used(folder)
         why = (f"{len(bad)} launch record(s) could not be read: {', '.join(bad)}" if bad else
                "no launch record in the folder" if not launched else None)
-        runs.append({"folder": folder.name, "case": (launched[0][1].get("case") if launched else None),
+        runs.append({"folder": _shown(folder, root), "case": (launched[0][1].get("case") if launched else None),
                      "hosts": hosts, "hosts_reason": why, "overlapped_seconds": round(seconds, 1),
                      "started_offset_seconds": round(other[0] - own[0], 1)})
-    return {"observed": True, "basis": OVERLAP_BASIS, "span": {"first": own[0], "last": own[1]}, "siblings_read": read,
-            "siblings_unreadable": unreadable, "runs": runs}
+    return {"observed": True, "basis": OVERLAP_BASIS, "root": _home(root),
+            "span": {"first": own[0], "last": own[1]}, "siblings_read": read, "siblings_unreadable": unreadable,
+            "ended_before": ended_before, "runs": runs}
 
 
 def result_block(out, start: dict, end: dict) -> dict:
@@ -526,7 +593,7 @@ def summary_lines(block: dict) -> list[str]:
             + (f"{r['started_offset_seconds']} s after this run started" if r["started_offset_seconds"] > 0 else
                f"{-r['started_offset_seconds']} s before this run started") for r in seen["runs"]))
     else:
-        lines.append(f"overlap: none ({seen.get('siblings_read')} neighbouring runs read)")
+        lines.append(f"overlap: none ({seen.get('siblings_read')} neighbouring runs read under {seen.get('root', 'the parent folder')})")
     return lines
 
 

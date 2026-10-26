@@ -301,8 +301,8 @@ class DelegationStateTests(unittest.TestCase):
 class StepTests(DelegationStateTests):
     """The script, not the host, walks a work item's step plan: one implement packet per step."""
 
-    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"], "check": "python3 -B -c 'import calc'"},
-             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"], "check": "grep -q divide README.md"}]
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"], "proof": "python3 -B -c 'import calc'"},
+             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"], "proof": "grep -q divide README.md"}]
 
     def at_implement(self, delegation="inline", steps=None):
         state = advance(self.state(delegation), "step-plan")
@@ -341,9 +341,9 @@ class StepTests(DelegationStateTests):
         The step Proof replaces 603a709c's interim rule (a check due from the step that finishes its criteria): each step
         packet names the one command its step plan recorded for it, and the item's check rows stay with test and verify.
         """
-        steps = [{"id": "S1", "task": "Add the parser.", "criteria": ["C1"], "check": "python3 -B probe_parser.py"},
-                 {"id": "S2", "task": "Add the validator.", "criteria": ["C2"], "check": "python3 -B probe_validator.py"},
-                 {"id": "S3", "task": "Add the report page.", "criteria": ["C3"], "check": "grep -q report report.html"}]
+        steps = [{"id": "S1", "task": "Add the parser.", "criteria": ["C1"], "proof": "python3 -B probe_parser.py"},
+                 {"id": "S2", "task": "Add the validator.", "criteria": ["C2"], "proof": "python3 -B probe_validator.py"},
+                 {"id": "S3", "task": "Add the report page.", "criteria": ["C3"], "proof": "grep -q report report.html"}]
         commands = [{"command": "make lint", "suite": "check"},
                     {"command": "grep -q report report.html", "suite": "check", "criteria": ["C3"]},
                     {"command": "pytest -v", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1", "C2", "C3"]}]
@@ -359,13 +359,13 @@ class StepTests(DelegationStateTests):
             self.assertIn(f"Step S{number} ({number} of 3), the only work for this packet", packet)
             proofs = [line for line in packet.splitlines() if line.lstrip().startswith("Proof (")]
             self.assertEqual(len(proofs), 1, proofs)
-            self.assertTrue(proofs[0].endswith("): " + step["check"]), proofs[0])
+            self.assertTrue(proofs[0].endswith("): " + step["proof"]), proofs[0])
             for other in steps:
                 if other is not step:
-                    self.assertNotIn(other["check"], packet)  # S3's check is also an item check row: no other step sees it
+                    self.assertNotIn(other["proof"], packet)  # S3's proof is also an item check row: no other step sees it
             self.assertNotIn("make lint", packet)
             self.assertEqual(nav.test_loop.stage_commands(state, "implement", "W1")[0],
-                             [{"command": step["check"], "suite": "check"}])
+                             [{"command": step["proof"], "suite": "check"}])
             state = self.done(state, f"S{number} done.")
         self.assertNotEqual(nav.current_stage(state), "implement")
         self.assertFalse(hasattr(nav, "step_checks"))  # the interim helper is gone (one supported version)
@@ -503,11 +503,11 @@ class StepBlockTests(unittest.TestCase):
                 {"id": "C2", "text": "The validator rejects an empty record (R-2)."},
                 {"id": "C3", "text": "The report lists each record (R-3)."}]
     STEPS = [{"id": "S1", "task": "Add the parser. It reads one record per line.", "deps": [], "criteria": ["C1"],
-              "check": "python3 -B -c 'import parser_probe'", "skills": []},
+              "proof": "python3 -B -c 'import parser_probe'", "skills": []},
              {"id": "S2", "task": "Add the validator.", "deps": ["S1"], "criteria": ["C2"],
-              "check": "python3 -B -c 'import validator_probe'", "skills": []},
+              "proof": "python3 -B -c 'import validator_probe'", "skills": []},
              {"id": "S3", "task": "Add the report page. It lists the records.", "deps": ["S2"], "criteria": ["C3"],
-              "check": "grep -q record report.html", "skills": []}]
+              "proof": "grep -q record report.html", "skills": []}]
     CASES = [{"id": "TC-" + str(n), "criterion": "C" + str(n), "requirement": "R-" + str(n), "oracle": "the spec's example",
               "red": "absent on the base", "green": "present after the step"} for n in (1, 2, 3)]
 
@@ -576,6 +576,44 @@ class StepBlockTests(unittest.TestCase):
         end = next(n for n in range(start, len(lines)) if lines[n].startswith("Files: ShipLoop commits"))
         return lines[start:end + 1]
 
+    def test_a_step_that_changed_no_file_starts_no_review_and_one_that_did_is_reviewed(self):
+        """Advisors panel 2026-10-25, P4: "review each changed implementation action". Chess runs 3 and 5b reviewed
+        reissued steps that changed nothing after a send-back three times (one trivial pass each, 327 s); the step's Proof
+        still runs as a gate, so an unchanged step needs no review of code an earlier review read."""
+        state = nav._step_after(self.run, self.at_step(1))
+        action = nav.current_action(state)
+        self.assertEqual(action["after"], action["base"])
+        moved = nav.apply(state, action["id"], {"outcome": "done", "summary": "Nothing left to change."})
+        self.assertIsNone(moved["active_improve"])
+        self.assertEqual(nav.current_stage(moved), "implement")  # the next step, with no review between
+        changed = self.at_step(1)
+        (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
+        changed = nav._step_after(self.run, changed)
+        self.assertNotEqual(nav.current_action(changed)["after"], nav.current_action(changed)["base"])
+        waiting = nav.apply(changed, nav.current_action(changed)["id"], {"outcome": "done", "summary": "Parser."})
+        self.assertIsNotNone(waiting["active_improve"])
+
+    def test_the_pass_log_records_what_the_imp4_trigger_would_have_done_without_applying_it(self):
+        """P4's trigger (review only the first step of its item's current plan, and only a change to code) runs in shadow:
+        every later-step observation behind it came from one run, so each review records the trigger's verdict."""
+        first = self.at_step(1)
+        (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
+        first = nav._step_after(self.run, first)
+        first = nav.apply(first, nav.current_action(first)["id"], {"outcome": "done", "summary": "Parser."})
+        line = nav._imp4_shadow(self.run, first, first["active_improve"])
+        self.assertIn("would have kept it. Step S1 is 1 of 3", line)
+        self.assertIn("changed 1 code or test file(s) of 1", line)
+        later = self.at_step(2)
+        (self.repo / "validator.py").write_text("def valid(record):\n    return bool(record)\n")
+        later = nav._step_after(self.run, later)
+        later = nav.apply(later, nav.current_action(later)["id"], {"outcome": "done", "summary": "Validator."})
+        self.assertIn("would have skipped it. Step S2 is 2 of 3", nav._imp4_shadow(self.run, later, later["active_improve"]))
+        child = later["active_improve"]
+        bound = standalone.binding(later, child["action_id"], child["stage"], child["seed_result"],
+                                   standalone.resolve_skill(str(CARD)), improve_action=child["improve_action"])
+        self.assertIn("IMP-4 shadow (recorded, not applied; this review ran)",
+                      nav._passes_text(self.run, dict(later, active_improve=bound), bound, None))
+
     def test_the_file_the_head_and_the_handoff_print_one_step_block(self):
         """T8: the same Step block (task, criteria by value, dependencies, Proof, later steps) on all three surfaces; the
         hand-off names the step's entry base as a diff command; no surface fences the step to paths."""
@@ -587,7 +625,7 @@ class StepBlockTests(unittest.TestCase):
                                    "Add the parser. It reads one record per line.")
         self.assertIn("    C1: The parser reads a valid record (R-1).", block)
         self.assertIn("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "
-                      + self.STEPS[0]["check"], block)
+                      + self.STEPS[0]["proof"], block)
         self.assertIn("  Depends on: none", block)
         self.assertIn("Later steps (ShipLoop issues each after this one; do not start them): S2 Add the validator; "
                       "S3 Add the report page", block)
@@ -631,7 +669,7 @@ class StepBlockTests(unittest.TestCase):
                 self.assertTrue(last_block(head).startswith(loops.BLOCK_HEADING), last_block(head)[:120])
                 self.assertIn("Step S2 (2 of 3), the only work for this packet: Add the validator.", head)
                 self.assertIn("Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "
-                              + self.STEPS[1]["check"], head)
+                              + self.STEPS[1]["proof"], head)
                 self.assertIn("Accepted step S1: Step done.", head)
         self.assertTrue(last_block(nav.render(None, self.run, state)).startswith(loops.BLOCK_HEADING))
         self.assertLess(nav.render(None, self.run, state).index("Step S2 (2 of 3)"),
@@ -644,7 +682,7 @@ class StepBlockTests(unittest.TestCase):
         value = loops.contract(self.run, state, nav.current_action(state)["id"])
         work = value["work"]
         self.assertIn("step S2", work)
-        self.assertIn("until each requirement assigned to this step is satisfied and none of the others is broken", work)
+        self.assertIn("until each criterion assigned to this step is satisfied and none of the others is broken", work)
         self.assertRegex(work, r"\bC2\b")
         self.assertRegex(work, r"\bR-2\b")
         self.assertRegex(work, r"\bAD-1\b")
@@ -821,7 +859,7 @@ class PacketContractTests(DelegationStateTests):
     def test_a_bound_improve_handoff_prints_the_commit_command_early(self):
         # The command and the exact commit-message path sat at about 30 KB of a 47 KB packet, below improve-start: one
         # review wrote the wrong file name and was refused, another searched for the command (packet review
-        # 2026-10-10, P-improve-1).  Now both the commit and the complete command sit inside the first 4,500 characters of
+        # 2026-10-10, P-improve-1).  Now both the commit command and the callback sit inside the first 4,500 characters of
         # the handoff (plan U18), with the review focus ahead of them.  The planning packet prints no command: it names
         # parent-return.md, which improve-start writes with the command and its message rules.  Since 8f3d4cbe
         # improve-commit refuses a message with no Key learnings line, so the line shows that format and ends with it.
@@ -964,17 +1002,17 @@ class PacketContractTests(DelegationStateTests):
                     lead = assert_top_block(self, lines, label=route + " " + stage)["callback"]
                     self.assertTrue(lead.startswith("Callback for this stage "), lead)
                     # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
-                    # so the lead carries the complete command and the result file it reads.
+                    # so the lead carries the callback and the result file it reads.
                     self.assertNotIn("Call this when done:", packet)
                     command = shlex.split(lead.split("): ", 1)[1])
                     self.assertEqual(command[2], "complete")
                     self.assertFalse(any(arg.startswith("--result") for arg in command), command)
                     self.assertEqual(callback_result_path(lead).name, command[-1].split("=", 1)[1] + ".md")
                     # No producer packet mentions Improve ahead of time (owner rule 2026-10-10, re-cut 2026-10-11):
-                    # no "Improve:" line, no "starts this action's Improve child" sentence.
+                    # no "Improve:" line, no "starts this action's Improve stage" sentence.
                     self.assertFalse([line for line in lines if line.startswith("Improve:")])
-                    self.assertNotIn("starts this action's Improve child", packet)
-                    self.assertNotIn("single end-of-work Improve child", packet)
+                    self.assertNotIn("starts this action's Improve stage", packet)
+                    self.assertNotIn("single end-of-work Improve stage", packet)
                     self.assertNotIn("the Improve child's", packet)
                     if stage == "implement":
                         # An Improve child reviews every accepted step (owner decision 2026-10-10), so the
@@ -1224,7 +1262,11 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(self.saved()["stage"], "spec")
         action = self.saved()["action"]["id"]
         result_path = self.run / "inbox" / (action + ".md")
-        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec."})
+        # A done spec lists its primary requirements, each with an entry in the living spec (run-5 batch F6).
+        (self.repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (self.repo / "docs" / "shiploop" / "spec.md").write_text("## Requirements\n\n- R-1: The request.\n",
+                                                                 encoding="utf-8")
+        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec.", "primary": ["R-1"]})
         self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)
         # ShipLoop bound the run's Improve card and started the review at the transition (owner, 2026-10-11): no

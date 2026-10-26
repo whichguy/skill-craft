@@ -3,11 +3,13 @@
 
 A done product-acceptance result carries ``unverified``: one entry for each request outcome that no executed
 check observed, because the observation is not due yet or cannot be made here ("unachievable" in the case
-end-state rule).  The model decides what belongs in the list.  ShipLoop refuses only mechanical faults when a
-result is submitted (a missing list, an entry without its five texts, a template placeholder left in, a due stage
-that is not a later stage) and records and prints the rest: it cannot judge whether the list is complete or an
-outcome is true.  An empty list says every request outcome was observed by an executed check; a result without
-the key says nothing (unmeasured is not zero).
+end-state rule).  The model decides what belongs in the list.  ShipLoop refuses only mechanical faults here when a
+result is submitted (a missing list, an entry without its seven texts, a requirement that is not one R-<n>, a template
+placeholder left in, a due stage that is not a later stage) and records and prints the rest: it cannot judge whether
+the list is complete or an outcome is true.  An empty list says every request outcome was observed by an executed
+check; a result without the key says nothing (unmeasured is not zero).  What an entry's requirement and
+lower-layer check must hold in the run (an entry in the living spec; for a primary requirement, a test ShipLoop saw
+pass) is ``shiploop_primary.check_unverified``'s rule (run-5 batch F6).
 
 Like the plan's assumption list, the stored shape is loose (a list of text mappings, so every saved run loads
 whatever a later edit does to the field set) and the exact shape is held at the CLI gate only.
@@ -16,25 +18,32 @@ whatever a later edit does to the field set) and the exact shape is held at the 
 from __future__ import annotations
 
 import html
+import re
 from typing import Any, Mapping
 
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 
 STAGES = frozenset(("product-acceptance",))
-FIELDS = ("outcome", "reason", "check", "owner", "due_stage")
+FIELDS = ("outcome", "requirement", "reason", "lower_layer_check", "settle", "owner", "due_stage")
 # The one row the result template prints, to replace or delete.  A text that starts with "<" and ends with ">" is
-# a placeholder, so a row edited in one field only is refused as the whole row copied is.
+# a placeholder, so a row edited in one field only is refused as the whole row copied is.  The lower-layer check's
+# placeholder states its bar (run-5 batch F6): for a primary requirement only a passed test ID is accepted.
 TEMPLATE_ROW = {
     "outcome": "<request outcome no executed check observed>",
+    "requirement": "<the R-<n> it maps to>",
     "reason": "<why not observed here, or not due yet>",
-    "check": "<what the owner does and reports>",
+    "lower_layer_check": "<ID of a unit or component test of its logic that ShipLoop ran and saw pass; for a "
+                         "requirement not in primary, that or why none exists>",
+    "settle": "<what the owner does and reports>",
     "owner": "<who>",
     "due_stage": "handoff",
 }
-SHAPE = ("each entry is {outcome, reason, check, owner, due_stage}: the request outcome no executed check "
-         "observed, why, what the owner does and reports to settle it, who the owner is, and the later stage "
-         "that reports it")
+SHAPE = ("each entry is {outcome, requirement, reason, lower_layer_check, settle, owner, due_stage}: the request "
+         "outcome no executed check observed, the R-<n> it maps to, why, the passed unit or component test of its "
+         "logic (for a requirement not in primary, that or why none exists), what the owner does and reports to "
+         "settle it, who the owner is, and the later stage that reports it")
+_REQUIREMENT = re.compile(r"^R-\d+$")
 
 
 class UnverifiedError(ValueError):
@@ -90,6 +99,9 @@ def check_submitted(stage: str, result: Any) -> None:
             _need(isinstance(text, str) and bool(text.strip()), f"{label}.{name} must be nonempty text")
             _need(not _is_placeholder(text), f"{label}.{name} is still a template placeholder: "
                   "replace it, or delete the row when every request outcome was observed by an executed check")
+        _need(_REQUIREMENT.fullmatch(entry["requirement"].strip()) is not None,
+              f"{label}.requirement {entry['requirement'].strip()!r} is not one requirement ID: name the R-<n> whose "
+              "acceptance lines the outcome maps to")
         _need(entry["due_stage"].strip() in due_stages(stage),
               f"{label}.due_stage {entry['due_stage'].strip()!r} is not a later stage; use one of {later}")
 
@@ -128,7 +140,7 @@ def html_section(state: Mapping[str, Any]) -> list[str]:
         note = ("<p>none listed: product-acceptance recorded no request outcome as unverified. Open items "
                 "another stage recorded are listed under Open items.</p>")
     else:
-        heads = ("Outcome", "Reason", "Check", "Owner", "Due stage")
+        heads = ("Outcome", "Requirement", "Reason", "Lower-layer check", "To settle", "Owner", "Due stage")
         rows = ["<tr>" + "".join("<td>" + html.escape(str(row.get(name, ""))) + "</td>" for name in FIELDS) + "</tr>"
                 for row in entries]
         note = ("<p>No executed check observed these when product-acceptance ran; each has an owner and the stage "

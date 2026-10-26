@@ -629,7 +629,7 @@ class NavigatorV4Tests(unittest.TestCase):
             self.assertIn("continuation_assessment cancelled", contract["repeat_condition"])
         for packet in (improve, inline):
             self.assertIn("the exact parent return instructions below", packet)
-        self.assertIn("once the runtime has returned that stopped packet", inline)
+        self.assertIn("once the runtime has written that stopped receipt", inline)
         self.assertIn("confirm the runtime returned it in this conversation", inline)
         for delegated in ("native worker owner", "latest packet, owner record", "host-owner.md"):
             self.assertNotIn(delegated, inline)
@@ -664,7 +664,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("sufficient evidence", packet_lower)
         self.assertIn("inconclusive", packet_lower)
         self.assertIn("remains unresolved", packet_lower)
-        self.assertIn("existing qualifying reviews", packet_lower)
+        self.assertIn("the qualifying review (one trivial pass ends it)", packet_lower)
         self.assertIn("nested loop", packet_lower)
         self.assertIn("Planning scratch directory: " + str(scratch), packet)
         self.assertIn("frozen scope", packet_lower)

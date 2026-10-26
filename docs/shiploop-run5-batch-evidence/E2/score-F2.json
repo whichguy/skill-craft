@@ -1,0 +1,21 @@
+{
+  "experiment": "E2",
+  "arm": "F",
+  "sample": 2,
+  "value": 0,
+  "prerequisite": true,
+  "deferred_ui": false,
+  "ui_criteria": 2,
+  "inspected_ui": [],
+  "source_search_checks": [
+    "grep -F -q 'options attribute' src/choice-confirm.js"
+  ],
+  "slice_pass": false,
+  "slice_verdicts": {
+    "process": false,
+    "stopped": true,
+    "no_overshoot": true
+  },
+  "seconds": 3567.5,
+  "commit": "d21c770e5c71888069f239c7e2156b22ae515b61"
+}

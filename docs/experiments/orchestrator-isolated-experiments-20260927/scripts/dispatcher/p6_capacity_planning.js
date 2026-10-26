@@ -67,7 +67,7 @@ function record(label, value) { log.push({label, value}); console.log('== ' + la
 
   // Does claim() itself succeed for the planning-blocked step B (enforcement deferred to start)?
   const claimResult = lib.cli('claim', dir, {owner: 'parent', steps: ['B']});
-  record('6c claim() call directly targeting the planning-blocked step B', {status: claimResult.status, claimed: claimResult.json && claimResult.json.claims});
+  record('6c claim() call directly targeting the planning-blocked step B', {status: claimResult.status, claimed: claimResult.json && claimResult.json.claims, stderr: claimResult.stderr.trim().slice(0, 300)});
 
   // Confirm start() is where enforcement actually happens.
   if (claimResult.status === 0) {

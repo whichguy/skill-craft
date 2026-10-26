@@ -58,9 +58,9 @@
           "id": "A1",
           "assumption": "SYS-ORG-SUITE: both Apex test classes pass in the org once the product is deployed (10 methods in all).",
           "disposition": "open",
-          "check": "After the release deploy and the permission set assignment, run the two commands in system_commands (HOME/environment.md ## Commands).",
+          "settle": "After the release deploy and the permission set assignment, run the two commands in system_commands (HOME/environment.md ## Commands).",
           "reason": "The test classes exist in the org only after the release deploy; the earlier stages were recorded by the harness without running them.",
-          "consumer": "release-plan"
+          "due_stage": "release-plan"
         }
       ]
     },

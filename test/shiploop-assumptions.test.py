@@ -40,9 +40,11 @@ def probed(ident: str, ref: str) -> dict:
             "check": "run the probe", "evidence": [ref]}
 
 
-def open_row(ident: str, consumer: str) -> dict:
+def open_row(ident: str, due: str) -> dict:
+    """An open row due at a work item (the plan's ``due_item``, W<n>) or at a later stage (``due_stage``)."""
+    key = "due_item" if due[:1] == "W" and due[1:].isdigit() else "due_stage"
     return {"id": ident, "assumption": "It holds.", "disposition": "open",
-            "check": "call the service", "reason": "no access here", "consumer": consumer}
+            "settle": "call the service", "reason": "no access here", key: due}
 
 
 class ShapeTests(unittest.TestCase):
@@ -60,7 +62,7 @@ class ShapeTests(unittest.TestCase):
             [{"id": "A1", "assumption": "x", "disposition": "maybe"}]))
         row = open_row("A1", "W1")
         del row["reason"]
-        self.assertIn("needs exactly check, consumer, reason", self.refused([row]))
+        self.assertIn("needs exactly due_item, reason, settle", self.refused([row]))
         row = evidenced("A1", "https://example.test/doc")
         row["check"] = "extra"
         self.assertIn("needs exactly evidence", self.refused([row]))
@@ -74,8 +76,8 @@ class ShapeTests(unittest.TestCase):
 
     def test_open_entries_must_name_a_work_item_in_the_queue(self):
         with self.assertRaisesRegex(assumptions.AssumptionError, "not a work item"):
-            assumptions.check_consumers([open_row("A1", "W9")], {"W1"})
-        assumptions.check_consumers([open_row("A1", "W1"), evidenced("A2", "https://x.test")],
+            assumptions.check_due_items([open_row("A1", "W9")], {"W1"})
+        assumptions.check_due_items([open_row("A1", "W1"), evidenced("A2", "https://x.test")],
                                     {"W1"})
 
     def test_files_must_exist_and_a_probe_must_cite_saved_output(self):

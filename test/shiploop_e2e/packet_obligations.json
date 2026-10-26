@@ -50,10 +50,10 @@
                  {"any": ["Exit when ALL of these hold"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": ["----- BEGIN until-loop ARGUMENT -----"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": [" start --receipt "], "source": "skills/shiploop/references/inner-loop.md"}]},
-    {"id": "until-loop-no-argument", "obligation": "a looped stage outside loops.ARGUMENT_STAGES (decision 20, owner 2026-10-18) carries its Until Loop block, the literal start command and the Contract/Receipt pointer in the printed text; its exit conditions live only in the Contract file that pointer names, because the loop's own packets state them each time, not the packet (a stage whose loop is unavailable prints the reason instead and is out of scope)", "kinds": ["producer"], "surface": "head",
+    {"id": "until-loop-no-argument", "obligation": "a looped stage outside loops.ARGUMENT_STAGES (decision 20, owner 2026-10-18) carries its Until Loop block, the literal start command and the Contract/Receipt pointer in the printed text; its exit conditions live only in the Contract file that pointer names, because the loop's own instructions state them each time, not the packet (a stage whose loop is unavailable prints the reason instead and is out of scope)", "kinds": ["producer"], "surface": "head",
      "when": {"file_has": " · Receipt: "},
      "anchors": [{"any": ["Until Loop (no iteration limit"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
-                 {"any": ["Then follow each packet it prints"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
+                 {"any": ["Then follow each instruction it prints"], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": [" · Receipt: "], "source": "skills/shiploop/scripts/shiploop_loops.py"},
                  {"any": [" start --receipt "], "source": "skills/shiploop/references/inner-loop.md"}]},
     {"id": "test-summary", "obligation": "the test stage's duty 2 asks the summary for the test decisions retained, refined or superseded, and its result template asks the summary for what no ShipLoop record holds: the tests added and what each asserts, and any test changed to pass a run with its independent reason (unit U14, TD-12)", "kinds": ["producer"], "surface": "head",
@@ -116,9 +116,9 @@
      "when": {"file_has": "the only work for this packet"},
      "anchors": [{"any": ["Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): "], "source": "skills/shiploop/scripts/shiploop_navigator.py"},
                  {"any": ["Do this stage inside the /until-loop invocation at the end of this packet"], "source": "skills/shiploop/scripts/shiploop_navigator.py"}]},
-    {"id": "step-plan-check", "obligation": "step-plan asks each step for its check, the one command that proves the step's criteria with only that step and accepted earlier ones, which needs no later step and does not pass by skipping a missing file (implement-step fix plan 4.1, unit w2-proof)", "kinds": ["producer"], "surface": "head",
+    {"id": "step-plan-check", "obligation": "step-plan asks each step for its proof, the one command that proves the step's criteria with only that step and accepted earlier ones, which needs no later step and does not pass by skipping a missing file (implement-step fix plan 4.1, unit w2-proof)", "kinds": ["producer"], "surface": "head",
      "when": {"file_has": "ShipLoop navigator | step-plan |"},
-     "anchors": [{"any": ["`check`: the one command, from the repository root, that proves the step's criteria"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},
+     "anchors": [{"any": ["`proof`: the one command, from the repository root, that proves the step's criteria"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},
                  {"any": ["skipping a missing file"], "source": "skills/shiploop/scripts/shiploop_prompts.py"}]}
   ]
 }

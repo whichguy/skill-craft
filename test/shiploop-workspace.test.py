@@ -1954,7 +1954,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "workspace", "return", "--workspace-root", str(root), code=2
         )
 
-        self.assertIn("Improve child is at handoff, a stage that does not start an Improve child in this run", forged.stderr)
+        self.assertIn("Improve child is at handoff, a stage that does not start an Improve stage in this run", forged.stderr)
         self._assert_source_unchanged(source_before)
         self.assertEqual(self._workspace_snapshot(root), run_before)
         self.assertFalse((root / "return-receipt.md").exists())

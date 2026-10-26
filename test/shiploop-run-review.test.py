@@ -1352,7 +1352,8 @@ class PlanAndExecutionTest(unittest.TestCase):
         spec.loader.exec_module(stage_spec)
         inner = list(stage_spec.INNER)
         self.assertEqual(export.AFTER_IMPLEMENT, tuple(inner[inner.index("implement") + 1:]))
-        self.assertEqual((stage_spec.SEND_BACK_TO, stage_spec.MAX_SEND_BACKS), ("step-plan", 2))  # SCHEMA.md says "at most twice"
+        self.assertEqual(stage_spec.SEND_BACK_TO, "step-plan")
+        self.assertFalse(hasattr(stage_spec, "MAX_SEND_BACKS"))  # no send-back cap (owner 2026-10-24)
 
     def test_schema_md_defines_loops_the_pairing_and_the_unknown_cases(self):
         text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
@@ -7213,7 +7214,7 @@ TOOL_USE = {"calls": 110, "by_tool": {"Bash": 105, "Read": 2, "Write": 3}, "resu
                 "read": {"read_tool": [{"packet": "nav-a", "whole": True, "chars": 29527}, {"packet": "nav-b", "whole": False, "chars": 8484},
                                        {"packet": "nav-b-improve", "whole": True, "chars": 24549}],
                          "shell": {"calls": 19, "chars": 90112}}}}
-UNVERIFIED_ITEM = {"check": "Open the page after node server.js, click cells until the fleet is sunk and report whether it looks right",
+UNVERIFIED_ITEM = {"settle": "Open the page after node server.js, click cells until the fleet is sunk and report whether it looks right",
                    "due_stage": "handoff", "outcome": "The page looks right and is playable by mouse in a real browser", "owner": "user",
                    "reason": "No browser tool was used in this run; only a fake-DOM execution of the page script was done"}
 
@@ -7298,7 +7299,7 @@ class VerifyAndUnverifiedExportTests(unittest.TestCase):
         run, facts = self.build(out)
         first = self.row(run, "step-plan")["unverified"]
         self.assertEqual(first[0], {"outcome": UNVERIFIED_ITEM["outcome"], "reason": UNVERIFIED_ITEM["reason"],
-                                    "check": UNVERIFIED_ITEM["check"], "owner": "user", "dueStage": "handoff"})
+                                    "check": UNVERIFIED_ITEM["settle"], "owner": "user", "dueStage": "handoff"})
         self.assertEqual(len(first[1]["reason"]), 301)  # cut at 300 characters, marked with an ellipsis
         self.assertTrue(first[1]["reason"].endswith("…"))
         self.assertEqual(self.row(run, "implement")["unverified"], [])
@@ -7801,7 +7802,7 @@ class RefusalLinePathTests(unittest.TestCase):
     keeps the file's place in the run and drops where the run lives: no absolute local path leaves the exporter."""
 
     def test_the_run_folder_is_cut_to_a_placeholder_and_any_other_absolute_path_to_its_name(self):
-        line = ("ShipLoop navigator: the test loop has not run: no terminal packet exists at "
+        line = ("ShipLoop navigator: the test loop has not run: no receipt exists at "
                 "/Users/someone/e2e-runs/20261009/s6-after-spec/.shiploop-runs/work-20261009-220625-b4d2a7/run/tests/nav-7a4e.md; "
                 "also /Users/someone/notes/readme.md and /opt/homebrew/bin/node")
         got = export.failure_line(line)

@@ -1,0 +1,185 @@
+<!doctype html><html><head>
+<meta charset="utf-8">
+<title>Chess Run 3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --ink:#1b2130; --muted:#5b6475; --rule:#d9dde5;
+  --accent:#0d6b70; --improve:#b9770e; --improve-soft:#f3e3c4; --work:#0d6b70; --work-soft:#cfe7e6;
+  --bad:#b23a2a; --bad-soft:#f6dcd7; --good:#2d7a3e; --good-soft:#d9eedc; --warn:#9a6a00;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif; --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161e; --surface:#1a2029; --ink:#e7eaf0; --muted:#9aa3b3; --rule:#2c3440;
+  --accent:#4fb3b6; --improve:#e0a53e; --improve-soft:#3d3220; --work:#4fb3b6; --work-soft:#1d3a3c;
+  --bad:#ec7d6c; --bad-soft:#3f2420; --good:#6cc27c; --good-soft:#1f3524; --warn:#e0b54a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161e; --surface:#1a2029; --ink:#e7eaf0; --muted:#9aa3b3; --rule:#2c3440;
+  --accent:#4fb3b6; --improve:#e0a53e; --improve-soft:#3d3220; --work:#4fb3b6; --work-soft:#1d3a3c;
+  --bad:#ec7d6c; --bad-soft:#3f2420; --good:#6cc27c; --good-soft:#1f3524; --warn:#e0b54a; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:36px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,4.4vw,42px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+p{margin:0;max-width:72ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:grid;gap:12px}
+.verdict{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-family:var(--mono);font-size:12.5px;padding:3px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.pill.stop{background:var(--ink);color:var(--bg);border-color:transparent;font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.kpi{background:var(--surface);padding:14px 16px;display:grid;gap:2px;min-width:0}
+.kpi b{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+section{display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:18px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cols>*{min-width:0}
+ul.check{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.check li{display:grid;grid-template-columns:22px 1fr;gap:8px}
+.mark{font-family:var(--mono);font-weight:600}
+.mark.ok{color:var(--good)} .mark.no{color:var(--bad)} .mark.part{color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.tablewrap{overflow-x:auto}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.num.wrap{white-space:normal}
+.sev{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:1px 8px;border-radius:4px;white-space:nowrap}
+.sev.h{background:var(--bad-soft);color:var(--bad)} .sev.m{background:var(--improve-soft);color:var(--improve)} .sev.l{background:var(--work-soft);color:var(--accent)}
+.small{font-size:13px;color:var(--muted)}
+code{font-family:var(--mono);font-size:.92em;background:var(--bg);padding:1px 5px;border-radius:4px;word-break:break-word}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(130px,220px) 1fr 70px;gap:10px;align-items:center;font-size:13.5px}
+.bar .track{height:14px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex}
+.bar .w{background:var(--work)} .bar .i{background:var(--improve)}
+@media (max-width:520px){.bar{grid-template-columns:1fr 60px}.bar .track{grid-column:1 / -1;grid-row:2}}
+.missing{color:var(--muted);font-style:italic}
+</style>
+</head><body><div class="wrap">
+<header>
+<div class="eyebrow">ShipLoop E2E &middot; chess-salesforce &middot; 20261024 &middot; skill-craft 2.9.0 / ShipLoop 1.9.0 &middot; grok grok-4.7</div>
+<h1>Chess run 5b: the first full pass</h1>
+<p>Every figure below comes from this run’s own records (<code>result.json</code>, <code>metrics.json</code>, <code>review-export/facts.md</code>, <code>transcript.md</code>), produced by <code>collect.py</code> and <code>render.py</code>. The ranked findings and next fixes further down are hand-written, from <code>analysis.md</code>.</p>
+<div class="verdict"><span class="pill good">PASS · ShipLoop done in 284 active min</span>
+<span class="pill good">deployed PASS</span>
+<span class="pill good">tests PASS</span>
+<span class="pill good">rules PASS</span>
+<span class="pill good">project PASS</span>
+<span class="pill good">committed PASS</span>
+<span class="pill">org kept</span></div>
+</header>
+<div class="kpis"><div class="kpi"><b>284 min</b><span>active run time, cap 300</span></div>
+<div class="kpi"><b>84 min</b><span>in Improve reviews, 41 passes, 27 children</span></div>
+<div class="kpi"><b>21</b><span>compactions; 125 min re-orienting</span></div>
+<div class="kpi"><b>10 of 10</b><span>work items finished; 6 of 6 release stages</span></div>
+<div class="kpi"><b>3</b><span>send-back(s); 9 ShipLoop refusals</span></div>
+<div class="kpi"><b>2163</b><span>tool calls; at least $21.65</span></div></div>
+<section><h2>Measures across runs</h2>
+<div class="card tablewrap" style="padding:0"><table><tr><th>Measure (same method across runs)</th><th>run 3 &middot; 1.7.0</th><th>run 4 &middot; 1.8.0</th><th>run 5b &middot; 1.9.0</th></tr><tr><td>Reached</td><td class="num wrap">test-spec (STOPPED)</td><td class="num wrap">release-plan (STOPPED)</td><td class="num wrap">? (PASS)</td></tr><tr><td>Run time, active (cap)</td><td class="num wrap">236.1 min (cap 240)</td><td class="num wrap">232.3 min (cap 240)</td><td class="num wrap">284.3 min (cap 300)</td></tr><tr><td>Improve: children / passes / minutes</td><td class="num wrap">16 / 52 / 98.9</td><td class="num wrap">13 / 25 / 81.8</td><td class="num wrap">27 / 41 / 83.8</td></tr><tr><td>Re-orientation after compaction</td><td class="num wrap">107.9 min, 764 calls</td><td class="num wrap">74.0 min, 528 calls</td><td class="num wrap">125.2 min, 1169 calls</td></tr><tr><td>Compactions</td><td class="num wrap">14</td><td class="num wrap">15</td><td class="num wrap">21</td></tr><tr><td>Planning window</td><td class="num wrap">78.1 min</td><td class="num wrap">73.8 min</td><td class="num wrap">73.1 min</td></tr><tr><td>Work item 1 full cycle</td><td class="num wrap">51.8 min</td><td class="num wrap">53.3 min</td><td class="num wrap">109.6 min</td></tr><tr><td>Work items (executed of planned)</td><td class="num wrap">3 of 4</td><td class="num wrap">3 of 3</td><td class="num wrap">10 of 10</td></tr><tr><td>Release stages reached (of 6)</td><td class="num wrap">0 of 6</td><td class="num wrap">0 of 6</td><td class="num wrap">6 of 6</td></tr><tr><td>Send-backs</td><td class="num wrap">1</td><td class="num wrap">1</td><td class="num wrap">3</td></tr><tr><td>ShipLoop refusals</td><td class="num wrap">5</td><td class="num wrap">13</td><td class="num wrap">9</td></tr><tr><td>Reads of ShipLoop scripts and references</td><td class="num wrap">97</td><td class="num wrap">106</td><td class="num wrap">145</td></tr><tr><td>Turns / cost (lower bound)</td><td class="num wrap">922 / $15.92</td><td class="num wrap">884 / $21.49</td><td class="num wrap">1265 / $21.65</td></tr><tr><td>Checks: project / deployed / tests / rules / committed</td><td class="num wrap"><span class="mark no">✗</span> <span class="mark no">✗</span> <span class="mark ok">✓</span> <span class="mark ok">✓</span> <span class="mark no">✗</span></td><td class="num wrap"><span class="mark no">✗</span> <span class="mark ok">✓</span> <span class="mark ok">✓</span> <span class="mark ok">✓</span> <span class="mark no">✗</span></td><td class="num wrap"><span class="mark ok">✓</span> <span class="mark ok">✓</span> <span class="mark ok">✓</span> <span class="mark ok">✓</span> <span class="mark ok">✓</span></td></tr><tr><td>Gate counts (S-16)</td><td class="num wrap">not measured</td><td class="num wrap">not measured</td><td class="num wrap">recorded</td></tr><tr><td>Retired-nomenclature hits (S-16)</td><td class="num wrap">not measured</td><td class="num wrap">not measured</td><td class="num wrap">recorded</td></tr></table></div>
+<p class="small">Fields marked "not measured" are absent from that run’s own records (hover for the reason); they are never shown as 0.</p>
+</section>
+<section><h2>Where the time went</h2>
+<p class="small">One bar per phase: planning, each work item (including any send-back redo, since it reopens the same item), then release/system test. The amber part of a bar is the minutes an Improve child spent on actions in that phase, from this run’s own bind-file-to-accept timing &mdash; not a hand estimate.</p>
+<div class="card bars"><div class="bar"><span>Planning</span><div class="track"><div class="w" style="width:4.2%"></div><div class="i" style="width:3.2%"></div></div><span class="mono" style="text-align:right">47.2 min</span></div>
+<div class="bar"><span>Work item 1</span><div class="track"><div class="w" style="width:12.0%"></div><div class="i" style="width:5.1%"></div></div><span class="mono" style="text-align:right">109.6 min</span></div>
+<div class="bar"><span>Work item 2</span><div class="track"><div class="w" style="width:6.3%"></div><div class="i" style="width:0.5%"></div></div><span class="mono" style="text-align:right">43.4 min</span></div>
+<div class="bar"><span>Work item 3</span><div class="track"><div class="w" style="width:97.2%"></div><div class="i" style="width:2.8%"></div></div><span class="mono" style="text-align:right">639.8 min</span></div>
+<div class="bar"><span>Release / system test</span><div class="track"><div class="w" style="width:3.7%"></div><div class="i" style="width:1.5%"></div></div><span class="mono" style="text-align:right">33.1 min</span></div></div>
+</section>
+<section><h2>Every stage visit</h2>
+<div class="card tablewrap" style="padding:0"><table><tr><th>Stage</th><th>Minutes</th><th>Improve min</th><th>Outcome</th><th>Re-orientation after compaction</th><th>Context peak (tokens)</th></tr><tr><td>intake</td><td class="num">2.4</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">64675</td></tr><tr><td>discovery</td><td class="num">4.8</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">130380</td></tr><tr><td>research</td><td class="num">2.5</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">280450</td></tr><tr><td>spec</td><td class="num">12.3</td><td class="num">10.9</td><td>done</td><td class="num">7.5 min / 52 calls</td><td class="num">204698</td></tr><tr><td>test-strategy</td><td class="num">12.9</td><td class="num">5.0</td><td>done</td><td class="num">9.3 min / 78 calls</td><td class="num">177252</td></tr><tr><td>plan</td><td class="num">9.0</td><td class="num">4.6</td><td>done</td><td class="num">5.1 min / 59 calls</td><td class="num">201861</td></tr><tr><td>prepare</td><td class="num">3.4</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">170093</td></tr><tr><td>step-plan</td><td class="num">16.1</td><td class="num">3.9</td><td>done</td><td class="num">9.7 min / 87 calls</td><td class="num">203699</td></tr><tr><td>test-spec</td><td class="num">10.5</td><td class="num">4.6</td><td>done</td><td class="num">8.3 min / 72 calls</td><td class="num">204382</td></tr><tr><td>validate-existing</td><td class="num">0.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">&ndash;</td></tr><tr><td>implement</td><td class="num">15.0</td><td class="num">4.7</td><td>done</td><td class="num">4.0 min / 29 calls</td><td class="num">204601</td></tr><tr><td>implement</td><td class="num">2.8</td><td class="num">0.7</td><td>done</td><td class="num">&ndash;</td><td class="num">201519</td></tr><tr><td>implement</td><td class="num">13.7</td><td class="num">2.3</td><td>done</td><td class="num">&ndash;</td><td class="num">154163</td></tr><tr><td>implement</td><td class="num">3.8</td><td class="num">0.9</td><td>done</td><td class="num">&ndash;</td><td class="num">200345</td></tr><tr><td>implement</td><td class="num">5.7</td><td class="num">0.0</td><td>send-back</td><td class="num">&ndash;</td><td class="num">203831</td></tr><tr><td>step-plan</td><td class="num">6.0</td><td class="num">1.8</td><td>done</td><td class="num">&ndash;</td><td class="num">184363</td></tr><tr><td>test-spec</td><td class="num">4.3</td><td class="num">3.6</td><td>done</td><td class="num">0.9 min / 22 calls</td><td class="num">205217</td></tr><tr><td>validate-existing</td><td class="num">0.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">&ndash;</td></tr><tr><td>implement</td><td class="num">4.5</td><td class="num">2.6</td><td>done</td><td class="num">1.9 min / 22 calls</td><td class="num">149908</td></tr><tr><td>implement</td><td class="num">1.6</td><td class="num">0.6</td><td>done</td><td class="num">&ndash;</td><td class="num">178488</td></tr><tr><td>implement</td><td class="num">5.3</td><td class="num">4.5</td><td>done</td><td class="num">&ndash;</td><td class="num">202667</td></tr><tr><td>implement</td><td class="num">2.1</td><td class="num">0.7</td><td>done</td><td class="num">&ndash;</td><td class="num">131495</td></tr><tr><td>implement</td><td class="num">3.4</td><td class="num">0.9</td><td>done</td><td class="num">&ndash;</td><td class="num">173809</td></tr><tr><td>implement</td><td class="num">2.2</td><td class="num">0.7</td><td>done</td><td class="num">&ndash;</td><td class="num">197357</td></tr><tr><td>test</td><td class="num">6.2</td><td class="num">0.0</td><td>done</td><td class="num">4.2 min / 30 calls</td><td class="num">203470</td></tr><tr><td>document</td><td class="num">2.7</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">143708</td></tr><tr><td>verify</td><td class="num">2.2</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">167832</td></tr><tr><td>carry-forward</td><td class="num">1.4</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">193513</td></tr><tr><td>step-plan</td><td class="num">9.1</td><td class="num">0.0</td><td>done</td><td class="num">6.5 min / 79 calls</td><td class="num">199226</td></tr><tr><td>test-spec</td><td class="num">2.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">170468</td></tr><tr><td>validate-existing</td><td class="num">0.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">&ndash;</td></tr><tr><td>implement</td><td class="num">9.5</td><td class="num">0.0</td><td>send-back</td><td class="num">4.8 min / 48 calls</td><td class="num">378126</td></tr><tr><td>step-plan</td><td class="num">3.4</td><td class="num">1.2</td><td>done</td><td class="num">&ndash;</td><td class="num">171110</td></tr><tr><td>test-spec</td><td class="num">1.6</td><td class="num">0.8</td><td>done</td><td class="num">&ndash;</td><td class="num">201469</td></tr><tr><td>validate-existing</td><td class="num">0.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">&ndash;</td></tr><tr><td>implement</td><td class="num">6.8</td><td class="num">1.3</td><td>done</td><td class="num">&ndash;</td><td class="num">124138</td></tr><tr><td>test</td><td class="num">3.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">157811</td></tr><tr><td>document</td><td class="num">1.2</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">178989</td></tr><tr><td>verify</td><td class="num">2.4</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">201736</td></tr><tr><td>carry-forward</td><td class="num">4.4</td><td class="num">0.0</td><td>done</td><td class="num">2.5 min / 40 calls</td><td class="num">98568</td></tr><tr><td>step-plan</td><td class="num">7.1</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">165090</td></tr><tr><td>test-spec</td><td class="num">1.2</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">185774</td></tr><tr><td>validate-existing</td><td class="num">0.0</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">&ndash;</td></tr><tr><td>implement</td><td class="num">10.8</td><td class="num">4.5</td><td>done</td><td class="num">1.3 min / 15 calls</td><td class="num">204434</td></tr><tr><td>implement</td><td class="num">3.0</td><td class="num">0.8</td><td>done</td><td class="num">&ndash;</td><td class="num">184504</td></tr><tr><td>implement</td><td class="num">5.6</td><td class="num">3.2</td><td>done</td><td class="num">&ndash;</td><td class="num">204780</td></tr><tr><td>test</td><td class="num">595.2</td><td class="num">0.0</td><td>done</td><td class="num">5.3 min / 51 calls</td><td class="num">108517</td></tr><tr><td>document</td><td class="num">1.5</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">148740</td></tr><tr><td>verify</td><td class="num">3.8</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">184089</td></tr><tr><td>carry-forward</td><td class="num">11.6</td><td class="num">9.2</td><td>done</td><td class="num">9.2 min / 80 calls</td><td class="num">202591</td></tr><tr><td>system-test-author</td><td class="num">8.5</td><td class="num">5.8</td><td>done</td><td class="num">3.8 min / 47 calls</td><td class="num">197440</td></tr><tr><td>system-test</td><td class="num">2.9</td><td class="num">0.0</td><td>send-back</td><td class="num">&ndash;</td><td class="num">151259</td></tr><tr><td>system-test-author</td><td class="num">1.3</td><td class="num">0.6</td><td>done</td><td class="num">&ndash;</td><td class="num">178850</td></tr><tr><td>system-test</td><td class="num">0.5</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">185961</td></tr><tr><td>product-acceptance</td><td class="num">0.9</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">197672</td></tr><tr><td>release-plan</td><td class="num">10.1</td><td class="num">3.0</td><td>done</td><td class="num">8.4 min / 78 calls</td><td class="num">202770</td></tr><tr><td>release-check</td><td class="num">1.9</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">179862</td></tr><tr><td>release</td><td class="num">0.9</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">190512</td></tr><tr><td>release-verify</td><td class="num">1.3</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">203595</td></tr><tr><td>operations</td><td class="num">3.5</td><td class="num">0.0</td><td>done</td><td class="num">2.1 min / 29 calls</td><td class="num">85221</td></tr><tr><td>handoff</td><td class="num">1.3</td><td class="num">0.0</td><td>done</td><td class="num">&ndash;</td><td class="num">125185</td></tr></table></div>
+</section>
+<section><h2>Findings and next fixes</h2>
+<div class="card"><h2>Verdict</h2>
+<p><b>Run 5b is the first chess run to pass end to end.</b> ShipLoop reached <code>done</code> and handoff in 284 active minutes, and all</p>
+<p>five checks passed:</p>
+<ul class="check" style="display:block">
+<li style="display:block;margin:4px 0"><code>project</code>, <code>deployed</code> and <code>committed</code> passed, where runs 3 and 4 failed them;</li>
+<li style="display:block;margin:4px 0"><code>tests</code>: 27 Apex tests ran, none failing;</li>
+<li style="display:block;margin:4px 0"><code>rules</code>.</li>
+</ul>
+<p>Every release stage ran, 6 of 6; runs 3 and 4 ran 0. This shows that the 2.9.0 gates held in normal use, not that the</p>
+<p>run was cheap: re-orientation and Improve time are still the largest costs.</p>
+<p>The first attempt, <b>run 5a</b>, was blocked after 93 min at W1 implement for a reason outside ShipLoop. The Grok host had</p>
+<p>moved from 1.0.62 to 1.0.70, and its auto mode refused <code>sf project deploy start --target-org de</code> as &quot;a remote</p>
+<p>stateful mutation&quot;; run 4 had sent that command shape 15 times under the same allow rules. ShipLoop reported <code>blocked</code></p>
+<p>rather than faking a deploy. Run 5b used <code>--permission-mode bypassPermissions</code>, the owner&#x27;s choice; the harness&#x27;s sf</p>
+<p>guard still kept all 232 <code>sf</code> calls inside org <code>de</code> and the SLChess prefix.</p>
+<h2>Ranked findings (newest first)</h2>
+<div class="tablewrap"><table><tr><th>#</th><th>Finding and evidence</th><th>Proposed change</th><th>Minutes at stake</th><th>Where</th></tr>
+<tr><td>1</td><td><b>Re-orientation is the largest cost: 125.2 min and 1,169 calls over 21 compactions</b> (run 4: 74.0 min, 15). Part of it is the resume after the sleep, but the rest is the 10-step, 3-item queue rereading its packets.</td><td>Bounded heads and template-rendered packets (slice 4), then re-measure. Count re-orientation separately for each resume.</td><td>~60-125</td><td>slice 4 (deferred until this measure)</td></tr>
+<tr><td>2</td><td><b>Improve: 27 reviews, 41 passes, 83.8 min</b> (run 4: 13, 25, 81.8; run 3: 16, 52, 98.9). There are more reviews because each of the 10 steps has one; passes per review fell to at most 3. The spec review added real stand-in oracles (5a: 7 passes; 5b: 3), and the end-of-work review found two real board bugs.</td><td>Keep. Measure value per pass, not the count. A per-step review of a tiny step is the candidate to skip.</td><td>~20-30</td><td>outside the plan</td></tr>
+<tr><td>3</td><td><b>Prepare&#x27;s <code>harness_runs</code> gate checks only that an evidence file exists.</b> In 5a the evidence was a browser probe page saying &quot;This is not … the slChessBoard component&quot;; in 5b it was a real jest run (&quot;1 passed&quot;).</td><td>Require a test-result line in the evidence (a count, pass/fail, ok/not ok), plus a known-dodge row.</td><td>small, but closes an F1 hole</td><td>next batch</td></tr>
+<tr><td>4</td><td><b>Two implement steps found a criterion they could not meet and sent back</b> (&quot;C28&#x27;s promotion line needs an illegal straight pawn capture&quot;; &quot;C6 cannot be caught from anonymous Apex&quot;). The route worked; each send-back cost about 6-10 min of rework, and W1&#x27;s full cycle was 109.6 min against 51.8 and 53.3.</td><td>Have the step-plan review (or a gate) check that each criterion is reachable by its planned command before implement.</td><td>~15-20</td><td>next batch</td></tr>
+<tr><td>5</td><td><b><code>primary</code> does not discriminate:</b> 5a marked 7 of 7 requirements primary, 5b 13 of 14. F6 then held without add-work, because component and Apex tests backed both unobserved primary outcomes.</td><td>The spec placeholder and duty say that primary outcomes are what the user asked for directly, usually a few.</td><td>low</td><td>next batch</td></tr>
+<tr><td>6</td><td><b>After a mid-item send-back, expectations are still judged against the item&#x27;s original base.</b> The refusal &quot;expectation E3 is works, but …SLChessEngine.cls does not exist on the item&#x27;s lint base&quot; made the model call an existing file absent.</td><td>Judge a revised step plan against the latest step commit, or say so in the refusal.</td><td>small</td><td>next batch</td></tr>
+<tr><td>7</td><td><b>Mutation coverage of the Apex code is zero by construction:</b> W1 and W2 were skipped as all-remote. W3&#x27;s component tests killed 6 of 8 mutants.</td><td>Accept, since a checkout mutant cannot reach the org, and report it as a known gap. An org-side mutation pass is a later option.</td><td>n/a</td><td>outside the plan</td></tr>
+<tr><td>8</td><td><b>Environment variables decided two outcomes:</b> the Grok host update (5a blocked), a mid-run Homebrew Python swap (5a crashed at its end) and a 9.8 h sleep (5b&#x27;s wall-clock cap spent at 229 active min).</td><td>Released in v2.9.1: run deadlines count active time (<code>time.monotonic</code>), <code>_strptime</code> is loaded at start. Record the host build per run, and treat a change as non-comparable (the E2E scorecard does).</td><td>n/a</td><td>harness</td></tr>
+<tr><td>9</td><td><b>Retired terms still printed in refusals:</b> &quot;run the same complete command again&quot;, and &quot;whose consumer is&quot;. Each phrase was split across two string literals, so the line scan missed it; the run&#x27;s <code>nomenclature</code> record caught one.</td><td>Released in v2.9.1: all 7 leftovers fixed, and the retired-terms suite now reads the strings a script can print.</td><td>n/a</td><td>released in v2.9.1</td></tr>
+<tr><td>10</td><td><b>F5&#x27;s regression-line check is weak on extra tokens:</b> <code>TC_B4_promotionQueen (b)</code> passes because &quot;(b)&quot; occurs in almost any test file.</td><td>Check only ID-like tokens.</td><td>low</td><td>next batch</td></tr>
+</table></div>
+<h2>Test quality (the run&#x27;s own records)</h2>
+<div class="tablewrap"><table><tr><th>Measure</th><th>Run 5b</th><th>Reading</th></tr>
+<tr><td>Executed criteria confirmed only by a grep of code</td><td><b>0</b></td><td>F1&#x27;s gate held: a grep-only &quot;executed&quot; check is refused at step-plan</td></tr>
+<tr><td>REDs faked by a file guard</td><td><b>0</b></td><td>F2&#x27;s guard gate held</td></tr>
+<tr><td>Criteria confirmed by inspection</td><td><b>0</b></td><td>nothing was left to &quot;inspection suffices&quot;</td></tr>
+<tr><td>Greps for a searched criterion (the docstring duty)</td><td>6</td><td>context, not dodges</td></tr>
+<tr><td>Mutation check</td><td>W3: 6 of 8 mutants killed; W1, W2: skipped (all-remote)</td><td>component tests are strong; the Apex code goes unmeasured by mutation</td></tr>
+<tr><td>Gate refusals, each caught in stage</td><td>producer limits 3, spec write-back 1, expectations 1, assumption link 1, other 3</td><td>9 fired, 9 caught, none repeated</td></tr>
+<tr><td>Primary outcomes left unobserved</td><td>R-10 (play on the board) with <code>TC_B1_startBoard</code>; R-9 with <code>TC_19_controllerMates</code></td><td>F6 held, with no add-work</td></tr>
+<tr><td>End-of-work fixes with a regression test</td><td>2 of 2 (<code>TC_B4_promotionQueen</code>, <code>TC_B6_newGame</code>)</td><td>F5 held</td></tr>
+</table></div>
+<h2>What changed since run 4, observed</h2>
+<ul class="check" style="display:block">
+<li style="display:block;margin:4px 0"><b>F1 test layers.</b> The board&#x27;s component layer became prepare work, and 5b proved it with a real jest render test.</li>
+<p>  5a&#x27;s dodge shows the evidence check is still needed (finding 3).</p>
+<li style="display:block;margin:4px 0"><b>F2 file guards.</b> No guarded focused command in either run.</li>
+<li style="display:block;margin:4px 0"><b>F3 targets and I2 remote base run.</b></li>
+<li style="display:block;margin:4px 0">Org <code>de</code> is recorded as a target that keeps state.</li>
+<li style="display:block;margin:4px 0">W1&#x27;s base run left both Apex commands out as remote, with F3&#x27;s reason.</li>
+<li style="display:block;margin:4px 0">Verify printed &quot;RED unobserved&quot;.</li>
+<li style="display:block;margin:4px 0">Run 4&#x27;s W2 send-back, caused by a remote test on a base that already held the change, did not recur.</li>
+<li style="display:block;margin:4px 0"><b>F5 regression line.</b> Both end-of-work fixes named their test, and nothing was refused.</li>
+<li style="display:block;margin:4px 0"><b>F6 primary outcomes.</b> Product-acceptance accepted the unobserved board outcome only with a passing component</li>
+<p>  test, so run 4&#x27;s &quot;accepted on words&quot; failure is closed.</p>
+<li style="display:block;margin:4px 0"><b>Step size.</b> The producer limit refused W1&#x27;s single step, whose criteria totalled 5,192 characters. The model split</li>
+<p>  it into 6 behaviour steps, each committed with a lesson. Improve commits cited earlier commits 12 times out of 13</p>
+<p>  (run 4: 6 of 11).</p>
+<li style="display:block;margin:4px 0"><b>Release stages.</b> 6 of 6 ran, against 0 in runs 3 and 4.</li>
+</ul>
+<h2>Still open</h2>
+<ul class="check" style="display:block">
+<li style="display:block;margin:4px 0">Re-orientation (finding 1) and slice 4, which waits on this measure.</li>
+<li style="display:block;margin:4px 0">Findings 3-6 and 10, for the next batch.</li>
+<li style="display:block;margin:4px 0">Cost is a lower bound ($21.65, turns 1,265): segment 1&#x27;s Grok session ended in the sleep without writing its</li>
+<p>  cost. Run 5a, the blocked first attempt, cost about $25.5 more.</p>
+<li style="display:block;margin:4px 0">The app is kept in org <code>de</code> (<code>--keep-platform</code>, owner decision 2026-10-17). The next chess run&#x27;s preflight refuses</li>
+<p>  until it is removed with the case&#x27;s cleanup command and this run&#x27;s <code>platform/before.json</code>.</p>
+</ul>
+<h2>Where the build plan stands</h2>
+<ul class="check" style="display:block">
+<li style="display:block;margin:4px 0"><b>Slice 1</b> (outcomes, symbols, loop texts): shipped in 2.6.0-2.7.0.</li>
+<li style="display:block;margin:4px 0"><b>Slice 2</b> (plan data and producer bounds): shipped in 2.8.0. The step bounds drove 5b&#x27;s W1 split.</li>
+<li style="display:block;margin:4px 0"><b>Slice 3</b> (the implement record: step commits, write-back, revisit): shipped in 2.8.0. Step commits carry lessons,</li>
+<p>  and the spec write-back gate fired and held.</p>
+<li style="display:block;margin:4px 0"><b>Slice 4</b> (templates): S4.4 shipped in 2.8.0. The engine, slots, templates, registry and ledger (S4.1-S4.3,</li>
+<p>  S4.5, S4.6) are deferred, and this run&#x27;s 125 min of re-orientation is the measure they target.</p>
+<li style="display:block;margin:4px 0"><b>Outside the plan, in this release:</b></li>
+<li style="display:block;margin:4px 0">2.9.0: F1, F2, F3, F5 and F6, the I1-I3 fixes, the four renames (R1-R4) and the dodge table;</li>
+<li style="display:block;margin:4px 0">2.9.1: the leftover retired terms, the active-time deadline and the Improve review counter.</li>
+</ul></div>
+</section>
+<section><h2>Evidence</h2><div class="card small" style="display:grid;gap:6px">
+<div>run 3: <code>/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25b</code> (<code>result.json</code>, <code>metrics.json</code>, <code>review-export/facts.md</code>)</div>
+<div>run 4: <code>/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8</code> (<code>result.json</code>, <code>metrics.json</code>, <code>review-export/facts.md</code>)</div>
+<div>run 5b: <code>/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d</code> (<code>result.json</code>, <code>metrics.json</code>, <code>review-export/facts.md</code>)</div>
+</div></section>
+</div></body></html>

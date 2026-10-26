@@ -1,0 +1,57 @@
+{
+ "case": "hello",
+ "host": "codex",
+ "model": "gpt-6-luna",
+ "effort": "xhigh",
+ "versions": {
+  "source": "marketplace (resumed on its original install)",
+  "plugin_version": "2.9.0",
+  "shiploop_version": "1.9.0"
+ },
+ "outcome_class": "PASS",
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "process": {
+  "pass": true
+ },
+ "shiploop": {
+  "pass": true
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "quality": {},
+ "resumed_run": {
+  "from_host": "codex"
+ },
+ "environment": {
+  "mixed_host": false,
+  "environments": [
+   {
+    "host": "codex",
+    "host_build": "codex-cli 0.164.0"
+   },
+   {
+    "host": "codex",
+    "host_build": "codex-cli 0.164.0"
+   }
+  ]
+ },
+ "left_behind": {
+  "observed": true,
+  "survived": []
+ }
+}

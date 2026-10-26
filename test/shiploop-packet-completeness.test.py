@@ -167,7 +167,7 @@ class PacketCompletenessTests(unittest.TestCase):
                 # Purpose, check and recovery: the handoff file.
                 self.assertIn("Current action: Improve the completed " + stage + " result.", handoff)
                 line = next((line for line in handoff.splitlines() if line.startswith("Checked by: ")), "")
-                self.assertIn("Improve stage's complete command", line)
+                self.assertIn("Improve stage's callback", line)
                 self.assertNotIn("improve-complete", handoff)
                 self.assertIn("Recovery command", handoff)
                 # What the review judges the result against: the stage's Done-when, frozen as the exit condition.
@@ -234,10 +234,14 @@ class PacketCompletenessTests(unittest.TestCase):
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},
         # The closes, plus the stages whose docs/shiploop change can lose an R-<n> or AD-<n> ID (L4 of the
-        # architecture-file journal, 2026-10-10).
-        "KNOWLEDGE": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan"},
+        # architecture-file journal, 2026-10-10), plus product-acceptance, whose unverified rows name a requirement with
+        # an entry in KNOWLEDGE/spec.md (run-5 batch F6).
+        "KNOWLEDGE": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan", "product-acceptance"},
         "unverified": {"product-acceptance"},
         "due_stage": {"product-acceptance"},
+        # The spec's primary requirements, and the lower-layer check product-acceptance holds a primary one to (F6).
+        "primary": {"spec", "product-acceptance"},
+        "lower_layer_check": {"product-acceptance"},
     }
 
     def test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses(self) -> None:
@@ -340,6 +344,20 @@ class ObservedHarmPacketTests(unittest.TestCase):
         self.assertNotIn("--greeting", duty)
         self.assertIn("check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, "
                       "judged by exit code", flat(duty))
+
+    # E6 plan sizing (2026-10-25, branch exp/plan-sizing-1b1e33, journal F15-F33): Grok 4.7 planned an engine as one or
+    # two steps under the prose bound; a countable bound in generic words split it in 6 of 8 plans against 3 of 8 and
+    # kept every small change at its size. The step-plan packet the producer reads carries that bound.
+    def test_the_step_plan_packet_bounds_each_step_by_criteria_and_product_files(self) -> None:
+        text = flat(self.found[("step-plan", "producer")])
+        self.assertIn("Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files "
+                      "(a file that only describes another changed file counts with it; tests, docs and its proof "
+                      "script do not).", text)
+        self.assertIn("two separately confirmable behaviours or two outcomes joined with \"and\" make another step.", text)
+        self.assertIn("Its `paths` (inside the item's) name every file it changes.", text)
+        self.assertIn("Remote-only target: the recorded test route only; steps share one proof script.", text)
+        self.assertNotIn("too large for one review", text)
+        self.assertFalse(hasattr(prompts, "STEP_SIZING"))  # the older copy of the rule no packet printed
 
     # row 7: the step plan declares the ids; test-spec titles its cases with them; check is a suite.
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
@@ -444,13 +462,14 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_the_plan_says_each_assumption_takes_exactly_the_printed_fields_and_a_plan_consumer(self) -> None:
         text = flat(self.found[("plan", "producer")])
         # Packet re-cut: duty 16 says "exactly the fields the template shows" (the old "ShipLoop refuses any extra key"
-        # sentence is gone; "exactly" carries the rule) and an open assumption's consumer is a work item's ID.
+        # sentence is gone; "exactly" carries the rule) and an open assumption's due_item is a work item's ID (R3: the
+        # plan's open rows name a work item, the later stages' a due stage).
         self.assertIn("with exactly the template's fields per disposition", text)
-        for disposition, fields in assumptions._FIELDS.items():
+        for disposition, fields in dict(assumptions._FIELDS, open=assumptions._PLAN_OPEN).items():
             names = ", ".join("`" + name + "`" for name in sorted(fields))
             with self.subTest(disposition):
                 self.assertIn(disposition + ": " + names, text)
-        self.assertIn("An open assumption's `consumer` is the `work_items` ID that settles it", text)
+        self.assertIn("An open assumption's `due_item` is the `work_items` ID that settles it", text)
 
     # row 11b: a file written before a close names the close that refuses without it, taken from the gate itself.
     def refusals(self) -> dict:

@@ -1,0 +1,17 @@
+{
+ "case": "chess-salesforce",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "versions": {
+  "source": "marketplace",
+  "plugin_version": "2.9.0",
+  "shiploop_version": "1.9.0",
+  "regraded": true
+ },
+ "resumed_run": {
+  "from_host": "grok",
+  "from_model": "grok-4.7",
+  "stage": "inner-loop"
+ }
+}

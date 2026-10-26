@@ -142,6 +142,21 @@ def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
     _write(root, PAGE, renderer.render(value))
 
 
+def _refresh_trace(root: Path, key: Any) -> Any:
+    """Rewrite the run-trace page when what it is built from changed; returns the key it now shows.  A failure keeps
+    the last page and retries at the next sample."""
+    import shiploop_trace as trace
+
+    current = trace.source_key(root)
+    if current == key:
+        return key
+    try:
+        trace.write_html(root)
+    except (OSError, ValueError, KeyError, TypeError, store.StorageError):
+        return key
+    return current
+
+
 def observe(root: Path, *, watch: bool, interval: float = 2.0,
             idle_timeout: float = IDLE_TIMEOUT, instance: str = "") -> int:
     """Refresh the progress page until the run ends or goes idle (``watch``), or once; returns the exit code (0
@@ -156,6 +171,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
             return 0 if watch else 2
         last = None
         fingerprint = None
+        trace_key = None
         published = 0.0
         changed = time.monotonic()
         terminal_since = None
@@ -194,6 +210,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                                     interval=interval, final=final)
                             published = clock
                         last, fingerprint = current, source_key
+                        trace_key = _refresh_trace(root, trace_key)
                         _write(root, STATUS, json.dumps({
                             "schema": "shiploop-progress-observer/v1", "instance": instance,
                             "pid": os.getpid(), "run_id": current["run"]["id"],
@@ -274,7 +291,7 @@ def ensure(root: Path) -> None:
         root = checked_root(root)
         if os.path.lexists(root / DISABLED):
             return
-        # A done or halted run has nothing left to observe, and printing its terminal packet is a read: starting an
+        # A done or halted run has nothing left to observe, and printing its last packet is a read: starting an
         # observer there wrote .progress.lock and refreshed context-index.md (shiploop-cross-run, terminal recovery).
         if store.read_record(root / "state.md").get("status") in ("done", "halted"):
             return

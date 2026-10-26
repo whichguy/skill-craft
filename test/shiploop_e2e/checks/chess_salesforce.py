@@ -164,6 +164,12 @@ def query(org: str, soql: str, field: str, tooling: bool = True) -> list[str]:
     return [r[field] for r in records(org, soql, tooling) if r.get(field)]
 
 
+def renamed(script: str, default: str, prefix: str) -> str:
+    """An oracle's anonymous Apex for a run whose items carry `prefix` in place of the case's `default` (run.py
+    --platform-prefix): every class the oracle names begins with the default, so that spelling is renamed and nothing else."""
+    return script if prefix == default else script.replace(default, prefix)
+
+
 def lwc_prefix(prefix: str) -> str:
     """The component spelling of the Apex prefix: lower-case the leading capitals but the last one (SLChess -> slChess)."""
     run = re.match(r"[A-Z]+", prefix)
@@ -925,12 +931,12 @@ def run_apex(org: str, work: Path, name: str, script: str) -> tuple[str, dict[st
     return err, seen, result.get("logs") or ""
 
 
-def do_rules(org: str, raw_dir: Path | None = None) -> tuple[bool, list[str]]:
+def do_rules(org: str, raw_dir: Path | None = None, prefix: str = "SLChess") -> tuple[bool, list[str]]:
     lines, failed, total, raw = [], [], 0, ""
     work = Path(tempfile.mkdtemp(prefix="chess-sf-rules-"))
     try:
         for name, script, marks in rule_cases():
-            err, seen, logs = run_apex(org, work, name, script)
+            err, seen, logs = run_apex(org, work, name, renamed(script, "SLChess", prefix))
             bad = False
             for marker, expected in marks:
                 got = seen.get(marker)
@@ -1164,7 +1170,7 @@ def main(argv: list[str]) -> int:
             msg = "\n".join(lines)
         elif args.cmd == "rules":
             raw_dir = args.platform_dir or os.environ.get("E2E_PLATFORM_DIR")
-            ok, lines = do_rules(args.org, Path(raw_dir) if raw_dir else None)
+            ok, lines = do_rules(args.org, Path(raw_dir) if raw_dir else None, args.prefix)
             msg = "\n".join(lines)
         else:
             if args.keep and not args.reference:

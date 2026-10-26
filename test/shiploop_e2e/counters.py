@@ -79,13 +79,16 @@ HEADER = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<r
 # sentence that says when to open it (plan 6.2).
 FULL_PACKET = re.compile(r"^Full packet: (?P<path>\S[^\n]*?\.md)(?: - |$)", re.M)
 STATUS_END = "=== end ShipLoop status ==="
-# The closing line of a printed head from 2026-10-16 (the status block is early, then the duties, then the pointer); a head
-# printed before that ends at the status block, with its `Full packet:` line ahead of it.
-HEAD_END = "=== end ShipLoop head ==="
-# The closing line, as a line: the packet's second pointer line names it inside a sentence ("a complete print ends with the
-# line ..."), and that sentence is in the first lines of every cut print, so a substring search finds a closing line a cut
-# print never had.
-HEAD_END_LINE = re.compile(r"^" + re.escape(HEAD_END) + r"$", re.M)
+# The closing line of every print (shiploop_navigator.HEAD_END; a test pins the two equal), named for the print since R4 of
+# the run-5 batch (2026-10-24), because it also ends a packet printed whole.  From 2026-10-16 to then the line was
+# HEAD_END_UNTIL_R4, which a saved run keeps.  A head printed before 2026-10-16 (the status block is early, then the duties,
+# then the pointer) ends at the status block, with its `Full packet:` line ahead of it.
+HEAD_END = "=== end ShipLoop print ==="
+HEAD_END_UNTIL_R4 = "=== end ShipLoop head ==="
+# The closing line, either name, as a line: the packet's second pointer line names it inside a sentence ("a complete print
+# ends with the line ..."), and that sentence is in the first lines of every cut print, so a substring search finds a
+# closing line a cut print never had.
+HEAD_END_LINE = re.compile(r"^(?:" + re.escape(HEAD_END) + "|" + re.escape(HEAD_END_UNTIL_R4) + r")$", re.M)
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 # A line the head prints whole, which a cut by column shortens: its end is how the cut is told.
@@ -117,10 +120,11 @@ def head_or_why(reply: str) -> tuple[str | None, str | None]:
     closing = closing_line.start() if closing_line else -1
     pointer = FULL_PACKET.search(reply)
     if closing >= 0:
-        cut = closing + len(HEAD_END)
+        cut = closing_line.end()
     elif end < 0:
         return None, NOT_WHOLE_BEFORE_CLOSING
-    elif pointer is not None and (pointer.start() > end or "ends with the line " + HEAD_END in reply):
+    elif pointer is not None and (pointer.start() > end or any("ends with the line " + line in reply
+                                                                 for line in (HEAD_END, HEAD_END_UNTIL_R4))):
         # A layout that has the closing line (the pointer after the status block, or the pointer sentence that names the
         # closing line, near the top) cut before it: not a whole print.
         return None, NOT_WHOLE_BEFORE_CLOSING

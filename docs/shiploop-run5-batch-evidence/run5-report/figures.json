@@ -1,0 +1,2471 @@
+{
+ "runs": [
+  {
+   "label": "run 3",
+   "run_dir": "/Users/dadleet/e2e-runs/20261019/chess-sf-full-05fe25b",
+   "case": "chess-salesforce",
+   "date": "20261019",
+   "host": "grok",
+   "model": "grok-4.7",
+   "skill_craft_version": "2.7.0",
+   "shiploop_version": "1.7.0",
+   "outcome_class": "STOPPED",
+   "stopped_stage": "test-spec",
+   "wall_min": {
+    "value": 236.1,
+    "reason": null
+   },
+   "cap_min": {
+    "value": 240,
+    "reason": null
+   },
+   "cap_min_reason_even_if_present": "derived from the SIGKILL point (span.ended - span.started), since the harness's own --timeout flag is not stored in any per-run record",
+   "checks": {
+    "project": {
+     "value": false,
+     "reason": null
+    },
+    "deployed": {
+     "value": false,
+     "reason": null
+    },
+    "tests": {
+     "value": true,
+     "reason": null
+    },
+    "rules": {
+     "value": true,
+     "reason": null
+    },
+    "committed": {
+     "value": false,
+     "reason": null
+    }
+   },
+   "org_kept": {
+    "value": false,
+    "reason": null
+   },
+   "improve": {
+    "children": {
+     "value": 16,
+     "reason": null
+    },
+    "passes": {
+     "value": 52,
+     "reason": null
+    },
+    "max_passes": {
+     "value": 7,
+     "reason": null
+    },
+    "minutes": {
+     "value": 98.9,
+     "reason": null
+    }
+   },
+   "compactions": {
+    "value": 14,
+    "reason": null
+   },
+   "reorientation": {
+    "minutes": {
+     "value": 107.9,
+     "reason": null
+    },
+    "calls": {
+     "value": 764,
+     "reason": null
+    }
+   },
+   "work_items": {
+    "planned": {
+     "value": 4,
+     "reason": null
+    },
+    "executed": {
+     "value": 3,
+     "reason": null
+    }
+   },
+   "release_stages": {
+    "done": 0,
+    "total": 6,
+    "names": [
+     "release-plan",
+     "release-check",
+     "release",
+     "release-verify",
+     "operations",
+     "handoff"
+    ]
+   },
+   "sendbacks": {
+    "value": 1,
+    "reason": null
+   },
+   "refusals": {
+    "value": 5,
+    "reason": null
+   },
+   "tool_calls": {
+    "value": 1506,
+    "reason": null
+   },
+   "turns": {
+    "value": 922,
+    "reason": null
+   },
+   "cost_usd": {
+    "value": 15.9202,
+    "reason": null
+   },
+   "turns_cost_lower_bound": true,
+   "planning_window_min": {
+    "value": 78.1,
+    "reason": null
+   },
+   "w1_full_cycle_min": {
+    "value": 51.8,
+    "reason": null
+   },
+   "shiploop_script_reads": {
+    "value": 97,
+    "reason": null
+   },
+   "commits": {
+    "value": {
+     "improve": {
+      "n": 13,
+      "with_lessons": 13,
+      "cited": 9,
+      "cited_earlier_run": 0
+     },
+     "script": {
+      "n": 13,
+      "with_lessons": 0
+     },
+     "other": {
+      "n": 0,
+      "with_lessons": 0
+     },
+     "counted": 26,
+     "start_head": null
+    },
+    "reason": null
+   },
+   "guard_coverage": {
+    "value": {
+     "model_sf_commands": 16,
+     "guard_calls": 143,
+     "direct_sf_commands": 0,
+     "bypassed": false
+    },
+    "reason": null
+   },
+   "gate_counts": {
+    "value": null,
+    "reason": "not measured: metrics.json has no gate_counts record (added after this run)"
+   },
+   "nomenclature": {
+    "value": null,
+    "reason": "not measured: metrics.json has no nomenclature record (added after this run)"
+   },
+   "stage_groups": {
+    "planning_min": 59.4,
+    "planning_improve_min": 32.7,
+    "work_items_min": [
+     51.8,
+     69.4,
+     38.8,
+     20.6
+    ],
+    "work_items_improve_min": [
+     23.4,
+     19.5,
+     9.5,
+     13.6
+    ],
+    "work_items_count": 4,
+    "release_min": 0.0,
+    "release_improve_min": null,
+    "release_stage_names": []
+   },
+   "stages_timeline": [
+    {
+     "stage": "intake",
+     "outcome": "done",
+     "seconds": 83.8,
+     "turns": 8,
+     "tool_calls": 9,
+     "context": {
+      "calls": 8,
+      "peak": 46489,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "discovery",
+     "outcome": "done",
+     "seconds": 239.0,
+     "turns": 10,
+     "tool_calls": 35,
+     "context": {
+      "calls": 10,
+      "peak": 110651,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "research",
+     "outcome": "done",
+     "seconds": 222.0,
+     "turns": 7,
+     "tool_calls": 19,
+     "context": {
+      "calls": 7,
+      "peak": 498847,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "spec",
+     "outcome": "done",
+     "seconds": 1099.0,
+     "turns": 59,
+     "tool_calls": 100,
+     "context": {
+      "calls": 59,
+      "peak": 204630,
+      "peakPct": null
+     },
+     "fresh_min": 9.6,
+     "fresh_calls": 67,
+     "improve_min": 15.88
+    },
+    {
+     "stage": "test-strategy",
+     "outcome": "done",
+     "seconds": 1017.0,
+     "turns": 56,
+     "tool_calls": 98,
+     "context": {
+      "calls": 56,
+      "peak": 227519,
+      "peakPct": null
+     },
+     "fresh_min": 14.1,
+     "fresh_calls": 91,
+     "improve_min": 9.41
+    },
+    {
+     "stage": "plan",
+     "outcome": "done",
+     "seconds": 797.0,
+     "turns": 52,
+     "tool_calls": 86,
+     "context": {
+      "calls": 52,
+      "peak": 202723,
+      "peakPct": null
+     },
+     "fresh_min": 10.7,
+     "fresh_calls": 80,
+     "improve_min": 7.4
+    },
+    {
+     "stage": "prepare",
+     "outcome": "done",
+     "seconds": 109.0,
+     "turns": 9,
+     "tool_calls": 13,
+     "context": {
+      "calls": 9,
+      "peak": 182240,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 752.0,
+     "turns": 41,
+     "tool_calls": 57,
+     "context": {
+      "calls": 41,
+      "peak": 203289,
+      "peakPct": null
+     },
+     "fresh_min": 8.1,
+     "fresh_calls": 43,
+     "improve_min": 10.34
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 407.0,
+     "turns": 35,
+     "tool_calls": 46,
+     "context": {
+      "calls": 35,
+      "peak": 158598,
+      "peakPct": null
+     },
+     "improve_min": 3.57
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 272.0,
+     "turns": 18,
+     "tool_calls": 23,
+     "context": {
+      "calls": 18,
+      "peak": 183531,
+      "peakPct": null
+     },
+     "improve_min": 2.43
+    },
+    {
+     "stage": "test",
+     "outcome": "send-back",
+     "seconds": 352.0,
+     "turns": 28,
+     "tool_calls": 42,
+     "context": {
+      "calls": 28,
+      "peak": 202486,
+      "peakPct": null
+     },
+     "fresh_min": 2.3,
+     "fresh_calls": 28,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 575.0,
+     "turns": 41,
+     "tool_calls": 53,
+     "context": {
+      "calls": 41,
+      "peak": 164279,
+      "peakPct": null
+     },
+     "fresh_min": 7.2,
+     "fresh_calls": 52,
+     "improve_min": 5.23
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 125.0,
+     "turns": 13,
+     "tool_calls": 17,
+     "context": {
+      "calls": 13,
+      "peak": 186124,
+      "peakPct": null
+     },
+     "improve_min": 0.94
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 126.0,
+     "turns": 12,
+     "tool_calls": 16,
+     "context": {
+      "calls": 12,
+      "peak": 203666,
+      "peakPct": null
+     },
+     "fresh_min": 17.4,
+     "fresh_calls": 79,
+     "improve_min": 0.93
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 223.0,
+     "turns": 22,
+     "tool_calls": 29,
+     "context": {
+      "calls": 22,
+      "peak": 204155,
+      "peakPct": null
+     },
+     "fresh_min": 10.2,
+     "fresh_calls": 62,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 70.0,
+     "turns": 9,
+     "tool_calls": 13,
+     "context": {
+      "calls": 9,
+      "peak": 94887,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 89.0,
+     "turns": 11,
+     "tool_calls": 17,
+     "context": {
+      "calls": 11,
+      "peak": 111536,
+      "peakPct": null
+     },
+     "fresh_min": 4.0,
+     "fresh_calls": 43,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 115.0,
+     "turns": 12,
+     "tool_calls": 31,
+     "context": {
+      "calls": 12,
+      "peak": 139469,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 988.0,
+     "turns": 74,
+     "tool_calls": 107,
+     "context": {
+      "calls": 74,
+      "peak": 204845,
+      "peakPct": null
+     },
+     "fresh_min": 3.1,
+     "fresh_calls": 26,
+     "improve_min": 10.95
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 489.0,
+     "turns": 36,
+     "tool_calls": 47,
+     "context": {
+      "calls": 36,
+      "peak": 197563,
+      "peakPct": null
+     },
+     "improve_min": 3.21
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 1229.0,
+     "turns": 53,
+     "tool_calls": 81,
+     "context": {
+      "calls": 53,
+      "peak": 203997,
+      "peakPct": null
+     },
+     "fresh_min": 5.3,
+     "fresh_calls": 51,
+     "improve_min": 5.34
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 821.0,
+     "turns": 33,
+     "tool_calls": 62,
+     "context": {
+      "calls": 33,
+      "peak": 150670,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 136.0,
+     "turns": 15,
+     "tool_calls": 26,
+     "context": {
+      "calls": 15,
+      "peak": 180201,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 377.0,
+     "turns": 25,
+     "tool_calls": 55,
+     "context": {
+      "calls": 25,
+      "peak": 201936,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 122.0,
+     "turns": 12,
+     "tool_calls": 34,
+     "context": {
+      "calls": 12,
+      "peak": 140063,
+      "peakPct": null
+     },
+     "fresh_min": 3.9,
+     "fresh_calls": 59,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 479.0,
+     "turns": 34,
+     "tool_calls": 49,
+     "context": {
+      "calls": 34,
+      "peak": 202833,
+      "peakPct": null
+     },
+     "fresh_min": 9.4,
+     "fresh_calls": 55,
+     "improve_min": 5.47
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 382.0,
+     "turns": 31,
+     "tool_calls": 40,
+     "context": {
+      "calls": 31,
+      "peak": 179911,
+      "peakPct": null
+     },
+     "improve_min": 3.3
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 543.0,
+     "turns": 41,
+     "tool_calls": 68,
+     "context": {
+      "calls": 41,
+      "peak": 203130,
+      "peakPct": null
+     },
+     "improve_min": 0.73
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 389.0,
+     "turns": 11,
+     "tool_calls": 13,
+     "context": {
+      "calls": 11,
+      "peak": 163532,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 110.0,
+     "turns": 10,
+     "tool_calls": 24,
+     "context": {
+      "calls": 10,
+      "peak": 185886,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 110.0,
+     "turns": 7,
+     "tool_calls": 11,
+     "context": {
+      "calls": 7,
+      "peak": 202022,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 317.0,
+     "turns": 21,
+     "tool_calls": 60,
+     "context": {
+      "calls": 21,
+      "peak": 204579,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 1042.0,
+     "turns": 62,
+     "tool_calls": 102,
+     "context": {
+      "calls": 62,
+      "peak": 203946,
+      "peakPct": null
+     },
+     "improve_min": 13.63
+    },
+    {
+     "stage": "test-spec",
+     "outcome": null,
+     "incomplete": true,
+     "seconds": 191.4,
+     "turns": 14,
+     "tool_calls": 23,
+     "context": {
+      "calls": 14,
+      "peak": 198975,
+      "peakPct": null
+     },
+     "improve_min": null,
+     "improve_min_reason": "not yet accepted when the run stopped"
+    }
+   ]
+  },
+  {
+   "label": "run 4",
+   "run_dir": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8",
+   "case": "chess-salesforce",
+   "date": "20261020",
+   "host": "grok",
+   "model": "grok-4.7",
+   "skill_craft_version": "2.8.0",
+   "shiploop_version": "1.8.0",
+   "outcome_class": "STOPPED",
+   "stopped_stage": "release-plan",
+   "wall_min": {
+    "value": 232.3,
+    "reason": null
+   },
+   "cap_min": {
+    "value": 240,
+    "reason": null
+   },
+   "cap_min_reason_even_if_present": "derived from the SIGKILL point (span.ended - span.started), since the harness's own --timeout flag is not stored in any per-run record",
+   "checks": {
+    "project": {
+     "value": false,
+     "reason": null
+    },
+    "deployed": {
+     "value": true,
+     "reason": null
+    },
+    "tests": {
+     "value": true,
+     "reason": null
+    },
+    "rules": {
+     "value": true,
+     "reason": null
+    },
+    "committed": {
+     "value": false,
+     "reason": null
+    }
+   },
+   "org_kept": {
+    "value": true,
+    "reason": null
+   },
+   "improve": {
+    "children": {
+     "value": 13,
+     "reason": null
+    },
+    "passes": {
+     "value": 25,
+     "reason": null
+    },
+    "max_passes": {
+     "value": 4,
+     "reason": null
+    },
+    "minutes": {
+     "value": 81.8,
+     "reason": null
+    }
+   },
+   "compactions": {
+    "value": 15,
+    "reason": null
+   },
+   "reorientation": {
+    "minutes": {
+     "value": 74.0,
+     "reason": null
+    },
+    "calls": {
+     "value": 528,
+     "reason": null
+    }
+   },
+   "work_items": {
+    "planned": {
+     "value": 3,
+     "reason": null
+    },
+    "executed": {
+     "value": 3,
+     "reason": null
+    }
+   },
+   "release_stages": {
+    "done": 0,
+    "total": 6,
+    "names": [
+     "release-plan",
+     "release-check",
+     "release",
+     "release-verify",
+     "operations",
+     "handoff"
+    ]
+   },
+   "sendbacks": {
+    "value": 1,
+    "reason": null
+   },
+   "refusals": {
+    "value": 13,
+    "reason": null
+   },
+   "tool_calls": {
+    "value": 1520,
+    "reason": null
+   },
+   "turns": {
+    "value": 884,
+    "reason": null
+   },
+   "cost_usd": {
+    "value": 21.4859,
+    "reason": null
+   },
+   "turns_cost_lower_bound": true,
+   "planning_window_min": {
+    "value": 73.8,
+    "reason": null
+   },
+   "w1_full_cycle_min": {
+    "value": 53.3,
+    "reason": null
+   },
+   "shiploop_script_reads": {
+    "value": 106,
+    "reason": null
+   },
+   "commits": {
+    "value": {
+     "improve": {
+      "n": 11,
+      "with_lessons": 11,
+      "cited": 6,
+      "cited_earlier_run": 0
+     },
+     "script": {
+      "n": 15,
+      "with_lessons": 0
+     },
+     "other": {
+      "n": 4,
+      "with_lessons": 4
+     },
+     "counted": 30,
+     "start_head": null
+    },
+    "reason": null
+   },
+   "guard_coverage": {
+    "value": {
+     "model_sf_commands": 39,
+     "guard_calls": 173,
+     "direct_sf_commands": 0,
+     "bypassed": false
+    },
+    "reason": null
+   },
+   "gate_counts": {
+    "value": null,
+    "reason": "not measured: metrics.json has no gate_counts record (added after this run)"
+   },
+   "nomenclature": {
+    "value": null,
+    "reason": "not measured: metrics.json has no nomenclature record (added after this run)"
+   },
+   "stage_groups": {
+    "planning_min": 54.1,
+    "planning_improve_min": 32.2,
+    "work_items_min": [
+     53.3,
+     58.3,
+     42.5
+    ],
+    "work_items_improve_min": [
+     14.7,
+     5.3,
+     16.0
+    ],
+    "work_items_count": 3,
+    "release_min": 31.5,
+    "release_improve_min": 13.6,
+    "release_stage_names": [
+     "system-test-author",
+     "system-test",
+     "product-acceptance",
+     "release-plan"
+    ]
+   },
+   "stages_timeline": [
+    {
+     "stage": "intake",
+     "outcome": "done",
+     "seconds": 134.9,
+     "turns": 14,
+     "tool_calls": 19,
+     "context": {
+      "calls": 14,
+      "peak": 56098,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "discovery",
+     "outcome": "done",
+     "seconds": 211.0,
+     "turns": 15,
+     "tool_calls": 36,
+     "context": {
+      "calls": 15,
+      "peak": 112753,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "research",
+     "outcome": "done",
+     "seconds": 123.0,
+     "turns": 2,
+     "tool_calls": 15,
+     "context": {
+      "calls": 2,
+      "peak": 523551,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "spec",
+     "outcome": "done",
+     "seconds": 789.0,
+     "turns": 35,
+     "tool_calls": 57,
+     "context": {
+      "calls": 35,
+      "peak": 202662,
+      "peakPct": null
+     },
+     "fresh_min": 7.6,
+     "fresh_calls": 34,
+     "improve_min": 11.8
+    },
+    {
+     "stage": "test-strategy",
+     "outcome": "done",
+     "seconds": 1010.0,
+     "turns": 58,
+     "tool_calls": 106,
+     "context": {
+      "calls": 58,
+      "peak": 203202,
+      "peakPct": null
+     },
+     "fresh_min": 9.0,
+     "fresh_calls": 59,
+     "improve_min": 12.53
+    },
+    {
+     "stage": "plan",
+     "outcome": "done",
+     "seconds": 813.0,
+     "turns": 49,
+     "tool_calls": 83,
+     "context": {
+      "calls": 49,
+      "peak": 204720,
+      "peakPct": null
+     },
+     "fresh_min": 8.2,
+     "fresh_calls": 63,
+     "improve_min": 7.89
+    },
+    {
+     "stage": "prepare",
+     "outcome": "done",
+     "seconds": 164.0,
+     "turns": 13,
+     "tool_calls": 26,
+     "context": {
+      "calls": 13,
+      "peak": 179941,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 878.0,
+     "turns": 46,
+     "tool_calls": 66,
+     "context": {
+      "calls": 46,
+      "peak": 202370,
+      "peakPct": null
+     },
+     "fresh_min": 9.3,
+     "fresh_calls": 60,
+     "improve_min": 6.63
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 346.0,
+     "turns": 22,
+     "tool_calls": 26,
+     "context": {
+      "calls": 22,
+      "peak": 202268,
+      "peakPct": null
+     },
+     "fresh_min": 0.5,
+     "fresh_calls": 5,
+     "improve_min": 3.73
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 1286.0,
+     "turns": 56,
+     "tool_calls": 94,
+     "context": {
+      "calls": 56,
+      "peak": 204237,
+      "peakPct": null
+     },
+     "fresh_min": 0.4,
+     "fresh_calls": 2,
+     "improve_min": 4.29
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 347.0,
+     "turns": 22,
+     "tool_calls": 38,
+     "context": {
+      "calls": 22,
+      "peak": 101322,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 86.0,
+     "turns": 7,
+     "tool_calls": 14,
+     "context": {
+      "calls": 7,
+      "peak": 117804,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 147.0,
+     "turns": 10,
+     "tool_calls": 15,
+     "context": {
+      "calls": 10,
+      "peak": 145115,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 109.0,
+     "turns": 10,
+     "tool_calls": 21,
+     "context": {
+      "calls": 10,
+      "peak": 165389,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 155.0,
+     "turns": 12,
+     "tool_calls": 15,
+     "context": {
+      "calls": 12,
+      "peak": 191435,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 200.0,
+     "turns": 9,
+     "tool_calls": 13,
+     "context": {
+      "calls": 9,
+      "peak": 204730,
+      "peakPct": null
+     },
+     "fresh_min": 0.9,
+     "fresh_calls": 10,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 739.0,
+     "turns": 47,
+     "tool_calls": 85,
+     "context": {
+      "calls": 47,
+      "peak": 171177,
+      "peakPct": null
+     },
+     "improve_min": 1.5
+    },
+    {
+     "stage": "test",
+     "outcome": "send-back",
+     "seconds": 918.0,
+     "turns": 47,
+     "tool_calls": 72,
+     "context": {
+      "calls": 47,
+      "peak": 204736,
+      "peakPct": null
+     },
+     "fresh_min": 8.8,
+     "fresh_calls": 51,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 356.0,
+     "turns": 41,
+     "tool_calls": 56,
+     "context": {
+      "calls": 41,
+      "peak": 189441,
+      "peakPct": null
+     },
+     "improve_min": 0.96
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 275.0,
+     "turns": 21,
+     "tool_calls": 35,
+     "context": {
+      "calls": 21,
+      "peak": 204834,
+      "peakPct": null
+     },
+     "fresh_min": 2.6,
+     "fresh_calls": 30,
+     "improve_min": 1.55
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 261.0,
+     "turns": 18,
+     "tool_calls": 26,
+     "context": {
+      "calls": 18,
+      "peak": 151845,
+      "peakPct": null
+     },
+     "improve_min": 1.27
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 131.0,
+     "turns": 7,
+     "tool_calls": 11,
+     "context": {
+      "calls": 7,
+      "peak": 174063,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 73.0,
+     "turns": 8,
+     "tool_calls": 18,
+     "context": {
+      "calls": 8,
+      "peak": 196039,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 283.0,
+     "turns": 13,
+     "tool_calls": 28,
+     "context": {
+      "calls": 13,
+      "peak": 201844,
+      "peakPct": null
+     },
+     "fresh_min": 3.1,
+     "fresh_calls": 27,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 107.0,
+     "turns": 10,
+     "tool_calls": 22,
+     "context": {
+      "calls": 10,
+      "peak": 112803,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 328.0,
+     "turns": 26,
+     "tool_calls": 37,
+     "context": {
+      "calls": 26,
+      "peak": 191405,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 201.0,
+     "turns": 9,
+     "tool_calls": 15,
+     "context": {
+      "calls": 9,
+      "peak": 203118,
+      "peakPct": null
+     },
+     "fresh_min": 1.4,
+     "fresh_calls": 12,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 745.0,
+     "turns": 39,
+     "tool_calls": 75,
+     "context": {
+      "calls": 39,
+      "peak": 199105,
+      "peakPct": null
+     },
+     "improve_min": 5.51
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 333.0,
+     "turns": 17,
+     "tool_calls": 29,
+     "context": {
+      "calls": 17,
+      "peak": 204906,
+      "peakPct": null
+     },
+     "fresh_min": 4.0,
+     "fresh_calls": 27,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 133.0,
+     "turns": 12,
+     "tool_calls": 31,
+     "context": {
+      "calls": 12,
+      "peak": 118335,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 104.0,
+     "turns": 11,
+     "tool_calls": 22,
+     "context": {
+      "calls": 11,
+      "peak": 146507,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 705.0,
+     "turns": 50,
+     "tool_calls": 95,
+     "context": {
+      "calls": 50,
+      "peak": 200856,
+      "peakPct": null
+     },
+     "fresh_min": 6.3,
+     "fresh_calls": 62,
+     "improve_min": 10.46
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": "done",
+     "seconds": 1056.0,
+     "turns": 56,
+     "tool_calls": 102,
+     "context": {
+      "calls": 56,
+      "peak": 204927,
+      "peakPct": null
+     },
+     "fresh_min": 9.8,
+     "fresh_calls": 63,
+     "improve_min": 13.57
+    },
+    {
+     "stage": "system-test",
+     "outcome": "done",
+     "seconds": 189.0,
+     "turns": 26,
+     "tool_calls": 37,
+     "context": {
+      "calls": 26,
+      "peak": 196022,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "product-acceptance",
+     "outcome": "done",
+     "seconds": 244.0,
+     "turns": 15,
+     "tool_calls": 26,
+     "context": {
+      "calls": 15,
+      "peak": 203358,
+      "peakPct": null
+     },
+     "fresh_min": 2.2,
+     "fresh_calls": 23,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "release-plan",
+     "outcome": null,
+     "incomplete": true,
+     "seconds": 398.8,
+     "turns": 31,
+     "tool_calls": 54,
+     "context": {
+      "calls": 31,
+      "peak": 162616,
+      "peakPct": null
+     },
+     "improve_min": null,
+     "improve_min_reason": "not yet accepted when the run stopped"
+    }
+   ]
+  },
+  {
+   "label": "run 5b",
+   "run_dir": "/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d",
+   "case": "chess-salesforce",
+   "date": "20261024",
+   "host": "grok",
+   "model": "grok-4.7",
+   "skill_craft_version": "2.9.0",
+   "shiploop_version": "1.9.0",
+   "outcome_class": "PASS",
+   "stopped_stage": null,
+   "wall_min": {
+    "value": 284.3,
+    "reason": "active minutes, from timeline.jsonl gaps under 30 min: the wall span is 873.2 min and holds one 588.9-min laptop sleep (Oct 24 22:57 to Oct 25 08:44), after which the run resumed once"
+   },
+   "cap_min": {
+    "value": 300,
+    "reason": "--timeout 18000; extended by the owner after the sleep (the resumed segment had its own 300-min timeout)"
+   },
+   "cap_min_reason_even_if_present": "run did not end by a recorded timeout, or span is missing",
+   "checks": {
+    "project": {
+     "value": true,
+     "reason": null
+    },
+    "deployed": {
+     "value": true,
+     "reason": null
+    },
+    "tests": {
+     "value": true,
+     "reason": null
+    },
+    "rules": {
+     "value": true,
+     "reason": null
+    },
+    "committed": {
+     "value": true,
+     "reason": null
+    }
+   },
+   "org_kept": {
+    "value": true,
+    "reason": null
+   },
+   "improve": {
+    "children": {
+     "value": 27,
+     "reason": null
+    },
+    "passes": {
+     "value": 41,
+     "reason": null
+    },
+    "max_passes": {
+     "value": 3,
+     "reason": null
+    },
+    "minutes": {
+     "value": 83.8,
+     "reason": null
+    }
+   },
+   "compactions": {
+    "value": 21,
+    "reason": null
+   },
+   "reorientation": {
+    "minutes": {
+     "value": 125.2,
+     "reason": null
+    },
+    "calls": {
+     "value": 1169,
+     "reason": null
+    }
+   },
+   "work_items": {
+    "planned": {
+     "value": 10,
+     "reason": null
+    },
+    "executed": {
+     "value": 10,
+     "reason": null
+    }
+   },
+   "release_stages": {
+    "done": 6,
+    "total": 6,
+    "names": [
+     "release-plan",
+     "release-check",
+     "release",
+     "release-verify",
+     "operations",
+     "handoff"
+    ]
+   },
+   "sendbacks": {
+    "value": 3,
+    "reason": null
+   },
+   "refusals": {
+    "value": 9,
+    "reason": null
+   },
+   "tool_calls": {
+    "value": 2163,
+    "reason": null
+   },
+   "turns": {
+    "value": 1265,
+    "reason": null
+   },
+   "cost_usd": {
+    "value": 21.6513,
+    "reason": "lower bound: only the resumed segment's Grok session wrote a cost; segment 1's session ended in the sleep without one"
+   },
+   "turns_cost_lower_bound": true,
+   "planning_window_min": {
+    "value": 73.1,
+    "reason": null
+   },
+   "w1_full_cycle_min": {
+    "value": 109.6,
+    "reason": null
+   },
+   "shiploop_script_reads": {
+    "value": 145,
+    "reason": null
+   },
+   "commits": {
+    "value": {
+     "improve": {
+      "n": 13,
+      "with_lessons": 13,
+      "cited": 12,
+      "cited_earlier_run": 0
+     },
+     "script": {
+      "n": 21,
+      "with_lessons": 1
+     },
+     "other": {
+      "n": 11,
+      "with_lessons": 11
+     },
+     "counted": 45,
+     "start_head": null
+    },
+    "reason": null
+   },
+   "guard_coverage": {
+    "value": {
+     "model_sf_commands": 58,
+     "guard_calls": 232,
+     "direct_sf_commands": 0,
+     "bypassed": false
+    },
+    "reason": null
+   },
+   "gate_counts": {
+    "value": {
+     "producer_limits": {
+      "fired": 3,
+      "caught": 3
+     },
+     "other": {
+      "fired": 3,
+      "caught": 3
+     },
+     "spec_writeback": {
+      "fired": 1,
+      "caught": 1
+     },
+     "expectations_gate": {
+      "fired": 1,
+      "caught": 1
+     },
+     "assumptions_due_item": {
+      "fired": 1,
+      "caught": 1
+     }
+    },
+    "reason": null
+   },
+   "nomenclature": {
+    "value": {
+     "glossary_sha256": "664faa95eabcce6dec35c599cacdb782adc276659f0d6aef80489b78fe2c5c23",
+     "texts_scanned": 119,
+     "retired": {
+      "complete command (the callback)": {
+       "use": "callback",
+       "texts": 1,
+       "first": {
+        "event": 19237,
+        "line": "ShipLoop navigator: Restore /Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's acceptan"
+       }
+      }
+     }
+    },
+    "reason": null
+   },
+   "stage_groups": {
+    "planning_min": 47.2,
+    "planning_improve_min": 20.5,
+    "work_items_min": [
+     109.6,
+     43.4,
+     639.8
+    ],
+    "work_items_improve_min": [
+     32.6,
+     3.2,
+     17.7
+    ],
+    "work_items_count": 3,
+    "release_min": 33.1,
+    "release_improve_min": 9.4,
+    "release_stage_names": [
+     "system-test-author",
+     "system-test",
+     "system-test-author",
+     "system-test",
+     "product-acceptance",
+     "release-plan",
+     "release-check",
+     "release",
+     "release-verify",
+     "operations",
+     "handoff"
+    ]
+   },
+   "stages_timeline": [
+    {
+     "stage": "intake",
+     "outcome": "done",
+     "seconds": 142.5,
+     "turns": 11,
+     "tool_calls": 17,
+     "context": {
+      "calls": 11,
+      "peak": 64675,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "discovery",
+     "outcome": "done",
+     "seconds": 286.0,
+     "turns": 16,
+     "tool_calls": 43,
+     "context": {
+      "calls": 16,
+      "peak": 130380,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "research",
+     "outcome": "done",
+     "seconds": 149.0,
+     "turns": 6,
+     "tool_calls": 16,
+     "context": {
+      "calls": 6,
+      "peak": 280450,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "spec",
+     "outcome": "done",
+     "seconds": 741.0,
+     "turns": 42,
+     "tool_calls": 70,
+     "context": {
+      "calls": 42,
+      "peak": 204698,
+      "peakPct": null
+     },
+     "fresh_min": 7.5,
+     "fresh_calls": 52,
+     "improve_min": 10.92
+    },
+    {
+     "stage": "test-strategy",
+     "outcome": "done",
+     "seconds": 772.0,
+     "turns": 42,
+     "tool_calls": 93,
+     "context": {
+      "calls": 42,
+      "peak": 177252,
+      "peakPct": null
+     },
+     "fresh_min": 9.3,
+     "fresh_calls": 78,
+     "improve_min": 5.03
+    },
+    {
+     "stage": "plan",
+     "outcome": "done",
+     "seconds": 538.0,
+     "turns": 40,
+     "tool_calls": 73,
+     "context": {
+      "calls": 40,
+      "peak": 201861,
+      "peakPct": null
+     },
+     "fresh_min": 5.1,
+     "fresh_calls": 59,
+     "improve_min": 4.58
+    },
+    {
+     "stage": "prepare",
+     "outcome": "done",
+     "seconds": 204.0,
+     "turns": 22,
+     "tool_calls": 45,
+     "context": {
+      "calls": 22,
+      "peak": 170093,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 969.0,
+     "turns": 65,
+     "tool_calls": 100,
+     "context": {
+      "calls": 65,
+      "peak": 203699,
+      "peakPct": null
+     },
+     "fresh_min": 9.7,
+     "fresh_calls": 87,
+     "improve_min": 3.86
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 628.0,
+     "turns": 53,
+     "tool_calls": 76,
+     "context": {
+      "calls": 53,
+      "peak": 204382,
+      "peakPct": null
+     },
+     "fresh_min": 8.3,
+     "fresh_calls": 72,
+     "improve_min": 4.63
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 900.0,
+     "turns": 64,
+     "tool_calls": 99,
+     "context": {
+      "calls": 64,
+      "peak": 204601,
+      "peakPct": null
+     },
+     "fresh_min": 4.0,
+     "fresh_calls": 29,
+     "improve_min": 4.71
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 165.0,
+     "turns": 15,
+     "tool_calls": 21,
+     "context": {
+      "calls": 15,
+      "peak": 201519,
+      "peakPct": null
+     },
+     "improve_min": 0.72
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 823.0,
+     "turns": 33,
+     "tool_calls": 61,
+     "context": {
+      "calls": 33,
+      "peak": 154163,
+      "peakPct": null
+     },
+     "improve_min": 2.33
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 227.0,
+     "turns": 17,
+     "tool_calls": 32,
+     "context": {
+      "calls": 17,
+      "peak": 200345,
+      "peakPct": null
+     },
+     "improve_min": 0.93
+    },
+    {
+     "stage": "implement",
+     "outcome": "send-back",
+     "seconds": 340.0,
+     "turns": 17,
+     "tool_calls": 29,
+     "context": {
+      "calls": 17,
+      "peak": 203831,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 363.0,
+     "turns": 38,
+     "tool_calls": 64,
+     "context": {
+      "calls": 38,
+      "peak": 184363,
+      "peakPct": null
+     },
+     "improve_min": 1.84
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 258.0,
+     "turns": 19,
+     "tool_calls": 34,
+     "context": {
+      "calls": 19,
+      "peak": 205217,
+      "peakPct": null
+     },
+     "fresh_min": 0.9,
+     "fresh_calls": 22,
+     "improve_min": 3.59
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 273.0,
+     "turns": 28,
+     "tool_calls": 38,
+     "context": {
+      "calls": 28,
+      "peak": 149908,
+      "peakPct": null
+     },
+     "fresh_min": 1.9,
+     "fresh_calls": 22,
+     "improve_min": 2.61
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 97.0,
+     "turns": 11,
+     "tool_calls": 17,
+     "context": {
+      "calls": 11,
+      "peak": 178488,
+      "peakPct": null
+     },
+     "improve_min": 0.57
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 316.0,
+     "turns": 21,
+     "tool_calls": 34,
+     "context": {
+      "calls": 21,
+      "peak": 202667,
+      "peakPct": null
+     },
+     "improve_min": 4.48
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 127.0,
+     "turns": 15,
+     "tool_calls": 21,
+     "context": {
+      "calls": 15,
+      "peak": 131495,
+      "peakPct": null
+     },
+     "improve_min": 0.72
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 203.0,
+     "turns": 22,
+     "tool_calls": 36,
+     "context": {
+      "calls": 22,
+      "peak": 173809,
+      "peakPct": null
+     },
+     "improve_min": 0.94
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 135.0,
+     "turns": 12,
+     "tool_calls": 19,
+     "context": {
+      "calls": 12,
+      "peak": 197357,
+      "peakPct": null
+     },
+     "improve_min": 0.71
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 374.0,
+     "turns": 18,
+     "tool_calls": 34,
+     "context": {
+      "calls": 18,
+      "peak": 203470,
+      "peakPct": null
+     },
+     "fresh_min": 4.2,
+     "fresh_calls": 30,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 162.0,
+     "turns": 17,
+     "tool_calls": 40,
+     "context": {
+      "calls": 17,
+      "peak": 143708,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 130.0,
+     "turns": 11,
+     "tool_calls": 14,
+     "context": {
+      "calls": 11,
+      "peak": 167832,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 86.0,
+     "turns": 9,
+     "tool_calls": 18,
+     "context": {
+      "calls": 9,
+      "peak": 193513,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 545.0,
+     "turns": 43,
+     "tool_calls": 81,
+     "context": {
+      "calls": 43,
+      "peak": 199226,
+      "peakPct": null
+     },
+     "fresh_min": 6.5,
+     "fresh_calls": 79,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 118.0,
+     "turns": 6,
+     "tool_calls": 10,
+     "context": {
+      "calls": 6,
+      "peak": 170468,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "send-back",
+     "seconds": 571.0,
+     "turns": 31,
+     "tool_calls": 51,
+     "context": {
+      "calls": 31,
+      "peak": 378126,
+      "peakPct": null
+     },
+     "fresh_min": 4.8,
+     "fresh_calls": 48,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 201.0,
+     "turns": 24,
+     "tool_calls": 34,
+     "context": {
+      "calls": 24,
+      "peak": 171110,
+      "peakPct": null
+     },
+     "improve_min": 1.18
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 97.0,
+     "turns": 12,
+     "tool_calls": 16,
+     "context": {
+      "calls": 12,
+      "peak": 201469,
+      "peakPct": null
+     },
+     "improve_min": 0.77
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 407.0,
+     "turns": 29,
+     "tool_calls": 47,
+     "context": {
+      "calls": 29,
+      "peak": 124138,
+      "peakPct": null
+     },
+     "improve_min": 1.27
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 183.0,
+     "turns": 18,
+     "tool_calls": 23,
+     "context": {
+      "calls": 18,
+      "peak": 157811,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 75.0,
+     "turns": 7,
+     "tool_calls": 17,
+     "context": {
+      "calls": 7,
+      "peak": 178989,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 142.0,
+     "turns": 10,
+     "tool_calls": 12,
+     "context": {
+      "calls": 10,
+      "peak": 201736,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 264.0,
+     "turns": 16,
+     "tool_calls": 40,
+     "context": {
+      "calls": 16,
+      "peak": 98568,
+      "peakPct": null
+     },
+     "fresh_min": 2.5,
+     "fresh_calls": 40,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 427.0,
+     "turns": 27,
+     "tool_calls": 57,
+     "context": {
+      "calls": 27,
+      "peak": 165090,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 72.0,
+     "turns": 7,
+     "tool_calls": 9,
+     "context": {
+      "calls": 7,
+      "peak": 185774,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "validate-existing",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 651.0,
+     "turns": 45,
+     "tool_calls": 78,
+     "context": {
+      "calls": 45,
+      "peak": 204434,
+      "peakPct": null
+     },
+     "fresh_min": 1.3,
+     "fresh_calls": 15,
+     "improve_min": 4.51
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 179.0,
+     "turns": 15,
+     "tool_calls": 23,
+     "context": {
+      "calls": 15,
+      "peak": 184504,
+      "peakPct": null
+     },
+     "improve_min": 0.79
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 337.0,
+     "turns": 22,
+     "tool_calls": 36,
+     "context": {
+      "calls": 22,
+      "peak": 204780,
+      "peakPct": null
+     },
+     "improve_min": 3.21
+    },
+    {
+     "stage": "test",
+     "outcome": "done",
+     "seconds": 35711.0,
+     "turns": 32,
+     "tool_calls": 58,
+     "context": {
+      "calls": 32,
+      "peak": 108517,
+      "peakPct": null
+     },
+     "fresh_min": 5.3,
+     "fresh_calls": 51,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 90.0,
+     "turns": 10,
+     "tool_calls": 24,
+     "context": {
+      "calls": 10,
+      "peak": 148740,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 227.0,
+     "turns": 16,
+     "tool_calls": 23,
+     "context": {
+      "calls": 16,
+      "peak": 184089,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 693.0,
+     "turns": 54,
+     "tool_calls": 97,
+     "context": {
+      "calls": 54,
+      "peak": 202591,
+      "peakPct": null
+     },
+     "fresh_min": 9.2,
+     "fresh_calls": 80,
+     "improve_min": 9.23
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": "done",
+     "seconds": 509.0,
+     "turns": 43,
+     "tool_calls": 75,
+     "context": {
+      "calls": 43,
+      "peak": 197440,
+      "peakPct": null
+     },
+     "fresh_min": 3.8,
+     "fresh_calls": 47,
+     "improve_min": 5.81
+    },
+    {
+     "stage": "system-test",
+     "outcome": "send-back",
+     "seconds": 176.0,
+     "turns": 18,
+     "tool_calls": 27,
+     "context": {
+      "calls": 18,
+      "peak": 151259,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": "done",
+     "seconds": 80.0,
+     "turns": 11,
+     "tool_calls": 13,
+     "context": {
+      "calls": 11,
+      "peak": 178850,
+      "peakPct": null
+     },
+     "improve_min": 0.63
+    },
+    {
+     "stage": "system-test",
+     "outcome": "done",
+     "seconds": 29.0,
+     "turns": 2,
+     "tool_calls": 2,
+     "context": {
+      "calls": 2,
+      "peak": 185961,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "product-acceptance",
+     "outcome": "done",
+     "seconds": 52.0,
+     "turns": 7,
+     "tool_calls": 8,
+     "context": {
+      "calls": 7,
+      "peak": 197672,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "release-plan",
+     "outcome": "done",
+     "seconds": 603.0,
+     "turns": 51,
+     "tool_calls": 79,
+     "context": {
+      "calls": 51,
+      "peak": 202770,
+      "peakPct": null
+     },
+     "fresh_min": 8.4,
+     "fresh_calls": 78,
+     "improve_min": 3.0
+    },
+    {
+     "stage": "release-check",
+     "outcome": "done",
+     "seconds": 113.0,
+     "turns": 10,
+     "tool_calls": 15,
+     "context": {
+      "calls": 10,
+      "peak": 179862,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "release",
+     "outcome": "done",
+     "seconds": 57.0,
+     "turns": 5,
+     "tool_calls": 6,
+     "context": {
+      "calls": 5,
+      "peak": 190512,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "release-verify",
+     "outcome": "done",
+     "seconds": 79.0,
+     "turns": 7,
+     "tool_calls": 10,
+     "context": {
+      "calls": 7,
+      "peak": 203595,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    },
+    {
+     "stage": "operations",
+     "outcome": "done",
+     "seconds": 211.0,
+     "turns": 15,
+     "tool_calls": 29,
+     "context": {
+      "calls": 15,
+      "peak": 85221,
+      "peakPct": null
+     },
+     "fresh_min": 2.1,
+     "fresh_calls": 29,
+     "improve_min": 0.0
+    },
+    {
+     "stage": "handoff",
+     "outcome": "done",
+     "seconds": 77.0,
+     "turns": 7,
+     "tool_calls": 19,
+     "context": {
+      "calls": 7,
+      "peak": 125185,
+      "peakPct": null
+     },
+     "improve_min": 0.0
+    }
+   ]
+  }
+ ]
+}

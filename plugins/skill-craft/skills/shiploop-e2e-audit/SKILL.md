@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.7.6
+version: 0.7.9
 license: MIT
 platforms:
   - linux
@@ -329,6 +329,14 @@ ShipLoop's efficacy. Answer each from this run's evidence and list concrete
 proposals (possibly none). These are harness findings, not ShipLoop repairs;
 the validator reports a review without them as unverified.
 
+Check the run's nomenclature (E2E SPEC S-16). Read `nomenclature` in
+`metrics.json`: each retired glossary term the run's packets and refusals still
+printed, with its first line. Then read the packets the model acted on against
+ShipLoop's glossary (`skills/shiploop/references/glossary.md`). A retired term
+in ShipLoop's output, two terms the model treated as one concept, or one term
+it read in two meanings is a workflow finding. Cite the packet line and the
+model's action that followed.
+
 After every run, update the Run Review page with the `shiploop-run-review`
 skill (`/skill-craft:shiploop-run-review`;
 [SKILL.md](../shiploop-run-review/SKILL.md) in a source checkout). For an output
@@ -381,7 +389,9 @@ those semantic gaps.
 
 When the user authorizes repairs and continuation, act as the repair operator
 between trials: make the smallest evidence-supported ShipLoop or harness fix,
-run meaningful regressions, invoke the selected Improve skill on those changes
+check each term it adds, reuses or retires against ShipLoop's glossary (a
+rename updates the glossary and its retired list in the same commit, and
+`test/shiploop-retired-terms.test.py` runs with the fix), run meaningful regressions, invoke the selected Improve skill on those changes
 through its completion rule, and use the authorized commit/merge/publication
 workflow. Publish changed packages to their existing marketplace entries,
 refresh the existing installations, and require a new `check` receipt proving

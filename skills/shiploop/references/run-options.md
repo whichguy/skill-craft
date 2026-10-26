@@ -82,16 +82,16 @@ pass).
 ## Planning review option
 
 `--planning-review stage|none` at `init` or `workspace start` records the run option
-`planning_review` (default `stage`): which planning results start an Improve child.
+`planning_review` (default `stage`): which planning results start an Improve stage.
 `stage` starts one after each of `spec`, `test-strategy`, `plan`, `step-plan` and
 `test-spec`; `step-plan` and `test-spec` are reviewed only for the first work item and
 for an item that was sent back, and later items follow the pattern that review set
-(rule `first-item`, 2026-10-19). With `--planning-review none` no Improve child starts after any of the five:
+(rule `first-item`, 2026-10-19). With `--planning-review none` no Improve stage starts after any of the five:
 each result is accepted on ShipLoop's own checks at `complete` (cited files exist, the
 plan's assumption list, the step plan's commands, criteria and paths, the knowledge
-home's checks), the graph advances, and no Improve child reviews it in this run. The
+home's checks), the graph advances, and no Improve review covers it in this run. The
 packets say so: the Improve line, the plan and step-plan duties and the shared handoff
-sentence name only the stages that hand off. The children after each `implement` step,
+sentence name only the stages that hand off. The Improve stages after each `implement` step,
 `system-test-author`, `release-plan` and the last `carry-forward` start in both modes; the
 option does not cover the Backchain loop or the inner stages' Until Loops.
 
@@ -100,7 +100,7 @@ route and the plan-time experiments (the packets do not print them). The spec an
 strategy are committed to `docs/shiploop` when each is accepted, with no review after, so
 later runs inherit them unreviewed. Under `stage` the `spec` child binds the selected Improve
 card; a `none` run has no planning child to bind it, yet its first `implement` step starts an
-Improve child. So a `none` run names the card where it starts: `init` and `workspace start`
+Improve stage. So a `none` run names the card where it starts: `init` and `workspace start`
 refuse `--planning-review none` without
 `--improve-skill=<absolute selected Improve SKILL.md>`, and resolve the card there, so a missing
 or unloadable card shows at the start and not in the first work item.

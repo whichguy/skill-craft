@@ -1750,5 +1750,146 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         self.assertEqual((Path(first["output"]) / "sessions.jsonl").read_text(), before)
 
 
+REFERENCE_PATH = "/plugins/skill-craft/skills/shiploop/references/run-start.md"
+KNOWLEDGE_PATH = "/repo/docs/shiploop/architecture.md"
+RESULT_RECORD_PATH = RUN + "/results/nav-a.md"
+PRODUCT_PATH = "/work/src/app/Main.cls"
+
+
+class ContextWindowRowsTest(PlacedRunCase):
+    """metrics.context_window_rows: what fills a run's context between a compaction and the run's start/end (the
+    efficiency-plan measurement, 2026-10-24): one row per window, the ShipLoop stage(s) accepted in it, and its
+    result and model-text characters by source. A two-window, one-compaction fixture, so the split, the per-source
+    bytes and the five largest results are each pinned to one exact run."""
+
+    def build(self) -> tuple:
+        """A Grok-shaped stream: a reference read, a `next`, a shell test run and a web search before the
+        compaction; a knowledge read, a run-record read, a product read, a `complete` and some model text after it.
+        Returns (stream, compaction line, nav-a's stamp, nav-b's stamp, the exact strings each call answered)."""
+        s = Stream(first=1000.0)
+        s.start()
+        texts = {"reference": "R" * 30, "next": "ShipLoop navigator | spec | revision 3\n",
+                 "shell": "T" * 44, "web": "W" * 18, "knowledge": "K" * 22, "record": "M" * 15,
+                 "product": "P" * 19, "complete": "ShipLoop navigator | test-red | revision 4\n",
+                 "model_a": "I will now finish.", "model_b": "thinking it over"}
+        s.call(1.0, "read_file", {"target_file": REFERENCE_PATH}, output=texts["reference"])
+        s.next(after=1.0, output=texts["next"])
+        s.shell(1.0, "npm test", output=texts["shell"])
+        s.call(1.0, "Web search:", {"variant": "WebSearch", "backend": True}, output=texts["web"])
+        # Rounded up a whole second past the last window-1 event: the engine's own stamp (written and read back to
+        # whole seconds, metrics._epoch) must not fall short of the runner's own fractional one for the same event,
+        # or the next stage's window would read as starting inside this one.
+        nav_a_t = float(int(s.t) + 1)
+        compaction_line = len(s.rows)
+        s.add({"type": "auto_compact_completed"}, 1.0)
+        s.call(1.0, "read_file", {"target_file": KNOWLEDGE_PATH}, output=texts["knowledge"])
+        s.call(1.0, "read_file", {"target_file": RESULT_RECORD_PATH}, output=texts["record"])
+        s.call(1.0, "read_file", {"target_file": PRODUCT_PATH}, output=texts["product"])
+        s.complete("nav-b", after=1.0, output=texts["complete"])
+        s.add({"type": "text", "data": texts["model_a"]}, 1.0)
+        s.add({"type": "thought", "data": texts["model_b"]}, 0.5)
+        nav_b_t = float(int(s.t) + 1)
+        return s, compaction_line, nav_a_t, nav_b_t, texts
+
+    def collected(self) -> tuple:
+        s, compaction_line, nav_a_t, nav_b_t, texts = self.build()
+        run_dir = self.write([e for _l, e in s.rows], s.stamps,
+                             [("nav-a", "intake", "done", nav_a_t), ("nav-b", "spec", "done", nav_b_t)],
+                             status="done", stage="spec")
+        return metrics.collect(self.out, run_dir), compaction_line, texts
+
+    def test_the_compaction_splits_the_run_into_exactly_two_windows(self):
+        got, compaction_line, _texts = self.collected()
+        rows = got["context_windows"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual((rows[0]["compacted"], rows[1]["compacted"]), (True, False))
+        self.assertIsNotNone(rows[0]["start"])
+        self.assertIsNotNone(rows[1]["start"])
+        self.assertLess(rows[0]["end"], rows[1]["end"])
+
+    def test_each_window_names_the_stage_accepted_inside_it(self):
+        got, _line, _texts = self.collected()
+        rows = got["context_windows"]
+        self.assertEqual(rows[0]["stages"], ["intake"])
+        self.assertEqual(rows[1]["stages"], ["spec"])
+
+    def test_each_source_is_tallied_in_the_window_its_bytes_arrived_in(self):
+        got, _line, texts = self.collected()
+        before, after = got["context_windows"]
+        self.assertEqual(before["bytes"]["shiploop_reads"], len(texts["reference"]))
+        self.assertEqual(before["bytes"]["shiploop_packets"], len(texts["next"]))
+        self.assertEqual(before["bytes"]["shell_output"], len(texts["shell"]))
+        self.assertEqual(before["bytes"]["web"], len(texts["web"]))
+        self.assertEqual(before["bytes"]["knowledge_reads"], 0)
+        self.assertEqual(after["bytes"]["knowledge_reads"], len(texts["knowledge"]))
+        self.assertEqual(after["bytes"]["run_record_reads"], len(texts["record"]))
+        self.assertEqual(after["bytes"]["product_reads"], len(texts["product"]))
+        self.assertEqual(after["bytes"]["shiploop_packets"], len(texts["complete"]))
+        self.assertEqual(after["bytes"]["model_text"], len(texts["model_a"]) + len(texts["model_b"]))
+        self.assertEqual(before["bytes"]["shiploop_packets"] + before["bytes"]["shiploop_reads"]
+                         + before["bytes"]["shell_output"] + before["bytes"]["web"], sum(before["bytes"].values()))
+
+    def test_the_top_list_is_the_windows_largest_results_in_order(self):
+        got, _line, texts = self.collected()
+        before = got["context_windows"][0]
+        self.assertEqual([row["bytes"] for row in before["top"]],
+                         sorted((len(texts[k]) for k in ("reference", "next", "shell", "web")), reverse=True))
+        self.assertEqual(before["top"][0]["label"], "npm test")
+
+    def test_context_summary_totals_and_shares_match_the_windows(self):
+        got, _line, _texts = self.collected()
+        summary = got["context_summary"]
+        rows = got["context_windows"]
+        self.assertEqual(summary["windows"], 2)
+        self.assertEqual(summary["compactions"], 1)
+        for source in metrics.WINDOW_SOURCES:
+            self.assertEqual(summary["bytes"][source], sum(row["bytes"][source] for row in rows))
+        self.assertAlmostEqual(sum(s for s in summary["share"].values() if s is not None), 1.0, places=6)
+        self.assertEqual(summary["median_minutes"], metrics._median([row["minutes"] for row in rows]))
+
+
+class ServerToolRoundTest(unittest.TestCase):
+    """A Grok native web search/page-open round is billed input but shows the client no content (SPEC correction
+    2026-10-24): it is counted by number (``server_tool_rounds``), never by bytes, and the one ``usage`` event that
+    sums a batch of these rounds is excluded from ``peak_tokens`` -- the next ordinary usage event is read instead."""
+
+    @staticmethod
+    def round_event(kind: str) -> dict:
+        return {"type": "tool_call_update", "toolCallId": "ws_1", "status": "completed",
+                "rawOutput": {"action": {"type": kind, "query": "x"}, "id": "ws_1", "status": "completed"}}
+
+    def rows(self, stream: list[dict]) -> list[dict]:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+            (out / "timeline.jsonl").write_text("".join(
+                json.dumps({"line": n, "t": 100.0 + n}) + "\n" for n in range(len(stream))))
+            return metrics.context_window_rows(out, None, accepted=[], pending=None, sessions=None,
+                                               compaction_lines=[])
+
+    def test_a_search_and_an_open_page_round_are_each_detected_and_counted(self):
+        self.assertTrue(metrics._server_tool_round(self.round_event("search")))
+        self.assertTrue(metrics._server_tool_round(self.round_event("open_page")))
+        self.assertFalse(metrics._server_tool_round({"type": "tool_call_update", "rawOutput": {"exit_code": 0}}))
+        rows = self.rows([self.round_event("search"), self.round_event("open_page"),
+                          {"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}])
+        self.assertEqual(rows[0]["server_tool_rounds"], 2)
+
+    def test_the_usage_event_after_a_batch_of_rounds_is_not_read_as_a_peak(self):
+        stream = [{"type": "usage", "usage": {"input_tokens": 111_715, "output_tokens": 5}},
+                  self.round_event("search"), self.round_event("search"), self.round_event("open_page"),
+                  {"type": "usage", "usage": {"input_tokens": 19_487, "cache_read_input_tokens": 479_360,
+                                              "output_tokens": 9_849}},
+                  {"type": "usage", "usage": {"input_tokens": 20_211, "cache_read_input_tokens": 115_840,
+                                              "output_tokens": 100}}]
+        rows = self.rows(stream)
+        self.assertEqual(rows[0]["server_tool_rounds"], 3)
+        self.assertEqual(rows[0]["peak_tokens"], 136_051, "the batch's own usage (498,847) is never the peak")
+
+    def test_a_round_with_no_usage_event_after_it_still_counts(self):
+        rows = self.rows([self.round_event("search")])
+        self.assertEqual((rows[0]["server_tool_rounds"], rows[0]["peak_tokens"]), (1, None))
+
+
 if __name__ == "__main__":
     unittest.main()

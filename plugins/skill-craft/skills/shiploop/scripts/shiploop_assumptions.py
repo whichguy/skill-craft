@@ -7,9 +7,11 @@ checks make a skipped probe visible instead of silent.  They verify shape,
 links and existence, never whether a list is complete or a locator true.
 
 Open items (consumer contract X10, 2026-10-11): test-spec, verify, carry-forward, system-test-author, system-test,
-release-plan and release-verify record what they leave unproven in the same list.  There an open row's consumer is a
-later OUTER stage, or the same item's carry-forward when the producer is test-spec or verify, and it may name an
-``owner`` (a person).  ``open_items`` is the one reader of the rows still open.
+release-plan and release-verify record what they leave unproven in the same list.  There an open row's ``due_stage`` is
+a later OUTER stage, or the same item's carry-forward when the producer is test-spec or verify, and it may name an
+``owner`` (a person).  The plan's open rows name instead, in ``due_item``, the work item that settles them (run-5 batch R3,
+2026-10-24: ``consumer`` named both, and also meant the product's user elsewhere).  ``open_items`` is the one reader of
+the rows still open.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ import shiploop_stage_spec as stage_spec
 OPEN_ITEM_STAGES = frozenset(("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
                               "release-plan", "release-verify"))
 STAGES = frozenset(("plan",)) | OPEN_ITEM_STAGES
-# The producers whose open item may name their own item's carry-forward as its consumer.
+# The producers whose open item may name their own item's carry-forward as its due stage.
 CARRY_FORWARD_PRODUCERS = ("test-spec", "verify")
 DISPOSITIONS = ("evidenced", "probed", "open")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
@@ -35,13 +37,16 @@ _URL = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
 _FIELDS = {
     "evidenced": frozenset(("evidence",)),
     "probed": frozenset(("check", "evidence")),
-    "open": frozenset(("check", "reason", "consumer")),
+    "open": frozenset(("settle", "reason", "due_stage")),
 }
+# The plan's open rows name the work item that settles them, not a stage.
+_PLAN_OPEN = frozenset(("settle", "reason", "due_item"))
 _SHAPE = (
     "each assumption is {id, assumption, disposition} plus: evidenced -> evidence "
     "(list of absolute paths or URLs); probed -> check (the read or command) and "
-    "evidence (its captured output); open -> check (what would settle it), reason "
-    "(why it was not run) and consumer (the work item that settles or blocks on it)"
+    "evidence (its captured output); open -> settle (what would settle it), reason "
+    "(why it was not run) and, at plan, due_item (the work item that settles or blocks on it) or, at a later stage, "
+    "due_stage (the later stage it is due at)"
 )
 
 
@@ -78,7 +83,7 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
         disposition = entry.get("disposition")
         _need(disposition in DISPOSITIONS,
               f"{label}.disposition must be one of {', '.join(DISPOSITIONS)}")
-        required = _FIELDS[disposition]
+        required = _PLAN_OPEN if (disposition, stage) == ("open", "plan") else _FIELDS[disposition]
         keys = set(entry) - {"id", "assumption", "disposition"}
         if "owner" in keys:
             _need(disposition == "open" and stage in OPEN_ITEM_STAGES,
@@ -106,14 +111,14 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
     return rows
 
 
-def check_consumers(current: list[Mapping[str, Any]], consumers: set[str]) -> None:
-    """Refuse an open assumption that names no work item in the plan's queue."""
+def check_due_items(current: list[Mapping[str, Any]], items: set[str]) -> None:
+    """Refuse a plan's open assumption whose due_item is no work item in the plan's queue."""
     for row in current:
         if row["disposition"] == "open":
-            _need(row["consumer"] in consumers,
-                  f"open assumption {row['id']} names consumer {row['consumer']!r}, which is "
+            _need(row["due_item"] in items,
+                  f"open assumption {row['id']} names due_item {row['due_item']!r}, which is "
                   "not a work item in this plan; name the work item that must settle or "
-                  "block on it (" + ", ".join(sorted(consumers)) + ")")
+                  "block on it (" + ", ".join(sorted(items)) + ")")
 
 
 def check_files(rows: list[Mapping[str, Any]]) -> None:
@@ -144,8 +149,8 @@ def check_files(rows: list[Mapping[str, Any]]) -> None:
                   "to a file and list its absolute path in evidence")
 
 
-def allowed_consumers(stage: str) -> Tuple[str, ...]:
-    """The consumers an open item at an open-item ``stage`` may name, in graph order.
+def allowed_due_stages(stage: str) -> Tuple[str, ...]:
+    """The due stages an open item at an open-item ``stage`` may name, in graph order.
 
     A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec or verify.  Work for a
     later work item goes through carry-forward's work_items, as before (K12).
@@ -155,11 +160,16 @@ def allowed_consumers(stage: str) -> Tuple[str, ...]:
     return tuple((["carry-forward"] if stage in CARRY_FORWARD_PRODUCERS else []) + later)
 
 
-def wrong_consumers(rows: List[Mapping[str, Any]], stage: str) -> List[Tuple[str, str]]:
-    """``(id, consumer)`` of each open row at an open-item ``stage`` whose consumer is not allowed there."""
-    allowed = allowed_consumers(stage)
-    return [(str(row["id"]), str(row["consumer"])) for row in rows
-            if row.get("disposition") == "open" and row.get("consumer") not in allowed]
+def wrong_due_stages(rows: List[Mapping[str, Any]], stage: str) -> List[Tuple[str, str]]:
+    """``(id, due_stage)`` of each open row at an open-item ``stage`` whose due stage is not allowed there."""
+    allowed = allowed_due_stages(stage)
+    return [(str(row["id"]), str(row.get("due_stage"))) for row in rows
+            if row.get("disposition") == "open" and row.get("due_stage") not in allowed]
+
+
+def due(row: Mapping[str, Any]) -> str:
+    """Where an open row is settled: the plan's work item (``due_item``) or a later stage (``due_stage``)."""
+    return str(row.get("due_item") or row.get("due_stage") or "")
 
 
 class OpenItem(NamedTuple):
@@ -173,10 +183,10 @@ class OpenItem(NamedTuple):
 def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
     """Every open row still open, from each current result at ``STAGES``, in the order the results were accepted.
 
-    Current means ``planning_revision.current_actions``.  The plan's rows (consumer: a work item) stay open, as the
-    ledger never updates a disposition.  A later stage's row is settled once a done result of its consumer stage (for
+    Current means ``planning_revision.current_actions``.  The plan's rows (due_item: a work item) stay open, as the
+    ledger never updates a disposition.  A later stage's row is settled once a done result of its due stage (for
     carry-forward, the same item's) is current and was accepted after the row's result; a row that result carries
-    forward (the same ID, open again) is its own row from then on.  A consumer with no assumptions field settles by its
+    forward (the same ID, open again) is its own row from then on.  A due stage with no assumptions field settles by its
     done result.
     """
     current = planning_revision.current_actions(state)
@@ -203,10 +213,10 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
 
 def _settled(row: Mapping[str, Any], produced: int, workitem: Any, current: Mapping[Tuple[Any, str], str],
              accepted: Mapping[str, Any], order: Mapping[str, int]) -> bool:
-    consumer = row.get("consumer")
-    key = (workitem, "carry-forward") if consumer == "carry-forward" else (None, consumer)
+    due_stage = row.get("due_stage")
+    key = (workitem, "carry-forward") if due_stage == "carry-forward" else (None, due_stage)
     action = current.get(key)
-    # The consumer's later done result settles the row.  A row it carries forward (the same ID, open again) is that
-    # result's own open row, listed from there with its new consumer; keeping this one would list the item twice and
-    # leave it open after its new consumer had finished.
+    # The due stage's later done result settles the row.  A row it carries forward (the same ID, open again) is that
+    # result's own open row, listed from there with its new due stage; keeping this one would list the item twice and
+    # leave it open after its new due stage had finished.
     return action is not None and order.get(action, -1) > produced

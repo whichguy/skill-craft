@@ -18,11 +18,17 @@ Each iteration, in a dedicated worktree of this repository:
   6. verify  the harness itself checks the commit's scope and runs the quick
              test tier; a red suite stops the loop (nothing is reverted)
 
+The evaluator boundary (SPEC "The promotion contract", build step 3): the improver may change only the
+candidate (boundary.candidate_path), the held-out files are withheld from its worktree while it works, its
+tool calls are searched for their names, and the digests of what grades the runs (this checkout's harness, its
+checks/ and the case entry) must be the same after it as before. Any of those failing stops the loop.
+
 It stops at --iterations, after two consecutive clean reviews of passing runs
 (a clean review is a valid one with no actionable finding; a failed, timed-out
 or malformed review is journaled as such and never counts),
 when the improver commits nothing twice in a row, on a run the skill cannot be
-blamed for (skill not invoked or wrong plugin), or on a red suite. Every
+blamed for (skill not invoked or wrong plugin), when the improver crosses the
+evaluator boundary, or on a red suite. Every
 iteration appends to LEARNINGS.md in the output directory.
 
 Nothing is published. The loop ends with a branch whose commits you can review,
@@ -45,13 +51,10 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
+import boundary  # noqa: E402
 import hosts  # noqa: E402
 import review as reviewer  # noqa: E402
 import run as runner  # noqa: E402
-
-MAX_ITERATIONS = 10
-# An improvement may touch only the skill, its notes and tests.
-ALLOWED_PREFIXES = ("skills/shiploop/", "changes/shiploop/", "test/")
 
 
 def git(repo: Path, *args: str) -> str:
@@ -90,10 +93,14 @@ Rules:
   consequence a disposition (mitigated and tested / accepted with the clause that asks for it /
   rejected), then state the anchor, the non-regression statement and the evidence. Apply only
   findings whose consequences are all addressed; put that record in the commit message.
-- Change only skills/shiploop/, its tests under test/, and add one note
+- Change only skills/shiploop/ and ShipLoop's own tests (test/shiploop-*.test.py, the test/shiploop_*.py
+  helpers, test/fixtures/shiploop-*, test/experiments/shiploop_*), and add one note
   changes/shiploop/<short-slug>.md (front matter `bump: patch` or `bump: minor`, then one or
   more lines describing the change for people who install the skill). Never edit plugins/,
-  catalogs, CHANGELOG.md or any `version:` field.
+  catalogs, CHANGELOG.md or any `version:` field. The E2E harness that grades the runs
+  (test/shiploop_e2e/, test/shiploop-e2e*), the test runner and the suite catalog are not yours to
+  change: a change there stops the loop. The held-out acceptance checks are withheld from this
+  worktree; a command that names one stops the loop too.
 - Keep script-owned navigation: do not move successor choice, graph walking or prompt
   selection into model instructions. Skip a finding you cannot apply without breaking that.
 - Match the surrounding code and prose style; keep changes small and targeted.
@@ -109,6 +116,8 @@ End with exactly one ```json fenced block:
 
 def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
     stage.mkdir()
+    cases = json.loads(runner.CASES.read_text())
+    graded_before = boundary.fingerprint(HERE, cases.get(args.case))
     agent = hosts.host(args.host)
     git_config = Path.home() / ".gitconfig"
     env = agent.env(stage / "home", git_config if git_config.is_file() else None)
@@ -117,15 +126,34 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
                       prompt_file=stage / "prompt.txt", cwd=worktree, model=args.model or agent.model,
                       effort=args.effort or agent.effort, permission_mode=args.permission_mode,
                       max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
-    process = hosts.run_agent(argv, worktree, env, stage / "events.jsonl", stage / "stderr.txt",
-                              args.improve_timeout, translate=agent.translator())
+    held_out = boundary.held_out_files(cases)
+    with boundary.withheld(worktree, held_out) as withheld:
+        process = hosts.run_agent(argv, worktree, env, stage / "events.jsonl", stage / "stderr.txt",
+                                  args.improve_timeout, translate=agent.translator())
     report = hosts.last_json_object(hosts.final_text(stage / "events.jsonl")) or {}
+    graded_after = boundary.fingerprint(HERE, json.loads(runner.CASES.read_text()).get(args.case))
     commits = git(worktree, "rev-list", f"{base}..HEAD").split()
     changed = git(worktree, "diff", "--name-only", base, "HEAD").split() if commits else []
     dirty = git(worktree, "status", "--porcelain")
     return {"process": process, "report": report, "base": base, "commits": commits, "changed": changed,
-            "out_of_scope": [path for path in changed if not path.startswith(ALLOWED_PREFIXES)],
-            "uncommitted": dirty.splitlines()}
+            "out_of_scope": [path for path in changed if not boundary.candidate_path(path)],
+            "uncommitted": dirty.splitlines(), "withheld": withheld,
+            "held_out_named": boundary.named(stage / "events.jsonl", held_out),
+            "grading": {"before": graded_before, "after": graded_after,
+                        "changed": boundary.changed(graded_before, graded_after)}}
+
+
+def boundary_crossing(change: dict) -> str | None:
+    """Why the improver's work crossed the evaluator boundary, or None: what grades the runs changed, or its tool calls
+    name a held-out file, or its events could not be read (an exposure that cannot be ruled out)."""
+    if change["grading"]["changed"]:
+        return ("the improver changed what grades the runs (" + ", ".join(change["grading"]["changed"]) + " digest; "
+                "SPEC: a harness or oracle change is an experiment of its own)")
+    if change["held_out_named"] is None:
+        return "the improver's events could not be read, so an exposure of the held-out files cannot be ruled out"
+    if change["held_out_named"]:
+        return f"the improver's tool calls name a held-out file {change['held_out_named']} time(s): the holdout may be exposed"
+    return None
 
 
 def _finding_lines(finding: dict) -> list[str]:
@@ -253,21 +281,21 @@ def journal(path: Path, lines: list[str]) -> None:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="battleship")
-    p.add_argument("--iterations", type=int, default=3, help=f"hard cap, at most {MAX_ITERATIONS}")
+    p.add_argument("--iterations", type=int, default=3, help="how many iterations to run")
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok",
                    help="host for the run, the review and the improvement")
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--permission-mode", default="auto")
-    p.add_argument("--run-max-turns", type=int, default=10000)
-    p.add_argument("--improve-max-turns", type=int, default=120)
-    p.add_argument("--max-budget-usd", type=float, default=10.0, help="per Claude process; Grok has no spend cap")
-    p.add_argument("--run-timeout", type=int, default=10800)
+    p.add_argument("--run-max-turns", type=int, default=None)  # no turn limit unless one is asked for
+    p.add_argument("--improve-max-turns", type=int, default=None)  # no turn limit unless asked
+    p.add_argument("--max-budget-usd", type=float, default=None, help="per Claude process, default none; Grok has no spend cap")
+    p.add_argument("--run-timeout", type=int, default=None)  # no time limit unless asked
     p.add_argument("--improve-timeout", type=int, default=2700)
     p.add_argument("--output", type=Path)
     args = p.parse_args(argv)
-    if not 1 <= args.iterations <= MAX_ITERATIONS:
-        raise SystemExit(f"--iterations must be 1..{MAX_ITERATIONS}")
+    if args.iterations < 1:
+        raise SystemExit("--iterations must be at least 1")
 
     name = f"auto-shiploop-e2e-{secrets.token_hex(3)}"
     out = (args.output or Path(tempfile.gettempdir()) / "shiploop-e2e" / name).resolve()
@@ -295,17 +323,22 @@ def main(argv: list[str] | None = None) -> int:
                        check=True, stdout=subprocess.DEVNULL)
         run_args = ["--case", args.case, "--host", args.host, "--output", str(stage / "run"),
                     "--plugin-dir", str(stage / "build" / "plugins" / "skill-craft"),
-                    "--permission-mode", args.permission_mode, "--max-turns", str(args.run_max_turns),
-                    "--max-budget-usd", str(args.max_budget_usd), "--timeout", str(args.run_timeout)]
+                    "--permission-mode", args.permission_mode,
+                    *(["--max-turns", str(args.run_max_turns)] if args.run_max_turns else []),
+                    *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
+                    *(["--timeout", str(args.run_timeout)] if args.run_timeout else [])]
         run_args += (["--model", args.model] if args.model else []) + (["--effort", args.effort] if args.effort else [])
         print(f"\n== iteration {index}: run ({sha[:8]})", flush=True)
         runner.main(run_args)
         result = json.loads((stage / "run" / "result.json").read_text())
+        graded = result.get("boundary") or {}
         entry = [f"## Iteration {index} ({sha[:8]})", "",
                  f"- run: {'PASS' if result['pass'] else 'FAIL'} ({result['process']['status']}, "
                  f"{result['process']['elapsed_seconds']}s, cost {runner.metrics.money(result['cli'].get('cost_usd'))}, "
                  f"shiploop {result['shiploop'].get('status') or result['shiploop'].get('reason')}, "
-                 f"checks {sum(c['pass'] for c in result['checks'])}/{len(result['checks'])})"]
+                 f"checks {sum(c['pass'] for c in result['checks'])}/{len(result['checks'])})",
+                 f"- boundary: evaluator {graded.get('evaluator')}, oracle {graded.get('oracle')}, case {graded.get('case')}, "
+                 f"candidate {(result.get('versions') or {}).get('plugin_sha256')}"]
         if not (result["invoked"]["pass"] and result["plugin"]["pass"]):
             journal(learnings, entry + ["- stopped: the skill was not invoked from the build under test"])
             stop = "run did not reach the skill under test (see result.json invoked/plugin)"
@@ -347,7 +380,14 @@ def main(argv: list[str] | None = None) -> int:
         entry += [f"- improve: {change['process']['status']}, {len(change['commits'])} commit(s), "
                   f"files: {', '.join(change['changed']) or 'none'}",
                   f"  - applied: {change['report'].get('applied')}",
-                  f"  - skipped: {change['report'].get('skipped')}"]
+                  f"  - skipped: {change['report'].get('skipped')}",
+                  f"- withheld: {', '.join(change['withheld']) or 'none'}; improver tool calls naming one: "
+                  f"{change['held_out_named']}"]
+        crossed = boundary_crossing(change)
+        if crossed:
+            journal(learnings, entry + [f"- stopped: {crossed}"])
+            stop = crossed
+            break
         if change["out_of_scope"] or change["uncommitted"]:
             journal(learnings, entry + [f"- stopped: out-of-scope {change['out_of_scope']}, "
                                         f"uncommitted {change['uncommitted']}"])

@@ -1,0 +1,273 @@
+{
+ "run": "chess-sf-full-9e52e8",
+ "blocks": 33,
+ "bytes": 56028,
+ "unread_blocks": 8,
+ "unread_bytes": 981,
+ "rows": [
+  {
+   "block": "fidelity",
+   "bytes": 19511,
+   "readers": [
+    "collect.py",
+    "export.py",
+    "index.html"
+   ]
+  },
+  {
+   "block": "fresh_starts",
+   "bytes": 15262,
+   "readers": [
+    "collect.py",
+    "export.py"
+   ]
+  },
+  {
+   "block": "stages",
+   "bytes": 5824,
+   "readers": [
+    "collect.py",
+    "export.py",
+    "flow.py",
+    "index.html",
+    "owner_page.py",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "packets",
+   "bytes": 5734,
+   "readers": [
+    "dag_replay.py",
+    "export.py",
+    "flow.py",
+    "owner_page.py"
+   ]
+  },
+  {
+   "block": "shiploop_failures",
+   "bytes": 2950,
+   "readers": [
+    "collect.py",
+    "export.py",
+    "index.html",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "model_glue",
+   "bytes": 1609,
+   "readers": [
+    "export.py",
+    "index.html",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "planning",
+   "bytes": 1538,
+   "readers": [
+    "collect.py",
+    "export.py",
+    "index.html",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "sessions",
+   "bytes": 975,
+   "readers": [
+    "export.py",
+    "flow.py",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "cancelled_tool_calls",
+   "bytes": 659,
+   "readers": [
+    "progress.py"
+   ]
+  },
+  {
+   "block": "unmeasured",
+   "bytes": 552,
+   "readers": [
+    "export.py",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "packets_unmeasured",
+   "bytes": 436,
+   "readers": []
+  },
+  {
+   "block": "narrative",
+   "bytes": 377,
+   "readers": []
+  },
+  {
+   "block": "commits",
+   "bytes": 191,
+   "readers": [
+    "collect.py",
+    "iterate.py"
+   ]
+  },
+  {
+   "block": "knowledge_reads",
+   "bytes": 107,
+   "readers": []
+  },
+  {
+   "block": "script_verifications",
+   "bytes": 73,
+   "readers": [
+    "progress.py"
+   ]
+  },
+  {
+   "block": "improve_reviews",
+   "bytes": 62,
+   "readers": [
+    "test_campaign.py",
+    "test_workflow_review.py",
+    "workflow_review.py"
+   ]
+  },
+  {
+   "block": "span",
+   "bytes": 52,
+   "readers": [
+    "Index.html",
+    "collect.py",
+    "index.html",
+    "owner_page.py"
+   ]
+  },
+  {
+   "block": "tmp_writes",
+   "bytes": 50,
+   "readers": []
+  },
+  {
+   "block": "tokens",
+   "bytes": 22,
+   "readers": [
+    "export.py",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "cost_usd",
+   "bytes": 7,
+   "readers": [
+    "collect.py",
+    "iterate.py",
+    "progress.py",
+    "render.py"
+   ]
+  },
+  {
+   "block": "claude_code_version",
+   "bytes": 4,
+   "readers": []
+  },
+  {
+   "block": "window_tokens",
+   "bytes": 4,
+   "readers": [
+    "export.py"
+   ]
+  },
+  {
+   "block": "unreported_sessions",
+   "bytes": 4,
+   "readers": []
+  },
+  {
+   "block": "tool_use",
+   "bytes": 4,
+   "readers": [
+    "export.py",
+    "flow.py"
+   ]
+  },
+  {
+   "block": "fresh_starts_unmeasured",
+   "bytes": 4,
+   "readers": [
+    "collect.py",
+    "export.py"
+   ]
+  },
+  {
+   "block": "turns",
+   "bytes": 3,
+   "readers": [
+    "collect.py",
+    "export.py",
+    "flow.py",
+    "owner_page.py",
+    "progress.py",
+    "render.py"
+   ]
+  },
+  {
+   "block": "model_calls",
+   "bytes": 3,
+   "readers": [
+    "check_suite.py",
+    "dag_replay.py",
+    "export.py",
+    "freshness.py",
+    "test_check_suite.py",
+    "test_dag_replay.py",
+    "test_freshness.py"
+   ]
+  },
+  {
+   "block": "compactions",
+   "bytes": 2,
+   "readers": [
+    "collect.py",
+    "export.py",
+    "progress.py",
+    "render.py"
+   ]
+  },
+  {
+   "block": "truncated_outputs",
+   "bytes": 2,
+   "readers": [
+    "iterate.py",
+    "progress.py"
+   ]
+  },
+  {
+   "block": "asked_user",
+   "bytes": 2,
+   "readers": [
+    "export.py"
+   ]
+  },
+  {
+   "block": "improve_children",
+   "bytes": 2,
+   "readers": [
+    "progress.py"
+   ]
+  },
+  {
+   "block": "commits_unmeasured",
+   "bytes": 2,
+   "readers": []
+  },
+  {
+   "block": "unreported_sessions_at_least",
+   "bytes": 1,
+   "readers": []
+  }
+ ]
+}

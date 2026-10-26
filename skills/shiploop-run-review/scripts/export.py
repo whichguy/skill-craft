@@ -1989,7 +1989,8 @@ def _unverified(body: dict) -> list[dict] | None:
     for item in raw:
         if isinstance(item, dict):
             row = {field: (text.strip()[:MAX_SUMMARY] + ("\u2026" if len(text.strip()) > MAX_SUMMARY else ""))
-                   for field, key in (("outcome", "outcome"), ("reason", "reason"), ("check", "check"), ("owner", "owner"),
+                   # The page's stored `check` column holds what ShipLoop names `settle` (run-5 batch R1, 2026-10-24).
+                   for field, key in (("outcome", "outcome"), ("reason", "reason"), ("check", "settle"), ("owner", "owner"),
                                       ("dueStage", "due_stage")) if (text := _text(item.get(key)))}
             if row:
                 found.append(row)

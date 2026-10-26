@@ -155,6 +155,7 @@ def _gates(name: str, control: dict, candidate: dict, aa: dict | None) -> tuple[
         c, a = control.get(key), candidate.get(key)
         if not isinstance(c, (int, float)) or not isinstance(a, (int, float)):
             notes.append(f"{name}: {key} not measured on both arms")
+            failed.append({"slice": name, "gate": key, "why": "not measured on both arms", "unmeasured": True})
         elif aa is None or key not in aa:
             notes.append(f"{name}: {key} is descriptive here (control {c}, candidate {a}): no A/A spread for this slice")
         elif a > c + aa[key]:
@@ -163,23 +164,39 @@ def _gates(name: str, control: dict, candidate: dict, aa: dict | None) -> tuple[
 
 
 def decide(control: dict[str, dict], candidate: dict[str, dict], aa: dict[str, dict] | None = None) -> dict:
-    """The decision over the slices both arms have. ``decision`` is "control", "candidate" or None; ``exit`` is the process
-    status (0 decided, 2 inside the spread, 3 nothing to decide from)."""
+    """The decision over the two arms' slices. ``decision`` is "control", "candidate" or None; ``exit`` is the process status
+    (0 decided, 2 inside the spread, 3 nothing to decide from).
+
+    Missing evidence never decides (build step 2, R2 of docs/shiploop-e2e-loop-recommendations-2026-10-25.md). A slice that
+    one arm has and the other lacks, and a hard-gate field not measured on both arms, leave the decision open. Before
+    2026-10-25 the slices were silently cut to the common ones, and an unmeasured gate was only a note, so a candidate could
+    win with a missing slice or missing gate fields (Astra's probe, final verdict)."""
     common = sorted(set(control) & set(candidate))
     report = {"slices": common, "gates_failed": [], "notes": [], "bytes": {}, "descriptive": {}, "decision": None,
               "reason": "", "exit": 3}
     if not common:
         report["reason"] = "the two arms have no slice in common"
         return report
+    one_sided = sorted(set(control) ^ set(candidate))
+    if one_sided:
+        report["reason"] = "slices missing from an arm: " + ", ".join(
+            f"{name} ({'control only' if name in control else 'candidate only'})" for name in one_sided)
+        return report
+    unmeasured = []
     for name in common:
         failed, notes = _gates(name, control[name], candidate[name], (aa or {}).get(name))
-        report["gates_failed"] += failed
+        unmeasured += [g for g in failed if g.get("unmeasured")]
+        report["gates_failed"] += [g for g in failed if not g.get("unmeasured")]
         report["notes"] += notes
         report["descriptive"][name] = {key: {"control": control[name].get(key), "candidate": candidate[name].get(key)}
                                        for key in DESCRIPTIVE}
-    if report["gates_failed"]:
+    if report["gates_failed"]:  # a failure that was measured rejects the candidate even beside an unmeasured gate
         report.update(decision="control", exit=0, reason="a hard gate rejects the candidate: "
                       + "; ".join(f"{g['slice']} {g['gate']}: {g['why']}" for g in report["gates_failed"]))
+        return report
+    if unmeasured:
+        report["reason"] = "a hard-gate field is not measured on both arms: " + ", ".join(
+            f"{g['slice']} {g['gate']}" for g in unmeasured)
         return report
     for key in BYTE_METRICS:
         total_c = total_a = threshold = measured = 0

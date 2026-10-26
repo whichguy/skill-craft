@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and repeat until a pass finds only trivial changes or none. Supports a
   read-only interpretation preview; not a one-off code review.
-version: 0.6.0
+version: 0.7.1
 license: MIT
 platforms:
   - linux
@@ -25,9 +25,9 @@ runtime. It does not create a second state machine or invoke `/goal`.
 
 Pick the route first. A ShipLoop review (the argument `ShipLoop Improve: <handoff path>`)
 follows "ShipLoop whole-skill subcall" below and reads [the ShipLoop route](references/shiploop-route.md)
-once per context. Any other invocation (`/improve`, an `improve-agent` worker) reads
-[the standalone route](references/standalone-route.md) in full before interpreting or executing; it
-holds the standalone binding, context-loss continuation, completion summary, preview and execution
+once per context: a short core that opens its case files only when their case arises. Any other
+invocation (`/improve`, an `improve-agent` worker) reads [the standalone route](references/standalone-route.md)
+in full before interpreting or executing; it holds the standalone binding, context-loss continuation, completion summary, preview and execution
 handoff, and has you read the shared policy in full.
 
 Improve is an execution-capable coding agent, not an audit-only role. Within the
@@ -101,8 +101,9 @@ ShipLoop wrote it for one child, and it plays the role of
 selected actual Improve card and prints a
 `ShipLoop standalone Improve binding: <binding-id>` marker, this is a
 **standalone whole-skill subcall**. Read [the ShipLoop route](references/shiploop-route.md)
-once per context: it applies this card's standalone owner binding and the
-Until Loop runtime's loop rules to a ShipLoop child and holds what the handoff leaves out. Preserve the
+once per context: its short core applies this card's standalone owner binding and the
+Until Loop runtime's loop rules to a ShipLoop child, holds every rule a normal pass needs beyond
+the handoff, and names the case file to open only when its case arises. Preserve the
 exact binding marker in the child `context.request`. The ShipLoop packet supplies the bounded
 candidate scope, permitted paths, current producer result, relevant work-item
 `context`, evidence/reference locators, return route, and authority constraints;
@@ -122,15 +123,15 @@ workspace, conditions, commit policy and return locators) and starts the bound
 runtime with the receipt. Read the printed host receipt and continue the child
 from it: for `active` status run its `next_argv` once, then follow the returned
 instruction. Do not write the opening or start the runtime yourself. The runtime
-writes every child packet to the receipt itself, the terminal packet before it
-deletes its state, and ShipLoop imports only a packet written that way. Never
-write or edit that receipt by hand.
+rewrites the receipt itself at every step, the last time before it deletes its
+state, and ShipLoop imports only a receipt written that way. Never write or edit
+that receipt by hand.
 
-The child `context.resources` must retain the parent latest-packet receipt
-location, the exact parent return instruction or callback locator, and the
-printed host receipt path for the child response. These locators make a terminal
-child packet sufficient for a fresh host to save its exact response at the
-required receipt path and then return through the parent route. Do not infer a
+The child `context.resources` must retain the child receipt location, the
+exact parent return instruction or callback locator, and the printed host
+receipt path for the child response. These locators make a final child receipt
+sufficient for a fresh host to save its exact response at the required receipt
+path and then return through the parent route. Do not infer a
 different route from a remembered parent state.
 
 The ShipLoop child follows the standalone binding's ordinary commit policy: after
@@ -149,9 +150,9 @@ cold recovery, and retain concise current decision/revalidation locators in the
 child handoff. Do not use an ambient Until Loop runtime for this ShipLoop route.
 
 For an `active` or `blocked` child response, do not call a parent callback.
-Follow the child packet or report its incomplete state through the recorded
-recovery route. For `stopped`, preserve the exact terminal packet and evidence
-and return their locators. Only when a ShipLoop v4 packet explicitly prints its
+Follow the child receipt's instruction or report its incomplete state through the
+recorded recovery route. For `stopped`, preserve the exact final receipt and
+evidence and return their locators. Only when a ShipLoop v4 packet explicitly prints its
 parent-only stopped-child reconciliation callback may the parent, after
 collecting or confirming the worker stopped, use that exact callback. The worker
 never executes it; no other stopped child advances the parent. After a successful

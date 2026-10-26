@@ -52,8 +52,8 @@ The plan result carries an **assumption list** in `assumptions`. Start from
 research's decision-note list and add each load-bearing assumption the plan introduces: one
 whose failure would change a plan decision, consumer or acceptance check. Each
 has one disposition: evidenced (`evidence` locators), probed (`check` plus
-`evidence` naming its saved output file) or open (`check` that would settle it,
-`reason` it was not run, and the `consumer` work item that settles or blocks on
+`evidence` naming its saved output file) or open (`settle`: what would settle it,
+`reason` it was not run, and the `due_item`, the work item that settles or blocks on
 it). The list is what makes choosing zero experiments visible; an unlisted
 assumption is an unreviewed one. The exit requires a disposition for every entry
 and no open entry that a feasible bounded probe within the remaining allowance
@@ -144,10 +144,10 @@ invalidates discovery, research, specification or test strategy, identify the
 **earliest** affected stage. Retain the premise and evidence in the reconciliation
 summary and local evidence files; do not edit accepted upstream results in place.
 A paused parent retains its bound child. An unfinished or runtime-`stopped` child
-packet is not proof that the actual child owner has stopped. Under
+receipt is not proof that the actual child owner has stopped. Under
 `delegation: ask-agent`, the parent must collect or confirm the delegated worker;
 under `delegation: inline`, the parent is the owner and confirms that the runtime
-returned the packet and no candidate write is in progress. Only then can it
+wrote that receipt and no candidate write is in progress. Only then can it
 accept, reconcile, or replace work.
 
 The return path is available only for the initial `plan` Improve child before
@@ -158,21 +158,21 @@ rather than receive a fabricated stopped-child settlement.
 
 1. Finish the current bounded work and preserve observations/cleanup status.
    Report the unresolved or non-trivial review, unsatisfied or unknown exit, and
-   cancelled continuation through the child's actual callback. Save its complete
-   raw `stopped` packet at the exact parent-issued receipt location.
+   cancelled continuation through the child's actual callback. Keep its raw
+   `stopped` receipt, complete, at the exact parent-issued receipt location.
 2. The parent confirms the owner has stopped: under `delegation: ask-agent` it
    collects the actual worker's return or confirms cancellation; under
-   `delegation: inline` it confirms the runtime returned that stopped packet in
+   `delegation: inline` it confirms the runtime wrote that stopped receipt in
    this conversation and no candidate write is in progress. An uncertain/live
-   owner, missing terminal packet or usable child callback prevents settlement.
-   The packet importer checks structural declarations and local file identities;
+   owner, missing receipt or usable child callback prevents settlement.
+   The receipt importer checks structural declarations and local file identities;
    it does not independently authenticate that the owner stopped.
 3. Write the packet-issued reconciliation receipt with exactly `summary`,
    `target`, and nonempty `evidence_refs`. Target is `discovery`, `research`,
    `spec`, or `test-strategy`. Evidence references must be absolute regular,
    single-link, non-symlink files inside the child workspace. Use the printed
    `improve-reconcile` callback (it names the Improve stage's id), never the Improve stage's `complete` for this stopped child.
-4. ShipLoop archives the raw terminal packet, receipt and evidence, records a
+4. ShipLoop archives the child's raw receipt, the reconciliation receipt and evidence, records a
    non-success `reconcile` result and timestamped event, then issues a fresh
    action at the target in one recoverable Markdown transaction. Event/history
    order determines causality; the local UTC timestamp is informational.
