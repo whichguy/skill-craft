@@ -49,6 +49,9 @@ PAGE_PACKET_LIMIT = 256 * 1024
 PAGE_TEXT_LIMIT = 12 * 1024 * 1024
 # Commands that only read or display; they are not run activity.
 UNTRACED = frozenset(("view", "hook-status", "trace", "graph-dry-run", "-h", "--help"))
+# Set by the CLI while a traced command runs on a current run; packets printed at any other time (a routed verb such as
+# chain, a test calling emit directly) write nothing.
+ACTIVE = False
 
 
 # ---------------------------------------------------------------------------------------------------------- writer
@@ -128,7 +131,9 @@ def keep_sent(root: str | Path, text: str) -> tuple[str, str]:
 
 def record_packet(root: str | Path, state: Mapping[str, Any], text: str, printed: str) -> bool:
     """Record one printed packet of ``state`` and keep its text, and the printed head when that is not the whole,
-    as sent."""
+    as sent.  Only while a traced command runs (``ACTIVE``)."""
+    if not ACTIVE:
+        return False
     try:
         sha, file = keep_sent(root, text)
         whole = printed.startswith(text)
@@ -427,8 +432,15 @@ def _goal(state: Mapping[str, Any], navigator: Any, limit: int = 140) -> str:
 
 # The planning stages that expand the request, in order; each item's step-plan expands its work item.
 EXPANDING = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
-# Intake maps each request sentence: "S4 outcome: …", "S2 boundary: …", "S9 open question: …".
-_SENTENCE_READING = re.compile(r"(?:^|(?<=\s))S(\d+)\s+([a-z][a-z /-]{0,30}?):\s")
+# Intake cites S<n> at the start of each sentence's clause; hosts word the rest differently.  Seen on real runs:
+# "S4 outcome: …", "S1: outcome = …", "S1: Outcome: …", "S2: outcome - …", "S1: outcome is …", "S1: Deliver …",
+# "S3 (paraphrase): boundary = …", "S1 (paraphrase): Outcome 1: …", "S1 maps to …".
+_SENTENCE_READING = re.compile(
+    r"(?:^|(?<=\s))S(\d+)(?:\s+(?P<kind>[a-z][a-z /-]{0,30}?):\s"
+    r"|\s*\((?:[^()]|\([^()]{0,200}\)){0,600}\)\s*:\s|\s*:\s|\s+maps\s+to\s)")
+# The kind a clause opens with when it does not come before the colon ("outcome = …", "Boundary - …", "Outcome 1: …").
+_READING_KIND = re.compile(r"(?i)(outcomes?|boundar(?:y|ies)|open questions?|questions?|defaults?|assumptions?|"
+                           r"constraints?)(?:\s+\d+)?(?:\s*\([^()]{0,40}\))?\s*(?:[:=–-]|is\b)\s*")
 _REQUIREMENT = re.compile(r"^###\s+(R-\d+)\.?\s*(.*)$")
 SPEC_LIMIT = 256 * 1024          # bytes of the living spec the reader reads
 FIELD_LIMIT = 2000               # characters of one expanded field the model keeps
@@ -436,13 +448,19 @@ ANSWER_LIMIT = 8 * 1024          # bytes of one owner answer
 
 
 def sentence_readings(summary: str) -> dict[int, list[dict[str, str]]]:
-    """Intake's summary split by request sentence: S<n> -> [{kind, text}].  Text intake did not tie to a sentence is
-    not returned; the stage's summary keeps it."""
+    """Intake's summary split by request sentence: S<n> -> [{kind, text}], kind ``reading`` when the clause names
+    none.  A paraphrase of the sentence in parentheses is dropped (the sentence is shown beside it).  Text intake did
+    not tie to a sentence is not returned; the stage's summary keeps it."""
     marks = list(_SENTENCE_READING.finditer(summary or ""))
     readings: dict[int, list[dict[str, str]]] = defaultdict(list)
     for index, mark in enumerate(marks):
         end = marks[index + 1].start() if index + 1 < len(marks) else len(summary)
-        readings[int(mark.group(1))].append({"kind": mark.group(2).strip(), "text": summary[mark.end():end].strip()})
+        text, kind = summary[mark.end():end].strip().rstrip("|").rstrip(), mark.group("kind")
+        if kind is None:
+            lead = _READING_KIND.match(text)
+            kind, text = (lead.group(1).lower(), text[lead.end():]) if lead else ("reading", text)
+            kind = kind[:-3] + "y" if kind.endswith("ies") else kind.rstrip("s")
+        readings[int(mark.group(1))].append({"kind": " ".join(kind.split()), "text": text})
     return dict(readings)
 
 
@@ -754,7 +772,7 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
         extras = [part for part in (
             _span(step["seconds"]) if step.get("seconds") is not None else None,
             f"{step['refusals']} refused" if step.get("refusals") else None,
-            f"{step['reprints']} reprints" if step.get("reprints") else None,
+            _count(step["reprints"], "reprint") if step.get("reprints") else None,
             "Improve" if step.get("improve") else None) if part]
         where = f"{(step['item'] + ' ') if step.get('item') else ''}{step['stage']}"
         lines.append(f"  #{step['n']:<3} {_clock(step.get('at'))}  {where:<28} {step['outcome']:<9}"
@@ -772,10 +790,10 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
         lines.append("  " + event_line(event))
     lines.append("")
     if run["traced"]:
-        lines.append(f"Totals:   {counts['accepted']} accepted · {counts['commands']} commands · "
-                     f"{counts['refusals']} refused · {counts['checks_failed']} checks failed · "
-                     f"{counts['packets']} packets ({counts['reprints']} reprints) · "
-                     f"{counts['continuations']} hook continuations · {_count(counts['skills'], 'skill call')}")
+        lines.append(f"Totals:   {counts['accepted']} accepted · {_count(counts['commands'], 'command')} · "
+                     f"{counts['refusals']} refused · {_count(counts['checks_failed'], 'check')} failed · "
+                     f"{_count(counts['packets'], 'packet')} ({_count(counts['reprints'], 'reprint')}) · "
+                     f"{_count(counts['continuations'], 'hook continuation')} · {_count(counts['skills'], 'skill call')}")
     else:
         # Not measured is not zero: a run before the trace recorded no commands, refusals, packets or hook stops.
         lines.append(f"Totals:   {counts['accepted']} accepted · {_count(counts['skills'], 'skill call')} · commands, refusals, "
@@ -794,7 +812,7 @@ def request_summary(request: Mapping[str, Any]) -> list[str]:
     original, expanded = request["original"], request["expanded"]
     steps = sum(len(item["steps"]) for item in expanded["work_items"])
     parts = [f"through {expanded['through']}" if expanded["through"] else "not expanded yet",
-             f"intake read {expanded['mapped']} of {len(original['sentences'])} sentences",
+             f"intake read {expanded['mapped']} of {_count(len(original['sentences']), 'sentence')}",
              _count(len(expanded["requirements"]), "requirement"),
              _count(len(expanded["work_items"]), "work item") + (f", {_count(steps, 'step')}" if steps else ""),
              _count(len(expanded["assumptions"]), "assumption"), _count(len(expanded["answers"]), "owner answer")]
@@ -821,14 +839,15 @@ def request_digest(model: Mapping[str, Any]) -> str:
         for reading in sentence["readings"]:
             lines.append(f"       → {reading['kind']}: {reading['text']}")
         if not sentence["readings"]:
-            lines.append("       → " + ("not read by intake" if expanded["through"] else "intake not accepted yet"))
+            lines.append("       → " + ("no clause of intake's summary cites it" if expanded["through"]
+                                       else "intake not accepted yet"))
     lines += ["", "Planning, in order (current results; ✓ accepted, · pending):"]
     for stage in expanded["stages"]:
         if stage["state"] != "accepted":
             lines.append(f"  · {stage['stage']}")
             continue
         lines.append(f"  ✓ {stage['stage']:<14} {stage['headline']}" + ("  (+I)" if stage["improve"] else ""))
-        if stage["stage"] != "intake":  # intake's summary is the sentence readings above
+        if stage["stage"] != "intake" or not expanded["mapped"]:  # a mapped intake summary is the readings above
             lines.append(f"    {'':<14} {_one_line(stage['summary'], 400)}")
     lines += ["", f"Requirements ({len(expanded['requirements'])}, living spec {expanded['spec_file']}):"]
     for requirement in expanded["requirements"]:
@@ -860,7 +879,8 @@ def request_digest(model: Mapping[str, Any]) -> str:
 
 
 def find_action(model: Mapping[str, Any], wanted: str) -> str | None:
-    """The one action id that is ``wanted`` or that ``wanted`` starts or ends (at least 6 characters)."""
+    """The one action id that is ``wanted`` or that ``wanted`` starts or ends (at least 6 characters), with or without
+    its ``nav-`` prefix (the digest prints ``nav-7d0f97f9…``; a reader copies the hex)."""
     known = {step["action"] for step in model["steps"]}
     known |= {event.get("action") for event in model["events"] if event.get("action")}
     known |= {event.get("for_action") for event in model["events"] if event.get("for_action")}
@@ -870,7 +890,8 @@ def find_action(model: Mapping[str, Any], wanted: str) -> str | None:
         return wanted
     if len(wanted) < 6:
         return None
-    matches = sorted(action for action in known if action and (action.startswith(wanted) or action.endswith(wanted)))
+    matches = sorted(action for action in known if action and (action.startswith(wanted) or action.endswith(wanted)
+                                                                or action.split("-", 1)[-1].startswith(wanted)))
     return matches[0] if len(matches) == 1 else None
 
 

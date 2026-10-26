@@ -4,6 +4,27 @@ Written by scripts/release.py.
 
 ## 2026-10-25
 
+### skill-craft 2.13.1
+
+- Skills: shiploop 1.13.1, shiploop-e2e-audit 0.7.8
+
+### shiploop 1.13.1
+
+- The run trace records only navigator commands on a current run and the packets they print. `chain`, `lint`,
+  `red-check` and `backchain-check` are not traced, so their read-only views, record-only checks and refusals leave the
+  run directory exactly as it was (1.12.0 appended to `trace.jsonl` there).
+- Run trace, after its first real host run: the request view now reads intake's sentence readings however the host words
+  them (`S1: outcome = …`, `S1: Outcome: …`, `S2 (paraphrase): boundary - …`, `S1 maps to …`, as well as `S1 outcome: …`);
+  before, 11 of 27 real intakes that cite every sentence read as "intake read 0 of N", and the terminal request view then
+  hid intake's summary too. An intake summary that cites no sentence now stays in that view. `workspace start` is one
+  command in the trace (it ran init, or next on a re-entry, and both were recorded); `trace --action` takes an id without
+  its `nav-` prefix (the hex the digest prints); and the digest's totals say "1 packet", "1 reprint", "1 check failed",
+  "of 1 sentence".
+
+### shiploop-e2e-audit 0.7.8
+
+- The Grok adapter's list of direct ShipLoop subcommands includes `trace`, the run-trace reader added in ShipLoop 1.12.0.
+
 ### skill-craft 2.13.0
 
 - Skills: shiploop 1.13.0

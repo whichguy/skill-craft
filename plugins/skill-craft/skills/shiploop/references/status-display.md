@@ -116,12 +116,14 @@ no ongoing observation unless an observer still owns its original path.
 
 The status block says where the run is; the **run trace** says what happened and
 what is still scheduled (owner, 2026-10-25). ShipLoop appends one JSON line per
-event to `<run>/trace.jsonl` as it happens: `command` (every command that names a
-current run, except `view`, `hook-status` and `trace`: exit code, revision, stage
-and action before and after, results accepted, refusal text), `packet` (every
-printed packet, its text kept as sent in `packets/sent/<sha>.md`, since `next`
-rewrites `packets/<action>.md`) and `hook` (each keepalive stop decision, with the
-text it put into the turn). Skill-tool calls stay in `skill-calls.jsonl`. The
+event to `<run>/trace.jsonl` as it happens: `command` (every navigator command on
+a current run, such as `init`, `next`, `complete`, `pause` or `status`: exit code,
+revision, stage and action before and after, results accepted, refusal text),
+`packet` (every packet such a command prints, its text kept as sent in
+`packets/sent/<sha>.md`, since `next` rewrites `packets/<action>.md`) and `hook`
+(each keepalive stop decision, with the text it put into the turn). `chain`,
+`lint`, `red-check` and `backchain-check` are not traced: their views and
+record-only checks must leave the run as it was. Skill-tool calls stay in `skill-calls.jsonl`. The
 trace is evidence, never state: nothing resumes from it, and a failed append
 never fails a command.
 

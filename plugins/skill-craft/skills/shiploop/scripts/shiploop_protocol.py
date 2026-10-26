@@ -517,12 +517,20 @@ def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
 # ``_main``, read by ``main`` once the command has finished.  A command on a retired or unloadable run, or one whose
 # command line did not parse, records nothing: it must leave that directory as it was.
 _TRACE: dict[str, Any] = {}
+# How many ``main`` calls are running.  A command another one runs (``workspace start`` runs init, or next on an
+# identical re-entry) is part of that command line: only the outermost is recorded, with the run the inner one loaded.
+_DEPTH = [0]
 
 
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     """Dispatch one ShipLoop command line and record it in the run trace; returns the process exit code."""
+    import shiploop_trace
+
     raw_argv = list(sys.argv[1:] if argv is None else argv)
-    _TRACE.clear()
+    outermost = not _DEPTH[0]
+    if outermost:
+        _TRACE.clear()
+    _DEPTH[0] += 1
     started = time.monotonic()
     code = 2
     try:
@@ -532,13 +540,17 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         code = exc.code if isinstance(exc.code, int) else 2
         raise
     finally:
-        _record_command(raw_argv, code, started)
+        _DEPTH[0] -= 1
+        if outermost:  # an inner command's packets stay in the trace until the command line that ran it ends
+            shiploop_trace.ACTIVE = False
+            _record_command(raw_argv, code, started)
 
 
 def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
     """Append the finished command to its run's trace.  The state after it was captured inside the run lock, so a
     command that ran next is never credited to this one; a refused command saved nothing, so its after is its before.
-    Only the routed verbs (chain, lint, red-check), which hold their own lock, are read once it is released."""
+    The routed verbs (chain, lint, red-check, backchain-check) are not traced: their views and record-only checks
+    must leave the run as it was."""
     import shiploop_trace as trace
 
     root = _TRACE.get("root")
@@ -546,15 +558,7 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
         return
     if _TRACE.get("before") is None and not _TRACE.get("created"):
         return
-    if "after" in _TRACE:
-        after = _TRACE["after"]
-    elif _TRACE.get("error") is not None:
-        after = _TRACE.get("before")
-    else:
-        try:
-            after = store.read_record(Path(root) / "state.md")
-        except (OSError, ValueError, store.StorageError):
-            after = None
+    after = _TRACE.get("after", _TRACE.get("before"))
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"))
 
@@ -581,11 +585,6 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
-    if raw_argv and raw_argv[0] in ("chain", "lint", "red-check", "backchain-check"):
-        # Routed before the navigator's own loading: the trace records them only on a current run.
-        import shiploop_trace
-        _TRACE["root"] = _argv_run_dir(raw_argv)
-        _TRACE["before"] = shiploop_trace.current_state(_TRACE["root"])
     if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
         # Both write run state; a lost grant gets the same repair as next.
         refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
@@ -754,6 +753,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                           file=sys.stderr)
                     return 2
                 _TRACE["before"] = existing
+                import shiploop_trace
+                shiploop_trace.ACTIVE = True  # this command's packets go in the trace
                 if args.command == "init":
                     # Idempotent entry must never substitute a saved request for
                     # a new one.
@@ -829,6 +830,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             )
             navigator.save(root, state)
             _TRACE["created"], _TRACE["after"] = True, state
+            import shiploop_trace
+            shiploop_trace.ACTIVE = True
             # The run baseline (consumer contract, owner decision D3): what the execution checkout held before any
             # commit of this run, so later packets can quote the spec and architecture diff since then.  A note, never
             # a refusal.
