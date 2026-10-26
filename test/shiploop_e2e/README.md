@@ -1790,7 +1790,10 @@ folder above run folders is walked to them. Two cards are compared only when the
   `unobserved`, never a pass (SPEC, 2026-10-26). An item still on the latest list is open, and the floor fails.
 
 **The target** is `efficiency`: minutes, cost with its lower-bound flag, turns, refusals, Improve children, planning
-minutes, re-orientation minutes.
+minutes, re-orientation minutes. Beside them are `fresh_starts` and `calls_before_grounding`: the tool calls the fresh
+contexts made before they grounded. The re-orientation window runs to the next accepted action, so it includes stage
+work; the calls are what finding the place again cost (Battleship on Grok, 2026-10-26: 84.8 window minutes over 14
+fresh starts, 15 calls).
 
 **Validity** has three dimensions, each `{valid, why}`. `valid` is true, false or null, and null (not observed) is never
 valid.

@@ -3132,9 +3132,10 @@ evidence. All three share evaluator `476582a4f064` and oracle `85672ad0c249`. Ev
 **Cost picture.** *Corrected 2026-10-26: the first reading was wrong.* It read Battleship's
 `reorientation_minutes`, 84.8 of 205.5 minutes, as overhead across its 7 Grok sessions; Grok ends its turn mid-run and
 the harness resumes it. inner-loop pointed out that the window runs to the next accepted action, so it includes the
-stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). Measured here, `calls_before_grounding`
-for the 7 fresh starts was 2, 1, 0, 0, 1, 0, 0: 4 calls in all. So re-orientation itself cost almost nothing, and the
-84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
+stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). *Corrected again 2026-10-26:* the run
+has 14 fresh starts (resumes and compactions), not 7. That first reading printed only the first 7. Over all 14,
+`calls_before_grounding` totals 15 (`scorecard.py`'s new field). So re-orientation itself cost about one call per
+fresh start, and the 84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
 again. The 2.10.1 Sonnet run took 23.1 minutes for the same case.
 
 ## The follow-on test retention check: kept and built on, not "the count grows" (2026-10-26) — status: firm
@@ -3223,7 +3224,20 @@ its item but restated no list. Can the reader tell settled, open and unknown apa
 inner-loop's ShipLoop side refuses a due stage, or the handoff, that does not restate. After that lands, "not
 restated" should appear only in old runs.
 
-**Result** (`docs/experiments/e2e-unverified-reader-20261026/grok-gate-2132-reread.jsonl`): all three gate runs read
-unobserved, where they used to read fail. hello's false fail is gone. The Battleship runs' open page click is now
+**Result** (`docs/experiments/e2e-unverified-reader-20261026/grok-gate-2132-reread.jsonl`): read with the new
+`fidelity.end_state`, all three gate runs are unobserved, where they used to be fail. Their saved `metrics.json` still
+holds the run-time reading, so their cards still show fail until a regrade rebuilds the record. hello's false fail is gone. The Battleship runs' open page click is now
 unknown, which is honest: it was open only in prose. It will read as open data once ShipLoop restates. The card is
 `scorecard/5`.
+
+## calls_before_grounding on the scorecard (2026-10-26) — status: firm
+
+`efficiency` gains `fresh_starts` and `calls_before_grounding`, read from `metrics.fresh_starts[].reorientation`. That
+is the cost of finding the place again, beside `reorientation_minutes`, whose window includes stage work (inner-loop's
+caveat). The Grok gate on 2.13.2:
+- hello: 15.5 window min, 5 fresh starts, 5 calls;
+- battleship: 84.8 min, 14 fresh starts, 15 calls;
+- battleship-scoring: 20.5 min, 7 fresh starts, 34 calls.
+
+Re-grounding costs about one call per fresh start, except in battleship-scoring, at about five. It is an added
+diagnostic, not a floor or the target, so the card id stays `scorecard/5`.
