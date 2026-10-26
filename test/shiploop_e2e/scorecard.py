@@ -20,7 +20,8 @@ The parts, each read from records the harness already writes:
     ``/tmp`` name, because shared state can't be ruled out. Null too, for a case with held-out acceptance, when the run's events
     name a held-out file, the checks folder or the case catalog (``quality.held_out_seen`` above 0, build step 3), or when
     that was not recorded: its result is not independent evidence.
-  - **attribution**: false when hosts or host builds were mixed.
+  - **attribution**: false when hosts or host builds were mixed, or a Claude run on Ollama was served by a model other than
+    its own (``metrics.models_served``); null for such a run when no result event names its model.
   - **timing**: false when the run overlapped others under its runs root (``environment.overlap``), was resumed, was not
     attributable to one build, or left listeners alive. Null when any of those was not observed.
 
@@ -210,11 +211,19 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
         + (["whether the run's events name a held-out file is not recorded"] if holds_out and held_out is None else []))
     # A host build that changed mid-run changes behaviour (inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 alone blocked
     # chess run 5's deploy), so its figures are not one build's.
+    # A run on Ollama routes every model class to its model, so a result event naming another served it (SPEC "The Claude
+    # host can run on Ollama"); an Anthropic run's events also name the small model Claude Code uses on its own.
+    ollama = result.get("backend") == "ollama"
+    served = run_metrics.get("models_served")
+    others = [m for m in served or [] if m != result.get("model")] if ollama else []
+    block["models_served"] = served
     block["attribution"] = dimension(
         [text for text, bad in (("mixed hosts", mixed is True),
-                                (f"host build changed: {', '.join(builds or [])}", len(builds or []) > 1)) if bad],
+                                (f"host build changed: {', '.join(builds or [])}", len(builds or []) > 1),
+                                (f"served by another model than {result.get('model')}: {', '.join(others)}", bool(others))) if bad],
         [text for text, unknown in (("whether hosts were mixed is not recorded", not isinstance(mixed, bool) and mixed is not True),
-                                    ("no host build was recorded", builds is None)) if unknown])
+                                    ("no host build was recorded", builds is None),
+                                    ("no result event names the model that served the run", ollama and not served)) if unknown])
     block["timing"] = dimension(
         [text for text, bad in (("resumed", resumed), (f"overlapped {overlapped} run(s)", bool(overlapped)),
                                 (f"{survived} listener(s) survived", bool(survived)),
@@ -312,7 +321,8 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
              "reorientation_minutes": reorientation, "fresh_starts": len(starts) if isinstance(starts, list) else None,
              "calls_before_grounding": grounding_calls}
     unmeasured_run = run_metrics.get("unmeasured") or {}
-    reasons = {"minutes": "the run's stream has no readable span", "cost_usd": "the host reports no cost",
+    reasons = {"minutes": "the run's stream has no readable span",
+               "cost_usd": (run_metrics.get("unmeasured") or {}).get("cost_usd") or "the host reports no cost",
                "turns": "the host reports no turns",
                "tokens": unmeasured_run.get("tokens_processed") or "the metrics predate run tokens (build step 8): regrade",
                "output_tokens": unmeasured_run.get("tokens_output") or "the metrics predate run tokens (build step 8): regrade",
@@ -336,7 +346,7 @@ def score(run) -> dict:
     unmeasured: dict[str, str] = {}
     versions = result.get("versions") or {}
     card = {"scorecard": SCORECARD_ID, "run": str(run), "observed": True, "case": result.get("case"),
-            "driver": {k: result.get(k) for k in ("host", "model", "effort")},
+            "driver": {k: result.get(k) for k in ("host", "backend", "model", "effort")},
             "versions": {"source": str(versions["source"]).split(" (")[0] if versions.get("source") else None,
                          "plugin_version": versions.get("plugin_version"), "shiploop_version": versions.get("shiploop_version")},
             "outcome_class": result.get("outcome_class"),
@@ -386,7 +396,7 @@ def render(cards: list[dict]) -> str:
         floors = "/".join(floor_mark[card["floors"][k]] for k in ("accuracy", "enterprise", "fidelity"))
         e, v = card["efficiency"], card["validity"]
         dims = "/".join(valid_mark[v[k]["valid"]] for k in ("correctness", "attribution", "timing"))
-        driver = card["driver"].get("host") or "?"
+        driver = (card["driver"].get("host") or "?") + ("@ollama" if card["driver"].get("backend") == "ollama" else "")
         part = "+" if e["totals_lower_bound"] else ""  # a total that may miss a session that never reported
         cost = _cell(e["cost_usd"]) + (part if e["cost_usd"] is not None else "")
         tokens = "-" if e["tokens"] is None else f"{e['tokens'] / 1e6:.1f}M{part}"

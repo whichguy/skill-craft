@@ -10,7 +10,8 @@ Grok and Codex always run in a throwaway HOME: their profile holds only a
 symlink to the user's auth.json (plus the plugin installed for the run), so the
 user's plugins and settings stay out and nothing is installed into the real
 profile. Claude runs with only project/local settings, so the user's plugins and
-hooks stay out.
+hooks stay out. With ``backend="ollama"`` the Claude host runs Claude Code on a model the local Ollama server serves,
+with the user's Anthropic credentials scrubbed from its environment (SPEC "The Claude host can run on Ollama").
 """
 
 from __future__ import annotations
@@ -23,6 +24,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import listeners  # noqa: E402  (the one group kill)
@@ -32,6 +35,34 @@ import runrecord  # noqa: E402  (the one set of host-build reasons)
 GROK_AUTH = Path.home() / ".grok" / "auth.json"
 
 MARKETPLACE_SOURCE = "whichguy/skill-craft"
+
+# The Claude host on Ollama: the route the ask-ollama skill verified (claude_harness_once.py, 2026-10-24). The local server
+# runs a :cloud tag on ollama.com under the owner's Ollama plan.
+OLLAMA_URL = "http://127.0.0.1:11434"
+OLLAMA_MODEL = "deepseek-v4.1-flash:1017-cloud"
+# Dropped from the child's environment before the route is set: a `claude` started inside a Claude session otherwise sends
+# the user's OAuth bearer to the replacement endpoint (verified by ask-ollama with Claude Code 2.1.310, whose scrub is
+# ANTHROPIC_*, CLAUDE_CODE_*, CLAUDECODE and CLAUDE_PROXY_BYPASS). Every CLAUDE* name goes, as for the Codex host: the
+# launching session's own settings (CLAUDE_EFFORT, CLAUDE_PID, CLAUDE_PLUGIN_DATA, ...) are not this driver's either.
+OLLAMA_SCRUB_PREFIXES = ("ANTHROPIC_", "CLAUDE")
+# Every model class Claude Code can pick (main thread, the default classes, subagents) goes to the one Ollama model.
+OLLAMA_MODEL_VARS = ("ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL",
+                     "ANTHROPIC_DEFAULT_HAIKU_MODEL", "CLAUDE_CODE_SUBAGENT_MODEL")
+# An explicit allowlist: without one the child also gets this installation's orchestration tools (SendMessage, CronCreate,
+# Monitor, Workflow, ...), which no outside model may have (ask-ollama). Skill and Agent are ShipLoop's Improve route.
+OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit", "WebFetch", "WebSearch", "TodoWrite",
+                "Skill", "Agent")
+
+
+def ollama_ready(model: str, url: str = OLLAMA_URL, timeout: float = 5.0) -> str | None:
+    """None when the Ollama server at ``url`` answers and lists ``model``, else why not: a `claude -p` against an
+    endpoint that does not answer hangs instead of failing (ask-ollama), so the run is refused before it starts."""
+    try:
+        with urllib.request.urlopen(url.rstrip("/") + "/api/tags", timeout=timeout) as reply:
+            listed = [m.get("name") for m in json.loads(reply.read()).get("models", []) if isinstance(m, dict)]
+    except (OSError, ValueError, urllib.error.URLError) as exc:
+        return f"the Ollama server at {url} does not answer ({exc})"
+    return None if model in listed else f"the Ollama server at {url} does not list {model} (it lists {len(listed)} models)"
 
 # The one ceiling of a `<binary> --version` read, not a tuning value: the CLIs, tools and browsers answer in 0.01 to 0.05 s,
 # so a read still running after this long is stuck, and its value is recorded as unknown.
@@ -297,9 +328,22 @@ class GrokHost(Host):
 
 class ClaudeHost(Host):
     name, model, effort = "claude", "claude-sonnet-5-5", None
+    backends = ("anthropic", "ollama")
 
-    def __init__(self, binary: str = "claude"):
-        self.binary = binary
+    def __init__(self, binary: str = "claude", backend: str = "anthropic"):
+        if backend not in self.backends:
+            raise SystemExit(f"the claude host has no backend {backend!r}; it has {', '.join(self.backends)}")
+        self.binary, self.backend = binary, backend
+        if backend == "ollama":
+            self.model = OLLAMA_MODEL  # the default; the runner sets the run's own model before env()
+
+    def env(self, home, git_config=None):
+        if self.backend != "ollama":
+            return super().env(home, git_config)
+        env = {k: v for k, v in os.environ.items() if not k.startswith(OLLAMA_SCRUB_PREFIXES)}
+        env.update(GIT_TERMINAL_PROMPT="0", NO_COLOR="1", ANTHROPIC_BASE_URL=OLLAMA_URL, ANTHROPIC_API_KEY="ollama",
+                   **{name: self.model for name in OLLAMA_MODEL_VARS})
+        return env
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=None, plugin_dir=None, resume=None, allow=()):
@@ -309,6 +353,8 @@ class ClaudeHost(Host):
                 "--permission-mode", permission_mode,
                 "--output-format", "stream-json", "--verbose", "--no-session-persistence",
                 "--setting-sources", "project,local", "--strict-mcp-config"]
+        if self.backend == "ollama":
+            argv += ["--tools", ",".join(OLLAMA_TOOLS)]
         if allow:
             argv += ["--allowedTools", ",".join(allow)]
         if effort:
@@ -484,8 +530,11 @@ HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": Codex
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
 
 
-def host(name: str, binary: str | None = None) -> Host:
-    """The host object for ``name``, optionally with a non-default binary."""
+def host(name: str, binary: str | None = None, backend: str | None = None) -> Host:
+    """The host object for ``name``, optionally with a non-default binary and, for the Claude host, a backend."""
     cls = HOSTS[name]
-    return cls(binary) if binary else cls()
+    if backend not in (None, "anthropic") and "backends" not in vars(cls):
+        raise SystemExit(f"--backend {backend} is a Claude host option; the {name} host has one backend")
+    kwargs = {"backend": backend} if backend else {}
+    return cls(binary, **kwargs) if binary else cls(**kwargs)
 

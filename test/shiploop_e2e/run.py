@@ -230,8 +230,8 @@ def stop_cause(stop_file: Path) -> str:
 
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
-    """The selected host, with the binary its --<host>-bin flag names."""
-    return hosts.host(args.host, getattr(args, args.host + "_bin"))
+    """The selected host, with the binary its --<host>-bin flag names and the backend --backend names (Claude only)."""
+    return hosts.host(args.host, getattr(args, args.host + "_bin"), getattr(args, "backend", None))
 
 
 def load_case(args) -> tuple[str, str, list[str], str | None]:
@@ -756,6 +756,18 @@ def resume_identity(args, asked: bool, last: dict, out: Path) -> tuple[str, str 
     host = args.host if asked else recorded
     same = host == recorded
     return host, args.model or (last.get("model") if same else None), args.effort or (last.get("effort") if same else None)
+
+
+def resume_backend(args, last: dict) -> str | None:
+    """The backend a resume runs on: the run's last launch's (SPEC: a resume keeps its run's backend). One named that
+    differs is refused before anything starts, as a host change is: the run's costs and verdicts would belong to no one
+    driver. A launch from before the field ran on Anthropic."""
+    recorded = last.get("backend") or ("anthropic" if last.get("host") == "claude" else None)
+    if args.backend and recorded and args.backend != recorded:
+        raise SystemExit(f"--resume-run: this run was launched on backend {recorded}; --backend {args.backend} would make it a "
+                         f"mixed-backend run, whose costs and verdicts belong to no one driver. Nothing was started. Drop "
+                         "--backend to continue on its own.")
+    return args.backend or recorded
 
 
 def launch_stamp(out: Path, host_name: str) -> int:
@@ -2629,7 +2641,12 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
-    p.add_argument("--model", help="default: claude-sonnet-5-5 (claude) or grok-4.7 (grok)")
+    p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
+                   help="claude only: anthropic (default) or ollama, Claude Code on a model the local Ollama server serves, "
+                        f"default {hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed (SPEC \"The Claude host "
+                        "can run on Ollama\"); a resume keeps its run's backend")
+    p.add_argument("--model", help="default: claude-sonnet-5-5 (claude), grok-4.7 (grok), "
+                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama)")
     p.add_argument("--effort", help="reasoning effort; default: host default (claude), medium (grok)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
@@ -3919,11 +3936,19 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         RUN_PREFIX = (args.case, prefix) if prefix else None
         spec = None if args.prompt else case_platform(args.case)  # the case's platform checks run here too
         existing = platform_existing_mode(args.platform_existing, args.case, spec)
+        if args.backend not in (None, "anthropic") and args.host == "all":
+            raise SystemExit(f"--backend {args.backend} is a Claude host option; name --host claude, not all")
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
             args.host = name
             check = out / name
             check.mkdir()
-            host_env = the_host(args).env(check / "home")
+            the = the_host(args)
+            if getattr(the, "backend", None) == "ollama":  # the Ollama route is part of what this host needs to run
+                the.model = args.model or the.model
+                why = hosts.ollama_ready(the.model)
+                print(f"ollama preflight ({name}, {the.model}): " + ("OK" if why is None else f"REFUSED: {why}"), flush=True)
+                refused = refused or why is not None
+            host_env = the.env(check / "home")
             _, _, versions = marketplace_preflight(args, check, host_env)
             if spec:
                 versions["platform"] = platform_preflight(spec, host_env, check, existing=existing)
@@ -3988,6 +4013,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not regrade:
             asked = host_given(argv)
             args.host, args.model, args.effort = resume_identity(args, asked, last_launch, out)
+            args.backend = resume_backend(args, last_launch)
             if not args.quiet:
                 if asked and args.host != last_launch.get("host"):
                     print(f"resume: --allow-host-change: finishing on {args.host} a run last launched on "
@@ -4028,6 +4054,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 print(f"regrade: no host starts, so the run's recorded host, model and effort stay ({kept['host']}, "
                       f"{kept['model']}, {kept['effort'] or 'no effort'}); ignoring {', '.join(ignored)}", flush=True)
             args.host, args.model, args.effort = kept["host"], kept["model"], kept["effort"]
+            args.backend = recorded.get("backend")  # a regrade starts no host: the run's recorded backend stays
         resumed = {"from_host": last_launch.get("host") or earlier["host"], "from_model": last_launch.get("model") or earlier.get("model"),
                    "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
@@ -4106,6 +4133,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     args.model = args.model or host.model
     args.effort = args.effort or host.effort
     args.skill = args.skill or host.skill
+    host.model = args.model  # the model the host's environment routes to (the Claude host on Ollama names it there)
+    backend = getattr(host, "backend", None)
+    if backend == "ollama" and not regrade:
+        if args.max_budget_usd:
+            raise SystemExit("--max-budget-usd is not with --backend ollama: Claude Code prices the tokens at Anthropic's "
+                             "rates, so the cap would stop the run on a figure that is not its cost. Nothing was started.")
+        if why := hosts.ollama_ready(args.model):
+            raise SystemExit(f"--backend ollama: {why}. Nothing was started.")
     env = host.env(out / "home")
     earlier_platform = earlier_result.get("platform") or {}
     # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
@@ -4261,7 +4296,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         LAUNCH_PREDATES if regrade and "plugin_sha256" not in versions else "no reason recorded")
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
-    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
+    invocation = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
@@ -4283,8 +4318,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         (out / "prompt.txt").write_text(prompt + "\n")
         (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     if not args.quiet:
-        print(f"shiploop e2e case={name} host={args.host} model={args.model} effort={args.effort} "
-              f"work={work}", flush=True)
+        print(f"shiploop e2e case={name} host={args.host}" + (f" backend={backend}" if backend not in (None, "anthropic") else "")
+              + f" model={args.model} effort={args.effort} work={work}", flush=True)
         if not regrade:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
@@ -4618,7 +4653,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
            else host_build_why, "local_head": "no head recorded", "started": stamps_why, "ended": stamps_why,
            "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
     identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
-    result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
+    result = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
               # folder masked, the host CLI's build (Claude's

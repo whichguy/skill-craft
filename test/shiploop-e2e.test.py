@@ -11,8 +11,10 @@ They say nothing about live ShipLoop behavior.
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import datetime
+import http.server
 import importlib.util
 import io
 import json
@@ -47,6 +49,7 @@ import progress  # noqa: E402
 import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
+import scorecard  # noqa: E402
 import fanout  # noqa: E402
 
 # listeners.py is the module the leftover-listener tests are about. Where it does not exist (the state a failing test is first run
@@ -4042,6 +4045,135 @@ class PrintedCase(HarnessCase):
 
     def last_row(self) -> dict:
         return json.loads(self.baselines.read_text().splitlines()[-1])
+
+
+class ClaudeOnOllamaTest(PrintedCase):
+    """SPEC "The Claude host can run on Ollama": `--backend ollama` runs Claude Code on a model the local Ollama server
+    serves, with ask-ollama's verified route. No credential of the launching session reaches the child, only the coding
+    tools do, a run is refused before any model starts when Ollama is not ready, cost is not measured, and the backend is
+    part of the driver."""
+
+    SECRETS = {"ANTHROPIC_AUTH_TOKEN": "real-oauth-bearer", "ANTHROPIC_API_KEY": "sk-ant-real-key",
+               "CLAUDE_CODE_OAUTH_TOKEN": "real-oauth-token", "CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": "parent-session",
+               "CLAUDE_EFFORT": "xhigh", "CLAUDE_PROXY_BYPASS": "1", "ANTHROPIC_BASE_URL": "https://api.anthropic.com"}
+
+    def wrapper(self) -> Path:
+        """The fake claude behind a script that writes the environment it was given, as the real child would see it."""
+        wrapper = self.tmp / "claude-env"
+        wrapper.write_text(f'#!/bin/sh\nenv > "{self.tmp / "child-env.txt"}"\nexec "{self.fakes["claude"]}" "$@"\n')
+        wrapper.chmod(0o755)
+        return wrapper
+
+    def child_env(self) -> dict:
+        return dict(line.split("=", 1) for line in (self.tmp / "child-env.txt").read_text().splitlines() if "=" in line)
+
+    def ollama(self, *extra: str, ready: str | None = None) -> tuple[int, Path, str]:
+        os.environ["FAKE_MODE"] = "done"
+        out = self.tmp / f"out-ollama-{len(list(self.tmp.glob('out-ollama-*')))}"
+        printed = io.StringIO()
+        with mock.patch.dict(os.environ, self.SECRETS), mock.patch.object(run.hosts, "ollama_ready", return_value=ready), \
+                contextlib.redirect_stdout(printed):
+            code = run.main(["--host", "claude", "--backend", "ollama", "--claude-bin", str(self.wrapper()), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, out, printed.getvalue()
+
+    def test_no_credential_of_the_launching_session_reaches_the_child(self):
+        code, out, printed = self.ollama()
+        self.assertEqual(code, 0, printed)
+        env = self.child_env()
+        leaked = [name for name, value in env.items() if any(secret in value for secret in self.SECRETS.values() if len(secret) > 1)]
+        self.assertEqual(leaked, [], "a token of the parent reached the child")
+        self.assertEqual(sorted(k for k in env if k.startswith(("ANTHROPIC", "CLAUDE"))),
+                         sorted(["ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", *hosts.OLLAMA_MODEL_VARS]))
+        self.assertEqual((env["ANTHROPIC_BASE_URL"], env["ANTHROPIC_API_KEY"]), (hosts.OLLAMA_URL, "ollama"))
+        self.assertEqual({env[name] for name in hosts.OLLAMA_MODEL_VARS}, {hosts.OLLAMA_MODEL})
+        self.assertEqual(os.environ.get("ANTHROPIC_AUTH_TOKEN"), None, "the harness's own environment is left as it was")
+
+    def test_only_the_coding_tools_reach_the_child_and_no_connector(self):
+        self.ollama()
+        argv = json.loads(self.log.read_text())["argv"]
+        self.assertEqual(argv[argv.index("--tools") + 1].split(","), list(hosts.OLLAMA_TOOLS))
+        self.assertIn("--strict-mcp-config", argv)
+        self.assertEqual(argv[argv.index("--model") + 1], hosts.OLLAMA_MODEL)
+        for orchestration in ("SendMessage", "CronCreate", "Monitor", "Workflow", "ToolSearch"):
+            self.assertNotIn(orchestration, argv[argv.index("--tools") + 1])
+
+    def test_the_backend_is_recorded_and_cost_is_not_measured(self):
+        _, out, printed = self.ollama()
+        result, invocation = (json.loads((out / name).read_text()) for name in ("result.json", "invocation.json"))
+        self.assertEqual((result["backend"], invocation["backend"], result["model"]), ("ollama", "ollama", hosts.OLLAMA_MODEL))
+        self.assertIsNone(result["metrics"]["cost_usd"])
+        self.assertEqual(result["metrics"]["unmeasured"]["cost_usd"], metrics.OLLAMA_COST)
+        self.assertIn(f"host=claude backend=ollama model={hosts.OLLAMA_MODEL}", printed)
+        card = scorecard.score(out)
+        self.assertEqual(card["driver"], {"host": "claude", "backend": "ollama", "model": hosts.OLLAMA_MODEL, "effort": None})
+        self.assertEqual(card["unmeasured"]["efficiency.cost_usd"], metrics.OLLAMA_COST)
+
+    def test_a_run_is_refused_before_any_model_starts_when_ollama_is_not_ready(self):
+        with self.assertRaises(SystemExit) as refused:
+            self.ollama(ready="the Ollama server at http://127.0.0.1:11434 does not answer (refused)")
+        self.assertIn("--backend ollama: the Ollama server", str(refused.exception))
+        self.assertFalse((self.tmp / "child-env.txt").exists(), "no host started")
+        with self.assertRaises(SystemExit) as budget:
+            self.ollama("--max-budget-usd", "5")
+        self.assertIn("prices the tokens at Anthropic's rates", str(budget.exception))
+
+    def test_the_backend_is_a_claude_option_and_the_anthropic_route_is_unchanged(self):
+        with self.assertRaises(SystemExit):
+            hosts.host("grok", None, "ollama")
+        with mock.patch.dict(os.environ, self.SECRETS):
+            anthropic = hosts.host("claude")
+            self.assertEqual(anthropic.env(self.tmp / "home")["ANTHROPIC_AUTH_TOKEN"], "real-oauth-bearer",
+                             "the Anthropic route still authenticates as the user, as every Claude run has")
+        argv = anthropic.argv(prompt="p", prompt_file=self.tmp / "p.txt", cwd=self.tmp, model="m", effort=None,
+                              permission_mode="bypassPermissions", max_turns=None)
+        self.assertNotIn("--tools", argv)
+
+    def test_a_resume_keeps_its_runs_backend_and_refuses_another(self):
+        args = argparse.Namespace(backend=None)
+        self.assertEqual(run.resume_backend(args, {"host": "claude", "backend": "ollama"}), "ollama")
+        self.assertEqual(run.resume_backend(args, {"host": "claude"}), "anthropic", "a launch from before the field")
+        self.assertIsNone(run.resume_backend(args, {"host": "grok"}))
+        with self.assertRaises(SystemExit) as mixed:
+            run.resume_backend(argparse.Namespace(backend="anthropic"), {"host": "claude", "backend": "ollama"})
+        self.assertIn("mixed-backend run", str(mixed.exception))
+
+    def test_ollama_ready_reads_the_servers_tags(self):
+        class Tags(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):  # noqa: N802 - the stdlib's name
+                body = json.dumps({"models": [{"name": hosts.OLLAMA_MODEL}]}).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+        server = http.server.HTTPServer(("127.0.0.1", 0), Tags)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        url = f"http://127.0.0.1:{server.server_address[1]}"
+        self.assertIsNone(hosts.ollama_ready(hosts.OLLAMA_MODEL, url))
+        self.assertIn("does not list other:cloud (it lists 1 models)", hosts.ollama_ready("other:cloud", url))
+        server.shutdown()
+        server.server_close()
+        self.assertIn("does not answer", hosts.ollama_ready(hosts.OLLAMA_MODEL, url, timeout=1))
+
+    def test_a_run_another_model_served_is_not_attributable_to_its_driver(self):
+        _, out, _ = self.ollama()
+        metrics_path = out / "metrics.json"
+        recorded = json.loads(metrics_path.read_text())
+        for served, valid, why in (([hosts.OLLAMA_MODEL], None, None), (["claude-haiku-5-5"], False, "served by another model"),
+                                   (None, None, "no result event names the model")):
+            with self.subTest(served=served):
+                metrics_path.write_text(json.dumps({**recorded, "models_served": served}))
+                attribution = scorecard.score(out)["validity"]["attribution"]
+                if valid is False:
+                    self.assertIs(attribution["valid"], False)
+                if why:
+                    self.assertTrue(any(why in text for text in attribution["why"]), attribution)
+                else:
+                    self.assertFalse(any("served" in text or "names the model" in text for text in attribution["why"]))
 
 
 class TerminationThroughMainTest(PrintedCase):

@@ -1193,6 +1193,9 @@ def session_tokens(usage, host: str | None) -> tuple[int | None, int | None]:
 
 
 NO_SESSION_USAGE = "no session reported its usage"
+# Why a Claude run on Ollama has no cost (SPEC "The Claude host can run on Ollama"): the host's figure is not its cost.
+OLLAMA_COST = ("the run ran on Ollama (--backend ollama): Claude Code prices its tokens at Anthropic's rates, so its "
+               "total_cost_usd is not this run's cost; the tokens are")
 SESSION_WITHOUT_USAGE = "a session reported no input or output count"
 SESSION_HOST_UNKNOWN = "a session's host is not known, and hosts count cache reads differently"
 
@@ -2025,6 +2028,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     session_lines: list[int] = []  # the events.jsonl line of each host end event: which launch it belongs to (sessions.jsonl)
+    served: set[str] = set()  # the models Claude's result events say served the sessions (modelUsage keys)
     for number, event in events(out / "events.jsonl"):
         kind = event.get("type")
         t = stamps.get(number)
@@ -2071,6 +2075,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         elif kind in ("end", "result"):
             reported |= context_windows(event)
             session_lines.append(number)
+            if isinstance(event.get("modelUsage"), dict):
+                served.update(name for name in event["modelUsage"] if isinstance(name, str))
             # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
             # a figure built here from per-event snapshots or by summing sessions would not be the host's.
             sessions.append({"stop": session_stop(event), "turns": event.get("num_turns"),
@@ -2168,6 +2174,9 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     used = runrecord.hosts_used(out)
     session_hosts = reconciled["hosts"] if reconciled is not None else [used[0] if len(used) == 1 else None] * len(sessions)
     processed, output, why_tokens = run_tokens(sessions, session_hosts)
+    on_ollama = any(record.get("backend") == "ollama" for _, record in runrecord.launches(out))
+    if on_ollama:
+        unmeasured["cost_usd"] = OLLAMA_COST
     if processed is None:
         unmeasured["tokens_processed"] = why_tokens
     if output is None:
@@ -2200,7 +2209,10 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # like cost and turns, a lower bound when a launched session never reported (lower_bound).
         "tokens": {"input_peak": peak, "processed": processed, "output": output},
         "unmeasured": unmeasured,
-        "cost_usd": total_cost(sessions),
+        "cost_usd": None if on_ollama else total_cost(sessions),
+        # The models that served the sessions, as Claude's result events name them (None where no event names one): a run
+        # on Ollama that another model served is not attributable to its driver (scorecard.validity).
+        "models_served": sorted(served) or None,
         # Exact where sessions.jsonl covers the stream: a launch whose lines hold no end event never reported
         # (reconcile_sessions). Without it, null for a Grok stream: no event marks one of its session starts, so how many
         # never reported is unknown and cost, turns and tokens stay a lower bound (lower_bound).

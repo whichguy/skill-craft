@@ -3354,3 +3354,42 @@ saved runs with a stream, 2026-10-24 to 26.
 **Not done.** R4 also asks that `arms.py`'s refusal hard gate go. `arms.py` decides the plan-sizing slice experiments,
 whose R3 round is in flight, so that is its owner's call. A registered budget still drops nothing on a lower bound,
 even one that already exceeds the budget. That is conservative, and recorded here.
+
+## The Claude host on Ollama: DeepSeek flash through the Claude Code harness (2026-10-26) — status: firm for the mechanism and its tests; the pilot is the next entry
+
+**Question.** The owner asked for ShipLoop evaluations on a cheap, fast model, run through the Claude Code harness the
+way the `ask-ollama` skill runs DeepSeek flash. Grok ran out of credit twice that day, and Sonnet runs spend Anthropic
+usage.
+
+**Change** (SPEC "The Claude host can run on Ollama").
+- **The flag.** `--backend ollama` on the Claude host, a part of the driver beside host, model and effort. It is
+  recorded on the launch records, in `result.json` and on the card's `driver`, and a resume keeps it.
+- **The route.** It is ask-ollama's verified route: the base URL `http://127.0.0.1:11434`, the key `ollama`, and the
+  model on every model-class variable.
+  - The scrub drops every `ANTHROPIC_*` and `CLAUDE*` name, wider than ask-ollama's. The launching Desktop session
+    also exports `CLAUDE_EFFORT=xhigh`, `CLAUDE_PID` and `CLAUDE_PLUGIN_DATA`, none of them this driver's.
+  - An explicit `--tools` allowlist adds Skill and Agent for ShipLoop's Improve.
+- **Refused before it starts** (`hosts.ollama_ready`) when the server does not answer or lists no such model.
+- **No cost.** Cost is null with `metrics.OLLAMA_COST` (Claude Code prices at Anthropic's rates), and
+  `--max-budget-usd` is refused.
+- **Attribution.** `metrics.models_served` records the `modelUsage` keys, and a run on Ollama that another model served
+  is not attributable.
+
+**Why a flag on the Claude host, not a new host.** About a dozen branches in six modules read the Claude stream by the
+host name `claude`: init events for the build, plugin records, flow and quality readers. A second host name would have
+forked all of them, while the DeepSeek tag already separates the baseline cells.
+
+**Tests** (`ClaudeOnOllamaTest`, 8, through `run.main` with the fake `claude` behind an env-dumping wrapper).
+- No token of the parent session reaches the child. With the scrub disabled the test fails, listing
+  `CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_EFFORT` and the rest.
+- Only the allowlisted tools reach the child, and no MCP.
+- Cost is unmeasured and the backend recorded.
+- A run is refused when Ollama is not ready, and with a budget.
+- The backend is a Claude-only option, and the Anthropic route is unchanged.
+- A resume keeps the backend and refuses another.
+- `ollama_ready` against a real local HTTP server.
+- Served-model attribution.
+
+**Observation, not fixed here.** The Anthropic route still passes the whole environment. So a Claude run launched from
+this Desktop session inherits `CLAUDE_EFFORT=xhigh`, and whether Claude Code reads that variable is unverified. If it
+does, the Sonnet runs' recorded effort (null, the host default) is not what ran.
