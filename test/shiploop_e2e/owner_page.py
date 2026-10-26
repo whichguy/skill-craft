@@ -257,6 +257,13 @@ def render(data: dict, standalone: bool = True) -> str:
                                                           for x in g.get("gates") or []], {1, 2}) if g.get("gates") else f'<p class="muted">no gate records</p>'
     refusals = _table(["Stage", "Cause", "Count"], [[_e(x["stage"]), _e(x["cause"]), _n(x["count"])] for x in rf["refusals"]["rows"]], {2}) \
         if rf["refusals"]["rows"] else '<p class="muted">none</p>'
+    tr = rf.get("trace") or {}
+    refusal_source = ((f'From ShipLoop\'s run trace: {_n(rf["refusals"].get("checks_failed"))} failed checks apart; the host stream showed '
+                       f'{_n(rf["refusals"].get("stream_count"))}.') if rf["refusals"].get("source") == "trace" else
+                      "From the host stream's refusal lines (a refusal a pipe hid is missing)." + (f' {_e(tr.get("reason"))}.' if tr.get("reason") else ""))
+    trace_line = (f'Run trace: {_n(tr.get("packets"))} packet prints, {_n(tr.get("reprints"))} reprints, '
+                  f'{_n(tr.get("continuations"))} keepalive continuations, {_n(tr.get("stops"))} stops'
+                  + ("" if tr.get("covers") else f'; partial: {_e(tr.get("partial"))}') + f' {_src(root, tr["file"])}') if tr.get("measured") else ""
     skills = ", ".join(f"{_e(name)} ×{n}" for name, n in (sk["calls"] or {}).items()) if sk["calls"] is not None else NOT_MEASURED
     commit = (f'{"present" if ic["present"] else "absent"}' + (f': {_e(ic["reason"])}' if ic.get("reason") else "")
               + (f'; uncommitted product: {_e(", ".join(ic["uncommitted_product"]))}' if ic.get("uncommitted_product") else "")
@@ -287,7 +294,8 @@ def render(data: dict, standalone: bool = True) -> str:
 <h3>Producer stages: written against seen</h3>{producers}
 <h3>Per stage</h3>{steps}<p class="muted">{_src(root, s["file"])}</p>
 <h3>Gates</h3>{gates}<p class="muted">{_src(root, g["file"])}</p>
-<h3>Refusals by stage and cause</h3>{refusals}
+<h3>Refusals by stage and cause</h3>{refusals}<p class="muted">{refusal_source} {_src(root, rf["refusals"]["file"])}</p>
+{f'<p class="muted">{trace_line}</p>' if trace_line else ""}
 <h3>Item commit</h3><p>{commit}</p>
 </section>
 <section id="sizes"><h2>Packet sizes, before and now</h2>

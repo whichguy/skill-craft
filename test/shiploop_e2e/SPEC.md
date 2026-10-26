@@ -408,7 +408,7 @@ quality first, then tokens, then time.
 
 A candidate change to ShipLoop is promoted, dropped or left undecided by one scripted rule, `promotion.py`, contract id
 `promotion/3` (it was `promotion/1` until build step 2 and `promotion/2` until build step 3). It reads scorecards
-(`scorecard.py`, `scorecard/4` since build step 4) of a control arm and a candidate arm. Changing the rule takes a new id,
+(`scorecard.py`, `scorecard/5` since 2026-10-26) of a control arm and a candidate arm. Changing the rule takes a new id,
 and two decisions are compared only under the same id.
 
 - **Pre-registered.** Before the runs, a registration file names:
@@ -441,6 +441,15 @@ and two decisions are compared only under the same id.
     (`cases.json`): a case that declares hidden acceptance requires it. A declared acceptance that was not observed makes
     the accuracy floor `unobserved`, not a pass, as `scorecard/1` had it. Mutation stays a record until its own step.
     Enterprise is `not_applicable` until its rubric exists.
+  - *Fidelity's deferred acceptance items (amended 2026-10-26; card `scorecard/5`).* Product-acceptance may defer an
+    item to a later stage (`unverified`, each entry with its `due_stage`). The reader takes the latest accepted result
+    that carries the list, and an entry is identified by its requirement and outcome.
+    - An entry still on that list is open, and the floor is `fail`. That includes one due at a stage that never ran,
+      since ShipLoop carries it to the handoff.
+    - An entry whose due stage was accepted later without restating the list is unknown, and the floor is `unobserved`,
+      never a pass. Runs before ShipLoop's restatement rule (inner-loop, `d84d30a9`) look like this: release-verify
+      settled hello's R-1 in prose only.
+    - An entry a later restatement drops was settled there.
   - *Validity.* There are three dimensions, each `valid` true, false or null, where null means not observed and is never
     valid:
     - **correctness** is false when a check changed the delivered tree. It is null when the run overlapped others while

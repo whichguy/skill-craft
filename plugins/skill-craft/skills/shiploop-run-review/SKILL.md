@@ -6,7 +6,7 @@ description: >-
   numbers, write findings, advice and options for the owner to tick, check that review
   file, and publish both to the page. Use after a ShipLoop E2E run or iteration, or when
   asked for the Run Review page, a run export or advice on a run.
-version: 0.3.2
+version: 0.4.0
 license: MIT
 platforms:
   - linux
@@ -62,7 +62,9 @@ run it for you. It also writes **`run-review.html`** there: the same page templa
 its packets, its Backchain loops, the starting expectations and settings) embedded and a read-only stand-in for the
 database, so one file opens from disk (file://) with no network and no database, to keep as the record of how the run worked.
 It says it is a static copy of one run, not the shared record; nothing typed or ticked on it is saved to any record
-(the browser keeps ticks on that device only), and it holds no findings or options. `--no-html` skips it. A `metrics.json` with no `unmeasured` record is refused: regrade the finished run first, as the
+(the browser keeps ticks on that device only), and it holds no findings or options. When `RUN_DIR` has a `flow.html`
+(the harness writes it first), each visit's open card and its row in the visits table link to that visit's action
+there (`flow.html#action=<nav id>`); a seeded visit has no row in the flow viewer, so no link. `--no-html` skips it. A `metrics.json` with no `unmeasured` record is refused: regrade the finished run first, as the
 message says. Add `--key KEY` to keep the key the page already has for a run. Each visit's row also carries its summary,
 whether its result file exists and which items its packet text carried (the stage card). After the engine's stage table
 changes, `export.py --stages` rewrites `defaults/stages.json`, the catalog the cards read; a test fails when it drifts.

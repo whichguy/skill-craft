@@ -1,0 +1,35 @@
+=== ShipLoop trace: request ===
+Original, sentence by sentence (joined, the verbatim RUN/request.md; 126 chars), each followed by how intake read it:
+  S1   Create hello.py that prints exactly "Hello, world!" when run, plus a unittest test in test_hello.py that verifies that output.
+       → outcome: hello.py in the repo root prints exactly 'Hello, world!' (with trailing newline from print) when run; outcome - test_hello.py is a stdlib unittest that runs hello.py and verifies that output. Boundaries: stdlib only, Python 3, no delivery/deploy beyond the final workspace return into <OUT>/work, no remote authority needed. Assumption: 'exactly' means stdout equals 'Hello, world!\n'. Open questions: none; discovery confirms Python 3 availability. Visible in the source checkout only after the final return at release. Discovery sources: none (empty repo).
+
+Planning, in order (current results; ✓ accepted, · pending):
+  ✓ intake         Request maps to hello.py and test_hello.py in the repo root; no open questions
+  ✓ discovery      Empty repo, Python 3.15.1, baseline is missing coverage; stdlib unittest
+                   Baseline: missing coverage (python3 -m unittest discover in <OUT>/.shiploop-runs/work-20261026-031340-d51452/worktree ran 0 tests, exit 0). Environment recorded in KNOWLEDGE/environment.md ## Targets and runtimes, ## Commands. No consumers, CI, deploy, specs, skills or connected knowledge. Intake had no open questions.
+  ✓ research       No unknowns to research; stdlib only
+                   No consequential unknowns and no access needs; nothing blocked.
+  ✓ spec           Spec: R-1 hello.py output, R-2 unittest verifying it  (+I)
+                   S1 maps to R-1 and R-2. Assumption: exactly means stdout is 'Hello, world!' plus the newline print adds. NFRs assessed: stdlib only, others excluded. No open gaps.
+  ✓ test-strategy  Test strategy: one stdlib unittest TC_1 plus spec shell checks; all planned  (+I)
+                   Checks are planned, not passed. Commands in environment.md ## Commands, IDs TC_n. No host tools, no prerequisite work; baseline was missing coverage, so no repair needed.
+  ✓ plan           One work item W1: hello.py plus test_hello.py  (+I)
+                   Single item W1 delivers R-1 and R-2 with TC_1 (environment.md). Baseline was missing coverage, so no repair prerequisite. Design basis: client-only CLI script, no state or channels (AD-3); no delivery beyond the local workspace return. Namespace: two root files, no collisions.
+  ✓ prepare        Runner starts; .gitignore added for __pycache__
+                   python3 -m unittest starts (help exit 0). No-op discover exit 5, 0 tests: baseline still missing coverage, now exit 5 (earlier exit 0 was a pipe artifact). No access, delivery or fixtures needed; source return is local only.
+
+Requirements (2, living spec <OUT>/.shiploop-runs/work-20261026-031340-d51452/worktree/docs/shiploop/spec.md):
+  R-1    hello.py prints the greeting  [Requirements]
+  R-2    test_hello.py verifies the output  [Requirements]
+
+Work items (1):
+  W1   Create hello.py and test_hello.py
+       Ready: empty repo, Python 3.15.1. Scope: hello.py and test_hello.py in repo root only. Maps R-1 -> hello.py + spec shell checks; R-2 -> test_hello.py TC_1 (docstring ID, exact assertEqual on stdout/stderr/returncode, sys.executable subprocess) + mutation control; stdlib NFR -> import grep. Done when…
+       S1   Create hello.py in the repo root containing only print("Hello, world!") with no imports, serving C1 (R-1, AD-1).
+
+Assumptions (1):
+  A1   evidenced  exactly means stdout is Hello, world! plus print's newline
+
+Owner answers (0):
+  none
+=== end ShipLoop trace ===

@@ -3062,7 +3062,7 @@ about 9 minutes, and the web-service suite never started. Stopping the task left
 observer (`shiploop_progress.py --watch`) orphaned. It was ended by hand, so it could not look like a Grok process to
 the next Grok user. Grok went back to E-EFF1. The trio reruns on the release that fixes CI.
 
-## Run-trace live check: hello on Claude Sonnet 5.5, ShipLoop 1.12.0 (2026-10-25) — status: interim (rerun on the fixing release pending)
+## Run-trace live check: hello on Claude Sonnet 5.5, ShipLoop 1.12.0 then 1.13.1 (2026-10-25) — status: firm (1.13.1 rerun passed)
 
 Question: does the run trace (`RUN/trace.jsonl`, `shiploop trace`, `RUN/trace.html`, new in 1.12.0) record and show a
 real host run? Case `hello`, `run.py --case hello --host claude --source marketplace` (skill-craft 2.12.0), Claude Sonnet
@@ -3084,7 +3084,23 @@ main's full CI on 1.12.0 failed because routed verbs were traced (fixed in 96f02
 
 Not verified on a real run: a keepalive continuation's injected text (the headless session never ended a turn early)
 and a packet reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.12.0/`, journal
-`docs/shiploop-run-trace-journal.md`. Next: rerun `hello` on the release that carries both fixes.
+`docs/shiploop-run-trace-journal.md`.
+
+Rerun on the fixing release (skill-craft 2.13.1 / ShipLoop 1.13.1, `a677b55d`, carrying 191f272f and 96f023a2): `hello`,
+same command, Claude Sonnet 5.5, preflight `--host all` OK; output `~/e2e-runs/20261025/trace-verify-1131-b096ae/hello`.
+PASS on every verdict: done in 795 s, $4.39, 1 session, 24 accepted steps, no other harness run alive. The four
+defects are fixed on the real run: intake wrote `S1: outcome - …` (the 1.12.0 reader maps 0 on that summary) and the
+request view reads "intake read 1 of 1 sentence" with the reading; `workspace start` is one line; `--action` takes
+the bare hex; plurals are right. 1.13.1's own change held: no `lint`/`red-check`/`chain` lines although the host ran
+`lint` 4 times, and every packet line sits in a traced command. 92 lines in order, every packet kept as sent (19 heads
+kept), the one failed `--check-only` carries its text, the page is clean (no console errors, nothing animated, local
+times, no horizontal scroll at 1024 and 375 px). Counts reconcile exactly with `flow.py --read-first` (58 vs 67
+commands: 4 untraced `workspace` return verbs, 4 untraced `lint`, 1 `improve-pass` the model sent to a mistyped CLI
+path; 33 packets vs 23 producer rows: flow missed W1's step-plan because the model redirected that print to a file).
+Learning for the harness: the trace sees prints a stream parser cannot (a redirected `complete` output), so flow's
+producer rows undercount when the model redirects output. Still not exercised on a real run: a keepalive
+continuation's text and a reprint. Evidence: `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.13.1/`;
+journal entry "rerun on ShipLoop 1.13.1".
 
 ## Grok release-gate trio on 2.13.2 / ShipLoop 1.13.1 (2026-10-26) — status: firm for the verdicts and the two findings; n=1 per case
 
@@ -3132,9 +3148,10 @@ evidence. All three share evaluator `476582a4f064` and oracle `85672ad0c249`. Ev
 **Cost picture.** *Corrected 2026-10-26: the first reading was wrong.* It read Battleship's
 `reorientation_minutes`, 84.8 of 205.5 minutes, as overhead across its 7 Grok sessions; Grok ends its turn mid-run and
 the harness resumes it. inner-loop pointed out that the window runs to the next accepted action, so it includes the
-stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). Measured here, `calls_before_grounding`
-for the 7 fresh starts was 2, 1, 0, 0, 1, 0, 0: 4 calls in all. So re-orientation itself cost almost nothing, and the
-84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
+stage work in flight (chess 5b: 125 min window, about 7 min of re-grounding). *Corrected again 2026-10-26:* the run
+has 14 fresh starts (resumes and compactions), not 7. That first reading printed only the first 7. Over all 14,
+`calls_before_grounding` totals 15 (`scorecard.py`'s new field). So re-orientation itself cost about one call per
+fresh start, and the 84.8 min was work. Candidate: a scorecard field for calls before grounding, so the window total is not misread
 again. The 2.10.1 Sonnet run took 23.1 minutes for the same case.
 
 ## The follow-on test retention check: kept and built on, not "the count grows" (2026-10-26) — status: firm
@@ -3184,3 +3201,90 @@ seen? This is R6 of the final verdict and build step 4. The owner's go was "fix 
 **Not yet.** No live run has recorded a snapshot; the next E2E run on this harness is its first. Every run recorded
 before 2026-10-26 keeps the live reading, so the backfill cards are unchanged and the compact fixtures stay
 correctness-null. A fixture with a snapshot comes with the first live one.
+
+## Build step 5: calibrating the Battleship game check (2026-10-26) — status: firm
+
+**Question.** Does `checks/battleship_game.py` reject the broken games the prompt rules out, and accept correct games
+written independently of the ones it was tuned on? This is R7/R9 of the final verdict and build step 5, approved by
+the owner.
+
+**Method.** Targeted defects of the prompt's sentences, two independently written correct games (another id key, the
+standard five-ship fleet placed at random, extra reply fields, refusing or answering shots after the end), and 15
+saved real deliveries, each served with its own `node server.js`.
+
+**Result** (`docs/experiments/e2e-oracle-calibration-20261026/battleship-game-calibration.txt`):
+- Before the fix, the check **passed a game that ends after two of its ships sink**. It knew only "more than one ship"
+  (the local prompt gives no fleet size). That was its one gap.
+- The other targeted defects already failed: sunk on the first hit, never sunk, over after the first sink.
+- The fix: after the end, fire at the cells not yet fired. A hit or sunk there means a ship was afloat, which fails
+  with exit 8.
+- After the fix, all 11 broken variants fail with their own reasons. Both independent games and all 15 real
+  deliveries pass.
+
+**Learning.** Calibrating against defects found a real oracle gap that seven stubs and eleven real deliveries had not
+shown. Passing real deliveries only shows that a check doesn't reject good work. It takes targeted defects to show it
+rejects bad work. The next oracles to calibrate are csv-report and seat-reservations, which have no held-out oracle
+(R7's missing items).
+
+## Deferred acceptance items: open, settled, or not restated (2026-10-26) — status: firm for the reader; the ShipLoop side is inner-loop's (d84d30a9, unreleased)
+
+**Question.** The Grok gate's three runs each failed fidelity on one deferred item. hello's release-verify had settled
+its item but restated no list. Can the reader tell settled, open and unknown apart?
+
+**Agreed with inner-loop.**
+- The latest accepted `unverified` list governs, and an entry is identified by (requirement, outcome).
+- An entry still on that list is open: fail. That includes one due at a stage that never ran, carried to the handoff.
+- An entry whose due stage was accepted later without a restatement is unknown: unobserved, never a pass.
+- An entry a restatement drops is settled.
+
+inner-loop's ShipLoop side refuses a due stage, or the handoff, that does not restate. After that lands, "not
+restated" should appear only in old runs.
+
+**Result** (`docs/experiments/e2e-unverified-reader-20261026/grok-gate-2132-reread.jsonl`): read with the new
+`fidelity.end_state`, all three gate runs are unobserved, where they used to be fail. Their saved `metrics.json` still
+holds the run-time reading, so their cards still show fail until a regrade rebuilds the record. hello's false fail is gone. The Battleship runs' open page click is now
+unknown, which is honest: it was open only in prose. It will read as open data once ShipLoop restates. The card is
+`scorecard/5`.
+
+## calls_before_grounding on the scorecard (2026-10-26) — status: firm
+
+`efficiency` gains `fresh_starts` and `calls_before_grounding`, read from `metrics.fresh_starts[].reorientation`. That
+is the cost of finding the place again, beside `reorientation_minutes`, whose window includes stage work (inner-loop's
+caveat). The Grok gate on 2.13.2:
+- hello: 15.5 window min, 5 fresh starts, 5 calls;
+- battleship: 84.8 min, 14 fresh starts, 15 calls;
+- battleship-scoring: 20.5 min, 7 fresh starts, 34 calls.
+
+Re-grounding costs about one call per fresh start, except in battleship-scoring, at about five. It is an added
+diagnostic, not a floor or the target, so the card id stays `scorecard/5`.
+
+## Run Review and flow.html link to each other (2026-10-26) — status: firm for the links and their tests; checked on one saved run
+
+**Question.** A reader of the Run Review page who wants to see what the model did on one visit has to open `flow.html`
+and find the row by hand. Can each visit link straight to its action, and `flow.html` link back?
+
+**Change.**
+- The static `run-review.html` links each visit to `flow.html#action=<nav id>`, from the open visit card and from a
+  Flow column in the visits table. It does so only when the run's folder has a `flow.html`; the shared page has none.
+- The flow viewer opens an action at `#action=<nav id>` and scrolls to it. Its header links to the run's Review page
+  when `review-export/run-review.html` exists. From the run's own `flow.html` (marked `data-home`) the link is relative,
+  however the folder is served. From a bundle it is a file URL, and there is no link on a published bundle.
+- `run.py` writes the flow before the export and again after it, so each page can see the other. A rebuild costs about
+  0.2 s on the saved runs.
+
+**Found while checking.**
+- The viewer draws no row for a seeded visit, which it lists in one summary line. A link to one would open nothing,
+  so seeded visits get no link.
+- A link styled as a button rendered 58 px tall against 44 px for the buttons beside it: `<a>` sizes its box as
+  content-box. Fixed with `box-sizing: border-box`.
+- Opened over HTTP, the first version of the viewer hid its back link, because the link depended on the page's own
+  file path. The `data-home` mark replaced that test.
+
+**Checked.** A copy of `gate-2132-f7ba78-grok-hello` was rebuilt with the same three steps and served over HTTP:
+- the Review page had 24 visit links and the card's "Open in flow.html";
+- that link opened `flow.html` with the implement row expanded;
+- the header link returned to the Review page.
+
+The saved run itself was not rewritten. Tests: `FlowLinkTests` in `test/shiploop-run-review.test.py`, and
+`FlowTests.test_the_viewer_opens_an_action_by_its_nav_id_and_links_back_to_the_runs_review_page` in
+`test/shiploop-e2e-slice.test.py`, which runs the viewer's script in node.

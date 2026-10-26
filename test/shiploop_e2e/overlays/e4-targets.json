@@ -1,0 +1,12 @@
+{
+  "about": "E4 (F3): test-spec acts on the `targets` row the packet quotes (the arm's seeded step-plan summary carries it by value, experiments.json seed_records): each case's `red` says how the base state is produced on a target that keeps state. Written against feat/shiploop-templates-6d625a (arm T, the text-only batch); a field T already states is not repeated.",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "test-spec",
+      "old": "suites says whether the target keeps state); a guard that only checks a file is not RED.",
+      "new": "suites says whether the target keeps state; a quoted `targets:` row says it by value); a guard that only\n   checks a file is not RED. For a target with `keeps_state: yes`, each row's `red` names its\n   `base_state_route` (how the base run starts from a target without this item), and a focused command that\n   lacks that route is a send-back naming it."
+    }
+  ]
+}

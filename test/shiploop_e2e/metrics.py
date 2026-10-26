@@ -22,6 +22,7 @@ import re
 
 import glossary
 import rollouts
+import run_trace
 import runrecord
 import sessionlog
 
@@ -358,8 +359,10 @@ def claude_exit(shown: str) -> int | None:
 
 
 def failure_text(failure: dict) -> str:
-    """One recorded failure's exit for a printed line; a refusal behind a pipe has none, because the host showed none."""
-    return "exit not shown" if failure.get("exit") is None else f"exit {failure['exit']}"
+    """One recorded failure's exit for a printed line; a refusal behind a pipe has none, because the host showed none. A failure
+    read from the run trace may be a failed --check-only run, which reports and never completes."""
+    return ("exit not shown" if failure.get("exit") is None else f"exit {failure['exit']}") + (
+        ", a --check-only check" if failure.get("check_only") else "")
 
 
 # A file a command writes with a heredoc (`cat > PATH <<'EOF' ... EOF`, `tee PATH <<EOF`): the body is the real file.
@@ -657,7 +660,7 @@ def nomenclature_text(record: dict) -> str:
     return ", ".join(f"{name} {row['texts']}" for name, row in rows)
 
 
-def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
+def gate_counts(tools: ToolLog, only: set | None = None) -> dict[str, dict[str, int]]:
     """Per gate: how many of this run's ShipLoop refusals it fired, and how many of those it caught.
 
     ``fired`` is how many of ``tools.failures`` classify under the gate (``refusal_gate`` on the refusal's own
@@ -666,13 +669,15 @@ def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
     the same action id (the refusing call's own ``--action=``, read by ``tools.action_log``); when the id cannot
     be read, the next `complete` call afterwards (of any action) stands in, as the owner's fallback rule says.
     A refusal whose own call cannot be found in ``action_log`` (should not happen: every refused call named a
-    ShipLoop verb) is fired but never caught.
+    ShipLoop verb) is fired but never caught. ``only`` limits the count to the failures of those call ids.
     """
     index_by_call: dict = {}
     for position, entry in enumerate(tools.action_log):
         index_by_call[entry["call_id"]] = position  # last occurrence: a reused id (Codex) is this call, not an older one
     counts: dict[str, dict[str, int]] = {}
     for call_id, failure in zip(tools.failure_call_ids, tools.failures):
+        if only is not None and call_id not in only:
+            continue
         row = counts.setdefault(refusal_gate(failure["line"]), {"fired": 0, "caught": 0})
         row["fired"] += 1
         start = index_by_call.get(call_id)
@@ -684,6 +689,59 @@ def gate_counts(tools: ToolLog) -> dict[str, dict[str, int]]:
             caught = any(entry.get("action") == action and entry.get("accepted") for entry in later)
         else:
             caught = bool(later) and bool(later[0].get("accepted"))
+        row["caught"] += int(caught)
+    return counts
+
+
+# Any ShipLoop verb a shell line runs (SHIPLOOP_COMMAND names only the verbs the stream's failure count knows): which
+# commands the run trace records is a question about every verb.
+ANY_SHIPLOOP_VERB = re.compile(r"shiploop\S*\s+(?P<verb>[a-z][\w-]*)")
+
+
+def outside_trace(command: str, text: str) -> bool:
+    """Whether a ShipLoop failure the host stream shows is one the run trace cannot hold: its command line did not parse
+    (argparse), or no logical line of the command runs a traced verb on a run, because every ShipLoop verb on it is a routed
+    one (run_trace.ROUTED_VERBS) or the line names no --run-dir (``workspace plan-return --workspace-root W``). A compound line that
+    also runs a traced verb on the run is the trace's: a routed verb failing inside it is not added. ``command`` is the call
+    as ToolLog keeps it (``invoked``: variables expanded, wrapper scripts appended), ``text`` its result from the refusal on."""
+    if run_trace.USAGE_ERROR.search(text or ""):
+        return True
+    known = shell_variables(command)
+    for raw in re.sub(r"\\\n", " ", shell_text(command)).split("\n"):
+        line = expand_variables(raw.strip(), known)
+        if run_trace.RUN_DIR_FLAG.search(line) and any(
+                found.group("verb") not in run_trace.ROUTED_VERBS for found in ANY_SHIPLOOP_VERB.finditer(line)):
+            return False
+    return True
+
+
+def traced_failures(traced: dict, tools: ToolLog, stamps: dict[int, float]) -> list[dict]:
+    """Every ShipLoop failure of a run whose trace covers it, oldest first: each traced failure (``source`` "trace"), and each
+    stream failure the trace cannot hold (``outside_trace``: a routed verb, a command that named no run, a usage error), with
+    ``source`` "events.jsonl", its events.jsonl line (``event``) and call id. The two are ordered by their epoch stamps (the
+    trace's own, the runner's arrival time of the result); a stream failure with no stamp comes last."""
+    rows = [{**failure, "source": "trace"} for failure in traced["failures"]]
+    for call_id, failure, found in zip(tools.failure_call_ids, tools.failures, tools.failure_events):
+        if outside_trace((tools.calls.get(call_id) or {}).get("invoked", ""), found["line"]):
+            rows.append({"verb": failure["verb"], "exit": failure["exit"], "line": failure["line"], "check_only": False,
+                         "stage": None, "action": None, "text": found["line"], "source": "events.jsonl",
+                         "event": found["event"], "call_id": call_id, "ts": stamps.get(found["event"])})
+    return sorted(rows, key=lambda row: (row.get("ts") is None, row.get("ts") or 0.0))
+
+
+def trace_gate_counts(traced: dict, merged: list[dict], tools: ToolLog) -> dict[str, dict[str, int]]:
+    """``gate_counts`` of a run whose trace covers it: each traced failure fires its gate, and it is caught when the run's next
+    traced `complete` of the same action was accepted (of any action, when the failure names none), as ``gate_counts`` reads
+    the stream; a stream failure the trace cannot hold (``merged``, source events.jsonl) is counted as ``gate_counts`` counts it."""
+    counts = gate_counts(tools, only={row["call_id"] for row in merged if row["source"] != "trace"})
+    for failure in traced["failures"]:
+        row = counts.setdefault(refusal_gate(failure["line"]), {"fired": 0, "caught": 0})
+        row["fired"] += 1
+        later = [entry for entry in traced["completes"] if entry["i"] > failure["i"]]
+        if failure["action"] is not None:
+            caught = any(entry["action"] == failure["action"] and entry["accepted"] for entry in later)
+        else:
+            caught = bool(later) and later[0]["accepted"]
         row["caught"] += int(caught)
     return counts
 
@@ -2042,6 +2100,9 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
             if figures is not None:
                 row["context"] = figures
     improve = run_dir / "improve" if run_dir else None
+    traced = run_trace.read(run_dir)
+    trace_counts = run_trace.covers(traced)
+    merged = traced_failures(traced, tools, stamps) if trace_counts else []
     return {
         "tmp_writes": sorted(tools.shared),
         # The host CLI build the sessions ran on (Claude's init event; sessions on two builds name both), None where the
@@ -2071,11 +2132,18 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "compactions": None if "compactions" in unmeasured else compactions,
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
-        "shiploop_failures": tools.failures,
+        # From ShipLoop's own trace where it covers the run (shiploop 1.12.0 and later: exact, a pipe hides nothing from it), with
+        # the stream's failures the trace cannot hold (traced_failures); else from the stream (ToolLog's heuristic).
+        # `failures_source` names which, and `run_trace` keeps the stream's own count.
+        "shiploop_failures": [run_trace.metric_failure(row) for row in merged] if trace_counts else tools.failures,
+        "failures_source": {"file": f"<run>/{run_trace.FILE}" if trace_counts else "events.jsonl",
+                            "why": None if trace_counts else run_trace.why_not(traced)},
+        "run_trace": run_trace.summary(traced, len(tools.failures)),
         # Per named gate (GATE_SIGNATURES): how many times it refused ("fired") and how many of those refusals the
         # run then got past ("caught": the same action id's next accepted complete). Never 0 for a gate that fired
-        # nothing -- it is simply absent; an unclassified refusal is under "other".
-        "gate_counts": gate_counts(tools),
+        # nothing -- it is simply absent; an unclassified refusal is under "other". Read from the same source as
+        # shiploop_failures.
+        "gate_counts": trace_gate_counts(traced, merged, tools) if trace_counts else gate_counts(tools),
         # Test-quality dodges no gate refuses (dodge_counts): grep-only checks on code, guarded REDs, inspected criteria,
         # surviving mutants. A record, never a verdict.
         "dodges": dodge_counts(run_dir),

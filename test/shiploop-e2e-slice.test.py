@@ -14,6 +14,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -225,8 +226,11 @@ class SeedTests(SliceCase):
         for name, case in cases.items():
             if not name.startswith("_"):
                 with self.subTest(name):
-                    self.assertTrue((step_slice.FIXTURES / case["fixture"] / "package.json").is_file())
-                    self.assertEqual(case["work_item"]["id"], "W1")
+                    # A replay case (E6) starts from a saved run's tree, which may hold no package.json (a Salesforce
+                    # project, or a zero-dependency Node app) and keeps that run's item ID.
+                    fixture = step_slice.FIXTURES / case["fixture"]
+                    self.assertTrue(fixture.is_dir() and any(fixture.iterdir()))
+                    self.assertRegex(case["work_item"]["id"], r"^W\d+$")
                     self.assertTrue(case["checks"] and case["expect_paths"])
 
 
@@ -265,7 +269,9 @@ class StopTests(SliceCase):
         self.fake(seeded, "normal")
         archived = sorted(p.name for p in (self.out / packets.ARCHIVE).iterdir())
         report = packets.write_report(self.out)
-        self.assertEqual(report["emissions_source"].split()[0], "packet-archive")
+        # The fake drives the real CLI, so the run has a trace (shiploop 1.12.0 and later): the report reads each packet as sent
+        # from it, and the archive the poll still writes covers only the packets the trace never printed.
+        self.assertTrue(report["emissions_source"].startswith("run trace"), report["emissions_source"])
         stages = {row["stage"] for row in report["packets"]}
         inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward"}
         self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once
@@ -972,6 +978,46 @@ class ClearThroughMainTests(unittest.TestCase):
         self.assertEqual((len(result["clear"]), result["clear_unfired"]), (1, []))
 
 
+VIEWER_STUB = r"""
+/* Enough of the browser for flow_viewer.html's script: elements by id, the run section's markup, scrolls recorded. */
+function El(id){this.id=id;this.hidden=false;this.innerHTML="";this.textContent="";this.dataset={};this.classList={add(){},remove(){}};}
+El.prototype.addEventListener=El.prototype.insertAdjacentHTML=function(){};
+El.prototype.querySelector=function(){return null;};El.prototype.querySelectorAll=function(){return [];};
+El.prototype.removeAttribute=function(k){delete this[k];};El.prototype.scrollIntoView=function(){SCROLLED.push(this.id);};
+var REG={},SCROLLED=[];
+var document={addEventListener(){},getElementById(id){
+  if(id==="flow-runs")return {textContent:A.runs,hasAttribute(k){return k==="data-home"&&A.home;}};
+  if(id==="detail")return /id="detail"/.test((REG.run||{}).innerHTML||"")?new El("detail"):null;
+  return REG[id]=REG[id]||new El(id);}};
+var location={hash:A.hash,protocol:A.protocol},history={replaceState(){}},window={addEventListener(){}};
+"""
+
+
+def viewer_probe(run: dict, hash_: str, protocol: str, home: bool) -> dict:
+    """flow_viewer.html's script run in node against VIEWER_STUB with one run embedded (`home`: as the run's own flow.html
+    writes it), opened at `hash_` over `protocol`: the row it opened
+    (`data-a` of the row before the detail, None for none), whether it scrolled to the detail, and the header link."""
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("node is not installed")
+    script = re.findall(r"<script>([\s\S]*?)</script>", flow.TEMPLATE.read_text())[-1]
+    program = ("const vm=require('vm'),fs=require('fs');const A=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));"
+               "const ctx=vm.createContext({A,console});vm.runInContext(A.stub,ctx);vm.runInContext(A.script,ctx);"
+               "console.log(JSON.stringify(vm.runInContext('[REG.run.innerHTML,REG[\"review-link\"].hidden,'"
+               "+'REG[\"review-link\"].href===undefined?null:REG[\"review-link\"].href,SCROLLED]',ctx)));")
+    with tempfile.TemporaryDirectory() as tmp:
+        arg = Path(tmp) / "arg.json"
+        arg.write_text(json.dumps({"stub": VIEWER_STUB, "script": script, "runs": json.dumps([run]), "hash": hash_,
+                                   "protocol": protocol, "home": home}))
+        done = subprocess.run([node, "-e", program, str(arg)], capture_output=True, text=True, timeout=60)
+    if done.returncode != 0:
+        raise AssertionError(f"the viewer script failed:\n{done.stderr}")
+    markup, hidden, href, scrolled = json.loads(done.stdout.strip().splitlines()[-1])
+    before = markup.split('id="detail"')[0] if 'id="detail"' in markup else None
+    rows = re.findall(r'data-a="(\d+)"', before) if before is not None else []
+    return {"open": int(rows[-1]) if rows else None, "hidden": hidden, "href": href, "scrolled": scrolled}
+
+
 class FlowTests(SliceCase):
     """flow.py: the sequence the viewer shows, from files only."""
 
@@ -1075,6 +1121,29 @@ class FlowTests(SliceCase):
         self.assertTrue(page.startswith("<!doctype html>"))
         self.assertEqual(page.count("</script>"), 2)  # the data block and the viewer's own script, nothing from the data
         self.assertFalse(flow.bundle(self.out / "a.html", [found], standalone=False).read_text().startswith("<!doctype"))
+
+    def test_the_viewer_opens_an_action_by_its_nav_id_and_links_back_to_the_runs_review_page(self):
+        """The Review page links each visit to `flow.html#action=<nav id>`; flow.json records the Review page once it exists,
+        and the header links there: relative from the run's own flow.html, by file URL from a bundle opened from disk."""
+        seeded = self.seed()
+        self.fake(seeded, "normal")
+        self.assertIsNone(flow.write(self.out)["review_page"])  # no Review page yet: no link
+        (self.out / "review-export").mkdir()
+        (self.out / flow.REVIEW_PAGE).write_text("<!doctype html>\n")
+        found = flow.write(self.out)
+        self.assertEqual(found["review_page"], "review-export/run-review.html")
+        self.assertIn('<script id="flow-runs" type="application/json" data-home>', (self.out / "flow.html").read_text())
+        wanted = [a for a in found["actions"] if not a["seeded"]][1]
+        for protocol in ("file:", "http:"):  # the run's own page, from disk or from a server of the run's folder
+            opened = viewer_probe(found, "#action=" + wanted["action"], protocol, True)
+            self.assertEqual((opened["open"], opened["scrolled"]), (wanted["index"], ["detail"]))
+            self.assertEqual((opened["hidden"], opened["href"]), (False, "review-export/run-review.html"))
+        self.assertEqual(viewer_probe(found, "#action=%E0%A4%A", "file:", True)["open"], None)  # bad escaping: the page still opens
+        bundled = viewer_probe(found, "#action=nav-" + "0" * 32, "file:", False)
+        self.assertEqual((bundled["open"], bundled["scrolled"]), (None, []))  # an unknown action opens nothing
+        self.assertEqual(bundled["href"], "file://" + str(self.out.resolve()) + "/review-export/run-review.html")
+        published = viewer_probe(found, "#r0-a%d" % wanted["index"], "https:", False)  # the page's own form still opens
+        self.assertEqual((published["open"], published["hidden"], published["href"]), (wanted["index"], True, None))
 
     def test_the_stop_action_is_named_by_the_ledger_when_the_slice_stopped_before_its_packet(self):
         """A slice stop between the host's save and its next `next` leaves the stop action with no packet; the flow

@@ -1,0 +1,50 @@
+{
+ "experiment": "E6-K1",
+ "arm": "T",
+ "sample": 1,
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "ref": "9ed4ec24",
+ "overlay": null,
+ "case": "sf-chess-engine",
+ "output": "/Users/dadleet/e2e-runs/e6-smoke-20261024/E6-K1/T/1",
+ "verdicts": {
+  "process": true,
+  "stopped": true,
+  "no_overshoot": true
+ },
+ "minutes": 2.8,
+ "fake_sf_calls": 0,
+ "score": {
+  "value": 0,
+  "steps": 2,
+  "band": [
+   3,
+   null
+  ],
+  "in_band": false,
+  "joined_layers": [],
+  "max_criteria": 5,
+  "max_product_files": 0,
+  "declared_paths": 0,
+  "per_step": [
+   {
+    "id": "S1",
+    "criteria": 4,
+    "requirements": 4,
+    "product_files": 0,
+    "declared_paths": false
+   },
+   {
+    "id": "S2",
+    "criteria": 5,
+    "requirements": 7,
+    "product_files": 0,
+    "declared_paths": false
+   }
+  ],
+  "case": "sf-chess-engine",
+  "action": "nav-3e333819880e48848ab450e731c8d299"
+ }
+}

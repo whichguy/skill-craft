@@ -22,8 +22,9 @@ of the lengths of a normal install (INSTALL_ROOT_LENGTH, CANONICAL_PYTHON).  Siz
 choice between the whole packet and its head is made on it (the engine made it on the real paths).
 
 Writes packet-report.json and packet-report.md into the output directory (with --compare, packet-compare.md too) and
-prints the Markdown. It reads any E2E output directory: a step slice (slice.py), whose poll archived every distinct
-packet the run emitted under packet-archive/, or a full run, which keeps only the last copy of each packet
+prints the Markdown. It reads any E2E output directory: a run on shiploop 1.12.0 or later, whose run trace names every
+packet as sent (RUN/trace.jsonl and packets/sent/); a step slice (slice.py), whose poll archived every distinct packet the
+run emitted under packet-archive/; or a full run before the trace, which keeps only the last copy of each packet
 (run/packets/<action>.md is rewritten on every `next`), so its rows say "retained only".
 
 Nothing here is the model's account. Per packet: its stage and kind (producer or Improve; the Improve stage is an action of its own,
@@ -56,6 +57,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import fidelity  # noqa: E402
 import metrics  # noqa: E402
+import run_trace  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -152,15 +154,34 @@ def archive_packets(run_dir: Path, out: Path) -> int:
     return added
 
 
-def emissions(out: Path, run_dir: Path) -> tuple[dict[str, list[str]], bool]:
-    """{packet key: the texts emitted, oldest first} and whether they come from the archive (else retained only)."""
+# Where emissions() found the packet texts, as the report says it.
+EMISSION_SOURCES = {
+    "trace": "run trace (RUN/trace.jsonl names every packet ShipLoop printed, kept as sent in packets/sent/)",
+    "trace+archive": "run trace, and packet-archive for the packets the trace never printed (stages the harness seeded)",
+    "trace+retained": "run trace, and run/packets (last copy) for the packets the trace never printed (stages the harness seeded)",
+    "archive": "packet-archive (every distinct emission a 2-s poll saw)",
+    "retained": "retained only (run/packets keeps the last copy of each packet)",
+}
+
+
+def emissions(out: Path, run_dir: Path) -> tuple[dict[str, list[str]], str]:
+    """{packet key: the texts emitted, oldest first} and where they come from (a key of EMISSION_SOURCES). A run with a trace
+    (shiploop 1.12.0 and later) gives each packet's distinct texts as sent; a key the trace never printed keeps the slice's
+    archive or the retained copy, as a run before the trace does."""
     archive = out / ARCHIVE
     if archive.is_dir() and any(archive.iterdir()):
-        return ({folder.name: [p.read_text(errors="replace") for p in sorted(folder.glob("*.md"))]
-                 for folder in sorted(archive.iterdir()) if folder.is_dir()}, True)
-    retained = run_dir / "packets"
-    return ({p.stem: [p.read_text(errors="replace")] for p in sorted(retained.glob("*.md"))} if retained.is_dir() else {},
-            False)
+        texts, source = ({folder.name: [p.read_text(errors="replace") for p in sorted(folder.glob("*.md"))]
+                          for folder in sorted(archive.iterdir()) if folder.is_dir()}, "archive")
+    else:
+        retained = run_dir / "packets"
+        texts, source = ({p.stem: [p.read_text(errors="replace")] for p in sorted(retained.glob("*.md"))}
+                         if retained.is_dir() else {}, "retained")
+    traced = run_trace.read(run_dir)
+    sent = run_trace.sent_texts(run_dir, traced) if traced and "error" not in traced else {}
+    if not sent:
+        return texts, source
+    rest = {key: value for key, value in texts.items() if key not in sent and key.removesuffix("-bind") not in sent}
+    return {**rest, **sent}, "trace" + (f"+{source}" if rest else "")
 
 
 def sections(text: str, top: int = 5) -> list[dict]:
@@ -269,7 +290,7 @@ def build(out: Path) -> dict:
         pending_action = None
     by_action = {row["action"]: row for row in accepted if row.get("action")}
     links = improve_links(state)
-    texts, archived = emissions(out, run_dir)
+    texts, source = emissions(out, run_dir)
     calls = attribute(next_calls(tool_log), accepted, pending_action)
     order = {row["action"]: i for i, row in enumerate(accepted) if row.get("action")}
 
@@ -313,8 +334,7 @@ def build(out: Path) -> dict:
         "shell_chars": (read.get("shell") or {}).get("chars")}
     report = {
         "output": str(out), "run_dir": str(run_dir), "status": state.get("status"),
-        "emissions_source": "packet-archive (every distinct emission a 2-s poll saw)" if archived
-                            else "retained only (run/packets keeps the last copy of each packet)",
+        "emissions_source": EMISSION_SOURCES[source],
         "token_estimate": ESTIMATE,
         "totals": {"packets": len(rows), "emissions": sum(r["emissions"] for r in rows),
                    "chars_written": sum(r["chars_all_emissions"] for r in rows),

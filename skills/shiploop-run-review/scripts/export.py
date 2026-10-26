@@ -17,7 +17,7 @@ the ShipLoop run directory) and writes only under --out (default RUN_DIR/review-
   facts.md                     plain numbers for the reviewer
   review-export.json           every document but the packets in one compact file, to commit
   run-review.html              the page with this run's documents inside: one read-only file that opens from disk
-                               (--no-html skips it)
+                               (--no-html skips it); when RUN_DIR has a flow.html, each visit links to its action there
 
 A missing metrics.json, timeline.json or results/ is an error naming the file
 (exit 2), never an empty export. The same input gives byte-identical output.
@@ -48,6 +48,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 import sys
@@ -3643,10 +3644,11 @@ def _script_data(value) -> str:
     return text.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
 
 
-def static_html(docs: dict[str, dict[str, dict]]) -> str:
+def static_html(docs: dict[str, dict[str, dict]], flow: str | None = None) -> str:
     """The page template with `docs` (a run's documents) and the default expectations and settings embedded, and a
     read-only stand-in for the database (template/static-db.js): one self-contained file with no network. The page checks
-    `window.__RR_STATIC` to say it is a static copy. The same input gives the same text."""
+    `window.__RR_STATIC` to say it is a static copy. `flow` is the run's flow.html relative to the page
+    (`window.__RR_FLOW`): each visit then links to its action there. The same input gives the same text."""
     page = (TEMPLATE_DIR / "index.html").read_text(encoding="utf-8")
     stand_in = (TEMPLATE_DIR / "static-db.js").read_text(encoding="utf-8")
     defaults = defaults_docs()
@@ -3663,7 +3665,9 @@ def static_html(docs: dict[str, dict[str, dict]]) -> str:
     marker, wrap = '<script id="logic">', '<div class="wrap">'
     if titles != 1 or page.count(marker) != 1 or page.count(wrap) != 1:
         raise ExportError("template/index.html lost its title, wrap or logic script: the static copy cannot be built")
-    data_script = f"<script>window.__RR_STATIC=true;window.__RR_DATA={_script_data(data)};</script>\n<script>\n{stand_in}</script>\n"
+    flow_line = f"window.__RR_FLOW={_script_data(flow)};" if flow else ""
+    data_script = (f"<script>window.__RR_STATIC=true;{flow_line}window.__RR_DATA={_script_data(data)};</script>\n"
+                   f"<script>\n{stand_in}</script>\n")
     page = page.replace(wrap, "</head>\n<body>\n" + wrap, 1).replace(marker, data_script + marker, 1)
     return STATIC_HEAD + page.rstrip("\n") + "\n</body>\n</html>\n"
 
@@ -3680,7 +3684,9 @@ def export_run(run_out: Path, key: str | None = None, name: str | None = None, o
     run_key = next(iter(docs["runs"]))
     target = write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
     if html:
-        (target / STATIC_FILE).write_text(static_html(docs), encoding="utf-8")
+        flow = run_out / "flow.html"  # the harness's flow record (test/shiploop_e2e/flow.py), written before the export
+        link = Path(os.path.relpath(flow, target.resolve())).as_posix() if flow.is_file() else None
+        (target / STATIC_FILE).write_text(static_html(docs, link), encoding="utf-8")
     return target
 
 

@@ -182,7 +182,7 @@ Lesson: for a change that writes a new file into every run, select the suites th
 chain*, backchain-check) and the e2e apparatus, not only the suites the changed files reference. Gap: chain commands
 (ask-agent runs) are not in the trace.
 
-## 2026-10-25: live check on a real host run, ShipLoop 1.12.0 (interim: 1.12.1 rerun pending)
+## 2026-10-25: live check on a real host run, ShipLoop 1.12.0 (interim; superseded by the 1.13.1 rerun below, which is firm)
 
 **Question.** Does the released trace (skill-craft 2.12.0 / ShipLoop 1.12.0, `5485b896`) record and show a real host run:
 command, packet and hook lines in order; each packet kept as sent; refusals with their text; keepalive continuations
@@ -243,16 +243,166 @@ or `| `). Evidence: `docs/shiploop-run-trace-evidence/intake-sentence-survey-202
 `test/shiploop-trace.test.py`: 25 tests pass. Quick tier (`run-all.sh --group quick --changed-from 5485b896 --jobs 6`):
 PASS, 27 suites, 173.3 s wall (before the `--action` change, which touches `find_action` only).
 
-**Status: interim.** The parent session reported that 1.12.0 failed main's full CI and 1.12.1 follows (navigator
+**Status: interim** (superseded 2026-10-25 by the rerun on ShipLoop 1.13.1, which shipped as 1.13.1, not 1.12.1, after 2.13.0). The parent session reported that 1.12.0 failed main's full CI and 1.12.1 follows (navigator
 command tracing unchanged; `chain`, `lint`, `red-check`, `backchain-check` no longer traced; packet lines only during a
 traced command), so the firm check is the rerun on 1.12.1. Not verified on any real run: a keepalive continuation
 with its injected text; a reprinted packet. `workspace plan-return`/`review-return`/`return` are not in the trace by
 design (they name `--workspace-root`); whether they should be is open.
 
+## 2026-10-25: rerun on ShipLoop 1.13.1, the release carrying the fixes (firm)
+
+**Question.** The same as the 1.12.0 live check, on the release that carries this branch's fixes (`191f272f`) and the
+CI fix (`96f023a2`: only navigator commands on a current run are traced; packet lines only while one runs; `chain`,
+`lint`, `red-check`, `backchain-check` untraced): skill-craft 2.13.1 / ShipLoop 1.13.1, release `a677b55d`.
+
+**Case.** `hello`, `run.py --case hello --host claude --source marketplace --timeout 3600 --max-budget-usd 15`, Claude
+Sonnet 5.5 at host default effort, after `--preflight-only --host all` (Claude, Codex and Grok all got 2.13.1 / 1.13.1).
+Output `~/e2e-runs/20261025/trace-verify-1131-b096ae/hello` (not in the repo). PASS on every verdict: done in 795 s,
+$4.39, 1 session, 24 accepted steps, no send-back; the harness reported no other run alive. Evidence:
+`docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.13.1/`.
+
+| Feature | 1.13.1 result | Evidence |
+|---|---|---|
+| `trace.jsonl` lines in order | worked: 92 lines (58 command, 33 packet, 1 hook), timestamps monotonic; every packet line is followed by the command that printed it | `trace.jsonl` |
+| untraced verbs | worked: no `chain`, `lint`, `red-check` or `backchain-check` line, although the host ran `lint` 4 times (one command also ran `red-check`) | `trace.jsonl`, `flow-read-first.json` |
+| `workspace start` once | worked (fix confirmed): one `workspace` line `[None, 0]`, no `init` line; the init's intake packet is kept | `trace.jsonl` lines 1-2 |
+| packets kept as sent | worked: 33 packet lines, every `packets/sent/<sha>.md` present and matching its sha; 19 printed as a head, each head kept (52 files); 0 reprints | `trace.jsonl` |
+| refusal / check text | worked: the run's one failure, a `--check-only` (`expectation E1.from must be the id of an open plan assumption, such as A3`), is a check with its text in the digest, `--action` and the page; the run had no navigator refusal, so refusal text rests on the 1.12.0 run (same code path) | `action-step-plan-bare-hex.txt`, `page-check.json` |
+| keepalive continuation text | **not exercised**: the one hook line is `allow: run is done` (no text, as designed); the headless session never ended a turn early | `trace.jsonl` |
+| digest | worked; plurals right ("1 check failed", "of 1 sentence") | `digest.txt` |
+| `--action` | worked with the bare hex `bcf73ba9` (fix confirmed) | `action-step-plan-bare-hex.txt` |
+| `--request` | worked (fix confirmed): "intake read 1 of 1 sentence", S1 → outcome. Intake wrote `S1: outcome - …`; the 1.12.0 reader maps 0 on this very summary | `request.txt` |
+| `--json`, `--html` | worked (into the run and to a path) | `page-check.json` |
+| page | worked: 0 console messages, 0 animated elements, 24 chips done, legend only done / I / steps, request card "intake read 1 of 1 sentence" with the reading, local PDT times with UTC tooltips, no live toggle on a done run, no horizontal scroll at 1024 and 375 px | `page-check.json` |
+
+**Counts against `flow.py --read-first` (same run).** Reconciled exactly.
+
+| | trace | flow | difference |
+|---|---|---|---|
+| refusals | 0 refused + 1 failed check | 1 refusal | the same event: the `--check-only` failure (a check in the trace, a refusal in flow) |
+| commands | 58 (1 `workspace`, 41 `complete`, 16 `improve-pass`) | 67 invocations (5 `workspace`, 41 `complete`, 17 `improve-pass`, 4 `lint`) | 4 `workspace plan-return` ×2 / `review-return` / `return` (untraced: `--workspace-root`); 4 `lint` (untraced since 1.13.1); 1 `improve-pass` that never reached ShipLoop (`can't open file`: the model mistyped the CLI path) |
+| packets | 33 | 23 producer rows | 33 = 24 producer packets (23 stages + `done`) + 9 Improve. flow lacks W1's step-plan: the model sent the `complete` output carrying that packet to `run/scratch/out.txt` and read it in `grep`/`sed` slices, so its head never reached a tool result whole; the trace recorded the print. On 1.12.0 the two lists matched (27 = 27) |
+| skill calls | 9 | 9 `skill-craft:improve` | none |
+
+**Status: firm** for every feature above marked worked, on a real Claude Sonnet run of the released 1.13.1, with
+the four 1.12.0 defects confirmed fixed. Not verified on any real run: a keepalive continuation's injected text (a
+headless Claude session ends its turn only when the run is done; the hermetic test with a recorded Claude payload
+stays the only evidence) and a packet reprint. Open, not changed: `workspace plan-return`/`review-return`/`return` are
+not in the trace (they name `--workspace-root`), so a release's return steps and their refusals (one stale
+`plan-return` on 1.12.0) are visible only in the host stream.
+
+**Test change after the release (63b0392f, test only).** `test_workspace_start_is_one_command_though_it_runs_init_or_next`
+failed in CI's full shard on 2.13.1: GitHub runners set a global git-lfs filter, and `workspace start` refuses custom
+filters. The test now runs git and the CLI with `GIT_CONFIG_NOSYSTEM=1` and `GIT_CONFIG_GLOBAL=/dev/null`, as
+`test/shiploop-workspace.test.py` does; a simulated global lfs filter reproduces the failure without it. No product
+change, so neither live run above is affected.
+
+## 2026-10-25: the E2E harness reads the trace (firm, built)
+
+Question: the E2E harness predates the trace and rebuilds ShipLoop's side of a run from the host stream: refusals from
+tool results (`metrics.ToolLog`; on Claude a refusal piped through `head` or `tail` shows neither its exit nor its refusal
+line), packet texts from `packet-archive/` or the last copy in `run/packets/`, and no keepalive decisions at all. Where a
+run has `trace.jsonl`, can the harness take those facts from the trace, keep the stream for what the model did, keep older
+runs working, and say which source each figure came from?
+
+Design (built, all in `test/shiploop_e2e/`; no skill file changed, so no change note and no release):
+
+- **One reader, `run_trace.py`**, over `shiploop_trace.build`, so the harness attributes events as `shiploop trace` does.
+  It gives `failures` (every traced command that exited non-zero, with the stage the run was in, the action, the refusal
+  text screened line by line, its first line), `completes`, `packets` per action (each print as sent, `repeat` for a
+  reprint), `hooks` (decision and text), and `covers`.
+- **Coverage rule.** The trace covers a run when every step the model accepted was accepted by a traced command and the
+  trace is not capped. A step the harness seeded (summary `Synthetic…`) is not the model's: step slices seed with
+  `navigator.apply`, outside the trace, and still read as covered. A partial trace leaves every count on the stream and
+  says why.
+- **What only the stream holds.** The trace records only navigator commands that loaded the run. A command that names no
+  run (`workspace plan-return --workspace-root W`), one that does not parse, and the routed verbs (`chain`, `lint`, `red-check`,
+  `backchain-check`) are in the stream only. `metrics.outside_trace` tells such a stream failure: no line of the call runs
+  a traced verb with `--run-dir`, or its text is an argparse error. `metrics.traced_failures` adds it to the trace's,
+  marked `source: events.jsonl`, ordered by epoch stamps. Workspace refusals were found on the first live traced run
+  (below); the first design dropped them. Routed verbs: the session that started this work reported that the fix release
+  stops tracing them (announced as 1.12.1, shipped as 1.13.1; 1.12.0 traced their exit without text), so `run_trace.read`
+  leaves them out on every release, and runs on either side of 1.13.1 count them with one instrument.
+- **`metrics.json`**: `shiploop_failures` and `gate_counts` come from the trace when it covers the run; `failures_source`
+  names the file (and why not); `run_trace` keeps the trace's counts beside the stream's own (`stream_failures`). The
+  item shape stays `{verb, exit, line}`, plus `check_only` on a failed check. A failed `--check-only` stays in the list
+  because the stream counted it too ("every command that exited non-zero"); the trace's own `refusals` excludes it.
+  The fidelity block's `refusals` reads the same list (one count), with the exact stage instead of a timeline join.
+  The Run Review exporter reads both from `metrics.json`, so it follows with no change of its own.
+- **`flow.py`**: packets as sent (`packets.emissions` prefers `packets/sent/`; `prints`, `reprints`, `sends` per phase),
+  refusals and keepalive decisions as events of kinds `refusal` and `keepalive` merged among the host's events on the
+  unrounded epoch stamps (rounded to 0.1 s, a fast refusal tied with the next call and landed after it, seen on the test
+  fixture), and `sources` naming each part's file. The Read first panel takes refusals by stage and cause from the trace,
+  counts failed checks apart, keeps the stream's count beside it, adds a `trace` block (prints, reprints,
+  continuations, stops) and takes producer sizes from the packet as last sent. A run without a trace reports per-phase
+  refusals and prints as None, not 0.
+- **`arms.py`**: a refusal count from the trace and one from the stream are two instruments, so the refusals gate is
+  unmeasured (the decision stays open) unless both arms counted from the same source (`refusals_source`).
+
+Not changed: the stream stays the source of the model's calls, text, turns, tool-call windows (`failure_of` in the
+reorientation readers) and retired-term counts (`nomenclature` reads refusal lines the model saw).
+
+What the trace cannot see: a ShipLoop command that never loaded the run. Measured on the 211 recorded runs under
+`~/e2e-runs` with a `metrics.json` before 1.12.0: 2 of 316 recorded failures were usage errors (both v1161 Luna,
+`unrecognized arguments`). A first design left these out (interim, superseded the same day): the first live traced run
+showed a `workspace blocked` refusal at `plan-return` that only the stream had, and such a refusal ends every run that
+returns its workspace. They are now merged from the stream by the rule above, which needs no time join to find them (only
+to order them). Still missing: such a refusal behind a pipe, and a command on a wrong `--run-dir`.
+
+Live evidence (read-only, `~/e2e-runs/20261025/trace-verify-4fd9f1/hello`, Claude, shiploop 1.12.0, read while the
+sibling live-E2E session was still running it). The trace holds 7 failures. Two of them are routed verbs (`lint` and
+`red-check`, exit 3, no text), which the harness now leaves out, so 5 remain: 3 refusals and 2 failed checks. The
+harness's list has 6: those 5 and the workspace refusal from the stream. The stream also counts 6, and they are the same
+failures, so this run's total did not change. The trace corrects three things. It names the step-proof refusal's verb
+`complete`, where the stream said `lint` because the command ran `lint` too. It gives the exit for the four the model
+piped, which the stream recorded as not shown. It gives the stage the run was in. The two routed exits are in neither
+list: the stream's verb pattern does not know `red-check`, and the `lint` result was piped.
+
+`gate_counts` classifies every line `other` on both readings (no signature fires on this run). It catches 5 of 6 by the
+trace's accepted `complete`, against 3 of 6 by the stream's. An earlier reading of the same run, before routed verbs were
+left out, gave 8 and 6 of 8; it is superseded the same day by the 1.13.1 rule. A second traced run
+(`gate-212-8a49cf-grok-hello`, Grok) has no failures. Its `research` packet was printed 3 times (2 reprints), which no
+stream reading counted.
+
+Evidence: `test/shiploop-e2e-run-trace.test.py`, 15 tests, 2.1 s. The fixture is a real CLI run in a temporary E2E
+folder with a Claude stream written around its calls: a reprinted intake packet, a failed `--check-only` shown to the
+stream, a `workspace plan-return --workspace-root` refusal and a usage error (neither loads the run), a `lint` that could not
+run (exit 3), a refusal piped through `| tail -1`, a keepalive continuation, the accepted intake and a reprinted discovery
+packet. On it the stream counts 4 failures and misses the refusal; the trace counts 1 refusal, 1 failed check, 4 prints (2 reprints) and 1 continuation;
+`shiploop_failures` holds all 5 failures in order (with a `lint` that could not run, read from the stream), and the
+refusal's text appears in `flow.json` right after the call that caused it. The same folder without its trace reads exactly as before (stream counts, `retained` packets, None for unrecorded
+counts), and a trace stripped of its accepting command reads as partial and falls back with its reason. Checked in the
+browser: the viewer shows the refused and check-failed events with their text, the keepalive text, and "printed 2× (1
+reprint)" on each phase. The new suite is registered (101 → 102 ShipLoop suites, 156 → 157 in all).
+
+Quick tier (`test/run_suites.py --group quick --changed-from 6b678500`, the merge-base with origin/main, `--jobs 8`).
+The first commit's run failed 1 of 37 suites: `shiploop-e2e-slice` pinned the packet report's `emissions_source` as the
+archive. Its fake host drives the real CLI, so the run has a trace and the source is now the trace, which is the change
+itself; the test now pins that. The final tree (`03ddfe06`, clean) passed all 37 suites in 226.6 s. Not run: the full
+tier, and a regrade of a finished traced E2E run through `run.py --resume-run <output> --grade-only` (the two traced runs
+of 2026-10-25 belong to the sibling live-E2E session and were only read).
+
+Rebased on shiploop 1.13.1 (`a677b55d`; the fix announced as 1.12.1). The run-trace suite passes there (15 tests, 2.1 s),
+and the finished live run reads as the upstream live check above counted: 38 packets, 0 reprints, 3 refusals and 2
+failed checks traced, plus the workspace refusal from the stream. Quick tier on `03f9aad5` (changed from `a677b55d`):
+36 of 37 suites pass in 208.6 s. `shiploop-mock-replay` fails 5 tests, and fails them identically on a clean `a677b55d`.
+Its trace corpus pins `grok_adapter_sha256`, and `96f023a2` changed the adapter (it lists `trace`) without re-binding the
+corpus. That is upstream and not this change, which does not touch `skills/shiploop-e2e-audit/`. Fixed upstream in
+skill-craft 2.13.2 (`b047a64a`, released `0a4fe0a6`): the fixtures pin the new adapter. Rebased on `0a4fe0a6`, the quick
+tier on `133f3e63` (changed from `0a4fe0a6`) passes all 37 suites in 212.1 s. Before the push, rebased on `8df9b1a3`
+(40 upstream commits, among them the new `shiploop-e2e-experiments` suite, so the catalog now counts 103 ShipLoop suites
+and 158 in all): the quick tier passes all 38 selected suites in 355.8 s.
+
 ## Open (exploratory)
 
 - **Owner feedback during a run** (the "nice to have"): a `shiploop note --run-dir RUN --text …` verb that appends a
   `note` event, and the next packet quoting unread notes. Needs a packet change, so it waits for the owner.
-- **E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
-  `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.
+- ~~**E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
+  `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.~~ Superseded 2026-10-25: built,
+  see "the E2E harness reads the trace" above; the exporter follows through `metrics.json`. The 1.13.1 rerun shows
+  the gain: flow missed W1's step-plan packet (redirected to a file, read in slices) that the trace recorded, and
+  counted a heredoc script as `init` on 1.12.0.
+- **First live check of the harness's trace reading**: no released E2E run with a trace has been regraded through
+  `run.py --resume-run <output> --grade-only` yet; the two traced runs of 2026-10-25 under `~/e2e-runs/20261025/` had no
+  refusals or hook decisions to compare.
 - **Hosts other than Claude Code** record Skill calls nowhere; the trace does not change that.

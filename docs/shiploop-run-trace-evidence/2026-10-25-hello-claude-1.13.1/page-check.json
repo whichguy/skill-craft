@@ -1,0 +1,19 @@
+{
+ "page": "RUN/trace.html, rewritten with `shiploop trace --html PATH` after the run finished",
+ "browser": "Claude desktop built-in browser (dark theme), served from localhost",
+ "finished_run": {
+  "console_messages": 0,
+  "animated_elements": 0,
+  "stage_chips": {"done": 24, "legend sample (done)": 1},
+  "legend": "done · I Improve reviewed · N steps implement (only what this run shows: no ×N, ↩N or !N)",
+  "zone_label": "times in PDT",
+  "first_times": [["08:13:41 PM", "2026-10-26T03:13:41Z (tooltip)"]],
+  "live_reload_toggle": "absent (run done)",
+  "tiles": {"steps accepted": 24, "packets sent": 33, "refused": 0, "hook continuations": 0, "skill calls": 9, "commands": 58},
+  "request_counts": ["expanded through prepare", "intake read 1 of 1 sentence", "2 requirements", "1 work item, 1 step", "1 assumption", "0 owner answers"],
+  "s1_reading": "outcome: hello.py in the repo root prints exactly 'Hello, world!' …",
+  "check_rows": 1, "refusal_rows": 0, "hook_rows": 1,
+  "check_row_text": "complete nav-bcf73ba9… → exit 2 · expectation E1.from must be the id of an open plan assumption, such as A3",
+  "horizontal_scroll": {"1024px": false, "375px": false}
+ }
+}

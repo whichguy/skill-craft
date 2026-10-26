@@ -1,0 +1,59 @@
+{
+ "source": "/Users/dadleet/e2e-runs/20261010/checkers-1/.shiploop-runs/work-20261010-153302-c82ae6 step-plan of W1",
+ "steps": [
+  {
+   "id": "S1",
+   "deps": []
+  },
+  {
+   "id": "S2",
+   "deps": [
+    "S1"
+   ]
+  },
+  {
+   "id": "S3",
+   "deps": [
+    "S2"
+   ]
+  },
+  {
+   "id": "S4",
+   "deps": [
+    "S2"
+   ]
+  }
+ ],
+ "criteria": [
+  {
+   "id": "C1",
+   "text": "rules.js: initial layout, simple moves, illegal moves, jumps, mandatory jump, multi-jump, kings, winner behave per R-4..R-12 (TC-1..TC-9)"
+  },
+  {
+   "id": "C2",
+   "text": "server.js: /api/new and /api/move JSON contract, error responses, routes per R-1,R-3,R-5,R-14,R-15 (TC-10)"
+  },
+  {
+   "id": "C3",
+   "text": "GET / serves HTML titled Checkers with the board script; PORT env var honoured (TC-11, TC-12)"
+  },
+  {
+   "id": "C4",
+   "text": "README documents how to run the server and tests"
+  },
+  {
+   "id": "C5",
+   "text": "Whole suite passes via node --test and runs more than 12 tests"
+  }
+ ],
+ "paths": [
+  "rules.js",
+  "server.js",
+  "index.html",
+  "README.md",
+  "test/*.test.js",
+  "docs/shiploop/**"
+ ],
+ "case": "node-chess-engine",
+ "expected_value": 1
+}

@@ -1,0 +1,21 @@
+# checks/battleship_game.py calibration, 2026-10-26 (build step 5). Method: each delivery's tracked and untracked files (no .git, no node_modules) copied to a scratch folder and served with its own node server.js through checks/serve.py.
+# Saved real deliveries (correct by their runs' verdicts), tightened check:
+20261006/v1220-battleship-grok-medium-none | exit 0 | 
+20261006/v1220-battleship-sonnet | exit 0 | 
+20261007/v1230-battleship-sonnet | exit 0 | 
+20261008/r1-battleship-sonnet | exit 0 | 
+20261008/r2-battleship-grok-none | exit 0 | 
+20261008/r2-battleship-sonnet | exit 0 | 
+20261008/r3-battleship-sonnet | exit 0 | 
+20261010/battleship-1 | exit 0 | 
+20261011/battleship-probe-28191c5b | exit 0 | 
+20261011/battleship-scoring-probe-28191c5b | exit 0 | 
+20261016/battleship-e2eaudit-4dd3b4b4 | exit 0 | 
+20261025/gate-2100-96810d-claude-web/battleship | exit 0 | 
+20261025/gate-2100-96810d-claude-web/battleship-scoring | exit 0 | 
+20261025/gate-2132-f7ba78-grok-web/battleship | exit 0 | 
+20261025/gate-2132-f7ba78-grok-web/battleship-scoring | exit 0 | 
+# Stubs (test/shiploop-e2e.test.py BATTLESHIP_STUB and BATTLESHIP_ALT), check before -> after the after-end sweep:
+plays 0 -> 0 | audit 5 -> 5 | all-sunk 5 -> 5 | no-fleet 5 -> 5 | constant-id 5 -> 5 | never-ends 4 -> 4 | bad-result 3 -> 3 | restarts 7 -> 7
+sunk-first-hit 5 -> 5 | never-sunk 5 -> 5 | over-after-first-sink 5 -> 5 | over-after-two-sunk 0 -> 8 (the gap)
+alternative answers-after-end 0 -> 0 | alternative refuses-after-end 0 -> 0

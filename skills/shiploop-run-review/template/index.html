@@ -72,6 +72,7 @@ button.chev{cursor:pointer}
 .btn.sm{font-size:12px;padding:3px 9px}
 .btn.primary{background:var(--accent);color:var(--accent-ink)}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
+a.btn{display:inline-flex;align-items:center;box-sizing:border-box;text-decoration:none}
 .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
 .form .full{grid-column:1/-1}
 .form label{display:block;margin-bottom:3px}
@@ -1448,7 +1449,7 @@ function columnDetail(model,k,run,findings,catalog){
     if(c.packetBytes!==null)lines.push(["Packet file",kbText(c.packetBytes)+", the packet issued for this stage"]);
     var tm=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
     return {title:"Unaccepted: "+stageLabel(c.stage)+" (the run ended here)",lines:lines,findings:tm,prev:k>0?k-1:null,next:null,
-      packet:c.tail.packetId?{id:c.tail.packetId}:null,card:null};
+      packet:c.tail.packetId?{id:c.tail.packetId}:null,card:null,action:c.action||""};
   }
   var title=c.kind==="skipped"?(c.n===1?"Visit "+(c.first+1)+": "+c.stage+" (recorded by ShipLoop)":"Visits "+(c.first+1)+" to "+(c.last+1)+": "+c.n+" recorded by ShipLoop")
     :"Visit "+(c.first+1)+": "+c.stage;
@@ -1468,7 +1469,16 @@ function columnDetail(model,k,run,findings,catalog){
   else if(model.band)lines.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
   var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
   return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null,
-    packet:one&&packetId(run,one)?{id:packetId(run,one)}:null,card:one?stageCard(run,c.first,catalog):null};
+    packet:one&&packetId(run,one)?{id:packetId(run,one)}:null,card:one?stageCard(run,c.first,catalog):null,
+    action:flowAction(one)};
+}
+/* The action a visit links to in flow.html: its nav id, or "" for a seeded visit (the viewer lists those in one line, with
+   no row to open) and for a row without one. */
+function flowAction(row){return row&&kindOf(row)!=="seeded"&&typeof row.action==="string"?row.action:"";}
+/* A visit's link into the run's flow.html (`flow` is that page's path from this one, "" when there is none): the viewer
+   opens the action at #action=<nav id>. "" without a page or an action. */
+function flowHref(flow,action){
+  return typeof flow==="string"&&flow&&typeof action==="string"&&action?flow+"#action="+encodeURIComponent(action):"";
 }
 /* The id of the packets document of one visit (`<runKey>--<action>`), or "" when the export wrote none for it. */
 function packetId(run,row){
@@ -1889,6 +1899,7 @@ var VERDICT={added:"Added value",wasted:"Wasted",insurance:"Confirming pass",unc
 var STEPS=["What happened","Expected versus seen","Findings and options","Your plan"];
 var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{},rev:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false,rev:false},db=null,live=false;
 var RO=!!window.__RR_STATIC;  /* the static copy of one run (export.py): read only, no shared record */
+var FLOW=RO&&typeof window.__RR_FLOW==="string"?window.__RR_FLOW:"";  /* the run's flow.html from the static copy; none on the shared page */
 /* The viewer's working set lives in this browser only: the step, the chosen run, and per run the ticked options and
    findings, what happens after the plan, and the notes. Every storage access is guarded; the page works with it empty. */
 var L={step:1,run:"",phase:-1,cmp:"",filter:"open",crit:"",sel:{}};
@@ -2432,6 +2443,8 @@ function renderPicture(reveal){
     var nav=h("div","row");
     function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setColFollow(to,true);};nav.appendChild(b);}
     step("Previous visit",d.prev);step("Next visit",d.next);
+    var fh=flowHref(FLOW,d.action);
+    if(fh){var fl=h("a","btn","Open in flow.html");fl.setAttribute("href",fh);nav.appendChild(fl);}
     var cl=h("button","btn","Close");cl.type="button";cl.onclick=function(){setCol(-1,false);};nav.appendChild(cl);
     dc.appendChild(nav);det.appendChild(dc);
   }
@@ -2440,7 +2453,15 @@ function renderPicture(reveal){
   byId("seqtabsum").textContent="Table of the "+plural(vt.rows.length,"visit")+" (packet and result are file sizes, not what the model read)";
   var tbl=h("table","vt"),hd=h("tr"),th0=h("thead"),tbody=h("tbody");
   vt.head.forEach(function(t){var th=h("th","",t);th.setAttribute("scope","col");hd.appendChild(th);});th0.appendChild(hd);tbl.appendChild(th0);
-  vt.rows.forEach(function(r){var tr=h("tr");r.forEach(function(t){tr.appendChild(h("td","",t));});tbody.appendChild(tr);});
+  var visits=run&&Array.isArray(run.stages)?run.stages:[];  /* one table row per visit, in order: the flow link reads its action */
+  if(FLOW){var fth=h("th","","Flow");fth.setAttribute("scope","col");hd.appendChild(fth);}
+  vt.rows.forEach(function(r,i){
+    var tr=h("tr");r.forEach(function(t){tr.appendChild(h("td","",t));});
+    if(FLOW){var td=h("td"),fh=flowHref(FLOW,flowAction(visits[i]));
+      if(fh){var a=h("a","lk","open");a.setAttribute("href",fh);a.setAttribute("aria-label","visit "+(i+1)+" in flow.html");td.appendChild(a);}
+      tr.appendChild(td);}
+    tbody.appendChild(tr);
+  });
   tbl.appendChild(tbody);tb.appendChild(tbl);
 }
 /* ---------- step 3: findings and their options ---------- */

@@ -93,6 +93,10 @@ def summarise(out: Path, run_dir: Path | None = None) -> dict:
                    for c in clears],
         "redone": sum(len(c.get("redone") or []) for c in clears) if clears else None,
         "refusals": sum(1 for f in failures if f.get("verb") == "complete") if isinstance(failures, list) else None,
+        # Where metrics.json counted them: ShipLoop's run trace (shiploop 1.12.0 and later) or the host stream (earlier, and a
+        # metrics.json written before the field existed).
+        "refusals_source": ((recorded.get("failures_source") or {}).get("file") or "events.jsonl")
+                           if isinstance(failures, list) else None,
         "warm_next_calls": _count(path["warm_next_calls"]),
         "piped_shiploop_calls": _count(path["piped_shiploop_calls"]),
         "variable_built_shiploop_calls": _count(path["variable_built_shiploop_calls"]),
@@ -115,6 +119,11 @@ def load_arm(path: Path) -> dict[str, dict]:
     return {folder.name: summarise(folder) for folder in folders}
 
 
+def aa_spread(first: float, second: float) -> float:
+    """The A/A rule, the only threshold there is: the difference between two runs of the same arm."""
+    return abs(first - second)
+
+
 def spread(first: dict[str, dict], second: dict[str, dict]) -> dict[str, dict]:
     """The A/A spread by slice: for each numeric metric, the difference between the two control runs of the slice."""
     found: dict[str, dict] = {}
@@ -123,7 +132,7 @@ def spread(first: dict[str, dict], second: dict[str, dict]) -> dict[str, dict]:
         for key in (*SPREAD_GATES, *BYTE_METRICS):
             a, b = first[name].get(key), second[name].get(key)
             if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-                row[key] = abs(a - b)
+                row[key] = aa_spread(a, b)
         found[name] = row
     return found
 
@@ -148,9 +157,15 @@ def _gates(name: str, control: dict, candidate: dict, aa: dict | None) -> tuple[
         fail("seeded_defect", "the control's final tree is free of the planted defect and the candidate's is not")
     for key in SPREAD_GATES:
         c, a = control.get(key), candidate.get(key)
+        sources = (control.get(f"{key}_source") or "events.jsonl", candidate.get(f"{key}_source") or "events.jsonl")
         if not isinstance(c, (int, float)) or not isinstance(a, (int, float)):
             notes.append(f"{name}: {key} not measured on both arms")
             failed.append({"slice": name, "gate": key, "why": "not measured on both arms", "unmeasured": True})
+        elif sources[0] != sources[1]:
+            # The trace counts refusals a pipe hid from the stream: two instruments, so the difference measures nothing.
+            notes.append(f"{name}: {key} counted from {sources[0]} on control and {sources[1]} on candidate")
+            failed.append({"slice": name, "gate": key, "why": "counted from different sources on the two arms",
+                           "unmeasured": True})
         elif aa is None or key not in aa:
             notes.append(f"{name}: {key} is descriptive here (control {c}, candidate {a}): no A/A spread for this slice")
         elif a > c + aa[key]:

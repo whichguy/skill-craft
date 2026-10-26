@@ -1,0 +1,56 @@
+{
+ "source": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6 step-plan of W3",
+ "steps": [
+  {
+   "id": "S1",
+   "deps": [],
+   "criteria": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6"
+   ],
+   "check": "sh scripts/slchess-s3-check.sh && sf project deploy start --target-org de && sf apex run test --target-org de --class-names SLChessEngineTest --synchronous --result-format tap --code-coverage && sf apex run test --target-org de --class-names SLChessControllerTest --synchronous --result-format tap --code-coverage"
+  }
+ ],
+ "criteria": [
+  {
+   "id": "C1",
+   "text": "The bundle meta is exposed and targets lightning__Tab and lightning__AppPage; the tab, app, and flexipage match R-8; forbidden metadata directories stay absent. Confirm by: sh scripts/slchess-s3-check.sh; pass when it exits 0. Inspection. Serves R-1 and R-8."
+  },
+  {
+   "id": "C2",
+   "text": "slChessBoard.html shows turn text, the words ongoing, check, checkmate, and stalemate, square buttons, coordinates, and New game. Confirm by: the same script; pass when it exits 0. Inspection. Serves R-7 and NFR-6."
+  },
+  {
+   "id": "C3",
+   "text": "slChessBoard.js calls SLChessController legalMoves, applyMove, and status, and does not call applyMove unless the destination is in legalMoves. Queen is the only promotion. Confirm by: the same script; pass when it exits 0. Inspection. Serves R-7."
+  },
+  {
+   "id": "C4",
+   "text": "sf project deploy start --target-org de exits 0 after the bundle and entry metadata exist. Confirm by: the focused command; pass when that deploy exits 0. Exercised. Serves R-10."
+  },
+  {
+   "id": "C5",
+   "text": "SLChessControllerTest still passes. Confirm by: the focused tap; pass when TC_15 through TC_18 are ok. Exercised. Serves R-6."
+  },
+  {
+   "id": "C6",
+   "text": "SLChessEngineTest still passes. Confirm by: the regression tap; pass when TC_1 through TC_14 are ok. Exercised. Serves R-9."
+  }
+ ],
+ "paths": [
+  "force-app/main/default/lwc/slChessBoard/slChessBoard.js",
+  "force-app/main/default/lwc/slChessBoard/slChessBoard.html",
+  "force-app/main/default/lwc/slChessBoard/slChessBoard.css",
+  "force-app/main/default/lwc/slChessBoard/slChessBoard.js-meta.xml",
+  "force-app/main/default/tabs/SLChess_Board.tab-meta.xml",
+  "force-app/main/default/applications/SLChess.app-meta.xml",
+  "force-app/main/default/flexipages/SLChess_Board.flexipage-meta.xml",
+  "scripts/slchess-s3-check.sh"
+ ],
+ "case": "sf-chess-board-entry",
+ "expected_value": 0
+}
