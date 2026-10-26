@@ -171,6 +171,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-owner-page.test.py",
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-e2e-run-trace.test.py",
+    "test/shiploop-e2e-brownfield.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
     "test/shiploop-run-review.test.py",
@@ -367,6 +368,10 @@ _DURATION_SECONDS = {
     # The harness's reading of ShipLoop's run trace (run_trace.py; metrics, fidelity, flow, owner page, arms): 15 tests on one
     # real-CLI run in a temporary E2E folder. Local wall seconds, 2026-10-25: 2.1 s alone, 2.5 s in the quick tier.
     "test/shiploop-e2e-run-trace.test.py": 2.0,
+    # The brownfield case, user-listing on fixtures/node-base (build step 6): 24 tests; the calibration class builds 17 variants of
+    # the reference delivery and runs the held-out checks and the base's pristine tests (real node) against each, and one fake-host
+    # run goes through run.main. Local wall seconds, 2026-10-26: 21.1 s alone.
+    "test/shiploop-e2e-brownfield.test.py": 22.0,
     # The packet obligation ledger (test/shiploop_e2e/packet_obligations.json): it renders the 33-packet dry-run walk and the offline
     # step slice on both routes and mutates every anchor; 12 tests, 2.1 s locally on 2026-10-17.
     "test/shiploop-packet-obligations.test.py": 3.0,
@@ -692,7 +697,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/fidelity/": ("shiploop-e2e-fidelity",),
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
-    "test/fixtures/quality/": ("shiploop-e2e-quality",),
+    "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield"),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     # The two saved-run extracts the efficiency measurement reads, and the journal rows its test checks.
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),

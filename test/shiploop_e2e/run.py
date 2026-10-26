@@ -136,6 +136,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import boundary  # noqa: E402
+import brownfield  # noqa: E402
 import counters  # noqa: E402
 import delivery  # noqa: E402
 import environment  # noqa: E402
@@ -3985,6 +3986,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        based = earlier.get("base")  # the base the run started from (SPEC: A brownfield case)
         prefix = run_prefix(args.platform_prefix, name, json.loads(CASES.read_text()), resuming=True,
                             earlier=earlier.get("platform_prefix"))
         RUN_PREFIX = (name, prefix) if prefix else None  # the checks, prompt and platform it recorded are renamed already
@@ -4073,12 +4075,18 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         planning_review = planning_review_choice(args.planning_review, None)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
+        based_on = catalog().get(name) if name != "custom" else None
+        if (based_on or {}).get("base") and (args.continue_from or args.seed_at):
+            raise SystemExit(f"case {name!r} starts from its base, fixtures/{based_on['base']['fixture']}: it takes neither "
+                             "--continue-from nor --seed-at")
+        brownfield.resolve(based_on)  # a base that no longer matches its pin is refused before the folder exists
         if not args.suite_name:
             refuse_stale_listeners(None)  # before the folder exists, so a refusal leaves nothing behind
         out = new_output_dir(args.output, name)
         work = out / "work"
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+        based = brownfield.start(work, based_on)  # the base, committed before the host starts (None: an empty folder)
         record_preexisting_runs(out)  # a follow-on's copy can bring an earlier run's state along: never this run's
     args.platform_existing = existing  # resume_command reads it: a resume keeps its run's mode
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
@@ -4299,7 +4307,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     invocation = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
-                  "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
+                  "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
                   "planning_review": planning_review, "improve_skill": improve_skill,
@@ -4390,7 +4398,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
         process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
-                         fresh=follow_on is None and seeded is None,
+                         fresh=follow_on is None and seeded is None and based is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
                          reason="start" if resumed is None else "resume-run",
@@ -4499,7 +4507,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
     shiploop["knowledge"] = knowledge_facts(work)
-    start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head")
+    start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head") or (based or {}).get("start_head")
     knowledge = shiploop["knowledge"]
     committed = committed_facts(knowledge, start_head)
     ledger = Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None
@@ -4673,7 +4681,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
-              "delivery": {"before": delivered_before, "after": delivered_after},
+              "base": based, "delivery": {"before": delivered_before, "after": delivered_after},
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               **({"release_slice": release} if release else {}),
               "expectations": expectations,

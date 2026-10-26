@@ -1,0 +1,119 @@
+# user-listing calibration (build step 6), node v26.12.1; evaluator 93c9499c54bc, oracle 038ba7c3b95f, case de5304d70fdb, reference_user_listing.py d8630fa291c3. Each variant built by reference_user_listing.build, committed, and graded as a run grades it.
+# grades: list-unchanged pass-to-pass, user-by-id-unchanged pass-to-pass, name-filter fail-to-pass, name-plain-text fail-to-pass, page-envelope fail-to-pass, partial-last-page fail-to-pass, page-past-end fail-to-pass, page-defaults fail-to-pass, filter-then-page fail-to-pass, size-bounds fail-to-pass, bad-page-or-size fail-to-pass
+
+## base
+held-out: 2 of 11 pass
+  failed name-filter (fail-to-pass): /users?name=AL: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?name=GRACE: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?na
+  failed name-plain-text (fail-to-pass): /users?name=a.a: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?name=.: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?name=
+  failed page-envelope (fail-to-pass): /users?page=1&size=2: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]
+  failed partial-last-page (fail-to-pass): /users?page=2&size=2: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?page=1&size=3: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; 
+  failed page-past-end (fail-to-pass): /users?page=3&size=2: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]
+  failed page-defaults (fail-to-pass): /users?page=1: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?size=2: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]
+  failed filter-then-page (fail-to-pass): /users?name=e&page=2&size=1: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?name=zzz&page=1&size=5: HTTP 200 ["Ada Lovelace", "Grace Hopper", 
+  failed size-bounds (fail-to-pass): /users?size=100: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?size=1: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]
+  failed bad-page-or-size (fail-to-pass): page=0: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; page=-1: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; page=1.5: HTTP 200 ["Ada Lo
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test passes 7 tests, no more than the base's 7: no test of the new behaviour was added
+case checks (suite, pristine, http): FAIL, pass, FAIL
+
+## reference
+held-out: 11 of 11 pass
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: pass: the delivery's own node --test passes 12 tests, the base's 7 and 5 more
+case checks (suite, pristine, http): pass, pass, pass
+
+## alternative
+held-out: 11 of 11 pass
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: pass: the delivery's own node --test passes 9 tests, the base's 7 and 2 more
+case checks (suite, pristine, http): pass, pass, pass
+
+## floor-pages
+held-out: 6 of 11 pass
+  failed page-envelope (fail-to-pass): /users?page=1&size=2: HTTP 200 {"page": 1, "size": 2, "total": 3, "pages": 1, "items": ["Ada Lovelace", "Grace Hopper"]}
+  failed partial-last-page (fail-to-pass): /users?page=2&size=2: HTTP 200 {"page": 2, "size": 2, "total": 3, "pages": 1, "items": []}
+  failed page-past-end (fail-to-pass): /users?page=3&size=2: HTTP 200 {"page": 3, "size": 2, "total": 3, "pages": 1, "items": []}
+  failed page-defaults (fail-to-pass): /users?page=1: HTTP 200 {"page": 1, "size": 10, "total": 3, "pages": 0, "items": []}; /users?size=2: HTTP 200 {"page": 1, "size": 2, "total": 3, "pages": 1, "it
+  failed size-bounds (fail-to-pass): /users?size=100: HTTP 200 {"page": 1, "size": 100, "total": 3, "pages": 0, "items": []}
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: paginate keeps a partial last page and counts no page for no items (1.6215ms)
+
+## regex-filter
+held-out: 10 of 11 pass
+  failed name-plain-text (fail-to-pass): /users?name=a.a: HTTP 200 ["Ada Lovelace", "Alan Turing"]; /users?name=.: HTTP 200 ["Ada Lovelace", "Grace Hopper", "Alan Turing"]; /users?name=(: HTTP 500 {"er
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: findUsers matches part of a name as plain text, ignoring case (0.672584ms)
+
+## case-sensitive
+held-out: 10 of 11 pass
+  failed name-filter (fail-to-pass): /users?name=AL: HTTP 200 []; /users?name=GRACE: HTTP 200 []
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 10 pass, 2 fail (rc 1); failing: GET /users without page or size answers the array, filtered by name (22.513791ms)
+
+## parseint
+held-out: 10 of 11 pass
+  failed bad-page-or-size (fail-to-pass): page=1.5: HTTP 200 {"page": 1, "size": 10, "total": 3, "pages": 1, "items": [{"id": 1, "name": "Ada Lovelace", "email":; size=1.5: HTTP 200 {"page": 1, "size": 
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: GET /users refuses a page or size that is not a whole number in range (2.7515ms)
+
+## no-size-cap
+held-out: 10 of 11 pass
+  failed bad-page-or-size (fail-to-pass): size=101: HTTP 200 {"page": 1, "size": 101, "total": 3, "pages": 1, "items": [{"id": 1, "name": "Ada Lovelace", "email"
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: GET /users refuses a page or size that is not a whole number in range (4.215833ms)
+
+## size-cap-off-by-one
+held-out: 10 of 11 pass
+  failed size-bounds (fail-to-pass): /users?size=100: HTTP 400 {"error": "size must be a whole number from 1 to 100"}
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: pass: the delivery's own node --test passes 12 tests, the base's 7 and 5 more
+
+## default-size-20
+held-out: 10 of 11 pass
+  failed page-defaults (fail-to-pass): /users?page=1: HTTP 200 {"page": 1, "size": 20, "total": 3, "pages": 1, "items": ["Ada Lovelace", "Grace Hopper", "Alan Turi
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: GET /users pages the filtered users (4.36875ms)
+
+## always-envelope
+held-out: 8 of 11 pass
+  failed list-unchanged (pass-to-pass): /users: HTTP 200 {"page": 1, "size": 10, "total": 3, "pages": 1, "items": [{"id": 1, "name": "Ada Lovelace", "email":; /users?sort=name&_=1: HTTP 200 {"page": 1
+  failed name-filter (fail-to-pass): /users?name=AL: HTTP 200 {"page": 1, "size": 10, "total": 1, "pages": 1, "items": [{"id": 3, "name": "Alan Turing", "email": ; /users?name=GRACE: HTTP 200 {"pag
+  failed name-plain-text (fail-to-pass): /users?name=a.a: HTTP 200 {"page": 1, "size": 10, "total": 0, "pages": 0, "items": []}; /users?name=.: HTTP 200 {"page": 1, "size": 10, "total": 0, "pages": 0, 
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: GET /users without page or size answers the array, filtered by name (21.247125ms)
+
+## unknown-param-400
+held-out: 10 of 11 pass
+  failed list-unchanged (pass-to-pass): /users?sort=name&_=1: HTTP 400 {"error": "unknown sort"}
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: pass: the delivery's own node --test passes 12 tests, the base's 7 and 5 more
+
+## id-route-shadowed
+held-out: 10 of 11 pass
+  failed user-by-id-unchanged (pass-to-pass): /users/2: HTTP 200 [{"id": 1, "name": "Ada Lovelace", "email": "ada@example.com"}, {"id": 2, "name": "Grace Hopper", "e; /users/42: HTTP 200
+pristine: FAIL: the base's pristine tests against the delivered source: 6 of 7 pass, 1 fail (rc 1); failing: GET /users/:id returns the user or 404 (21.007041ms)
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: GET /users/:id returns the user or 404 (21.652875ms)
+
+## past-end-404
+held-out: 10 of 11 pass
+  failed page-past-end (fail-to-pass): /users?page=3&size=2: HTTP 404 {"error": "no such page"}
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: pass: the delivery's own node --test passes 12 tests, the base's 7 and 5 more
+
+## total-ignores-filter
+held-out: 10 of 11 pass
+  failed filter-then-page (fail-to-pass): /users?name=e&page=2&size=1: HTTP 200 {"page": 2, "size": 1, "total": 3, "pages": 2, "items": ["Grace Hopper"]}; /users?name=zzz&page=1&size=5: HTTP 200 {"page"
+pristine: pass: the base's 4 pristine test files pass against the delivered source: 7 of 7 tests
+own suite: FAIL: the delivery's own node --test: 11 pass, 1 fail (rc 1); failing: GET /users pages the filtered users (3.643083ms)
+
+## list-users-envelope
+held-out: 11 of 11 pass
+pristine: FAIL: the base's pristine tests against the delivered source: 6 of 7 pass, 1 fail (rc 1); failing: listUsers returns every user (0.40275ms)
+own suite: pass: the delivery's own node --test passes 12 tests, the base's 7 and 5 more
+
+## paginate-options
+held-out: 11 of 11 pass
+pristine: FAIL: the base's pristine tests against the delivered source: 6 of 7 pass, 1 fail (rc 1); failing: paginate returns the requested page of an evenly divided 
+own suite: pass: the delivery's own node --test passes 12 tests, the base's 7 and 5 more
+
+# server groups left running: 0

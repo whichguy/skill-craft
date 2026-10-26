@@ -384,12 +384,15 @@ quality: {
   catalog) that refuses `listen` and `connect` on the ports in the case's `quality.refuse_ports` and counts the refusals. A
   delivery whose own unmutated tests touch one is `observed: false` ("its tests bind a fixed port; not run"); the three saved
   ones are v1230 (ST-3), r2-checkers (TC-1 (c), ST-3) and r2-battleship-grok-none (TC-port).
-* **acceptance** (the `checkers` case only) runs held-out checks, hand-written from the case's prompt and never shown to the
-  model, against the delivered `node server.js` on a free port. They are `test/shiploop_e2e/checks/checkers_accept.py`,
+* **acceptance** (the `checkers` and `user-listing` cases) runs held-out checks, hand-written from the case's prompt and never
+  shown to the model, against the delivered server (`start`: `node server.js`, `node src/server.js`) on a free port. For
+  Checkers they are `test/shiploop_e2e/checks/checkers_accept.py`,
   imported by the harness and called in its own process, so no check text or id is on any command line. The path of
   `checks/` does appear in the harness's own command line and resume prompt, and `held_out_seen: 0` only says no event
   names it. Each check is calibrated against `test/fixtures/quality/reference_checkers.py`, a hermetic service with one
-  defect switch per check (`AcceptanceCalibrationTest`). A server that never listens leaves the block unobserved, never failed.
+  defect switch per check (`AcceptanceCalibrationTest`). The brownfield case's are `checks/user_listing_accept.py`,
+  calibrated against `test/fixtures/quality/reference_user_listing.py` (below, "A brownfield case"). A server that never
+  listens leaves the block unobserved, never failed.
 * Every child process the phase starts (test runs, syntax checks, the server) runs in a group of its own that is registered
   with the harness's live groups, so a SIGTERM and the exit hook end it. When a child's leader exits the whole group is
   ended before the leader is reaped (a test run's leftovers share its group, and an unreaped leader pins the group id); a
@@ -401,7 +404,7 @@ quality: {
   fail once: read `timeout`, `unconfirmed` and `seconds`, and rerun a suspicious ratio alone (`--serial`).
 * A case declares measures in `cases.json`: `quality.mutation` (`command`, `exclude` path prefixes that are not source,
   `source`), `quality.refuse_ports` and `quality.acceptance` (one block: `module` in `checks/`, `start`, `source` and `checks`
-  with an `id` and the prompt sentence each reads). A follow-on case is measured by its followed case's declaration unless it
+  with an `id`, the prompt sentence each reads and, for a brownfield case, its `grade`). A follow-on case is measured by its followed case's declaration unless it
   names its own (`run.case_quality`). Battleship's acceptance set was dropped: it passed 5 of 5 deliveries and separated nothing.
 
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
@@ -730,8 +733,8 @@ suites (one style) and the `breadth` suite (one case of each style in its `style
 `web-service`, `cli-files` and `stateful-service`). Breadth names the styles it
 leaves out in `not_covered`: `smoke` (hello covers it in the smoke suite and as the
 batch gate), `parallel-graph` (no qualified passing baseline; its cases run only
-with `--case`) and `hosted-platform` (its cases deploy to a real hosted org and need
-the owner's go for each deploy). Every suite's `styles` must equal the styles of its cases, and SPEC
+with `--case`), `hosted-platform` (its cases deploy to a real hosted org and need
+the owner's go for each deploy) and `brownfield` (its one case, `user-listing`, has not run live). Every suite's `styles` must equal the styles of its cases, and SPEC
 and this README must name the same styles; `SuiteTest` pins all three. `--suite`
 runs the cases into one directory, each in its own folder; independent chains
 (a case with its follow-ons) run concurrently, up to `--max-parallel` (default
@@ -1191,6 +1194,31 @@ added, no fewer tests pass and the added test lines name the feature's new field
 requirement ID and adds at least one. The report compares turns and cost with
 the earlier run, and the reviewer judges whether the earlier spec, environment
 notes and modules were used.
+
+### A brownfield case
+
+```sh
+bash test/run-integration.sh shiploop-e2e --case user-listing
+```
+
+Every other case starts from an empty folder. A case with `base` (SPEC: A brownfield case, build step 6) starts from a
+project under `fixtures/`, pinned by the digest of its files (`brownfield.py`): the harness copies it into `work/` and
+commits it before the host starts, records `base` (fixture, digest, start head) in `invocation.json` and `result.json`,
+and counts the run's commits and its `committed` verdict from that commit. A stale pin is refused before anything starts,
+and a base case takes neither `--continue-from` nor `--seed-at`.
+
+`user-listing` extends `fixtures/node-base` with user filtering and pagination, graded as SWE-bench grades a repository
+task:
+
+* pass-to-pass: `checks/base_tests.py pristine node-base` runs the base's own tests at their pristine bytes against the
+  delivered source, apart from the delivery's own tests, in a copy; the two `pass-to-pass` held-out checks ask the existing
+  API to answer as it did;
+* fail-to-pass: the nine other held-out checks, which the base fails (it answers every listing with the whole array, and
+  its `paginate` drops a partial last page, a latent defect the request does not name);
+* `checks/base_tests.py suite node-base`: the delivery's own `node --test` passes, with more tests than the base's.
+
+`test/fixtures/quality/reference_user_listing.py` builds the base, the reference, an independently written alternative
+and fourteen targeted defects; `test/shiploop-e2e-brownfield.test.py` grades each and pins the exact checks each fails.
 
 ### What version is tested
 

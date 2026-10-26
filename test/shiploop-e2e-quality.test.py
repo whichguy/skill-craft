@@ -1252,7 +1252,9 @@ class EventFactsTest(QualityCase):
         # Build step 3: iterate.py withholds these from the improver's worktree (boundary.held_out_files).
         cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(boundary.held_out_files(cases), ["test/fixtures/quality/reference_checkers.py",
-                                                          "test/shiploop_e2e/checks/checkers_accept.py"])
+                                                          "test/fixtures/quality/reference_user_listing.py",
+                                                          "test/shiploop_e2e/checks/checkers_accept.py",
+                                                          "test/shiploop_e2e/checks/user_listing_accept.py"])
         for path in boundary.held_out_files(cases):
             self.assertTrue((ROOT / path).is_file(), path)
 

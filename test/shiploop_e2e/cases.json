@@ -331,5 +331,91 @@
       "seeded_minutes": 90,
       "source": "owner (2026-09-27): a small request should not take hours; a hosted-platform build gets 90"
     }
+  },
+  "user-listing": {
+    "style": "brownfield",
+    "base": {
+      "fixture": "node-base",
+      "digest": "8f445d24ed3c",
+      "source": "R10 of the final verdict (docs/shiploop-e2e-loop-recommendations-2026-10-25.md): the existing node-base, extended with user filtering and pagination; pinned, so a change to the base is a change to the case (SPEC: A brownfield case)"
+    },
+    "prompt": "This directory is an existing Node.js project with no npm dependencies (README.md describes it): an in-memory user store and its HTTP server, src/server.js, which `npm start` runs on the port in the PORT environment variable. Extend the server's user listing, GET /users, with filtering and pagination. The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user. The `page` and `size` query parameters ask for one page of those users in id order, page 1 holding the first `size` of them. When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page); `size` is 10 when only `page` is given and `page` is 1 when only `size` is given, and a page after the last one answers an empty \"items\". `page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong. Keep the API compatible: without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored, and GET /users/:id is unchanged. Everything the project already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base",
+      "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;(async()=>{const all=await fetch(base+'/users').then(r=>r.json()); if(!Array.isArray(all)||all.length!==3) process.exit(2); const page=await fetch(base+'/users?page=1&size=2').then(r=>r.json()); const ok=page&&!Array.isArray(page)&&page.total===3&&page.pages===2&&Array.isArray(page.items)&&page.items.length===2; process.exit(ok?0:3);})().catch(()=>process.exit(6))\""
+    ],
+    "checks_source": "the request: the suite check reads 'Add node:test tests under test/ for the new behaviour' (more tests pass than the base's own); the pristine check reads 'its existing tests must still pass as they are', with the base's tests at their pristine bytes and apart from the delivery's own (SPEC: A brownfield case, pass-to-pass); the HTTP check reads the array GET /users still answers and the page object of one request",
+    "quality": {
+      "acceptance": {
+        "module": "user_listing_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_listing.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); graded fail-to-pass and pass-to-pass against the base, and calibrated against the base, the reference, an alternative and targeted defects in test/fixtures/quality/reference_user_listing.py (SPEC: A brownfield case)",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'and GET /users/:id is unchanged'"
+          },
+          {
+            "id": "name-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "fail-to-pass",
+            "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "fail-to-pass",
+            "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a page after the last one answers an empty \"items\"'"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` a whole number from 1 to 100', read at both ends"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "fail-to-pass",
+            "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the base: src/server.js listens on the port in PORT and defaults to 3000. The held-out checks start the delivered server with PORT set, and a delivery that ignored it would meet the refusal"
+    }
   }
 }

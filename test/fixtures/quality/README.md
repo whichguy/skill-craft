@@ -6,6 +6,10 @@ Fixtures of the delivered-quality tests (`test/shiploop-e2e-quality.test.py`).
   computed by hand in the tests and agree with a real `node --test` run (node v25.9.0).
 * `reference_checkers.py`: a hermetic Checkers service with one defect switch per held-out check
   (`test/shiploop_e2e/checks/checkers_accept.py`). It reads the PORT environment variable and ends by itself after two minutes.
+* `reference_user_listing.py`: the `user-listing` brownfield case's reference delivery, written over
+  `test/shiploop_e2e/fixtures/node-base`, with an independent alternative and fourteen targeted defects
+  (`build(dest, variant)`), for its held-out checks (`test/shiploop_e2e/checks/user_listing_accept.py`) and the base's pristine
+  tests. Its tests are in `test/shiploop-e2e-brownfield.test.py`.
 * `memory-write-events.jsonl`: the shape of `events.jsonl` lines 599 to 606 of the saved run
   `/Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet` (a Claude session writing two files under its profile's memory folder),
   reduced to the keys the detector reads, with the home folder renamed, plus one Grok-shaped line.

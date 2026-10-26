@@ -239,20 +239,20 @@ def _cited_commit(work: Path, token: str) -> str | None:
 
 
 def _starting_point(out: Path, work: Path) -> tuple[str | None, str | None]:
-    """(the head the run started from or None for a fresh run, why it cannot be known or None). A fresh run has no follow-on or seeded
-    record, and its whole history is the run's; a follow-on or seeded run is counted after the head it recorded."""
+    """(the head the run started from or None for a fresh run, why it cannot be known or None). A fresh run has no follow-on, seeded
+    or base record, and its whole history is the run's; a follow-on, seeded or brownfield run is counted after the head it recorded."""
     try:
         record = json.loads((Path(out) / "invocation.json").read_text())
     except (OSError, ValueError):
         record = None
     if not isinstance(record, dict):
         return None, "invocation.json cannot be read, so whether the run started from an earlier head is unknown"
-    follow, seeded = record.get("follow_on"), record.get("seeded")
-    if not follow and not seeded:
+    follow, seeded, based = record.get("follow_on"), record.get("seeded"), record.get("base")
+    if not follow and not seeded and not based:
         return None, None
-    head = (follow or {}).get("start_head") or (seeded or {}).get("start_head")
+    head = (follow or {}).get("start_head") or (seeded or {}).get("start_head") or (based or {}).get("start_head")
     if not isinstance(head, str) or not head:
-        return None, "the follow-on or seeded record names no starting head, so which commits are the run's is unknown"
+        return None, "the follow-on, seeded or base record names no starting head, so which commits are the run's is unknown"
     found = _commit_id(work, head)
     if found is None:
         return None, f"the starting head {head[:12]} is not a commit in the work repository"

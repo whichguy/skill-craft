@@ -3393,3 +3393,53 @@ forked all of them, while the DeepSeek tag already separates the baseline cells.
 **Observation, not fixed here.** The Anthropic route still passes the whole environment. So a Claude run launched from
 this Desktop session inherits `CLAUDE_EFFORT=xhigh`, and whether Claude Code reads that variable is unverified. If it
 does, the Sonnet runs' recorded effort (null, the host default) is not what ran.
+
+## Build step 6: the first brownfield case, user-listing (2026-10-26) — status: firm for the case, its calibration and the base mechanism; no live run yet
+
+**Question.** Every case so far starts from an empty folder, so every oracle grades greenfield work, and Astra named
+optimising incomplete oracles as the verdict's biggest risk. Build step 6 (R10) is done when the base fails the
+new-feature checks and a reference passes them and the pristine regression suite. Can a case start from
+`fixtures/node-base`, ask for user filtering and pagination, and be graded fail-to-pass and pass-to-pass?
+
+**Change** (SPEC "A brownfield case", `f94a8c7f`; the card and contract ids are unchanged).
+- **The base.** `base` (`fixture`, `digest`) in `cases.json`. `brownfield.py` checks the pin, copies the base into
+  `work/` and commits it before the host starts. `invocation.json` and `result.json` record it, and the run's commits
+  and `committed` verdict count from it (`counters._starting_point`, `run.committed_facts`). A stale pin,
+  `--continue-from` and `--seed-at` are refused before any folder exists.
+- **Pass-to-pass.** `checks/base_tests.py pristine node-base` writes the base's 4 test files (7 tests) at their pristine
+  bytes over a copy of the delivery and runs only them. Two held-out checks ask the existing API to answer as it did.
+- **Fail-to-pass.** Nine held-out checks in `checks/user_listing_accept.py`: the name filter (case, plain text, empty),
+  the page object, a partial last page, a page past the end, the defaults, filter then page, the size bounds, and bad
+  page or size values.
+- **The delivery's own suite.** `base_tests.py suite` asks for more passing tests than the base's 7.
+- **Style.** `brownfield`, left out of breadth by name until its focused suite has passed.
+
+**Calibration** (`docs/experiments/e2e-brownfield-20261026/calibration.txt`, made by `calibrate.py` beside it;
+`test/shiploop-e2e-brownfield.test.py`, 24 tests, 21 s):
+- The base fails exactly the 9 fail-to-pass checks. It passes the 2 pass-to-pass ones and its 7 pristine tests, and
+  fails the case's suite and HTTP checks.
+- The reference passes 11 of 11, the pristine tests and every case check. So does an independently written
+  alternative: it pages in the server and leaves the base's `paginate` as it is, filters through `listUsers`, validates
+  with `Number`, and answers extra fields.
+- Each of the 14 targeted defects fails exactly the checks its defect reads, and every check is failed by some defect.
+- The pristine run rejects 3 variants: the route defect, and two that break a base module and edit the base's tests to
+  match (`list-users-envelope`, `paginate-options`). Those two pass all 11 held-out checks and their own suite.
+- The base's latent defect, `paginate` flooring the page count, is the `floor-pages` variant, byte-equal to the base's
+  `paginate.js`. It fails 5 of the 9 fail-to-pass checks; the request never names it.
+- One fake-host run goes through `run.main`. The host's first listing holds the base, `committed.start_head` is the
+  base commit, and the quality phase grades the unchanged base: the 9 fail-to-pass checks fail, and the card's
+  accuracy floor fails with acceptance required.
+
+**Learning.**
+- Two defects pass every black-box check and their own suite; only the pristine run sees them. A brownfield grade that
+  reads the delivery's own tests, or only its HTTP answers, misses a broken module API. So the pristine run must not
+  depend on the candidate's test edits, as SWE-bench's does not.
+- A calibration file's stem is a held-out marker (`quality.held_out_markers`). An overlay committed as
+  `src/server.js` would have made every event line naming "server" count as exposure. So the reference is one Python
+  file with a distinctive name that writes the overlay.
+- The held-out checks share one server and run in order, so a crash fails every check after it. The pass-to-pass checks
+  run first, so a crash on a boundary input never reads as an API break.
+
+**Not done.** No live run has used the case; its first passing focused run gives the style a baseline. R10's Python
+CLI and Flask bases come later. The model can read the base's tests, which are its starting point; only the
+acceptance is held out.
