@@ -62,6 +62,36 @@ def fixture_test_layers() -> dict[str, Any]:
                           "status": "available", "reason": "synthetic run"}], "targets": []}
 
 
+def fixture_intake(state: Mapping[str, Any], result: Mapping[str, Any]) -> dict[str, Any]:
+    """A done intake result whose summary cites every sentence of the run's request (IN1, 2026-10-26: a done intake
+    that leaves one uncited is refused), as an intake maps each sentence to an outcome, a boundary or a question."""
+    import shiploop_request as request  # the scripts are on the path once the fixture is imported
+    merged = dict(result)
+    count = len(request.sentences(str(state.get("prompt") or "")))
+    summary = str(merged.get("summary") or "")
+    missing = [n for n in range(1, count + 1) if n not in request.cited(summary)]
+    if merged.get("outcome") == "done" and missing and summary.strip():
+        merged["summary"] = summary.rstrip() + " (" + ", ".join("S" + str(n) for n in missing) + ")"
+    return merged
+
+
+def fixture_suite(state: Mapping[str, Any], result: Mapping[str, Any]) -> dict[str, Any]:
+    """A done test-spec result with no cases, at the last work item, with a ``suite_requirements`` row for each primary
+    requirement no earlier case names (TS1, 2026-10-26), observed by the run's first recorded test command: a fixture
+    whose step plan lists no focused case IDs has no case to name it.  A result with cases is left to TS1."""
+    import shiploop_primary as primary  # the scripts are on the path once the fixture is imported
+    merged = dict(result)
+    commands = primary._recorded_commands(state)
+    if merged.get("outcome") != "done" or merged.get("test_cases") or primary.SUITE_FIELD in merged or not commands \
+            or not primary._is_last_item(state):
+        return merged
+    covered = primary.test_spec_coverage(state, merged)
+    missing = [ident for ident in primary.primary_ids(state) or () if not covered.get(ident)]
+    if missing:
+        merged[primary.SUITE_FIELD] = [{"requirement": ident, "command": commands[0]} for ident in missing]
+    return merged
+
+
 def fixture_primary(state: Mapping[str, Any]) -> dict[str, Any]:
     """A done spec's primary requirements (run-5 batch F6) for a synthetic run: R-1, whose entry this writes into the
     living spec when it is missing, as a spec stage writes its requirements before its done."""
@@ -147,6 +177,7 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
         # The cases live in the result (consumer contract 3.3); no gate reads a test-spec file.
         _action, plan = test_loop._step_plan(state, _current_item(state))
         result.setdefault("test_cases", test_cases_for(plan))
+        result = fixture_suite(state, result)
     elif stage == "carry-forward":
         result.setdefault("skill", dict(SKILL_NONE))
     if stage in assumptions.OPEN_ITEM_STAGES:
@@ -232,6 +263,8 @@ class RunDriver(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result.setdefault("concerns", no_concerns_map(
                 str(row.get("id")) for row in queue if isinstance(row, Mapping)))
+        if stage == "intake":
+            result = fixture_intake(state, result)          # IN1
         if stage == "spec" and result.get("outcome") == "done":
             result = {**fixture_primary(state), **result}   # run-5 batch F6
         if stage == "test-strategy" and result.get("outcome") == "done":
@@ -288,4 +321,4 @@ class RunDriver(unittest.TestCase):
 
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
-           "fixture_primary", "no_concerns_map", "prepare")
+           "fixture_intake", "fixture_primary", "no_concerns_map", "prepare")

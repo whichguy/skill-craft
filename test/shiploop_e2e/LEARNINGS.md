@@ -3720,3 +3720,82 @@ Left as they are, and said so:
   would break their comparison.
 
 The switch lasts until the Grok reset on Thursday 2026-10-29. Then the owner decides whether to go back.
+
+## TS1 and IN1 built: test-spec covers every primary requirement, intake cites every request sentence (2026-10-26) — status: firm for the replay verdicts and the hermetic tests; no live run yet
+
+The owner's go: "build TS1 (every primary requirement has a test-spec case, or is marked as a requirement about the
+tests, observed by the suite's recorded run) and IN1, with fail-first tests and the replay on the saved runs as the
+acceptance check". The design and the predictions are in `docs/shiploop-judgement-stage-checks-proposal-2026-10-26.md`
+§0.
+
+**What changed.**
+- **TS1** (`shiploop_primary.check_test_spec`) runs at the last work item's done test-spec. Each primary requirement
+  needs a case naming it in some item's current test-spec, or a `suite_requirements` row
+  `{"requirement", "command"}` whose command a step plan records.
+  - A run with no recorded test command is skipped. Before that guard, a documentation-only hermetic run had no way
+    to exit.
+  - The navigator calls it after `_handoff_gate`, so a case missing its `requirement` still gets the shape refusal
+    that names the spec's IDs.
+  - The rule is documented in the glossary ("suite requirement"). The split references `test-loop.md` and
+    `inner-loop.md` are capped at 8192 bytes and had 51 and 77 bytes free, so inner-loop carries only a pointer.
+- **IN1** (`shiploop_request.check`): a done intake whose summary leaves a request sentence uncited is refused.
+  - A missing or blank summary is skipped, so the shape refusal names it.
+  - It runs after the shape gates, beside TS1, so a malformed result gets its shape refusal first.
+    - keepalive's check that `awaiting` appears only on a blocked result sits in the transition, after every
+      gate. So its fixture cites S1 instead.
+  - The counted `ShipLoop request notice` is removed (one supported version).
+
+**Acceptance: the replay on every saved run** (`docs/experiments/judgement-stage-checks-20261026/ts1-in1-replay.jsonl`
+from `ts1_in1_replay.py`, 76 runs). It resubmits each run's accepted results to this branch's checks. For TS1, that is
+the last item's test-spec as at that item; for IN1, the intake.
+- **TS1 matches the prediction on all 7 local runs since `primary` exists.**
+  - Accepted as they stand: csv-report and Codex hello (gate-290), and DeepSeek battleship.
+  - Refused for a requirement about the tests, then accepted once it is marked with a suite row: Grok hello R-2,
+    Sonnet battleship R-6 and DeepSeek hello R-2.
+  - Refused for a real missing link: Sonnet hello R-1 ("hello.py prints the greeting"). It is tested, but no case
+    names R-1.
+  - The other 67 runs predate `primary` and are not asked.
+- **The two Grok chess-sf runs (2026-10-24): neither is evidence against strict TS1** (`chess_sf_ts1_check.py`,
+  output `chess-sf-ts1-check.txt`). The replay's first reading said both stayed refused after their org-test
+  requirement was marked; that reading is superseded the same day:
+  - **ed3292 never reached its last item's test-spec.** W2 and W3 record no step plan commands and no cases, so the
+    replay judged an empty stand-in result.
+  - **12a23d** leaves R-1 "Salesforce DX project at the repository root", R-2 "Names and the only metadata kinds" and
+    R-14 "Security and secrets". These are structural, but its own step plans record commands that observe them:
+    `sf project deploy start` and a check that greps for no access token.
+    - With suite rows naming those commands (and the Apex rules test for R-11), TS1 accepts it.
+    - So the mechanism already has an honest exit. Only the wording, "about the tests themselves", is narrower than
+      what a row may name: any recorded command whose run observes the requirement.
+  - That leaves one question for the owner, about wording only: whether the refusal, the packet and the glossary say
+    "a requirement a recorded command observes (a test suite, a deploy, a check)".
+- **IN1 refuses no run since 2026-10-19 (15 of 15 accepted).** The 58 refusals are all older runs: 56 from before
+  2026-10-17 and 2 since, round0-claude-main (2026-10-17) and bs-release-update-436528 (2026-10-18).
+
+**Tests.**
+- Fail-first, in `test/shiploop-handoff.test.py`:
+  - `SuiteCoverageTests` covers last-item coverage, earlier items left unchecked, the skip for an unmeasured,
+    blocked or docs-only run, suite-row validation, field ownership and the packet lines;
+  - `RequestIndexTests` covers refusals, including the CLI test where complete and check-only refuse and a fully
+    citing summary is accepted.
+- The route through the real CLI, in `CaseRowCliTests`
+  (`test_ts1_refuses_an_uncovered_primary_requirement_and_accepts_a_naming_case_or_a_suite_row`):
+  - at the run's last item, primary R-2 with no case is refused;
+  - a case whose requirement names R-2 passes check-only;
+  - a suite row with an unrecorded command is refused;
+  - a suite row with the recorded check command is stored by the real complete, and the run advances.
+- **Finding from that test:** its first run passed check-only on the uncovered R-2. The shared fixture helper
+  `fixture_suite` had added a suite row to every last-item result, so no driven test could see TS1 refuse.
+  - It is now limited to a result with no cases, whose step plan lists no focused IDs, so no case can exist.
+  - That kind of result is why test-loop errored 79 times before the helper existed.
+  - test-spec also accepts send-back, which gives a third honest exit: back to step-plan for a new focused ID.
+- Fixture fallout, fixed through two shared helpers in `test/shiploop_inner_fixture.py`:
+  - `fixture_intake` cites each uncited sentence;
+  - `fixture_suite`, as narrowed above.
+  - Direct intake results in the callback, navigator, actual-Improve, rehydration, delegation and keepalive suites
+    now cite S1.
+- ruff: the one new finding (an unsorted import) is fixed. UP006 and UP045 stay, matching `shiploop_primary.py`'s
+  typing style.
+
+**Next.** PA1′ (product-acceptance coverage, now that TS1 holds upstream), ST1 and X1, in step with the fork's T1–T5
+test-stage design. A live run exercises TS1 only when its last item's test-spec leaves a primary requirement without
+a case.

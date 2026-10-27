@@ -947,6 +947,102 @@ class PrimaryGateTests(RepoCase):
         self.assertEqual(primary.packet_lines(self.root, state, "handoff"), [])
 
 
+class SuiteCoverageTests(RepoCase):
+    """TS1 (docs/shiploop-judgement-stage-checks-proposal-2026-10-26.md, section 0): at the last work item's done test-spec,
+    every primary requirement (spec primary) has a test case naming it in some item's current test-spec, or a
+    ``suite_requirements`` row: a requirement about the tests themselves ("the tests run with node --test"), observed by
+    the suite's recorded run, which names one of the run's recorded test commands.  A replay of the eight saved runs
+    since ``primary`` exists found three such requirements and one primary requirement no case named."""
+
+    SUITE = {"requirement": "R-2", "command": "node --test"}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.home("spec.md", "## Requirements\n\n- R-1: Play a game.\n- R-2: Tests run with node --test.\n\n"
+                             "## Retired\n\n- R-4: Dropped.\n")
+
+    def refused(self, call) -> str:
+        with self.assertRaises(primary.PrimaryError) as caught:
+            call()
+        return str(caught.exception)
+
+    def state_at(self, item: str, *, primary_ids: list | None = None, earlier_cases: list | None = None) -> dict:
+        """The run at ``item``'s test-spec: the spec (``primary``), each item's step-plan test commands, and W1's
+        accepted test-spec cases when the cursor is on W2."""
+        spec = {"outcome": "done", "summary": "s"}
+        if primary_ids is not None:
+            spec["primary"] = primary_ids
+        commands = {"W1": [{"command": "npm test", "suite": "focused", "ids": ["TC-1"]}],
+                    "W2": [{"command": "node --test", "suite": "regression", "ids": ["TC-2"]}]}
+        rows = [({"action": "sp0", "stage": "spec", "workitem": None, "outcome": "done"}, spec),
+                ({"action": "st1", "stage": "step-plan", "workitem": "W1", "outcome": "done"},
+                 {"outcome": "done", "summary": "s", "test_commands": commands["W1"]})]
+        if item == "W2":
+            rows += [({"action": "ts1", "stage": "test-spec", "workitem": "W1", "outcome": "done"},
+                      {"outcome": "done", "summary": "s", "test_cases": earlier_cases or []}),
+                     ({"action": "st2", "stage": "step-plan", "workitem": "W2", "outcome": "done"},
+                      {"outcome": "done", "summary": "s", "test_commands": commands["W2"]})]
+        return item_state(self.repo, item, rows, "test-spec")
+
+    @staticmethod
+    def done(cases: list, **extra) -> dict:
+        return {"outcome": "done", "summary": "s", "test_cases": cases, **extra}
+
+    def check(self, state: dict, result: dict) -> None:
+        primary.check_test_spec(state, "test-spec", result)
+
+    def test_the_last_items_test_spec_needs_a_case_or_a_suite_row_for_every_primary_requirement(self) -> None:
+        state = self.state_at("W2", primary_ids=["R-1", "R-2"], earlier_cases=[dict(CASE, id="TC-1", requirement="R-1")])
+        message = self.refused(lambda: self.check(state, self.done([])))
+        self.assertIn("R-2", message)
+        self.assertIn("primary requirement (spec primary)", message)
+        self.assertIn("suite_requirements", message)
+        self.assertIn('"command": "<one of: npm test, node --test>"', message)
+        self.assertNotIn("R-1 ", message.split("Missing:")[-1].split(".")[0])     # W1's case covers R-1
+        self.check(state, self.done([], suite_requirements=[self.SUITE]))                    # the suite observes R-2
+        self.check(state, self.done([dict(CASE, id="TC-2", requirement="R-2")]))           # or a case names it
+        self.check(state, self.done([dict(CASE, id="TC-2", requirement="R-1, R-2")]))      # a case may name several
+
+    def test_only_the_last_item_is_checked_and_an_unmeasured_or_blocked_result_is_not(self) -> None:
+        self.check(self.state_at("W1", primary_ids=["R-1", "R-2"]), self.done([]))         # W2 still to come
+        self.check(self.state_at("W2", primary_ids=None), self.done([]))                   # spec recorded no primary
+        self.check(self.state_at("W2", primary_ids=["R-1", "R-2"]), {"outcome": "blocked", "summary": "s"})
+        # A run whose step plans record no test command (documentation only): nothing executed to trace.
+        docs_only = self.state_at("W2", primary_ids=["R-1", "R-2"])
+        for row, _ in [(r, None) for r in docs_only["history"] if r["stage"] == "step-plan"]:
+            docs_only["accepted"][row["action"]]["test_commands"] = []
+        self.check(docs_only, self.done([]))
+        self.assertEqual(primary.packet_lines(self.root, docs_only, "test-spec"), [])
+
+    def test_a_suite_row_names_a_current_requirement_and_one_of_the_runs_recorded_test_commands(self) -> None:
+        state = self.state_at("W1", primary_ids=["R-1"])
+        for row, fragment in ((dict(self.SUITE, command="pytest"), ("pytest is not one of this run's recorded test "
+                                                                    "commands (npm test)")),
+                              (dict(self.SUITE, requirement="R-3"), "R-3 has no current entry in"),
+                              (dict(self.SUITE, requirement="R-4"), "R-4 has no current entry in")):
+            with self.subTest(fragment):
+                self.assertIn(fragment, self.refused(
+                    lambda row=row: self.check(state, self.done([], suite_requirements=[dict(row)]))))
+        self.check(state, self.done([], suite_requirements=[dict(self.SUITE, command="npm test")]))
+        for bad in ("R-2", [{"requirement": "R-2"}], [{"requirement": "R-2, R-1", "command": "npm test"}],
+                    [dict(self.SUITE, command="npm test"), dict(self.SUITE, command="npm test")]):
+            with self.subTest(bad=bad):
+                self.assertTrue(self.refused(lambda bad=bad: primary.canonical_suite(bad)).startswith("suite_requirements"))
+
+    def test_the_field_belongs_to_a_done_test_spec_and_the_last_items_packet_names_the_coverage(self) -> None:
+        done = {"outcome": "done", "summary": "s"}
+        self.assertEqual(canonical(dict(done, suite_requirements=[self.SUITE]), "test-spec")["suite_requirements"],
+                         [self.SUITE])
+        with self.assertRaisesRegex(navigator.NavigatorError, "suite_requirements is allowed only on a done test-spec"):
+            canonical(dict(done, suite_requirements=[self.SUITE]), "step-plan")
+        state = self.state_at("W2", primary_ids=["R-1", "R-2"], earlier_cases=[dict(CASE, id="TC-1", requirement="R-1")])
+        lines = primary.packet_lines(self.root, state, "test-spec")
+        self.assertTrue(lines[0].startswith("Primary requirements (spec primary): this is the last work item, so every "
+                                            "one needs a test case naming it"), lines)
+        self.assertEqual(lines[1:], ["- R-1: TC-1", "- R-2: no case yet"])
+        self.assertEqual(primary.packet_lines(self.root, self.state_at("W1", primary_ids=["R-1"]), "test-spec"), [])
+
+
 class HandoffGateTests(GateCase):
     def test_step_plan_needs_follows_whose_ids_have_entries_in_the_living_files(self) -> None:
         state = item_state(self.repo, "W1", [], "step-plan")
@@ -1453,6 +1549,7 @@ def _load(name: str, filename: str) -> types.ModuleType:
 
 _improve_cli = _load("shiploop_actual_improve_cli_for_handoff", "shiploop-actual-improve-cli.test.py")
 import shiploop_inner_fixture as inner  # noqa: E402
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 
 # ------------------------------------------------------------------ a new file's diff and a followed entry are pointers (PK2)
@@ -1998,7 +2095,7 @@ class RunLinesTests(RepoCase):
                     self.assertNotIn("no current accepted result; do not reuse an invalidated result", packet, stage)
                     seen.append(stage)
                     action = navigator.current_action(state)["id"]
-                    result = {"outcome": "done", "summary": "Synthetic " + stage + "."}
+                    result = {"outcome": "done", "summary": "Synthetic " + stage + " (S1)."}
                     if stage == "plan":
                         result["work_items"] = [{"id": "W1", "title": "one"}]
                     state = navigator.apply(state, action, result)
@@ -2109,7 +2206,8 @@ class SendBackBudgetCliTests(inner.RunDriver):
 
 
 class CaseRowCliTests(inner.RunDriver):
-    """The test-spec cases through the real CLI: the refusal's spec line and the check-only coverage notice (U12)."""
+    """The test-spec cases through the real CLI: the refusal's spec line and the check-only coverage notice (U12), and
+    TS1's refusal at the last work item with each of its named exits accepted."""
 
     def command(self, action: str, path: Path, *flags: str) -> list:
         return [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run_dir), "--action", action,
@@ -2207,6 +2305,55 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertEqual(accepted["test_cases"], [case])
         self.assertEqual([row["settle"] for row in accepted["assumptions"]], [opt_in["settle"]])
 
+    def test_ts1_refuses_an_uncovered_primary_requirement_and_accepts_a_naming_case_or_a_suite_row(self) -> None:
+        """TS1 (2026-10-26) through the real CLI, at the run's only (so last) item: R-2, a primary requirement about the
+        tests, has no case.  Refused, naming R-2 and the recorded commands; a case that names it passes check-only; a
+        suite row naming an unrecorded command is refused; one naming the recorded check command is accepted by the
+        real complete and stored."""
+        self.start()
+        state = self.drive_to("spec")
+        knowledge_support.write_spec(state)
+        spec = self.repo / knowledge.HOME / "spec.md"
+        spec.write_text(spec.read_text(encoding="utf-8").replace(
+            "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\nR-2: The tests run with test -f a.py.\n"),
+            encoding="utf-8")
+        self.complete(dict(inner.DONE, primary=["R-1", "R-2"]))
+        self.drive_to("step-plan")
+        self.complete(dict(inner.DONE, paths=list(self.PATHS),
+                           criteria=[{"id": "C1", "text": "The change works (R-1)."}],
+                           test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                                          {"command": "test -f a.py", "suite": "check"}]))
+        state = self.drive_to("test-spec")
+        action = navigator.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        good = inner.prepare(self.run_dir, state, dict(inner.DONE))
+        self.assertEqual([row["requirement"] for row in good["test_cases"]], ["R-1"])
+
+        store.write_record(path, good, "result")
+        refused = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("Missing: R-2.", refused.stderr)
+        self.assertIn('"<one of: true, test -f a.py>"', refused.stderr)
+
+        # Exit 1: a case whose requirement names R-2 as well.
+        naming = dict(good, test_cases=[dict(good["test_cases"][0], requirement="R-1, R-2")])
+        store.write_record(path, naming, "result")
+        named = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(named.returncode, 0, named.stdout + named.stderr)
+
+        # Exit 2: a suite row; its command must be one a step plan records.
+        store.write_record(path, dict(good, suite_requirements=[{"requirement": "R-2", "command": "npm test"}]), "result")
+        unrecorded = self.run_cli(self.command(action, path, "--check-only"))
+        self.assertEqual(unrecorded.returncode, 2, unrecorded.stdout + unrecorded.stderr)
+        self.assertIn("npm test is not one of this run's recorded test commands (true, test -f a.py)", unrecorded.stderr)
+        row = {"requirement": "R-2", "command": "test -f a.py"}
+        store.write_record(path, dict(good, suite_requirements=[row]), "result")
+        done = self.run_cli(self.command(action, path))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(self.state()["accepted"][action]["suite_requirements"], [row])
+        self.assertNotEqual(navigator.current_stage(self.state()), "test-spec")
+
 
 class RequirementLinesTests(inner.RunDriver):
     """The test-spec head and file list the IDs a case's requirement may name (U12), beside the result template."""
@@ -2277,7 +2424,7 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         state = store.read_record(run / "state.md")
         while navigator.current_stage(state) != "step-plan":
             action = navigator.current_action(state)["id"]
-            setup = {"outcome": "done", "summary": "Synthetic predecessor navigation only."}
+            setup = {"outcome": "done", "summary": "Synthetic predecessor navigation only (S1)."}
             if navigator.current_stage(state) == "plan":
                 setup["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             state = navigator.apply(state, action, setup)
@@ -2370,7 +2517,7 @@ class ReportTests(RepoCase):
                 extra.setdefault("test_commands", [{"command": "node --test", "suite": "focused", "ids": ["TC-1"],
                                                     "criteria": ["C1"]}])
             action = navigator.current_action(state)["id"]
-            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+            state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic (S1)", **extra})
             if state.get("active_improve") is not None:
                 state = navigator.finish_improve(state, action, {"summary": "Synthetic review"})
         self.fail("the walk did not reach " + until)
@@ -2828,7 +2975,8 @@ class RequestAndReviewedInputTests(unittest.TestCase):
 
 
 class RequestIndexTests(unittest.TestCase):
-    """RUN/request.md: the request verbatim and its sentence index S1..Sn; intake's notice never refuses (Step 4.2a)."""
+    """RUN/request.md: the request verbatim and its sentence index S1..Sn.  Intake's summary must cite every sentence
+    (IN1, 2026-10-26: it was a counted notice that never refused)."""
 
     import shiploop_request as request  # noqa: E402
 
@@ -2849,14 +2997,18 @@ class RequestIndexTests(unittest.TestCase):
         fenced = self.request.render("Keep ~~~ fences.")
         self.assertIn("\n~~~~text\nKeep ~~~ fences.\n~~~~\n", fenced)
 
-    def test_the_notice_names_each_uncited_sentence_and_ranges_count(self) -> None:
-        self.assertEqual(self.request.notices(self.PROMPT, "S1 maps to R-1; S2-S4 to the test; S5 to S6 are kept."), [])
-        notice, = self.request.notices(self.PROMPT, "S1 is the bug; S3..S4 the test.")
-        self.assertTrue(notice.startswith(self.request.NOTICE_PREFIX + "the summary cites no S2, S5, S6 of the request's "
-                                          "sentences S1..S6 (RUN/request.md)"), notice)
-        self.assertIn("the result is still accepted", notice)
+    def test_the_refusal_names_each_uncited_sentence_and_ranges_count(self) -> None:
+        cited = {"outcome": "done", "summary": "S1 maps to R-1; S2-S4 to the test; S5 to S6 are kept."}
+        self.request.check(self.PROMPT, "intake", cited)
+        with self.assertRaises(self.request.RequestError) as caught:
+            self.request.check(self.PROMPT, "intake", dict(cited, summary="S1 is the bug; S3..S4 the test."))
+        self.assertTrue(str(caught.exception).startswith("intake's summary cites no S2, S5, S6 of the request's "
+                                                         "sentences S1..S6 (RUN/request.md)"), str(caught.exception))
+        self.request.check(self.PROMPT, "intake", {"outcome": "blocked", "summary": "S1"})   # only a done intake
+        self.request.check(self.PROMPT, "intake", {"outcome": "done"})   # no summary: the shape's refusal names it
+        self.request.check(self.PROMPT, "spec", dict(cited, summary="R-1"))               # only intake
 
-    def test_init_writes_the_file_intake_points_at_it_and_complete_prints_the_notice_without_refusing(self) -> None:
+    def test_init_writes_the_file_intake_points_at_it_and_complete_refuses_an_uncited_sentence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary).resolve()
             repo, run = base / "repo", base / "run"
@@ -2881,10 +3033,16 @@ class RequestIndexTests(unittest.TestCase):
             for extra in (["--check-only"], []):
                 with self.subTest(extra=extra):
                     done = subprocess.run(command + extra, env=env, text=True, capture_output=True, timeout=120)
-                    self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-                    self.assertIn(self.request.NOTICE_PREFIX + "the summary cites no S2, S5, S6 ", done.stdout)
+                    self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
+                    self.assertIn("intake's summary cites no S2, S5, S6 ", done.stdout + done.stderr)
+            self.assertNotIn(action, store.read_record(run / "state.md")["accepted"])   # refused, not accepted
+            result.write_text('```shiploop-state\n{"outcome": "done", "summary": "S1 is the bug; S2 its symptom; '
+                              'S3..S4 the test; S5 a boundary; S6 a boundary.", "evidence_refs": []}\n```\n',
+                              encoding="utf-8")
+            done = subprocess.run(command, env=env, text=True, capture_output=True, timeout=120, check=False)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
             later = store.read_record(run / "state.md")
-            self.assertIn(action, later["accepted"])                                    # a notice never refuses
+            self.assertIn(action, later["accepted"])
             later_packet = navigator.packet_path(run, later).read_text(encoding="utf-8")
             self.assertNotIn(self.request.POINTER, later_packet)                         # intake only
 

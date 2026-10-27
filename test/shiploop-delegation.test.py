@@ -1290,7 +1290,7 @@ class DelegationCliTests(unittest.TestCase):
         for _ in range(3):
             action = self.saved()["action"]["id"]
             result_path = self.run / "inbox" / (action + ".md")
-            store.write_record(result_path, {"outcome": "done", "summary": "Synthetic advance."})
+            store.write_record(result_path, {"outcome": "done", "summary": "Synthetic advance (S1)."})
             self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                       "--result", result_path).returncode, 0)
         self.assertEqual(self.saved()["stage"], "spec")

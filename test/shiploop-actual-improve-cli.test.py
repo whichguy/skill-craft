@@ -196,6 +196,8 @@ class ImproveCliFixture(unittest.TestCase):
                 "summary": "Synthetic predecessor navigation only for " + predecessor
                 + "; not a checkpoint stage.",
             }
+            if predecessor == "intake":
+                setup = inner_fixture.fixture_intake(state, setup)   # IN1
             path = self.run / "inbox" / (action + ".md")
             store.write_record(path, setup)
             self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", path)
@@ -1028,7 +1030,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         for _predecessor in ("intake", "discovery", "research", "spec"):
             action = state["action"]["id"]
             result = run / "inbox" / (action + ".md")
-            store.write_record(result, {"outcome": "done", "summary": "Fixture " + _predecessor + " result.",
+            store.write_record(result, {"outcome": "done", "summary": "Fixture " + _predecessor + " result (S1).",
                                         **({"evidence_refs": self.parent_evidence_refs,
                                             **inner_fixture.fixture_primary(state)} if _predecessor == "spec" else {})})
             printed = cli("complete", "--run-dir", run, "--action", action, "--result", result)
@@ -1630,7 +1632,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         for _predecessor in ("intake", "discovery", "research"):
             action = state["action"]["id"]
             result_path = run / "inbox" / (action + ".md")
-            store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer"})
+            store.write_record(result_path, {"outcome": "done", "summary": "Fixture producer (S1)"})
             self.invoke(CLI, "complete", "--run-dir", run, "--action", action, "--result", result_path)
             state = store.read_record(run / "state.md")
         action = state["action"]["id"]
@@ -1980,7 +1982,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
             action = state["action"]["id"]
             result = run / "inbox" / (action + ".md")
             summary = ("Spec drafted.\n\n## Scope\nIn scope: the widget.\n\n## Environment\nPython.\n"
-                       if stage == "spec" else "Fixture " + stage + " result.")
+                       if stage == "spec" else "Fixture " + stage + " result (S1).")
             store.write_record(result, {"outcome": "done", "summary": summary,
                                         **({"evidence_refs": [str(self.product_contract)],
                                             **inner_fixture.fixture_primary(state)} if stage == "spec" else {})})

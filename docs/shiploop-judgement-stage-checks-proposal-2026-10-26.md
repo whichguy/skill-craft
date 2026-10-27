@@ -67,6 +67,14 @@ product-acceptance.
 lands and in step with its T1–T5 test-stage design, which changes the records these checks read. HO2 and X2 come last,
 and the rest of §4 waits for evidence that it binds a real run.
 
+**Built, 2026-10-26: TS1 and IN1** (owner's go the same day; D7 decided as proposed: a `suite_requirements` row
+`{"requirement", "command"}`, its command one a step plan records). The replay on every saved run is the acceptance
+check (`docs/experiments/judgement-stage-checks-20261026/ts1-in1-replay.jsonl`). TS1 matched the prediction on all 7
+local runs, and IN1 refuses no run since 2026-10-19. Of the Grok chess-sf runs, ed3292 never reached its last item's
+test-spec. 12a23d passes once its structural requirements are marked with its own recorded deploy and secrets-check
+commands (`chess-sf-ts1-check.txt`). The one open question is wording only: say that a row names any recorded command
+that observes the requirement, not only a test suite. Details: the journal entry in `test/shiploop_e2e/LEARNINGS.md`.
+
 ## 1. Where the nine stand today
 
 The Run Review catalog (`skills/shiploop-run-review/defaults/stages.json`, `exitCheck`) calls nine stages "model

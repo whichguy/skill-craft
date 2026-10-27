@@ -1,0 +1,8 @@
+20261024/chess-sf-full-12a23d: last item W3 test-spec recorded: True; recorded commands: 11
+  mark R-1 with: sf project deploy start --target-org de
+  mark R-2 with: sf project deploy start --target-org de
+  mark R-11 with: sf apex run test --target-org de --class-names SLChessRulesTest --synchronous --result-for
+  mark R-14 with: grep -q SLChessController force-app/main/default/lwc/slChessBoard/slChessBoard.js && ! gre
+  TS1: accepted
+20261024/chess-sf-full-ed3292: last item W3 test-spec recorded: False; recorded commands: 3
+  the run never reached its last item's test-spec, so TS1 is not judged on it

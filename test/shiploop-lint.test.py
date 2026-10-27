@@ -963,6 +963,8 @@ def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True) 
     stage = nav.current_stage(state)
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
+    if stage == "intake":
+        result = inner.fixture_intake(state, result)                        # IN1
     if stage == "spec" and result.get("outcome") == "done":
         result = {**inner.fixture_primary(state), **result}                 # run-5 batch F6
     if stage == "test-strategy" and result.get("outcome") == "done":

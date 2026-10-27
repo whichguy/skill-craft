@@ -751,6 +751,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             if payload:
                 result.update(payload)
             self._inner_fields(run, Path(state["repo"]), stage, result)
+        if stage == "intake":
+            result = inner_fixture.fixture_intake(state, result)  # IN1
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
         if stage == "plan" and result.get("outcome") == "done" and "concerns" not in result:

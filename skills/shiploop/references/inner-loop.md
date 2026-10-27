@@ -18,7 +18,8 @@ Each work item runs 8 stages in 5 phases (`INNER` in
   step's helper `skills` ([test loop](test-loop.md#test-loop), [expectations](#expectations-and-validate-existing)).
 - `test-spec` writes one `### <ID>` case per criterion a test confirms, before any
   code changes; ShipLoop refuses a case ID that no focused command lists, and a
-  focused ID with no case. Cases due at a later stage go under `## Due later` (read
+  focused ID with no case; last item: a primary requirement no case names
+  ([glossary](glossary.md)). Cases due at a later stage go under `## Due later` (read
   by verify and `system-test-author`); criteria confirmed `searched` or `inspected`
   go under `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.

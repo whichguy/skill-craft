@@ -1,0 +1,76 @@
+{"run": "2026-10-18/battleship-1", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261003/battleship-luna", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261003/hello", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261003/seat-reservations", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7 of the request's "}
+{"run": "20261003/v1161-battleship-luna", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261003/v1161-hello", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261004/v1180-hello-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261004/v1190-hello-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261004/v1190-hello-sonnet-2", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261004/v1200-battleship-luna", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261004/v1200-hello-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261005/v1210-battleship-grok-medium", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261005/v1210-battleship-luna-xhigh", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261006/gas-battleship-audit", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4 of the request's sentences S1"}
+{"run": "20261006/v1220-battleship-grok-medium-none", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6 of the request's sent"}
+{"run": "20261006/v1220-battleship-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261007/v1230-battleship-grok-none", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6 of the request's sent"}
+{"run": "20261007/v1230-battleship-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261008/r1-battleship-grok-none", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6 of the request's sent"}
+{"run": "20261008/r1-battleship-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261008/r1-checkers-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261008/r2-battleship-grok-none", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6 of the request's sent"}
+{"run": "20261008/r2-battleship-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261008/r2-checkers-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261008/r3-battleship-grok-none", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6 of the request's sent"}
+{"run": "20261008/r3-battleship-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261008/r3-checkers-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261009/s6-after-spec", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261009/s6-inside-implement", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261009/s6-inside-implement-k2", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261009/s6-inside-implement-mtime", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261009/s6-inside-implement-write", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261009/s6-inside-test-strategy", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261009/s6-inside-test-strategy-2", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/battleship-1", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261010/battleship-1270-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261010/checkers-1", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261010/checkers-1270-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261010/checkers-8stage-88d412e9", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261010/checkers-sections-1ac83089", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261010/hello-1270-claude-2", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-8stage-13d278dd", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-rel1270-ref-r1", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-rel1270-ref-r2", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-rel1270-ref-r3", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-sections-1ac83089", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-sections-r2-1ac83089", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-sections-r3-1ac83089", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/hello-sections-r4-1ac83089", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1 of the request's sentences S1..S1 (RUN/re"}
+{"run": "20261010/pc1i-checkers-sonnet", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8 of the reques"}
+{"run": "20261011/battleship-probe-28191c5b", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261011/battleship-scoring-probe-28191c5b", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261011/slice-clear-implement-28191c5b", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261011/slice-clear-test-inside-28191c5b", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261011/slice-clear-verify-28191c5b", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261011/slice-fixbug-8e1253de", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2 of the request's sentences S1..S2 (RU"}
+{"run": "20261016/battleship-e2eaudit-4dd3b4b4", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5 of the request's sentence"}
+{"run": "20261017/bs-sf-int-b7c77f", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261017/round0-claude-main", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2 of the request's sentences S1..S2 (RU"}
+{"run": "20261017/salesforce-chess-int-802e29", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261018/bs-release-update-436528", "ts1": "no primary list (predates it)", "in1": "REFUSED: intake's summary cites no S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11"}
+{"run": "20261019/chess-sf-full-05fe25b", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261020/chess-sf-full-9e52e8", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261024/chess-sf-full-12a23d", "ts1": "refused: R-1, R-2, R-11, R-14", "in1": "accepted", "with suite rows for R-11": "still refused: R-1, R-2, R-14"}
+{"run": "20261024/chess-sf-full-ed3292", "ts1": "refused: R-1, R-4, R-5, R-6", "in1": "accepted", "with suite rows for R-6": "still refused: R-1, R-4, R-5"}
+{"run": "20261024/gate-290-b60ed7-claude-csv-report", "ts1": "accepted", "in1": "accepted"}
+{"run": "20261024/gate-290-b60ed7-codex-hello", "ts1": "accepted", "in1": "accepted"}
+{"run": "20261025/gate-212-8a49cf-grok-hello", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261025/gate-2132-f7ba78-grok-hello", "ts1": "refused: R-2", "in1": "accepted", "with suite rows for R-2": "accepted"}
+{"run": "20261025/haiku55-max-battleship-d521a8", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261026/ds-flash-978478-battleship", "ts1": "accepted", "in1": "accepted"}
+{"run": "20261026/live-2160-dc5a81-claude-battleship", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261026/live-2160-dc5a81-claude-hello", "ts1": "no primary list (predates it)", "in1": "accepted"}
+{"run": "20261026/live-sonnet-battleship-01b9b3", "ts1": "refused: R-6", "in1": "accepted", "with suite rows for R-6": "accepted"}
+{"run": "20261026/live-sonnet-hello-b01d1c", "ts1": "refused: R-1", "in1": "accepted"}
+{"run": "20261026/pilot-ollama-dsflash-993a9d-hello", "ts1": "refused: R-2", "in1": "accepted", "with suite rows for R-2": "accepted"}

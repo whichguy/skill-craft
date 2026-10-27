@@ -311,7 +311,7 @@ class AwaitingUserTests(KeepaliveTestCase):
         action = self.status()["action"]
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
-        path.write_text(store.dumps({"outcome": "done", "summary": "x", "awaiting": self.QUESTION}, "test result"))
+        path.write_text(store.dumps({"outcome": "done", "summary": "x (S1)", "awaiting": self.QUESTION}, "test result"))
         done = shiploop("complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path))
         self.assertIn("awaiting is allowed only on a blocked result", done.stderr)
 

@@ -207,6 +207,8 @@ class TestLoopTests(unittest.TestCase):
                 str(row.get("id")) for row in queue if isinstance(row, dict)))
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result = dict(result, unverified=[])
+        if stage == "intake":
+            result = inner.fixture_intake(state, result)                    # IN1
         if stage == "spec" and result.get("outcome") == "done":
             result = {**inner.fixture_primary(state), **result}             # run-5 batch F6
         if stage == "test-strategy" and result.get("outcome") == "done":

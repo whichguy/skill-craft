@@ -49,7 +49,8 @@ from shiploop_packet_view import callback_argv, callback_line, callback_result_p
 import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
-DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
+# Cites S1, the fixture prompts' one sentence: a done intake must (IN1).
+DONE = {"outcome": "done", "summary": "Synthetic declaration for S1; no work executed."}
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
            "evidence": "Nothing to change.", "handoff": "Nothing is open."}
 BLOCKED_REPORT = {"classification": "unresolved", "exit_assessment": "unknown", "continuation_assessment": "blocked",
@@ -289,7 +290,7 @@ class RealCliCase(unittest.TestCase):
             elif key == "headline":
                 block[key] = "A step finished."
             elif key == "summary":
-                block[key] = "What this stage established."
+                block[key] = "What this stage established (S1)."   # a done intake cites the request's sentences (IN1)
             elif key == "evidence_refs":
                 block[key] = [str(self.evidence)]
             else:
@@ -363,7 +364,7 @@ class RealCliCase(unittest.TestCase):
         return nav.improve_opening_path(child), standalone.receipt_path(child)
 
     def done_fields(self) -> dict:
-        return {"outcome": "done", "summary": "What this step established.", "headline": "A step was established.",
+        return {"outcome": "done", "summary": "What this step established (S1).", "headline": "A step was established.",
                 "evidence_refs": [str(self.evidence)]}
 
 
@@ -400,7 +401,7 @@ class RefusalRouteTests(RealCliCase):
                 self.assertNotIn(f'"{"outcome" if missing == "summary" else "summary"}" and', reply)
                 self.assertIn("add " + add, reply)
                 self.assertIn("run the same callback again", reply)
-                block[missing] = "done" if missing == "outcome" else "What this step established."
+                block[missing] = "done" if missing == "outcome" else "What this step established (S1)."
                 write_block(path, block)
                 self.accepted(command)
 
@@ -805,7 +806,7 @@ class RefusalRouteTests(RealCliCase):
         token = "ghp_" + "Ab1" * 8  # a made-up string of the shape the retired screen refused
         run, head = self.new_run("intake")
         command, path, action = printed_callback(head)
-        summary = ("Auth: sf login (alias de); access token: not printed; signature: static; Bearer " + token
+        summary = ("S1: Auth: sf login (alias de); access token: not printed; signature: static; Bearer " + token
                    + "; password=hunter2")
         write_block(path, {**self.fill_done(head), "summary": summary})
         reply = self.accepted(command)

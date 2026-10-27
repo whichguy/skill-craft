@@ -166,7 +166,7 @@ class MasterIndexTests(unittest.TestCase):
             subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
                             "--result", str(bad)], env=env, text=True, capture_output=True, timeout=60)  # refused: callback-attempts
             result = run / "inbox" / (action + ".md")
-            result.write_text('```shiploop-state\n{"outcome": "done", "summary": "Intake done.", "evidence_refs": []}\n```\n')
+            result.write_text('```shiploop-state\n{"outcome": "done", "summary": "Intake done (S1).", "evidence_refs": []}\n```\n')
             accepted = subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
                                        "--result", str(result)], env=env, text=True, capture_output=True, timeout=60)
             self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
@@ -386,7 +386,7 @@ class EvidenceGateTests(unittest.TestCase):
             self.assertEqual(init.returncode, 0, init.stderr)
             action = next(part.split("=", 1)[1] for part in init.stdout.split() if part.startswith("--action="))
             inbox = run / "inbox" / (action + ".md")
-            result = {"outcome": "done", "summary": "Intake recorded.", "evidence_refs": [str(root / "nope.md")]}
+            result = {"outcome": "done", "summary": "Intake recorded (S1).", "evidence_refs": [str(root / "nope.md")]}
             inbox.write_text("```shiploop-state\n" + json.dumps(result) + "\n```\n")
             before = (run / "state.md").read_bytes()
             refused = subprocess.run([sys.executable, str(CLI), "complete", f"--run-dir={run}",

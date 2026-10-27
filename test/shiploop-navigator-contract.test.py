@@ -124,7 +124,8 @@ BACKCHAIN_RESOURCE_PATHS = (
 )
 
 
-def result(*, outcome: str = "done", summary: str = "Synthetic producer result.", **extra):
+# The fixture prompts are one sentence, so the default summary cites S1: a done intake must (IN1).
+def result(*, outcome: str = "done", summary: str = "Synthetic producer result for S1.", **extra):
     return {"outcome": outcome, "summary": summary, **extra}
 
 
@@ -2266,7 +2267,7 @@ class NavigatorContractTests(unittest.TestCase):
         """Recover the receipt-before-state and after-state interruption seams."""
         state = self.state()
         action = self._action(state)
-        submitted = result(summary="Synthetic intake result.")
+        submitted = result(summary="Synthetic intake result: S1.")
         updated = navigator.apply(state, action["id"], submitted)
         self.assertEqual(navigator.current_stage(updated), "discovery")
         expected_targets = ("context-index.md", "reference.md", "request.md", f"results/{action['id']}.md", "state.md", "status.md", "timeline.json")
@@ -2529,7 +2530,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertNotIn("Call this when done:", first)  # the first callback line is the only one (2026-10-11 dedupe)
         self.assertIn("Callback for this stage ", first)
         result_path = run / "inbox" / f"{action_id}.md"
-        store.write_record(result_path, result(summary="<script>alert('not HTML')</script>",
+        store.write_record(result_path, result(summary="S1: <script>alert('not HTML')</script>",
                                                evidence_refs=["<unsafe-reference>"]),
                            title="Synthetic navigator callback")
         dispatch(unsafe, "complete", action=action_id, result=str(result_path))
@@ -2781,7 +2782,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.init(run)
         current = navigator.current_action(store.read_record(run / "state.md"))["id"]
         result_path = run / "inbox" / (current + ".md")
-        summary = "Auth: sf login (alias de); access token: not printed; signature: static; used " + self.TOKEN
+        summary = "S1: Auth: sf login (alias de); access token: not printed; signature: static; used " + self.TOKEN
         result_path.write_text(
             "# ShipLoop navigator result\n\n```shiploop-state\n"
             + json.dumps({"evidence_refs": [], "outcome": "done", "summary": summary}) + "\n"
@@ -2926,7 +2927,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         callback = callback_result_path(initial)
         self.assertEqual(callback, run_dir.resolve() / "inbox" / f"{action_id}.md")
         self.assertEqual(completion_command.count("--action=" + action_id), 1)
-        callback.write_text(store.dumps(result(summary="Intake completed after cold recovery."),
+        callback.write_text(store.dumps(result(summary="Intake completed after cold recovery (S1)."),
                                         "Synthetic recovered callback"), encoding="utf-8")
         accepted = shell(completion_command)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
@@ -2998,7 +2999,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         # A run whose state.md was deleted keeps its evidence; init never replaces it.
         current = navigator.current_action(store.read_record(run / "state.md"))["id"]
         result_path = run / "inbox" / (current + ".md")
-        store.write_record(result_path, result(summary="Synthetic intake."))
+        store.write_record(result_path, result(summary="Synthetic intake: S1."))
         completed = self.cli("complete", "--run-dir", str(run), "--action", current,
                              "--result", str(result_path))
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
@@ -3039,7 +3040,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertIn(action, shown.stdout)
         self.assertEqual(state_path.read_bytes(), before)
         result_path = run / "inbox" / (action + ".md")
-        store.write_record(result_path, result(summary="Synthetic wrapper intake."))
+        store.write_record(result_path, result(summary="Synthetic wrapper intake: S1."))
         completed = wrapper("shiploop-complete", "--run-dir", str(run), "--action", action,
                             "--result", str(result_path))
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
