@@ -1097,5 +1097,33 @@ class OneStepRunTests(unittest.TestCase):
         self.assertIsNone(loops.one_step_run(self.state(1, None, implements=2)))
 
 
+class StepPathGroupsTests(unittest.TestCase):
+    """loops.step_path_groups (wide-item review design 8e9d2d55): how many groups an item's steps form when steps that
+    share a path are joined; an item of more than one is wide, and each of its steps keeps its own Improve review."""
+
+    @staticmethod
+    def steps(*paths) -> list[dict]:
+        return [{"id": "S" + str(n), **({"paths": list(own)} if own is not None else {})}
+                for n, own in enumerate(paths, 1)]
+
+    def test_the_recorded_battleship_plans_count_as_their_runs_showed(self) -> None:
+        groups = loops.step_path_groups
+        # Sonnet 491d9a W1: the rules module, then the server and its page in one file. Its one item review missed the
+        # three defects the per-step baseline fixed.
+        self.assertEqual(groups(self.steps(["game.js"], ["server.js"], ["server.js"]), []), 2)
+        self.assertEqual(groups(self.steps(["game.js"], ["index.html"], ["server.js"]), []), 3)  # Sonnet 01b9b3 W1
+        # DeepSeek 759a03 W2: every step on the server, whose item review caught `GET //`.
+        self.assertEqual(groups(self.steps(["server.js", "public/index.html"], ["server.js", "public/index.html"],
+                                           ["server.js"]), []), 1)
+
+    def test_steps_join_through_a_shared_path_and_a_step_with_none_takes_the_items(self) -> None:
+        groups = loops.step_path_groups
+        self.assertEqual(groups(self.steps(["a.py"], ["b.py"], ["a.py", "b.py"]), []), 1)  # S3 joins S1 and S2
+        self.assertEqual(groups(self.steps(["a.py"], None, ["b.py"]), ["a.py", "b.py"]), 1)  # S2 works on the item's
+        self.assertEqual(groups(self.steps(None, None), []), 1)  # no paths anywhere: one group, as one item
+        self.assertEqual(groups(self.steps(["a.py"]), []), 1)
+        self.assertEqual(groups([], ["a.py"]), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

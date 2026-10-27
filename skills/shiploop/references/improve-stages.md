@@ -36,7 +36,11 @@ Three kinds of result start an Improve stage:
   `scripts/shiploop_prompts.py`, with the *Code craft* rubric), worded for the
   item's steps, and its review base is the tree the item's first step began
   from, so the review covers the item's whole change before the test stage
-  writes the tests.
+  writes the tests. A wide item, whose steps work on separate paths (more than
+  one group when steps sharing a declared path are joined), has each step that
+  changed a file reviewed instead, over that step's own change with the one-step
+  focus (2026-10-27: Sonnet makes one finding pass per review, so one review of a
+  three-part item missed the defects three step reviews had fixed).
 - The successful `carry-forward` that leaves no work item pending. This
   end-of-work Improve review covers every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.

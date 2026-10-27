@@ -1153,10 +1153,15 @@ class AggregateImplementWordingTests(unittest.TestCase):
             self.assertIn("- " + condition + "\n", text)
         self.assertNotIn(" to S1", text)
 
+    # S1 and S2 share pkg/b.py: one path group, so the inline route reviews the item once (a wide item, its steps on
+    # separate paths as in STEPS, reviews each step: design 8e9d2d55).
+    ONE_GROUP = ({"id": "S1", "task": "Make change one.", "paths": ["a.py", "pkg/b.py"]},
+                 {"id": "S2", "task": "Make change two.", "paths": ["pkg/b.py"]})
+
     def test_the_inline_item_handoff_names_the_steps_as_the_ask_agent_one_does(self):
         """Rule item (2026-10-26): the inline route's one review follows the item's last step and covers every step, so its
         focus and goal name the steps and their paths, worded as the ask-agent route's are."""
-        state = self.at_implement("inline")
+        state = self.at_implement("inline", list(self.ONE_GROUP))
         state = nav.apply(state, nav.current_action(state)["id"], {"outcome": "done", "summary": "Change one."})
         self.assertIsNone(state.get("active_improve"))  # S1 is not the item's last step
         text = self.flat(self.handoff(state))

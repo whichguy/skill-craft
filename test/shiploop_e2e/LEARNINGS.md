@@ -3927,3 +3927,6 @@ Both are in `docs/experiments/e2e-v2170-validation-20261027/`.
 per-step reviews. It recommends a replay (X1) on 491d9a's own code before building. It supersedes the "Next" candidate
 of the entry above, which proposed handoff text naming each step's diff and the component edges: none of the four
 defects sat at an edge.
+
+**Built 2026-10-27 (B, no X1, at the owner's choice).** Not released, and no live run yet. Its check is the next Sonnet
+battleship run with a wide item: two or more of the three defect classes fixed by its step reviews (design §5).

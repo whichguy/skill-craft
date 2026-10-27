@@ -1523,7 +1523,7 @@ function exitCheckOf(info,run){
 function exitCheckWhy(info,run){
   var kind=exitCheckOf(info,run);
   if(kind==="script-run")return "ShipLoop runs "+(Array.isArray(info.completeRuns)&&info.completeRuns.length?info.completeRuns.join(", "):"a check")+" before it accepts done"+
-    (info.improve==="item"?", and one Improve child per work item reviews its whole change after its last step.":info.improve==="first-item"?", and an Improve child reviews the first work item's result and a sent-back item's redo; a later item's advances directly.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+    (info.improve==="item"?", and one Improve child per work item reviews its whole change after its last step (each changed step of a wide item, whose steps work on separate paths).":info.improve==="first-item"?", and an Improve child reviews the first work item's result and a sent-back item's redo; a later item's advances directly.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
      :info.improve==="always"&&!improveByDesignInfo(info,run)?", and an Improve child reviews the result before the graph advances.":".");
   if(kind==="review loop")return info.improve==="last-item"?"An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
     :"An Improve child reviews this result before the graph advances.";

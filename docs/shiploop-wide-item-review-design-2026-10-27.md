@@ -1,7 +1,8 @@
 # Wide work items keep per-step Improve reviews — design, 2026-10-27
 
-Status: **design only**. The owner asked for the design and nothing built ("Design the wide-item review fix here …
-build nothing yet", 2026-10-27).
+Status: **B built, not released** (2026-10-27). The owner chose B without the replay ("Skip X1 and build design B
+(per-step reviews for wide items) with its fail-first tests and change note"). It is described under "Built" at the end of
+§3. The design itself came first, with nothing built ("Design the wide-item review fix here … build nothing yet").
 
 Consumer: first the owner, deciding whether to build and which option, then the session that builds it. This design
 follows P0 of [the script-navigated steps design](shiploop-script-navigated-steps-design-2026-10-26.md) (Improve rule
@@ -172,6 +173,23 @@ Tests, fail-first and through the real CLI, in `test/shiploop-navigator-contract
 
 Then run the quick tier with `--changed-from`, and the suites that pin packet counts (`SMALL_HOME_FINGERPRINTS`, and
 e2e-efficiency's 32 packets and 8 handoffs). A fixture item that is wide shifts its count; re-pin it with the reason.
+
+**Built (2026-10-27).** It went as planned above, plus three points the build settled:
+- The rerun line of the Improve hand-off now reads "the item's test stage, after its last step, runs over it". That is
+  true for a wide item's earlier steps too.
+- Two P0 tests had fixtures whose steps each wrote a separate file, so under B they became wide items.
+  `test_the_items_last_implement_step_starts_its_improve_child_in_both_planning_review_modes` (navigator contract) and
+  `test_the_inline_item_handoff_names_the_steps_as_the_ask_agent_one_does` (delegation) now give their steps one group,
+  and they still pin the narrow item's single review.
+- The other skill touched is the Run Review stage catalog's implement check text, with its own patch note.
+
+Fail-first, all through the real CLI except the helper:
+- `test_a_wide_item_starts_an_improve_stage_after_each_step_over_that_steps_own_change`;
+- `test_a_wide_items_step_that_changed_no_file_starts_no_improve_stage`;
+- `StepPathGroupsTests` in `test/shiploop-loops.test.py`.
+
+Before the change, the two CLI tests failed (S1 got no review) and the helper tests errored (no
+`step_path_groups`).
 
 **Review count on the recorded plans** (steps that changed no file still counted, except where noted):
 

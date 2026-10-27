@@ -190,6 +190,8 @@ script gates on a draft result without completing it.
   commits that fix on accept as its own preparatory commit.
 - `implement` runs once per step, gated by lint on every step, and one Improve
   child reviews the item's whole change after its last step (in both planning review modes).
+  A wide item, whose steps work on separate paths, has each step that changed a
+  file reviewed instead.
 - `test` writes the specified tests after the build, each asserting its case's
   oracle. ShipLoop then runs them on the item's base
   (no new test ID may pass there unless `red_na` names it; `shiploop red-check`

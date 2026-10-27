@@ -4340,14 +4340,16 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
 
     THREE_STEP_PATHS = ("notes.md", "todo.md", "log.md")
 
-    def three_step_plan(self) -> dict:
-        """A step plan whose three steps each write one new file, each file an absent expectation."""
+    def three_step_plan(self, *, one_group: bool = False) -> dict:
+        """A step plan whose three steps each write one new file, each file an absent expectation. Each step declares
+        its own file, so the item is wide (three path groups); with ``one_group`` each declares the item's three files."""
         paths = list(self.THREE_STEP_PATHS)
         return {
             "outcome": "done", "summary": "Add three notes files, one per step.", "paths": paths,
             "test_commands": [], "test_commands_na": "A documentation-only item: no test command applies.",
             "steps": [{"id": "S" + str(n), "task": "Write " + path + ".", "deps": [], "criteria": [],
-                       "proof": "test -f " + path, "paths": [path], "skills": []} for n, path in enumerate(paths, 1)],
+                       "proof": "test -f " + path, "paths": paths if one_group else [path], "skills": []}
+                      for n, path in enumerate(paths, 1)],
             "expectations": [{"id": "E" + str(n), "state": "absent", "statement": path + " is new",
                               "steps": ["S" + str(n)], "paths": [path], "check": "test ! -e " + path}
                              for n, path in enumerate(paths, 1)],
@@ -4369,9 +4371,10 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         # Owner 2026-10-26 (design 560c396f, P0): one implement review per work item, after its last step, instead of one
         # per step. DeepSeek battleship ran 12 step reviews in 28 minutes for 3 real code fixes; 8 of 40 step reviews over
         # seven runs changed no code. The review takes the item's whole change, so the tests written next cover its fixes.
+        # Its steps share their paths (one group): an item whose steps work on separate paths is wide (next test).
         self.start()
         self.drive_to_step_plan()
-        self.accept(self.three_step_plan())
+        self.accept(self.three_step_plan(one_group=True))
         self.assertEqual(self.settle(), "test-spec")
         self.accept(result())
         bases = []
@@ -4398,6 +4401,66 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(len(steps), 3)
         self.assertEqual([action for action in steps if action in state["improve_results"]], [steps[-1]],
                          "one implement review for the item, recorded on its last step")
+
+    def test_a_wide_item_starts_an_improve_stage_after_each_step_over_that_steps_own_change(self) -> None:
+        # Owner 2026-10-27 (design 8e9d2d55, B): an item whose steps work on separate paths (more than one path group)
+        # keeps one review per step. Sonnet makes one finding pass per review (19 of 19 Improve stages), so its one review
+        # of battleship 491d9a's three-component item missed the three defects its per-step baseline 01b9b3 fixed.
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        for number, path in enumerate(self.THREE_STEP_PATHS, 1):
+            state = self.state()
+            self.assertEqual((navigator.current_stage(state), state["active_improve"]), ("implement", None))
+            base = navigator.current_action(state).get("base")
+            self.assertTrue(base, "S" + str(number) + "'s entry tree is recorded")
+            (self.repo / path).write_text("# " + path + "\n")
+            self.accept(result(summary="Wrote " + path + "."))
+            child = self.state()["active_improve"]
+            self.assertEqual(child and child["stage"], "implement", "S" + str(number) + " is reviewed on its own")
+            handoff = navigator.improve_handoff_text(self.core, self.run_dir, self.state())
+            self.assertIn("Step S" + str(number) + " (" + str(number) + " of 3), the only work for this packet", handoff)
+            self.assertIn("This result is one step of the item's step", handoff)
+            self.assertNotIn("Steps this review covers", handoff)
+            self.assertIn("Review base (the step's change since it began", handoff)
+            self.assertIn(" diff " + str(base) + " ", handoff, "the diff starts at this step's own entry tree")
+            self.settle()
+        state = self.state()
+        self.assertNotEqual(navigator.current_stage(state), "implement")
+        steps = [row["action"] for row in state["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
+        self.assertEqual(len(steps), 3)
+        self.assertEqual([action for action in steps if action in state["improve_results"]], steps,
+                         "a wide item's steps are each reviewed")
+
+    def test_a_wide_items_step_that_changed_no_file_starts_no_improve_stage(self) -> None:
+        # Design 8e9d2d55: a wide item's step whose own change is empty gets no review, as P4 skips an item none of whose
+        # steps changed a file (DeepSeek battleship 759a03 W3: its S2 and S3 changed nothing, so it keeps one review).
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        notes, todo, log = self.THREE_STEP_PATHS
+        (self.repo / notes).write_text("# " + notes + "\n")
+        (self.repo / todo).write_text("# " + todo + "\n")  # S1 also writes S2's file, so S2 has nothing left to change
+        self.accept(result(summary="Wrote " + notes + " and " + todo + "."))
+        self.assertEqual(self.state()["active_improve"]["stage"], "implement")
+        self.assertEqual(self.settle(), "implement")
+        unchanged = navigator.current_action(self.state())["id"]
+        self.accept(result(summary=todo + " was already written by S1: nothing left to change."))
+        state = self.state()
+        self.assertIsNone(state["active_improve"], "S2 changed no file: no review")
+        self.assertEqual(navigator.current_stage(state), "implement")
+        (self.repo / log).write_text("# " + log + "\n")
+        self.accept(result(summary="Wrote " + log + "."))
+        self.assertEqual(self.state()["active_improve"]["stage"], "implement", "S3 changed a file: reviewed")
+        self.settle()
+        state = self.state()
+        steps = [row["action"] for row in state["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
+        self.assertEqual([action for action in steps if action in state["improve_results"]],
+                         [action for action in steps if action != unchanged])
 
     def test_step_notes_are_required_and_learned_from_must_be_reachable(self) -> None:
         self.start()
@@ -4557,8 +4620,10 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                        {"id": "E3", "state": "absent", "statement": "more.md is new",
                                         "steps": ["S2"], "paths": ["more.md"], "check": "test ! -e more.md"}])
                 plan["paths"] = ["notes.md", "more.md"]
+                # Both steps declare the item's two files: one path group (a wide item reviews each step, design 8e9d2d55).
+                plan["steps"][0]["paths"] = list(plan["paths"])
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
-                                      "proof": "test -f more.md", "paths": ["more.md"], "skills": []})
+                                      "proof": "test -f more.md", "paths": list(plan["paths"]), "skills": []})
                 self.accept(plan)
                 child = self.state().get("active_improve")
                 self.assertEqual(child is not None and child["stage"] == "step-plan", mode == "stage")
