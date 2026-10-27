@@ -932,21 +932,33 @@ class ClearThroughMainTests(unittest.TestCase):
         for number, handler in self.handlers.items():
             signal.signal(number, handler)
 
-    def main(self, holds: list[str], *flags: str) -> dict:
+    def main(self, holds: list[str], *flags: str, backend: tuple = ("--backend", "anthropic"), ready: str | None = None) -> dict:
+        """The fake claude answers the Anthropic route unless ``backend`` names another (a slice's default is Ollama)."""
         config = self.tmp / "config.json"
         config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
                                       "run_dir": str(self.run_dir), "holds": holds, "improve_of": "implement"}))
         case = {**CASE, "fixture": "node-base"}
         with mock.patch.dict(os.environ, {"FAKE_SLICE_CONFIG": str(config)}), \
                 mock.patch.object(step_slice, "load_step_case", return_value=case), \
+                mock.patch.object(step_slice.hosts, "ollama_ready", return_value=ready), \
                 contextlib.redirect_stdout(io.StringIO()):
-            step_slice.main(["--case", "fake", "--host", "claude", "--claude-bin", str(self.fake),
+            step_slice.main(["--case", "fake", "--host", "claude", *backend, "--claude-bin", str(self.fake),
                              "--plugin-dir", str(self.plugin), "--output", str(self.out), "--timeout", "300", "--quiet",
                              *flags])
         return json.loads((self.out / "slice-result.json").read_text())
 
     def sent(self) -> list[str]:
         return [json.loads(line) for line in self.prompts.read_text().splitlines()]
+
+    def test_a_slice_with_no_backend_runs_on_ollama_and_is_refused_when_ollama_is_not_ready(self):
+        self.main(["implement"], backend=())
+        invocation = json.loads((self.out / "invocation.json").read_text())
+        self.assertEqual((invocation["backend"], invocation["model"]), ("ollama", step_slice.hosts.OLLAMA_MODEL),
+                         "a step slice is an E2E run: it takes run.py's default backend")
+        self.out = self.tmp / "out-refused"
+        with self.assertRaises(SystemExit) as refused:
+            self.main(["implement"], backend=(), ready="the Ollama server does not answer")
+        self.assertIn("--backend ollama: the Ollama server does not answer", str(refused.exception))
 
     def test_three_positions_with_the_prompt_withheld_give_three_records_a_flow_and_the_unfired_one_named(self):
         result = self.main(["implement", "implement"], "--clear-at", "implement", "--clear-at", "implement:inside",

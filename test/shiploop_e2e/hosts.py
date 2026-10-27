@@ -54,8 +54,8 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
                 "Skill", "Agent")
 # The backend an E2E run (run.py) uses when none is named: the Claude host runs on Ollama's DeepSeek flash, and
 # `--backend anthropic` names Claude's own models (owner, 2026-10-26: "switch the default e2e ... to use ollama and
-# deepseek-flash as the models for testing"). The host factory's own default stays anthropic, so the session reviewer and
-# the slice and fan-out drivers keep Claude's models.
+# deepseek-flash as the models for testing"). run.py and slice.py apply it; the host factory's own default stays anthropic,
+# so the session reviewer (review.py) and the fan-out check keep Claude's models.
 RUN_DEFAULT_BACKEND = {"claude": "ollama"}
 
 

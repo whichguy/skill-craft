@@ -22,7 +22,8 @@ flowchart LR
 
 An E2E run (`run.py`) defaults to **DeepSeek flash through Claude Code on Ollama** (`--host claude`, backend
 `ollama`, `deepseek-v4.1-flash:1017-cloud`; owner, 2026-10-26). `--backend anthropic` runs Claude's own models,
-Claude Sonnet 5.5 (`claude-sonnet-5-5`) by default; the reviewer and the slice drivers keep Claude's models.
+Claude Sonnet 5.5 (`claude-sonnet-5-5`) by default. Step slices (`slice.py`) take the same default and `iterate.py`
+runs on the Claude host; the reviewer and the fan-out check keep Claude's models.
 `--host grok` switches to Grok (`grok-4.7`, medium effort), and `--host codex` to Codex
 (GPT-6 Luna, `gpt-6-luna`, at xhigh effort). `--model` and `--effort` override either one, so
 switching model or effort is a flag, for example

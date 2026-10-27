@@ -374,7 +374,11 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--regrade", type=Path, metavar="OUTPUT",
                    help="grade an earlier slice again from its files (no host starts), with the case it ran")
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
-    p.add_argument("--model", help="default: the host's (claude-sonnet-5-5 on claude)")
+    p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
+                   help="claude only: ollama (default, as for run.py: Claude Code on the local Ollama server's "
+                        f"{hosts.OLLAMA_MODEL}) or anthropic, Claude's own models")
+    p.add_argument("--model", help=f"default: the host's ({hosts.OLLAMA_MODEL} on claude, claude-sonnet-5-5 on claude "
+                                   "--backend anthropic)")
     p.add_argument("--effort")
     p.add_argument("--delegation", choices=("inline", "ask-agent"), default="inline",
                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
@@ -383,7 +387,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
     p.add_argument("--max-turns", type=int, default=None,
                    help="a turn limit for the host session; default: none")
-    p.add_argument("--max-budget-usd", type=float, default=None, help="claude only, default none; grok has no spend cap")
+    p.add_argument("--max-budget-usd", type=float, default=None,
+                   help="claude --backend anthropic only, default none; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--max-resumes", type=int, default=None,
                    help="resumable hosts (grok, codex): continue a session that ended before the slice was complete; "
@@ -461,8 +466,18 @@ def main(argv: list[str] | None = None) -> int:
     out = run.new_output_dir(args.output, f"slice-{args.case}")
     work = out / "work"
     work.mkdir()
-    host = hosts.host(args.host, getattr(args, f"{args.host}_bin"))
+    # A step slice is an E2E run: with no --backend it takes run.py's default (hosts.RUN_DEFAULT_BACKEND).
+    host = hosts.host(args.host, getattr(args, f"{args.host}_bin"),
+                      args.backend or hosts.RUN_DEFAULT_BACKEND.get(args.host))
     model, effort = args.model or host.model, args.effort or host.effort
+    host.model = model  # the model the host's environment routes to (the Claude host on Ollama names it there)
+    backend = getattr(host, "backend", None)
+    if backend == "ollama":
+        if args.max_budget_usd:
+            raise SystemExit("--max-budget-usd is not with --backend ollama: Claude Code prices the tokens at Anthropic's "
+                             "rates, so the cap would stop the slice on a figure that is not its cost. Nothing was started.")
+        if why := hosts.ollama_ready(model):
+            raise SystemExit(f"--backend ollama: {why}. Nothing was started.")
     env = host.env(out / "home")
     if args.plugin_dir and (args.ref or args.overlay):
         raise SystemExit("--ref and --overlay build their own plugin; they do not take --plugin-dir")
@@ -485,7 +500,7 @@ def main(argv: list[str] | None = None) -> int:
                           + (f"\n\n{note}" if note else ""))
     common = dict(cwd=work, model=model, effort=effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                   max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
-    invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "model": model, "effort": effort,
+    invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "backend": backend, "model": model, "effort": effort,
                   "delegation": args.delegation, "plugin_dir": str(plugin_dir), "plugin": plugin,
                   "versions": run.installed_versions(plugin_dir), "local_head": run.git("rev-parse", "HEAD").strip(),
                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
@@ -496,7 +511,8 @@ def main(argv: list[str] | None = None) -> int:
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     (out / "prompt.txt").write_text(case["prompt"] + "\n")
     if not args.quiet:
-        print(f"slice {args.case} host={host.name} model={model} delegation={args.delegation}\n  output {out}\n"
+        print(f"slice {args.case} host={host.name}" + (f" backend={backend}" if backend else "")
+              + f" model={model} delegation={args.delegation}\n  output {out}\n"
               f"  seeded {', '.join(seeded['skipped'])}; the host starts at {seeded['stage']}", flush=True)
 
     if host.name != "claude" and any(spec["inside"] for spec in clear_at) and not args.quiet:

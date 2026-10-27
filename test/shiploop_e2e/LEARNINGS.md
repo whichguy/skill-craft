@@ -3672,13 +3672,20 @@ the baseline row is in this commit).
 - The improve-skill skip (6 of 22) is a candidate packet fix: the Improve packet could put the Skill call first and
   make it unmissable.
 
-## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: firm (a default, not a finding)
+## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
+
+**Scope in time.** The switch holds until Grok's credits reset on Thursday 2026-10-29. Then the owner decides whether
+to go back.
 
 **What changed.** `run.py` with no `--backend` now runs the Claude host on Ollama with `deepseek-v4.1-flash:1017-cloud`
 (owner: "switch the default e2e … to use ollama and deepseek-flash as the models for testing").
 `--backend anthropic` runs Claude's own models, Sonnet 5.5 by default.
-- The default lives in `hosts.RUN_DEFAULT_BACKEND` and only `run.py` applies it. The host factory's default stays
-  Anthropic, so the session reviewer (`review.py`) and the slice and fan-out drivers keep Claude's models.
+- The default lives in `hosts.RUN_DEFAULT_BACKEND`. The host factory's default stays Anthropic, so the session
+  reviewer (`review.py`) and the fan-out check keep Claude's models.
+  - First cut: only `run.py` applied it. **Updated the same day:** `slice.py` takes it too, since a step slice is an
+    E2E run, and `iterate.py`'s host now defaults to claude, not Grok (out of credit until Thursday). Both gaps were
+    raised by the E2E session.
+  - `experiment.py` keeps its own host default, because plan-sizing's R3 round is mid-flight on it.
 - A resume or regrade of a run recorded before the backend field stays on Anthropic. A hermetic test proves it, and it
   fails without the guard.
 - The tests that drive a fake `claude` now name `--backend anthropic`, because they test the Anthropic route.
@@ -3707,7 +3714,8 @@ an improvement campaign would have gone to an empty account. It now defaults to 
 default (`'grok' != 'claude'`) and passes on the new one.
 
 Left as they are, and said so:
-- `slice.py` keeps Anthropic models (the fork's choice);
+- ~~`slice.py` keeps Anthropic models (the fork's choice);~~ **superseded the same day:** `slice.py` now takes the
+  default too, since a step slice is an E2E run (see the harness-change entry above);
 - plan-sizing's `experiment.py` still defaults to `--host grok`, because its R3 round is mid-flight and moving its arms
   would break their comparison.
 

@@ -850,8 +850,10 @@ stands at the commit under test.
   evaluations on a cheap, fast model, independent of the Grok and Anthropic budgets.
   - *The default for testing (owner, 2026-10-26).* An E2E run with no `--backend` runs the Claude host on Ollama;
     `--backend anthropic` runs Claude's own models. A resume or regrade of a run recorded before the field exists
-    stays on Anthropic, so the default never relabels an earlier run. The host factory's own default stays
-    Anthropic, so the session reviewer and the slice and fan-out drivers keep Claude's models.
+    stays on Anthropic, so the default never relabels an earlier run. A step slice (`slice.py`) takes the same
+    default, and `iterate.py`'s host defaults to claude. The host factory's own default stays Anthropic, so the
+    session reviewer and the fan-out check keep Claude's models. `experiment.py` keeps its own host default: the
+    plan-sizing R3 round was mid-flight on it.
   - *No user credential reaches the endpoint.* The host drops every `ANTHROPIC_*` and `CLAUDE_CODE_*` variable, and
     `CLAUDECODE` and `CLAUDE_PROXY_BYPASS`. It then sets only the Ollama route: the base URL, the key `ollama`, and the
     model for the main thread, every default model class and subagents. ask-ollama found on 2026-10-24 (Claude Code
