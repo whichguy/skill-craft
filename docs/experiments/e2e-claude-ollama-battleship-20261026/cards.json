@@ -1,0 +1,236 @@
+{
+ "scorecard": "scorecard/6",
+ "cards": [
+  {
+   "scorecard": "scorecard/6",
+   "run": "/Users/dadleet/e2e-runs/20261026/ds-flash-978478-battleship",
+   "observed": true,
+   "case": "battleship",
+   "driver": {
+    "host": "claude",
+    "backend": "ollama",
+    "model": "deepseek-v4.1-flash:1017-cloud",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.16.0",
+    "shiploop_version": "1.15.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 0,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "shared_tmp_names": [],
+    "held_out_seen": null,
+    "delivery_snapshot": {
+     "head": "372147fb18b0421694cac213c31e1720856283f3",
+     "bundle": "delivery/work.bundle",
+     "during_checks": [],
+     "after_run": []
+    },
+    "correctness": {
+     "valid": true,
+     "why": []
+    },
+    "models_served": [
+     "deepseek-v4.1-flash:1017-cloud"
+    ],
+    "attribution": {
+     "valid": true,
+     "why": []
+    },
+    "timing": {
+     "valid": true,
+     "why": []
+    }
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 4,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "acceptance_required": false,
+    "floor": "pass"
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": "not_applicable"
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "unverified_not_restated": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 38,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": "pass"
+   },
+   "efficiency": {
+    "minutes": 222.4,
+    "cost_usd": null,
+    "totals_lower_bound": false,
+    "turns": 4620,
+    "tokens": 267132181,
+    "output_tokens": 2031529,
+    "refusals": 38,
+    "improve_children": 22,
+    "planning_minutes": 46.7,
+    "reorientation_minutes": 0.0,
+    "fresh_starts": 0,
+    "calls_before_grounding": 0
+   },
+   "floors": {
+    "accuracy": "pass",
+    "enterprise": "not_applicable",
+    "fidelity": "pass"
+   },
+   "boundary": {
+    "evaluator": "3d06572ee961",
+    "oracle": "038ba7c3b95f",
+    "case": "53252bfd577e",
+    "candidate": "1af320e8eafa"
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "its tests bind a fixed port; not run: the unmutated copy's test run touched a declared port (3000) 3 times",
+    "efficiency.cost_usd": "the run ran on Ollama (--backend ollama): Claude Code prices its tokens at Anthropic's rates, so its total_cost_usd is not this run's cost; the tokens are"
+   }
+  },
+  {
+   "scorecard": "scorecard/6",
+   "run": "/Users/dadleet/e2e-runs/20261026/live-sonnet-battleship-01b9b3",
+   "observed": true,
+   "case": "battleship",
+   "driver": {
+    "host": "claude",
+    "backend": null,
+    "model": "claude-sonnet-5-5",
+    "effort": null
+   },
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.16.0",
+    "shiploop_version": "1.15.0"
+   },
+   "outcome_class": "PASS",
+   "validity": {
+    "resumed": false,
+    "mixed_host": false,
+    "host_builds": [
+     "2.1.310"
+    ],
+    "overlapped_runs": 4,
+    "overlap_root": "~/e2e-runs",
+    "left_behind_survived": 0,
+    "work_tree_after": [],
+    "shared_tmp_names": [],
+    "held_out_seen": null,
+    "delivery_snapshot": {
+     "head": "fb21f62edb502c6a7c8a110fe58f89a79dae3db1",
+     "bundle": "delivery/work.bundle",
+     "during_checks": [],
+     "after_run": []
+    },
+    "correctness": {
+     "valid": true,
+     "why": []
+    },
+    "models_served": null,
+    "attribution": {
+     "valid": true,
+     "why": []
+    },
+    "timing": {
+     "valid": false,
+     "why": [
+      "overlapped 4 run(s)"
+     ]
+    }
+   },
+   "accuracy": {
+    "pass": true,
+    "verdicts": {
+     "invoked": true,
+     "plugin": true,
+     "process": true,
+     "shiploop": true,
+     "committed": true
+    },
+    "checks": {
+     "passed": 4,
+     "total": 4
+    },
+    "acceptance": null,
+    "mutation": null,
+    "acceptance_required": false,
+    "floor": "pass"
+   },
+   "enterprise": {
+    "observed": false,
+    "reason": "no scripted enterprise rubric yet (design P2)",
+    "floor": "not_applicable"
+   },
+   "fidelity": {
+    "end_status": "done",
+    "unverified": 0,
+    "unverified_not_restated": 0,
+    "skipped_evidence": 0,
+    "script_owned_edits_to_confirm": 0,
+    "refusals": 5,
+    "repeated_refusals": 0,
+    "retired_terms": 0,
+    "floor": "pass"
+   },
+   "efficiency": {
+    "minutes": 36.9,
+    "cost_usd": 8.4743,
+    "totals_lower_bound": false,
+    "turns": 339,
+    "tokens": 51445908,
+    "output_tokens": 170501,
+    "refusals": 5,
+    "improve_children": 11,
+    "planning_minutes": 11.0,
+    "reorientation_minutes": 0.0,
+    "fresh_starts": 0,
+    "calls_before_grounding": 0
+   },
+   "floors": {
+    "accuracy": "pass",
+    "enterprise": "not_applicable",
+    "fidelity": "pass"
+   },
+   "boundary": {
+    "evaluator": "c762e11669a7",
+    "oracle": "337e9997e136",
+    "case": "53252bfd577e",
+    "candidate": "1af320e8eafa"
+   },
+   "unmeasured": {
+    "accuracy.acceptance": "the case declares no hidden acceptance checks",
+    "accuracy.mutation": "its tests bind a fixed port; not run: the unmutated copy's test run touched a declared port (3000) 2 times"
+   }
+  }
+ ]
+}

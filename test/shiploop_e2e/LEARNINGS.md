@@ -3595,11 +3595,79 @@ for both, the engine ended done, and no unverified entries remained.
   - 12 of its 15 refusals were record fields over their printed bound, such as `test_layers[].reason` over 160
     characters or a `targets[].target` over 60. Only one repeated.
   - One was a refused attempt to record an Improve pass with no call to the improve skill, so the gate held.
-- **2.15.0's two gates were not exercised.** No review reached the small-pass cap and no item was deferred, so hello is
-  too small for this live check. Battleship is the case for it.
+- ~~**2.15.0's two gates were not exercised.** No review reached the small-pass cap and no item was deferred, so hello is
+  too small for this live check. Battleship is the case for it.~~ **Superseded 2026-10-26** (the battleship entry
+  below), half wrong:
+  - The convergence gate was indeed never armed. No review had three 1–10-line passes in a row; the longest were
+    release-plan's 93, 43, 14, 2 and system-test-author's 22, 10, 15, 0.
+  - **The restatement rule was exercised, and it held with no refusal.** Product-acceptance deferred one entry, TC_1 /
+    SYS-8: the returned checkout runs the program, due at release-verify. Release-verify observed it and returned `[]`,
+    and handoff restated `[]`.
+  - The first reading counted only Sonnet's empty lists. The run's `results/*.md` are the record.
 - **Timing is not evidence.** The pilot overlapped the Sonnet battleship run (1,242 s), and the Sonnet hello overlapped
   three runs. Part of DeepSeek's wall time is Ollama cloud latency.
 
 **Next.**
 - Battleship on DeepSeek flash would exercise both gates, as would the Sonnet battleship that is running.
 - An open question: the Anthropic route passes `CLAUDE_EFFORT=xhigh` from a Desktop session. See the previous entry.
+
+## Battleship on DeepSeek flash through Claude Code, the 2.15.0 live check (2026-10-26) — status: firm for the verdict and the restatement firing; n=1; the convergence gate was not exercised
+
+**Question.** Does ShipLoop carry DeepSeek flash (`claude --backend ollama`, `deepseek-v4.1-flash:1017-cloud`)
+through battleship on 2.16.0 / ShipLoop 1.15.0, within a 4-hour cap? Does either 2.15.0 gate fire: the review
+convergence gate, or the restatement rule? Run from a separate worktree at 7833e004, with no other harness run alive.
+
+**Result** (`docs/experiments/e2e-claude-ollama-battleship-20261026/cards.json`, beside the Sonnet battleship card;
+the baseline row is in this commit).
+
+| | DeepSeek flash (Ollama) | Sonnet 5.5 (earlier entry) |
+|---|---|---|
+| verdict | PASS, 4 of 4 checks incl. the calibrated game check; engine done, unverified 0 | PASS, 4 of 4 |
+| wall minutes | 222.4 (cap 240) | 36.9 |
+| turns / model calls | 4,620 / 2,613 | 339 / 186 |
+| tokens processed / output | 267.1M / 2.03M | 51.4M / 170.5k |
+| refusals | 38, 0 repeated | 5, 0 repeated |
+| Improve children / passes | 22 / 43 | 11 |
+| cost | not measured (Ollama plan) | $8.47 |
+
+**What it shows.**
+- **The restatement rule fired live for the first time, and caught a real omission.**
+  - Product-acceptance deferred one entry: the R-7 local-only boundary on the returned checkout, due at
+    release-verify. Release-verify observed it and returned `[]`.
+  - Handoff's first done result left `unverified` out, and the gate refused it: "a done handoff result restates
+    unverified, the list release-verify left …". The next submit restated `[]` and passed.
+  - The list it guarded was already empty, so the refusal prevented no lost entry. It does show that the rule bites
+    on a real run. The hello pilot carried a list the same way, with no refusal.
+- **The convergence gate was never armed.** 22 reviews ran 43 passes, at most 5 (spec: 37, 9, 18, 25, 4 lines). No
+  review had three passes in a row of 1–10 lines; small passes came singly, and the next pass was 0 lines or large.
+  DeepSeek does not loop the way Haiku did (12 passes, 2026-10-25), so this case gives no evidence on that gate.
+- **The refusals were catches, not loops.** 38 refusals, none repeated, each fixed on the next submit:
+  - 9 record fields over their printed bound;
+  - 6 `improve-pass` calls before the improve skill was called, in 6 of the 22 Improve stages. This is the model's most
+    common slip, and the gate caught every one. The hello pilot had 1;
+  - 4 mutation-check stops. W2's server tests let 2 of 8 mutants survive, then 1 of 8, before its test stage was done;
+  - 2 reviews that changed a result without recording the re-check in `checks.md`;
+  - 17 other record-shape and coverage catches. One was `public/index.html` with no unit-test row; another was a new
+    `server.js` planned as already working.
+- **One send-back.** W1's implement stage sent its step plan back. The plan's Proof commands ran `test/game.test.js`,
+  which only the later test stage writes. W1 took about 70 minutes, W2 about 50, and W3 about 40.
+- **The route held for the whole run.** `models_served` is the requested tag only, so attribution is valid. The child
+  had `ANTHROPIC_BASE_URL=http://127.0.0.1:11434` and no OAuth variable, and its model connections went to
+  `localhost:11434`.
+  - One open connection went to `api.anthropic.com` (`2607:6bc0::10`, observed with `lsof` at 50 minutes). It carried
+    no model calls, since every reply is DeepSeek's. What it carries is unverified; it is probably Claude Code's own
+    non-model traffic.
+  - Neither the harness nor ask-ollama sets `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
+
+**Validity.**
+- Timing is valid: no other harness run overlapped. The Sonnet card's timing is not (it overlapped 4 runs), so the
+  roughly 6× wall-time ratio is indicative only. Part of DeepSeek's time is Ollama cloud latency.
+- Correctness and attribution are valid. Mutation was not observed: the tests bind a fixed port (3000), as on Sonnet.
+  The harness stopped one leftover `node` (port 55420) at the end.
+
+**Next.**
+- The convergence gate still needs a model that loops, so this case and DeepSeek do not test it.
+- Consider `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` on the Ollama route, with a test, so that the child opens no
+  Anthropic connection at all.
+- The improve-skill skip (6 of 22) is a candidate packet fix: the Improve packet could put the Skill call first and
+  make it unmissable.
