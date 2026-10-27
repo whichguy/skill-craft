@@ -305,8 +305,9 @@ class SendBackTests(unittest.TestCase):
             self.assertIn(token, head)
         self.assertNotIn("carried over from the previous implement result", head)  # there is none to carry over
 
-        # The amended plan's second step is no revisit: its implement result after the send-back exists.
-        state = walk(state, [row for row in rows[until:] if row["at"] in ("implement", nav.IMPROVE_STAGE)][:2])
+        # The amended plan's second step is no revisit: its implement result after the send-back exists.  S1 is not the
+        # item's last step, so no Improve child follows it (rule item, 2026-10-26).
+        state = walk(state, [row for row in rows[until:] if row["at"] == "implement"][:1])
         self.assertEqual(nav.current_stage(state), "implement")
         self.assertIn("Step S2 (2 of 2)", head_of(state))
         self.assertNotIn("Revisit: ", head_of(state))
@@ -321,6 +322,7 @@ class SendBackTests(unittest.TestCase):
         test_spec = next(i for i, row in enumerate(rows) if row["at"] == "test-spec")
         until = next(i for i, row in enumerate(rows) if row["at"] == "implement")
         step = [row for row in rows[until:] if row["at"] in ("implement", nav.IMPROVE_STAGE)][:2]
+        not_last = step[:1]  # rule item (2026-10-26): S1 is not the item's last step, so no Improve child follows it
 
         def plan_to_implement(state: dict) -> dict:
             state = submit(state, two_steps)
@@ -328,7 +330,7 @@ class SendBackTests(unittest.TestCase):
             return walk(state, rows[test_spec:until])
 
         state = plan_to_implement(drive_to("step-plan"))
-        state = walk(state, step)
+        state = walk(state, not_last)
         first = last_action(state, "implement", "done")
         state = walk(state, step)
         second = last_action(state, "implement", "done")
@@ -339,7 +341,7 @@ class SendBackTests(unittest.TestCase):
         self.assertIn("Step S1 (1 of 2)", head)
         self.assertIn("Step S1's previous accepted result, before the send-back: " + result_path(first), head)
         self.assertNotIn(result_path(second), head)
-        state = walk(state, step)
+        state = walk(state, not_last)
         head = head_of(state)
         self.assertIn("Step S2 (2 of 2)", head)
         self.assertIn("Step S2's previous accepted result, before the send-back: " + result_path(second), head)

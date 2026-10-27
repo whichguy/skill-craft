@@ -73,11 +73,11 @@ assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.cursor/skills/skill-interop"
-printf '%s\n' "$out" | grep -q 'OpenCode' || fail "I1 stdout missing OpenCode install line"
-printf '%s\n' "$out" | grep -q 'Claude Code' && fail "I1 default must not touch Claude Code: $out"
-printf '%s\n' "$out" | grep -q 'Grok' && fail "I1 default must not touch Grok: $out"
-printf '%s\n' "$out" | grep -q 'Codex' && fail "I1 default must not touch Codex: $out"
-printf '%s\n' "$out" | grep -q 'Cursor' && fail "I1 default must not touch Cursor: $out"
+grep -q 'OpenCode' <<<"$out" || fail "I1 stdout missing OpenCode install line"
+grep -q 'Claude Code' <<<"$out" && fail "I1 default must not touch Claude Code: $out"
+grep -q 'Grok' <<<"$out" && fail "I1 default must not touch Grok: $out"
+grep -q 'Codex' <<<"$out" && fail "I1 default must not touch Codex: $out"
+grep -q 'Cursor' <<<"$out" && fail "I1 default must not touch Cursor: $out"
 # Backchain and Plan Dispatcher are ordinary skills/ leaves; same default scope.
 assert_symlink "$(opencode_skills_dir)/backchain" "$root/skills/backchain"
 assert_symlink "$(opencode_skills_dir)/plan-dispatcher" "$root/skills/plan-dispatcher"
@@ -89,7 +89,7 @@ assert_absent "$HOME/.claude/skills/plan-dispatcher"
 # "already installed" for OpenCode (the only symlink host the default touches).
 # ---------------------------------------------------------------------------
 out2="$("$install_sh" 2>&1)" || fail "I2 install.sh re-run failed: $out2"
-printf '%s\n' "$out2" | grep -q 'Already installed' || fail "I2 re-run should report already installed"
+grep -q 'Already installed' <<<"$out2" || fail "I2 re-run should report already installed"
 assert_symlink "$(opencode_skills_dir)/skill-interop" "$source_interop"
 
 # ---------------------------------------------------------------------------
@@ -100,11 +100,11 @@ assert_symlink "$(opencode_skills_dir)/skill-interop" "$source_interop"
 fresh_home i1all
 outall="$("$install_sh" --all 2>&1)" || fail "I1b install.sh --all failed: $outall"
 assert_all_hosts "skill-interop" "$source_interop"
-printf '%s\n' "$outall" | grep -q 'Claude Code' || fail "I1b stdout missing Claude install line"
-printf '%s\n' "$outall" | grep -q 'Grok' || fail "I1b stdout missing Grok install line"
-printf '%s\n' "$outall" | grep -q 'Codex' || fail "I1b stdout missing Codex install line"
-printf '%s\n' "$outall" | grep -q 'Cursor' || fail "I1b stdout missing Cursor install line"
-printf '%s\n' "$outall" | grep -q 'OpenCode' || fail "I1b stdout missing OpenCode install line"
+grep -q 'Claude Code' <<<"$outall" || fail "I1b stdout missing Claude install line"
+grep -q 'Grok' <<<"$outall" || fail "I1b stdout missing Grok install line"
+grep -q 'Codex' <<<"$outall" || fail "I1b stdout missing Codex install line"
+grep -q 'Cursor' <<<"$outall" || fail "I1b stdout missing Cursor install line"
+grep -q 'OpenCode' <<<"$outall" || fail "I1b stdout missing OpenCode install line"
 assert_all_hosts "backchain" "$root/skills/backchain"
 assert_all_hosts "plan-dispatcher" "$root/skills/plan-dispatcher"
 
@@ -115,7 +115,7 @@ fresh_home i3
 mkdir -p "$HOME/.claude/skills/skill-interop"
 printf 'foreign\n' >"$HOME/.claude/skills/skill-interop/SKILL.md"
 out3="$("$install_sh" --claude-only --skill skill-interop 2>&1)" || fail "I3 over foreign failed: $out3"
-printf '%s\n' "$out3" | grep -q 'Skipped existing path' || fail "I3 foreign path should be skipped"
+grep -q 'Skipped existing path' <<<"$out3" || fail "I3 foreign path should be skipped"
 [[ -f "$HOME/.claude/skills/skill-interop/SKILL.md" ]] || fail "I3 foreign tree must remain"
 got_foreign="$(cat "$HOME/.claude/skills/skill-interop/SKILL.md")"
 [[ "$got_foreign" == "foreign" ]] || fail "I3 foreign SKILL.md content changed"
@@ -169,7 +169,7 @@ assert_absent "$HOME/.cursor/skills/skill-interop"
 # ---------------------------------------------------------------------------
 fresh_home i10
 out10="$("$install_sh" --dry-run --skill skill-interop 2>&1)" || fail "I10 dry-run failed: $out10"
-printf '%s\n' "$out10" | grep -q 'Would install' || fail "I10 dry-run should print Would install"
+grep -q 'Would install' <<<"$out10" || fail "I10 dry-run should print Would install"
 assert_no_hosts "skill-interop"
 [[ ! -d "$HOME/.claude" ]] || fail "I10 dry-run must not create ~/.claude"
 [[ ! -d "$HOME/.grok" ]] || fail "I10 dry-run must not create ~/.grok"
@@ -184,7 +184,7 @@ fresh_home i11
 mkdir -p "$HOME/.claude/skills"
 ln -s "/nonexistent/dangling-target-i11" "$HOME/.claude/skills/skill-interop"
 out11="$("$install_sh" --claude-only --skill skill-interop 2>&1)" || fail "I11 failed: $out11"
-printf '%s\n' "$out11" | grep -q 'Skipped existing path' || fail "I11 dangling without --relink should be skipped: $out11"
+grep -q 'Skipped existing path' <<<"$out11" || fail "I11 dangling without --relink should be skipped: $out11"
 got11="$(readlink "$HOME/.claude/skills/skill-interop")"
 [[ "$got11" == "/nonexistent/dangling-target-i11" ]] || fail "I11 dangling target must remain without --relink (got $got11)"
 
@@ -195,12 +195,12 @@ fresh_home i12
 mkdir -p "$HOME/.claude/skills"
 ln -s "/nonexistent/dangling-target-i12" "$HOME/.claude/skills/skill-interop"
 out12="$("$install_sh" --claude-only --skill skill-interop --relink 2>&1)" || fail "I12 failed: $out12"
-printf '%s\n' "$out12" | grep -q 'Relinked' || fail "I12 should report Relinked: $out12"
+grep -q 'Relinked' <<<"$out12" || fail "I12 should report Relinked: $out12"
 assert_symlink "$HOME/.claude/skills/skill-interop" "$source_interop"
 rm -f "$HOME/.claude/skills/skill-interop"
 ln -s "/nonexistent/other" "$HOME/.claude/skills/skill-interop"
 out12d="$("$install_sh" --claude-only --skill skill-interop --relink --dry-run 2>&1)" || fail "I12 dry-run failed: $out12d"
-printf '%s\n' "$out12d" | grep -q 'Would relink' || fail "I12 dry-run should print Would relink: $out12d"
+grep -q 'Would relink' <<<"$out12d" || fail "I12 dry-run should print Would relink: $out12d"
 got12d="$(readlink "$HOME/.claude/skills/skill-interop")"
 [[ "$got12d" == "/nonexistent/other" ]] || fail "I12 dry-run must not rewrite symlink"
 
@@ -211,7 +211,7 @@ fresh_home i13
 mkdir -p "$HOME/.claude/skills/skill-interop"
 printf 'foreign-relink\n' >"$HOME/.claude/skills/skill-interop/SKILL.md"
 out13="$("$install_sh" --claude-only --skill skill-interop --relink 2>&1)" || fail "I13 failed: $out13"
-printf '%s\n' "$out13" | grep -q 'Skipped existing path' || fail "I13 foreign real dir must still be skipped: $out13"
+grep -q 'Skipped existing path' <<<"$out13" || fail "I13 foreign real dir must still be skipped: $out13"
 [[ -d "$HOME/.claude/skills/skill-interop" ]] || fail "I13 foreign dir must remain a directory"
 [[ ! -L "$HOME/.claude/skills/skill-interop" ]] || fail "I13 must not convert foreign dir to symlink"
 got13="$(cat "$HOME/.claude/skills/skill-interop/SKILL.md")"
@@ -254,7 +254,7 @@ out18a="$("$install_sh" --opencode-only --skill skill-interop --agents 2>&1)"
 rc18a=$?
 set -e
 [[ "$rc18a" -eq 64 ]] || fail "I18 --opencode-only --agents want exit 64 got $rc18a: $out18a"
-printf '%s\n' "$out18a" | grep -q -- '--agents needs' || fail "I18 --agents message: $out18a"
+grep -q -- '--agents needs' <<<"$out18a" || fail "I18 --agents message: $out18a"
 assert_absent "$XDG_CONFIG_HOME/opencode/skills/skill-interop"
 out18="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "I18 failed: $out18"
 assert_symlink "$XDG_CONFIG_HOME/opencode/skills/skill-interop" "$source_interop"
@@ -265,7 +265,7 @@ assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.cursor/skills/skill-interop"
 assert_absent "$XDG_CONFIG_HOME/opencode/agents/skill-interop.md"
 assert_absent "$XDG_CONFIG_HOME/opencode/opencode.json"
-printf '%s\n' "$out18" | grep -q 'OpenCode' || fail "I18 stdout missing OpenCode install line: $out18"
+grep -q 'OpenCode' <<<"$out18" || fail "I18 stdout missing OpenCode install line: $out18"
 
 # ---------------------------------------------------------------------------
 # I19: --all explicitly selects every host (Claude/Grok/Codex/Cursor/OpenCode),
@@ -291,7 +291,7 @@ expect_from_refused() {
   rc=$?
   set -e
   [[ "$rc" -eq 64 ]] || fail "$label should exit 64 (got $rc): $out"
-  printf '%s\n' "$out" | grep -q 'marketplace-only' || fail "$label refusal message: $out"
+  grep -q 'marketplace-only' <<<"$out" || fail "$label refusal message: $out"
 }
 fresh_home i21
 expect_from_refused "I21 leaf plugin view" --from "$root/plugins/skill-craft/skills/skill-interop"
@@ -367,7 +367,7 @@ assert_symlink "$HOME/.claude/skills/upstream-leaf" "$upstream/skills/upstream-l
 
 # --help exits 0 and names the marketplace-only sources
 help_text="$("$install_sh" --help 2>&1)"
-printf '%s\n' "$help_text" | grep -q 'marketplace-only' || fail "--help must state generated plugin views are marketplace-only"
+grep -q 'marketplace-only' <<<"$help_text" || fail "--help must state generated plugin views are marketplace-only"
 
 # Invalid flag → exit 64
 set +e
@@ -378,22 +378,22 @@ set -e
 
 # One spelling per flag: --relink and --skill all. The retired --force and
 # --skill both spellings are not synonyms any more.
-printf '%s\n' "$help_text" | grep -q -- '--relink' || fail "--help must document --relink"
-printf '%s\n' "$help_text" | grep -q -- '--force' && fail "--help must not document --force"
-printf '%s\n' "$help_text" | grep -qw 'both' && fail "--help must not document --skill both"
+grep -q -- '--relink' <<<"$help_text" || fail "--help must document --relink"
+grep -q -- '--force' <<<"$help_text" && fail "--help must not document --force"
+grep -qw 'both' <<<"$help_text" && fail "--help must not document --skill both"
 fresh_home flags
 set +e
 out_force="$("$install_sh" --claude-only --skill skill-interop --force 2>&1)"
 rc_force=$?
 set -e
 [[ "$rc_force" -eq 64 ]] || fail "--force must be an unknown flag (exit 64, got $rc_force): $out_force"
-printf '%s\n' "$out_force" | grep -q 'Unknown flag: --force' || fail "--force refusal message: $out_force"
+grep -q 'Unknown flag: --force' <<<"$out_force" || fail "--force refusal message: $out_force"
 set +e
 out_both="$("$install_sh" --claude-only --skill both 2>&1)"
 rc_both=$?
 set -e
 [[ "$rc_both" -eq 1 ]] || fail "--skill both must not select every skill (exit 1, got $rc_both): $out_both"
-printf '%s\n' "$out_both" | grep -q 'skills/both/SKILL.md' || fail "--skill both is a plain leaf name: $out_both"
+grep -q 'skills/both/SKILL.md' <<<"$out_both" || fail "--skill both is a plain leaf name: $out_both"
 [[ ! -e "$HOME/.claude" ]] || fail "--force/--skill both must not write"
 
 # --agents with --status is a usage error (exit 64), not a printf failure (exit 2).
@@ -402,6 +402,6 @@ out_agents="$("$install_sh" --status --agents 2>&1)"
 rc_agents=$?
 set -e
 [[ "$rc_agents" -eq 64 ]] || fail "--status --agents want exit 64 got $rc_agents: $out_agents"
-printf '%s\n' "$out_agents" | grep -q -- '--agents is only valid for install' || fail "--agents message: $out_agents"
+grep -q -- '--agents is only valid for install' <<<"$out_agents" || fail "--agents message: $out_agents"
 
 printf 'install-targets.test.sh: PASS I1, I1b, I2–I8, I10–I15, I18, I19, I21 (skill-craft install, 5 hosts, default-hosts scope, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

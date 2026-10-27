@@ -144,7 +144,8 @@ class TextRenderTests(unittest.TestCase):
         self.assertIsNone(self.manifests["bare"]["cli_path_length"])
 
     def test_the_red_check_script_and_the_callbacks_name_the_same_cli_under_one_install_root(self):
-        test_packet = self.text["a83"]["08-test.whole.txt"]
+        # Found by stage, not by number: dropping a review renumbers the packets (rule item, 2026-10-26).
+        test_packet = next(text for name, text in self.text["a83"].items() if re.fullmatch(r"\d+-test\.whole\.txt", name))
         red = re.search(r"red-check: (\S+) (\S+) red-check", test_packet)
         callback = re.search(r"python3 (\S+) complete", test_packet)
         self.assertEqual(red.group(1), "python3")  # plan U10: the red-check line prints python3, not sys.executable

@@ -92,14 +92,17 @@ class ConsumerDeliveryTests(unittest.TestCase):
         """Say whether this suite expects the result to park an Improve child: only a done result does, at every reviewed stage."""
         if submitted["outcome"] != "done":
             return False
-        if stage in ("step-plan", "test-spec"):  # rule first-item (2026-10-19): the first item, or one sent back
+        if stage == "test-spec":  # no Improve rule (2026-10-26)
+            return False
+        if stage == "step-plan":  # rule first-item (2026-10-19): the first item, or one sent back
             item = navigator._current_work_item(state)
             return item == state["work_items"][0]["id"] or any(
                 row["workitem"] == item and row["outcome"] == "send-back" for row in state["history"])
         if stage in guidance.PLANNING_REVIEW_STAGES:
             return True
-        if stage == "implement":  # an Improve child reviews every accepted implement step
-            return True
+        if stage == "implement":  # rule item (2026-10-26): one Improve child per item, after its last step
+            view = navigator.step_view(state, navigator._current_work_item(state))
+            return view is None or view.number >= len(view.steps)
         if stage != "carry-forward":
             return False
         if "work_items" in submitted:

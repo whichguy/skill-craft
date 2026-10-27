@@ -2181,8 +2181,10 @@ class CheckScratchFileTest(unittest.TestCase):
             (work / name).write_text("<title>Battleship</title> Checkers accuracy\n" if name == "page.html" else f"the product's {name}\n")
         subprocess.run(["git", "init", "-q", str(work)], check=True)
         subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
-        subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm",
-                        "product"], check=True)
+        # maintenance.auto=false: a detached auto-maintenance after the commit held objects/maintenance.lock while the test
+        # copied the tree, and copytree failed on the vanished lock (release CI 40447967270, git 2.55).
+        subprocess.run(["git", "-C", str(work), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                        "-c", "maintenance.auto=false", "commit", "-qm", "product"], check=True)
         return work
 
     def test_a_product_that_commits_page_html_and_the_scratch_names_keeps_them_through_every_case_check(self):

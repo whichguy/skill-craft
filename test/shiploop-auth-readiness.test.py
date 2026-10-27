@@ -233,8 +233,8 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
     def _result(stage: str, *, outcome: str = "done", **extra) -> dict:
         return {
             "outcome": outcome,
-            "summary": (
-                f"Synthetic host declaration at {stage}; no credential, network, "
+            "summary": (  # cites S1, the fixture prompt's one sentence: a done intake must (IN1)
+                f"Synthetic host declaration at {stage} (S1); no credential, network, "
                 "or setup action was performed."
             ),
             **extra,

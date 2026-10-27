@@ -77,9 +77,10 @@ COLD_RECOVERY_STAGES = {"discovery", "implement", "release-check"}
 # other stage advances with a plain callback.  Independent of the navigator
 # implementation's own copy, per this file's public-contract convention above.
 CHECKPOINT_STAGES = frozenset({
-    "spec", "test-strategy", "plan", "step-plan", "test-spec", "implement",
+    "spec", "test-strategy", "plan", "step-plan", "implement",
     "system-test-author", "release-plan",
-})  # implement: an Improve child reviews every accepted step (owner decision 2026-10-10)
+})  # implement: one Improve child per item, after its last step (rule item, 2026-10-26); this suite's items have one
+# step each.  test-spec has no Improve rule.
 
 
 def _delivery_contract(*, candidate: str = "candidate-v1") -> dict:
@@ -710,7 +711,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         review; every other stage (and every other carry-forward outcome)
         advances directly.
         """
-        if stage in ("step-plan", "test-spec") and outcome == "done":
+        if stage == "step-plan" and outcome == "done":
             # Rule first-item (2026-10-19): reviewed for the first work item, or for an item that was sent back.
             state = self._state(run)
             item = state["work_items"][state["work_index"]]["id"]
