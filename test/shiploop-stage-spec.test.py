@@ -82,29 +82,32 @@ class StageTableTest(unittest.TestCase):
 
     def test_improve_rules(self) -> None:
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({
-            "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
+            "spec", "test-strategy", "plan", "step-plan", "system-test-author", "release-plan"}))
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
+        # Rule item (owner, 2026-10-26, design 560c396f P0): one implement review per work item; test-spec has none.
+        self.assertEqual(spec.IMPROVE_RULES, ("always", "last-item", "item", "first-item"))
+        self.assertEqual(spec.with_improve("item"), frozenset({"implement"}))
+        self.assertIsNone(spec.stage("test-spec").improve)
 
     def test_planning_review_modes(self) -> None:
         """The run option `planning_review`: the registered modes and the stages a mode reviews."""
         self.assertEqual(spec.PLANNING_REVIEW_MODES, ("stage", "none"))
         self.assertEqual(spec.DEFAULT_PLANNING_REVIEW, "stage")
         self.assertIn(spec.DEFAULT_PLANNING_REVIEW, spec.PLANNING_REVIEW_MODES)
-        # `stage`: every stage whose rule is `always` starts an Improve child, and a `first-item` stage (step-plan,
-        # test-spec) does for the first work item and an item that was sent back (owner, 2026-10-19).
-        self.assertEqual(spec.with_improve("first-item"), frozenset({"step-plan", "test-spec"}))
+        # `stage`: every stage whose rule is `always` starts an Improve child, and the `first-item` stage (step-plan)
+        # does for the first work item and an item that was sent back (owner, 2026-10-19).
+        self.assertEqual(spec.with_improve("first-item"), frozenset({"step-plan"}))
         self.assertEqual(spec.reviewed_stages("stage"), spec.with_improve("always") | spec.with_improve("first-item"))
         self.assertEqual(spec.reviewed_stages("stage"), frozenset({
-            "spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan"}))
-        # `none` starts no child at the five planning stages the option covers; the children after
+            "spec", "test-strategy", "plan", "step-plan", "system-test-author", "release-plan"}))
+        # `none` starts no child at the four planning stages the option covers; the children after
         # system-test-author and release-plan stay, and the last carry-forward's rule is not the option's.
-        self.assertEqual(spec.PLANNING_CHOICE_STAGES, frozenset({
-            "spec", "test-strategy", "plan", "step-plan", "test-spec"}))
+        self.assertEqual(spec.PLANNING_CHOICE_STAGES, frozenset({"spec", "test-strategy", "plan", "step-plan"}))
         self.assertEqual(spec.reviewed_stages("none"), frozenset({"system-test-author", "release-plan"}))
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
         for mode in spec.PLANNING_REVIEW_MODES:
             self.assertLessEqual(spec.reviewed_stages(mode), spec.with_improve("always") | spec.with_improve("first-item"))
-        # the seven-stage set the option does not redefine still drives the source-printing packets
+        # the six-stage set the option does not redefine still drives the source-printing packets
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, spec.reviewed_stages("stage"))
         with self.assertRaises(ValueError):
             spec.reviewed_stages("two")

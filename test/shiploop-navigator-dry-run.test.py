@@ -83,10 +83,11 @@ class BattleshipMeasurementTests(unittest.TestCase):
 
     def test_a_metadata_only_item_skips_its_test_stage(self):
         counts = host_work_per_item({"W1": CODE_ITEM, "W2": METADATA_ITEM})
-        # W1 walks all 8 INNER stages; its step-plan, test-spec and its implement step get Improve reviews.
-        self.assertEqual(counts["W1"], {"packets": 8, "reviews": 3})
-        # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added. Its step-plan and
-        # test-spec follow W1's reviewed pattern (rule first-item, 2026-10-19): implement and carry-forward remain.
+        # W1 walks all 8 INNER stages; its step-plan and its implemented change (rule item) get Improve reviews, and its
+        # test-spec none (2026-10-26).
+        self.assertEqual(counts["W1"], {"packets": 8, "reviews": 2})
+        # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added. Its step-plan
+        # follows W1's reviewed pattern (rule first-item, 2026-10-19): implement and carry-forward remain.
         self.assertEqual(counts["W2"], {"packets": 7, "reviews": 2})
 
     def test_without_proof_a_no_command_item_still_walks_every_stage(self):
@@ -174,9 +175,10 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertTrue(printed_somewhere)
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
-        # two-work-items: 44 until rule first-item (2026-10-19) dropped W2's step-plan and test-spec reviews.
-        expected = {'delivery': 33, 'two-work-items': 42, 'blocked-resume': 35,
-                    'send-back': 39, 'pause-resume': 35, 'halted': 1}
+        # two-work-items: 44 until rule first-item (2026-10-19) dropped W2's step-plan and test-spec reviews; each scenario
+        # one fewer (send-back two: W1's test spec was reviewed again after it) since test-spec lost its review (2026-10-26).
+        expected = {'delivery': 32, 'two-work-items': 41, 'blocked-resume': 34,
+                    'send-back': 37, 'pause-resume': 34, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
@@ -418,13 +420,13 @@ class NavigatorDryRunTests(unittest.TestCase):
 
     def test_the_dry_run_schedule_is_declared_per_planning_review_mode(self):
         """An independent oracle: the stages whose result starts an Improve child, declared here for each mode."""
-        # implement's per-step review runs in both modes (owner decision 2026-10-10: planning_review none does not
-        # skip the per-step Improve).
-        reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
+        # implement's per-item review runs in both modes (rule item, 2026-10-26; planning_review none does not skip it),
+        # and test-spec has none.
+        reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan',
                               'system-test-author', 'release-plan', 'implement'},
                     'none': {'system-test-author', 'release-plan', 'implement'}}
-        events = {'stage': {'delivery': 33, 'two-work-items': 42, 'blocked-resume': 35, 'send-back': 39,
-                            'pause-resume': 35, 'halted': 1},
+        events = {'stage': {'delivery': 32, 'two-work-items': 41, 'blocked-resume': 34, 'send-back': 37,
+                            'pause-resume': 34, 'halted': 1},
                   # none drops one finish-improve row for each planning result the option covers
                   'none': {'delivery': 28, 'two-work-items': 37, 'blocked-resume': 30, 'send-back': 32,
                            'pause-resume': 30, 'halted': 1}}

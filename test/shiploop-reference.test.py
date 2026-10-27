@@ -114,10 +114,10 @@ class ReviewScheduleSentenceTests(unittest.TestCase):
                     expected = [name for name in stage_spec.STAGES if name in stage_spec.reviewed_stages(mode)]
                     self.assertEqual(self.listed(self.render(mode, delegation)), expected)
 
-    def test_none_lists_the_two_planning_results_it_still_reviews_and_stage_lists_seven(self):
+    def test_none_lists_the_two_planning_results_it_still_reviews_and_stage_lists_six(self):
         self.assertEqual(self.listed(self.render("none", "inline")), ["system-test-author", "release-plan"])
-        self.assertEqual(len(self.listed(self.render("stage", "inline"))), 7)
-        self.assertIn("step-plan and test-spec only for the first work item and after a send-back",
+        self.assertEqual(len(self.listed(self.render("stage", "inline"))), 6)
+        self.assertIn("step-plan only for the first work item and after a send-back",
                       " ".join(_rules_section(self.render("stage", "inline")).split()))
 
     def test_the_rest_of_the_rules_text_is_the_same_in_both_modes(self):
@@ -130,7 +130,7 @@ class ReviewScheduleSentenceTests(unittest.TestCase):
 
     def test_the_sentence_matches_the_children_a_run_of_that_mode_starts(self):
         """Paired with the behaviour it describes: a walk of a run starts a child after the listed planning results, after
-        each accepted implement step and after the last carry-forward, and after nothing else."""
+        each item's last implement step and after the last carry-forward, and after nothing else."""
         for mode in stage_spec.PLANNING_REVIEW_MODES:
             with self.subTest(mode=mode):
                 state = navigator.new_state("/simulation-only/repo", "Build a thing.", delegation="inline",

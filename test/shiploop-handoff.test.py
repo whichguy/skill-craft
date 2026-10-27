@@ -1757,6 +1757,8 @@ class SameBlockDuplicateTests(LongHomeCase):
 # files KNOWLEDGE/<file> where they said HOME/<file>; with KNOWLEDGE written back as HOME every block hashes as before.
 # Renumbered 2026-10-19 by rule first-item: a later item's step-plan and test-spec start no Improve packet, so the
 # walk's packet numbers after W1 shift; every block's hash, in order, is unchanged.
+# Renumbered 2026-10-26 by rule item: test-spec starts no Improve packet and implement starts one only after the item's
+# last step, so the walk's packet numbers after W1's step plan shift; every block's hash, in order, is unchanged.
 SMALL_HOME_FINGERPRINTS: dict = {
     "01-intake": "20425423036e",
     "02-discovery": "e3b0c44298fc",
@@ -1767,30 +1769,30 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "10-prepare": "7a195e151115",
     "11-step-plan": "34d4ded0cbd4",
     "13-test-spec": "603a3bd68476",
-    "15-validate-existing": "fd56ae387ab8",
-    "16-implement": "78542e80fa7e",
-    "18-implement": "84d5d7f4412f",
-    "20-test": "47512f89e19d",
-    "23-document": "626e1ebd33e2",
-    "24-verify": "1bd3e4515b2b",
-    "25-carry-forward": "644fb96deb86",
-    "26-step-plan": "6d1756f3cf4b",
-    "27-test-spec": "a6f458c2ef70",
-    "28-validate-existing": "fd56ae387ab8",
-    "29-implement": "7f5ec4c052ae",
-    "31-test": "3aa81f32adf2",
-    "32-document": "c945cd95cb8d",
-    "33-verify": "fc69229dd486",
-    "34-carry-forward": "50e264bc8291",
-    "36-system-test-author": "9c09062ca617",
-    "38-system-test": "5c1876049e88",
-    "39-product-acceptance": "d957aea6fbd1",
-    "40-release-plan": "d18a852bbe13",
-    "42-release-check": "283571c24c3a",
-    "43-release": "283571c24c3a",
-    "44-release-verify": "3bf63126c3e6",
-    "45-operations": "283571c24c3a",
-    "46-handoff": "7e50c8910839",
+    "14-validate-existing": "fd56ae387ab8",
+    "15-implement": "78542e80fa7e",
+    "16-implement": "84d5d7f4412f",
+    "18-test": "47512f89e19d",
+    "21-document": "626e1ebd33e2",
+    "22-verify": "1bd3e4515b2b",
+    "23-carry-forward": "644fb96deb86",
+    "24-step-plan": "6d1756f3cf4b",
+    "25-test-spec": "a6f458c2ef70",
+    "26-validate-existing": "fd56ae387ab8",
+    "27-implement": "7f5ec4c052ae",
+    "29-test": "3aa81f32adf2",
+    "30-document": "c945cd95cb8d",
+    "31-verify": "fc69229dd486",
+    "32-carry-forward": "50e264bc8291",
+    "34-system-test-author": "9c09062ca617",
+    "36-system-test": "5c1876049e88",
+    "37-product-acceptance": "d957aea6fbd1",
+    "38-release-plan": "d18a852bbe13",
+    "40-release-check": "283571c24c3a",
+    "41-release": "283571c24c3a",
+    "42-release-verify": "3bf63126c3e6",
+    "43-operations": "283571c24c3a",
+    "44-handoff": "7e50c8910839",
 }
 
 SMALL_HOME = {
@@ -2155,7 +2157,8 @@ class CaseRowCliTests(inner.RunDriver):
         # The real complete accepts the same result: a notice never refuses.
         done = self.run_cli(self.command(action, path))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        self.assertEqual(self.state()["active_improve"]["stage"], "test-spec")
+        self.assertIsNotNone(self.state()["accepted"].get(action))
+        self.assertIsNone(self.state()["active_improve"])                        # test-spec starts no Improve stage
 
     def test_a_procedure_key_and_an_opt_in_check_as_a_case_are_refused_and_their_named_exits_accepted(self) -> None:
         """W2-C (implement-step fix plan T34): a case keeps exactly its six fields, so its procedure rides in `oracle`;
@@ -2200,9 +2203,9 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         done = self.run_cli(self.command(action, path))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        seed = self.state()["active_improve"]["seed_result"]          # the result its Improve child now reviews
-        self.assertEqual(seed["test_cases"], [case])
-        self.assertEqual([row["settle"] for row in seed["assumptions"]], [opt_in["settle"]])
+        accepted = self.state()["accepted"][action]                   # the result the test stage builds on
+        self.assertEqual(accepted["test_cases"], [case])
+        self.assertEqual([row["settle"] for row in accepted["assumptions"]], [opt_in["settle"]])
 
 
 class RequirementLinesTests(inner.RunDriver):
@@ -2806,7 +2809,8 @@ class RequestAndReviewedInputTests(unittest.TestCase):
                 self.assertNotIn(navigator.HANDOFF_HEAD, handoff)
                 self.assertEqual("----- BEGIN ORIGINAL REQUEST " in handoff, child["stage"] in ("spec", "plan"))
                 self.assertNotIn("Revisit: ", handoff)                     # a first visit
-        self.assertTrue({"spec", "plan", "step-plan", "test-spec", "implement", "carry-forward"} <= set(seen), seen)
+        self.assertTrue({"spec", "plan", "step-plan", "implement", "carry-forward"} <= set(seen), seen)
+        self.assertNotIn("test-spec", seen)                                # no Improve stage since 2026-10-26
 
     def test_a_revisited_stages_handoff_names_the_previous_accepted_result_and_the_send_back_result(self) -> None:
         state, _ = next(dry_run_packets(stop_at="implement"))

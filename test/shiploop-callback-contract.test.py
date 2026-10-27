@@ -2160,9 +2160,9 @@ class InnerGateRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["skill"], SKILL_NONE)
 
 
-# Stages whose accepted result starts an Improve child (the planning reviews and the last item's carry-forward),
-# declared here and not read from the navigator.
-CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "implement", "carry-forward",
+# Stages whose accepted result starts an Improve child (the planning reviews, the item's last implement step and the
+# last item's carry-forward), declared here and not read from the navigator.  test-spec starts none (2026-10-26).
+CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "implement", "carry-forward",
                "system-test-author", "release-plan")
 # Stages ShipLoop records by script when its own checks leave nothing to do (every expectation matches; the item's diff
 # touches no code or test path); a walk sees their history row, not a packet.

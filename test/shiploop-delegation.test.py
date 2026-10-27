@@ -458,7 +458,8 @@ class StepTests(DelegationStateTests):
         reviewed = sorted(nav.guidance.PLANNING_REVIEW_STAGES) + ["implement", "carry-forward"]
         for stage in reviewed:
             with self.subTest(stage=stage):
-                state = advance(self.state(), stage) if stage != "implement" else self.at_implement()
+                # implement: a one-step plan, so its one step is the item's last (rule item)
+                state = advance(self.state(), stage) if stage != "implement" else self.at_implement(steps=self.STEPS[:1])
                 action = nav.current_action(state)["id"]
                 blocked = nav.apply(state, action, {"outcome": "blocked", "summary": "Needs a decision.", "awaiting": wait})
                 self.assertEqual((blocked["status"], blocked.get("active_improve")), ("blocked", None))
@@ -499,9 +500,10 @@ class StepTests(DelegationStateTests):
 
 
 class StepBlockTests(unittest.TestCase):
-    """One step block on every surface (implement-step fix plan section 3.1, W2-B): the packet file, the printed head and
-    the step's Improve hand-off name the same step, criteria, Proof and locators; the loop closes both the file and the
-    head; the hand-off names the diff base the step began from.  A three-step plan in a real Git checkout."""
+    """One step block on every surface (implement-step fix plan section 3.1, W2-B): the packet file and the printed head
+    name the same step, criteria, Proof and locators, and so does the item's Improve hand-off at its last step (rule
+    item, 2026-10-26); the loop closes both the file and the head; the hand-off names the diff base the item's first step
+    began from.  A three-step plan in a real Git checkout."""
 
     CRITERIA = [{"id": "C1", "text": "The parser reads a valid record (R-1)."},
                 {"id": "C2", "text": "The validator rejects an empty record (R-2)."},
@@ -548,12 +550,18 @@ class StepBlockTests(unittest.TestCase):
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
             state = nav._step_entry(self.run, before, state)
         for _ in range(number - 1):
-            action = nav.current_action(state)["id"]
-            before = state
-            state = nav.apply(state, action, {"outcome": "done", "summary": "Step done."})
-            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
-            state = nav._step_entry(self.run, before, state)
+            state = self.next_step(state)
         return state
+
+    def next_step(self, state: dict, summary: str = "Step done.") -> dict:
+        """Accept the current step as the CLI does (its end tree, then the transition's entry tree for the next); a step
+        before the item's last starts no Improve child (rule item)."""
+        state = nav._step_after(self.run, state)
+        action = nav.current_action(state)["id"]
+        before = state
+        state = nav.apply(state, action, {"outcome": "done", "summary": summary})
+        self.assertIsNone(state.get("active_improve"), "a step before the item's last starts no review")
+        return nav._step_entry(self.run, before, state)
 
     def under_review(self, state: dict) -> dict:
         """``state`` with the step's result returned and its Improve child bound, its bind snapshot written."""
@@ -569,9 +577,13 @@ class StepBlockTests(unittest.TestCase):
         return waiting
 
     def surfaces(self, state: dict) -> dict:
+        """The packet file and head, and at the item's last step the item's Improve hand-off (rule item)."""
         path = nav.packet_path(self.run, state)
-        return {"file": nav.render(None, self.run, state), "head": nav.packet_head(None, self.run, state, path),
-                "handoff": nav.improve_handoff_text(None, self.run, self.under_review(state))}
+        texts = {"file": nav.render(None, self.run, state), "head": nav.packet_head(None, self.run, state, path)}
+        view = nav.step_view(state, "W1")
+        if view is not None and view.number == len(view.steps):
+            texts["handoff"] = nav.improve_handoff_text(None, self.run, self.under_review(state))
+        return texts
 
     @staticmethod
     def step_lines(text: str) -> list[str]:
@@ -580,50 +592,34 @@ class StepBlockTests(unittest.TestCase):
         end = next(n for n in range(start, len(lines)) if lines[n].startswith("Files: ShipLoop commits"))
         return lines[start:end + 1]
 
-    def test_a_step_that_changed_no_file_starts_no_review_and_one_that_did_is_reviewed(self):
-        """Advisors panel 2026-10-25, P4: "review each changed implementation action". Chess runs 3 and 5b reviewed
-        reissued steps that changed nothing after a send-back three times (one trivial pass each, 327 s); the step's Proof
-        still runs as a gate, so an unchanged step needs no review of code an earlier review read."""
-        state = nav._step_after(self.run, self.at_step(1))
-        action = nav.current_action(state)
+    def test_a_round_that_changed_no_file_starts_no_review_and_one_that_did_is_reviewed(self):
+        """Advisors panel 2026-10-25, P4, under rule item (2026-10-26): chess runs 3 and 5b reviewed reissued steps that
+        changed nothing after a send-back three times (one trivial pass each, 327 s). The item's review follows its last
+        step, and a round of steps none of which changed a file starts none; one changed step in the round starts it."""
+        unchanged = self.at_step(3)
+        self.assertIs(nav.current_action(unchanged)["round_changed"], False)
+        unchanged = nav._step_after(self.run, unchanged)
+        action = nav.current_action(unchanged)
         self.assertEqual(action["after"], action["base"])
-        moved = nav.apply(state, action["id"], {"outcome": "done", "summary": "Nothing left to change."})
+        moved = nav.apply(unchanged, action["id"], {"outcome": "done", "summary": "Nothing left to change."})
         self.assertIsNone(moved["active_improve"])
-        self.assertEqual(nav.current_stage(moved), "implement")  # the next step, with no review between
+        self.assertNotEqual(nav.current_stage(moved), "implement")  # the item's next stage, with no review
         changed = self.at_step(1)
         (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
+        changed = self.next_step(self.next_step(changed, "Parser."))  # S1 changed a file; S2 changes none
+        self.assertIs(nav.current_action(changed)["round_changed"], True)
         changed = nav._step_after(self.run, changed)
-        self.assertNotEqual(nav.current_action(changed)["after"], nav.current_action(changed)["base"])
-        waiting = nav.apply(changed, nav.current_action(changed)["id"], {"outcome": "done", "summary": "Parser."})
-        self.assertIsNotNone(waiting["active_improve"])
-
-    def test_the_pass_log_records_what_the_imp4_trigger_would_have_done_without_applying_it(self):
-        """P4's trigger (review only the first step of its item's current plan, and only a change to code) runs in shadow:
-        every later-step observation behind it came from one run, so each review records the trigger's verdict."""
-        first = self.at_step(1)
-        (self.repo / "parser.py").write_text("def parse(line):\n    return line.split(',')\n")
-        first = nav._step_after(self.run, first)
-        first = nav.apply(first, nav.current_action(first)["id"], {"outcome": "done", "summary": "Parser."})
-        line = nav._imp4_shadow(self.run, first, first["active_improve"])
-        self.assertIn("would have kept it. Step S1 is 1 of 3", line)
-        self.assertIn("changed 1 code or test file(s) of 1", line)
-        later = self.at_step(2)
-        (self.repo / "validator.py").write_text("def valid(record):\n    return bool(record)\n")
-        later = nav._step_after(self.run, later)
-        later = nav.apply(later, nav.current_action(later)["id"], {"outcome": "done", "summary": "Validator."})
-        self.assertIn("would have skipped it. Step S2 is 2 of 3", nav._imp4_shadow(self.run, later, later["active_improve"]))
-        child = later["active_improve"]
-        bound = standalone.binding(later, child["action_id"], child["stage"], child["seed_result"],
-                                   standalone.resolve_skill(str(CARD)), improve_action=child["improve_action"])
-        self.assertIn("IMP-4 shadow (recorded, not applied; this review ran)",
-                      nav._passes_text(self.run, dict(later, active_improve=bound), bound, None))
+        self.assertEqual(nav.current_action(changed)["after"], nav.current_action(changed)["base"])  # S3 changed none
+        waiting = nav.apply(changed, nav.current_action(changed)["id"], {"outcome": "done", "summary": "Report."})
+        self.assertEqual(waiting["active_improve"]["stage"], "implement")
 
     def test_the_file_the_head_and_the_handoff_print_one_step_block(self):
-        """T8: the same Step block (task, criteria by value, dependencies, Proof, later steps) on all three surfaces; the
-        hand-off names the step's entry base as a diff command; no surface fences the step to paths."""
+        """T8: the same Step block (task, criteria by value, dependencies, Proof, later steps) on the file and the head;
+        at the item's last step the item's hand-off prints that step's block too, then every step it covers with its
+        criteria, and names the diff base the item's first step began from; no surface fences the step to paths."""
         state = self.at_step(1)
-        base = nav.current_action(state)["base"]
         texts = self.surfaces(state)
+        self.assertNotIn("handoff", texts)  # S1 is not the item's last step: no review follows it
         block = self.step_lines(texts["file"])
         self.assertEqual(block[0], "Step S1 (1 of 3), the only work for this packet: "
                                    "Add the parser. It reads one record per line.")
@@ -633,19 +629,40 @@ class StepBlockTests(unittest.TestCase):
         self.assertIn("  Depends on: none", block)
         self.assertIn("Later steps (ShipLoop issues each after this one; do not start them): S2 Add the validator; "
                       "S3 Add the report page", block)
-        for name in ("head", "handoff"):
-            with self.subTest(surface=name):
-                self.assertEqual(self.step_lines(texts[name]), block)
-        review = next(line for line in texts["handoff"].splitlines() if line.startswith("Review base"))
-        self.assertIn("git -C " + str(self.repo) + " diff " + base + " ", review)
-        for name, text in texts.items():
+        self.assertEqual(self.step_lines(texts["head"]), block)
+        first_texts = texts
+        last = self.at_step(3)
+        first_base = nav.current_action(last)["item_base"]
+        self.assertEqual(first_base, nav.current_action(state)["base"], "S3 carries S1's entry tree")
+        texts = self.surfaces(last)
+        block = self.step_lines(texts["file"])
+        self.assertEqual(block[0], "Step S3 (3 of 3), the only work for this packet: "
+                                   "Add the report page. It lists the records.")
+        self.assertEqual(self.step_lines(texts["handoff"]), block)
+        lines = texts["handoff"].splitlines()
+        covered = lines[lines.index("Steps this review covers (the item's whole change since its first step began):"):]
+        self.assertEqual(covered[:6], ["Steps this review covers (the item's whole change since its first step began):",
+                                       "- S1: Add the parser", "    C1: The parser reads a valid record (R-1).",
+                                       "- S2: Add the validator", "    C2: The validator rejects an empty record (R-2).",
+                                       "- S3: Add the report page"])
+        review = next(line for line in lines if line.startswith("Review base"))
+        self.assertTrue(review.startswith("Review base (the item's change since its first step began"), review)
+        self.assertIn("git -C " + str(self.repo) + " diff " + first_base + " ", review)
+        self.assertIn("This result is steps S1 to S3 of the item's step", texts["handoff"])
+        for name, text in {**first_texts, "handoff": texts["handoff"]}.items():
             with self.subTest(surface=name):
                 self.assertNotIn("Step paths", text)
                 self.assertNotIn("(change only these)", text)
                 self.assertNotRegex(text, r"(?m)^\s*(Paths|Where): ")
 
     def test_a_step_quotes_its_own_criterion_and_cases_and_not_a_later_steps(self):
-        """T9: S1's packet and hand-off quote C1 and its case TC-1, and neither C3's text nor its case."""
+        """T9: S1's packet quotes C1 and its case TC-1, and neither C3's text nor its case; the item's hand-off, after S3,
+        quotes every step's criterion (rule item)."""
+        handoff = self.surfaces(self.at_step(3))["handoff"]
+        for text in ("The parser reads a valid record (R-1).", "The validator rejects an empty record (R-2).",
+                     "The report lists each record (R-3)."):
+            self.assertIn(text, handoff)
+        self.assertIn("criteria (W1 step-plan): C1, C2, C3 (printed in the steps this review covers, above)", handoff)
         texts = self.surfaces(self.at_step(1))
         for name, text in texts.items():
             if name == "head":
@@ -837,7 +854,7 @@ class PacketContractTests(DelegationStateTests):
             repo.mkdir()
             inline = bound_walk(repo, "inline", handoffs=True)
             delegated = bound_walk(repo, "ask-agent", handoffs=True)
-        self.assertEqual(len([entry for entry in inline if entry[1] != "handoff"]), 33)
+        self.assertEqual(len([entry for entry in inline if entry[1] != "handoff"]), 32)  # 33 before test-spec lost its review
         for stage, kind, packet in inline:
             for text in BOUND_DELEGATED_TEXT:
                 self.assertNotIn(text, packet, (stage, kind, text))
@@ -1126,15 +1143,28 @@ class AggregateImplementWordingTests(unittest.TestCase):
         self.assertIn(self.flat(prompts.CODE_CRAFT), text)
         self.assertIn("a recorded check command that fails, or a new lint finding on a changed line with no waiver", text)
 
-    def test_the_inline_handoff_keeps_the_per_step_wording_byte_for_byte(self):
-        text = self.handoff(self.at_implement("inline"))
+    def test_a_one_step_inline_handoff_keeps_the_per_step_wording_byte_for_byte(self):
+        text = self.handoff(self.at_implement("inline", self.STEPS[:1]))
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), text)    # the focus, then the Code craft rubric
         self.assertIn(prompts.CODE_CRAFT.rstrip(), text)
         row = stage_spec.stage("implement")
         self.assertIn("Goal: " + row.goal[0].upper() + row.goal[1:], text)
         for condition in row.done_when:
             self.assertIn("- " + condition + "\n", text)
-        self.assertNotIn("S1 to S2", text)
+        self.assertNotIn(" to S1", text)
+
+    def test_the_inline_item_handoff_names_the_steps_as_the_ask_agent_one_does(self):
+        """Rule item (2026-10-26): the inline route's one review follows the item's last step and covers every step, so its
+        focus and goal name the steps and their paths, worded as the ask-agent route's are."""
+        state = self.at_implement("inline")
+        state = nav.apply(state, nav.current_action(state)["id"], {"outcome": "done", "summary": "Change one."})
+        self.assertIsNone(state.get("active_improve"))  # S1 is not the item's last step
+        text = self.flat(self.handoff(state))
+        self.assertIn("This result is steps S1 to S2 of the item's step plan", text)
+        self.assertIn("(a.py, pkg/b.py)", text)
+        self.assertIn("Goal: Make the change of steps S1 to S2 on their paths (a.py, pkg/b.py) in WORKTREE", text)
+        for stale in ("one step of the item's step plan", "the step's change since its Review base"):
+            self.assertNotIn(stale, text)
 
     def test_a_one_step_ask_agent_plan_keeps_the_per_step_wording(self):
         text = self.handoff(self.at_implement("ask-agent", self.STEPS[:1]))

@@ -26,7 +26,7 @@ ledger, or an unverified summary.
 Follow the selected Improve card's review, commit and completion policies under
 this binding's authority; preserve explicit task overrides and an existing child's
 frozen contract. The parent owns acceptance, callbacks and workspace return.
-For a planning handoff (step-plan, test-spec), change no product code. For release/verification handoffs, reconcile an uncertain external
+For a planning handoff (step-plan), change no product code. For release/verification handoffs, reconcile an uncertain external
 outcome rather than replaying it.
 
 ## Requirements, references and baseline

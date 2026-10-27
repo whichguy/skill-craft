@@ -36,7 +36,7 @@ Only a fresh parallel launch packet permits native dispatch. Workers report; the
 owns acceptance and the exact initiating-checkout return. The append-only,
 timestamped ledger records bridge events without replacing Markdown traversal
 or the child dispatcher's state. An unfinished chain blocks the normal producer
-callback; after verified integration, continue with the step's Improve stage and `test`.
+callback; after verified integration, continue with the item's Improve stage and `test`.
 The planning artifact reference is context, not graph navigation or execution
 authority. Workers verify required local files before using them and report a
 blocker when unavailable. Missing or drifted required inputs block fresh starts

@@ -1,6 +1,7 @@
 # Script-navigated steps, starting with the test stage, and a trimmed Improve schedule — design, 2026-10-26
 
-Status: **design only, awaiting the owner's go.** Nothing here is built.
+Status: **P0 built, not released** (2026-10-26, owner's go: the change that adds
+`changes/shiploop/improve-once-per-item.md`); P1–P3 are design only. P0's validation runs need a release first.
 
 Consumer: the owner, deciding what to build, then the session that builds it. The owner asked for "discrete steps in
 the prompts that are actually navigated by the shiploop scripts", which can be visualized, starting with the test stage.
@@ -129,7 +130,7 @@ What stays the same:
 
 ## 3. The trimmed Improve schedule
 
-Today (`shiploop_stage_spec.IMPROVE_RULES`, each `Stage(..., improve=...)`, read by
+Before P0 (`shiploop_stage_spec.IMPROVE_RULES`, each `Stage(..., improve=...)`, read by
 `shiploop_navigator._improve_checkpoint`):
 
 | rule | stages |
@@ -139,7 +140,7 @@ Today (`shiploop_stage_spec.IMPROVE_RULES`, each `Stage(..., improve=...)`, read
 | `step` | implement (every accepted step, owner 2026-10-10; P4 skips a reissued step that changed no file) |
 | `last-item` | carry-forward |
 
-Proposed (owner direction, 2026-10-26):
+Proposed (owner direction, 2026-10-26; built in P0):
 
 | stage | today | proposed | evidence (reviews that found something) | DeepSeek battleship minutes |
 |---|---|---|---|---|
@@ -178,6 +179,19 @@ call. Each phase is followed by one DeepSeek battleship run (the E2E default) an
    - `_improve_checkpoint` starts an implement review only after an item's last implement step.
    - Tests: a three-step item yields three implement actions and one Improve child, after the third; a test-spec
      result starts no child. This is a small change and measures on its own.
+   - **Built (2026-10-26).** What the build settled beyond the plan above:
+     - The item review covers the item's whole change. Its diff base is the tree before the item's first step
+       (`item_base`, carried from step to step in the inner-loop action by `shiploop_navigator._step_entry`). Its
+       handoff lists every step's task and criteria (`_item_review_lines`), and its focus and goal are worded for
+       "steps S1 to Sn" (`_item_steps`).
+     - P4 now asks of the whole item: no review when no round of any step changed a file (`round_changed`).
+     - On the ask-agent route an item is one action, so its review follows that action, as before.
+     - Two mechanisms became dead and were removed (one supported version): the narrowed re-review of a revised
+       test spec (the handoff's "Scope of this revision" section) and the IMP-4 shadow line.
+     - Fail-first tests, through the real CLI, in `test/shiploop-navigator-contract.test.py`:
+       `test_a_test_spec_result_starts_no_improve_stage` and
+       `test_a_three_step_item_starts_one_improve_stage_after_its_last_step_over_the_whole_item`. Both failed on the
+       code before the change.
 2. **P1: T1–T5 for the test stage.**
    - The navigator's cursor gains a step.
    - The packets become templates per step.

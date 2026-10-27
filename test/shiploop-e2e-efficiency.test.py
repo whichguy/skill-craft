@@ -725,7 +725,8 @@ class HomeFixtureTests(unittest.TestCase):
         """Packets list the knowledge files by contents (owner decision D1, 2026-10-17): a 36 KB home adds its tables of
         contents, not its text (the walk's packet files were 2.1 times the empty home's while they quoted it whole)."""
         empty, small, long = (home_fixtures.sizes(kind) for kind in ("empty", "small", "long"))
-        self.assertEqual(empty["packets"], 33)
+        # 33 packets until test-spec stopped starting an Improve child (2026-10-26).
+        self.assertEqual(empty["packets"], 32)
         self.assertGreater(long["file_chars"], empty["file_chars"])
         self.assertLess(long["file_chars"], 1.1 * empty["file_chars"])
         self.assertLess(small["file_chars"], 1.1 * empty["file_chars"])
@@ -744,8 +745,8 @@ class AuditProbeTests(unittest.TestCase):
                 # Only an upper bound: the efficiency units cut these figures (U22 entry card 79,647 -> ~30,000; U18 bound handoffs
                 # 276,270 -> ~157,000), so a smaller figure is the intended saving, never a regression.
                 self.assertTrue(0 < value / audit_probes.AUDITED[name] < 1.5, value)
-        self.assertEqual(found["delivery"]["packets"], 33)
-        self.assertEqual(found["handoffs"]["handoffs"], 9)
+        self.assertEqual(found["delivery"]["packets"], 32)
+        self.assertEqual(found["handoffs"]["handoffs"], 8)  # 9 with the test-spec review
 
     def test_the_audited_figures_reproduce_exactly_at_the_audited_commit(self) -> None:
         """375,278 / 276,270 / 79,647 characters at 2686b427, read at the audit's path lengths."""

@@ -209,7 +209,7 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
-    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None):
+    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None, bind=True):
         """Create a real CLI parent at a target stage after synthetic setup only.
 
         The pure navigator transitions below deliberately do not claim preceding
@@ -264,8 +264,10 @@ class ImproveCliFixture(unittest.TestCase):
                                               "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]
         self.producer.update(producer_extra or {})
         self._write_producer(stage)
-        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
-        self.bind_current(card)
+        completed = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        if bind:  # a stage with no Improve review (test-spec, 2026-10-26) leaves no child to bind
+            self.bind_current(card)
+        return completed
 
     def bind_current(self, card=CARD):
         """Pick up the Improve stage ShipLoop set up at the transition (owner, 2026-10-11).
@@ -735,18 +737,19 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
                 step_plan_action = self.action
                 step_plan_refs = list(self.parent_evidence_refs)
-                # test-spec is still a planning-review stage and starts a real Improve child.  Every expectation
+                # test-spec has no Improve review (2026-10-26): its plain callback accepts it.  Every expectation
                 # matches, so ShipLoop records validate-existing by script and issues implement next.
                 for next_stage in ("test-spec",):
                     self.assertEqual(navigator.current_stage(resumed), next_stage)
                     evidence = self.repo / "evidence" / (next_stage + ".md")
                     evidence.parent.mkdir(parents=True, exist_ok=True)
                     evidence.write_text("# " + next_stage + "\n", encoding="utf-8")
-                    observed_stage, _action, resumed = self.complete_current_stage_through_actual_improve(
+                    observed_stage, _action, resumed = self.complete_current_stage_directly(
                         [str(evidence) + "#fixture"],
-                        "Fixture advance through actual Improve for " + next_stage + ".",
+                        "Fixture advance for " + next_stage + "; no Improve child starts.",
                     )
                     self.assertEqual(observed_stage, next_stage)
+                    self.assertIsNone(resumed["active_improve"])
 
                 self.assertEqual(navigator.current_stage(resumed), "implement")
                 self.assertIn("validate-existing", [entry["stage"] for entry in resumed["history"]])
@@ -1447,24 +1450,22 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
         self.assertIn("AD-2: split by layer instead.", self.home_git("show", "HEAD:docs/shiploop/architecture.md"))
 
-    def test_test_spec_accepted_at_the_improve_stage_complete_with_validate_existing_after_it_is_no_close_and_prints_no_notice(self):
-        """The import that accepts test-spec also records validate-existing.  test-spec is no close since consumer contract
-        4b (its cases are in state): a home whose living files are prose is accepted, nothing is required of the feature
-        folder, and no section notice prints (the notice belongs to the three closes)."""
+    def test_test_spec_accepted_at_its_complete_with_validate_existing_after_it_is_no_close_and_prints_no_notice(self):
+        """The complete that accepts test-spec also records validate-existing (test-spec has no Improve review,
+        2026-10-26).  test-spec is no close since consumer contract 4b (its cases are in state): a home whose living
+        files are prose is accepted, nothing is required of the feature folder, and no section notice prints (the notice
+        belongs to the three closes)."""
         home = self.repo / "docs/shiploop"
         home.mkdir(parents=True, exist_ok=True)
         for name in knowledge.SECTIONS:
             (home / name).write_text("# " + name + "\n\nProse with no named sections.\n", encoding="utf-8")
-        self._start_parent_at_stage("test-spec", [str(self.product_contract)])
-        before = len(store.read_record(self.run / "state.md")["history"])
-        self.finish_ephemeral()
-        completion, _receipt = self.completion_receipt()
-        imported = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        accepted = self._start_parent_at_stage("test-spec", [str(self.product_contract)], bind=False)
         state = store.read_record(self.run / "state.md")
-        self.assertEqual([(row["stage"], row["outcome"]) for row in state["history"][before:]],
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual([(row["stage"], row["outcome"]) for row in state["history"][-2:]],
                          [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
         self.assertNotIn("test-spec", knowledge.CLOSES)
-        self.assertNotIn(knowledge.NOTICE_PREFIX, imported.stdout + imported.stderr)
+        self.assertNotIn(knowledge.NOTICE_PREFIX, accepted.stdout + accepted.stderr)
 
     def test_a_review_that_restores_the_dropped_decision_exactly_has_nothing_to_commit_and_the_import_is_accepted(self):
         """"If the review changed it": a file back as it was at the bind has no edit of the review's left to commit."""

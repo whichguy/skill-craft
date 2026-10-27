@@ -50,7 +50,7 @@ READ_LIMIT = 2_000              # plan U18 exit 2: the first 2,000 characters ar
 FOCUS_LIMIT = 4_500             # ... the focus ends, and the commit and complete lines sit, inside the first 4,500
 # The walk prints short paths; a real install prints these lengths (the E2E render uses the same: run dir 83, CLI 96).
 RUN_LENGTH, WORKTREE_LENGTH, ROUTE_LENGTH, CLI_LENGTH = 83, 95, 105, 96
-KINDS = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "implement", "carry-forward")   # plan U18 exit 2
+KINDS = ("spec", "test-strategy", "plan", "step-plan", "implement", "carry-forward")   # plan U18 exit 2; test-spec has no review (2026-10-26)
 
 FILES = {"router": ROUTER, "standalone": STANDALONE, "policy": POLICY, "evidence": EVIDENCE, "adapter": ADAPTER}
 
@@ -365,7 +365,7 @@ class HandoffTests(unittest.TestCase):
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         return handoffs
 
-    def test_the_seven_kinds_are_all_rendered(self):
+    def test_the_six_kinds_are_all_rendered(self):
         for route, handoffs in self.walks.items():
             self.assertTrue(set(KINDS) <= set(handoffs), (route, sorted(handoffs)))
 
@@ -466,7 +466,7 @@ class HandoffTests(unittest.TestCase):
                 self.assertLess(len(Path(child_dir).name), 32, child_dir)     # system-test-author-502306e5 is the longest
                 self.assertEqual(Path(child_dir).parent.name, ".shiploop-improve", child_dir)
         names = {re.search(r"(?m)^CHILD = (\S+)", text).group(1) for handoffs in self.walks.values() for text in handoffs.values()}
-        self.assertEqual(len(names), 18, "nine handoffs on each route, no two sharing a child directory")
+        self.assertEqual(len(names), 16, "eight handoffs on each route, no two sharing a child directory")
 
 
 if __name__ == "__main__":

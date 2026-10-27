@@ -1424,7 +1424,9 @@ class GuidanceTests(unittest.TestCase):
                 state = self.save_reload(state)
                 before = (self.run / "state.md").read_bytes()
                 recovered = store.read_record(self.run / "state.md")
-                if stage == "test-spec":
+                # The pending Improve packet is checked at step-plan, the inner stage that still has a review
+                # (test-spec has none since 2026-10-26).
+                if stage == "step-plan":
                     waiting, action = self.pending_improve(
                         recovered, evidence_refs=["unrelated://pending-improve"],
                     )
@@ -1433,14 +1435,15 @@ class GuidanceTests(unittest.TestCase):
                     pending = store.read_record(self.run / "state.md")
                     packet = self.packet_with_handoff(pending, guarded=True)
                     self.assertEqual((self.run / "state.md").read_bytes(), pending_before)
-                    self.assertIn("Current action: Improve the completed test-spec result.", packet)
+                    self.assertIn("Current action: Improve the completed step-plan result.", packet)
                     assert_test_sources(packet, inner=True)
                     observed.add(stage)
                     observed.add("pending Improve")
                     state = navigator.finish_improve(pending, action["id"], receipt(stage))
                     state = self.save_reload(state)
-                    decision_action = action["id"]
-                    decision_ref = "unrelated://pending-improve"
+                    if stage in prompts.TEST_DECISION_STAGES:
+                        decision_action = action["id"]
+                        decision_ref = "unrelated://pending-improve"
                     continue
 
                 with patch.object(Path, "read_text", new=_knowledge_reads_only()):

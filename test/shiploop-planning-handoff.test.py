@@ -97,7 +97,8 @@ class PlanningHandoffTests(unittest.TestCase):
     }
 
     def test_every_planning_stage_registers_its_files_for_the_next_stage(self) -> None:
-        planning = set(nav.guidance.PRELUDE) | set(nav.guidance.PLANNING_REVIEW_STAGES)
+        # test-spec has no Improve review (2026-10-26) and still registers its files for the next stage
+        planning = set(nav.guidance.PRELUDE) | set(nav.guidance.PLANNING_REVIEW_STAGES) | {"test-spec"}
         self.assertEqual(planning, set(self.REGISTRATION), "a planning stage has no registration cue")
         for delegation in ("inline", "ask-agent"):
             for stage in sorted(planning):

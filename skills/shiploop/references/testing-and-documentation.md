@@ -714,7 +714,7 @@ in the existing plan and review notes. The rules below and the
    Private helpers need a comment only when non-obvious. Delete comments that
    restate names or code. Document changed public/non-obvious contracts as
    specified in [Documentation](#documentation). The packets carry these rules
-   as the *Code craft* rubric, which each implement step's Improve review and `verify` apply.
+   as the *Code craft* rubric, which each work item's implement Improve review and `verify` apply.
 5. **Evidence before polish.** Plan tests first; inspect code before refining
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.

@@ -118,7 +118,7 @@ decision-relevant evidence a successor needs, read [its rules](shiploop-route-ca
 Reopen and revalidate only the parent-supplied sources this candidate needs; keep their locators,
 not copies. Per the handoff's Maintained requirements and Reference handoff policies, review material
 subclauses, not feature names; code, a passing test or a draft never redefines accepted intent;
-keep verification gaps visible. A planning review (step-plan, test-spec) changes no product code
+keep verification gaps visible. A planning review (step-plan) changes no product code
 and needs no future check to pass; a release or verification review reconciles an uncertain
 outcome, never replays it.
 

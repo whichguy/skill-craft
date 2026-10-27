@@ -560,11 +560,12 @@ class NavigatorContractTests(unittest.TestCase):
             [entry for entry in observed if entry[1] == "producer"],
             [(stage, "producer", item) for item in (0, 1) for stage in EXPECTED_INNER],
         )
-        # Inner Improve children exist at the first item's step-plan and test-spec (rule first-item, 2026-10-19),
-        # after each accepted implement step (one step per item here) and at the final carry-forward.
+        # Inner Improve children exist at the first item's step-plan (rule first-item, 2026-10-19), after each item's
+        # last implement step (rule item, 2026-10-26; one step per item here) and at the final carry-forward; test-spec
+        # has none.
         self.assertEqual(
             [entry for entry in observed if entry[1] == "improve"],
-            [("step-plan", "improve", 0), ("test-spec", "improve", 0), ("implement", "improve", 0),
+            [("step-plan", "improve", 0), ("implement", "improve", 0),
              ("implement", "improve", 1), ("carry-forward", "improve", 1)],
         )
         self.assertFalse(navigator.render(None, root, state).startswith(prefix))
@@ -1525,11 +1526,15 @@ class NavigatorContractTests(unittest.TestCase):
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             state = self._produce(state, stage, **extra)
 
-        # test-spec is the inner test-planning checkpoint whose child reviews
-        # the test handoff; the test stage itself never starts an Improve child.
+        # test-spec starts no Improve child (2026-10-26): the test stage's own checks bind its cases. The item's
+        # implement review (rule item) is the first inner child after it, and its handoff carries the repeatable-suite
+        # duties; the test stage itself never starts an Improve child.
+        self.assertIsNone(navigator.apply(state, self._action(state)["id"], result())["active_improve"])
+        while navigator.current_stage(state) != "implement":
+            state = self._produce(state, navigator.current_stage(state))
         action = self._action(state)
         waiting = self._pending(state)
-        self.assertEqual(navigator.current_stage(waiting), "test-spec")
+        self.assertEqual(navigator.current_stage(waiting), "implement")
         self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
         bound = self._bind_synthetic_child(waiting)
 
@@ -1551,7 +1556,7 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(stage="Improve handoff", duty=duty):
                 self.assertIn(duty, handoff)
 
-        state = self._complete_improve(bound, action, "test-spec")
+        state = self._complete_improve(bound, action, "implement")
         while navigator.current_stage(state) != "test":
             state = self._produce(state, navigator.current_stage(state))
         producer_packet = navigator.render(None, self.repo / ".shiploop", state)
@@ -3767,22 +3772,22 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         ("references/navigator.md", "Pre-update checks can be refreshed during release planning and its Improve review"):
             EVERY_MODE,
         ("references/navigator.md", "continue to `product-acceptance` and the release-plan Improve review"): EVERY_MODE,
-        ("README.md", "an Improve child reviews each accepted step (in both planning review modes)"):
-            "the per-step implement child starts in every mode; the list item says so",
+        ("README.md", "one Improve child reviews the item's whole change after its last step (in both planning review modes)"):
+            "the per-item implement child starts in every mode; the list item says so",
         ("README.md", "(and, for the last item, its Improve child is imported), the script selects the next item's "
                       "`step-plan`"): EVERY_MODE,
         ("references/carry-forward.md", "I[End-of-work Improve stage, then system-test-author]"): EVERY_MODE,
-        ("references/navigator.md", "each implement step is reviewed by its own Improve stage"):
-            "the per-step implement child starts in every mode (owner decision 5, 2026-10-10); the sentence names "
+        ("references/navigator.md", "each item's implemented change is reviewed by one Improve stage after its last step"):
+            "the per-item implement child starts in every mode (rule item, 2026-10-26); the sentence names "
             "test-spec only as the source of the tests",
         ("references/workspace-lifecycle.md", "once no Improve child is active (the end-of-work child and the "
                                                "`release-plan` child have been imported)"): EVERY_MODE,
         # R4 (2026-10-24) names the schedule "Improve stage", so the scan reads that phrase too; these sentences use it.
-        ("references/navigator.md", "The Improve stages after each `implement` step, `system-test-author`, `release-plan` "
-                                    "and the last `carry-forward` start in both modes"): EVERY_MODE,
-        ("references/run-options.md", "The Improve stages after each `implement` step, `system-test-author`, "
+        ("references/navigator.md", "The Improve stages after each item's last `implement` step, `system-test-author`, "
+                                    "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
+        ("references/run-options.md", "The Improve stages after each item's last `implement` step, `system-test-author`, "
                                       "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
-        ("references/navigator.md", "R -->|Reviewed planning stage, implement step or last carry-forward| I[Improve stage"):
+        ("references/navigator.md", "R -->|Reviewed planning stage, item's last implement step or last carry-forward| I[Improve stage"):
             "a diagram edge taken only by a stage the option reviews ('Reviewed planning stage'); the text after the "
             "diagram states both schedules",
         ("references/planning-experiments.md", "imports it with the Improve stage's `complete`"):
@@ -4239,7 +4244,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
     def test_validate_existing_is_recorded_by_script_when_every_expectation_matches(self) -> None:
         self.start()
         self.to_validate_existing([dict(self.ABSENT_NOTES), dict(self.STATUS_WORKS)])
-        # test-spec's Improve child, then no validate-existing packet: the run stands at implement.
+        # No validate-existing packet (every expectation matched): the run stands at implement.
         self.assertEqual(self.settle(), "implement")
         state = self.state()
         entry = next(row for row in state["history"] if row["stage"] == "validate-existing")
@@ -4331,6 +4336,67 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         child = self.state()["active_improve"]
         self.assertEqual(child["stage"], "implement")
         self.assertEqual(navigator.step_commit(self.run_dir, child["action_id"]), self.git("rev-parse", "HEAD").strip())
+
+    THREE_STEP_PATHS = ("notes.md", "todo.md", "log.md")
+
+    def three_step_plan(self) -> dict:
+        """A step plan whose three steps each write one new file, each file an absent expectation."""
+        paths = list(self.THREE_STEP_PATHS)
+        return {
+            "outcome": "done", "summary": "Add three notes files, one per step.", "paths": paths,
+            "test_commands": [], "test_commands_na": "A documentation-only item: no test command applies.",
+            "steps": [{"id": "S" + str(n), "task": "Write " + path + ".", "deps": [], "criteria": [],
+                       "proof": "test -f " + path, "paths": [path], "skills": []} for n, path in enumerate(paths, 1)],
+            "expectations": [{"id": "E" + str(n), "state": "absent", "statement": path + " is new",
+                              "steps": ["S" + str(n)], "paths": [path], "check": "test ! -e " + path}
+                             for n, path in enumerate(paths, 1)],
+        }
+
+    def test_a_test_spec_result_starts_no_improve_stage(self) -> None:
+        # Owner 2026-10-26 (design 560c396f, P0): the test-spec review is dropped. Over seven runs it made 2 real catches in
+        # 14 reviews, and the test stage's own checks (RED on the base, the candidate run, the mutation check) bind its cases.
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.step_plan([dict(self.ABSENT_NOTES)]))
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        state = self.state()
+        self.assertIsNone(state["active_improve"], "a test-spec result starts no Improve stage")
+        self.assertEqual(navigator.current_stage(state), "implement")
+
+    def test_a_three_step_item_starts_one_improve_stage_after_its_last_step_over_the_whole_item(self) -> None:
+        # Owner 2026-10-26 (design 560c396f, P0): one implement review per work item, after its last step, instead of one
+        # per step. DeepSeek battleship ran 12 step reviews in 28 minutes for 3 real code fixes; 8 of 40 step reviews over
+        # seven runs changed no code. The review takes the item's whole change, so the tests written next cover its fixes.
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        bases = []
+        for number, path in enumerate(self.THREE_STEP_PATHS, 1):
+            state = self.state()
+            self.assertEqual((navigator.current_stage(state), state["active_improve"]), ("implement", None))
+            bases.append(navigator.current_action(state).get("base"))
+            (self.repo / path).write_text("# " + path + "\n")
+            self.accept(result(summary="Wrote " + path + "."))
+            child = self.state()["active_improve"]
+            if number < len(self.THREE_STEP_PATHS):
+                self.assertIsNone(child, "S" + str(number) + " is not the item's last step: no review yet")
+                self.assertEqual(navigator.current_stage(self.state()), "implement")
+            else:
+                self.assertEqual(child["stage"], "implement")
+        self.assertTrue(bases[0], "the first step's entry tree is recorded")
+        handoff = navigator.improve_handoff_text(self.core, self.run_dir, self.state())
+        self.assertIn("This result is steps S1 to S3 of the item's step", handoff)
+        self.assertIn("Review base (the item's change since its first step began", handoff)
+        self.assertIn(" diff " + str(bases[0]) + " ", handoff, "the diff starts at S1's entry tree, not S3's")
+        self.settle()
+        state = self.state()
+        steps = [row["action"] for row in state["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
+        self.assertEqual(len(steps), 3)
+        self.assertEqual([action for action in steps if action in state["improve_results"]], [steps[-1]],
+                         "one implement review for the item, recorded on its last step")
 
     def test_step_notes_are_required_and_learned_from_must_be_reachable(self) -> None:
         self.start()
@@ -4478,7 +4544,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                        if path.is_file() and path.name != ".lock")
         self.assertEqual(after, [row for row in before if row[0] != ".lock"])
 
-    def test_each_accepted_implement_step_starts_an_improve_child_in_both_planning_review_modes(self) -> None:
+    def test_the_items_last_implement_step_starts_its_improve_child_in_both_planning_review_modes(self) -> None:
+        # Rule item (owner, 2026-10-26, design 560c396f P0; it was one child per step, owner decision 5 of 2026-10-10):
+        # S1 starts none, S2 (the item's last) starts the item's review in both modes; test-spec starts none.
         for mode in ("stage", "none"):
             with self.subTest(planning_review=mode):
                 self.setUp()
@@ -4491,19 +4559,21 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
                                       "proof": "test -f more.md", "paths": ["more.md"], "skills": []})
                 self.accept(plan)
-                for planning in ("step-plan", "test-spec"):
-                    child = self.state().get("active_improve")
-                    self.assertEqual(child is not None and child["stage"] == planning, mode == "stage")
-                    self.settle()
-                    if planning == "step-plan":
-                        self.accept(result())  # test-spec
-                for path in ("notes.md", "more.md"):
+                child = self.state().get("active_improve")
+                self.assertEqual(child is not None and child["stage"] == "step-plan", mode == "stage")
+                self.settle()
+                self.accept(result())  # test-spec
+                self.assertIsNone(self.state().get("active_improve"), "a test-spec result starts no Improve stage")
+                for number, path in enumerate(("notes.md", "more.md"), 1):
                     self.assertEqual(navigator.current_stage(self.state()), "implement")
                     implement = navigator.current_action(self.state())["id"]
                     (self.repo / path).write_text("# " + path + "\n")
                     self.accept(result(summary="Wrote " + path + "."))
                     child = self.state()["active_improve"]
-                    self.assertIsNotNone(child, path)  # every accepted step, in both modes (owner decision 5)
+                    if number == 1:
+                        self.assertIsNone(child, path)  # not the item's last step
+                        continue
+                    self.assertIsNotNone(child, path)  # the item's last step, in both modes
                     self.assertEqual((child["stage"], child["action_id"]), ("implement", implement))
                     self.finish_improve()
                     self.assertIn(implement, self.state()["improve_results"])

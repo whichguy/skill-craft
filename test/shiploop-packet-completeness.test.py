@@ -108,7 +108,7 @@ class PacketCompletenessTests(unittest.TestCase):
         reviewed = {stage for stage, kind in self.found if kind == "improve"}
         # implement's rule is "step": an Improve child after every accepted step (owner, 2026-10-10).
         self.assertEqual(reviewed, set(stage_spec.reviewed_stages("stage")) | {"carry-forward"}
-                         | stage_spec.with_improve("step"))
+                         | stage_spec.with_improve("item"))
 
     def test_a_producer_packet_states_purpose_operation_check_output_and_recovery(self) -> None:
         for (stage, kind), packet in sorted(self.found.items()):

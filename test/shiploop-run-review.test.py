@@ -4382,7 +4382,7 @@ class PacketBoxTests(unittest.TestCase):
 
 STATE_FIXTURES = ROOT / "test" / "fixtures" / "run-review"
 PLANNING_NONE_TEXT = "planning stages skipped by design (planning_review none)"
-PLANNING_STAGES = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
+PLANNING_STAGES = ("spec", "test-strategy", "plan", "step-plan")  # test-spec has no Improve child in either mode (2026-10-26)
 # The planning stages, then the stages after them whose results start a child under none (the last item's carry-forward and
 # system-test-author). (action, stage, minutes after T0 when accepted, outcome), as in ACCEPTS.
 PLANNING_ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
@@ -4604,7 +4604,7 @@ class PlanningReviewPageTests(unittest.TestCase):
         lines = self.details(self.runs["none"])
         for stage in PLANNING_STAGES:
             self.assertEqual(lines[stage]["Improve"], "not run by design (planning_review none)", stage)
-        for stage in ("intake", "get-next-work-item"):
+        for stage in ("intake", "get-next-work-item", "test-spec"):
             self.assertNotIn("Improve", lines[stage], stage)  # no child here in any mode: nothing to say
         self.assertEqual((lines["carry-forward"]["Improve"], lines["system-test-author"]["Improve"]), ("2 passes, 6.5 min", "1 pass, 3 min"))
         for key in ("stage", "absent", "unknown"):
@@ -5203,14 +5203,14 @@ class StageCatalogTests(unittest.TestCase):
             self.assertEqual(self.by_name[stage]["exitCheck"],
                              "script-run" if row.complete_runs else "review loop" if row.improve else "model judgement", stage)
         # the rule on its own, including the precedence no engine row exercises today
-        self.assertEqual([export.exit_check(r, i) for r, i in (((), None), ((), "always"), ((), "last-item"), ((), "step"),
+        self.assertEqual([export.exit_check(r, i) for r, i in (((), None), ((), "always"), ((), "last-item"), ((), "item"),
                                                                (("lint-gate",), None), (("lint-gate",), "always"))],
                          ["model judgement", "review loop", "review loop", "review loop", "script-run", "script-run"])
         self.assertEqual({e["exitCheck"] for e in self.catalog}, set(export.EXIT_CHECKS))
-        # Every inner stage has both (its Until Loop's terminal check and, for four of them, an Improve child): the rule
+        # Every inner stage has both (its Until Loop's terminal check and, for three of them, an Improve child): the rule
         # gives script-run, the stronger check.
         both = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs and self.spec.STAGE_SPEC[s].improve}
-        self.assertEqual(both, {"step-plan", "test-spec", "implement", "carry-forward"})
+        self.assertEqual(both, {"step-plan", "implement", "carry-forward"})
         self.assertEqual({self.by_name[s]["exitCheck"] for s in both}, {"script-run"})
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
@@ -10241,7 +10241,7 @@ class StageModelTests(unittest.TestCase):
         self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the catalog is the engine's table
         # N2: a script-run row that also has an Improve child says so
         self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate, step-proof "
-                         "before it accepts done, and an Improve child reviews each step's result."})
+                         "before it accepts done, and one Improve child per work item reviews its whole change after its last step."})
         self.assertIn("only the last work item's carry-forward", cards["carry-forward"]["check"]["why"])
         self.assertEqual(cards["verify"]["check"]["why"], "ShipLoop runs loop-terminal, lint-gate, test-rerun before it accepts done.")
         self.assertNotIn("meant to fail", view["tests"])
