@@ -2085,7 +2085,9 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands the **material, premise-preserving** findings to an
-improver agent. Before the improver starts, the iteration appends its outcome
+improver agent. Its `--host` defaults to the Claude host (since 2026-10-26, while Grok's credits are out): the run goes
+through `run.py`, so it runs on DeepSeek flash (the default backend), and the review and the improvement run on Claude's
+own models. Pass `--host grok` to drive all three on Grok. Before the improver starts, the iteration appends its outcome
 and every finding to `test/shiploop_e2e/LEARNINGS.md` and commits it with a
 detailed message (outcome, evidence, proposals, rejected findings, what to
 apply next). Reviewer and improver both read the last three commit messages, so

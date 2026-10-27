@@ -282,8 +282,12 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="battleship")
     p.add_argument("--iterations", type=int, default=3, help="how many iterations to run")
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="grok",
-                   help="host for the run, the review and the improvement")
+    # The Claude host since 2026-10-26 (owner: "all our end-to-end runs" on Claude with DeepSeek flash while Grok's credits
+    # are out): its run goes through run.py, whose default backend is DeepSeek flash on Ollama (hosts.RUN_DEFAULT_BACKEND);
+    # the review and the improvement call the host factory, which keeps Claude's own models.
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude",
+                   help="host for the run, the review and the improvement (default claude: the run on DeepSeek flash "
+                        "through run.py's default backend, the review and the improvement on Claude's own models)")
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--permission-mode", default="auto")

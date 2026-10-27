@@ -1079,7 +1079,8 @@ class ReviewSourceTest(unittest.TestCase):
 class IterateConvergenceTest(unittest.TestCase):
     """iterate.main end to end with the host, the build and the run faked: only the review's validity varies."""
 
-    def iterate(self, replies: list, iterations: int) -> str:
+    def iterate(self, replies: list, iterations: int, host: tuple = ("--host", "grok"), launched: list | None = None) -> str:
+        """``host`` is the --host argument (empty: the default); ``launched`` collects each run's argv."""
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
         repo = tmp / "repo"
@@ -1096,6 +1097,8 @@ class IterateConvergenceTest(unittest.TestCase):
             return real_run(argv, *a, **kw)
 
         def passing_run(argv):
+            if launched is not None:
+                launched.append(list(argv))
             out = Path(argv[argv.index("--output") + 1])
             out.mkdir(parents=True)
             (out / "result.json").write_text(json.dumps({
@@ -1113,8 +1116,18 @@ class IterateConvergenceTest(unittest.TestCase):
             stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
             stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
             stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
-            iterate.main(["--host", "grok", "--iterations", str(iterations), "--output", str(tmp / "out")])
+            iterate.main([*host, "--iterations", str(iterations), "--output", str(tmp / "out")])
         return (tmp / "out" / "LEARNINGS.md").read_text()
+
+    def test_the_default_host_is_claude_so_the_run_takes_run_pys_default_backend(self):
+        # Owner, 2026-10-26: "all our end-to-end runs" on Claude with DeepSeek flash while Grok's credits are out. The run
+        # names the Claude host and no backend, so run.py's default (DeepSeek flash on Ollama) applies.
+        launched: list = []
+        self.iterate([("exited", VALID_EMPTY_REVIEW)] * 2, 2, host=(), launched=launched)
+        self.assertTrue(launched)
+        for argv in launched:
+            self.assertEqual(argv[argv.index("--host") + 1], "claude")
+            self.assertNotIn("--backend", argv)
 
     def test_unusable_reviews_of_passing_runs_never_converge(self):
         journal = self.iterate([("failed", ""), ("exited", '```json\n{"learnings": []}\n```'), ("timeout", "")], 3)

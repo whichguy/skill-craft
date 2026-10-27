@@ -3693,3 +3693,22 @@ Anthropic budget, and the gates caught every slip.
 DeepSeek cell, and a Sonnet comparison needs `--backend anthropic`. Wall time is about 5–6 times Sonnet's, so a
 battleship run needs `--timeout 14400`. `iterate.py --host claude --model <Claude model>` now meets the Ollama
 readiness refusal at its run stage, because that model is not on Ollama.
+
+## iterate.py follows the DeepSeek-flash default (2026-10-26) — status: firm
+
+The owner asked the main E2E session to move "all our end-to-end runs" to Claude Code with DeepSeek flash: "we ran out
+of Grok credits for this week. It resets on Thursday." The fork's 56de33d2 made that `run.py`'s default
+(`hosts.RUN_DEFAULT_BACKEND`). `iterate.py` still defaulted to `--host grok` for its run, review and improvement, so
+an improvement campaign would have gone to an empty account. It now defaults to the Claude host:
+- the run goes through `run.py` with no backend, so it takes DeepSeek flash;
+- the review and the improvement keep Claude's own models (the host factory's default).
+
+`IterateConvergenceTest.test_the_default_host_is_claude_so_the_run_takes_run_pys_default_backend` fails on the old
+default (`'grok' != 'claude'`) and passes on the new one.
+
+Left as they are, and said so:
+- `slice.py` keeps Anthropic models (the fork's choice);
+- plan-sizing's `experiment.py` still defaults to `--host grok`, because its R3 round is mid-flight and moving its arms
+  would break their comparison.
+
+The switch lasts until the Grok reset on Thursday 2026-10-29. Then the owner decides whether to go back.
