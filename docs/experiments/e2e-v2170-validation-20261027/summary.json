@@ -1,0 +1,144 @@
+{
+ "date": "2026-10-27",
+ "release": "skill-craft 2.17.0 / ShipLoop 1.16.0 (main a7bda6a2)",
+ "case": "battleship",
+ "host": "claude",
+ "runs": {
+  "sonnet": {
+   "baseline": "live-sonnet-battleship-01b9b3",
+   "run": "v2170-sonnet-battleship-491d9a",
+   "model": "claude-sonnet-5-5",
+   "verdict": [
+    "PASS",
+    "PASS"
+   ],
+   "send_backs": [
+    0,
+    0
+   ],
+   "improve_windows": [
+    11,
+    8
+   ],
+   "improve_window_minutes_awake": [
+    9.4,
+    8.7
+   ],
+   "implement_test_spec_review_minutes": [
+    3.3,
+    1.6
+   ],
+   "run_minutes_awake": [
+    36.9,
+    31.7
+   ],
+   "run_minutes_wall": [
+    36.9,
+    262.8
+   ],
+   "asleep_minutes": [
+    0.0,
+    231.1
+   ],
+   "ts1_refusals": [
+    null,
+    1
+   ],
+   "in1_refusals": [
+    null,
+    0
+   ],
+   "bug_class": {
+    "GET // crash": [
+     "fixed per step (2d7c7e7)",
+     "shipped"
+    ],
+    "store options unvalidated": [
+     "fixed per step",
+     "shipped (maxGames 0 evicts, -1 loops)"
+    ],
+    "stale fire reply": [
+     "fixed per step (b46f76b)",
+     "shipped (by reading)"
+    ]
+   },
+   "item_review": {
+    "passes": 2,
+    "classification": [
+     "non-trivial",
+     "trivial"
+    ],
+    "fix": "388263d argument checks at game.js entry, 500 causes logged"
+   },
+   "notes": "Mac asleep 92% of the first 146 min, rebooted 07:52, resumed at product-acceptance; cost covers only the resumed session"
+  },
+  "deepseek": {
+   "baseline": "ds-flash-978478-battleship",
+   "run": "v2170-ds-battleship-759a03",
+   "model": "deepseek-v4.1-flash:1017-cloud",
+   "verdict": [
+    "PASS",
+    "PASS"
+   ],
+   "send_backs": [
+    1,
+    0
+   ],
+   "improve_windows": [
+    22,
+    10
+   ],
+   "improve_window_minutes": [
+    86.3,
+    62.7
+   ],
+   "improve_review_minutes_metrics": [
+    79.3,
+    59.4
+   ],
+   "implement_test_spec_review_minutes": [
+    38.0,
+    10.4
+   ],
+   "spec_carry_forward_review_minutes": [
+    9.8,
+    23.6
+   ],
+   "run_minutes": [
+    222.4,
+    165.9
+   ],
+   "turns": [
+    4620,
+    3870
+   ],
+   "ts1_refusals": [
+    null,
+    0
+   ],
+   "in1_refusals": [
+    null,
+    0
+   ],
+   "bug_class": {
+    "GET // crash": [
+     null,
+     "present at ce5341c, fixed by W2's item review pass 2 (77095e7)"
+    ],
+    "store options unvalidated": [
+     null,
+     "absent: createServer validates random"
+    ],
+    "stale fire reply": [
+     null,
+     "absent: the page locks New game while a shot is in flight"
+    ]
+   },
+   "item_reviews": {
+    "W1": "1 pass, trivial (comments, an identifier)",
+    "W2": "3 passes: 3 defects, the URL crash, trivial",
+    "W3": "the CDP client's close() and launch cleanup"
+   }
+  }
+ }
+}

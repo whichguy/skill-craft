@@ -248,6 +248,10 @@ class Builders(unittest.TestCase):
                       "evidence_refs cite files that do not exist: RUN/tests/x.md. Write the file or remove the reference.",
                       "the verify loop is still active: run the receipt's next_argv once",
                       "W1's concern rows are 1,411 characters together; the limit is 1,200 because its step plan prints them",
+                      "headline must be one line of at most 100 characters",
+                      "result requires outcome and summary: the shiploop-state block is a stored-record wrapper",
+                      "assumptions[0].id must be a short identifier such as A1",
+                      "assumption A1.disposition must be one of evidenced, probed, open",
                       "Run the improve skill on this test-strategy result first: no call to it has been recorded",
                       "Complete <worktree>/.shiploop-improve/x/reviews/review-2.md (missing or invalid: exit (satisfied)), then run:",
                       'not_covered is [{"behaviour": "<what>", "reason": "<why>"}], each nonblank, or []; then run it again.'):

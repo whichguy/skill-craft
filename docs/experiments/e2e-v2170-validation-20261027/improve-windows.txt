@@ -1,0 +1,63 @@
+== live-sonnet-battleship-01b9b3
+run span 36.9 min, asleep 0.0, awake 36.9
+  improve after spec                 raw   1.4  awake   1.4
+  improve after test-strategy        raw   1.2  awake   1.2
+  improve after plan                 raw   0.8  awake   0.8
+  improve after step-plan            raw   0.9  awake   0.9
+  improve after test-spec            raw   0.6  awake   0.6
+  improve after implement            raw   0.7  awake   0.7
+  improve after implement            raw   1.1  awake   1.1
+  improve after implement            raw   0.9  awake   0.9
+  improve after carry-forward        raw   0.8  awake   0.8
+  improve after system-test-author   raw   0.5  awake   0.5
+  improve after release-plan         raw   0.5  awake   0.5
+improve total raw 9.4 min, awake 9.4 min over 11 windows
+== v2170-sonnet-battleship-491d9a
+run span 262.8 min, asleep 231.1, awake 31.7
+  improve after spec                 raw  22.8  awake   2.2
+  improve after test-strategy        raw  27.6  awake   1.0
+  improve after plan                 raw  11.6  awake   0.5
+  improve after step-plan            raw   5.9  awake   0.3
+  improve after implement            raw  25.0  awake   1.6
+  improve after carry-forward        raw  20.6  awake   1.4
+  improve after system-test-author   raw  14.3  awake   0.6
+  improve after release-plan         raw   1.2  awake   1.2
+improve total raw 129.0 min, awake 8.7 min over 8 windows
+== ds-flash-978478-battleship
+run span 222.4 min, asleep 0.0, awake 222.4
+  improve after spec                 raw   5.6  awake   5.6
+  improve after test-strategy        raw   7.5  awake   7.5
+  improve after plan                 raw   4.2  awake   4.2
+  improve after step-plan            raw   7.5  awake   7.5
+  improve after test-spec            raw   6.1  awake   6.1
+  improve after step-plan            raw   7.4  awake   7.4
+  improve after test-spec            raw   3.8  awake   3.8
+  improve after implement            raw   2.1  awake   2.1
+  improve after implement            raw   4.2  awake   4.2
+  improve after implement            raw   4.0  awake   4.0
+  improve after implement            raw   2.4  awake   2.4
+  improve after implement            raw   3.1  awake   3.1
+  improve after implement            raw   1.1  awake   1.1
+  improve after implement            raw   2.1  awake   2.1
+  improve after implement            raw   1.5  awake   1.5
+  improve after implement            raw   1.2  awake   1.2
+  improve after implement            raw   1.4  awake   1.4
+  improve after implement            raw   1.3  awake   1.3
+  improve after implement            raw   3.7  awake   3.7
+  improve after carry-forward        raw   4.2  awake   4.2
+  improve after system-test-author   raw   6.1  awake   6.1
+  improve after release-plan         raw   5.8  awake   5.8
+improve total raw 86.3 min, awake 86.3 min over 22 windows
+== v2170-ds-battleship-759a03
+run span 165.9 min, asleep 0.0, awake 165.9
+  improve after spec                 raw  10.4  awake  10.4
+  improve after test-strategy        raw   8.4  awake   8.4
+  improve after plan                 raw   2.9  awake   2.9
+  improve after step-plan            raw   3.1  awake   3.1
+  improve after implement            raw   1.1  awake   1.1
+  improve after implement            raw   5.0  awake   5.0
+  improve after implement            raw   4.3  awake   4.3
+  improve after carry-forward        raw  13.2  awake  13.2
+  improve after system-test-author   raw   6.9  awake   6.9
+  improve after release-plan         raw   7.4  awake   7.4
+improve total raw 62.7 min, awake 62.7 min over 10 windows

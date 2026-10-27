@@ -488,10 +488,12 @@ ACTION_EVENTS = 160   # an action document keeps its first 20 and last 140 event
 PROMPT_CHARS = 60000
 # A refused callback is minor when the model only has to shorten a field, write the result first, or finish a loop it
 # started; any other gate (coverage, test layers, mutants, not_covered, ...) found something material.
-MINOR_REFUSAL = re.compile(r"is \d+ characters; keep it within|characters together; the limit is|^no result file|"
+MINOR_REFUSAL = re.compile(r"is \d+ characters; keep it within|characters together; the limit is|must be one line of at "
+                           r"most \d+ characters|^no result file|"
                            r"evidence_refs cite files that do not exist|loop is still active|the following arguments are "
                            r"required|exactly one shiploop-state fence|^Run the improve skill|^Complete \S*review-\d+\.md "
-                           r"\(missing or invalid|^not_covered is \[")
+                           r"\(missing or invalid|^not_covered is \[|requires outcome and summary|must be a short "
+                           r"identifier|\.disposition must be one of")
 # A review section runs from its heading ("Found:") to the next heading or the handoff, on one line or the lines below.
 REVIEW_SECTION = r"^{name}:[ \t]*(.*?)(?=^(?:Read|Found|Changed|Checked|Class):|^## |\Z)"
 

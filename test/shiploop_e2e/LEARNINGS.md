@@ -3799,3 +3799,95 @@ the last item's test-spec as at that item; for IN1, the intake.
 **Next.** PA1′ (product-acceptance coverage, now that TS1 holds upstream), ST1 and X1, in step with the fork's T1–T5
 test-stage design. A live run exercises TS1 only when its last item's test-spec leaves a primary requirement without
 a case.
+
+## P0 + TS1/IN1 live check: battleship on Sonnet 5.5 and on DeepSeek flash, 2.17.0 / ShipLoop 1.16.0 (2026-10-27) — status: firm for the verdicts, the schedule, TS1/IN1 and the probes; interim for Improve depth (n=1 per model)
+
+**Question.** P0 (Improve rule `item`: one implement review per work item, after its last step; no test-spec review)
+and TS1/IN1 shipped in 2.17.0. Do they hold on battleship against each model's baseline?
+- Improve minutes should fall by 25% or more.
+- Each item review should make real fixes.
+- The verdict should be PASS, with no outer stage sending work back to implement.
+- The item review should still catch the bug class Sonnet's per-step reviews fixed: a `GET //` crash, an in-flight
+  shot landing on the new game, and store options never validated.
+- TS1 should refuse Sonnet once on R-6 ("tests run with node --test"), fixed by a `suite_requirements` row, and accept
+  DeepSeek as it stands.
+
+Setup:
+- main a7bda6a2, its push and full CI green.
+- One run at a time, each from its own worktree: Sonnet, `--backend anthropic`, then DeepSeek, Ollama.
+
+**Result** (`docs/experiments/e2e-v2170-validation-20261027/`: `summary.json`, `improve-windows.txt`, `probes.md`,
+`sonnet-sleep-bands.json`; the DeepSeek baseline row is in this commit).
+
+| | Sonnet baseline 01b9b3 | Sonnet 2.17.0 491d9a | DeepSeek baseline 978478 | DeepSeek 2.17.0 759a03 |
+|---|---|---|---|---|
+| verdict, send-backs to implement | PASS, 0 | PASS, 0 | PASS, 1 (W1) | PASS, 0 |
+| work items | 1 | 1 | 3 | 3 |
+| Improve windows | 11 | 8 | 22 | 10 |
+| Improve minutes (trace windows, minus sleep) | 9.4 | 8.7 (−7%) | 86.3 | 62.7 (−27%) |
+| implement + test-spec review minutes | 3.3 | 1.6 | 38.0 | 10.4 |
+| run minutes (minus sleep) | 36.9 | 31.7 (262.8 wall) | 222.4 | 165.9 |
+| Sonnet's bug class (3) | 3 fixed per step | 0 caught, all 3 shipped | — | 1 caught, 2 absent |
+| TS1 / IN1 refusals | — | 1 (R-6) / 0 | — | 0 / 0 |
+
+**What it shows.**
+- **The P0 schedule held on both models.** No review followed a non-last implement step. Each item got one Improve
+  child after its last step: Sonnet's W1 after S3; DeepSeek's W1, W2 and W3 after S3. There was no test-spec review,
+  and step-plan was reviewed for the first item only.
+- **Improve time fell where P0 cut it, and the total target held on DeepSeek only.**
+  - DeepSeek: −27% of Improve minutes. Implement and test-spec reviews fell from 38.0 to 10.4 min, and from 1,107 to
+    473 turns. The harness's stage comparison shows implement 51→20 min and test-spec 22→3.2 min.
+  - Sonnet: −7%. Its implement and test-spec reviews fell 3.3→1.6 min, but its spec, carry-forward and release-plan
+    reviews ran longer. Those awake minutes include slow dark-wake periods (see Validity), so the −7% is indicative.
+  - Both runs: spec and carry-forward reviews ran longer than their baselines (DeepSeek 9.8→23.6 min), outside P0's
+    scope.
+- **TS1 and IN1 behaved as predicted.**
+  - Sonnet's test-spec was refused once for R-6, with the `suite_requirements` remedy named. It was accepted on the next
+    check.
+  - DeepSeek met TS1 with no refusal. Intake was accepted on the first try on both models.
+- **The item review caught the bug class on DeepSeek and missed it on Sonnet.** This is the material finding.
+  - Sonnet's single item review covered the whole app: rules, server and page, in one work item. Pass 1 found entry-point
+    argument checks (388263d) and pass 2 was trivial.
+  - All three bugs its baseline's per-step reviews had fixed shipped in 41a9f39:
+    - `GET //` kills the process (`new URL` outside any try);
+    - `maxGames: 0` evicts every new game, and `maxGames: -1` loops forever at 97% CPU;
+    - a stale fire reply's game-over disables a new board, found by reading the code.
+  - Probes ran on `git archive` copies, never the run's worktree (`probes.md`). System-test and product-acceptance did
+    not probe these either.
+  - DeepSeek's W2 code had the same `GET //` crash before its item review (ce5341c). Its W2 review ran 3 passes:
+    1. three defects, among them listening on every interface while claiming localhost;
+    2. the URL-parse crash (77095e7; `GET //` now answers 400 and the server stays up);
+    3. trivial.
+  - The other two bugs were absent by design: the page locks New game while a shot is in flight, and `createServer`
+    validates its only option.
+- **Likely mechanism, interim (n=1 per model).** One review per item is as deep as the item is narrow. Sonnet planned
+  one item for the whole app, so P0 left one review over three steps' code; the baseline had three. DeepSeek planned
+  three items, so it kept three implement reviews, each over one component.
+- **Refusals were catches, none repeated.** Sonnet 7, DeepSeek 32. The material ones: test_layers (both models); TS1
+  (Sonnet); mutation survivors (Sonnet 2 of 8 at W1; DeepSeek 4, then 1, of 8 at W2 and W3).
+
+**Validity.**
+- **The Sonnet run's Mac slept**: 231.1 of 262.8 wall minutes. It rebooted at 07:52 and the run was resumed at
+  product-acceptance.
+  - Every long stream silence matched a sleep period in `pmset -g log` to within 0.3 min. The CLI itself logged "Your
+    computer went to sleep mid-response" four times.
+  - The awake minutes subtract those periods but count dark-wake time as awake, so the Sonnet minutes are
+    approximate.
+  - Its cost covers only the resumed session. A resumed run writes no baseline row.
+  - The DeepSeek run never slept: the lid was open, with the app's keep-awake on.
+- An earlier reading of the Sonnet silences as API latency is superseded: they were sleep.
+- No other harness run overlapped either run.
+- Mutation was observed on Sonnet (44 of 53 caught). It was not observed on DeepSeek, whose tests bind port 3000.
+
+**Instruments added during the runs**, all hermetic and tested:
+- the Live Run Card's timeline, tiles, comparison and sleep bands (db08cffa);
+- the per-action inspector (prompt sent, dialogue, review passes) and the material list (3a0c1ee8);
+- in this commit: the minor-refusal rule also covers headline length, the stored-record wrapper, short assumption
+  IDs and disposition values, each with a test.
+
+**Next.**
+- The finding to act on is depth, not schedule. Candidate: when a work item spans more than one component or step, its
+  item review's handoff names each step's diff and the component edges (URL parsing, option validation, concurrent
+  UI requests), or keeps a per-step review for such items. Measure it on Sonnet battleship, where one item spans
+  the app.
+- Watch spec and carry-forward review length (DeepSeek 9.8→23.6 min). They are outside P0's scope.
