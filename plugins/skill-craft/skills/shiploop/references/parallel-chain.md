@@ -31,7 +31,7 @@ flowchart TD
     B --> V
     V --> D
     V --> J[Verify integration and return]
-    J --> I[The step's Improve stage, then the test stage]
+    J --> I[The item's Improve stage, then the test stage]
 ```
 
 ## Bind the selected packages and reviewed graph

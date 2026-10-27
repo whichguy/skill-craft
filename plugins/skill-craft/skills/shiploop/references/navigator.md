@@ -21,7 +21,7 @@ refused with an error naming it.
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
-  R -->|Reviewed planning stage, implement step or last carry-forward| I[Improve stage: actual Improve skill]
+  R -->|Reviewed planning stage, item's last implement step or last carry-forward| I[Improve stage: actual Improve skill]
   R -->|Any other stage| F
   I --> U[Bound Until Loop cycle]
   U -->|Incomplete| U
@@ -119,7 +119,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve stages | `step-plan`, `test-spec` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each item's last `implement` step (one review of the item's whole change), last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
@@ -227,9 +227,9 @@ not the six-file "Selected Backchain and Until Loop resources" block that `one` 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
 `--planning-review` says otherwise), which selects the planning results that start an
 Improve stage: `stage` is every planning result, as before, and no packet changes with it;
-`none` is no Improve stage after `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`,
+`none` is no Improve stage after `spec`, `test-strategy`, `plan` or `step-plan` (`test-spec` has none in either mode),
 so the Improve line of those packets says none starts and no reconcile route or plan-time
-experiment locator is printed. The Improve stages after each `implement` step, `system-test-author`,
+experiment locator is printed. The Improve stages after each item's last `implement` step, `system-test-author`,
 `release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
 [Planning review option](run-options.md#planning-review-option).
@@ -298,7 +298,7 @@ conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
 reprinted packet. ShipLoop issues one `implement` packet per step of the
 accepted step plan, in its order, in the execution checkout. Each packet, its
-printed head and the step's Improve hand-off carry the same Step block (task,
+printed head and, at the item's last step, the item's Improve hand-off carry the same Step block (task,
 criteria, Proof, dependencies, later steps) and end with the step's Until Loop;
 ShipLoop runs the step's Proof, its step-plan `proof`, at done. It binds no chain
 and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
@@ -692,7 +692,7 @@ refused, and its refusal opens that action's send-back even though the step's
 Until Loop has completed.
 
 The inner path makes post-code quality visible: the expectations are checked
-before any change, each implement step is reviewed by its own Improve stage,
+before any change, each item's implemented change is reviewed by one Improve stage after its last step,
 the tests are written from the test spec and must fail on the item's base and
 pass on the candidate, documentation follows observed behaviour, and `verify`
 reruns every command and reviews the whole diff with justified fixes and

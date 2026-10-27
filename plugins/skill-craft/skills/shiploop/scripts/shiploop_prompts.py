@@ -74,7 +74,8 @@ DELEGATIONS = (INLINE, ASK_AGENT)
 # the carry-forward that leaves no work item pending (the navigator's pending-queue
 # check).  Planning stages write the contracts later work is built on: a sentence,
 # example or expected result there can look done and still be wrong.  Each accepted
-# implement step has its own rule ("step"), whatever the planning review option says.
+# work item's implement steps have their own rule ("item": one review after the last), whatever the planning review
+# option says.
 PLANNING_REVIEW_STAGES = stage_spec.with_improve("always") | stage_spec.with_improve("first-item")
 
 INLINE_STAGE_CONTEXT = """\
@@ -491,9 +492,9 @@ existing evidence_refs so a later reader can recover them. If a required
 source is missing, report the gap rather than inventing a locator or omitting it.
 A justified N/A is still an output that states
 what was assessed and why it does not apply. ShipLoop starts an Improve stage
-after planning results (spec, test-strategy, plan, step-plan, test-spec,
-system-test-author, release-plan; step-plan and test-spec only for the first work
-item and after a send-back), after each accepted implement step, and after
+after planning results (spec, test-strategy, plan, step-plan,
+system-test-author, release-plan; step-plan only for the first work item and
+after a send-back), after each work item's last accepted implement step, and after
 the carry-forward that leaves no work item pending. Run only the checks this step's change needs. When this step changes no
 product file, its check is the named command, its exit code and its required output
 substrings: record them, cite the earlier accepted stage that ran the same command,
@@ -2378,11 +2379,11 @@ def _graph_order(stages: "frozenset[str]") -> list[str]:
 _NONE_REVIEWED = ", ".join(_graph_order(stage_spec.reviewed_stages("none")))
 _NO_REVIEW_SWAPS = (
     ("*", """\
-after planning results (spec, test-strategy, plan, step-plan, test-spec,
-system-test-author, release-plan; step-plan and test-spec only for the first work
-item and after a send-back), after each accepted implement step, and after""",
+after planning results (spec, test-strategy, plan, step-plan,
+system-test-author, release-plan; step-plan only for the first work item and
+after a send-back), after each work item's last accepted implement step, and after""",
      "after planning results (" + _NONE_REVIEWED + "),\n"
-     "after each accepted implement step, and after"),
+     "after each work item's last accepted implement step, and after"),
 )
 
 
@@ -2585,9 +2586,9 @@ finds none of these is trivial.
 IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
 
-# The ask-agent route issues one implement action for every step of the plan, so the review of a plan of several steps
-# names them: each pair swaps a per-step sentence for one worded for the steps ``{steps}`` and their ``{paths}``
-# (``for_steps``).  The inline route reviews one step per action and keeps the text above.  ``_check_for_steps`` fails at
+# A review that covers several steps names them: the ask-agent route's one implement action builds every step of the plan,
+# and the inline route's item review (rule item) follows the item's last step.  Each pair swaps a per-step sentence for
+# one worded for the steps ``{steps}`` and their ``{paths}`` (``for_steps``); a one-step item keeps the text above.  ``_check_for_steps`` fails at
 # import when an edit to that text leaves a pair matching nothing or twice.
 _STEPS_WORDING = (
     ("Implementation step review focus. This result is one step of the item's step\n"
@@ -2600,10 +2601,9 @@ _STEPS_WORDING = (
      "- a file changed outside the item's paths, or unrelated work reverted or\n"
      "  reformatted;\n",
      "Implementation step review focus. This result is steps {steps} of the item's step\n"
-     "plan, built in one action, and their tests are written later from the test spec, so\n"
-     "this review is the only check of the code before them. Review the diff of the paths\n"
-     "of these steps ({paths}) since the first step began and fix, within those paths,\n"
-     "any of these:\n"
+     "plan, and their tests are written later from the test spec, so this review is the\n"
+     "only check of the code before them. Review the diff of the paths of these steps\n"
+     "({paths}) since the first step began and fix, within those paths, any of these:\n"
      "- the change does not do a step's task, misses a criterion as the spec's R-<n>\n"
      "  states it, or does work no criterion asks for (another item's work, a feature\n"
      "  the item does not request);\n"
@@ -2758,7 +2758,7 @@ without treating facility readiness as a passing product test.
 Follow the selected Improve card's review, commit and completion policies under
 this binding's authority; preserve explicit task overrides and an existing child's
 frozen contract. The parent owns acceptance, callbacks and workspace return.
-For a planning handoff (step-plan, test-spec), change no product code. For release/verification handoffs, reconcile an uncertain external
+For a planning handoff (step-plan), change no product code. For release/verification handoffs, reconcile an uncertain external
 outcome rather than replaying it.
 """
 

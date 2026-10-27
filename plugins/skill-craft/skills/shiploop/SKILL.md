@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.15.0
+version: 1.16.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -35,7 +35,7 @@ and returns the prompt for the current step together with the one callback that
 completes it. The host is a library call: it performs that one step and runs the
 printed callback, then follows the packet the callback returns. It never chooses
 a successor itself. Navigator protocol 4 is the only protocol. At a planning
-stage the run's `planning_review` option reviews, after each `implement` step, or at the last carry-forward, the script parks that
+stage the run's `planning_review` option reviews, after each item's last `implement` step, or at the last carry-forward, the script parks that
 same parent action while the selected actual Improve skill runs its own bound Until Loop
 cycle. `state.md` owns SDLC traversal; the Improve child owns its iterations and runtime
 state. The host follows one current owner at a time. The initial plan child (a `stage` run;

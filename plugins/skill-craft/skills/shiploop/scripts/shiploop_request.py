@@ -3,16 +3,18 @@
 ``RUN/request.md`` is derived from ``state["prompt"]`` at every save.  The split is a display index a stage cites
 (``S<n>``); the verbatim text governs.  The intake, spec and plan packets quote the request whole; every other packet
 names this file (owner decision D2, 2026-10-17; ``shiploop_navigator.REQUEST_WHOLE_STAGES``).  Intake's summary
-is measured against the index: a sentence it does not cite gets a counted notice, never a refusal.
+is measured against the index: a done intake whose summary leaves a sentence uncited (no S<n> covers it) is refused
+(IN1, 2026-10-26; until then it was a counted notice that never refused).
 """
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from typing import List, Set
 
 REQUEST_FILE = "request.md"
-NOTICE_PREFIX = "ShipLoop request notice: "
-# The pointer a packet prints beside the verbatim request (intake: the stage whose summary the notice measures).
+INTAKE = "intake"
+# The pointer a packet prints beside the verbatim request (intake: the stage whose summary IN1 measures).
 POINTER = ("Sentence index of this request (S1..Sn, the same text split at sentence ends; cite S<n>, the verbatim text "
            "governs): RUN/" + REQUEST_FILE)
 
@@ -87,15 +89,24 @@ def cited(summary: str) -> Set[int]:
     return found
 
 
-def notices(prompt: str, summary: str) -> List[str]:
-    """One counted notice when ``summary`` leaves a request sentence uncited, else none.  Never a refusal."""
+class RequestError(ValueError):
+    """A done intake whose summary leaves a request sentence uncited; the message names each and the fix."""
+
+
+def check(prompt: str, stage: str, result: object) -> None:
+    """IN1: a done intake result's ``summary`` cites every request sentence S1..Sn, ranges included."""
+    if stage != INTAKE or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    summary = result.get("summary")
+    if not isinstance(summary, str) or not summary.strip():
+        return   # a missing or blank summary is the result shape's refusal, which names the field
     count = len(sentences(prompt))
     missing = [number for number in range(1, count + 1) if number not in cited(summary)]
-    if not missing:
-        return []
-    return [NOTICE_PREFIX + "the summary cites no " + ", ".join("S" + str(number) for number in missing)
-            + " of the request's sentences S1..S" + str(count) + " (RUN/" + REQUEST_FILE + "): give each the "
-            "outcome, boundary, default or open question it maps to, with its S<n> (the result is still accepted)."]
+    if missing:
+        raise RequestError("intake's summary cites no " + ", ".join("S" + str(number) for number in missing)
+                           + " of the request's sentences S1..S" + str(count) + " (RUN/" + REQUEST_FILE + "): give each "
+                           "the outcome, boundary, default or open question it maps to, with its S<n>, then run the same "
+                           "callback again.")
 
 
-__all__ = ["NOTICE_PREFIX", "POINTER", "REQUEST_FILE", "cited", "index", "notices", "render", "sentences"]
+__all__ = ["INTAKE", "POINTER", "REQUEST_FILE", "RequestError", "check", "cited", "index", "render", "sentences"]

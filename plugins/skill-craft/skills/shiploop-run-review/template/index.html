@@ -448,9 +448,9 @@ function grouped(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
 /* The run's planning_review option as the export recorded it, the text as written ("stage", "none", or any other value
    as it is), or "" when the record says nothing: a run before ShipLoop 1.22.0 has no field, or "not recorded". */
 function planningReview(run){var v=run&&run.planningReview;return typeof v==="string"&&v&&v!=="not recorded"?v:"";}
-/* The five planning stages the option covers (shiploop_stage_spec.PLANNING_CHOICE_STAGES; a test keeps them equal). Under
+/* The four planning stages the option covers (shiploop_stage_spec.PLANNING_CHOICE_STAGES; a test keeps them equal). Under
    the recorded value none no Improve child starts after any of them, by design. */
-var PLANNING_REVIEW_STAGES=["spec","test-strategy","plan","step-plan","test-spec"];
+var PLANNING_REVIEW_STAGES=["spec","test-strategy","plan","step-plan"];
 /* True only for a run that recorded none and a stage in that list; stage, an unknown value and "not recorded" claim nothing. */
 function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNING_REVIEW_STAGES.indexOf(stage)>=0;}
 /* The run header line; a counter reads "13 refusals", "1 refusal" or "refusals not measured", never "undefined refusals" (glue is a mass noun: "1 glue"). A run that
@@ -495,7 +495,7 @@ function chevronLabel(run,order,st){
    has one, so a none run is never read beside a stage run without the mode showing. */
 function modeChip(run){
   return planningReview(run)==="none"?{text:"no Improve at planning stages",
-    title:"This run recorded planning_review none: no Improve child starts after spec, test-strategy, plan, step-plan or test-spec, so its Improve numbers and its planning minutes are not comparable with a stage run's."}:null;
+    title:"This run recorded planning_review none: no Improve child starts after spec, test-strategy, plan or step-plan, so its Improve numbers and its planning minutes are not comparable with a stage run's."}:null;
 }
 /* A stage's minutes: "n/a" when the visit has no accept time (min is null), never "0 min". */
 function minutesText(min){return isCount(min)?min+" min":"n/a";}
@@ -1523,7 +1523,7 @@ function exitCheckOf(info,run){
 function exitCheckWhy(info,run){
   var kind=exitCheckOf(info,run);
   if(kind==="script-run")return "ShipLoop runs "+(Array.isArray(info.completeRuns)&&info.completeRuns.length?info.completeRuns.join(", "):"a check")+" before it accepts done"+
-    (info.improve==="step"?", and an Improve child reviews each step's result.":info.improve==="first-item"?", and an Improve child reviews the first work item's result and a sent-back item's redo; a later item's advances directly.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+    (info.improve==="item"?", and one Improve child per work item reviews its whole change after its last step.":info.improve==="first-item"?", and an Improve child reviews the first work item's result and a sent-back item's redo; a later item's advances directly.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
      :info.improve==="always"&&!improveByDesignInfo(info,run)?", and an Improve child reviews the result before the graph advances.":".");
   if(kind==="review loop")return info.improve==="last-item"?"An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
     :"An Improve child reviews this result before the graph advances.";

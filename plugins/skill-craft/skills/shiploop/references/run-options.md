@@ -83,15 +83,16 @@ pass).
 
 `--planning-review stage|none` at `init` or `workspace start` records the run option
 `planning_review` (default `stage`): which planning results start an Improve stage.
-`stage` starts one after each of `spec`, `test-strategy`, `plan`, `step-plan` and
-`test-spec`; `step-plan` and `test-spec` are reviewed only for the first work item and
-for an item that was sent back, and later items follow the pattern that review set
-(rule `first-item`, 2026-10-19). With `--planning-review none` no Improve stage starts after any of the five:
+`stage` starts one after each of `spec`, `test-strategy`, `plan` and `step-plan`;
+`step-plan` is reviewed only for the first work item and for an item that was sent
+back, and later items follow the pattern that review set (rule `first-item`,
+2026-10-19). `test-spec` is not reviewed in either mode (2026-10-26): the test
+stage's own checks bind its cases. With `--planning-review none` no Improve stage starts after any of the four:
 each result is accepted on ShipLoop's own checks at `complete` (cited files exist, the
 plan's assumption list, the step plan's commands, criteria and paths, the knowledge
 home's checks), the graph advances, and no Improve review covers it in this run. The
 packets say so: the Improve line, the plan and step-plan duties and the shared handoff
-sentence name only the stages that hand off. The Improve stages after each `implement` step,
+sentence name only the stages that hand off. The Improve stages after each item's last `implement` step,
 `system-test-author`, `release-plan` and the last `carry-forward` start in both modes; the
 option does not cover the Backchain loop or the inner stages' Until Loops.
 

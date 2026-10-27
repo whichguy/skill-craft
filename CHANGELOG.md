@@ -4,6 +4,55 @@ Written by scripts/release.py.
 
 ## 2026-10-26
 
+### skill-craft 2.17.0
+
+- Skills: improve 0.7.2, shiploop 1.16.0, shiploop-e2e-audit 0.7.11, shiploop-run-review 0.4.1
+
+### improve 0.7.2
+
+- The ShipLoop review inputs and route name step-plan as the only planning handoff that changes no product code, since
+  ShipLoop no longer starts an Improve review after test-spec.
+
+### shiploop 1.16.0
+
+- Improve reviews implement once per work item instead of once per step, and test-spec has no Improve review.
+  - **The item review.** It runs after the item's last accepted implement step, before its test stage, and covers the item's
+    whole change. Its review base is the tree the item's first step began from, and its focus names the item's steps. So
+    the tests the test stage writes next cover the review's fixes.
+  - **A round that changed nothing is skipped.** A round of steps that changed no file (reissued steps after a send-back)
+    still gets no review.
+  - **Test-spec has no Improve review.** The test stage's own checks bind its cases: RED on the base, the candidate run and
+    the mutation check.
+  - **Why.** Over seven runs, step reviews found something in 11 of 40, and test-spec reviews made 2 real catches in 14. On
+    DeepSeek battleship, 12 step reviews took 28 minutes for 3 real code fixes. The estimate there is 22 reviews down to
+    11, about 31 minutes.
+  - **Other changes.**
+    - The planning review option now covers four stages.
+    - The IMP-4 shadow record is gone: it measured a per-step trigger this rule replaces.
+    - The test-spec re-review narrowing is gone with the review.
+- Two judgement stages now end on a script check, not only on the model's word.
+  - **Test-spec covers every primary requirement (TS1).** At the last work item's test-spec, ShipLoop refuses a
+    primary requirement (spec `primary`) that no item's current test-spec case names. A requirement about the tests
+    themselves ("the tests run with node --test") goes in the new `suite_requirements` field instead, as
+    `{"requirement": "R-<n>", "command": "<a recorded test command>"}`: the suite's recorded run observes it.
+    - A row is refused when its requirement has no current spec entry, or when no step plan records its command.
+    - A run whose step plans record no test command (documentation only) is not asked.
+    - The last item's test-spec packet lists each primary requirement with its cases so far.
+    - The check runs after the hand-off gate, so a malformed case still gets its shape refusal first.
+  - **Intake cites every request sentence (IN1).** A done intake whose summary leaves a sentence `S<n>` of
+    `RUN/request.md` uncited is refused, naming each one. Until now it got a counted notice that never refused
+    (`ShipLoop request notice`), and that notice is gone.
+
+### shiploop-e2e-audit 0.7.11
+
+- The mock replay's own declaration of ShipLoop's Improve checkpoints follows the item rule: test-spec has no review, and
+  each item's last implement step parks one. The full route is 32 callbacks and the two-item route 41.
+
+### shiploop-run-review 0.4.1
+
+- The stage catalog's `improve` rule takes ShipLoop's new `item` value, one implement review per work item, in place of
+  `step`. The Review page says so, and the catalog is regenerated: test-spec has no rule, and implement's rule is `item`.
+
 ### skill-craft 2.16.0
 
 - Skills: shiploop 1.15.0, shiploop-e2e-audit 0.7.10

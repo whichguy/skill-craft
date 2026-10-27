@@ -58,12 +58,14 @@ ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective item
                   '[{"id": "<new id>", "title": "...", "context": "..."}]}')
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
-# and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
+# and "item" once per work item, after its last accepted implement step, over the item's whole change, whatever the
+# planning review option says (owner, 2026-10-26, design 560c396f P0; it was "step", one review per step, owner
+# 2026-10-10: a live three-item run on DeepSeek flash ran 12 step reviews in 28 minutes for 3 real code fixes).
 # "first-item" starts one only for the first work item, and for an item that was sent back (its redone plan is
 # reviewed): later items follow the pattern the first item's review set (owner, 2026-10-19: in a live four-item run
 # the step plan's review took 5-14 min on every item, and Improve was 42% of the run).  The planning review option governs it as it
 # governs "always".
-IMPROVE_RULES = ("always", "last-item", "step", "first-item")
+IMPROVE_RULES = ("always", "last-item", "item", "first-item")
 
 # A work item whose goal proves wrong while it is being built goes back to its
 # step plan with the evidence.  No count of send-backs stops it (owner 2026-10-24:
@@ -380,7 +382,8 @@ _ROWS = (
         test="Specify cases before code: positive, failure and boundary.",
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal",),
-        improve="first-item",
+        # No Improve review (owner, 2026-10-26, design 560c396f P0): over seven runs it made 2 real catches in 14 reviews,
+        # and the test stage's own checks (RED on the base, the candidate run, the mutation check) bind these cases.
         reads=("spec", "test-strategy", "plan", "item:step-plan"),
         blocks=frozenset({"test-facility", "test-decision"}),        outcomes=("done", "blocked"),
     ),
@@ -437,7 +440,7 @@ _ROWS = (
         entry_runs=("loop-contract",),
         # step-proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
         complete_runs=("loop-terminal", "lint-gate", "step-proof"),
-        improve="step",
+        improve="item",
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),
         outcomes=("done", "blocked"),
@@ -720,7 +723,7 @@ def with_improve(rule: str) -> frozenset[str]:
 # without the key is refused (one supported version), and no verb changes it mid-run.
 PLANNING_REVIEW_MODES = ("stage", "none")
 DEFAULT_PLANNING_REVIEW = "stage"
-PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan", "test-spec"))
+PLANNING_CHOICE_STAGES = frozenset(("spec", "test-strategy", "plan", "step-plan"))
 
 
 def reviewed_stages(mode: str) -> frozenset[str]:

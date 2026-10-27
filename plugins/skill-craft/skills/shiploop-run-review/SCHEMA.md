@@ -416,7 +416,7 @@ cannot go unnoticed. Nothing in it is hand-written. One entry per engine stage, 
 | `purpose` | string | the stage row's `goal`, as the engine states it (the packet prints it capitalised after `Goal:`) |
 | `exitCheck` | `script-run` \| `model judgement` \| `review loop` | derived (rule below) |
 | `completeRuns` | array of string | the row's `complete_runs`; omitted when empty |
-| `improve` | `always` \| `first-item` \| `last-item` \| `step` | the row's `improve` rule; omitted when none |
+| `improve` | `always` \| `first-item` \| `last-item` \| `item` | the row's `improve` rule; omitted when none |
 | `planningChoice` | `true` | present only for the five stages `planning_review none` covers (`PLANNING_CHOICE_STAGES`) |
 | `reads` | array of string | the results the stage reads first (`reads` of the row; `item:<stage>` is this work item's). A stage's **readers** are the inverse: the entries whose `reads` name it |
 

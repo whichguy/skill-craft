@@ -89,14 +89,15 @@ class DagReplayTests(unittest.TestCase):
             with self.assertRaisesRegex(dag_replay.DagReplayError, "partial or missing terminal"):
                 session.close()
 
-    def test_full_route_exercises_24_stages_and_33_callback_boundaries(self) -> None:
+    def test_full_route_exercises_24_stages_and_32_callback_boundaries(self) -> None:
         report = self._replay("synthetic-full")
 
         self.assertTrue(report["ok"], report.get("error"))
         self.assertEqual("synthetic-apparatus-passed", report["replay_status"])
-        # 24 producer callbacks plus 9 Improve completions: seven planning
-        # checkpoints, the one implement step and the final carry-forward.
-        self.assertEqual(33, len(report["events"]))
+        # 24 producer callbacks plus 8 Improve completions: six planning
+        # checkpoints, the item's one implement step and the final carry-forward
+        # (33 until test-spec lost its review, 2026-10-26).
+        self.assertEqual(32, len(report["events"]))
         self.assertEqual({"W1"}, set(report["final"]["completed_work_items"]))
         self.assertEqual(["intake", "discovery", "research"], [event["from"] for event in report["events"][:3]])
         for producer in report["events"][:3]:
@@ -114,7 +115,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertNotEqual(improve["post_action_id"], improve["submitted_action_id"])
         improved = [event["from"] for event in report["events"] if event["command"] == "finish-improve"]
         self.assertEqual([
-            "spec", "test-strategy", "plan", "step-plan", "test-spec", "implement", "carry-forward",
+            "spec", "test-strategy", "plan", "step-plan", "implement", "carry-forward",
             "system-test-author", "release-plan",
         ], improved)
         self.assertEqual(0, report["model_calls"])
@@ -123,14 +124,15 @@ class DagReplayTests(unittest.TestCase):
         self.assertIn("SIMULATION_ONLY", report["mock_transport"]["stderr"])
         self.assertEqual(1, report["mock_transport"]["subprocesses"])
 
-    def test_two_work_items_preserve_queue_identity_over_32_stages_and_42_callbacks(self) -> None:
+    def test_two_work_items_preserve_queue_identity_over_32_stages_and_41_callbacks(self) -> None:
         report = self._replay("synthetic-two-work-items")
 
         self.assertTrue(report["ok"], report.get("error"))
-        # 32 producer callbacks plus 12 Improve completions: spec, test-strategy, plan, then step-plan,
-        # test-spec and implement for each item, the last carry-forward, system-test-author and release-plan.
-        # 44 until rule first-item (2026-10-19): W2's step-plan and test-spec no longer park for Improve.
-        self.assertEqual(42, len(report["events"]))
+        # 32 producer callbacks plus 9 Improve completions: spec, test-strategy, plan, W1's step-plan,
+        # each item's implement, the last carry-forward, system-test-author and release-plan.
+        # 44 until rule first-item (2026-10-19) dropped W2's step-plan and test-spec reviews; 42 until test-spec
+        # lost its review (2026-10-26).
+        self.assertEqual(41, len(report["events"]))
         self.assertEqual(["W1", "W2"], report["final"]["completed_work_items"])
         carry_forward = [event for event in report["events"] if event["from"] == "carry-forward"]
         # Only the carry-forward that leaves no item pending parks for Improve.

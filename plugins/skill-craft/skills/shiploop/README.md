@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.15.0
+# ShipLoop navigator 1.16.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -188,8 +188,8 @@ script gates on a draft result without completing it.
   check matches, ShipLoop records the stage without a packet. A works
   expectation found broken with a known small fix is fixed there, and ShipLoop
   commits that fix on accept as its own preparatory commit.
-- `implement` runs once per step, gated by lint on every step, and an Improve
-  child reviews each accepted step (in both planning review modes).
+- `implement` runs once per step, gated by lint on every step, and one Improve
+  child reviews the item's whole change after its last step (in both planning review modes).
 - `test` writes the specified tests after the build, each asserting its case's
   oracle. ShipLoop then runs them on the item's base
   (no new test ID may pass there unless `red_na` names it; `shiploop red-check`

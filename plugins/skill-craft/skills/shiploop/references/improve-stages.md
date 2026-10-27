@@ -30,10 +30,13 @@ Three kinds of result start an Improve stage:
   expected results a weaker stand-in would pass, documented commands that don't
   run what they claim, and required IDs or cases that were dropped. The review
   does not replay facts already on record.
-- Every accepted `implement` step, under either planning review option. Its
-  handoff carries the step review focus (`IMPLEMENT_STEP_REVIEW_FOCUS` in
-  `scripts/shiploop_prompts.py`, with the *Code craft* rubric), so each step is
-  reviewed before the next one builds on it.
+- Each work item's last accepted `implement` step, under either planning review
+  option (rule `item`, 2026-10-26; it was every step). Its handoff carries the
+  implement review focus (`IMPLEMENT_STEP_REVIEW_FOCUS` in
+  `scripts/shiploop_prompts.py`, with the *Code craft* rubric), worded for the
+  item's steps, and its review base is the tree the item's first step began
+  from, so the review covers the item's whole change before the test stage
+  writes the tests.
 - The successful `carry-forward` that leaves no work item pending. This
   end-of-work Improve review covers every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.

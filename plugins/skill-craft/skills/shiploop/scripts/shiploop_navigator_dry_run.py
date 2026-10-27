@@ -20,9 +20,10 @@ AFTER3 = ('system-test-author system-test product-acceptance release-plan releas
           'release release-verify operations handoff').split()
 # Stages whose result starts an Improve stage, besides the last carry-forward, for each
 # planning_review option.  Declared independently of the navigator's tables.  implement's
-# per-step Improve runs in every mode (planning_review none does not skip it).
+# per-item Improve (after the item's last step; one synthetic step here) runs in every mode
+# (planning_review none does not skip it); test-spec has no Improve review (owner, 2026-10-26).
 REVIEWED3 = {
-    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec', 'implement',
+    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'implement',
               'system-test-author', 'release-plan'},
     'none': {'implement', 'system-test-author', 'release-plan'},
 }
@@ -49,8 +50,8 @@ def _improve_receipt(stage: str) -> dict[str, Any]:
 def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[str, Any]]:
     """Explicit producer/Improve declarations for the navigator graph.
 
-    Improve follows only the planning stages the option reviews, each implement step and the last
-    item's carry-forward.
+    Improve follows only the planning stages the option reviews, each item's last implement step and
+    the last item's carry-forward.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
     last_carry = len(path) - 1 - path[::-1].index('carry-forward')
@@ -70,7 +71,7 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
                 {'id': 'W1', 'title': 'First fixture'},
                 {'id': 'W2', 'title': 'Second fixture'},
             ]
-        # Rule first-item (2026-10-19): step-plan and test-spec are reviewed for the first work item only (a sent-back
+        # Rule first-item (2026-10-19): step-plan is reviewed for the first work item only (a sent-back
         # item's redo too; no scenario here sends one back), so the second item's advance without a child.
         later_item = stage in stage_spec.with_improve('first-item') and path[:index + 1].count('step-plan') > 1
         if (stage not in REVIEWED3[planning_review] or later_item) and index != last_carry:

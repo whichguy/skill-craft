@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and repeat until a pass finds only trivial changes or none. Supports a
   read-only interpretation preview; not a one-off code review.
-version: 0.7.1
+version: 0.7.2
 license: MIT
 platforms:
   - linux
