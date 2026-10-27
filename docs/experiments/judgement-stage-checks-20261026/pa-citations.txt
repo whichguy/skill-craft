@@ -1,0 +1,6 @@
+live-sonnet-battleship-01b9b3: request sentences S1,2,3,4,5; product-acceptance cites S1,2,3,4,5; unverified 0
+  cited test IDs 14: ST-1 ST-2 TC-1 TC-10 TC-11 TC-12 TC-13 TC-14 TC-16 TC-2 TC-3 TC-7 TC-8 TC-9
+  in verify records: 14; in any test record: 14; in none: -
+ds-flash-978478-battleship: request sentences S1,2,3,4,5; product-acceptance cites S; unverified 1
+  cited test IDs 3: SYS-OPS-1 SYS-SUITE-1 SYS-UI-2
+  in verify records: 1; in any test record: 1; in none: SYS-SUITE-1 SYS-UI-2
