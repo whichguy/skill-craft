@@ -3768,6 +3768,11 @@ the last item's test-spec as at that item; for IN1, the intake.
       what a row may name: any recorded command whose run observes the requirement.
   - That leaves one question for the owner, about wording only: whether the refusal, the packet and the glossary say
     "a requirement a recorded command observes (a test suite, a deploy, a check)".
+    - **Decided 2026-10-27: widened** (owner: "Widen"). The refusal, the last item's test-spec packet line, the
+      shape message and the glossary row now say a row may name a recorded command whose own run observes the
+      requirement: a test suite, a deploy or a check. `SuiteCoverageTests` asserts the wording and accepts a
+      deploy-command row for a structural requirement, as 12a23d needs. No gate changed: a deploy row passed
+      before the edit too.
 - **IN1 refuses no run since 2026-10-19 (15 of 15 accepted).** The 58 refusals are all older runs: 56 from before
   2026-10-17 and 2 since, round0-claude-main (2026-10-17) and bs-release-update-436528 (2026-10-18).
 

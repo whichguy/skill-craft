@@ -950,8 +950,8 @@ class PrimaryGateTests(RepoCase):
 class SuiteCoverageTests(RepoCase):
     """TS1 (docs/shiploop-judgement-stage-checks-proposal-2026-10-26.md, section 0): at the last work item's done test-spec,
     every primary requirement (spec primary) has a test case naming it in some item's current test-spec, or a
-    ``suite_requirements`` row: a requirement about the tests themselves ("the tests run with node --test"), observed by
-    the suite's recorded run, which names one of the run's recorded test commands.  A replay of the eight saved runs
+    ``suite_requirements`` row: a requirement a recorded command's own run observes (a test suite, "the tests run with
+    node --test"; a deploy; a check), which names one of the run's recorded test commands.  A replay of the eight saved runs
     since ``primary`` exists found three such requirements and one primary requirement no case named."""
 
     SUITE = {"requirement": "R-2", "command": "node --test"}
@@ -998,6 +998,8 @@ class SuiteCoverageTests(RepoCase):
         self.assertIn("primary requirement (spec primary)", message)
         self.assertIn("suite_requirements", message)
         self.assertIn('"command": "<one of: npm test, node --test>"', message)
+        self.assertIn("(a test suite, a deploy or a check", message)           # any recorded command may observe it
+        self.assertNotIn("about the tests themselves", message)
         self.assertNotIn("R-1 ", message.split("Missing:")[-1].split(".")[0])     # W1's case covers R-1
         self.check(state, self.done([], suite_requirements=[self.SUITE]))                    # the suite observes R-2
         self.check(state, self.done([dict(CASE, id="TC-2", requirement="R-2")]))           # or a case names it
@@ -1024,6 +1026,11 @@ class SuiteCoverageTests(RepoCase):
                 self.assertIn(fragment, self.refused(
                     lambda row=row: self.check(state, self.done([], suite_requirements=[dict(row)]))))
         self.check(state, self.done([], suite_requirements=[dict(self.SUITE, command="npm test")]))
+        # Not only a test suite: a deploy a step plan records observes a structural requirement (Grok chess-sf 12a23d's
+        # R-1 and R-2, docs/experiments/judgement-stage-checks-20261026/chess-sf-ts1-check.txt).
+        deploy = "sf project deploy start --target-org de"
+        state["accepted"]["st1"]["test_commands"].append({"command": deploy, "suite": "check"})
+        self.check(state, self.done([], suite_requirements=[{"requirement": "R-1", "command": deploy}]))
         for bad in ("R-2", [{"requirement": "R-2"}], [{"requirement": "R-2, R-1", "command": "npm test"}],
                     [dict(self.SUITE, command="npm test"), dict(self.SUITE, command="npm test")]):
             with self.subTest(bad=bad):
@@ -1039,6 +1046,7 @@ class SuiteCoverageTests(RepoCase):
         lines = primary.packet_lines(self.root, state, "test-spec")
         self.assertTrue(lines[0].startswith("Primary requirements (spec primary): this is the last work item, so every "
                                             "one needs a test case naming it"), lines)
+        self.assertIn("(a test suite, a deploy or a check)", lines[0])
         self.assertEqual(lines[1:], ["- R-1: TC-1", "- R-2: no case yet"])
         self.assertEqual(primary.packet_lines(self.root, self.state_at("W1", primary_ids=["R-1"]), "test-spec"), [])
 

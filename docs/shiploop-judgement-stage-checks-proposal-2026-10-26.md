@@ -72,8 +72,13 @@ and the rest of §4 waits for evidence that it binds a real run.
 check (`docs/experiments/judgement-stage-checks-20261026/ts1-in1-replay.jsonl`). TS1 matched the prediction on all 7
 local runs, and IN1 refuses no run since 2026-10-19. Of the Grok chess-sf runs, ed3292 never reached its last item's
 test-spec. 12a23d passes once its structural requirements are marked with its own recorded deploy and secrets-check
-commands (`chess-sf-ts1-check.txt`). The one open question is wording only: say that a row names any recorded command
-that observes the requirement, not only a test suite. Details: the journal entry in `test/shiploop_e2e/LEARNINGS.md`.
+commands (`chess-sf-ts1-check.txt`). The one open question was wording only: say that a row names any recorded
+command that observes the requirement, not only a test suite. Details: the journal entry in
+`test/shiploop_e2e/LEARNINGS.md`.
+
+**Decided, 2026-10-27: the wording is widened** (owner: "Widen"). The refusal, the last item's test-spec packet line
+and the glossary row say a row may name a recorded command whose own run observes the requirement: a test suite, a
+deploy or a check. D7's "about the tests themselves" is superseded; the mechanism is unchanged.
 
 ## 1. Where the nine stand today
 
