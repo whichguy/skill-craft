@@ -235,8 +235,10 @@ def stop_cause(stop_file: Path) -> str:
 
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
-    """The selected host, with the binary its --<host>-bin flag names and the backend --backend names (Claude only)."""
-    return hosts.host(args.host, getattr(args, args.host + "_bin"), getattr(args, "backend", None))
+    """The selected host, with the binary its --<host>-bin flag names and the backend --backend names (Claude only); with no
+    --backend, the run default (hosts.RUN_DEFAULT_BACKEND: the Claude host on Ollama)."""
+    backend = getattr(args, "backend", None) or hosts.RUN_DEFAULT_BACKEND.get(args.host)
+    return hosts.host(args.host, getattr(args, args.host + "_bin"), backend)
 
 
 def load_case(args) -> tuple[str, str, list[str], str | None]:
@@ -2660,11 +2662,11 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
-                   help="claude only: anthropic (default) or ollama, Claude Code on a model the local Ollama server serves, "
-                        f"default {hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed (SPEC \"The Claude host "
-                        "can run on Ollama\"); a resume keeps its run's backend")
-    p.add_argument("--model", help="default: claude-sonnet-5-5 (claude), grok-4.7 (grok), "
-                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama)")
+                   help="claude only: ollama (default), Claude Code on a model the local Ollama server serves, default "
+                        f"{hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed (SPEC \"The Claude host can run "
+                        "on Ollama\"); or anthropic, Claude's own models. A resume keeps its run's backend")
+    p.add_argument("--model", help=f"default: {hosts.OLLAMA_MODEL} (claude), claude-sonnet-5-5 (claude --backend "
+                                   "anthropic), grok-4.7 (grok)")
     p.add_argument("--effort", help="reasoning effort; default: host default (claude), medium (grok)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
@@ -2677,7 +2679,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-turns", type=int, default=None,
                    help="a turn limit for the host session; default: none (the owner wants no turn limit)")
     # No limit is imposed unless one is asked for (owner 2026-10-24: no turn, spend, time or resume limit by default).
-    p.add_argument("--max-budget-usd", type=float, default=None, help="claude only, default none; grok has no spend cap")
+    p.add_argument("--max-budget-usd", type=float, default=None,
+                   help="claude --backend anthropic only, default none; grok has no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
     p.add_argument("--max-resumes", type=int, default=None,
@@ -4120,7 +4123,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 print(f"regrade: no host starts, so the run's recorded host, model and effort stay ({kept['host']}, "
                       f"{kept['model']}, {kept['effort'] or 'no effort'}); ignoring {', '.join(ignored)}", flush=True)
             args.host, args.model, args.effort = kept["host"], kept["model"], kept["effort"]
-            args.backend = recorded.get("backend")  # a regrade starts no host: the run's recorded backend stays
+            # A regrade starts no host: the run's recorded backend stays. A launch from before the field ran on Anthropic, so
+            # the run default (Ollama) never relabels it.
+            args.backend = recorded.get("backend") or ("anthropic" if recorded["host"] == "claude" else None)
         resumed = {"from_host": last_launch.get("host") or earlier["host"], "from_model": last_launch.get("model") or earlier.get("model"),
                    "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}

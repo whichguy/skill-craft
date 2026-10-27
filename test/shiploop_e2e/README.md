@@ -20,7 +20,9 @@ flowchart LR
     T -->|red| S
 ```
 
-All three stages default to **Claude Sonnet 5.5 (`claude-sonnet-5-5`)**.
+An E2E run (`run.py`) defaults to **DeepSeek flash through Claude Code on Ollama** (`--host claude`, backend
+`ollama`, `deepseek-v4.1-flash:1017-cloud`; owner, 2026-10-26). `--backend anthropic` runs Claude's own models,
+Claude Sonnet 5.5 (`claude-sonnet-5-5`) by default; the reviewer and the slice drivers keep Claude's models.
 `--host grok` switches to Grok (`grok-4.7`, medium effort), and `--host codex` to Codex
 (GPT-6 Luna, `gpt-6-luna`, at xhigh effort). `--model` and `--effort` override either one, so
 switching model or effort is a flag, for example
@@ -36,7 +38,8 @@ translated into Grok's event shape as it is captured, so metrics, the transcript
 and the reviewer read one format. Codex reports no dollar cost, so its cost is
 unknown, and it has no turn cap. Adding a host means adding one class.
 
-**The Claude host on Ollama** (`--backend ollama`, 2026-10-26) runs Claude Code headless on a model the local Ollama
+**The Claude host on Ollama** (`--backend ollama`, added 2026-10-26 and the default since that day) runs Claude Code
+headless on a model the local Ollama
 server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route the `ask-ollama` skill verified:
 - **No credentials.** The child's environment loses every `ANTHROPIC_*` and `CLAUDE*` variable, so the launching
   session's OAuth token never reaches the endpoint. It gets only the base URL `http://127.0.0.1:11434`, the key `ollama`,
@@ -44,14 +47,15 @@ server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route t
 - **Only coding tools.** An explicit `--tools` allowlist keeps the installation's orchestration tools out, and
   `--strict-mcp-config` keeps every connector out.
 - **Refused when not ready.** A run is refused before any model starts when the server does not answer or does not
-  list the model. `--preflight-only --host claude --backend ollama` checks the same thing.
+  list the model. `--preflight-only --host claude` checks the same thing.
 - **No cost.** Claude Code prices the tokens at Anthropic's rates, so the run's cost is null with its reason, the tokens
   are its measure, and `--max-budget-usd` is refused.
 - **Recorded.** The backend is on the launch records, `result.json` and the card's `driver`, and a resume keeps it. A
   run another model served (`metrics.models_served`) is not attributable to its driver.
 
 ```sh
-python3 test/shiploop_e2e/run.py --case hello --host claude --backend ollama --output ~/e2e-runs/<day>/<name>
+python3 test/shiploop_e2e/run.py --case hello --output ~/e2e-runs/<day>/<name>                 # DeepSeek flash
+python3 test/shiploop_e2e/run.py --case hello --backend anthropic --output ~/e2e-runs/<day>/<name>  # Sonnet 5.5
 ```
 
 To check orchestration alone, without ShipLoop's SDLC or a product, run the

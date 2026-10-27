@@ -52,6 +52,16 @@ OLLAMA_MODEL_VARS = ("ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROP
 # Monitor, Workflow, ...), which no outside model may have (ask-ollama). Skill and Agent are ShipLoop's Improve route.
 OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit", "WebFetch", "WebSearch", "TodoWrite",
                 "Skill", "Agent")
+# The backend an E2E run (run.py) uses when none is named: the Claude host runs on Ollama's DeepSeek flash, and
+# `--backend anthropic` names Claude's own models (owner, 2026-10-26: "switch the default e2e ... to use ollama and
+# deepseek-flash as the models for testing"). The host factory's own default stays anthropic, so the session reviewer and
+# the slice and fan-out drivers keep Claude's models.
+RUN_DEFAULT_BACKEND = {"claude": "ollama"}
+
+
+def run_default_model(name: str) -> str:
+    """The model an E2E run of host ``name`` uses when no --model and no --backend are given."""
+    return OLLAMA_MODEL if RUN_DEFAULT_BACKEND.get(name) == "ollama" else HOSTS[name].model
 
 
 def ollama_ready(model: str, url: str = OLLAMA_URL, timeout: float = 5.0) -> str | None:

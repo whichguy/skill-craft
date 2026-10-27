@@ -409,7 +409,7 @@ class HarnessCase(LifecycleCase):
         self.addCleanup(self.kill_started)
 
     def argv(self, out: Path, *extra: str) -> list[str]:
-        return ["--host", "claude", "--claude-bin", str(self.fake), "--output", str(out), "--plugin-dir", str(self.plugin),
+        return ["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fake), "--output", str(out), "--plugin-dir", str(self.plugin),
                 "--baseline", str(self.baselines), "--quiet", *extra]
 
     def main(self, *argv: str, mode: str = "done") -> tuple[int, str]:

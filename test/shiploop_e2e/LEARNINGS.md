@@ -3671,3 +3671,25 @@ the baseline row is in this commit).
   Anthropic connection at all.
 - The improve-skill skip (6 of 22) is a candidate packet fix: the Improve packet could put the Skill call first and
   make it unmissable.
+
+## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: firm (a default, not a finding)
+
+**What changed.** `run.py` with no `--backend` now runs the Claude host on Ollama with `deepseek-v4.1-flash:1017-cloud`
+(owner: "switch the default e2e … to use ollama and deepseek-flash as the models for testing").
+`--backend anthropic` runs Claude's own models, Sonnet 5.5 by default.
+- The default lives in `hosts.RUN_DEFAULT_BACKEND` and only `run.py` applies it. The host factory's default stays
+  Anthropic, so the session reviewer (`review.py`) and the slice and fan-out drivers keep Claude's models.
+- A resume or regrade of a run recorded before the backend field stays on Anthropic. A hermetic test proves it, and it
+  fails without the guard.
+- The tests that drive a fake `claude` now name `--backend anthropic`, because they test the Anthropic route.
+  - Three resume tests still passed locally on the new default, because this machine's Ollama server was running and
+    answered the readiness check. In CI there is no Ollama, so they would have failed.
+  - The check was to rerun the quick tier with `OLLAMA_URL` pointed at a dead port (42 suites PASS), then restore it.
+
+**Why.** The two DeepSeek runs (hello, then battleship in 222 minutes) passed with valid attribution. Each spends no
+Anthropic budget, and the gates caught every slip.
+
+**Effect on earlier results.** None are relabelled. Cells are keyed by model, so a default run now lands in the
+DeepSeek cell, and a Sonnet comparison needs `--backend anthropic`. Wall time is about 5–6 times Sonnet's, so a
+battleship run needs `--timeout 14400`. `iterate.py --host claude --model <Claude model>` now meets the Ollama
+readiness refusal at its run stage, because that model is not on Ollama.

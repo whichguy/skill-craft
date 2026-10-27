@@ -36,6 +36,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import metrics  # noqa: E402
 import run  # noqa: E402
+# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 
 FIXTURES = ROOT / "test" / "fixtures" / "reorientation"
 
@@ -1649,7 +1651,7 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
                     "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
-            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+            run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
 
     def test_a_first_launch_writes_a_start_row_and_an_end_row_on_every_host(self):
@@ -1678,7 +1680,7 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
 
         with mock.patch.object(run, "launch", side_effect=peek), contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(RuntimeError):
-                run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(self.tmp / "o"),
+                run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]), "--output", str(self.tmp / "o"),
                           "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertEqual(len(seen[0]), 1)
         self.assertEqual((seen[0][0]["kind"], seen[0][0]["end"]), ("first", None))
@@ -1731,7 +1733,7 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         with mock.patch.object(run, "launch", side_effect=SystemExit("working directory is not empty: ['x']")), \
                 contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(SystemExit):
-                run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
+                run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
                           "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertEqual(sessionlog.read(out), None, "no host ran: no session row, not a 'crashed' one")
 

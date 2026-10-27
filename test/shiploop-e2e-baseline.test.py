@@ -34,6 +34,8 @@ import hosts  # noqa: E402
 import metrics  # noqa: E402
 import progress  # noqa: E402
 import run  # noqa: E402
+# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import delivery  # noqa: E402
 import scorecard  # noqa: E402
 import promotion  # noqa: E402
@@ -466,7 +468,7 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         out = self.tmp / f"out-{host}-{mode}-{len(list(self.tmp.glob('out-*')))}"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", host, f"--{host}-bin", str(binary or self.fakes[host]), "--output", str(out),
+            code = run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(binary or self.fakes[host]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -526,7 +528,7 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         os.environ["FAKE_MODE"] = "done"
         (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=self.CATALOG):
-            run.main(["--host", host, f"--{host}-bin", str(self.versioned(host, line)), "--resume-run", str(out),
+            run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.versioned(host, line)), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0", *extra])
         return json.loads((out / "result.json").read_text())
 
@@ -638,7 +640,7 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
             prompt = f"Make hello. Read {spelled}/build/SKILL.md first."
             os.environ["FAKE_MODE"] = "done"
             with contextlib.redirect_stdout(io.StringIO()):
-                run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(spelled),
+                run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]), "--output", str(spelled),
                           "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--prompt", prompt,
                           "--check", "true"])
             result = json.loads((real / name / "result.json").read_text())
@@ -802,7 +804,7 @@ exit $rc
         out = self.tmp / f"out-{len(list(self.tmp.glob('out-*')))}"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", host, f"--{host}-bin", str(binary or self.fakes[host]), "--output", str(out),
+            code = run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(binary or self.fakes[host]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 

@@ -44,6 +44,8 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import run  # noqa: E402
+# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 
 TOKEN = "FAKE-TOKEN-DO-NOT-LOG"
 SESSION = "00D5g000004AbCd!AQEAQFakeSessionTokenValue0123456789abcdefghijklmnop"
@@ -243,7 +245,7 @@ class PlatformCase(unittest.TestCase):
         out = self.tmp / f"out-{host}-{tag}"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out), "--case", name,
+            code = run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--output", str(out), "--case", name,
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -253,7 +255,7 @@ class PlatformCase(unittest.TestCase):
                     "shiploop_version": None, "unreleased": [], "ci": ci}
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.object(run, "released_versions", return_value=released):
-            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+            run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0", *extra])
         return json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -814,7 +816,7 @@ class PreflightOnlyTest(PlatformCase):
     def test_a_failing_platform_preflight_refuses_preflight_only(self):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "preflight"
-        code, out, printed = self.preflight_only("--host", "claude", "--claude-bin", str(self.fakes["claude"]))
+        code, out, printed = self.preflight_only("--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]))
         self.assertEqual(code, 1)
         self.assertIn("platform preflight (claude): REFUSED", printed)
         self.assertNotIn(TOKEN, printed)
@@ -823,7 +825,7 @@ class PreflightOnlyTest(PlatformCase):
 
     def test_a_case_without_a_platform_preflights_as_before(self):
         self.use_case(None)
-        code, out, printed = self.preflight_only("--host", "claude", "--claude-bin", str(self.fakes["claude"]))
+        code, out, printed = self.preflight_only("--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]))
         self.assertEqual(code, 0, printed)
         self.assertNotIn("platform", json.loads((out / "claude" / "preflight.json").read_text()))
         self.assertNotIn("platform preflight", printed)
@@ -1110,7 +1112,7 @@ class ShellPreflightTest(ShellTest):
         with contextlib.redirect_stdout(printed), mock.patch.object(
                 run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})):
             code = run.main(["--preflight-only", "--case", "plat", "--output", str(out), "--host", "claude",
-                             "--claude-bin", str(self.fakes["claude"])])
+                             "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"])])
         self.assertEqual(code, 1)
         self.assertIn("platform preflight (claude): REFUSED", printed.getvalue())
         self.assertIn("-lc", printed.getvalue())
@@ -1452,7 +1454,7 @@ class KeepPlatformTest(PlatformCase):
 
     def argv(self, *extra: str, tag: str = "a", mode: str = "done", host: str = "grok") -> list[str]:
         os.environ["FAKE_MODE"] = mode
-        return ["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(self.tmp / f"out-{host}-{tag}"), "--case", "plat",
+        return ["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--output", str(self.tmp / f"out-{host}-{tag}"), "--case", "plat",
                 "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra]
 
     def go(self, *extra: str, tag: str = "a", mode: str = "done") -> tuple[int, str, Path]:

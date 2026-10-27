@@ -1979,7 +1979,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
 
     def test_the_deliberate_flag_finishes_the_run_on_the_named_host_as_a_mixed_host_run(self):
         out = self.stopped("--model", "my-model", "--effort", "high")
-        code, result, printed = self.resume(out, "--host", "claude", "--allow-host-change")
+        code, result, printed = self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change")
         self.assertEqual([(host, model) for _, host, model, _ in self.launches(out)],
                          [("grok", "my-model"), ("claude", "claude-sonnet-5-5")],
                          "the recorded model belongs to the host that recorded it")
@@ -1994,7 +1994,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         out = self.stopped()
         code, result, _ = self.resume(out, "--host", "grok")
         out = self.stopped()
-        self.resume(out, "--host", "claude", "--allow-host-change", mode="active")  # claude leaves it active
+        self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change", mode="active")  # claude leaves it active
         code, result, printed = self.resume(out)  # no host: the one that last ran it, not the first and not Claude by default
         self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "claude", "claude"])
         self.assertIn("continuing on claude", printed)
@@ -2003,7 +2003,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         # r2-battleship-grok-none: Grok started it, Claude finished it, and a regrade left result.json saying Grok beside a
         # Claude-finished run (its header read host=grok, its metrics said Claude 2.1.294, its environment said mixed).
         out = self.stopped("--model", "my-model", "--effort", "high")
-        self.resume(out, "--host", "claude", "--allow-host-change")
+        self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change")
         saved = json.loads((out / "result.json").read_text())
         saved.update(host="grok", model="grok-4.7", effort="medium")
         (out / "result.json").write_text(json.dumps(saved))
@@ -2031,7 +2031,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
 
     def test_a_regrade_in_the_same_second_as_the_launch_it_follows_leaves_that_launch_on_record(self):
         out = self.stopped()
-        self.resume(out, "--host", "claude", "--allow-host-change")
+        self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change")
         names = sorted(path.name for path in out.glob("invocation-resume-*.json"))
         self.resume(out, "--grade-only")  # no pause: the second may well be the same
         self.assertTrue(set(names) <= {path.name for path in out.glob("invocation-resume-*.json")})
@@ -2039,7 +2039,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
 
     def test_a_resume_of_a_mixed_run_names_the_last_launch_as_where_it_resumed_from(self):
         out = self.stopped()
-        self.resume(out, "--host", "claude", "--allow-host-change", mode="active")
+        self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change", mode="active")
         _, result, _ = self.resume(out)
         self.assertEqual((result["resumed_run"]["from_host"], result["resumed_run"]["from_model"]), ("claude", "claude-sonnet-5-5"))
 
@@ -2051,7 +2051,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         for phrase in ("last launched on grok", "--host claude would finish it", "would become a mixed-host run", "--allow-host-change"):
             self.assertIn(phrase, text)
         self.assertNotIn("already", text)
-        self.resume(out, "--host", "claude", "--allow-host-change", mode="active")
+        self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change", mode="active")
         with self.assertRaises(SystemExit) as raised:
             self.resume(out, "--host", "grok")
         text = str(raised.exception)

@@ -49,6 +49,8 @@ import progress  # noqa: E402
 import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
+# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import scorecard  # noqa: E402
 import fanout  # noqa: E402
 
@@ -378,7 +380,7 @@ class HarnessCase(unittest.TestCase):
         os.environ["FAKE_MODE"] = mode
         out = self.tmp / f"out-{host}-{mode}"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+            code = run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text())
 
@@ -1555,7 +1557,7 @@ class ReviewExportTest(HarnessCase):
         os.environ["FAKE_MODE"] = "done"
         out, printed = self.tmp / "out-export", io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
+            code = run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -1595,7 +1597,7 @@ class ReviewExportTest(HarnessCase):
     def test_preflight_only_never_exports(self):
         with mock.patch.object(run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})), \
                 mock.patch.object(run, "review_export") as exporter:
-            self.assertEqual(run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / "pf")]), 0)
+            self.assertEqual(run.main(["--preflight-only", "--host", "claude", "--backend", "anthropic", "--output", str(self.tmp / "pf")]), 0)
         exporter.assert_not_called()
 
 
@@ -4036,7 +4038,7 @@ class PrintedCase(HarnessCase):
         out = self.tmp / f"out-{host}-{mode}-{len(list(self.tmp.glob('out-*')))}"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+            code = run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -4067,15 +4069,39 @@ class ClaudeOnOllamaTest(PrintedCase):
     def child_env(self) -> dict:
         return dict(line.split("=", 1) for line in (self.tmp / "child-env.txt").read_text().splitlines() if "=" in line)
 
-    def ollama(self, *extra: str, ready: str | None = None) -> tuple[int, Path, str]:
+    def ollama(self, *extra: str, ready: str | None = None, backend: tuple = ("--backend", "ollama")) -> tuple[int, Path, str]:
         os.environ["FAKE_MODE"] = "done"
         out = self.tmp / f"out-ollama-{len(list(self.tmp.glob('out-ollama-*')))}"
         printed = io.StringIO()
         with mock.patch.dict(os.environ, self.SECRETS), mock.patch.object(run.hosts, "ollama_ready", return_value=ready), \
                 contextlib.redirect_stdout(printed):
-            code = run.main(["--host", "claude", "--backend", "ollama", "--claude-bin", str(self.wrapper()), "--output", str(out),
+            code = run.main(["--host", "claude", *backend, "--claude-bin", str(self.wrapper()), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, out, printed.getvalue()
+
+    def test_an_e2e_run_defaults_to_deepseek_flash_on_ollama(self):
+        code, out, printed = self.ollama(backend=())
+        self.assertEqual(code, 0, printed)
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual((result["backend"], result["model"]), ("ollama", hosts.OLLAMA_MODEL))
+        self.assertEqual(self.child_env()["ANTHROPIC_BASE_URL"], hosts.OLLAMA_URL, "the child is routed to Ollama")
+        self.assertEqual((hosts.run_default_model("claude"), hosts.run_default_model("grok")),
+                         (hosts.OLLAMA_MODEL, hosts.GrokHost.model))
+        anthropic = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "anthropic"]))
+        self.assertEqual((anthropic.backend, anthropic.model), ("anthropic", "claude-sonnet-5-5"), "--backend anthropic names "
+                         "Claude's own models")
+        self.assertEqual(hosts.host("claude").backend, "anthropic", "the factory's default (reviewer, slice) is unchanged")
+
+    def test_a_regrade_of_a_run_from_before_the_backend_field_stays_anthropic(self):
+        _, out, _ = self.ollama(backend=("--backend", "anthropic"))
+        for path in out.glob("invocation*.json"):  # as a run recorded before the field existed
+            record = json.loads(path.read_text())
+            record.pop("backend", None)
+            path.write_text(json.dumps(record))
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertEqual(json.loads((out / "result.json").read_text())["backend"], "anthropic",
+                         "the run default must not relabel an Anthropic run as an Ollama one")
 
     def test_no_credential_of_the_launching_session_reaches_the_child(self):
         code, out, printed = self.ollama()
@@ -4486,7 +4512,7 @@ class PluginVerdictCarriedTest(PrintedCase):
                     "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
                 run, "released_versions", return_value=released):
-            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+            run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
         return json.loads((out / "result.json").read_text())
 
@@ -4617,7 +4643,7 @@ class CommittedVerdictTest(PrintedCase):
         out = self.tmp / "out-empty-baseline"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", "claude", "--claude-bin", str(fake), "--output", str(out),
+            code = run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(fake), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
                              "--prompt", "make hello", "--check", "true"])
         result = json.loads((out / "result.json").read_text())
@@ -4673,7 +4699,7 @@ class RegradeRecordTest(PrintedCase):
             with self.subTest(host=host):
                 code, first, _ = self.invoke_printed(host, "done")
                 self.assertEqual(code, 0, first)
-                result, _ = self.regrade(Path(first["output"]), "--host", host, f"--{host}-bin", str(self.fakes[host]))
+                result, _ = self.regrade(Path(first["output"]), "--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]))
                 self.assertTrue(result["pass"], {k: result[k] for k in ("invoked", "plugin", "process")})
                 self.assertTrue(result["process"]["regraded"])
                 for key in ("host", "model", "effort", "plugin"):
@@ -4688,7 +4714,7 @@ class RegradeRecordTest(PrintedCase):
         os.environ["FAKE_MODE"] = "done"
         out = self.tmp / "out-exit-3"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--host", "claude", "--claude-bin", str(wrapper), "--output", str(out),
+            code = run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(wrapper), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         first = json.loads((out / "result.json").read_text())
         self.assertEqual((code, first["pass"], first["shiploop"]["pass"]), (1, False, True))
@@ -5619,7 +5645,7 @@ class SuiteTmpCheckHostTest(HarnessCase):
         self.addCleanup(os.environ.pop, "FAKE_COMMAND", None)
         out, printed = self.tmp / "suite-out", io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--suite", "wide", "--host", "claude", "--claude-bin", str(self.fakes["claude"]),
+            code = run.main(["--suite", "wide", "--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]),
                              "--output", str(out), "--plugin-dir", str(self.plugin),
                              "--baseline", str(self.baselines)])
         self.assertEqual(code, 0, printed.getvalue())
@@ -5693,7 +5719,7 @@ class ResumeCliThroughMainTest(PrintedCase):
         released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
                     "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
-            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+            run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
                       "--plugin-dir", str(plugin or self.plugin), "--baseline", str(self.baselines),
                       "--max-resumes", "0", *extra])
 
@@ -6429,7 +6455,7 @@ class CaseRunCase(PrintedCase):
         os.environ["FAKE_MODE"] = mode
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.dict(os.environ, env or {}):
-            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+            code = run.main(["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue(), out
 
@@ -6744,7 +6770,7 @@ class StalePreflightThroughMainTest(CaseRunCase):
             with (self.leaking(ended) if leaks else mock.patch.object(listeners, "observe", return_value=[])), \
                     mock.patch.object(run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})), \
                     contextlib.redirect_stdout(printed):
-                code = run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / f"pf-{leaks}")])
+                code = run.main(["--preflight-only", "--host", "claude", "--backend", "anthropic", "--output", str(self.tmp / f"pf-{leaks}")])
             self.assertEqual(code, want, printed.getvalue())
             self.assertEqual("kill 900001" in printed.getvalue(), leaks)
 

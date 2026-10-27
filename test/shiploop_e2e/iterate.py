@@ -307,7 +307,7 @@ def main(argv: list[str] | None = None) -> int:
     learnings = out / "LEARNINGS.md"
     journal(learnings, [f"# ShipLoop E2E iterations: {args.case}", "",
                         f"- worktree: {worktree}", f"- branch: {branch} from {start_sha}",
-                        f"- host: {args.host} model={args.model or hosts.HOST_DEFAULTS[args.host]['model']} "
+                        f"- host: {args.host} model={args.model or hosts.run_default_model(args.host)} "
                         f"effort={args.effort or hosts.HOST_DEFAULTS[args.host]['effort']}"])
     print(f"iterate: output={out} worktree={worktree} branch={branch}", flush=True)
 

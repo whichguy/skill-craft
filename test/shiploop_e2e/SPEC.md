@@ -848,6 +848,10 @@ stands at the commit under test.
   the local Ollama server serves (default `deepseek-v4.1-flash:1017-cloud`), the route the `ask-ollama` skill verified.
   The backend is part of the driver, recorded on every launch, and a resume keeps its run's backend. Owner's ask:
   evaluations on a cheap, fast model, independent of the Grok and Anthropic budgets.
+  - *The default for testing (owner, 2026-10-26).* An E2E run with no `--backend` runs the Claude host on Ollama;
+    `--backend anthropic` runs Claude's own models. A resume or regrade of a run recorded before the field exists
+    stays on Anthropic, so the default never relabels an earlier run. The host factory's own default stays
+    Anthropic, so the session reviewer and the slice and fan-out drivers keep Claude's models.
   - *No user credential reaches the endpoint.* The host drops every `ANTHROPIC_*` and `CLAUDE_CODE_*` variable, and
     `CLAUDECODE` and `CLAUDE_PROXY_BYPASS`. It then sets only the Ollama route: the base URL, the key `ollama`, and the
     model for the main thread, every default model class and subagents. ask-ollama found on 2026-10-24 (Claude Code

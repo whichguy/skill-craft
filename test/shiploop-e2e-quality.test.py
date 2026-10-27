@@ -142,7 +142,7 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
         os.environ["FAKE_MODE"] = "done"
         out = self.tmp / "c-refused"
         with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as raised:
-            run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
+            run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--case", "hello",
                       "--planning-review", "none"])
         self.assertIn("--improve-skill", str(raised.exception))
@@ -170,7 +170,7 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
     def test_a_seeded_run_takes_no_planning_review(self):
         # The harness starts a seeded run itself and records its stages without doing them: the option would change nothing.
         with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as raised:
-            run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(self.tmp / "c-seed"),
+            run.main(["--host", "claude", "--backend", "anthropic", "--claude-bin", str(self.fakes["claude"]), "--output", str(self.tmp / "c-seed"),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--case", "hello",
                       "--seed-at", "step-plan", "--planning-review", "none"])
         self.assertIn("seeded", str(raised.exception))
