@@ -1,0 +1,16 @@
+######## live-sonnet-hello-b01d1c
+== R-1: Entry(text='### R-1 hello.py prints the greeting\nBasis: request S1 (first clause). Satisf
+   cases naming it: none
+cases with no requirement: []
+######## live-sonnet-battleship-01b9b3
+== R-6: Entry(text='### R-6 Tests run with `node --test` (request S5)\nBasis: request S5. Implemen
+   cases naming it: none
+cases with no requirement: []
+######## pilot-ollama-dsflash-993a9d-hello
+== R-2: Entry(text='### R-2 — `test_hello.py` verifies that output with `unittest`\n\n**Basis.** R
+   cases naming it: none
+cases with no requirement: []
+######## gate-2132-f7ba78-grok-hello
+== R-2: Entry(text='### R-2 Unittest checks that output\n\n`test_hello.py` is a standard-library `
+   cases naming it: none
+cases with no requirement: []

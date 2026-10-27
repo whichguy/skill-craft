@@ -12,6 +12,61 @@ Evidence: `docs/experiments/judgement-stage-checks-20261026/` (the citation meas
 saved runs `20261026/live-sonnet-battleship-01b9b3` (Sonnet 5.5, ShipLoop 1.15.0) and
 `20261026/ds-flash-978478-battleship` (DeepSeek flash).
 
+## 0. Revised after a replay on every saved run (later on 2026-10-26)
+
+The first draft checked product-acceptance at the end of the run, from a new `observed` field. Replaying the idea on
+every saved run that reached product-acceptance, with ShipLoop's own readers from main
+(`docs/experiments/judgement-stage-checks-20261026/pa-replay.jsonl`, `pa_replay.py`), changed three things.
+
+1. **The trace already exists, so no new field is needed.**
+   - The spec stage records the primary requirements (`primary`).
+   - Each test-spec case names its requirement.
+   - `shiploop_primary.passed_cases` already gives, per requirement, the tests ShipLoop's own verify records saw pass.
+
+   Both models' specs also tie each requirement to its request sentences (`Basis: S1, S2`). A coverage check is: every
+   primary requirement has a passing case, or an `unverified` row. The script can compute that, with no field from the
+   model.
+2. **At the end, that check would refuse honest work.** Of the 8 runs since `primary` exists (2026-10-24), 5 would be
+   refused. The diagnosis (`pa-diagnosis.txt`):
+
+   | run | refused requirement | why |
+   |---|---|---|
+   | Sonnet battleship | R-6 "Tests run with `node --test`" | a requirement about the tests: the suite's run observes it, and no case can |
+   | DeepSeek hello | R-2 "`test_hello.py` verifies that output" | the same |
+   | Grok hello (2.13.2) | R-2 "Unittest checks that output" | the same |
+   | Sonnet hello | R-1 "hello.py prints the greeting" | no test-spec case names R-1, though the greeting is tested |
+
+   Grok chess-sf, the fifth, has several, not diagnosed here. So the defects sit upstream, in test-spec's links from
+   requirements to cases, and requirements about the tests need their own kind. Product-acceptance is the wrong place
+   to catch them.
+3. **The release checks mostly duplicate gates that exist.** Every run that deploys to a real target carries the
+   delivery contract: the three Salesforce runs since 2026-10-20 do, and no other case deploys. Its gates already
+   require the release's effect and identity, readiness and obligations. The local runs return through the workspace
+   return, which the script verifies. RL1, RL2, RC1 and RC2 are superseded (§4).
+
+DeepSeek's unrecorded `SYS-UI-2` (§3) also moves upstream. Its requirement had passing lower-layer cases. What went
+unrecorded was a system-test procedure marked manual. So the gap is at system-test-author and system-test, not at
+product-acceptance.
+
+**The revised checks, put where each fact is made:**
+- **TS1, test-spec.** Every current primary requirement has at least one case naming it, or is marked as observed by
+  the suite's own run, as a requirement about the tests (a new field with one row per such requirement: decision D7).
+  Predicted on the replay:
+  - Sonnet hello: refused, for R-1 with no case;
+  - Sonnet battleship, DeepSeek hello and Grok hello: they pass once they mark their test requirement;
+  - the other three: they pass.
+- **ST1, system-test-author and system-test.** Every planned system test is a recorded command. A procedure no command
+  can run goes into the plan as an open item, not as "manual". That catches `SYS-UI-2`.
+- **PA1′, product-acceptance, switched on after TS1.** The coverage check above, computed from records with no new
+  field. Once TS1 holds upstream, it refuses only a real gap.
+- Kept from the first draft: IN1 (intake's notice becomes a refusal), X1 (open items due at a stage), HO2 (handoff's
+  test status matches the records) and X2 (research may record open items). PA3 (the records' tree) folds into
+  PA1′.
+
+**Revised build order** (supersedes D5): TS1 and IN1 first. Then PA1′, ST1 and X1, after the fork's P0 Improve change
+lands and in step with its T1–T5 test-stage design, which changes the records these checks read. HO2 and X2 come last,
+and the rest of §4 waits for evidence that it binds a real run.
+
 ## 1. Where the nine stand today
 
 The Run Review catalog (`skills/shiploop-run-review/defaults/stages.json`, `exitCheck`) calls nine stages "model
@@ -71,7 +126,8 @@ manual procedures … not run at this stage". DeepSeek covered it by writing and
 `RUN/scratch/acceptance/probe-ui.js`. So today's "every outcome observed" can rest on checks no script saw, and a
 prose parser would find no sentence IDs at all on DeepSeek. Hence a structured field, not parsing.
 
-**Proposed checks:**
+**Proposed checks** (*superseded later on 2026-10-26 by §0*: no new field. The coverage is computed from records, and
+the traceability is checked at test-spec):
 - **PA1, coverage.** A new field, `observed`: one entry per request sentence, `{"sentence": "S3", "checks": ["TC-13",
   "TC-14"]}`, or `{"sentence": "S5", "deferred": "R-7"}` naming an `unverified` row. The script requires every `S<n>`
   from `RUN/request.md` exactly once, and every `deferred` requirement to have its `unverified` row. Refusal: "S4 is
@@ -99,10 +155,10 @@ Ranked by value. Each line gives its kind and what it needs.
 
 | id | stage | check | kind | needs |
 |---|---|---|---|---|
-| RL1 | release | The released identity exists. For a source return, it equals the identity in the script-written return receipt (or the template prefills it). For another target, a read-only identity command from release-plan confirms it. | evidence / rerun | release-plan to name an identity command for non-source targets (to confirm) |
-| RL2 | release | The grant: the result cites a grant record (an `Access and accounts` entry in `KNOWLEDGE/environment.md` naming this target, or intake's boundary when the request names the target), or a not-applicable with reason when release-plan planned no release | coverage | a `grant` field |
-| RC1 | release-check | ShipLoop runs each post-release confirm command once on the source checkout and on the candidate. The source must show "not there yet" and the candidate must pass. Sonnet's model did exactly this by hand ("exit 1 in the source checkout, exit 0 in the candidate"). | rerun | release-plan's confirm commands as a list (to confirm) |
-| RC2 | release-check | Each release precondition release-plan names is observed, with evidence | coverage | release-plan's preconditions as a list |
+| ~~RL1~~ | release (superseded, §0: the delivery contract gates this where it matters) | The released identity exists. For a source return, it equals the identity in the script-written return receipt (or the template prefills it). For another target, a read-only identity command from release-plan confirms it. | evidence / rerun | release-plan to name an identity command for non-source targets (to confirm) |
+| ~~RL2~~ | release (superseded, §0) | The grant: the result cites a grant record (an `Access and accounts` entry in `KNOWLEDGE/environment.md` naming this target, or intake's boundary when the request names the target), or a not-applicable with reason when release-plan planned no release | coverage | a `grant` field |
+| ~~RC1~~ | release-check (superseded, §0) | ShipLoop runs each post-release confirm command once on the source checkout and on the candidate. The source must show "not there yet" and the candidate must pass. Sonnet's model did exactly this by hand ("exit 1 in the source checkout, exit 0 in the candidate"). | rerun | release-plan's confirm commands as a list (to confirm) |
+| ~~RC2~~ | release-check (superseded, §0) | Each release precondition release-plan names is observed, with evidence | coverage | release-plan's preconditions as a list |
 | X1 | every stage | A stage with open items due must answer each by ID: settled with evidence, or carried with a reason | coverage | an `open_items` answer field, or reuse of `assumptions` |
 | IN1 | intake | Turn the existing notice into a refusal: every request sentence `S<n>` is cited. Both runs already cite all five. | coverage | nothing new (`request_file.notices` computes it) |
 | DI1 | discovery | The baseline: the cited baseline output must show a test run ShipLoop can read, with "missing coverage" allowed when no suite exists (Sonnet: `node --test` exited 0 with 0 tests). Or ShipLoop reruns the baseline command once on the unchanged checkout. | evidence / rerun | the baseline command and output as a `harness_runs`-style row |
@@ -128,13 +184,16 @@ for prepare, handoff and product-acceptance's `unverified`. Today it calls them 
   probe)? Recommended for confirm commands and baselines. Probes are recorded rather than rerun.
 - **D4. Which records count as "executed and passed"** for PA2: the verify records only, or also system-test and
   release-verify runs. Recommended: every test record ShipLoop wrote itself, never a file the model wrote.
-- **D5. Build order.** Recommended phases:
+- **D5. Build order** (*superseded by §0's revised order*). Recommended phases:
   - phase 1: IN1, PA1–PA3, X1;
   - phase 2: RL1, RL2, RC1, DI1, HO1, HO2;
   - phase 3: PA4, PR1, X2, OP1, RE1.
 
   Each check gets a fail-first test and a replay on today's four saved runs (Sonnet and DeepSeek, hello and
   battleship): honest results are accepted, and DeepSeek's acceptance is refused as predicted.
+- **D7. Requirements about the tests themselves** (§0, TS1). For example "Tests run with `node --test`": mark them
+  as observed by the suite's recorded run, in test-spec's result. Recommended: one row per such requirement, naming
+  the recorded command, which the verify records must show passing.
 - **D6. Placement.** The checks run at `complete`, like `complete_runs`, so the Until Loop's terminal check and the
   refusal text carry them. A new `complete_runs` name per check (`coverage`, `observed-evidence`, …) makes them visible
   in the stage table and the catalog.
