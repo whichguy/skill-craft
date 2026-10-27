@@ -41,6 +41,13 @@ document, JOB's `tiles` replace the builder's, `comparison` (`{title, note, colu
 machine slept) joins the timeline. A finding may carry `example`, `before`, `after` and `evidence` beside its `tag`,
 `status` (firm, interim, early, superseded, missed), `title` and `text`. The Live Run Card page that draws all of this is
 live_run_card.html beside this file (published at the artifact named in memory illustrated-status-card).
+
+`build e2e RUN --job JOB.json --actions DIR` also writes one document per action to DIR/<action>.json (for the card's
+jobs/<job>/actions/<action>): the prompt as sent, the host's dialogue (clipped per kind, first 20 and last 140 events of a
+long action), the refused callbacks and an Improve action's review passes. It adds the inspector's `actions` index and
+the `material` items to the job document, and lists in DIR/changed.json the actions whose document changed since the
+last call. Material: an Improve pass classified non-trivial, a refusal from a substantive gate (a length cap or an
+ordering slip is minor), a send-back or a block.
 """
 from __future__ import annotations
 
@@ -425,8 +432,10 @@ def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
         if span["lane"] not in lanes:
             lanes.append(span["lane"])
 
-    last = None
+    last, printed = None, None   # printed: the action of a packet printed since the last accepted callback
     for row in rows:
+        if row.get("kind") == "packet":
+            printed = row.get("action") or printed
         stage = row.get("stage") if isinstance(row.get("stage"), list) and len(row["stage"]) == 2 else None
         if row.get("kind") != "command" or row.get("verb") != "complete" or not stage:
             continue
@@ -438,14 +447,14 @@ def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
         if row.get("check_only"):
             continue
         name = reviewed[1] if stage[0] == "improve" else stage[0]
-        span = {"lane": lane(stage[0], row.get("action")), "stage": name,
+        span = {"lane": lane(stage[0], row.get("action")), "stage": name, "action": row.get("action"),
                 "kind": "improve" if stage[0] == "improve" else "stage", "start": opened, "end": at}
         add(span)
         if span["kind"] == "stage":
             reviewed = (span["lane"], span["stage"])
-        opened, last = at, stage[1]
+        opened, last, printed = at, stage[1], None
     if last and last != "done":
-        add({"lane": lane(last, None), "stage": reviewed[1] if last == "improve" else last,
+        add({"lane": lane(last, printed), "stage": reviewed[1] if last == "improve" else last, "action": printed,
              "kind": "improve" if last == "improve" else "stage", "start": opened, "end": None})
     order = ["Prelude"] + [name for name in lanes if name not in ("Prelude", "Outer")] + ["Outer"]
     return {"start": round(rows[0]["ts"], 1), "end": opened if last == "done" else None,
@@ -467,6 +476,144 @@ def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
             {"label": "Improve reviews", "value": str(len(reviews)), "sub": f"{minutes:.1f} min"},
             {"label": "Refusals", "value": str(len(line["marks"])),
              "sub": f'{checks} a --check-only check' if checks == 1 else f"{checks} --check-only checks"}]
+
+
+# --- action documents: what the Live Run Card's inspector opens for one action -----------------------------------------
+# One document per action (jobs/<job>/actions/<action>, each under the database's 256 KiB): the prompt as sent, the
+# host's dialogue in order, the refused callbacks and, for an Improve action, its review passes. Long bodies are clipped
+# per kind (the model's own words longest) and a long action keeps its first and last events.
+
+CLIP = {"say": 3000, "call": 700, "result": 600, "injected": 400, "hook": 400, "refusal": 1200, "keepalive": 400}
+ACTION_EVENTS = 160   # an action document keeps its first 20 and last 140 events and counts the rest
+PROMPT_CHARS = 60000
+# A refused callback is minor when the model only has to shorten a field, write the result first, or finish a loop it
+# started; any other gate (coverage, test layers, mutants, not_covered, ...) found something material.
+MINOR_REFUSAL = re.compile(r"is \d+ characters; keep it within|characters together; the limit is|^no result file|"
+                           r"evidence_refs cite files that do not exist|loop is still active|the following arguments are "
+                           r"required|exactly one shiploop-state fence|^Run the improve skill|^Complete \S*review-\d+\.md "
+                           r"\(missing or invalid|^not_covered is \[")
+# A review section runs from its heading ("Found:") to the next heading or the handoff, on one line or the lines below.
+REVIEW_SECTION = r"^{name}:[ \t]*(.*?)(?=^(?:Read|Found|Changed|Checked|Class):|^## |\Z)"
+
+
+def refusal_is_material(text: str) -> bool:
+    return not MINOR_REFUSAL.search(str(text or "").strip())
+
+
+def _review_section(text: str, name: str) -> str:
+    found = re.search(REVIEW_SECTION.format(name=name), text, re.MULTILINE | re.DOTALL)
+    return "\n".join(line.strip() for line in found.group(1).strip().splitlines() if line.strip())[:1500] if found else ""
+
+
+def _review_title(found: str) -> str:
+    """A pass's headline: its first item's bold lead, else its first sentence."""
+    body = re.sub(r"^\d+\.\s*", "", " ".join(found.split())).strip()
+    bold = re.match(r"\*\*(.+?)\*\*", body)
+    if bold:
+        return bold.group(1)[:240]
+    sentence = re.match(r"(.+?[.;])(\s|$)", body)
+    return (sentence.group(1) if sentence else body)[:240]
+
+
+def review_passes(worktree: Path, stage: str, reviewed: str) -> list[dict]:
+    """An Improve action's review passes, in order: each review-<n>.md's classification, its Found, Changed and Checked
+    sections and a one-line title (the review folder is <stage>-<last 8 of the reviewed action>)."""
+    folder = worktree / ".shiploop-improve" / f"{stage}-{str(reviewed)[-8:]}" / "reviews"
+    passes = []
+    for path in sorted(folder.glob("review-*.md"), key=lambda p: int(re.sub(r"\D", "", p.stem) or 0)):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        head = re.match(r"---\n(.*?)\n---\n", text, re.DOTALL)
+        fields = dict(re.findall(r"^(\w[\w-]*):\s*(.*)$", head.group(1), re.MULTILINE)) if head else {}
+        found = _review_section(text, "Found")
+        passes.append({"pass": int(re.sub(r"\D", "", path.stem) or 0), "classification": fields.get("classification", ""),
+                       "title": _review_title(found), "found": found, "changed": _review_section(text, "Changed"),
+                       "checked": _review_section(text, "Checked")})
+    return passes
+
+
+def _clipped(kind: str, text) -> tuple[str, bool]:
+    text, limit = str(text or ""), CLIP.get(kind, 600)
+    return (text, False) if len(text) <= limit else (text[:limit] + "…", True)
+
+
+def action_documents(flow_doc: dict, reviews) -> tuple[list[dict], dict[str, dict], list[dict]]:
+    """From flow.build's actions: the inspector's index (one small row per action), one document per action, and every
+    material item in time order: a review pass classified non-trivial, a refused callback from a substantive gate, a
+    send-back or a block. ``reviews(stage, reviewed_action)`` returns an Improve action's passes."""
+    index, docs, material = [], {}, []
+    for action in flow_doc.get("actions") or ():
+        name = action.get("action")
+        events = [event for phase in action.get("phases") or () for event in phase.get("events") or ()]
+        packet = next((phase["packet"] for phase in action.get("phases") or () if phase.get("packet")), None) or {}
+        omitted = max(0, len(events) - ACTION_EVENTS)
+        kept = events if not omitted else events[:20] + events[-(ACTION_EVENTS - 20):]
+        dialogue = []
+        for event in kept:
+            text, clipped = _clipped(event.get("kind"), (event.get("body") or {}).get("text"))
+            row = {"t": event.get("t"), "kind": event.get("kind"), "text": text, "clipped": clipped}
+            if event.get("tool"):
+                row["tool"] = event["tool"]
+            if event.get("kind") == "refusal":
+                row["check"] = bool(event.get("check_only"))
+            dialogue.append(row)
+        improve = action.get("stage") == "improve"
+        stage = (str(action.get("reviewed_stage") or "") + " review") if improve else action.get("stage")
+        refusals = [{"t": event.get("t"), "check": bool(event.get("check_only")),
+                     "text": _clipped("refusal", (event.get("body") or {}).get("text"))[0],
+                     "material": refusal_is_material((event.get("body") or {}).get("text"))}
+                    for event in events if event.get("kind") == "refusal"]
+        passes = reviews(action.get("reviewed_stage"), action.get("reviewed")) if improve else []
+        found = [{"action": name, "stage": stage, "kind": "refusal", "t": r["t"], "title": r["text"].split("\n")[0][:240],
+                  "detail": r["text"]} for r in refusals if r["material"]]
+        found += [{"action": name, "stage": stage, "kind": "review", "t": None, "pass": p["pass"],
+                   "title": p.get("title") or p["found"][:240] or "non-trivial pass",
+                   "detail": "Found: " + p["found"] + "\nChanged: " + p["changed"]
+                   + ("\nChecked: " + p["checked"] if p["checked"] else "")}
+                  for p in passes if p["classification"] == "non-trivial"]
+        if action.get("outcome") in ("send-back", "add-work", "blocked"):
+            found.append({"action": name, "stage": stage, "kind": str(action["outcome"]), "t": None,
+                          "title": str(action.get("stage")) + ": " + str(action["outcome"]), "detail": ""})
+        sends = packet.get("sends") or []
+        prompt = {"text": str(packet.get("text") or "")[:PROMPT_CHARS], "chars": packet.get("chars"),
+                  "prints": packet.get("prints"), "reprints": packet.get("reprints"),
+                  "file": (sends[0] or {}).get("file") if sends else None} if packet else None
+        docs[name] = {"action": name, "index": action.get("index"), "stage": stage, "kind": "improve" if improve else "stage",
+                      "item": action.get("work_item"), "outcome": action.get("outcome"), "prompt": prompt,
+                      "dialogue": dialogue, "omitted": omitted, "refusals": refusals, "review": passes,
+                      "material": found}
+        times = [event.get("t") for event in events if isinstance(event.get("t"), (int, float))]
+        index.append({"id": name, "index": action.get("index"), "stage": stage, "kind": "improve" if improve else "stage",
+                      "item": action.get("work_item"), "outcome": action.get("outcome"), "events": len(events),
+                      "refusals": len(refusals), "material": len(found), "says": sum(e.get("kind") == "say" for e in events),
+                      "t0": min(times) if times else None, "t1": max(times) if times else None})
+        material += found
+    return index, docs, material
+
+
+def build_e2e_actions(folder: Path, out_dir: Path) -> dict:
+    """Write one action document per action to OUT_DIR/<action>.json and return {index, material, changed}: changed are
+    the actions whose document differs from the last call's (OUT_DIR/manifest.json), the ones to write to the card."""
+    import hashlib
+
+    import flow  # the harness's per-action reader of the host stream and the run trace
+    worktrees = sorted(folder.glob(".shiploop-runs/*/worktree"))
+    worktree = worktrees[0] if worktrees else folder
+    index, docs, material = action_documents(flow.build(folder), lambda stage, reviewed: review_passes(worktree, stage, reviewed))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = out_dir / "manifest.json"
+    try:
+        before = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        before = {}
+    after, changed = {}, []
+    for name, doc in docs.items():
+        text = json.dumps(doc, ensure_ascii=False)
+        after[name] = hashlib.sha256(text.encode()).hexdigest()
+        if before.get(name) != after[name]:
+            (out_dir / f"{name}.json").write_text(text, encoding="utf-8")
+            changed.append(name)
+    manifest_path.write_text(json.dumps(after), encoding="utf-8")
+    return {"index": index, "material": material, "changed": changed}
 
 
 BUILDERS = {"tier": build_tier, "advisors": build_advisors, "e2e": build_e2e}
@@ -503,12 +650,21 @@ def main(argv: list[str] | None = None) -> int:
         view = parser.add_mutually_exclusive_group()
         view.add_argument("--html", action="store_true", help="print the inline card instead of the model")
         view.add_argument("--job", type=Path, help="print the Live Run Card job document; JOB.json adds its keys")
+        parser.add_argument("--actions", type=Path, help="e2e with --job: write each action's document to ACTIONS/ and "
+                            "add the inspector's index and the material items; ACTIONS/changed.json lists the new ones")
         args = parser.parse_args(argv[1:])
+        if args.actions and not (args.job and args.kind == "e2e"):
+            parser.error("--actions needs e2e and --job")
         model, meta = BUILDERS[args.kind](args.path)
         if args.html:
             print(render(model))
         elif args.job:
-            print(json.dumps(job_document(model, meta, json.loads(args.job.read_text(encoding="utf-8"))), indent=1))
+            document = job_document(model, meta, json.loads(args.job.read_text(encoding="utf-8")))
+            if args.actions:
+                found = build_e2e_actions(args.path, args.actions)
+                document["actions"], document["material"] = found["index"], found["material"]
+                (args.actions / "changed.json").write_text(json.dumps(found["changed"]), encoding="utf-8")
+            print(json.dumps(document, indent=1))
         else:
             print(json.dumps(model, indent=1))
         return 0

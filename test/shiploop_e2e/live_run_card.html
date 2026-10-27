@@ -184,6 +184,74 @@ table.cmp { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 
 .st { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--panel-2); color: var(--ink-3); }
 .st.firm { background: var(--ok-bg); color: var(--ok-ink); } .st.early, .st.interim { background: var(--run-bg); color: var(--run-ink); }
 .st.missed, .st.bad { background: var(--bad-bg); color: var(--bad-ink); }
+/* Material: what changed the run's course, one row per action; each opens to its passes or its gate's text. */
+.mat-list { display: flex; flex-direction: column; gap: 6px; }
+details.mat { border: 0.5px solid var(--line); border-radius: 10px; }
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary:focus-visible { outline: 2px solid var(--result); outline-offset: 1px; border-radius: 7px; }
+.chev { display: inline-block; width: 10px; color: var(--ink-3); transition: transform 0.18s ease; font-size: 10px; }
+details[open] > summary .chev { transform: rotate(90deg); }
+details.mat > summary { display: grid; grid-template-columns: 10px auto minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 8px 12px; font-size: 13px; }
+details.mat > summary .mt { min-width: 0; overflow-wrap: anywhere; }
+details.mat > summary .ms { font-size: 11px; color: var(--ink-3); font-family: var(--mono); white-space: nowrap; }
+.mat .body { padding: 0 12px 12px 30px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.mat .pass { display: flex; flex-direction: column; gap: 4px; border-left: 2px solid var(--review-soft); padding-left: 10px; }
+.mat .pass b { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.mat pre, .insp pre { margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.5; padding: 8px 10px; border-radius: 7px; white-space: pre-wrap;
+  overflow-wrap: anywhere; background: var(--panel-2); color: var(--ink-2); min-width: 0; }
+.kind { font-size: 10.5px; padding: 1px 7px; border-radius: 6px; font-family: var(--mono); white-space: nowrap; background: var(--panel-2); color: var(--ink-2); }
+.kind.review { background: var(--review-soft); color: var(--review); }
+.kind.refusal, .kind.material { background: var(--bad-bg); color: var(--bad-ink); }
+.kind.minor { background: var(--panel-2); color: var(--ink-3); }
+.kind.send-back, .kind.add-work, .kind.blocked { background: var(--run-bg); color: var(--run-ink); }
+.linkbtn { font: inherit; font-size: 12px; color: var(--result); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px; align-self: flex-start; }
+.linkbtn:focus-visible, .achip:focus-visible, .filters button:focus-visible { outline: 2px solid var(--result); outline-offset: 2px; }
+/* Inspector: pick an action (from the rail, the timeline or a material row) and read its prompt, dialogue and review. */
+.rail { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.rail .lane { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; align-items: start; }
+.rail .lane > b { font-size: 12px; font-weight: 500; padding-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail .chips { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+.achip { font: inherit; font-size: 11.5px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 7px;
+  border: 0.5px solid var(--line-2); background: transparent; color: var(--ink-2); cursor: pointer; }
+.achip.improve { border-style: dashed; color: var(--review); }
+.achip[aria-pressed="true"] { background: var(--result); color: #fff; border-color: transparent; }
+.achip .n { font-family: var(--mono); font-size: 10px; padding: 0 5px; border-radius: 5px; background: var(--bad-bg); color: var(--bad-ink); }
+.achip .n.r { background: var(--run-bg); color: var(--run-ink); }
+.achip .ld { width: 6px; height: 6px; border-radius: 50%; background: var(--run); }
+.seg.sel { outline: 2px solid var(--ink); outline-offset: 1px; z-index: 3; }
+.seg[data-action] { cursor: pointer; }
+.insp-head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin: 0 0 6px; }
+.insp-head b { font-size: 16px; font-weight: 600; }
+.insp-head .meta { font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); }
+.insp-head .live-tag { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--run-bg); color: var(--run-ink); }
+details.sec { border-top: 0.5px solid var(--line); padding: 9px 0; }
+details.sec > summary { font-size: 13px; font-weight: 500; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+details.sec > summary small { font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--ink-3); }
+details.sec > .inner { padding: 8px 0 0 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.insp pre.prompt { max-height: 440px; overflow: auto; }
+.filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.filters button { font: inherit; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; border: 0.5px solid var(--line-2); background: transparent;
+  color: var(--ink-2); cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+.dlg { display: flex; flex-direction: column; gap: 2px; max-height: 620px; overflow: auto; padding-right: 4px; min-width: 0; }
+details.ev2 > summary { display: grid; grid-template-columns: 10px 52px 70px minmax(0, 1fr); gap: 6px; align-items: baseline; padding: 3px 6px;
+  font-size: 12px; border-radius: 7px; }
+details.ev2 > summary:hover { background: var(--panel-2); }
+details.ev2 > summary time { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+details.ev2 > summary .who { font-family: var(--mono); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who.say { color: var(--result); font-weight: 500; } .who.call { color: var(--ink-2); } .who.result { color: var(--ink-3); }
+.who.refusal { color: var(--err); } .who.injected, .who.hook, .who.keepalive { color: var(--review); }
+details.ev2 > summary .pv { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--ink); }
+details.ev2.say > summary .pv { font-weight: 500; }
+details.ev2.result > summary .pv { color: var(--ink-2); }
+details.ev2[open] > summary .pv { white-space: normal; overflow-wrap: anywhere; }
+details.ev2 > pre { margin: 2px 0 6px 74px; }
+details.ev2.refusal > pre { background: var(--bad-bg); color: var(--bad-ink); }
+details.ev2.say > pre { background: var(--result-soft); color: var(--ink); font-family: var(--sans); font-size: 12.5px; }
+.omit { text-align: center; font-size: 11px; color: var(--ink-3); padding: 4px; border: 0.5px dashed var(--line-2); border-radius: 6px; }
+.hint { font-size: 12px; color: var(--ink-3); }
 /* Feed. */
 .feed ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .ev { display: grid; grid-template-columns: 56px 10px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 4px 6px; border-radius: 6px; }
@@ -215,7 +283,10 @@ table.cmp { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 
 @keyframes pop { 0% { transform: scale(0.3) } 60% { transform: scale(1.25); box-shadow: 0 0 0 6px color-mix(in srgb, var(--result) 25%, transparent) } 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent } }
 @keyframes rise { 0% { transform: translateY(-4px); background: var(--run-bg) } 15% { transform: translateY(0); background: var(--run-bg) } 100% { background: transparent } }
 @media (max-width: 560px) { .count b { font-size: 23px } .card { padding: 14px } .tl { grid-template-columns: 58px minmax(0, 1fr); gap: 0 6px }
-  .tl .lbl { font-size: 11px } .seg { font-size: 0 } .tile b { font-size: 19px } }
+  .tl .lbl { font-size: 11px } .seg { font-size: 0 } .tile b { font-size: 19px }
+  .rail .lane { grid-template-columns: minmax(0, 1fr) } details.ev2 > summary { grid-template-columns: 10px 44px minmax(0, 1fr) }
+  details.ev2 > summary .who { display: none } details.ev2 > pre { margin-left: 16px } details.sec > .inner { padding-left: 4px }
+  .mat .body { padding-left: 14px } }
 </style>
 
 <div class="wrap">
@@ -233,6 +304,7 @@ table.cmp { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 
       Claude adds a job here when a long run starts and redraws this card on every check, about every 3.5 minutes.
     </section>
   </main>
+  <section class="card insp" id="inspect" aria-label="Inspect an action" hidden></section>
   <p class="note" id="note">Status is pushed by Claude from the running session; this page never writes.</p>
 </div>
 
@@ -333,7 +405,8 @@ function timelineHtml(job) {
       if (s.kind === "stage" && repeats[s.lane + "|" + s.stage] > 1) { const k = s.lane + "|" + s.stage; seen[k] = (seen[k] || 0) + 1; name += " " + seen[k]; }
       const label = s.kind === "improve" ? "review" : name;
       const tip = `${name}${s.kind === "improve" ? " · Improve review" : ""} · ${span(b - a)} (${clock(a)}–${s.end != null ? clock(b) : "now"})`;
-      return `<span class="seg ${s.kind === "improve" ? "improve" : "stage"}${s.end == null ? " open" : ""}" tabindex="0" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%" title="${esc(tip)}">${width > 7 ? esc(label) : ""}</span>`;
+      const pick = s.action ? ` data-action="${esc(s.action)}" role="button" aria-label="${esc("Inspect " + name + (s.kind === "improve" ? " review" : ""))}"` : "";
+      return `<span class="seg ${s.kind === "improve" ? "improve" : "stage"}${s.end == null ? " open" : ""}${s.action && s.action === inspected ? " sel" : ""}" tabindex="0"${pick} style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%" title="${esc(tip + (s.action ? " · click to inspect" : ""))}">${width > 7 ? esc(label) : ""}</span>`;
     }).join("");
     const marks = (t.marks || []).filter(m => m.lane === lane).map(m =>
       `<span class="mark ${m.kind === "check" ? "check" : ""}" style="left:${x(m.at * 1000).toFixed(3)}%" title="${esc((m.kind === "check" ? "check refused at " : "refused at ") + m.stage + " " + clock(m.at * 1000) + ": " + String(m.text || "").slice(0, 240))}"></span>`).join("");
@@ -383,6 +456,155 @@ function comparisonHtml(job) {
   return `<section class="card" aria-label="Comparison"><h2>${esc(c.title || "Against the baseline")}${c.note ? `<span>${esc(c.note)}</span>` : ""}</h2>`
     + `<div class="cmpwrap"><table class="cmp"><thead>${head}</thead><tbody>${rows}</tbody>${c.caption ? `<caption>${esc(c.caption)}</caption>` : ""}</table></div></section>`;
 }
+
+// --- Material and the inspector ---------------------------------------------------------------------------------------
+// Open/closed state of every <details data-key> survives redraws; the inspector streams the chosen action's document.
+const openKeys = new Map();
+const isOpen = (key, dflt) => openKeys.has(key) ? openKeys.get(key) : dflt;
+const openAttr = (key, dflt) => isOpen(key, dflt) ? " open" : "";
+let inspected = null, inspectDoc, inspectUnsub = null, inspectJob = null, dlgFilter = "all";
+const WHO = { say: "model", call: "call", result: "result", injected: "injected", hook: "hook", refusal: "refused", keepalive: "keepalive" };
+const stamp = t => { if (!Number.isFinite(Number(t))) return ""; const s = Math.max(0, Math.round(Number(t)));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
+  return "+" + (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(r).padStart(2, "0"); };
+const firstLine = text => String(text || "").split("\n").find(l => l.trim()) || "";
+
+function laneOf(job) {
+  const lanes = {};
+  ((job.timeline || {}).spans || []).forEach(s => { if (s.action) lanes[s.action] = s.lane; });
+  return lanes;
+}
+
+function openActionId(job) {
+  const s = ((job.timeline || {}).spans || []).find(s => s.end == null && s.action);
+  return s ? s.action : null;
+}
+
+function materialHtml(job) {
+  const items = job.material || [];
+  if (!items.length) return "";
+  const groups = [];
+  items.forEach(m => { const g = groups.find(g => g.action === m.action && g.kind === m.kind); g ? g.items.push(m) : groups.push({ action: m.action, kind: m.kind, stage: m.stage, items: [m] }); });
+  const rows = groups.map(g => {
+    const key = "mat|" + g.action + "|" + g.kind;
+    const one = g.items.length === 1;
+    const head = one ? g.items[0].title : `${g.items.length} material ${g.kind === "review" ? "passes" : "items"} · ${g.items[0].title}`;
+    const body = g.items.map(m => g.kind === "review"
+      ? `<div class="pass"><b>${m.pass ? "Pass " + esc(m.pass) + ": " : ""}${esc(m.title)}</b><pre>${esc(m.detail)}</pre></div>`
+      : `<pre>${esc(m.detail || m.title)}</pre>`).join("");
+    return `<details class="mat" data-key="${esc(key)}"${openAttr(key, false)}><summary><span class="chev" aria-hidden="true">▶</span>`
+      + `<span class="kind ${esc(g.kind)}">${esc(g.kind === "refusal" ? "gate" : g.kind)}</span><span class="mt">${esc(head)}</span><span class="ms">${esc(g.stage)}</span></summary>`
+      + `<div class="body">${body}<button type="button" class="linkbtn" data-open="${esc(g.action)}">Inspect this action's prompt and dialogue</button></div></details>`;
+  }).join("");
+  const reviews = items.filter(m => m.kind === "review").length, gates = items.filter(m => m.kind === "refusal").length;
+  return `<section class="card" aria-label="Material so far"><h2>Material so far<span>${reviews} review passes · ${gates} gate refusals</span></h2>`
+    + `<p class="hint" style="margin:0 0 10px">Material: an Improve pass classified non-trivial, a refusal from a substantive gate (coverage, test layers, mutants), a send-back or a block. Length caps and ordering slips are left out.</p>`
+    + `<div class="mat-list">${rows}</div></section>`;
+}
+
+function selectAction(id, scroll) {
+  const job = current();
+  if (!id || !job) return;
+  if (inspected !== id || inspectJob !== job.id) {
+    inspected = id; inspectJob = job.id; inspectDoc = undefined;
+    if (inspectUnsub) { try { inspectUnsub(); } catch (e) {} inspectUnsub = null; }
+    if (db) {
+      try {
+        inspectUnsub = db.doc("jobs/" + job.id + "/actions/" + id).onSnapshot(
+          snap => { if (inspected === id) { inspectDoc = snap.exists ? snap.data() : null; renderInspector(); } },
+          () => { if (inspected === id) { inspectDoc = { failed: true }; renderInspector(); } });
+      } catch (e) { inspectDoc = { failed: true }; }
+    }
+    document.querySelectorAll(".seg.sel").forEach(el => el.classList.remove("sel"));
+    document.querySelectorAll(`.seg[data-action="${CSS.escape(id)}"]`).forEach(el => el.classList.add("sel"));
+  }
+  renderInspector();
+  if (scroll) document.getElementById("inspect").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function dialogueHtml(doc) {
+  const rows = (doc.dialogue || []).map((e, i) => ({ e, i })).filter(({ e }) =>
+    dlgFilter === "all" || (dlgFilter === "say" && e.kind === "say") || (dlgFilter === "calls" && (e.kind === "call" || e.kind === "result"))
+    || (dlgFilter === "refusals" && e.kind === "refusal"));
+  const head = 20, omitted = doc.omitted || 0;
+  return rows.map(({ e, i }) => {
+    const key = "ev|" + doc.action + "|" + i;
+    const label = e.kind === "call" && e.tool ? e.tool : (WHO[e.kind] || e.kind);
+    const gap = omitted && i === head ? `<div class="omit">${omitted} events in the middle are left out of this view</div>` : "";
+    return gap + `<details class="ev2 ${esc(e.kind)}" data-key="${esc(key)}"${openAttr(key, e.kind === "say" || e.kind === "refusal")}><summary><span class="chev" aria-hidden="true">▶</span>`
+      + `<time>${esc(stamp(e.t))}</time><span class="who ${esc(e.kind)}">${esc(label)}${e.kind === "refusal" && e.check ? " (check)" : ""}</span>`
+      + `<span class="pv">${esc(firstLine(e.text).slice(0, 220))}</span></summary><pre>${esc(e.text)}${e.clipped ? "\n… (clipped)" : ""}</pre></details>`;
+  }).join("") || '<p class="hint">Nothing of this kind in this action.</p>';
+}
+
+function renderInspector() {
+  const box = document.getElementById("inspect");
+  const job = current();
+  const index = job ? job.actions || [] : [];
+  if (!job || !index.length) { box.hidden = true; return; }
+  box.hidden = false;
+  if (!inspected || inspectJob !== job.id || !index.some(a => a.id === inspected)) {
+    const pick = openActionId(job) || index[index.length - 1].id;
+    if (pick !== inspected || inspectJob !== job.id) { selectAction(pick, false); return; }
+  }
+  const lanes = laneOf(job), live = openActionId(job);
+  const order = [];
+  index.forEach(a => { const lane = lanes[a.id] || a.item || "Run"; if (!order.includes(lane)) order.push(lane); });
+  const rail = order.map(lane => `<div class="lane"><b title="${esc(lane)}">${esc(lane)}</b><div class="chips">` + index.filter(a => (lanes[a.id] || a.item || "Run") === lane).map(a =>
+    `<button type="button" class="achip${a.kind === "improve" ? " improve" : ""}" data-open="${esc(a.id)}" aria-pressed="${a.id === inspected}" title="${esc(a.stage + " · " + a.events + " events")}">`
+    + `${a.id === live ? '<span class="ld" aria-hidden="true"></span>' : ""}${esc(a.stage)}${a.material ? `<span class="n" title="material">${a.material}</span>` : ""}`
+    + `${a.refusals ? `<span class="n r" title="refusals">${a.refusals}</span>` : ""}</button>`).join("") + `</div></div>`).join("");
+  const row = index.find(a => a.id === inspected) || {};
+  const dlg = box.querySelector(".dlg");
+  const keep = dlg ? { top: dlg.scrollTop, bottom: dlg.scrollHeight - dlg.scrollTop - dlg.clientHeight < 24 } : null;
+  let detail;
+  if (inspectDoc === undefined) detail = `<p class="hint">Loading this action…</p>`;
+  else if (inspectDoc === null) detail = `<p class="hint">This action's prompt and dialogue have not been written yet; they arrive with the next status update.</p>`;
+  else if (inspectDoc.failed) detail = `<p class="hint">This action could not be loaded. Reload the page to try again.</p>`;
+  else {
+    const d = inspectDoc, p = d.prompt;
+    const pk = "sec|" + d.action + "|prompt", dk = "sec|" + d.action + "|dialogue", rk = "sec|" + d.action + "|review", mk = "sec|" + d.action + "|material";
+    const prompt = p ? `<details class="sec" data-key="${esc(pk)}"${openAttr(pk, false)}><summary><span class="chev" aria-hidden="true">▶</span>Prompt sent`
+      + `<small>${esc((p.chars || 0).toLocaleString())} chars · printed ${esc(p.prints || 1)}×${p.reprints ? " · " + esc(p.reprints) + " reprint" + (p.reprints > 1 ? "s" : "") : ""}${p.file ? " · " + esc(p.file) : ""}</small></summary>`
+      + `<div class="inner"><pre class="prompt">${esc(p.text)}</pre></div></details>` : "";
+    const counts = (d.dialogue || []).reduce((c, e) => (c[e.kind] = (c[e.kind] || 0) + 1, c), {});
+    const filters = [["all", "All"], ["say", "Model's words"], ["calls", "Calls and results"], ["refusals", "Refusals"]].map(([k, l]) =>
+      `<button type="button" data-filter="${k}" aria-pressed="${dlgFilter === k}">${l}</button>`).join("");
+    const dialogue = `<details class="sec" data-key="${esc(dk)}"${openAttr(dk, true)}><summary><span class="chev" aria-hidden="true">▶</span>Dialogue`
+      + `<small>${(d.dialogue || []).length + (d.omitted || 0)} events · ${counts.say || 0} said · ${counts.call || 0} calls${d.omitted ? " · " + d.omitted + " left out" : ""}</small></summary>`
+      + `<div class="inner"><div class="filters" role="group" aria-label="Show">${filters}</div><div class="dlg">${dialogueHtml(d)}</div></div></details>`;
+    const review = (d.review || []).length ? `<details class="sec" data-key="${esc(rk)}"${openAttr(rk, true)}><summary><span class="chev" aria-hidden="true">▶</span>Review passes<small>${d.review.length}</small></summary><div class="inner">`
+      + d.review.map(r => { const key = "rv|" + d.action + "|" + r.pass;
+        return `<details class="mat" data-key="${esc(key)}"${openAttr(key, r.classification === "non-trivial")}><summary><span class="chev" aria-hidden="true">▶</span>`
+          + `<span class="kind ${r.classification === "non-trivial" ? "material" : "minor"}">${r.classification === "non-trivial" ? "material" : esc(r.classification || "pass")}</span>`
+          + `<span class="mt">Pass ${esc(r.pass)}: ${esc(r.title || r.found || "")}</span><span class="ms"></span></summary>`
+          + `<div class="body">${r.found ? `<pre>Found:\n${esc(r.found)}</pre>` : ""}${r.changed ? `<pre>Changed:\n${esc(r.changed)}</pre>` : ""}${r.checked ? `<pre>Checked:\n${esc(r.checked)}</pre>` : ""}</div></details>`; }).join("")
+      + `</div></details>` : "";
+    const refs = (d.refusals || []).length ? `<details class="sec" data-key="${esc(mk)}"${openAttr(mk, true)}><summary><span class="chev" aria-hidden="true">▶</span>Refused callbacks<small>${d.refusals.length} · ${d.refusals.filter(r => r.material).length} material</small></summary><div class="inner">`
+      + d.refusals.map(r => `<div style="display:flex;flex-direction:column;gap:4px"><span><span class="kind ${r.material ? "material" : "minor"}">${r.material ? "material" : "minor"}</span> <span class="hint">${esc(stamp(r.t))}${r.check ? " · --check-only" : ""}</span></span><pre>${esc(r.text)}</pre></div>`).join("")
+      + `</div></details>` : "";
+    detail = prompt + dialogue + review + refs;
+  }
+  const meta = [row.kind === "improve" ? "Improve review" : "stage", row.item || "", row.outcome || (row.id === live ? "running" : ""), (row.events || 0) + " events"].filter(Boolean).join(" · ");
+  box.innerHTML = `<h2>Inspect an action<span>click a timeline block, a chip or a material row</span></h2><div class="rail">${rail}</div>`
+    + `<div class="insp-head"><b>${esc(row.stage || inspected)}</b>${row.id === live ? '<span class="live-tag">live</span>' : ""}<span class="meta">${esc(meta)}</span></div>${detail}`;
+  const fresh = box.querySelector(".dlg");
+  if (fresh && keep) fresh.scrollTop = keep.bottom && row.id === live ? fresh.scrollHeight : keep.top;
+}
+
+document.addEventListener("toggle", e => { const el = e.target; if (el && el.dataset && el.dataset.key) openKeys.set(el.dataset.key, el.open); }, true);
+document.addEventListener("click", e => {
+  const seg = e.target.closest(".seg[data-action]");
+  if (seg) { selectAction(seg.dataset.action, true); return; }
+  const open = e.target.closest("[data-open]");
+  if (open) { selectAction(open.dataset.open, open.classList.contains("linkbtn")); return; }
+  const f = e.target.closest("[data-filter]");
+  if (f) { dlgFilter = f.dataset.filter; renderInspector(); }
+});
+document.addEventListener("keydown", e => {
+  const seg = e.target.closest && e.target.closest(".seg[data-action]");
+  if (seg && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectAction(seg.dataset.action, true); }
+});
 
 function findingsHtml(job) {
   const finds = job.findings || [];
@@ -451,10 +673,12 @@ function render() {
     ${tilesHtml(job, animate)}
     <div id="timeline">${timelineHtml(job)}</div>
     ${comparisonHtml(job)}
+    ${materialHtml(job)}
     ${findingsHtml(job)}
     ${events ? `<section class="card feed" aria-label="Latest"><h2>Latest</h2><ol>${events}</ol></section>` : ""}`;
   lastLine = Date.now();
   requestAnimationFrame(() => { const f = document.getElementById("fill"); if (f) f.style.width = pct + "%"; });
+  renderInspector();
   tick();
 }
 

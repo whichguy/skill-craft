@@ -226,6 +226,8 @@ class Builders(unittest.TestCase):
         self.assertEqual([(m["lane"], m["stage"], m["kind"], m["at"]) for m in line["marks"]],
                          [("Prelude", "discovery", "refusal", 1090.0), ("W1", "step-plan", "check", 1320.0)])
         self.assertIn("Missing: R-6", line["marks"][0]["text"])
+        # Each span names the action it ran, so the card can open that action's prompt and dialogue.
+        self.assertEqual([s["action"] for s in line["spans"]], ["a1", "a2", "i1", "a3", None])
         tiles = {tile["label"]: tile for tile in model["tiles"]}
         self.assertEqual((tiles["Elapsed"]["live"], tiles["Elapsed"]["since"]), ("elapsed", 1000.0))
         self.assertEqual((tiles["Improve reviews"]["value"], tiles["Improve reviews"]["sub"]), ("1", "3.0 min"))
@@ -235,6 +237,85 @@ class Builders(unittest.TestCase):
         untraced, _meta = status_card.build_e2e(self.e2e_folder(), NOW)
         self.assertNotIn("timeline", untraced)
         self.assertNotIn("timeline", status_card.render(model))
+
+    def test_a_refusal_is_material_unless_it_is_a_length_cap_or_an_ordering_slip(self):
+        material = status_card.refusal_is_material
+        self.assertTrue(material("every primary requirement (spec primary) needs a test case naming it ... Missing: R-6."))
+        self.assertTrue(material("ShipLoop mutation check: test is not done. 2 of 8 mutants ... survived"))
+        self.assertTrue(material("test_layers gives public page HTML in server.js no unit or component row."))
+        for minor in ("test_layers[0].code is 74 characters; keep it within 60 (the packets print it whole)",
+                      "no result file at RUN/inbox/nav-1.md: write the result there",
+                      "evidence_refs cite files that do not exist: RUN/tests/x.md. Write the file or remove the reference.",
+                      "the verify loop is still active: run the receipt's next_argv once",
+                      "W1's concern rows are 1,411 characters together; the limit is 1,200 because its step plan prints them",
+                      "Run the improve skill on this test-strategy result first: no call to it has been recorded",
+                      "Complete <worktree>/.shiploop-improve/x/reviews/review-2.md (missing or invalid: exit (satisfied)), then run:",
+                      'not_covered is [{"behaviour": "<what>", "reason": "<why>"}], each nonblank, or []; then run it again.'):
+            self.assertFalse(material(minor), minor)
+
+    def test_review_passes_read_each_review_file_in_order(self):
+        reviews = self.base / "wt" / ".shiploop-improve" / "implement-0000abcd" / "reviews"
+        reviews.mkdir(parents=True)
+        (reviews / "review-2.md").write_text("---\nclassification: trivial\n---\nFound: nothing material.\nChanged: nothing.\n",
+                                             encoding="utf-8")
+        (reviews / "review-1.md").write_text("---\nclassification: non-trivial\nexit: satisfied\n---\nRead: game.js.\n"
+                                             "Found: GET // crashed the server.\nChanged: the URL parse is wrapped.\n"
+                                             "Checked: proof-s2.js exits 0.\n", encoding="utf-8")
+        (reviews / "checks.md").write_text("not a review", encoding="utf-8")
+        # Another host writes each section as a numbered list on the lines below its heading.
+        (reviews / "review-10.md").write_text("---\nclassification: non-trivial\n---\n\nRead: spec.md.\n\nFound:\n"
+                                              "1. **A-R10.2 named no observable predicate.** It required a test that\n"
+                                              "   asserts consistency.\n2. **The NFR row had no acceptance line.**\n\n"
+                                              "Changed: A-R10.2 rewritten.\n\n## Handoff\nState: open.\n", encoding="utf-8")
+        passes = status_card.review_passes(self.base / "wt", "implement", "nav-ffff0000abcd")
+        self.assertEqual([(p["pass"], p["classification"]) for p in passes],
+                         [(1, "non-trivial"), (2, "trivial"), (10, "non-trivial")])
+        self.assertEqual((passes[0]["found"], passes[0]["changed"], passes[0]["checked"]),
+                         ("GET // crashed the server.", "the URL parse is wrapped.", "proof-s2.js exits 0."))
+        self.assertEqual(passes[0]["title"], "GET // crashed the server.")
+        self.assertEqual(passes[2]["title"], "A-R10.2 named no observable predicate.")
+        self.assertIn("2. **The NFR row had no acceptance line.**", passes[2]["found"])
+        self.assertEqual(passes[2]["changed"], "A-R10.2 rewritten.")
+        self.assertEqual(status_card._review_title("1.\nR-1 and decision 10 state different port rules. Fixed."),
+                         "R-1 and decision 10 state different port rules.")
+        self.assertEqual(status_card.review_passes(self.base / "wt", "spec", "nav-nothere1"), [])
+
+    def test_action_documents_carry_the_prompt_the_dialogue_and_what_was_material(self):
+        def event(kind, t, text, **extra):
+            return {"kind": kind, "t": t, "body": {"text": text}, **extra}
+        many = [event("call", 100 + n, "echo " + str(n), tool="Bash") for n in range(status_card.ACTION_EVENTS + 5)]
+        flow_doc = {"actions": [
+            {"action": "nav-spec", "index": 0, "stage": "spec", "work_item": None, "outcome": "done", "accepted": True,
+             "phases": [{"packet": {"text": "Goal: write the spec.", "chars": 21, "prints": 2, "reprints": 1,
+                                    "sends": [{"file": "packets/sent/a.md"}]},
+                         "events": [event("say", 10, "I'll write the spec."), event("call", 11, "x" * 5000, tool="Bash"),
+                                    event("result", 12, "ok"),
+                                    event("refusal", 13, "test_layers[0].code is 74 characters; keep it within 60", check_only=True),
+                                    event("refusal", 14, "every primary requirement needs a test case. Missing: R-6.")]}]},
+            {"action": "nav-review", "index": 1, "stage": "improve", "reviewed": "nav-spec", "reviewed_stage": "spec",
+             "work_item": None, "outcome": "done", "accepted": True, "phases": [{"packet": None, "events": many}]}]}
+        passes = [{"pass": 1, "classification": "non-trivial", "found": "the 100-cell check can't be confirmed",
+                   "title": "the 100-cell check can't be confirmed", "changed": "acceptance lines tightened", "checked": "grep"},
+                  {"pass": 2, "classification": "trivial", "found": "nothing material", "title": "nothing material",
+                   "changed": "nothing", "checked": ""}]
+        index, docs, material = status_card.action_documents(flow_doc, lambda stage, action: passes if stage == "spec" else [])
+        spec, review = docs["nav-spec"], docs["nav-review"]
+        self.assertEqual((spec["prompt"]["text"], spec["prompt"]["prints"], spec["prompt"]["file"]),
+                         ("Goal: write the spec.", 2, "packets/sent/a.md"))
+        self.assertEqual([d["kind"] for d in spec["dialogue"]], ["say", "call", "result", "refusal", "refusal"])
+        self.assertTrue(spec["dialogue"][1]["clipped"])
+        self.assertLessEqual(len(spec["dialogue"][1]["text"]), status_card.CLIP["call"] + 1)
+        self.assertEqual([(r["check"], r["material"]) for r in spec["refusals"]], [(True, False), (False, True)])
+        # A long action keeps its first and last events and counts what it left out.
+        self.assertEqual(len(review["dialogue"]), status_card.ACTION_EVENTS)
+        self.assertEqual(review["omitted"], 5)
+        self.assertEqual(review["dialogue"][-1]["text"], "echo " + str(status_card.ACTION_EVENTS + 4))
+        self.assertEqual([p["classification"] for p in review["review"]], ["non-trivial", "trivial"])
+        self.assertEqual([(m["action"], m["kind"]) for m in material], [("nav-spec", "refusal"), ("nav-review", "review")])
+        self.assertIn("Missing: R-6", material[0]["title"])
+        self.assertEqual(material[1]["title"], "the 100-cell check can't be confirmed")
+        self.assertEqual([(i["id"], i["stage"], i["material"], i["refusals"]) for i in index],
+                         [("nav-spec", "spec", 1, 2), ("nav-review", "spec review", 1, 0)])
 
     def test_the_job_document_passes_tiles_comparison_and_bands_through(self):
         model, meta = status_card.build_e2e(self.traced_folder(), NOW)
