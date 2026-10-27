@@ -1,0 +1,152 @@
+{
+  "guide": "/Users/dadleet/src/skill-craft/docs/shiploop-remaining-recommendations-2026-10-25.md",
+  "checkout_revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "main_revision": "5485b8963c8f385d6a8216cc202bdca8612db9e4",
+  "order": [
+    {
+      "rank": 1,
+      "priority": "P1",
+      "ids": "R08",
+      "title": "Reject false acceptance; invalidate obsolete receipts",
+      "next_action": "Code repair",
+      "anchors": [
+        "pytest-summary",
+        "judge",
+        "candidate-reuse",
+        "step-proof"
+      ]
+    },
+    {
+      "rank": 2,
+      "priority": "P1",
+      "ids": "R05",
+      "title": "Validate inherited procedures at the last responsible review",
+      "next_action": "Focused behavioral trial, then prompt repair if needed",
+      "anchors": [
+        "procedure",
+        "end-review",
+        "person-ask"
+      ]
+    },
+    {
+      "rank": 3,
+      "priority": "P1",
+      "ids": "R07",
+      "title": "Keep required observations open through partial replies and revisions",
+      "next_action": "Continuity qualification first",
+      "anchors": [
+        "delivery-gate",
+        "delivery-terminal",
+        "test-person"
+      ]
+    },
+    {
+      "rank": 4,
+      "priority": "P1",
+      "ids": "R21",
+      "title": "Prevent reuse when external state can have changed",
+      "next_action": "Freshness qualification; conservative rerun if needed",
+      "anchors": [
+        "candidate-reuse",
+        "test-layer-contract",
+        "command-owner"
+      ]
+    },
+    {
+      "rank": 5,
+      "priority": "P2",
+      "ids": "R19",
+      "title": "Keep stage-loop backing state with the run",
+      "next_action": "Small code repair",
+      "anchors": [
+        "loop-start",
+        "runtime-isolated-start",
+        "receipt-protection"
+      ]
+    },
+    {
+      "rank": 6,
+      "priority": "P2",
+      "ids": "R15",
+      "title": "Carry existing test authority consistently into Improve",
+      "next_action": "Conditional wording repair",
+      "anchors": [
+        "review-authority",
+        "improve-contract"
+      ]
+    },
+    {
+      "rank": 7,
+      "priority": "P2",
+      "ids": "R16",
+      "title": "Report observed release state and the remaining delta",
+      "next_action": "Prompt/reference repair",
+      "anchors": [
+        "release-plan-state",
+        "release-state",
+        "release-guide-state",
+        "release-card-state"
+      ]
+    },
+    {
+      "rank": 8,
+      "priority": "P2",
+      "ids": "R17",
+      "title": "Remove the contradictory source-return message",
+      "next_action": "Delete one phrase; keep existing review output",
+      "anchors": [
+        "return-message",
+        "return-review"
+      ]
+    },
+    {
+      "rank": 9,
+      "priority": "P3",
+      "ids": "R22",
+      "title": "Shorten Work while retaining the bound loop contract",
+      "next_action": "Optional equivalence pilot",
+      "anchors": [
+        "loop-work",
+        "loop-repeat",
+        "loop-binding",
+        "step-block"
+      ]
+    },
+    {
+      "rank": 10,
+      "priority": "P3",
+      "ids": "R01 / R13",
+      "title": "Align route-specific metadata and keep essential facts visible",
+      "next_action": "Clarify and qualify; avoid new fields",
+      "anchors": [
+        "per-step-paths",
+        "item-required-paths",
+        "step-plan",
+        "head-budget"
+      ]
+    },
+    {
+      "rank": 11,
+      "priority": "Defer",
+      "ids": "R04",
+      "title": "Do not expand all fourteen Code craft rules",
+      "next_action": "Reopen individual omissions only with evidence",
+      "anchors": [
+        "craft",
+        "implement-guide"
+      ]
+    },
+    {
+      "rank": 12,
+      "priority": "Defer / conditional",
+      "ids": "R09 / R10 / R11",
+      "title": "Keep remote mutation and broader reuse out of this change",
+      "next_action": "Require an enabled route or measured benefit first",
+      "anchors": [
+        "remote-split",
+        "reuse-decision",
+        "revisit"
+      ]
+    }
+  ]
+}

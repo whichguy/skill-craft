@@ -1,0 +1,103 @@
+{
+  "checks": [
+    {
+      "command": "python3 -B test/shiploop-e2e.test.py EffortScheduleThroughMainTest.test_a_schedule_uses_the_unlimited_default_timeout_and_resume_budget EffortScheduleThroughMainTest.test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes",
+      "duration_ms": "7285",
+      "exit_code": "1",
+      "failure_excerpt": "    original_session = run.session\n                       ^^^^^^^^^^^\nAttributeError: module 'run' has no attribute 'session'. Did you mean '.sessionlog' instead of '.session'?\n\n======================================================================\nFAIL: test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes (__main__.EffortScheduleThroughMainTest.test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/private/tmp/shiploop-main-conflict-20261025T142207/verification/test/shiploop-e2e.test.py\", line 3761, in test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes\n    self.assertEqual([(s[\"resumed\"], s[\"effort\"]) for s in ran], [(None, \"medium\"), (\"sess-1\", \"low\")], ran)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [(None, 'medium')] != [(None, 'medium'), ('sess-1', 'low')]\n\nSecond list contains 1 additional elements.\nFirst extra element 1:\n('sess-1', 'low')\n\n- [(None, 'medium')]\n+ [(None, 'medium'), ('sess-1', 'low')] : [{'resumed': None, 'prompt': '/shiploop Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output.', 'pid': 31068, 'effort': 'medium', 'session_id': 'd56c3dc7-5067-415e-8506-de888b405d5f'}]\n\n----------------------------------------------------------------------\nRan 2 tests in 6.756s\n\nFAILED (failures=1, errors=1)",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/01-e2e-focused.log",
+      "outcome": "FAIL",
+      "reported_duration_s": 6.756,
+      "reported_tests": 2,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/01-e2e-focused.log"
+    },
+    {
+      "classification_reason": "Required suite could not start: import failed before tests due missing run_totals module.",
+      "command": "python3 -B test/shiploop-e2e-slice.test.py EffortSliceMainTests",
+      "duration_ms": "471",
+      "exit_code": "1",
+      "failure_excerpt": "Traceback (most recent call last):\n  File \"/private/tmp/shiploop-main-conflict-20261025T142207/verification/test/shiploop-e2e-slice.test.py\", line 1304, in <module>\n    import run_totals  # noqa: E402\n    ^^^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named 'run_totals'",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/02-e2e-slice.log",
+      "outcome": "BLOCKED",
+      "reported_duration_s": null,
+      "reported_tests": null,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/02-e2e-slice.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-test-loop.test.py MaskedZeroExitFailureTests VerifyLimitTests UnavailableExecutionTests RefusedRunTallyTests",
+      "duration_ms": "8205",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/03-test-loop-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 7.894,
+      "reported_tests": 32,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/03-test-loop-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-test-counts.test.py",
+      "duration_ms": "178",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/04-test-counts.log",
+      "outcome": "PASS",
+      "reported_duration_s": 0.016,
+      "reported_tests": 46,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/04-test-counts.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-actual-improve-cli.test.py EphemeralImproveCliTests.test_a_revised_final_result_over_a_producer_bound_is_refused_and_one_within_imports LoopContractShapeTests",
+      "duration_ms": "3684",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/05-actual-improve-cli-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 3.394,
+      "reported_tests": 4,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/05-actual-improve-cli-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-packet-completeness.test.py",
+      "duration_ms": "9482",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/06-packet-completeness.log",
+      "outcome": "PASS",
+      "reported_duration_s": 9.199,
+      "reported_tests": 63,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/06-packet-completeness.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-callback-contract.test.py StepSizingRouteTests PrimaryRequirementRouteTests",
+      "duration_ms": "26992",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/07-callback-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 26.697,
+      "reported_tests": 11,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/07-callback-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-handoff.test.py SendBackBudgetCliTests",
+      "duration_ms": "6415",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/08-handoff-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 6.088,
+      "reported_tests": 2,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial/08-handoff-focused.log"
+    }
+  ],
+  "evidence_dir": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial",
+  "overall": "FAIL",
+  "source": {
+    "entries_after": 5815,
+    "entries_before": 5815,
+    "fingerprint_after": "4fd61e0712c1430848326315f2c5876badefefdcf50bb0fd1350724aa9586319",
+    "fingerprint_before": "4fd61e0712c1430848326315f2c5876badefefdcf50bb0fd1350724aa9586319",
+    "generated_changes": [
+      "ignored __pycache__ directories"
+    ],
+    "head": "5d3628b0497c2402d7554c73011bb3d87a13bf55",
+    "root": "/tmp/shiploop-main-conflict-20261025T142207/verification",
+    "tracked_diff_unchanged": true,
+    "untracked_nonignored_unchanged": true
+  },
+  "original_evidence_dir": "/tmp/shiploop-main-conflict-20261025T142207/checks-initial"
+}

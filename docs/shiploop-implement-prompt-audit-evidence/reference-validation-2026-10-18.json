@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "revision": "17ddec369f49383f9436ea4f2c6fba7c0c54f643",
+  "rebase": "main already up to date with fetched origin/main",
+  "code_anchors": 105,
+  "source_files": 31,
+  "historical_anchors_revalidated": 93,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "recommendation_groups": 22,
+  "proposed_test_ids": 52,
+  "source_gap_entries": {
+    "chess": 58,
+    "battleship": 91
+  },
+  "ranked_chess_fixes": 8,
+  "local_links_checked": 381,
+  "fence_pairs": {
+    "docs/shiploop-implement-step-fix-plan-2026-10-17.md": 31,
+    "docs/shiploop-implement-prompt-audit-journal.md": 0,
+    "docs/shiploop-implement-prompt-audit-evidence/reference-code-map-2026-10-18.md": 0,
+    "docs/shiploop-implement-prompt-audit-evidence/reference-code-excerpts-2026-10-18.md": 105,
+    "docs/shiploop-implement-prompt-audit-evidence/integration-c70a33f4/reference-code-map-2026-10-18.md": 0,
+    "docs/shiploop-implement-prompt-audit-evidence/integration-c70a33f4/reference-code-excerpts-2026-10-18.md": 93,
+    "docs/shiploop-implement-prompt-audit-evidence/opus-loop-direction-2026-10-18.md": 0
+  },
+  "python_examples_syntax_checked": 2,
+  "static_main_assertions": "state v6; absent step proof/shared renderer/reuse; implement loop+lint; Improve gate two and carry-forward-only re-proof",
+  "runtime_tests": "not run in this refresh; plan/evidence only",
+  "visual_render": "not inspected; prior browser policy denial not bypassed",
+  "errors": []
+}

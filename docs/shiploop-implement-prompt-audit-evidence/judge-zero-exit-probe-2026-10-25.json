@@ -1,0 +1,50 @@
+{
+  "revision": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+  "boundary": "direct calls to candidate judge; no CLI/live workflow",
+  "scenario": "runner reports a failed test but wrapper returns exit zero",
+  "output": "test_config.py::test_value[CASE-1] FAILED\n================ 1 failed in 0.01s ================\n",
+  "outcomes": {
+    "CASE-1": "failed"
+  },
+  "cases": [
+    {
+      "row": {
+        "command": "wrapped-test",
+        "suite": "focused",
+        "ids": [
+          "CASE-1"
+        ]
+      },
+      "exit": 0,
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 1,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "row": {
+        "command": "wrapped-test",
+        "suite": "check"
+      },
+      "exit": 0,
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 1,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    }
+  ]
+}

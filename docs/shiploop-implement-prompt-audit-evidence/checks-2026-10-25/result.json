@@ -1,0 +1,72 @@
+{
+  "status": "INCOMPLETE",
+  "reason": "All six suites exited 0, but nine undeclared non-exempt untracked files appeared during the run; tracked source manifest remained unchanged.",
+  "repo": "/Users/dadleet/src/skill-craft",
+  "cwd": "/Users/dadleet/src/skill-craft",
+  "pre": {
+    "head": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+    "origin_main": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+    "status_file": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/pre-status.txt",
+    "tracked_manifest": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/pre-current-manifest.json",
+    "tracked_manifest_sha256": "ccc323d4851e13a2cd717968e033512fbaa0af3bb2804d74648434986ed7c976",
+    "untracked_inventory": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/pre-untracked-inventory.txt"
+  },
+  "post": {
+    "head": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+    "origin_main": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+    "status_file": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/post-status.txt",
+    "tracked_manifest": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/post-current-manifest.json",
+    "tracked_manifest_sha256": "ccc323d4851e13a2cd717968e033512fbaa0af3bb2804d74648434986ed7c976",
+    "untracked_inventory": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/post-untracked-inventory.txt"
+  },
+  "manifest_comparison": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/manifest-comparison.txt",
+  "untracked_comparison": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/untracked-diff.json",
+  "tests": [
+    {
+      "command": "python3 -B test/shiploop-test-loop.test.py",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/01-shiploop-test-loop.log",
+      "exit_code": 0,
+      "tests": 165,
+      "duration_seconds": 479.649
+    },
+    {
+      "command": "python3 -B test/shiploop-step-packets.test.py",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/02-shiploop-step-packets.log",
+      "exit_code": 0,
+      "tests": 10,
+      "duration_seconds": 0.957
+    },
+    {
+      "command": "python3 -B test/shiploop-improve-changes.test.py",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/03-shiploop-improve-changes.log",
+      "exit_code": 0,
+      "tests": 4,
+      "duration_seconds": 1.28
+    },
+    {
+      "command": "python3 -B test/shiploop-consumer-delivery.test.py",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/04-shiploop-consumer-delivery.log",
+      "exit_code": 0,
+      "tests": 32,
+      "duration_seconds": 2.146
+    },
+    {
+      "command": "python3 -B test/shiploop-loops.test.py",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/05-shiploop-loops.log",
+      "exit_code": 0,
+      "tests": 56,
+      "duration_seconds": 40.23
+    },
+    {
+      "command": "python3 -B test/shiploop-packet-completeness.test.py",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25/06-shiploop-packet-completeness.log",
+      "exit_code": 0,
+      "tests": 62,
+      "duration_seconds": 8.627
+    }
+  ],
+  "total_tests": 329,
+  "total_test_duration_seconds": 532.887,
+  "run_window_seconds": 573,
+  "log_dir": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/checks-2026-10-25"
+}

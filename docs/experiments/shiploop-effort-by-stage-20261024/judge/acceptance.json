@@ -1,0 +1,41 @@
+{
+ "step": "R0.5 (docs/shiploop-effort-by-stage-experiment-plan-2026-10-24.md): rubric-eval suite shiploop-run, SPEC section 7 judge acceptance",
+ "judge": "claude:claude-opus-5-5@medium (--model opus on every judge and reliability command); one judge for every grading",
+ "suite": {"dir": "skills/rubric-eval/suites/shiploop-run", "rubric.json": "a9aa880aa9fb4404", "scenarios.json": "2b81f6fbc73f90e7",
+           "judge.txt (accepted)": "acb278ae91cf2aec", "judge.txt (attempt 1)": "40b73c98be16d482"},
+ "set": "30 real artifacts, the same in both attempts (outputs.jsonl.gz; selection rule select_acceptance_set.py, seed 20261024, fixed before any grading; ids in selected.txt; pool in inventory.json)",
+ "threshold": "accept at linear-weighted Cohen's kappa above 0.60 (Landis and Koch substantial); unchanged",
+ "attempts": [
+  {"attempt": 1, "judge_txt": "40b73c98be16d482", "run": "attempt-1/",
+   "kappa": 0.727, "band": "substantial", "exact_agreement": 0.867, "noise_points": 6.67, "max_change_points": 25.0,
+   "passes": {"grade": {"calls": 30, "input_tokens": 269079, "output_tokens": 28394, "seconds": 48.4},
+              "regrade": {"calls": 30, "input_tokens": 269016, "output_tokens": 28881, "seconds": 45.5}},
+   "grades_lowered_by_quote_check": [9, 10],
+   "finding": "11 of the 16 disagreements were the quote check lowering a grade in one pass only: the judge stitched or paraphrased record lines into its 'fact' quote (joined with semicolons). On the judge's own grades kappa was 0.896. Passed the threshold, but the noise is the decision round's equivalence bound, so the instruction was revised and the check repeated.",
+   "revision": "judge.txt: 'fact' must be one exact span of the run record copied from a single line, two spans joined with ' ... ', never summarised or joined with semicolons. Criteria, anchors and threshold unchanged."},
+  {"attempt": 2, "judge_txt": "acb278ae91cf2aec", "run": "attempt-2/", "accepted": true,
+   "kappa": 0.914, "band": "almost perfect", "exact_agreement": 0.967, "noise_points": 1.67, "max_change_points": 12.5,
+   "passes": {"grade": {"calls": 30, "input_tokens": 271357, "output_tokens": 29226, "seconds": 46.6},
+              "regrade": {"calls": 30, "input_tokens": 271392, "output_tokens": 29720, "seconds": 45.8,
+                          "note": "the two passes ran back to back, so the regrade is the 60-call window total (542749 in, 58946 out) less the grade pass"}},
+   "grades_lowered_by_quote_check": [0, 0],
+   "fact_quotes_given": [90, 91], "of_criteria": 120,
+   "disagreements": "4 of 120 criterion grades, all the judge's own (F1 1, F2 2, F4 1)",
+   "mean_score": [88.2, 88.2],
+   "by_kind_mean_of_two_gradings": {"system-test": "81.2-100", "product-acceptance": "43.8-100", "release-verify": "62.5-100", "operations": "75-100", "improve-review": "100 for all 6"},
+   "thin_vs_full": "artifacts under 60 words (n 8) mean 79.9; 60 words or more (n 22) mean 91.2"}
+ ],
+ "probe_reviews": {"note": "exploratory, not part of the acceptance set: the 3 of 100 pooled review notes whose pass record shows label non-trivial with an unchanged tree, graded once (3 calls, 26431 input and 2463 output tokens)",
+                   "result": "all 3 scored 100; the judge read the notes as consistent with their pass records (each says it changed nothing). The suite has not been shown to lower a degraded review note."},
+ "word_counts": {"artifacts": "25-638 words, median 161, total 6513", "facts_blocks": "118-1436 words, median 255",
+                 "judge_prompt": "about 1,950 words for a 40-word artifact with a 160-word record",
+                 "spec_note": "SPEC section 7: noise grows with output length (round 6: 2,000-3,500-word outputs doubled Opus noise). These artifacts are 6-20 times shorter than round 6's; decision-round artifacts of similar kinds should be of similar length, and the round measures its own noise over three passes."},
+ "decisions_unchanged_condition": "not applicable: no earlier comparison was graded on this suite",
+ "deviations": [
+  "rubric_eval.py edited (minimal): a suite may bring judge.txt; judge passes an output's 'facts' to it and quote-checks the judge's 'fact' quotes against them; a manifest's min_words replaces the 150-word stub gate for imported outputs. Without these the judge prompt grades architecture plans only, has no per-output channel for the run record, and skips every artifact under 150 words.",
+  "the judge instruction was revised once after a passing attempt, to remove a measured noise source; both attempts are recorded",
+  "acceptance-set artifacts come from mixed subjects (18 from Grok 4.7 medium runs, 12 from Claude Sonnet 5.5 runs with unrecorded effort; 2026-10-03 to 2026-10-21); the manifest records that as its one condition; no comparison is made on it",
+  "judge tokens and seconds are not recorded by rubric-eval judge; they were summed from Claude's own transcripts of the isolated judge calls (~/.claude/projects/*rubric-eval-*) in each pass's time window, and seconds are wall time at 10 workers",
+  "no human-labelled calibration (SPEC section 12 open item)"
+ ]
+}

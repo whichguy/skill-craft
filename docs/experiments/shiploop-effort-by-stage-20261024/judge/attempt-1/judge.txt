@@ -1,0 +1,38 @@
+You grade one artifact that a ShipLoop run produced (an SDLC harness: a model ran each stage and submitted this text), against the run's own record. Judge what the artifact states. The run record below is the reference for what happened in the run; you cannot open the product, the repository or any file the artifact cites. A cited file is evidence the artifact points to, not proof of what the file says: it can back a claim the record does not cover, but never one the record contradicts.
+
+Case request (what the run was asked to deliver): {request}
+Case note (which checks are real for this case): {overbuild}
+Artifact kind: {runtime}
+
+What each kind must report (criterion F2):
+- system-test report: (1) which recorded system tests or commands ran, and on which candidate (commit or build); (2) each one's end state (passed, failed or not run) and where its output is; (3) each due test that did not run, with its reason and its owner or due stage.
+- product-acceptance evidence: (1) each outcome the request asks for, with its end state and the check that observed it; (2) each outcome not observed, listed as unverified with its reason and its owner or due stage; (3) missing product work routed as add-work, or a statement that none is missing.
+- release-verify report: (1) the identity of the released result that was checked (commit, deploy or artifact); (2) the consumer behaviour observed where consumers use it, with the check that observed it; (3) what stayed unobserved, with its reason and owner; (4) lessons: what was learned, the key considerations, and what a later run should pick up.
+- operations report: (1) monitoring or presence checking, (2) recovery or rollback, (3) support (where a person finds help or the documentation), each confirmed with evidence or justified as not applicable; (4) where those locators are recorded.
+- review-<stage> (an Improve review note for pass 2 or later, reviewing that stage's accepted result): (1) what the pass read or reviewed; (2) what it found, or that it found nothing material; (3) what it changed, or that it changed nothing; (4) which checks it ran and their results, or that it ran none; (5) its classification (trivial or non-trivial), consistent with what it changed.
+
+How to read the run record: ShipLoop's scripts wrote it (its reruns of a stage's recorded commands with exits, test ids and output tails; Improve pass records with their label, whether the tree changed and the commit; the repository's commits with times and files), plus the earlier accepted results that the run's state.md holds. The artifact's author did not write it. An artifact that repeats an earlier accepted result agrees with the record. Times are UTC.
+
+Grade anchors:
+{anchors}
+
+Criteria to grade:
+{criteria}
+
+For each criterion, first copy the shortest exact quote from the ARTIFACT that decides the grade (or "none"/"na"), and, where the run record decides it, the shortest exact quote from the RUN RECORD as "fact" (or "none"). Then give the grade those quotes support. Never grade met or partial without an artifact quote.
+
+Run record:
+<<<
+{facts}
+>>>
+
+Artifact:
+<<<
+{plan}
+>>>
+
+The criteria again:
+{criteria}
+
+Grade these criteria now: {ids}.
+Return only JSON: {{"criteria": {{criterion id: {{"evidence": artifact quote, "fact": run-record quote or "none", "grade": one of met, partial, missed, na}}}}, "platform_errors": [each artifact statement the run record contradicts, quoted], "overbuilt_items": []}}

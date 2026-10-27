@@ -1,0 +1,789 @@
+{
+ "control": {
+  "output": "/Users/dadleet/e2e-runs/effort-eeff1-r1/control-hello",
+  "pass": false,
+  "status_line": "done",
+  "schedule": {
+   "M": "medium",
+   "I2": "medium",
+   "D": "medium"
+  },
+  "totals": {
+   "run": "/Users/dadleet/e2e-runs/effort-eeff1-r1/control-hello",
+   "model_calls": 363,
+   "prompt_tokens": 47421328,
+   "output_tokens": 219114,
+   "reasoning_tokens": 102211,
+   "tokens": 47640442,
+   "seconds": 4339.8,
+   "sessions": 13,
+   "sessions_unended": 0
+  },
+  "sessions": [
+   {
+    "n": 1,
+    "kind": "first",
+    "reason": "start",
+    "effort": "medium",
+    "seconds": 135.0,
+    "status": "exited"
+   },
+   {
+    "n": 2,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 23.3,
+    "status": "exited"
+   },
+   {
+    "n": 3,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 364.8,
+    "status": "interrupted"
+   },
+   {
+    "n": 4,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 74.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 5,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 361.1,
+    "status": "interrupted"
+   },
+   {
+    "n": 6,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 64.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 7,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 1793.9,
+    "status": "interrupted"
+   },
+   {
+    "n": 8,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 214.7,
+    "status": "interrupted"
+   },
+   {
+    "n": 9,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 377.1,
+    "status": "interrupted"
+   },
+   {
+    "n": 10,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 142.6,
+    "status": "interrupted"
+   },
+   {
+    "n": 11,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 78.5,
+    "status": "interrupted"
+   },
+   {
+    "n": 12,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 471.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 13,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 238.7,
+    "status": "exited"
+   }
+  ],
+  "launches": [
+   [
+    "D",
+    "medium",
+    "start"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "I2",
+    "medium",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "medium",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "medium",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "I2",
+    "medium",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "medium",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ]
+  ],
+  "restarts": [
+   [
+    1,
+    "D",
+    "I2",
+    "spec",
+    "medium",
+    "medium"
+   ],
+   [
+    2,
+    "I2",
+    "D",
+    "spec",
+    "medium",
+    "medium"
+   ],
+   [
+    3,
+    "D",
+    "M",
+    "prepare",
+    "medium",
+    "medium"
+   ],
+   [
+    4,
+    "M",
+    "D",
+    "step-plan",
+    "medium",
+    "medium"
+   ],
+   [
+    5,
+    "D",
+    "M",
+    "system-test",
+    "medium",
+    "medium"
+   ],
+   [
+    6,
+    "M",
+    "D",
+    "release-plan",
+    "medium",
+    "medium"
+   ],
+   [
+    7,
+    "D",
+    "I2",
+    "release-plan",
+    "medium",
+    "medium"
+   ],
+   [
+    8,
+    "I2",
+    "D",
+    "release-plan",
+    "medium",
+    "medium"
+   ],
+   [
+    9,
+    "D",
+    "M",
+    "release-check",
+    "medium",
+    "medium"
+   ],
+   [
+    10,
+    "M",
+    "D",
+    "handoff",
+    "medium",
+    "medium"
+   ]
+  ],
+  "improve": {
+   "children": 9,
+   "passes": 11,
+   "passes_ge2": 2,
+   "ge2_changed_tree": 0,
+   "ge2_tree_unknown": 0,
+   "children_with_ge2": 2,
+   "per_child_passes": [
+    1,
+    1,
+    1,
+    2,
+    2,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "schedule_check": {
+   "restarts_into_I2": 2,
+   "matched_to_a_child_that_reached_pass_2": 2,
+   "unmatched": [],
+   "children_that_reached_pass_2": 2
+  },
+  "stage_seconds": [
+   [
+    "intake",
+    66.6
+   ],
+   [
+    "discovery",
+    179.0
+   ],
+   [
+    "research",
+    69.0
+   ],
+   [
+    "spec",
+    323.0
+   ],
+   [
+    "test-strategy",
+    179.0
+   ],
+   [
+    "plan",
+    140.0
+   ],
+   [
+    "prepare",
+    65.0
+   ],
+   [
+    "step-plan",
+    286.0
+   ],
+   [
+    "test-spec",
+    284.0
+   ],
+   [
+    "validate-existing",
+    0.0
+   ],
+   [
+    "implement",
+    172.0
+   ],
+   [
+    "test",
+    93.0
+   ],
+   [
+    "document",
+    126.0
+   ],
+   [
+    "verify",
+    99.0
+   ],
+   [
+    "carry-forward",
+    582.0
+   ],
+   [
+    "system-test-author",
+    151.0
+   ],
+   [
+    "system-test",
+    54.0
+   ],
+   [
+    "product-acceptance",
+    162.0
+   ],
+   [
+    "release-plan",
+    597.0
+   ],
+   [
+    "release-check",
+    130.0
+   ],
+   [
+    "release",
+    69.0
+   ],
+   [
+    "release-verify",
+    214.0
+   ],
+   [
+    "operations",
+    60.0
+   ],
+   [
+    "handoff",
+    218.0
+   ]
+  ]
+ },
+ "treatment": {
+  "output": "/Users/dadleet/e2e-runs/effort-eeff1-r1/treatment-hello",
+  "pass": true,
+  "status_line": "done",
+  "schedule": {
+   "M": "low",
+   "I2": "low",
+   "D": "medium"
+  },
+  "totals": {
+   "run": "/Users/dadleet/e2e-runs/effort-eeff1-r1/treatment-hello",
+   "model_calls": 374,
+   "prompt_tokens": 47622910,
+   "output_tokens": 250505,
+   "reasoning_tokens": 123951,
+   "tokens": 47873415,
+   "seconds": 4503.9,
+   "sessions": 13,
+   "sessions_unended": 0
+  },
+  "sessions": [
+   {
+    "n": 1,
+    "kind": "first",
+    "reason": "start",
+    "effort": "medium",
+    "seconds": 258.6,
+    "status": "exited"
+   },
+   {
+    "n": 2,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 22.1,
+    "status": "exited"
+   },
+   {
+    "n": 3,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 20.2,
+    "status": "exited"
+   },
+   {
+    "n": 4,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 34.7,
+    "status": "exited"
+   },
+   {
+    "n": 5,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 549.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 6,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 58.6,
+    "status": "interrupted"
+   },
+   {
+    "n": 7,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 2585.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 8,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 108.5,
+    "status": "interrupted"
+   },
+   {
+    "n": 9,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 405.3,
+    "status": "interrupted"
+   },
+   {
+    "n": 10,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 94.5,
+    "status": "interrupted"
+   },
+   {
+    "n": 11,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 36.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 12,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 252.8,
+    "status": "interrupted"
+   },
+   {
+    "n": 13,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 77.5,
+    "status": "exited"
+   }
+  ],
+  "launches": [
+   [
+    "D",
+    "medium",
+    "start"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "M",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "I2",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ]
+  ],
+  "restarts": [
+   [
+    1,
+    "D",
+    "M",
+    "prepare",
+    "medium",
+    "low"
+   ],
+   [
+    2,
+    "M",
+    "D",
+    "step-plan",
+    "low",
+    "medium"
+   ],
+   [
+    3,
+    "D",
+    "M",
+    "system-test",
+    "medium",
+    "low"
+   ],
+   [
+    4,
+    "M",
+    "D",
+    "release-plan",
+    "low",
+    "medium"
+   ],
+   [
+    5,
+    "D",
+    "I2",
+    "release-plan",
+    "medium",
+    "low"
+   ],
+   [
+    6,
+    "I2",
+    "D",
+    "release-plan",
+    "low",
+    "medium"
+   ],
+   [
+    7,
+    "D",
+    "M",
+    "release-check",
+    "medium",
+    "low"
+   ],
+   [
+    8,
+    "M",
+    "D",
+    "handoff",
+    "low",
+    "medium"
+   ]
+  ],
+  "improve": {
+   "children": 10,
+   "passes": 11,
+   "passes_ge2": 1,
+   "ge2_changed_tree": 1,
+   "ge2_tree_unknown": 0,
+   "children_with_ge2": 1,
+   "per_child_passes": [
+    1,
+    1,
+    1,
+    1,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "schedule_check": {
+   "restarts_into_I2": 1,
+   "matched_to_a_child_that_reached_pass_2": 1,
+   "unmatched": [],
+   "children_that_reached_pass_2": 1
+  },
+  "stage_seconds": [
+   [
+    "intake",
+    74.5
+   ],
+   [
+    "discovery",
+    166.0
+   ],
+   [
+    "research",
+    174.0
+   ],
+   [
+    "spec",
+    135.0
+   ],
+   [
+    "test-strategy",
+    170.0
+   ],
+   [
+    "plan",
+    163.0
+   ],
+   [
+    "prepare",
+    59.0
+   ],
+   [
+    "step-plan",
+    597.0
+   ],
+   [
+    "test-spec",
+    398.0
+   ],
+   [
+    "validate-existing",
+    0.0
+   ],
+   [
+    "implement",
+    296.0
+   ],
+   [
+    "implement",
+    245.0
+   ],
+   [
+    "test",
+    197.0
+   ],
+   [
+    "document",
+    131.0
+   ],
+   [
+    "verify",
+    146.0
+   ],
+   [
+    "carry-forward",
+    358.0
+   ],
+   [
+    "system-test-author",
+    218.0
+   ],
+   [
+    "system-test",
+    65.0
+   ],
+   [
+    "product-acceptance",
+    43.0
+   ],
+   [
+    "release-plan",
+    538.0
+   ],
+   [
+    "release-check",
+    98.0
+   ],
+   [
+    "release",
+    66.0
+   ],
+   [
+    "release-verify",
+    57.0
+   ],
+   [
+    "operations",
+    31.0
+   ],
+   [
+    "handoff",
+    66.0
+   ]
+  ]
+ }
+}

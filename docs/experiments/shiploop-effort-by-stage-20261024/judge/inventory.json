@@ -1,0 +1,746 @@
+{
+ "generated": "2026-10-24, import_run.py collect over every E2E run folder under ~/e2e-runs with invocation.json (67 roots)",
+ "sources_searched": {
+  "~/e2e-runs": "67 run folders; every artifact in the pool comes from here",
+  "$TMPDIR/shiploop-e2e": "10 preflight folders; their 592 state.md files are repository test fixtures inside Grok and Codex marketplace caches (test/experiments/shiploop_delivery/packets), not run outputs: excluded",
+  "test/shiploop_e2e/evidence": "run summaries and review JSON only; no stage results or review notes",
+  "docs/experiments, docs/*-evidence, docs/e2e-salesforce-*-journal.md": "analyses, fixtures (a state-binding grading fixture) and command captures; no stage result with its run record that is not already in ~/e2e-runs"
+ },
+ "eligibility": "outer kinds: an accepted result in run/results with its acceptance time in run/timeline.json; reviews: n >= 2 with ShipLoop's reviews/pass-<n>.json (runs from 2026-10-17 on)",
+ "pool_total": 304,
+ "by_kind": {
+  "system-test": {
+   "artifacts": 56,
+   "runs": 52,
+   "hosts": {
+    "claude": 48,
+    "codex": 1,
+    "grok": 7
+   },
+   "words": {
+    "min": 25,
+    "median": 58,
+    "max": 401
+   },
+   "facts_words": {
+    "min": 113,
+    "median": 175,
+    "max": 675
+   }
+  },
+  "product-acceptance": {
+   "artifacts": 50,
+   "runs": 50,
+   "hosts": {
+    "claude": 44,
+    "grok": 6
+   },
+   "words": {
+    "min": 36,
+    "median": 141,
+    "max": 592
+   },
+   "facts_words": {
+    "min": 134,
+    "median": 259,
+    "max": 1436
+   }
+  },
+  "release-verify": {
+   "artifacts": 50,
+   "runs": 49,
+   "hosts": {
+    "claude": 44,
+    "grok": 6
+   },
+   "words": {
+    "min": 32,
+    "median": 73,
+    "max": 542
+   },
+   "facts_words": {
+    "min": 110,
+    "median": 189,
+    "max": 395
+   }
+  },
+  "operations": {
+   "artifacts": 48,
+   "runs": 48,
+   "hosts": {
+    "claude": 44,
+    "grok": 4
+   },
+   "words": {
+    "min": 33,
+    "median": 66,
+    "max": 195
+   },
+   "facts_words": {
+    "min": 145,
+    "median": 260,
+    "max": 499
+   }
+  },
+  "improve-review": {
+   "artifacts": 100,
+   "runs": 6,
+   "hosts": {
+    "grok": 100
+   },
+   "words": {
+    "min": 208,
+    "median": 342,
+    "max": 638
+   },
+   "facts_words": {
+    "min": 115,
+    "median": 133,
+    "max": 202
+   }
+  }
+ },
+ "by_source": {
+  "~/e2e-runs/2026-10-18/battleship-1": {
+   "improve-review": 30
+  },
+  "~/e2e-runs/20261003/batch-sonnet/battleship": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261003/batch-sonnet/battleship-scoring": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261003/batch-sonnet/hello": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261003/batch-sonnet/seat-reservations": {
+   "system-test": 3,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261003/hello": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261003/seat-reservations": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261003/v1161-battleship-luna": {
+   "system-test": 1
+  },
+  "~/e2e-runs/20261003/v1161-hello": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261004/v1180-hello-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261004/v1190-hello-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261004/v1190-hello-sonnet-2": {
+   "system-test": 2,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261004/v1200-hello-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261006/v1220-battleship-grok-medium-none": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261006/v1220-battleship-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261007/v1230-battleship-grok-none": {
+   "system-test": 1
+  },
+  "~/e2e-runs/20261007/v1230-battleship-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r1-battleship-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r1-checkers-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r2-battleship-grok-none": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r2-battleship-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r2-checkers-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r3-battleship-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261008/r3-checkers-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-after-spec": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-inside-implement": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-inside-implement-k2": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-inside-implement-mtime": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-inside-implement-write": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-inside-test-strategy": {
+   "system-test": 2,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261009/s6-inside-test-strategy-2": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/battleship-1": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/checkers-1": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/checkers-1270-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/checkers-8stage-88d412e9": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/checkers-sections-1ac83089": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-1270-claude-2": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-8stage-13d278dd": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-rel1270-ref-r1": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-rel1270-ref-r2": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-rel1270-ref-r3": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-sections-1ac83089": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-sections-r2-1ac83089": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-sections-r3-1ac83089": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/hello-sections-r4-1ac83089": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261010/pc1i-checkers-sonnet": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261011/battleship-probe-28191c5b": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261011/battleship-scoring-probe-28191c5b": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1
+  },
+  "~/e2e-runs/20261017/bs-sf-int-b7c77f": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1,
+   "improve-review": 10
+  },
+  "~/e2e-runs/20261017/salesforce-chess-int-802e29": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 2,
+   "improve-review": 10
+  },
+  "~/e2e-runs/20261018/bs-release-update-436528": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "release-verify": 1,
+   "operations": 1,
+   "improve-review": 2
+  },
+  "~/e2e-runs/20261019/chess-sf-full-05fe25b": {
+   "improve-review": 36
+  },
+  "~/e2e-runs/20261020/chess-sf-full-9e52e8": {
+   "system-test": 1,
+   "product-acceptance": 1,
+   "improve-review": 12
+  }
+ },
+ "selected": {
+  "n": 30,
+  "rule": "per kind: shortest and longest, then seeded (20261024) draws, Grok/Codex first until 3 of 6, at most 2 per run per kind and 4 per run overall; outer kinds need a ShipLoop rerun record in the facts",
+  "by_kind_host": {
+   "system-test/claude": 3,
+   "system-test/grok": 3,
+   "product-acceptance/claude": 3,
+   "product-acceptance/grok": 3,
+   "release-verify/claude": 3,
+   "release-verify/grok": 3,
+   "operations/claude": 3,
+   "operations/grok": 3,
+   "improve-review/grok": 6
+  },
+  "words": {
+   "min": 25,
+   "median": 161,
+   "max": 638,
+   "total": 6513
+  },
+  "facts_words": {
+   "min": 118,
+   "median": 255,
+   "max": 1436
+  },
+  "artifacts": [
+   {
+    "id": "r1-checkers-sonnet--0c2f452c",
+    "kind": "system-test",
+    "slot": "system-test",
+    "case": "checkers",
+    "host": "claude",
+    "words": 25,
+    "facts_words": 140,
+    "sha": "91f4e656a746379e"
+   },
+   {
+    "id": "chess-sf-full-9e52e8--bd225b3c",
+    "kind": "system-test",
+    "slot": "system-test",
+    "case": "chess-salesforce",
+    "host": "grok",
+    "words": 401,
+    "facts_words": 539,
+    "sha": "35c3fb984e429c10"
+   },
+   {
+    "id": "v1220-battleship-grok-medium-none--cddfca7e",
+    "kind": "system-test",
+    "slot": "system-test",
+    "case": "battleship",
+    "host": "grok",
+    "words": 112,
+    "facts_words": 479,
+    "sha": "4b5154d28f8ad6c6"
+   },
+   {
+    "id": "bs-sf-int-b7c77f--88abecd9",
+    "kind": "system-test",
+    "slot": "system-test",
+    "case": "battleship-salesforce",
+    "host": "grok",
+    "words": 280,
+    "facts_words": 675,
+    "sha": "9a51167202a492f2"
+   },
+   {
+    "id": "s6-inside-test-strategy-2--119c8ae2",
+    "kind": "system-test",
+    "slot": "system-test",
+    "case": "hello",
+    "host": "claude",
+    "words": 36,
+    "facts_words": 118,
+    "sha": "525b2b97830bb8b1"
+   },
+   {
+    "id": "v1200-hello-sonnet--9d3c07a2",
+    "kind": "system-test",
+    "slot": "system-test",
+    "case": "hello",
+    "host": "claude",
+    "words": 37,
+    "facts_words": 126,
+    "sha": "016b650e84fe587f"
+   },
+   {
+    "id": "s6-inside-implement--904a06af",
+    "kind": "product-acceptance",
+    "slot": "product-acceptance",
+    "case": "hello",
+    "host": "claude",
+    "words": 40,
+    "facts_words": 158,
+    "sha": "bcb957c383586be7"
+   },
+   {
+    "id": "chess-sf-full-9e52e8--59594de9",
+    "kind": "product-acceptance",
+    "slot": "product-acceptance",
+    "case": "chess-salesforce",
+    "host": "grok",
+    "words": 592,
+    "facts_words": 1168,
+    "sha": "e3b4d5dcad0cf9da"
+   },
+   {
+    "id": "bs-sf-int-b7c77f--66ab792a",
+    "kind": "product-acceptance",
+    "slot": "product-acceptance",
+    "case": "battleship-salesforce",
+    "host": "grok",
+    "words": 445,
+    "facts_words": 1436,
+    "sha": "7ecdcbbb25b88933"
+   },
+   {
+    "id": "v1220-battleship-grok-medium-none--1e7b7110",
+    "kind": "product-acceptance",
+    "slot": "product-acceptance",
+    "case": "battleship",
+    "host": "grok",
+    "words": 201,
+    "facts_words": 495,
+    "sha": "0c0487491d83e846"
+   },
+   {
+    "id": "r1-checkers-sonnet--6e9289db",
+    "kind": "product-acceptance",
+    "slot": "product-acceptance",
+    "case": "checkers",
+    "host": "claude",
+    "words": 103,
+    "facts_words": 341,
+    "sha": "18a98c0cd3f6e0a7"
+   },
+   {
+    "id": "v1220-battleship-sonnet--df7038b7",
+    "kind": "product-acceptance",
+    "slot": "product-acceptance",
+    "case": "battleship",
+    "host": "claude",
+    "words": 140,
+    "facts_words": 255,
+    "sha": "125efe768f7e0399"
+   },
+   {
+    "id": "r1-battleship-sonnet--cbf74778",
+    "kind": "release-verify",
+    "slot": "release-verify",
+    "case": "battleship",
+    "host": "claude",
+    "words": 32,
+    "facts_words": 149,
+    "sha": "bc87aeba3bca1497"
+   },
+   {
+    "id": "bs-sf-int-b7c77f--22762832",
+    "kind": "release-verify",
+    "slot": "release-verify",
+    "case": "battleship-salesforce",
+    "host": "grok",
+    "words": 542,
+    "facts_words": 259,
+    "sha": "12ec41f1f3abb623"
+   },
+   {
+    "id": "v1220-battleship-grok-medium-none--85d41f39",
+    "kind": "release-verify",
+    "slot": "release-verify",
+    "case": "battleship",
+    "host": "grok",
+    "words": 117,
+    "facts_words": 206,
+    "sha": "0edd06626e2f2f4a"
+   },
+   {
+    "id": "bs-release-update-436528--79eb6470",
+    "kind": "release-verify",
+    "slot": "release-verify",
+    "case": "battleship-salesforce",
+    "host": "grok",
+    "words": 443,
+    "facts_words": 395,
+    "sha": "60b0be39ef3b0398"
+   },
+   {
+    "id": "hello--5f47e69b",
+    "kind": "release-verify",
+    "slot": "release-verify",
+    "case": "hello",
+    "host": "claude",
+    "words": 51,
+    "facts_words": 177,
+    "sha": "c59497e93bd777ee"
+   },
+   {
+    "id": "hello-rel1270-ref-r2--a1890119",
+    "kind": "release-verify",
+    "slot": "release-verify",
+    "case": "hello",
+    "host": "claude",
+    "words": 117,
+    "facts_words": 238,
+    "sha": "e8db01afbd858d35"
+   },
+   {
+    "id": "hello-1270-claude-2--a28cd8a2",
+    "kind": "operations",
+    "slot": "operations",
+    "case": "hello",
+    "host": "claude",
+    "words": 33,
+    "facts_words": 200,
+    "sha": "b1f9f9fb53f2eed8"
+   },
+   {
+    "id": "bs-sf-int-b7c77f--d6bed253",
+    "kind": "operations",
+    "slot": "operations",
+    "case": "battleship-salesforce",
+    "host": "grok",
+    "words": 195,
+    "facts_words": 420,
+    "sha": "aac8ff464e96f9de"
+   },
+   {
+    "id": "r2-battleship-grok-none--e0eff9e8",
+    "kind": "operations",
+    "slot": "operations",
+    "case": "battleship",
+    "host": "grok",
+    "words": 161,
+    "facts_words": 312,
+    "sha": "91740bdc5f1908fe"
+   },
+   {
+    "id": "v1220-battleship-grok-medium-none--141832da",
+    "kind": "operations",
+    "slot": "operations",
+    "case": "battleship",
+    "host": "grok",
+    "words": 143,
+    "facts_words": 301,
+    "sha": "53c4f094971b60b2"
+   },
+   {
+    "id": "checkers-1270-sonnet--341b78a6",
+    "kind": "operations",
+    "slot": "operations",
+    "case": "checkers",
+    "host": "claude",
+    "words": 45,
+    "facts_words": 260,
+    "sha": "bda41b20599aa2ce"
+   },
+   {
+    "id": "battleship-scoring--229be78a",
+    "kind": "operations",
+    "slot": "operations",
+    "case": "battleship-scoring",
+    "host": "claude",
+    "words": 103,
+    "facts_words": 282,
+    "sha": "07d667d05b52d9c0"
+   },
+   {
+    "id": "chess-sf-full-05fe25b--test-spec-d6aa1445-r3",
+    "kind": "improve-review",
+    "slot": "review-test-spec",
+    "case": "chess-salesforce",
+    "host": "grok",
+    "words": 208,
+    "facts_words": 133,
+    "sha": "e58957922fa0c39f"
+   },
+   {
+    "id": "battleship-1--test-strategy-700d1520-r7",
+    "kind": "improve-review",
+    "slot": "review-test-strategy",
+    "case": "battleship",
+    "host": "grok",
+    "words": 638,
+    "facts_words": 202,
+    "sha": "d5005e9f231356f9"
+   },
+   {
+    "id": "chess-sf-full-05fe25b--spec-c4d005dc-r2",
+    "kind": "improve-review",
+    "slot": "review-spec",
+    "case": "chess-salesforce",
+    "host": "grok",
+    "words": 267,
+    "facts_words": 131,
+    "sha": "5d8becc069a187b7"
+   },
+   {
+    "id": "battleship-1--plan-0c995cdf-r4",
+    "kind": "improve-review",
+    "slot": "review-plan",
+    "case": "battleship",
+    "host": "grok",
+    "words": 363,
+    "facts_words": 150,
+    "sha": "40671f0dc6176b3e"
+   },
+   {
+    "id": "salesforce-chess-int-802e29--plan-dd599a1a-r3",
+    "kind": "improve-review",
+    "slot": "review-plan",
+    "case": "chess-salesforce",
+    "host": "grok",
+    "words": 276,
+    "facts_words": 135,
+    "sha": "0e3985854161c8af"
+   },
+   {
+    "id": "chess-sf-full-9e52e8--spec-85867466-r3",
+    "kind": "improve-review",
+    "slot": "review-spec",
+    "case": "chess-salesforce",
+    "host": "grok",
+    "words": 367,
+    "facts_words": 133,
+    "sha": "471653b09226fe22"
+   }
+  ]
+ }
+}

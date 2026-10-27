@@ -1,0 +1,9 @@
+{
+ "plans": 30,
+ "kappa": 0.727,
+ "band": "substantial",
+ "exact_agreement": 0.867,
+ "tier_agreement": "30/30",
+ "noise_points": 6.67,
+ "max_change_points": 25.0
+}

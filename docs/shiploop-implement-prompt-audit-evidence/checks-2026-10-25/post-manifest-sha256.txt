@@ -1,0 +1,2 @@
+ccc323d4851e13a2cd717968e033512fbaa0af3bb2804d74648434986ed7c976  /tmp/shiploop-reanchor-20261025/pre-tests-tracked-manifest.json
+ccc323d4851e13a2cd717968e033512fbaa0af3bb2804d74648434986ed7c976  /tmp/shiploop-reanchor-20261025/test-run/post-current-manifest.json

@@ -1,0 +1,4 @@
+command=python3 -B test/shiploop-e2e-slice.test.py EffortSliceMainTests
+exit_code=0
+duration_ms=2265
+log=/tmp/shiploop-main-conflict-20261025T142207/checks-final/02-e2e-slice-focused.log

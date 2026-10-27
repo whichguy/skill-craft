@@ -1,0 +1,10 @@
+{
+  "entries": 5818,
+  "head": "891be21e471e1f1817a9b5a36c57cba45829576f",
+  "identity_sha256": "4544b2449aae25736d2df2c4cd97062466f3b61fc0810e02d4605832e665dbdd",
+  "manifest_sha256": "efa4870a60fe1296d2f8b83037f4d37dd5da90c9ca07835a7f966a230d093790",
+  "status_short": " M test/shiploop-e2e-slice.test.py\n M test/shiploop-e2e.test.py\n M test/shiploop_e2e/run.py\n M test/shiploop_e2e/sessionlog.py\n M test/shiploop_e2e/slice.py\n?? docs/experiments/shiploop-effort-by-stage-20261024/\n?? test/shiploop_e2e/effort.py\n",
+  "top": "/private/tmp/shiploop-main-conflict-20261025T142207/verification",
+  "tracked_diff_name_status": "M\ttest/shiploop-e2e-slice.test.py\nM\ttest/shiploop-e2e.test.py\nM\ttest/shiploop_e2e/run.py\nM\ttest/shiploop_e2e/sessionlog.py\nM\ttest/shiploop_e2e/slice.py\n",
+  "untracked_nonignored": "docs/experiments/shiploop-effort-by-stage-20261024/run_totals.py\ntest/shiploop_e2e/effort.py\n"
+}

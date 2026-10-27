@@ -1,0 +1,60 @@
+{
+  "status": "passed",
+  "scope": "local source audit and reconciled effort-experiment checks; outstanding engine recommendations remain open",
+  "verified_at": "2026-10-25T21:59:54.313213+00:00",
+  "revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "test_revision": "891be21e471e1f1817a9b5a36c57cba45829576f",
+  "observed_origin_main": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "main_matches_observed_remote": true,
+  "source_audit": {
+    "recommendations": 22,
+    "considerations": 8,
+    "code_craft_rules": 14,
+    "qualification_ids": 52,
+    "anchors": 128,
+    "source_files": 33,
+    "record": "reference-validation.json"
+  },
+  "tests": {
+    "passed": 716,
+    "checks": 10,
+    "full_harness": 453,
+    "full_slice": 79,
+    "selected_engine_and_packet_checks": 184,
+    "receipt": "checks-main-891be21e/receipt.json",
+    "earlier_failed_attempt": "checks-initial/receipt.json",
+    "earlier_repaired_snapshot": "checks-final/receipt.json",
+    "same_snapshot_before_after": true
+  },
+  "delivery": {
+    "record": "conflict-resolution.json",
+    "verified_source_identity": "tested-delivered-source-identity.json",
+    "source_files_compared": 4334,
+    "same_tested_bytes_applied": true,
+    "unmerged_paths": [],
+    "working_tree_changes_remain_uncommitted": true,
+    "initial_untracked_preservation": "initial-untracked-preservation.json",
+    "stash_preserved": true
+  },
+  "judge_probe": {
+    "record": "judge-current-probe.json",
+    "boundary": "direct committed helpers, not full callback or live replay",
+    "original_masked_failure": "fixed",
+    "mixed_pass_error": "still falsely passes",
+    "obsolete_saved_verdict": "still reused"
+  },
+  "not_run": [
+    "whole repository suite bank",
+    "new CI run",
+    "installed-host validation",
+    "live platform or consumer trial",
+    "controlled performance comparison"
+  ],
+  "not_changed": [
+    "remaining ShipLoop engine recommendations",
+    "release outputs",
+    "unrelated rubric-eval WIP"
+  ],
+  "commit_created": false,
+  "pushed": false
+}

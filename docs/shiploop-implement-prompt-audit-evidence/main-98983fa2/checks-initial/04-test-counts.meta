@@ -1,0 +1,4 @@
+command=python3 -B test/shiploop-test-counts.test.py
+exit_code=0
+duration_ms=178
+log=/tmp/shiploop-main-conflict-20261025T142207/checks-initial/04-test-counts.log

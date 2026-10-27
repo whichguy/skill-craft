@@ -1,0 +1,17 @@
+{
+ "payload": {
+  "plugin_version": "2.9.0",
+  "shiploop_version": "1.9.0",
+  "plugin_sha256": "86b138e1652e"
+ },
+ "default_build": {
+  "plugin_version": "2.9.0",
+  "shiploop_version": "1.9.0",
+  "plugin_sha256": "4dd13076c669"
+ },
+ "differing_paths": [
+  "Files BUILD/skills/rubric-eval/references/judges.json and PAYLOAD/skills/rubric-eval/references/judges.json differ",
+  "Files BUILD/skills/rubric-eval/scripts/rubric_eval.py and PAYLOAD/skills/rubric-eval/scripts/rubric_eval.py differ",
+  "Only in BUILD/skills/rubric-eval/suites: shiploop-run"
+ ]
+}

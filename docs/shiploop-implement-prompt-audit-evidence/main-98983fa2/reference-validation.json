@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "head": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "origin_main": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "scope": "committed source provenance, not working-tree or live acceptance",
+  "main_freshness": {
+    "matches_audited_revision": true,
+    "commits_ahead": 0,
+    "observed_origin_main": "98983fa276ffe4f2f3995ed2acd7985110773f23"
+  },
+  "anchors": 128,
+  "source_files": 33,
+  "recommendations": 22,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "qualification_ids": 52,
+  "source_gap_entries": {
+    "chess": 58,
+    "battleship": 91
+  },
+  "ranked_chess_fixes": 8,
+  "local_links_checked": 269,
+  "static_assertions": {
+    "STATE_VERSION": 9,
+    "HEAD_LIMIT": 20000,
+    "HEAD_REQUIRED_END": 19500,
+    "IMPROVE_TRIVIAL_REVIEWS": 1
+  },
+  "changed_prior_excerpts": [
+    "step-proof",
+    "judge",
+    "base-run",
+    "mutation",
+    "remote-split",
+    "step-plan",
+    "glossary",
+    "test-layers",
+    "prepare-access"
+  ],
+  "errors": []
+}

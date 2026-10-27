@@ -1,0 +1,4 @@
+command=python3 -B test/shiploop-actual-improve-cli.test.py EphemeralImproveCliTests.test_a_revised_final_result_over_a_producer_bound_is_refused_and_one_within_imports LoopContractShapeTests
+exit_code=0
+duration_ms=3684
+log=/tmp/shiploop-main-conflict-20261025T142207/checks-initial/05-actual-improve-cli-focused.log

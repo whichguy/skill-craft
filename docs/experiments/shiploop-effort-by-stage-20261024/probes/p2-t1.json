@@ -1,0 +1,64 @@
+{
+  "label": "p2-t1",
+  "host": "grok",
+  "model": "grok-4.7",
+  "prompt_key": "A",
+  "effort_requested": "medium",
+  "effort_argv": [
+    "medium"
+  ],
+  "resume": null,
+  "argv_shape": [
+    "grok",
+    "--cwd",
+    "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/21b08...",
+    "--prompt-file",
+    "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/21b08...",
+    "--verbatim",
+    "--output-format",
+    "streaming-json",
+    "--model",
+    "grok-4.7",
+    "--max-turns",
+    "3",
+    "--permission-mode",
+    "auto",
+    "--no-auto-update",
+    "--reasoning-effort",
+    "medium"
+  ],
+  "run": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 15.8
+  },
+  "session_id": "01a16ef0-0c17-7c92-8fd8-831a0399ac32",
+  "usage_events": [
+    {
+      "type": "usage",
+      "usage": {
+        "input_tokens": 7469,
+        "output_tokens": 1372,
+        "cache_read_input_tokens": 10112,
+        "cache_creation_input_tokens": 0,
+        "reasoning_tokens": 1325
+      }
+    },
+    {
+      "type": "end",
+      "usage": {
+        "input_tokens": 7469,
+        "cache_read_input_tokens": 10112,
+        "cache_creation_input_tokens": 0,
+        "output_tokens": 1372,
+        "reasoning_tokens": 1325,
+        "total_tokens": 18953
+      },
+      "total_cost_usd": 0.028226,
+      "num_turns": 1,
+      "stopReason": "end_turn"
+    }
+  ],
+  "stderr_tail": "",
+  "events_bytes": 13202
+}

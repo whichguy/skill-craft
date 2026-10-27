@@ -1,0 +1,66 @@
+{
+ "control": {
+  "D@medium": {
+   "sessions": 8,
+   "seconds": 3372.2,
+   "calls": 287,
+   "output": 174014,
+   "reasoning": 81753,
+   "prompt": 37037728,
+   "reasoning_per_call": 284.9,
+   "output_per_call": 606.3
+  },
+  "I2@medium": {
+   "sessions": 2,
+   "seconds": 217.0,
+   "calls": 21,
+   "output": 11546,
+   "reasoning": 6616,
+   "prompt": 3512691,
+   "reasoning_per_call": 315.0,
+   "output_per_call": 549.8
+  },
+  "M@medium": {
+   "sessions": 3,
+   "seconds": 750.6,
+   "calls": 55,
+   "output": 33554,
+   "reasoning": 13842,
+   "prompt": 6870909,
+   "reasoning_per_call": 251.7,
+   "output_per_call": 610.1
+  }
+ },
+ "treatment": {
+  "D@medium": {
+   "sessions": 9,
+   "seconds": 3989.4,
+   "calls": 326,
+   "output": 225554,
+   "reasoning": 115408,
+   "prompt": 40169610,
+   "reasoning_per_call": 354.0,
+   "output_per_call": 691.9
+  },
+  "I2@low": {
+   "sessions": 1,
+   "seconds": 94.5,
+   "calls": 7,
+   "output": 4671,
+   "reasoning": 2362,
+   "prompt": 815567,
+   "reasoning_per_call": 337.4,
+   "output_per_call": 667.3
+  },
+  "M@low": {
+   "sessions": 3,
+   "seconds": 419.9,
+   "calls": 41,
+   "output": 20280,
+   "reasoning": 6181,
+   "prompt": 6637733,
+   "reasoning_per_call": 150.8,
+   "output_per_call": 494.6
+  }
+ }
+}

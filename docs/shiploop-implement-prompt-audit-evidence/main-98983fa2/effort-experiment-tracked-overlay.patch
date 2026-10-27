@@ -1,0 +1,1125 @@
+diff --git a/test/shiploop-e2e-slice.test.py b/test/shiploop-e2e-slice.test.py
+index 8fa232eb..bfc7efea 100644
+--- a/test/shiploop-e2e-slice.test.py
++++ b/test/shiploop-e2e-slice.test.py
+@@ -28,6 +28,7 @@ from unittest import mock
+ ROOT = Path(__file__).resolve().parents[1]
+ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+ import clear  # noqa: E402
++import effort  # noqa: E402
+ import flow  # noqa: E402
+ import metrics  # noqa: E402
+ import packets  # noqa: E402
+@@ -39,6 +40,7 @@ import shiploop_item_scope as item_scope  # noqa: E402
+ import shiploop_knowledge_home as knowledge_home  # noqa: E402
+ import shiploop_lint as lint  # noqa: E402
+ import shiploop_navigator as nav  # noqa: E402
++import shiploop_stage_spec as stage_spec  # noqa: E402
+ import shiploop_store as store  # noqa: E402
+ import shiploop_test_loop as test_loop  # noqa: E402
+ 
+@@ -121,13 +123,14 @@ class SliceCase(unittest.TestCase):
+                             **{"checks": CASE["checks"], **options})
+ 
+     def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: list[dict] | None = None,
+-             first: bool = True) -> dict:
++             first: bool = True, planner=None, effort_now: str | None = None) -> dict:
+         script = self.out / "fake_host.py"
+         script.write_text(FAKE_HOST)
+         argv = [sys.executable, str(script), str(CLI.parent), str(CLI), seeded["run_dir"], mode, pause_at]
+         started = time.time()
+         process = step_slice.drive(argv, work=self.work, out=self.out, env=GIT_ENV, run_dir=Path(seeded["run_dir"]),
+-                                   timeout=90, watch=False, clear_at=clear_at, first=first)
++                                   timeout=90, watch=False, clear_at=clear_at, first=first, planner=planner,
++                                   effort_now=effort_now)
+         process["wall"] = time.time() - started
+         return process
+ 
+@@ -1088,5 +1091,423 @@ class FlowTests(SliceCase):
+         self.assertEqual((found["actions"][-1]["action"], found["actions"][-1]["stage"]), (stop, "system-test-author"))
+ 
+ 
++class EffortScheduleTests(unittest.TestCase):
++    """effort.py: the class of a position is read from the run's state and the Improve child's packet; a boundary is
++    every change of class, so the control and treatment schedules restart at the same positions."""
++
++    TREATMENT = {"M": "low", "I2": "low", "D": "medium"}
++    CONTROL = {"M": "medium", "I2": "medium", "D": "medium"}
++
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-effort-")
++        self.addCleanup(self.temp.cleanup)
++        self.out = Path(self.temp.name)
++        self.packet = self.out / "packet.json"
++
++    @staticmethod
++    def stage_of(state):
++        return state["stage"]
++
++    def receipt(self, child):
++        return self.packet
++
++    def classify(self, state):
++        return effort.classify(state, self.stage_of, receipt_of=self.receipt)
++
++    def write_packet(self, status="active", number=1):
++        self.packet.write_text(json.dumps({"status": status, "progress": {"action_number": number}}))
++
++    def test_a_schedule_names_exactly_the_three_classes_and_each_level_has_no_spaces(self):
++        self.assertEqual(effort.parse_schedule(json.dumps(self.TREATMENT)), self.TREATMENT)
++        path = self.out / "schedule.json"
++        path.write_text(json.dumps(self.CONTROL))
++        self.assertEqual(effort.parse_schedule(str(path)), self.CONTROL, "a path is read as a file")
++        for bad in ({"M": "low", "D": "medium"}, {**self.TREATMENT, "X": "low"}, {**self.TREATMENT, "M": ""},
++                    {**self.TREATMENT, "I2": "very low"}, {**self.TREATMENT, "D": None}, ["low"]):
++            with self.assertRaises(effort.ScheduleError, msg=bad):
++                effort.parse_schedule(json.dumps(bad))
++        for bad in ("{not json", str(self.out / "missing.json")):
++            with self.assertRaises(effort.ScheduleError, msg=bad):
++                effort.parse_schedule(bad)
++
++    def test_a_level_the_host_does_not_accept_is_refused_because_claude_would_ignore_it(self):
++        effort.check_levels(self.TREATMENT, "grok")
++        effort.check_levels({"M": "max", "I2": "low", "D": "high"}, "claude")
++        effort.check_levels({"M": "anything", "I2": "low", "D": "high"}, "codex")  # not probed: not checked
++        with self.assertRaises(effort.ScheduleError) as caught:
++            effort.check_levels({"M": "max", "I2": "low", "D": "medium"}, "grok")
++        self.assertIn("M=max", str(caught.exception))
++        with self.assertRaises(effort.ScheduleError):
++            effort.check_levels({"M": "lwo", "I2": "low", "D": "medium"}, "claude")
++
++    def test_the_mechanical_list_is_stages_of_the_table_that_are_not_inner_loop_stages(self):
++        self.assertTrue(effort.MECHANICAL <= set(stage_spec.STAGES), "a name in the list that the stage table lacks")
++        self.assertFalse(effort.MECHANICAL & set(stage_spec.INNER), "no inner-loop stage is mechanical (plan section 0)")
++        self.assertNotIn("handoff", effort.MECHANICAL, "handoff authors the final document and stays in D")
++        self.assertEqual(sorted(effort.MECHANICAL), sorted(("prepare", "system-test", "product-acceptance", "release-check",
++                                                            "release", "release-verify", "operations")),
++                         "the list is fixed before any run; changing it is a new experiment")
++
++    def test_a_mechanical_stage_is_m_and_every_other_stage_is_d(self):
++        active = {"status": "active"}
++        self.assertEqual(self.classify({**active, "stage": "release-verify"}), ("M", "stage release-verify"))
++        self.assertEqual(self.classify({**active, "stage": "implement"})[0], "D")
++        self.assertEqual(self.classify({**active, "stage": "handoff"})[0], "D")
++
++    def test_an_improve_child_is_d_on_pass_1_and_i2_from_pass_2_by_the_runtime_packet(self):
++        child = {**{"status": "active"}, "stage": "spec", "active_improve": {"action_id": "a"}}
++        for number, expected in ((1, "D"), (2, "I2"), (3, "I2")):
++            self.write_packet("active", number)
++            self.assertEqual(self.classify(child)[0], expected, number)
++        for status in ("complete", "stopped"):
++            self.write_packet(status, 4)
++            found = self.classify(child)
++            self.assertIsNone(found[0], "a loop that has ended but whose child is still bound is closing: " + status)
++            self.assertIn("closing", found[1])
++
++    def test_the_i2_class_is_held_until_the_child_clears_so_no_boundary_falls_inside_the_closing_calls(self):
++        # R1: a boundary the moment the loop completed ended the session before the model's own `complete` call.
++        planner = self.planner(self.TREATMENT, "hold")
++        planner.current = {"status": "active", "stage": "spec", "active_improve": {"action_id": "a"}}
++        self.write_packet("active", 1)
++        planner.at_launch("start")
++        self.write_packet("active", 2)
++        self.assertTrue(planner.stop_when(), "pass 2 begins: D to I2")
++        planner.consume()
++        planner.at_launch("restart")
++        self.assertEqual(planner.session_class, "I2")
++        self.write_packet("complete", 2)
++        self.assertFalse(planner.stop_when(), "the loop has completed but the child is still bound: hold")
++        planner.current = {"status": "active", "stage": "plan"}
++        self.assertTrue(planner.stop_when(), "the child cleared: I2 to D, after the model's complete call")
++        self.assertEqual((planner.pending["from"], planner.pending["to"]), ("I2", "D"))
++
++    def test_no_session_is_ended_before_the_host_has_an_id_to_resume_from(self):
++        # R1b: Grok reports its session id only at a turn end; a boundary eight minutes into the first turn killed the host
++        # and the run could not be continued.
++        known = []
++        out = self.out / "late"
++        out.mkdir()
++        planner = effort.Planner(out, self.TREATMENT, locate=lambda: None, current_stage=self.stage_of,
++                                 receipt_of=self.receipt, can_resume=lambda: bool(known))
++        planner.state = lambda: planner.current
++        planner.current = {"status": "active", "stage": "spec"}
++        planner.at_launch("start")
++        planner.current = {"status": "active", "stage": "prepare"}
++        self.assertFalse(planner.stop_when(), "the class changed but there is nothing to resume")
++        self.assertIsNone(planner.pending)
++        known.append("sess-1")
++        self.assertTrue(planner.stop_when(), "the id is known: the boundary is applied")
++        self.assertEqual((planner.pending["from"], planner.pending["to"]), ("D", "M"))
++
++    def test_the_restart_note_reaches_only_the_session_that_continues_after_a_boundary(self):
++        plain = run.resume_prompt("/r", Path("/p/shiploop"))
++        noted = run.resume_prompt("/r", Path("/p/shiploop"), effort.RESTART_NOTE)
++        self.assertTrue(noted.startswith(plain), "the resume prompt itself is unchanged")
++        self.assertIn("Do not repeat a command from before the restart", noted)
++        self.assertNotIn("Do not repeat a command", plain)
++
++    def test_what_cannot_be_read_is_indeterminate_and_never_a_class(self):
++        child = {"status": "active", "stage": "spec", "active_improve": {"action_id": "a"}}
++        self.assertIsNone(self.classify(child)[0], "no packet yet")
++        self.packet.write_text("{half")
++        self.assertIsNone(self.classify(child)[0], "a packet mid-write")
++        self.packet.write_text(json.dumps(["not", "an", "object"]))
++        self.assertIsNone(self.classify(child)[0])
++        self.packet.write_text(json.dumps({"status": "active"}))
++        self.assertIsNone(self.classify(child)[0], "active with no pass number")
++        self.assertIsNone(effort.classify(None, self.stage_of)[0], "no state yet")
++        self.assertIsNone(effort.classify({"status": "done", "stage": "handoff"}, self.stage_of)[0], "a run that is over")
++        self.assertIsNone(effort.classify({"status": "active"}, lambda state: state["missing"])[0], "no stage cursor")
++
++    def test_a_restart_point_exists_only_for_a_known_change_of_class(self):
++        active = {"status": "active", "revision": 7}
++        same = effort.restart_point({**active, "stage": "implement"}, "D", self.stage_of, receipt_of=self.receipt)
++        self.assertIsNone(same)
++        point = effort.restart_point({**active, "stage": "prepare"}, "D", self.stage_of, receipt_of=self.receipt)
++        self.assertEqual((point["from"], point["to"], point["stage"], point["revision"]), ("D", "M", "prepare", 7))
++        self.assertIsNone(effort.restart_point(None, "D", self.stage_of), "an unreadable state ends nothing")
++        self.assertIsNone(effort.restart_point({**active, "stage": "prepare"}, None, self.stage_of), "no session class yet")
++
++    def planner(self, schedule, name):
++        out = self.out / name
++        out.mkdir()
++        planner = effort.Planner(out, schedule, locate=lambda: None, current_stage=self.stage_of, receipt_of=self.receipt)
++        planner.current = None
++        planner.state = lambda: planner.current  # the state a test sets; the real reader is a file read
++        return planner
++
++    def walk(self, planner, positions):
++        """Drive one planner through (stage, improve pass or None) positions the way a run does; the boundaries it found."""
++        found = []
++        for stage, number in positions:
++            state = {"status": "active", "stage": stage, "revision": len(found)}
++            if number is not None:
++                state["active_improve"] = {"action_id": "a"}
++                self.write_packet("active", number)
++            planner.current = state
++            if planner.session_class is None:
++                planner.at_launch("start")
++            elif planner.stop_when():
++                found.append((planner.pending["from"], planner.pending["to"], stage))
++                planner.at_launch("restart")
++        return found
++
++    def test_control_and_treatment_restart_at_the_same_positions_and_differ_only_in_effort(self):
++        positions = [("intake", None), ("spec", None), ("spec", 1), ("spec", 2), ("spec", 3), ("spec", None), ("plan", None),
++                     ("prepare", None), ("step-plan", None), ("implement", 1), ("implement", 2), ("implement", None),
++                     ("system-test", None), ("release-verify", None), ("handoff", None)]
++        treatment, control = self.planner(self.TREATMENT, "t"), self.planner(self.CONTROL, "c")
++        found = self.walk(treatment, positions)
++        self.assertEqual(found, self.walk(control, positions), "the blocked pair: same boundaries")
++        self.assertEqual(found, [("D", "I2", "spec"), ("I2", "D", "spec"), ("D", "M", "prepare"), ("M", "D", "step-plan"),
++                                 ("D", "I2", "implement"), ("I2", "D", "implement"), ("D", "M", "system-test"),
++                                 ("M", "D", "handoff")])
++        t, c = (effort.recorded(self.out / name)["restarts"] for name in ("t", "c"))
++        self.assertEqual([(x["from"], x["to"], x["stage"]) for x in t], [(x["from"], x["to"], x["stage"]) for x in c])
++        self.assertEqual({x["effort_after"] for x in c}, {"medium"}, "the control never changes level")
++        self.assertEqual([x["effort_after"] for x in t if x["to"] != "D"], ["low"] * 4)
++        self.assertEqual([x["effort_after"] for x in t if x["to"] == "D"], ["medium"] * 4)
++
++    def test_a_resume_continues_the_recorded_schedule_and_refuses_another(self):
++        self.planner(self.TREATMENT, "r")
++        again = effort.Planner(self.out / "r", self.TREATMENT, locate=lambda: None, current_stage=self.stage_of)
++        self.assertEqual(again.record["schedule"], self.TREATMENT)
++        with self.assertRaises(effort.ScheduleError):
++            effort.Planner(self.out / "r", self.CONTROL, locate=lambda: None, current_stage=self.stage_of)
++
++    def test_a_launch_is_recorded_with_its_class_and_effort_and_a_pending_boundary_is_recorded_once(self):
++        planner = self.planner(self.TREATMENT, "l")
++        planner.current = {"status": "active", "stage": "prepare"}
++        self.assertEqual(planner.at_launch("start"), ("M", "low"))
++        planner.current = {"status": "active", "stage": "step-plan"}
++        self.assertTrue(planner.stop_when())
++        row = planner.consume()
++        self.assertEqual((row["n"], row["from"], row["to"], row["effort_before"], row["effort_after"]), (1, "M", "D", "low", "medium"))
++        self.assertIsNone(planner.consume(), "recorded once")
++        self.assertEqual(planner.at_launch("restart"), ("D", "medium"))
++        launches = effort.recorded(self.out / "l")["launches"]
++        self.assertEqual([(x["class"], x["effort"], x["why"]) for x in launches], [("M", "low", "start"), ("D", "medium", "restart")])
++
++    def test_either_ends_a_session_when_any_check_does_and_none_gives_none(self):
++        self.assertIsNone(run.either(None, None))
++        self.assertTrue(run.either(None, lambda: True)())
++        self.assertFalse(run.either(lambda: False, lambda: False)())
++
++    def test_the_flag_is_on_both_commands(self):
++        text = '{"M": "low", "I2": "low", "D": "medium"}'
++        self.assertEqual(run.parser().parse_args(["--case", "hello", "--effort-schedule", text]).effort_schedule, text)
++        self.assertEqual(step_slice.parser().parse_args(["--case", "node-fix-bug", "--effort-schedule", text]).effort_schedule, text)
++
++
++sys.path.insert(0, str(ROOT / "docs" / "experiments" / "shiploop-effort-by-stage-20261024"))
++import run_totals  # noqa: E402
++
++
++class EffortMeasureTests(unittest.TestCase):
++    """run_totals.py: tokens and seconds by the class each session ran in, and the refusals a restart causes."""
++
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-measure-")
++        self.addCleanup(self.temp.cleanup)
++        self.out = Path(self.temp.name)
++
++    @staticmethod
++    def usage(inp, out, reasoning, cache=0):
++        return json.dumps({"type": "usage", "usage": {"input_tokens": inp, "output_tokens": out, "reasoning_tokens": reasoning,
++                                                      "cache_read_input_tokens": cache}})
++
++    @staticmethod
++    def refusal(text):
++        return json.dumps({"type": "tool_call_update", "rawOutput": {"output_for_prompt": "ShipLoop navigator: " + text}})
++
++    def run_folder(self, classes=("D", "M", "D"), reasons=("start", "effort", "effort")):
++        lines = [
++            self.usage(100, 50, 20), self.refusal("This review loop has already ended (its receipt /x)"),
++            self.refusal("This review loop has already ended (its receipt /x)"), self.usage(100, 60, 30),      # session 1: 0-3
++            self.usage(100, 40, 10, cache=900), self.refusal("Write this pass's review to /x/reviews/review-2.md"),
++            self.refusal("Write this pass's review to /x/reviews/review-2.md"),                                # session 2: 4-6
++            self.usage(200, 70, 35), self.refusal("concerns is a list of {id, steps}"),
++            self.refusal("concerns is a list of {id, steps}"), self.usage(50, 10, 5),                           # session 3: 7-10
++        ]
++        (self.out / "events.jsonl").write_text("\n".join(lines) + "\n")
++        rows, edges = [], [(0, 100.0, 160.0), (4, 170.0, 200.0), (7, 210.0, 260.0)]
++        for n, ((line, start, end), reason) in enumerate(zip(edges, reasons), 1):
++            rows.append({"row": "start", "n": n, "reason": reason, "events_line": line, "t": start})
++            rows.append({"row": "end", "n": n, "t": end, "events_line": line, "status": "x"})
++        (self.out / "sessions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
++        (self.out / "effort.json").write_text(json.dumps({"schedule": {}, "launches": [{"class": c} for c in classes],
++                                                          "restarts": []}))
++        return self.out
++
++    def test_each_session_is_counted_in_the_class_of_its_launch(self):
++        found = run_totals.class_totals(self.run_folder())
++        self.assertEqual({k: (v["sessions"], v["seconds"], v["model_calls"], v["output_tokens"], v["reasoning_tokens"])
++                          for k, v in found.items()},
++                         {"D": (2, 110.0, 4, 190, 90), "M": (1, 30.0, 1, 40, 10)})
++        self.assertEqual(found["M"]["prompt_tokens"], 1000, "prompt = input + cache read + cache creation")
++        self.assertEqual(found["M"]["tokens"], 1040, "the decision's token count is prompt plus output")
++        self.assertEqual(found["D"]["reasoning_per_call"], 22.5)
++
++    def test_a_run_whose_launches_and_sessions_do_not_line_up_has_no_class_totals(self):
++        self.run_folder(classes=("D", "M"))
++        self.assertIsNone(run_totals.class_totals(self.out))
++        self.assertIsNone(run_totals.class_totals(self.out / "no-such-run"))
++
++    def test_the_two_restart_refusals_are_apart_only_in_a_session_started_for_a_boundary(self):
++        found = run_totals.refusals(self.run_folder())
++        self.assertEqual((found["total"], found["restart_induced"], found["other"]), (3, 1, 2),
++                         "the stream repeats each result; the 'already ended' refusal in the first session is not a boundary's")
++        self.assertEqual(found["restart_induced_messages"], ["Write this pass's review to /x/reviews/review-2.md"])
++        self.assertTrue(any(m.startswith("concerns is a list") for m in found["other_messages"]))
++        self.assertEqual(run_totals.refusals(self.run_folder(reasons=("start", "resume-loop", "resume-loop")))["restart_induced"], 0)
++
++    def test_a_class_file_leaves_out_a_run_with_no_session_of_that_class_and_never_writes_zero(self):
++        self.run_folder()
++        pool = self.out / "pool.jsonl"
++        pool.write_text(json.dumps({"id": "a", "source": {"run": str(self.out)}}) + "\n")
++        for cls, expected in (("M", (1000, 40, 30.0)), ("I2", (None, None, None)), ("all", (1450, 230, 140.0))):
++            target = self.out / f"tokens-{cls}.json"
++            run_totals.tokens_file(pool, target, cls)
++            row = json.loads(target.read_text())["a"]
++            self.assertEqual((row["input_tokens"], row["output_tokens"], row["seconds"]), expected, cls)
++
++
++class EffortSliceTests(SliceCase):
++    """slice.drive ends a session at a class boundary (status reeffort) and the next session continues the slice."""
++
++    def test_a_class_change_ends_the_session_and_the_slice_finishes_in_later_sessions(self):
++        seeded = self.seed()
++        # `implement` stands in for a mechanical stage: a slice reaches only inner stages, so the list is narrowed for the test.
++        planner = effort.Planner(self.out, {"M": "low", "I2": "low", "D": "medium"}, locate=lambda: seeded["run_dir"],
++                                 current_stage=metrics.current_stage, mechanical=frozenset({"implement"}))
++        self.assertEqual(planner.at_launch("start"), ("D", "medium"))
++        statuses, first, now = [], True, "medium"
++        for _ in range(6):
++            process = self.fake(seeded, "normal", pause_at="implement", first=first, planner=planner, effort_now=now)
++            statuses.append(process["status"])
++            first = False
++            if process["status"] != "reeffort":
++                break
++            planner.consume()
++            now = planner.at_launch("restart")[1]
++        self.assertEqual(statuses[0], "reeffort", statuses)
++        self.assertEqual(statuses[-1], "slice-complete", statuses)
++        restarts = effort.recorded(self.out)["restarts"]
++        self.assertEqual((restarts[0]["from"], restarts[0]["to"], restarts[0]["stage"]), ("D", "M", "implement"))
++        starts = [row for row in sessionlog._lines(self.out) if row["row"] == "start"]
++        self.assertEqual(starts[0]["effort"], "medium", "the session log says which effort each session ran at")
++        self.assertEqual(starts[1]["effort"], "low", "the session after the boundary ran at the mechanical class's level")
++
++
++class EffortSliceMainTests(SliceCase):
++    def test_main_continues_clear_reeffort_and_resume_on_one_deadline_with_each_launch_effort(self):
++        plugin = self.out / "plugin"
++        (plugin / ".claude-plugin").mkdir(parents=True)
++        (plugin / ".claude-plugin" / "plugin.json").write_text("{}")
++        (plugin / "skills" / "shiploop").mkdir(parents=True)
++        (plugin / "skills" / "shiploop" / "SKILL.md").write_text("---\nversion: 0.0.0\n---\n")
++
++        host = mock.Mock()
++        host.name, host.model, host.effort, host.skill = "grok", "fake-model", "high", "shiploop"
++        host.resumable, host.marketplace = True, False
++        host.env.return_value = dict(os.environ)
++        host.install_plugin.return_value = {"pass": True}
++        host.invoke.return_value = "fake opening prompt"
++        host.translator.return_value = lambda raw: [raw]
++        host_calls = []
++
++        def argv(**kwargs):
++            host_calls.append((kwargs["effort"], kwargs.get("resume")))
++            kwargs["prompt_file"].write_text(kwargs["prompt"])
++            return ["fake-grok", "--reasoning-effort", kwargs["effort"] or "none",
++                    *( ["--resume", kwargs["resume"]] if kwargs.get("resume") else [] )]
++
++        host.argv.side_effect = argv
++        plugin_cli = CLI
++        timeout_args = []
++        fake_receipt = self.out / "improve-receipt.json"
++        fake_clock = iter((0, 10, 20, 25, 30, 40))
++        launch_number = 0
++        fresh_ids = []
++
++        def fake_launch(_argv, _work, out, _env, timeout, _watch, **kwargs):
++            nonlocal launch_number
++            out = Path(out)
++            state_path = out / ".shiploop-runs" / "seed" / "run" / "state.md"
++            events_path = out / "events.jsonl"
++            events_path.touch(exist_ok=True)
++            index = launch_number
++            launch_number += 1
++            timeout_args.append(timeout)
++            if "--session-id" in _argv:
++                fresh_ids.append(_argv[_argv.index("--session-id") + 1])
++
++            if index == 1:
++                state = store.read_record(state_path)
++                state["active_improve"] = {"action_id": "fake-improve"}
++                state["revision"] += 1
++                store.write_record(state_path, state)
++                fake_receipt.write_text(json.dumps({"status": "active", "progress": {"action_number": 2}}))
++            elif index == 3:
++                state = store.read_record(state_path)
++                state["status"] = "done"
++                store.write_record(state_path, state)
++
++            before_start = kwargs.get("before_start")
++            if before_start:
++                before_start(run.events_line_count(events_path))
++            # A boundary can arrive after a clear before the fresh host reports an ID. The old session must not resume.
++            if index != 1:
++                events_path.write_text(events_path.read_text() + json.dumps({"type": "session", "sessionId": fresh_ids[-1]}) + "\n")
++            kwargs["stop_when"]()
++            status = "exited" if index == 2 else "interrupted"
++            return {"status": status, "returncode": 0 if status == "exited" else -9,
++                    "elapsed_seconds": 1, "left_behind": []}
++
++        clear_trigger_calls = []
++
++        def clear_on_first_session(*_args, **_kwargs):
++            clear_trigger_calls.append(True)
++            return {"stage": "step-plan"} if len(clear_trigger_calls) == 1 else None
++
++        captured = {}
++
++        def finish(_out, _run_dir, _seeded, _case, sessions, _identity, _quiet):
++            captured["sessions"] = sessions
++            return 0
++
++        out = self.out / "slice-main-effort"
++        patches = (
++            mock.patch.object(step_slice.hosts, "host", return_value=host),
++            mock.patch.object(step_slice.run, "run_cli", return_value=plugin_cli),
++            mock.patch.object(step_slice.run, "install_termination_handlers"),
++            mock.patch.object(step_slice.run, "launch", side_effect=fake_launch),
++            mock.patch.object(step_slice.clear, "trigger", side_effect=clear_on_first_session),
++            mock.patch.object(step_slice.clear, "point", return_value={"events_line": 0, "stage": "step-plan"}),
++            mock.patch.object(step_slice.effort.standalone, "receipt_path", return_value=fake_receipt),
++            mock.patch.object(step_slice, "finish", side_effect=finish),
++            mock.patch.object(step_slice.time, "monotonic", side_effect=lambda: next(fake_clock)),
++        )
++        with contextlib.ExitStack() as stack:
++            for patch in patches:
++                stack.enter_context(patch)
++            code = step_slice.main(["--case", "node-fix-bug", "--host", "grok", "--plugin-dir", str(plugin),
++                                   "--output", str(out), "--effort-schedule",
++                                   json.dumps({"M": "low", "I2": "low", "D": "medium"}),
++                                   "--clear-at", "step-plan", "--timeout", "300", "--max-resumes", "1", "--quiet"])
++
++        starts = [row for row in sessionlog._lines(out) if row["row"] == "start"]
++        self.assertEqual(code, 0)
++        self.assertEqual(json.loads((out / "invocation.json").read_text())["effort"], "medium")
++        self.assertEqual([row["effort"] for row in starts], ["medium", "medium", "low", "low"])
++        self.assertEqual(len(fresh_ids), 2)
++        self.assertNotEqual(fresh_ids[0], fresh_ids[1])
++        self.assertEqual(host_calls, [("medium", None), ("medium", None), ("low", fresh_ids[1]), ("low", fresh_ids[1])])
++        self.assertEqual(len(captured["sessions"]), 4)
++        self.assertEqual(timeout_args, [300, 290, 275, 260])
++        self.assertEqual(len(clear_trigger_calls), 1)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/test/shiploop-e2e.test.py b/test/shiploop-e2e.test.py
+index 742cfdd7..e3295803 100644
+--- a/test/shiploop-e2e.test.py
++++ b/test/shiploop-e2e.test.py
+@@ -231,7 +231,9 @@ probe_a_port()
+ prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
+ resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
+ with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
+-    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid()}}) + "\\n")
++    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid(),
++                          "effort": argv[argv.index("--reasoning-effort") + 1] if "--reasoning-effort" in argv else None,
++                          "session_id": argv[argv.index("--session-id") + 1] if "--session-id" in argv else None}}) + "\\n")
+ if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
+     sys.exit(1)  # a resumed session dies without writing any event
+ Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
+@@ -252,6 +254,33 @@ elif mode == "early" and not resumed:
+     pass  # the first session ends before ShipLoop writes any state
+ elif mode == "early":
+     product()
++elif mode == "effort-late-id" and resumed:
++    import shutil
++    shutil.rmtree(".shiploop", ignore_errors=True)  # the resumed session finishes the same run
++    product()
++elif mode == "effort-late-id":
++    # The class changes at 3 s but the turn ends (and Grok first reports its session id) at 9 s: a stop in between could not be
++    # continued, so the harness must wait for the turn end and read the class again when it launches the next session.
++    Path(".shiploop").mkdir(exist_ok=True)
++    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "intake", "revision": 1}})
++    import time
++    time.sleep(3)
++    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "prepare", "revision": 2}})
++    time.sleep(6)
++elif mode == "effort-walk" and resumed:
++    import shutil
++    shutil.rmtree(".shiploop", ignore_errors=True)  # the resumed session finishes the same run
++    product()
++elif mode == "effort-walk":
++    # A run that is in planning (class D) and, three seconds later, in a mechanical stage (class M): the harness must end
++    # this session at the change and resume it at the schedule's level for M. The resumed session finishes the run.
++    Path(".shiploop").mkdir(exist_ok=True)
++    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "intake", "revision": 1}})
++    print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
++    import time
++    time.sleep(3)
++    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "prepare", "revision": 2}})
++    time.sleep(600)  # killed at the boundary
+ elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
+     if mode == "hang-active":
+         Path(".shiploop").mkdir(exist_ok=True)
+@@ -3631,6 +3660,127 @@ class SessionStopTest(unittest.TestCase):
+         self.assertIn("error: api_error", metrics.summary_lines(m)[0])
+ 
+ 
++class EffortScheduleThroughMainTest(HarnessCase):
++    """run.main with --effort-schedule: the session ends where the position changes class, and the same host session is
++    resumed at the new class's effort; the control schedule restarts at the same place and keeps its level."""
++
++    def walk(self, schedule: dict) -> tuple[int, dict, Path]:
++        os.environ["FAKE_MODE"] = "effort-walk"
++        out = self.tmp / ("out-effort-" + "-".join(schedule.values()))
++        with contextlib.redirect_stdout(io.StringIO()):
++            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
++                             "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "effort-baselines.jsonl"),
++                             "--effort-schedule", json.dumps(schedule), "--max-resumes", "3"])
++        return code, json.loads((out / "result.json").read_text()), out
++
++    def sessions(self, out: Path) -> list[dict]:
++        return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()
++                if json.loads(line)["pid"] is not None]
++
++    def test_the_session_ends_at_the_class_change_and_resumes_at_the_new_level(self):
++        code, result, out = self.walk({"M": "low", "I2": "low", "D": "medium"})
++        ran = self.sessions(out)
++        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), ("sess-1", "low")], ran)
++        self.assertNotIn("Do not repeat a command", ran[0]["prompt"])
++        self.assertIn("Do not repeat a command from before the restart", ran[1]["prompt"],
++                      "the session that continues after a boundary is told nothing was undone")
++        record = json.loads((out / "effort.json").read_text())
++        self.assertEqual([(r["from"], r["to"], r["stage"], r["effort_before"], r["effort_after"]) for r in record["restarts"]],
++                         [("D", "M", "prepare", "medium", "low")])
++        self.assertEqual([(x["class"], x["effort"], x["why"]) for x in record["launches"]],
++                         [("D", "medium", "start"), ("M", "low", "restart")])
++        starts = [json.loads(line) for line in (out / "sessions.jsonl").read_text().splitlines()
++                  if json.loads(line)["row"] == "start"]
++        self.assertEqual([(s["reason"], s["effort"]) for s in starts], [("start", "medium"), ("effort", "low")])
++        self.assertEqual(result["effort_schedule"]["restarts"], 1)
++        self.assertEqual(result["effort"], "medium", "the run's identity effort is its class D level")
++        self.assertEqual(json.loads((out / "invocation.json").read_text())["effort_schedule"],
++                         {"M": "low", "I2": "low", "D": "medium"})
++
++    def test_the_first_session_has_a_chosen_id_so_a_boundary_before_its_first_turn_ends_is_resumed_by_that_id(self):
++        # R1b: Grok reports its session id only when a turn ends, so a boundary eight minutes into the first turn killed the
++        # host with nothing to resume. The harness now chooses the first session's id (--session-id) and resumes by it.
++        os.environ["FAKE_MODE"] = "effort-late-id"
++        out = self.tmp / "out-effort-late-id"
++        with contextlib.redirect_stdout(io.StringIO()):
++            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
++                      "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "late-baselines.jsonl"),
++                      "--effort-schedule", json.dumps({"M": "low", "I2": "low", "D": "medium"}), "--max-resumes", "3"])
++        ran = self.sessions(out)
++        chosen = ran[0]["session_id"]
++        self.assertTrue(chosen, "the first session was started with --session-id")
++        self.assertEqual((out / run.PLANNED_SESSION_FILE).read_text().strip(), chosen)
++        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), (chosen, "low")], ran)
++        starts = [json.loads(l) for l in (out / "sessions.jsonl").read_text().splitlines() if json.loads(l)["row"] == "start"]
++        self.assertEqual([(s["reason"], s["effort"]) for s in starts], [("start", "medium"), ("effort", "low")])
++        record = json.loads((out / "effort.json").read_text())
++        self.assertEqual([(r["from"], r["to"], r["stage"]) for r in record["restarts"]], [("D", "M", "prepare")])
++        self.assertEqual(json.loads((out / "invocation.json").read_text())["argv"].count("--session-id"), 1)
++
++    def test_the_control_restarts_at_the_same_place_and_keeps_its_level(self):
++        code, result, out = self.walk({"M": "medium", "I2": "medium", "D": "medium"})
++        ran = self.sessions(out)
++        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), ("sess-1", "medium")], ran)
++        restarts = json.loads((out / "effort.json").read_text())["restarts"]
++        self.assertEqual([(r["from"], r["to"], r["stage"]) for r in restarts], [("D", "M", "prepare")])
++
++    def test_a_schedule_uses_the_unlimited_default_timeout_and_resume_budget(self):
++        os.environ["FAKE_MODE"] = "effort-walk"
++        out = self.tmp / "out-effort-default-limits"
++        timeouts = []
++        original_launch = run.launch
++
++        def record_timeout(*args, **kwargs):
++            timeouts.append(args[4] if len(args) > 4 else kwargs["timeout"])
++            return original_launch(*args, **kwargs)
++
++        with mock.patch.object(run, "launch", side_effect=record_timeout), contextlib.redirect_stdout(io.StringIO()):
++            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
++                             "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "default-limits.jsonl"),
++                             "--effort-schedule", json.dumps({"M": "low", "I2": "low", "D": "medium"})])
++
++        result = json.loads((out / "result.json").read_text())
++        ran = self.sessions(out)
++        self.assertIsNone(run.parser().parse_args([]).timeout)
++        self.assertIsNone(run.parser().parse_args([]).max_resumes)
++        self.assertEqual(timeouts, [float("inf"), float("inf")])
++        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), ("sess-1", "low")], ran)
++        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
++
++    def test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes(self):
++        os.environ["FAKE_MODE"] = "effort-walk"
++        out = self.tmp / "out-effort-zero-resumes"
++        with contextlib.redirect_stdout(io.StringIO()):
++            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
++                             "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "zero-resumes.jsonl"),
++                             "--effort-schedule", json.dumps({"M": "low", "I2": "low", "D": "medium"}),
++                             "--max-resumes", "0"])
++
++        result = json.loads((out / "result.json").read_text())
++        ran = self.sessions(out)
++        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), ("sess-1", "low")], ran)
++        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
++
++    def test_a_host_that_cannot_resume_is_refused_before_anything_starts(self):
++        os.environ["FAKE_MODE"] = "done"
++        out = self.tmp / "out-effort-claude"
++        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as caught:
++            run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
++                      "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "b.jsonl"),
++                      "--effort-schedule", '{"M": "low", "I2": "low", "D": "medium"}'])
++        self.assertIn("cannot", str(caught.exception))
++        self.assertFalse((out / "events.jsonl").exists(), "no host session was started")
++
++    def test_a_schedule_and_a_different_effort_flag_are_refused(self):
++        os.environ["FAKE_MODE"] = "done"
++        out = self.tmp / "out-effort-flag"
++        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as caught:
++            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
++                      "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "b.jsonl"), "--effort", "high",
++                      "--effort-schedule", '{"M": "low", "I2": "low", "D": "medium"}'])
++        self.assertIn("drop --effort", str(caught.exception))
++
++
+ class PrintedCase(HarnessCase):
+     """A harness case that keeps what run.main printed, so the report can be asserted on."""
+ 
+diff --git a/test/shiploop_e2e/run.py b/test/shiploop_e2e/run.py
+index 9560a375..b17a2696 100644
+--- a/test/shiploop_e2e/run.py
++++ b/test/shiploop_e2e/run.py
+@@ -124,6 +124,7 @@ import sys
+ import tempfile
+ import threading
+ import time
++import uuid
+ 
+ # datetime.strptime imports _strptime on its first call. Load it now: run 5a (2026-10-24) crashed at its end when
+ # Homebrew swapped the interpreter under the running process and that module was no longer on disk.
+@@ -134,6 +135,7 @@ ROOT = HERE.parents[1]
+ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
+ sys.path.insert(0, str(HERE))
+ import counters  # noqa: E402
++import effort  # noqa: E402
+ import environment  # noqa: E402
+ import fidelity  # noqa: E402
+ import flow  # noqa: E402
+@@ -876,10 +878,25 @@ def shiploop_cli_ran(events_path: Path) -> bool:
+     return False
+ 
+ 
+-def last_session_id(events_path: Path) -> str | None:
+-    """The host session to resume: the last session id the event stream carried."""
++PLANNED_SESSION_FILE = "planned-session-id.txt"
++
++
++def planned_session_id(out: Path) -> str | None:
++    """The session id the harness chose for a run's first Grok session (--session-id), or None. Grok reports its own id only
++    when a turn ends, so a session ended before that (an effort boundary, a crash) could not be resumed; a chosen id can
++    (probe docs/experiments/shiploop-effort-by-stage-20261024/probes/session-id-midturn-kill.json: killed at 14 s, resumed, the
++    model recalled what it had written and the command it was running)."""
++    try:
++        text = (Path(out) / PLANNED_SESSION_FILE).read_text().strip()
++    except OSError:
++        return None
++    return text or None
++
++
++def last_session_id(events_path: Path, *, since: int = 0) -> str | None:
++    """The last host session id after an optional fresh-session event offset."""
+     found = None
+-    for line in events_path.read_text(errors="replace").splitlines():
++    for line in events_path.read_text(errors="replace").splitlines()[since:]:
+         try:
+             event = json.loads(line)
+         except ValueError:
+@@ -929,7 +946,8 @@ def resume_command(out: Path, args) -> str:
+     records). The binary flag is carried because a fake or a non-default binary is part of the invocation.
+     """
+     parts = ["python3", str(Path(__file__).resolve()), "--resume-run", str(out), "--host", args.host,
+-             "--model", args.model, *(["--effort", args.effort] if args.effort else []),
++             "--model", args.model, *(["--effort", args.effort] if args.effort and not getattr(args, "effort_schedule", None) else []),
++             *(["--effort-schedule", str(out / effort.SCHEDULE_FILE)] if getattr(args, "effort_schedule", None) else []),
+              *(["--timeout", str(args.timeout)] if args.timeout else []),
+              *(["--max-resumes", str(args.max_resumes)] if args.max_resumes is not None else []),
+              *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
+@@ -1468,6 +1486,12 @@ def chain_in_flight(out: Path) -> bool:
+     return False
+ 
+ 
++def either(*checks):
++    """One stop_when from several: true when any is. A check that is None is left out; none at all gives None."""
++    live = [check for check in checks if check is not None]
++    return (lambda: any(check() for check in live)) if live else None
++
++
+ def knowledge_facts(work: Path) -> dict:
+     """How the run left the source checkout: knowledge home, commits and branches.
+ 
+@@ -2548,6 +2572,11 @@ def parser() -> argparse.ArgumentParser:
+                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
+     p.add_argument("--model", help="default: claude-sonnet-5-5 (claude) or grok-4.7 (grok)")
+     p.add_argument("--effort", help="reasoning effort; default: host default (claude), medium (grok)")
++    p.add_argument("--effort-schedule", metavar="FILE|JSON",
++                   help="experiment E-EFF1 (effort.py): an effort per class of position, {\"M\": .., \"I2\": .., \"D\": ..}. "
++                        "The session ends at every change of class and the run continues in the host's resumed session at "
++                        "the new class's effort; give each arm its own --baseline file. Needs a resumable host; a resume "
++                        "continues the run's recorded schedule")
+     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude), shiploop (grok)")
+     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
+                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
+@@ -3975,7 +4004,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+             return None
+ 
+     def session(*launch_args, kind: str, reason: str, told: dict | None = None, resumed_session: str | None = None,
+-                **launch_kw) -> dict:
++                effort_now: str | None = None, **launch_kw) -> dict:
+         """One host launch, bracketed in sessions.jsonl: the start row before the host runs (a harness that dies keeps the
+         boundary), the end row after it, with the ledger as it stands at that moment (also when the launch raises)."""
+         events_path = out / "events.jsonl"
+@@ -3983,7 +4012,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+ 
+         def begin(events_line: int) -> None:
+             started.append(sessionlog.start(out, kind=kind, reason=reason, host=host.name, model=args.model, told=told,
+-                                            events_line=events_line, resumed_session=resumed_session, engine=engine_now()))
++                                            events_line=events_line, resumed_session=resumed_session, engine=engine_now(),
++                                            effort=effort_now))
+ 
+         done = None
+         try:
+@@ -4000,8 +4030,32 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+     os.environ.update(isolate_git_discovery(os.environ, out))
+     host = the_host(args)
+     args.model = args.model or host.model
++    asked_effort = args.effort  # before the host default fills it: a schedule names every level itself
+     args.effort = args.effort or host.effort
+     args.skill = args.skill or host.skill
++    planner = None
++    if not regrade:
++        if args.effort_schedule is None and (out / effort.SCHEDULE_FILE).is_file():
++            args.effort_schedule = str(out / effort.SCHEDULE_FILE)  # a resume continues the run's own schedule
++        if args.effort_schedule is not None:
++            if not host.resumable:
++                raise SystemExit(f"--effort-schedule needs a host whose session can be resumed ({', '.join(n for n, h in sorted(hosts.HOSTS.items()) if h.resumable)}); "
++                                 f"{host.name} cannot, so a boundary would clear its context. Use slice.py --effort-schedule, "
++                                 "which continues a non-resumable host in a fresh session at the same positions in both arms.")
++            try:
++                schedule = effort.parse_schedule(args.effort_schedule)
++                effort.check_levels(schedule, host.name)
++                if asked_effort and not resumed and asked_effort != schedule["D"]:
++                    raise effort.ScheduleError(f"--effort {asked_effort} with --effort-schedule: the schedule names every "
++                                               f"level, so drop --effort or make it class D's ({schedule['D']})")
++                (out / effort.SCHEDULE_FILE).write_text(json.dumps(schedule, indent=2) + "\n")
++                planner = effort.Planner(out, schedule, locate=lambda: grade_shiploop(out).get("run_dir"),
++                                         current_stage=metrics.current_stage,
++                                         can_resume=lambda: (last_session_id(out / "events.jsonl")
++                                                             or planned_session_id(out)) is not None)
++            except effort.ScheduleError as err:
++                raise SystemExit(str(err))
++            _, args.effort = planner.at_launch("resume-run" if resumed else "start")
+     env = host.env(out / "home")
+     earlier_platform = earlier_result.get("platform") or {}
+     # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
+@@ -4131,6 +4185,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+                     permission_mode=args.permission_mode, max_turns=args.max_turns,
+                     max_budget_usd=args.max_budget_usd,
+                     plugin_dir=None if host.marketplace else plugin_dir, allow=host_allow)
++    if planner and host.name == "grok" and resumed is None and not regrade:
++        planned = str(uuid.uuid4())  # resumable from the first second: see planned_session_id
++        cli = [*cli, "--session-id", planned]
++        (out / PLANNED_SESSION_FILE).write_text(planned + "\n")
+     # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
+     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
+     # that ran). Claude's build is its init event's (read below), so it is never probed.
+@@ -4157,7 +4215,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+         LAUNCH_PREDATES if regrade and "plugin_sha256" not in versions else "no reason recorded")
+     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
+     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
+-    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
++    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
++                  "effort_schedule": planner.schedule if planner else None, "argv": cli,
+                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
+                   "host_build": launch_build, "checks": checks,
+                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
+@@ -4248,15 +4307,18 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+         process = regraded_process(earlier_result.get("process"))
+     else:
+         interrupt_file = out / "interrupt.json"
+-        stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
++        stop_when = either((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None,
++                           planner.stop_when if planner else None)
+         process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
+                          fresh=follow_on is None and seeded is None,
+                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
+                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
+                          reason="start" if resumed is None else "resume-run",
+-                         told=resume_told(resumed["run_dir"], the_cli) if resumed else None)
++                         told=resume_told(resumed["run_dir"], the_cli) if resumed else None,
++                         effort_now=args.effort if planner else None)
+     sessions = [] if regrade else [dict(process, resumed=None, host=host.name)]  # a regrade launched no session
+-    if process["status"] == "interrupted":
++    restarts = 0  # sessions an effort boundary ended: they do not spend the resume budget
++    if process["status"] == "interrupted" and not (planner and planner.pending):
+         state = grade_shiploop(out)
+         interrupt_file.write_text(json.dumps({
+             "at": interrupt_at, "elapsed_seconds": process["elapsed_seconds"], "stage": state.get("stage"),
+@@ -4264,14 +4326,17 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+         if not args.quiet:
+             print(f"interrupted: killed the host at {process['elapsed_seconds']}s with a chain worker in flight; "
+                   "resuming with a fresh session", flush=True)
++        after_effort = planner.at_launch("after-interrupt")[1] if planner else args.effort
+         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
+                          prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
+-                         effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
++                         effort=after_effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
+                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
+                          allow=host_allow)
+         process = session(argv, work, out, env, max(60, deadline - time.monotonic()), watch=not args.quiet,
+                          first=False, translate=host.translator(), stop_file=stop_file,
+-                         kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
++                         stop_when=planner.stop_when if planner else None,
++                         kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli),
++                         effort_now=after_effort if planner else None)
+         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
+     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
+     # run is still active, resume that same session instead of losing the run.
+@@ -4280,9 +4345,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+     stop_seen = not regrade and process["status"] == "stopped"  # a requested stop ended the host
+     # Resumed sessions in a row that left ShipLoop's revision unchanged (None before ShipLoop wrote any state counts too).
+     stalled, failures, launched_at, resumed_any = 0, 0, None, False
+-    while host.resumable and not regrade and (args.max_resumes is None or len(sessions) <= args.max_resumes):
++    while host.resumable and not regrade and (args.max_resumes is None
++            or (planner is not None and planner.pending is not None)
++            or len(sessions) - restarts <= args.max_resumes):
+         state = grade_shiploop(out)
+-        session_id = last_session_id(out / "events.jsonl")
++        session_id = last_session_id(out / "events.jsonl") or planned_session_id(out)
+         remaining = deadline - time.monotonic()
+         if resumed_any:
+             moved = state.get("revision") != launched_at
+@@ -4315,15 +4382,20 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+         if not args.quiet:
+             print(f"resume {len(sessions)}/{args.max_resumes if args.max_resumes is not None else 'no limit'}: session {session_id} ended with ShipLoop "
+                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
+-        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
++        boundary = planner.consume() if planner else None  # the class change that ended the last session, if one did
++        resume_effort = planner.at_launch("restart" if boundary else "resume")[1] if planner else args.effort
++        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli, effort.RESTART_NOTE if boundary else None),
+                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
+-                         effort=args.effort, permission_mode=args.permission_mode,
++                         effort=resume_effort, permission_mode=args.permission_mode,
+                          max_turns=args.max_turns, resume=session_id, allow=host_allow)
+         launched_at, resumed_any = state.get("revision"), True
+         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
+-                         translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
+-                         told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)
+-        sessions.append(dict(process, resumed=session_id, host=host.name))
++                         translate=host.translator(), stop_file=stop_file, stop_when=planner.stop_when if planner else None,
++                         kind="continued", reason="effort" if boundary else "resume-loop",
++                         told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id,
++                         effort_now=resume_effort if planner else None)
++        restarts += 1 if boundary else 0
++        sessions.append(dict(process, resumed=session_id, host=host.name, **({"effort": resume_effort} if planner else {})))
+         stop_seen = process["status"] == "stopped"
+     if resume_stop is None and host.resumable:
+         # The loop also ends on its budget without grading the run again, and the last session it
+@@ -4345,6 +4417,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+         process["pass"] = None if process["status"] == "stopped" else process["status"] == "exited"
+     if platform_spec and not regrade:
+         scrub_files(out)  # the event stream is a record: a credential the model's tool output showed is not kept in it
++    if planner:
++        args.effort = planner.schedule["D"]  # the run's identity effort is its class D level; every launch is in effort.json
+     cli_seen = summarize_events(out / "events.jsonl")
+     write_transcript(out / "events.jsonl", out / "transcript.md")
+     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
+@@ -4509,6 +4583,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
+            "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
+     identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
+     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
++              "effort_schedule": ({"schedule": planner.schedule, "launches": len(planner.record["launches"]),
++                                   "restarts": len(planner.record["restarts"]), "record": str(out / effort.RECORD)}
++                                  if planner else None),
+               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
+               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
+               # folder masked, the host CLI's build (Claude's
+diff --git a/test/shiploop_e2e/sessionlog.py b/test/shiploop_e2e/sessionlog.py
+index 5f71d78b..6d6c9ff5 100644
+--- a/test/shiploop_e2e/sessionlog.py
++++ b/test/shiploop_e2e/sessionlog.py
+@@ -61,12 +61,16 @@ def _append(out: Path, row: dict) -> None:
+ 
+ 
+ def start(out: Path, *, kind: str, reason: str, host: str, model: str | None, events_line: int, told: dict | None,
+-          resumed_session: str | None = None, engine: dict | None = None, t: float | None = None) -> dict:
+-    """Append the ``start`` row of a launch that is about to happen, and return it (the caller closes it with ``end``)."""
++          resumed_session: str | None = None, engine: dict | None = None, t: float | None = None,
++          effort: str | None = None) -> dict:
++    """Append the ``start`` row of a launch that is about to happen, and return it (the caller closes it with ``end``).
++
++    ``effort`` is the reasoning effort the session was launched at, recorded only where a schedule sets it per session
++    (effort.py, ``reason`` ``effort``: the session continues a run whose class changed); None otherwise."""
+     number = 1 + sum(1 for row in _lines(out) or [] if row["row"] == "start")
+     row = {"row": "start", "n": number, "kind": kind, "reason": reason, "host": host, "model": model,
+            "t": round(time.time() if t is None else t, 3), "events_line": events_line, "told": told,
+-           "resumed_session": resumed_session, "engine": engine}
++           "resumed_session": resumed_session, "engine": engine, **({"effort": effort} if effort else {})}
+     _append(out, row)
+     return row
+ 
+diff --git a/test/shiploop_e2e/slice.py b/test/shiploop_e2e/slice.py
+index 9487b9f0..d4b0bdcc 100644
+--- a/test/shiploop_e2e/slice.py
++++ b/test/shiploop_e2e/slice.py
+@@ -50,12 +50,14 @@ import shutil
+ import subprocess
+ import sys
+ import time
++import uuid
+ from pathlib import Path
+ 
+ HERE = Path(__file__).resolve().parent
+ sys.path.insert(0, str(HERE))
+ import run  # noqa: E402  (also puts skills/shiploop/scripts on sys.path)
+ import clear  # noqa: E402
++import effort  # noqa: E402
+ import hosts  # noqa: E402
+ import metrics  # noqa: E402
+ import packets  # noqa: E402
+@@ -182,14 +184,18 @@ def clear_records(out: Path) -> list[dict]:
+ 
+ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, timeout: int, watch: bool,
+           translate=None, host_name: str = "fake", model: str | None = None, first: bool = True,
+-          resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None) -> dict:
++          resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None,
++          planner: "effort.Planner | None" = None, effort_now: str | None = None) -> dict:
+     """One host session that the slice stop ends. Its status is ``slice-complete`` when the slice ended it, or when the
+     session ended by itself with the slice already complete.
+ 
+     With `clear_at` (clear.parse_spec) the session is also ended at the first position not yet cleared (status
+     ``cleared``): the positions fire in order, and clear.json holds the ones that already did. The stop point is
+     appended to clear.json and the caller continues in a fresh session. `told` is what that session's prompt named
+-    (sessions.jsonl)."""
++    (sessions.jsonl).
++
++    With `planner` (effort.Planner) the session is also ended when the position leaves the session's class (status
++    ``reeffort``, the boundary kept in ``planner.pending``); `effort_now` is the effort this session was launched at."""
+     hit: list = []
+     earlier = clear_records(out)
+     spec = clear_at[len(earlier)] if clear_at and len(earlier) < len(clear_at) else None
+@@ -204,6 +210,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
+             if found:
+                 hit.append(found)
+                 return True
++        if planner and not slice_complete(state) and planner.stop_when():
++            return True
+         return slice_complete(state)
+ 
+     started: list = []
+@@ -211,7 +219,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
+ 
+     def begin(line: int) -> None:
+         started.append(sessionlog.start(out, kind="first" if first else "continued", reason="slice", host=host_name,
+-                                        model=model, events_line=line, told=told, resumed_session=resumed_session))
++                                        model=model, events_line=line, told=told, resumed_session=resumed_session,
++                                        effort=effort_now))
+ 
+     process = None
+     try:
+@@ -231,6 +240,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
+         record = {"n": len(earlier) + 1, **spec, "triggered": hit[0], "stopped": actual}
+         (out / CLEAR_RECORD).write_text(json.dumps([*earlier, record], indent=2) + "\n")
+         process["status"] = "cleared"
++    elif planner and planner.pending and process["status"] == "interrupted":
++        process["status"] = "reeffort"
+     elif process["status"] == "interrupted" or (process["status"] == "exited" and slice_complete(read_state(run_dir))):
+         process["status"] = "slice-complete"
+     return process
+@@ -288,6 +299,10 @@ def parser() -> argparse.ArgumentParser:
+     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
+     p.add_argument("--model", help="default: the host's (claude-sonnet-5-5 on claude)")
+     p.add_argument("--effort")
++    p.add_argument("--effort-schedule", metavar="FILE|JSON",
++                   help="experiment E-EFF1 (effort.py): an effort per class of position, {\"M\": .., \"I2\": .., \"D\": ..}. "
++                        "The session ends at every change of class; a resumable host continues in its resumed session, "
++                        "another in a fresh one (as after --clear-at), at the new class's effort")
+     p.add_argument("--delegation", choices=("inline", "ask-agent"), default="inline",
+                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
+     p.add_argument("--plugin-dir", type=Path, help="a skill-craft plugin build to test (default: build this checkout)")
+@@ -358,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
+     work = out / "work"
+     work.mkdir()
+     host = hosts.host(args.host, getattr(args, f"{args.host}_bin"))
+-    model, effort = args.model or host.model, args.effort or host.effort
++    model, effort_level = args.model or host.model, args.effort or host.effort
+     env = host.env(out / "home")
+     plugin_dir = (args.plugin_dir.expanduser().resolve() if args.plugin_dir else run.build_candidate(out))
+     plugin = host.install_plugin(env, plugin_dir)
+@@ -368,13 +383,52 @@ def main(argv: list[str] | None = None) -> int:
+                           home=not args.seed_without_home)
+     run_dir = Path(seeded["run_dir"])
+     opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation))
+-    common = dict(cwd=work, model=model, effort=effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
++    common = dict(cwd=work, model=model, effort=effort_level, permission_mode=args.permission_mode, max_turns=args.max_turns,
+                   max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
+-    invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "model": model, "effort": effort,
++    planner = None
++    fresh_start, planned_id = 0, None
++
++    def current_session_id() -> str | None:
++        events = out / "events.jsonl"
++        return (run.last_session_id(events, since=fresh_start) if events.exists() else None) or planned_id
++
++    def fresh_argv(prompt: str, prompt_file: Path) -> list[str]:
++        nonlocal fresh_start, planned_id
++        fresh_start, planned_id = run.events_line_count(out / "events.jsonl"), None
++        argv = host.argv(prompt=prompt, prompt_file=prompt_file, **common)
++        if planner and host.name == "grok":
++            planned_id = str(uuid.uuid4())
++            argv += ["--session-id", planned_id]
++            (out / run.PLANNED_SESSION_FILE).write_text(planned_id + "\n")
++        return argv
++
++    if args.effort_schedule is not None:
++        try:
++            schedule = effort.parse_schedule(args.effort_schedule)
++            effort.check_levels(schedule, host.name)
++            if args.effort and args.effort != schedule["D"]:
++                raise effort.ScheduleError(f"--effort {args.effort} with --effort-schedule: the schedule names every level, "
++                                           f"so drop --effort or make it class D's ({schedule['D']})")
++            effort_level = schedule["D"]
++            (out / effort.SCHEDULE_FILE).write_text(json.dumps(schedule, indent=2) + "\n")
++            planner = effort.Planner(out, schedule, locate=lambda: run_dir, current_stage=metrics.current_stage,
++                                     can_resume=((lambda: current_session_id() is not None)
++                                                 if host.resumable else None))  # a fresh-session host needs no id
++        except effort.ScheduleError as err:
++            raise SystemExit(str(err))
++        common["effort"] = planner.at_launch("start")[1]  # a slice starts at step-plan: class D
++
++    def next_effort(why: str) -> str | None:
++        """The effort the next session starts at: the schedule's for the class the run is in now, else the run's own."""
++        if planner:
++            common["effort"] = planner.at_launch(why)[1]
++        return common["effort"] if planner else None
++    invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "model": model, "effort": effort_level,
+                   "delegation": args.delegation, "plugin_dir": str(plugin_dir), "plugin": plugin,
+                   "versions": run.installed_versions(plugin_dir), "local_head": run.git("rev-parse", "HEAD").strip(),
+                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
+-                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt}
++                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt,
++                  "effort_schedule": planner.schedule if planner else None}
+     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
+     (out / "prompt.txt").write_text(case["prompt"] + "\n")
+     if not args.quiet:
+@@ -386,9 +440,9 @@ def main(argv: list[str] | None = None) -> int:
+               "will not fire", flush=True)
+     deadline = time.monotonic() + (args.timeout or float("inf"))  # active time, as in run.py: sleep spends none of it
+     session_args = dict(work=work, out=out, env=env, run_dir=run_dir, watch=not args.quiet,
+-                        translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at)
+-    process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
+-                    timeout=args.timeout or float("inf"), **session_args)
++                        translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at, planner=planner)
++    first_argv = fresh_argv(opening, out / "host-prompt.txt")
++    process = drive(first_argv, timeout=args.timeout or float("inf"), effort_now=common["effort"] if planner else None, **session_args)
+     sessions = [process]
+     resumes = 0
+     while True:
+@@ -399,19 +453,44 @@ def main(argv: list[str] | None = None) -> int:
+                 print(f"cleared at {clear_records(out)[-1]['stopped']}; continuing in a fresh session "
+                       f"(prompt {args.resume_prompt})", flush=True)
+             prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
+-            process = drive(host.argv(prompt=prompt, prompt_file=out / f"resume-after-clear-{number}.txt", **common),
+-                            timeout=max(60, deadline - time.monotonic()), first=False, told=told, **session_args)
++            now = next_effort("clear")
++            process = drive(fresh_argv(prompt, out / f"resume-after-clear-{number}.txt"),
++                            timeout=max(60, deadline - time.monotonic()), first=False, told=told, effort_now=now,
++                            **session_args)
++        elif process["status"] == "reeffort" and deadline - time.monotonic() > 60:
++            # The position left its class (effort.py): the control arm restarts here too, at the same level. A host that
++            # can resume continues its own session; another gets a fresh one, as after a clear. Neither spends the resume
++            # budget.
++            boundary = planner.consume()
++            now = next_effort("restart")
++            if not args.quiet:
++                print(f"effort boundary {boundary['from']} -> {boundary['to']} at {boundary['stage']} ({boundary['why']}); "
++                      f"continuing at effort {now}", flush=True)
++            session_id = current_session_id() if host.resumable else None
++            if host.resumable and not session_id:
++                break
++            if host.resumable:
++                argv = host.argv(prompt=run.resume_prompt(str(run_dir), cli, effort.RESTART_NOTE),
++                                 prompt_file=out / f"resume-{len(sessions)}.txt", resume=session_id, **common)
++                process = drive(argv, timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
++                                told=run.resume_told(str(run_dir), cli), effort_now=now, **session_args)
++            else:
++                prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
++                process = drive(fresh_argv(prompt, out / f"resume-after-effort-{len(sessions)}.txt"),
++                                timeout=deadline - time.monotonic(), first=False, told=told, effort_now=now, **session_args)
+         elif (host.resumable and process["status"] == "exited" and (args.max_resumes is None or resumes < args.max_resumes)
+               and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.monotonic() > 60):
+             # A headless Grok or Codex session ends whenever the model ends its turn; continue it while the slice is
+             # unfinished (the clears still to come stay in force). A clear is not a resume: it does not use the budget.
+-            session_id = run.last_session_id(out / "events.jsonl")
++            session_id = current_session_id()
+             if not session_id:
+                 break
+             resumes += 1
++            now = next_effort("resume")
+             argv = host.argv(prompt=run.resume_prompt(str(run_dir), cli), prompt_file=out / f"resume-{len(sessions)}.txt",
+                              resume=session_id, **common)
+             process = drive(argv, timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
++                            effort_now=now,
+                             told=run.resume_told(str(run_dir), cli), **session_args)
+         else:
+             break

@@ -1,0 +1,125 @@
+{
+ "label": "ALL FIGURES ARE ESTIMATES",
+ "ratio_basis": {
+  "pair_1": "Node Battleship, ShipLoop 1.22.0, 2026-10-06: Claude Sonnet 5.5 (baselines row 16, v1220-battleship-sonnet, planning_review stage, done) 1049 stage-seconds vs Grok 4.7 medium (row 17, v1220-battleship-grok-medium-none, planning_review none, done) 5599 stage-seconds: ratio 5.34 (5.32 through system-test)",
+  "pair_2": "same case, 2026-10-07, 1.23.0: Claude row 18, 998 s through system-test vs Grok row 19 (blocked at system-test, 3 sessions) 6074 s: ratio 6.08, a lower bound on a run that finished",
+  "pair_3": "r3 pair (test/shiploop_e2e/evidence/r3-battleship-*.review.json), planning window only: Grok none 1393 s vs Sonnet stage 291 s: 4.79",
+  "planning_with_review": "Grok medium planning window 72.7 min (planning_review stage) vs Sonnet about 7 min (LEARNINGS 'Planning time' entries): about 10",
+  "n": "two whole-run pairs (one finished), one planning-only pair; one case (Node Battleship); the Grok rows ran with planning_review none, which the experiment's default arm may not; engine versions 1.22.0-1.26.0 vs Claude medians from 1.22-2.8.0 rows; treat the ratio as 5 to 10, point 5.34",
+  "chess_salesforce_grok_row": "row 45 (chess-salesforce, Grok, 6849 stage s, 114 min, blocked at test) has no Claude counterpart on the same case, so it gives no ratio"
+ },
+ "claude_seconds_per_case": {
+  "hello": {
+   "seconds": 479,
+   "basis": "measured: median of 15 Claude rows with stages (n=15)"
+  },
+  "seat-reservations": {
+   "seconds": 780,
+   "basis": "ESTIMATE: no Claude row with stages; legacy (pre-10-04) turns 386 vs battleship legacy 400 => 0.97 x battleship median 800"
+  },
+  "battleship-scoring": {
+   "seconds": 949,
+   "basis": "measured: 1 Claude row (n=1)"
+  },
+  "csv-report": {
+   "seconds": 590,
+   "basis": "ESTIMATE: no Claude row with stages; legacy turns median 294 vs battleship legacy 400 => 0.74 x battleship median 800"
+  },
+  "unit-converter": {
+   "seconds": 800,
+   "basis": "ASSUMPTION: no Claude row at all; parallel-graph case, set equal to battleship median 800 (range 479 hello to ~1500)"
+  },
+  "word-report": {
+   "seconds": 800,
+   "basis": "ASSUMPTION: as unit-converter (5 modules, two dependency levels)"
+  },
+  "temperature-report": {
+   "seconds": 800,
+   "basis": "ASSUMPTION: as unit-converter (Ask-Agent delegation; one legacy row with 0 turns, no data)"
+  },
+  "temperature-plain": {
+   "seconds": 800,
+   "basis": "ASSUMPTION: as unit-converter"
+  },
+  "battleship": {
+   "seconds": 800,
+   "basis": "measured: median of 6 Claude rows (n=6), range 485-2144"
+  },
+  "checkers": {
+   "seconds": 656,
+   "basis": "measured: median of 6 Claude rows (n=6), range 549-1266"
+  }
+ },
+ "grok_estimate_ratio_5.34": {
+  "plan_eight_cases": {
+   "per_case_grok_seconds": {
+    "hello": 2558,
+    "seat-reservations": 4165,
+    "battleship-scoring": 5068,
+    "csv-report": 3151,
+    "unit-converter": 4272,
+    "word-report": 4272,
+    "temperature-report": 4272,
+    "temperature-plain": 4272
+   },
+   "per_arm_seconds": 32030,
+   "runs16_total_seconds": 64060,
+   "wall_hours_1_concurrent": 17.8,
+   "wall_hours_2_concurrent": 8.9
+  },
+  "sensitivity_battleship_and_checkers_replace_hello_and_csv_report": {
+   "per_case_grok_seconds": {
+    "battleship": 4272,
+    "seat-reservations": 4165,
+    "battleship-scoring": 5068,
+    "checkers": 3503,
+    "unit-converter": 4272,
+    "word-report": 4272,
+    "temperature-report": 4272,
+    "temperature-plain": 4272
+   },
+   "per_arm_seconds": 34096,
+   "runs16_total_seconds": 68192,
+   "wall_hours_1_concurrent": 18.9,
+   "wall_hours_2_concurrent": 9.5
+  }
+ },
+ "grok_estimate_ratio_10_upper": {
+  "plan_eight_cases": {
+   "per_case_grok_seconds": {
+    "hello": 4790,
+    "seat-reservations": 7800,
+    "battleship-scoring": 9490,
+    "csv-report": 5900,
+    "unit-converter": 8000,
+    "word-report": 8000,
+    "temperature-report": 8000,
+    "temperature-plain": 8000
+   },
+   "per_arm_seconds": 59980,
+   "runs16_total_seconds": 119960,
+   "wall_hours_1_concurrent": 33.3,
+   "wall_hours_2_concurrent": 16.7
+  },
+  "sensitivity": {
+   "per_case_grok_seconds": {
+    "battleship": 8000,
+    "seat-reservations": 7800,
+    "battleship-scoring": 9490,
+    "checkers": 6560,
+    "unit-converter": 8000,
+    "word-report": 8000,
+    "temperature-report": 8000,
+    "temperature-plain": 8000
+   },
+   "per_arm_seconds": 63850,
+   "runs16_total_seconds": 127700,
+   "wall_hours_1_concurrent": 35.5,
+   "wall_hours_2_concurrent": 17.7
+  }
+ },
+ "dollars": {
+  "claude": "cost_usd is in the rows: per-run medians hello 3.64, battleship 5.57, battleship-scoring 3.76 (n=1), checkers 4.18 USD",
+  "grok": "NOT METERED by the harness as billing. Grok CLI end events carry total_cost_usd (a probe of 7.5k tokens printed 0.025 USD) and baselines rows carry Grok cost_usd 12.50, 14.17 (lower bound, blocked) and 12.21 (chess-salesforce), but LEARNINGS calls these lower bounds and Grok ran out of credits once (97 min); the 16-run figure below is the CLI-reported scale, not a bill: at 12.50 USD per 5599 s (0.0022 USD/s) 64,000 s is about 143 USD"
+ }
+}

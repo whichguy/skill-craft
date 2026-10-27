@@ -1,0 +1,17 @@
+{
+  "base": "ef3fb8be50b9223876517315413dabb34ec854c0",
+  "revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "upstream_changed_paths": [
+    "docs/local-validation-journal.md"
+  ],
+  "tracked_local_hashes_before_after": {
+    "skills/rubric-eval/references/judges.json": "93b4247d1df66c4e596f009fa100feb88d0f9883128daa3cda2ed2ab54635ffd",
+    "skills/rubric-eval/scripts/rubric_eval.py": "79e92faf9d3bc2fabfa8a5a8eecfcb6f1599217f03aad10164c6038007fda479",
+    "test/shiploop-e2e-slice.test.py": "48126d8f4863a744a24f0675610a61b92094bba10ad6e59847beb0b31ed4e68f",
+    "test/shiploop-e2e.test.py": "81b340a2df8ca6eaa1940afa0789bd521cbc3f532af3891c051eb323213f07aa",
+    "test/shiploop_e2e/run.py": "8b9f865a1671f117ada08352ac8d368575057fbb0bc38577e3a4b038c8165415",
+    "test/shiploop_e2e/sessionlog.py": "a9a946f8ef8b243ecd0b4477c12b5941bf266ec5c577833d51a116244ec72b51",
+    "test/shiploop_e2e/slice.py": "2897e7173db2de8b9808a020b746bb030e8fc30c29eecf1fd3936788d2574451"
+  },
+  "all_equal": true
+}

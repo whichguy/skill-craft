@@ -1,0 +1,213 @@
+{
+  "schedule": {
+    "M": "medium",
+    "I2": "medium",
+    "D": "medium"
+  },
+  "mechanical": [
+    "operations",
+    "prepare",
+    "product-acceptance",
+    "release",
+    "release-check",
+    "release-verify",
+    "system-test"
+  ],
+  "classes": {
+    "M": "mechanical stage",
+    "I2": "Improve pass 2 or later",
+    "D": "every other position"
+  },
+  "launches": [
+    {
+      "t": 1792878176.861,
+      "class": "D",
+      "effort": "medium",
+      "why": "start"
+    },
+    {
+      "t": 1792878318.587,
+      "class": "D",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792878341.972,
+      "class": "D",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792878706.859,
+      "class": "I2",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792878781.328,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792879142.623,
+      "class": "M",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792879207.278,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792881001.385,
+      "class": "M",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792881216.345,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792881593.668,
+      "class": "I2",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792881736.475,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792881815.132,
+      "class": "M",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792882286.753,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    }
+  ],
+  "restarts": [
+    {
+      "n": 1,
+      "t": 1792878706.859,
+      "from": "D",
+      "to": "I2",
+      "stage": "spec",
+      "why": "improve pass 2",
+      "revision": 4,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 2,
+      "t": 1792878781.327,
+      "from": "I2",
+      "to": "D",
+      "stage": "spec",
+      "why": "loop complete",
+      "revision": 4,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 3,
+      "t": 1792879142.622,
+      "from": "D",
+      "to": "M",
+      "stage": "prepare",
+      "why": "stage prepare",
+      "revision": 9,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 4,
+      "t": 1792879207.278,
+      "from": "M",
+      "to": "D",
+      "stage": "step-plan",
+      "why": "stage step-plan",
+      "revision": 10,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 5,
+      "t": 1792881001.384,
+      "from": "D",
+      "to": "M",
+      "stage": "system-test",
+      "why": "stage system-test",
+      "revision": 23,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 6,
+      "t": 1792881216.344,
+      "from": "M",
+      "to": "D",
+      "stage": "release-plan",
+      "why": "stage release-plan",
+      "revision": 25,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 7,
+      "t": 1792881593.666,
+      "from": "D",
+      "to": "I2",
+      "stage": "release-plan",
+      "why": "improve pass 2",
+      "revision": 26,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 8,
+      "t": 1792881736.474,
+      "from": "I2",
+      "to": "D",
+      "stage": "release-plan",
+      "why": "loop complete",
+      "revision": 26,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 9,
+      "t": 1792881815.131,
+      "from": "D",
+      "to": "M",
+      "stage": "release-check",
+      "why": "stage release-check",
+      "revision": 27,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    },
+    {
+      "n": 10,
+      "t": 1792882286.752,
+      "from": "M",
+      "to": "D",
+      "stage": "handoff",
+      "why": "stage handoff",
+      "revision": 31,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "status": "applied",
+  "main_revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "tested_revision": "891be21e471e1f1817a9b5a36c57cba45829576f",
+  "comparison_before_write": "all four destinations matched their saved expected bytes",
+  "files": [
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "before_sha256": "60e25f1e30cd613e9fbd7775ef14e5528d9ca50b184936a04a5936b381d79a05",
+      "after_sha256": "8b9f865a1671f117ada08352ac8d368575057fbb0bc38577e3a4b038c8165415",
+      "matches_tested_copy": true
+    },
+    {
+      "path": "test/shiploop_e2e/slice.py",
+      "before_sha256": "19d06f05d5fa373c5a10c298308db56feb4ffae447d864bf3308d174f09b97d3",
+      "after_sha256": "2897e7173db2de8b9808a020b746bb030e8fc30c29eecf1fd3936788d2574451",
+      "matches_tested_copy": true
+    },
+    {
+      "path": "test/shiploop-e2e.test.py",
+      "before_sha256": "01076c71edae5c7af31e97d2ca89edb424f29ffa2cb0bb25ac6a93914f4d089c",
+      "after_sha256": "81b340a2df8ca6eaa1940afa0789bd521cbc3f532af3891c051eb323213f07aa",
+      "matches_tested_copy": true
+    },
+    {
+      "path": "test/shiploop-e2e-slice.test.py",
+      "before_sha256": "f5d1b27a89e2a4b775a853e645e9ffb160e80a16b4f5d2538130c99ae919c81e",
+      "after_sha256": "48126d8f4863a744a24f0675610a61b92094bba10ad6e59847beb0b31ed4e68f",
+      "matches_tested_copy": true
+    }
+  ],
+  "unchanged_experiment_dependencies": {
+    "test/shiploop_e2e/sessionlog.py": "a9a946f8ef8b243ecd0b4477c12b5941bf266ec5c577833d51a116244ec72b51",
+    "test/shiploop_e2e/effort.py": "09ff1bf354d2681cd3445e431769f0ada0032bc91d730bdeb90c3dc2265f9170",
+    "docs/experiments/shiploop-effort-by-stage-20261024/run_totals.py": "0693c4c009bbb899bf263acf4d052299542916bf66087a8618c3cbe358ec3937"
+  },
+  "unrelated_rubric_wip": "both files remain byte-identical to the initial snapshot",
+  "unmerged_paths": [],
+  "commit_created": false,
+  "pushed": false,
+  "stash_refs_retained": [
+    "4bc60cc19ccbda17444dda0394e67979662f070c On main: pre-existing unrelated staged WIP, set aside before merging origin/main",
+    "0b373b6d2804751dbf098b9b2aad709c4085b0f6 On main: second pre-existing dirty tree (not mine) set aside before re-rebase onto origin/main",
+    "6cf6bb0492840bd996924e7b65684e50c687634d On main: pre-existing dirty tree (not mine) set aside before shiploop-lint rebase onto origin/main"
+  ],
+  "test_receipt": "checks-main-891be21e/receipt.json",
+  "applied_at_revision": "ef3fb8be50b9223876517315413dabb34ec854c0",
+  "later_docs_only_rebase_preserved_applied_files": true
+}

@@ -1,0 +1,272 @@
+{
+ "tiers": {
+  "run-record": "an artifact a ShipLoop run produced, graded against that run's own record"
+ },
+ "scenarios": [
+  {
+   "id": "hello",
+   "name": "hello",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local script and its unittest; the checks that count run python3 hello.py and the unittest in the checkout. Nothing is deployed or hosted: release means returning the files to the source checkout, and a report that justifies monitoring or support services as not applicable is complete.",
+   "decision_round": true
+  },
+  {
+   "id": "seat-reservations",
+   "name": "seat-reservations",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small seat-reservation HTTP service in Python 3 (standard library only). server.py listens on the port in the PORT environment variable and keeps its data in the SQLite file named by the DATA_FILE environment variable, so reservations survive a restart. POST /events with JSON {\"id\": \"<event id>\", \"capacity\": <positive integer>} creates an event (201; 409 if the id exists). POST /events/<id>/reservations with JSON {\"seats\": <positive integer>} reserves seats when enough remain: 201 with {\"reserved\": <total reserved>, \"remaining\": <capacity minus reserved>}; 409 with {\"error\": ...} when not enough remain; 404 for an unknown event; 400 for invalid input. GET /events/<id> returns {\"id\", \"capacity\", \"reserved\", \"remaining\"}. Concurrent reservation requests must never reserve more seats than the capacity. Cover the behaviour with unittest tests that run with `python3 -m unittest`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Python HTTP service keeping its data in a SQLite file; the checks that count start server.py and call its HTTP API, including a restart that shows reservations survive. Nothing is hosted beyond the local process: release means returning the files to the source checkout.",
+   "decision_round": true
+  },
+  {
+   "id": "battleship-scoring",
+   "name": "battleship-scoring",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Add scoring to the existing Battleship game. When a shot sinks a ship, the POST /api/fire response also includes \"ship\" with the name of the ship that sank. Every /api/fire response includes \"shots\" (shots fired so far in this game) and \"hits\" (shots that hit, including sinking shots). The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks. Everything the game already does keeps working.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Node.js HTTP server with no npm dependencies; the checks that count start server.js and call its HTTP API or fetch its page. A browser click counts only when a recorded command shows it. Nothing is hosted beyond the local process: release means returning the files to the source checkout. This request extends an existing Battleship game, so the earlier game's behaviour must still hold.",
+   "decision_round": true
+  },
+  {
+   "id": "csv-report",
+   "name": "csv-report",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a command-line tool report.py (Python 3, standard library only) that summarises sales records. Usage: `python3 report.py FILE [FILE ...]`. Each FILE is CSV with the header row `date,region,product,units,unit_price`; units is a non-negative integer and unit_price a non-negative decimal. Print one JSON object to stdout: {\"rows\": the number of valid rows, \"revenue\": the sum of units * unit_price rounded to 2 decimals, \"by_region\": revenue per region rounded to 2 decimals, \"by_product\": total units per product}. A row with the wrong number of columns, or a non-numeric or negative units or unit_price, is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0. A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1. A file with only a header contributes nothing. Cover the behaviour with unittest tests that run with `python3 -m unittest`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Python 3 command-line tool or package (standard library only); the checks that count run its commands and unit tests in the checkout. Nothing is deployed or hosted: release means returning the files to the source checkout, and a report that justifies monitoring or support services as not applicable is complete.",
+   "decision_round": true
+  },
+  {
+   "id": "unit-converter",
+   "name": "unit-converter",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small Python 3 unit converter (standard library only) as four independent modules and one command that uses all of them. length.py provides km_to_miles(x) and miles_to_km(x) (1 mile = 1.609344 km); mass.py provides kg_to_lb(x) and lb_to_kg(x) (1 lb = 0.45359237 kg); volume.py provides liters_to_gallons(x) and gallons_to_liters(x) (1 US gallon = 3.785411784 liters); speed.py provides kmh_to_mph(x) and mph_to_kmh(x). convert.py is a command: `python3 convert.py VALUE FROM TO` with units km, mi, kg, lb, l, gal, kmh, mph prints the converted value rounded to 4 decimals and exits 0; an unknown unit, a pair from different quantities, or a value that is not a number prints an error on stderr without a traceback and exits 2. Deliver it with ShipLoop's Ask-Agent delegation so modules that do not depend on each other are implemented in parallel as separate chain steps, and each module that uses others is implemented after them. Cover every module with unittest tests that run with `python3 -m unittest`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Python 3 command-line tool or package (standard library only); the checks that count run its commands and unit tests in the checkout. Nothing is deployed or hosted: release means returning the files to the source checkout, and a report that justifies monitoring or support services as not applicable is complete.",
+   "decision_round": true
+  },
+  {
+   "id": "word-report",
+   "name": "word-report",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small Python 3 word-frequency report (standard library only) in five modules with two levels of dependencies. tokens.py provides words(text): the lowercase words of text, where a word is a run of ASCII letters and apostrophes. stopwords.py provides STOPWORDS, a frozenset of at least \"the\", \"a\", \"an\", \"and\", \"of\", \"to\" and \"in\", and is_stopword(word). counts.py uses tokens.py: counts(text) returns a dict of word -> occurrences. filters.py uses stopwords.py: content_words(words) returns the list without stopwords, in order. report.py uses counts.py and filters.py and is a command: it reads text from stdin and prints the top N non-stopword words (N from the first argument, default 3), one `word count` line each, ordered by count descending then word ascending, exiting 0; a first argument that is not a positive integer prints an error on stderr without a traceback and exits 2. Deliver it with ShipLoop's Ask-Agent delegation so modules that do not depend on each other are implemented in parallel as separate chain steps, and each module that uses others is implemented after them. Cover every module with unittest tests that run with `python3 -m unittest`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Python 3 command-line tool or package (standard library only); the checks that count run its commands and unit tests in the checkout. Nothing is deployed or hosted: release means returning the files to the source checkout, and a report that justifies monitoring or support services as not applicable is complete.",
+   "decision_round": true
+  },
+  {
+   "id": "temperature-report",
+   "name": "temperature-report",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small Python 3 package (standard library only) in two independent modules plus a command that joins them, and deliver it with ShipLoop's Ask-Agent delegation so the two independent modules are implemented in parallel as separate chain steps and the command is implemented after both are accepted. convert.py provides to_celsius(f) and to_fahrenheit(c), returning floats from the exact formulas. stats.py provides mean(values) and median(values) over a non-empty sequence of numbers, raising ValueError on an empty one. measure.py reads Fahrenheit temperatures from stdin, one number per line (blank lines ignored), converts them with convert.py, and prints one JSON object {\"count\": n, \"mean_c\": m, \"median_c\": d} with m and d rounded to 2 decimals, exiting 0. With no numbers it prints an error on stderr without a traceback, prints nothing on stdout and exits 1; a line that is not a number is reported on stderr as `line N: not a number` and the exit code is 2 after printing the JSON for the valid lines. Cover all three modules with unittest tests that run with `python3 -m unittest`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Python 3 command-line tool or package (standard library only); the checks that count run its commands and unit tests in the checkout. Nothing is deployed or hosted: release means returning the files to the source checkout, and a report that justifies monitoring or support services as not applicable is complete.",
+   "decision_round": true
+  },
+  {
+   "id": "temperature-plain",
+   "name": "temperature-plain",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small Python 3 package (standard library only) as modules in the repository root, run as `python3 measure.py`. convert.py provides to_celsius(f) and to_fahrenheit(c), returning floats from the exact formulas. stats.py provides mean(values) and median(values) over a non-empty sequence of numbers, raising ValueError on an empty one. measure.py reads Fahrenheit temperatures from stdin, one number per line (blank lines ignored), converts them with convert.py, and prints one JSON object {\"count\": n, \"mean_c\": m, \"median_c\": d} with m and d rounded to 2 decimals, exiting 0. With no numbers it prints an error on stderr without a traceback, prints nothing on stdout and exits 1; a line that is not a number is reported on stderr as `line N: not a number` and the exit code is 2 after printing the JSON for the valid lines. Cover all three modules with unittest tests that run with `python3 -m unittest`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Python 3 command-line tool or package (standard library only); the checks that count run its commands and unit tests in the checkout. Nothing is deployed or hosted: release means returning the files to the source checkout, and a report that justifies monitoring or support services as not applicable is complete.",
+   "decision_round": true
+  },
+  {
+   "id": "battleship",
+   "name": "battleship",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid. GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\" set to \"miss\", \"hit\" or \"sunk\" and \"gameOver\" true once every ship is sunk. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Node.js HTTP server with no npm dependencies; the checks that count start server.js and call its HTTP API or fetch its page. A browser click counts only when a recorded command shows it. Nothing is hosted beyond the local process: release means returning the files to the source checkout.",
+   "decision_round": false
+  },
+  {
+   "id": "checkers",
+   "name": "checkers",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a small two-player Checkers game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \"Checkers\" with an 8x8 board where two players take turns on the same page. GET /api/new starts a game and returns JSON with a game id. Red starts on rows 0 to 2 and moves first toward higher row numbers; black starts on rows 5 to 7; pieces sit on the squares where row plus column is odd. POST /api/move with JSON {\"game\": id, \"from\": [row, col], \"to\": [row, col]} returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour. An illegal move returns \"ok\": false and leaves the turn unchanged; a legal move switches the turn; a jump removes the jumped piece and is mandatory when available; a piece reaching the far row becomes a king. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A local Node.js HTTP server with no npm dependencies; the checks that count start server.js and call its HTTP API or fetch its page. A browser click counts only when a recorded command shows it. Nothing is hosted beyond the local process: release means returning the files to the source checkout.",
+   "decision_round": false
+  },
+  {
+   "id": "chess-salesforce",
+   "name": "chess-salesforce",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`). Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button. It calls `SLChessController` and renders what comes back. `SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them. The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`). The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too. Do not stop until the tests pass in the org.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A Salesforce DX project deployed to the Developer Edition org alias de; the checks that count are sf deploys, Apex test runs and metadata or record queries against that org. A rendered Lightning click needs a browser session and counts only when a recorded check shows it. Credentials are never asked for, printed or stored.",
+   "decision_round": false
+  },
+  {
+   "id": "battleship-salesforce",
+   "name": "battleship-salesforce",
+   "tier": "run-record",
+   "runtimes": [
+    "system-test",
+    "product-acceptance",
+    "release-verify",
+    "operations",
+    "review"
+   ],
+   "request": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLBattle...` (for example `SLBattleEngine`) and the component `slBattleBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLBattle`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLBattle_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slBattleBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLBattle.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLBattle_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLBattleEngine` and `SLBattleController` classes (`<classAccesses>` with `<enabled>true</enabled>`). A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLBattle_Access --target-org de`. Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it. The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell. A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk. `SLBattleEngine` is a public class with static methods only; a game is a JSON string. `newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one). `fire(String game, Integer row, Integer col)` returns the game after one shot at that cell. The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object `{\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}`: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit). Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit. A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBattleEngine.InvalidShotException` (a public exception class you define inside `SLBattleEngine`). After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`. `SLBattleController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them. The grader calls `SLBattleController` only with valid shots and calls `SLBattleEngine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`). The component `slBattleBoard` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button. It calls `SLBattleController` and renders what comes back. The work will be graded by playing whole games through `SLBattleController`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLBattle...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that a whole game of 100 shots played through `SLBattleController` (`newGame`, then `fire` at every cell) runs inside one transaction. Do not stop until the tests pass in the org.",
+   "applies": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+   ],
+   "overbuild": "A Salesforce DX project deployed to the Developer Edition org alias de; the checks that count are sf deploys, Apex test runs and metadata or record queries against that org. A rendered Lightning click needs a browser session and counts only when a recorded check shows it. Credentials are never asked for, printed or stored.",
+   "decision_round": false
+  }
+ ],
+ "runtimes": {
+  "system-test": "the accepted result of stage system-test: the recorded system tests run on the assembled candidate",
+  "product-acceptance": "the accepted result of stage product-acceptance: the product assessed against the request",
+  "release-verify": "the accepted result of stage release-verify: the released result observed where consumers use it",
+  "operations": "the accepted result of stage operations: monitoring, recovery and support readiness",
+  "review": "an Improve review note for pass 2 or later; its slot is review-<stage>, the stage whose result it improves"
+ },
+ "runtime_names": {
+  "system-test": "system-test report (stage system-test)",
+  "product-acceptance": "product-acceptance evidence (stage product-acceptance)",
+  "release-verify": "release-verify report (stage release-verify)",
+  "operations": "operations report (stage operations)"
+ }
+}

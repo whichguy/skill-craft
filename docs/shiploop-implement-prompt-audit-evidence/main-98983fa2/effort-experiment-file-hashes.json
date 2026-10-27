@@ -1,0 +1,9 @@
+{
+  "test/shiploop_e2e/run.py": "8b9f865a1671f117ada08352ac8d368575057fbb0bc38577e3a4b038c8165415",
+  "test/shiploop_e2e/slice.py": "2897e7173db2de8b9808a020b746bb030e8fc30c29eecf1fd3936788d2574451",
+  "test/shiploop_e2e/sessionlog.py": "a9a946f8ef8b243ecd0b4477c12b5941bf266ec5c577833d51a116244ec72b51",
+  "test/shiploop-e2e.test.py": "81b340a2df8ca6eaa1940afa0789bd521cbc3f532af3891c051eb323213f07aa",
+  "test/shiploop-e2e-slice.test.py": "48126d8f4863a744a24f0675610a61b92094bba10ad6e59847beb0b31ed4e68f",
+  "test/shiploop_e2e/effort.py": "09ff1bf354d2681cd3445e431769f0ada0032bc91d730bdeb90c3dc2265f9170",
+  "docs/experiments/shiploop-effort-by-stage-20261024/run_totals.py": "0693c4c009bbb899bf263acf4d052299542916bf66087a8618c3cbe358ec3937"
+}

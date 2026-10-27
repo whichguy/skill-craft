@@ -1,0 +1,33 @@
+{
+  "pre_count": 148,
+  "post_count": 157,
+  "added": [
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/effort.py",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/run_totals.py",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/README.md",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/import_run.py",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/judge.txt",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/rubric.json",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/scenarios.json",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/make_r2_harness.sh",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/r2-harness-root.txt"
+  ],
+  "removed": [],
+  "added_nonexempt": [
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/effort.py",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/run_totals.py",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/README.md",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/import_run.py",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/judge.txt",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/rubric.json",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/files/shiploop-run/scenarios.json",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/make_r2_harness.sh",
+    "docs/experiments/shiploop-effort-by-stage-20261024/sync/r2-harness-root.txt"
+  ],
+  "removed_nonexempt": [],
+  "exempt_prefixes": [
+    "docs/shiploop-implement-step-fix-plan-2026-10-17.md",
+    "docs/shiploop-implement-prompt-audit-journal.md",
+    "docs/shiploop-implement-prompt-audit-evidence/"
+  ]
+}

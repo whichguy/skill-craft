@@ -1,0 +1,1722 @@
+{
+  "kind": "audit evidence, not runtime state or new task registry",
+  "date": "2026-10-18",
+  "artifact": "https://claude.ai/artifact/PeHgXZ2M19JYSRsx4ebV1s",
+  "artifact_title": "Chess Run Analysis",
+  "run": "/Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29",
+  "frozen_run_source": "9b189cd20bab54056d4262d70220c7ed9c9b84f9",
+  "recommendation_source": "c70a33f46ed71cd2eed537353438cdd61c51a2ba",
+  "public_identity": "Verified via the rendered public artifact and publication README.",
+  "source_files": [
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-prep.json",
+      "sha256": "f540f05c3c280eae72443cf7def14860b9df326cdfa753f8db07a3be3bd2a9a2",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-prep.json"
+    },
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-build.json",
+      "sha256": "7cfab0b5fae107e642463a622655ad7c7210c1c418b3f08f69b2952680cf319a",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-build.json"
+    },
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-release.json",
+      "sha256": "265881af4372a2fcfc9062762c3ba289e269fc90028cf40470a92ff8b037ea13",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/chess/analysis-chess-release.json"
+    },
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/tools/meta-chess.json",
+      "sha256": "4e0da2f074ecd67964cc1a5aafca6bd5bc5eed7cdb99c9495eec1db9bea46ad0",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/tools/meta-chess.json"
+    }
+  ],
+  "count": 58,
+  "ranked_fixes": [
+    {
+      "json_pointer": "/fixes/0",
+      "issue": "Item-wide checks ran after every step and collapsed three steps into one",
+      "reference_ids": [
+        "R01"
+      ],
+      "disposition": "retain + qualify",
+      "qualification": "Retain scheduling; add meaningful behavioral/procedure evidence and complete prerequisites. Do not rebuild the gate or make a missing artifact skip pass."
+    },
+    {
+      "json_pointer": "/fixes/1",
+      "issue": "release-plan learned the delivery contract from source (34 reads, 12.5 min)",
+      "reference_ids": [
+        "R12"
+      ],
+      "disposition": "partial; repair examples",
+      "qualification": "Render actual consumers, conditional fields/skill-none shape, N/A location, parent final-result/work-items rules and stopped-blocked route; use host-appropriate invocation. Test examples through real validators."
+    },
+    {
+      "json_pointer": "/fixes/2",
+      "issue": "Tab hidden from the owner; no stage checked access",
+      "reference_ids": [
+        "R06"
+      ],
+      "disposition": "retain + close deferral gaps",
+      "qualification": "Carry blocking prerequisites with earliest feasible checks; distinguish host startup, entry configuration and actual interaction. Keep later candidate-dependent checks owned."
+    },
+    {
+      "json_pointer": "/fixes/3",
+      "issue": "An impossible person procedure (promotion blocked by a pawn) passed three reviews",
+      "reference_ids": [
+        "R05"
+      ],
+      "disposition": "partial; extend consumers",
+      "qualification": "Add inherited-procedure review at carry-forward and recheck the person ask. Conditional authorized API replay may refute transitions but cannot certify another observation boundary. Preserve six-field cases."
+    },
+    {
+      "json_pointer": "/fixes/4",
+      "issue": "Partial person reply re-blocked release-verify",
+      "reference_ids": [
+        "R07"
+      ],
+      "disposition": "retain gate; repair continuity/ask",
+      "qualification": "Preserve requirement-to-obligation continuity including no reply. Record only confirmed outcomes. Explicit acceptance changes use existing correction/replan; no shortcut that turns unconfirmed details into waiver. Honor a declined check without repeating asks; remain unverified."
+    },
+    {
+      "json_pointer": "/fixes/5",
+      "issue": "Open-item consumers and row shape not printed",
+      "reference_ids": [
+        "R12"
+      ],
+      "disposition": "partial; repair examples",
+      "qualification": "Render actual consumers, conditional fields/skill-none shape, N/A location, parent final-result/work-items rules and stopped-blocked route; use host-appropriate invocation. Test examples through real validators."
+    },
+    {
+      "json_pointer": "/fixes/6",
+      "issue": ".sf/ files committed by the return made a fast-forward impossible",
+      "reference_ids": [
+        "R17"
+      ],
+      "disposition": "separate follow-up",
+      "qualification": "Improve existing classification/ignore card and review undecided leftovers before commit; preserve product metadata; return and commit remain distinct claims."
+    },
+    {
+      "json_pointer": "/fixes/7",
+      "issue": "Improve probe vs 'No push, deploy' sent a review to documentation and it dropped a real finding",
+      "reference_ids": [
+        "R15"
+      ],
+      "disposition": "open prompt consistency delta",
+      "qualification": "Render one existing authority source with exact route/target/effects. Preserve scope; documentation cannot certify an unobserved current behavior, and a session route cannot bypass a denied/person-only boundary."
+    }
+  ],
+  "findings": [
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "01-intake",
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_gap_sha256": "d706668bd08ea6c89c79995e0210f48ebae7f3beb2b8fcddce30df09b817cad2",
+      "finding": "Authority template already fills exact target/operation",
+      "disposition": "retain",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "02-discovery",
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_gap_sha256": "67977ee0751f7ce862d10d47477781bda3299e24e1aa1daaec590c09f97aae67",
+      "finding": "Guide paths already appear in the head",
+      "disposition": "retain",
+      "reference_ids": [
+        "R13"
+      ],
+      "plan_sections": [
+        "3.1,4.3,4.5,8"
+      ],
+      "tests": [
+        "T18",
+        "T19",
+        "T43"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "02-discovery",
+      "json_pointer": "/steps/1/gaps/1",
+      "reported_gap_sha256": "2ade25d9c4e22ea06422fc7eaf2615319c9708ff90c0ca9113a1bbf90b645879",
+      "finding": "Add bounded heading ranges tied to source identity",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R13"
+      ],
+      "plan_sections": [
+        "3.1,4.3,4.5,8"
+      ],
+      "tests": [
+        "T18",
+        "T19",
+        "T43"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "02-discovery",
+      "json_pointer": "/steps/1/gaps/2",
+      "reported_gap_sha256": "359640818b0d22522dae8abcc22025f17618450192e61a5522d371a9c0de1fed",
+      "finding": "Use accepted project facts, not request-keyword tests for discovery",
+      "disposition": "reject mechanism; pilot applicability",
+      "reference_ids": [
+        "R20"
+      ],
+      "plan_sections": [
+        "4.6"
+      ],
+      "tests": [
+        "T15",
+        "T43",
+        "T50"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "03-research",
+      "json_pointer": "/steps/2/gaps/0",
+      "reported_gap_sha256": "e485686ddbf0016b097be1252b11da0f4b6094bd62997439b935ef720825c57e",
+      "finding": "Connect consumer entry prerequisites to early access probes",
+      "disposition": "retain and extend",
+      "reference_ids": [
+        "R06"
+      ],
+      "plan_sections": [
+        "4.2"
+      ],
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R06",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "04-spec",
+      "json_pointer": "/steps/3/gaps/0",
+      "reported_gap_sha256": "5e02f14d55bf0389f8524bc1d603049477ccd9b8db402ff15d4d92b60bb75f49",
+      "finding": "Require useful self-review evidence, not a shell call per prose condition",
+      "disposition": "narrow",
+      "reference_ids": [
+        "R05",
+        "R14"
+      ],
+      "plan_sections": [
+        "3.1,4.5",
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T14",
+        "T24",
+        "T25",
+        "T26",
+        "T29",
+        "T33",
+        "T34",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "04-spec",
+      "json_pointer": "/steps/3/gaps/1",
+      "reported_gap_sha256": "9d98aaeedfe678db13b6d3a6d6e1a21da1147d7b30e3c187bb8097cefcc003a6",
+      "finding": "Give outcome-blocking prerequisites an owner and earliest feasible check",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R06"
+      ],
+      "plan_sections": [
+        "4.2"
+      ],
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R06",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "05-improve-spec",
+      "json_pointer": "/steps/4/gaps/0",
+      "reported_gap_sha256": "b401ae19421d694cbfa3066c0bfb76933ad90065a60877a36e037b6ffe17c670",
+      "finding": "Render host-appropriate Improve invocation examples",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "05-improve-spec",
+      "json_pointer": "/steps/4/gaps/1",
+      "reported_gap_sha256": "556882d3429587c94f0c98a550e3a02601f48ccd471867ff3b17709c813cebd7",
+      "finding": "Review deferred prerequisites that can block the requested outcome",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R06"
+      ],
+      "plan_sections": [
+        "4.2"
+      ],
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R06",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "06-test-strategy",
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_gap_sha256": "475105ff1b720b8a4f278dbb8c18676e9ee1121d7dbf3ea768866310fc3d010b",
+      "finding": "A host-tool stand-in does not establish target access",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R06"
+      ],
+      "plan_sections": [
+        "4.2"
+      ],
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R06",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "06-test-strategy",
+      "json_pointer": "/steps/5/gaps/1",
+      "reported_gap_sha256": "6f09a6802c6accc88c716c8675c2765389654be05af5446b5d8e88e4edc82261",
+      "finding": "Expose reporter rules only after aligning the card and parser",
+      "disposition": "adopt with source correction",
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "plan_sections": [
+        "3.1,4.3,4.5,8",
+        "4.3"
+      ],
+      "tests": [
+        "T18",
+        "T19",
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "06-test-strategy",
+      "json_pointer": "/steps/5/gaps/2",
+      "reported_gap_sha256": "c39ca5e8e07c7a4150b62bc4fd7699a3380928b61f85e2b81ba41f16040eba9c",
+      "finding": "Keep required facts in the head and background by resolvable locator",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R02",
+        "R13"
+      ],
+      "plan_sections": [
+        "2.2,3.1,3.4,8",
+        "3.1,4.3,4.5,8"
+      ],
+      "tests": [
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T16",
+        "T18",
+        "T19",
+        "T43"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R02",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "07-improve-test-strategy",
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_gap_sha256": "1fc94fe7d197b9672b3498cfa2121cad4801da704f130a42f7e6c5ccf610dd27",
+      "finding": "Review deferred outcome-blocking gaps in test strategy too",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R06"
+      ],
+      "plan_sections": [
+        "4.2"
+      ],
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R06",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "08-plan",
+      "json_pointer": "/steps/7/gaps/0",
+      "reported_gap_sha256": "f2267ded124303b50c9630c7cbb9dcdc4083a4a10d63b61df6279abc7e816d9b",
+      "finding": "Existing UI/module-format qualifiers must survive concise rendering",
+      "disposition": "retain conditions; qualify",
+      "reference_ids": [
+        "R20"
+      ],
+      "plan_sections": [
+        "4.6"
+      ],
+      "tests": [
+        "T15",
+        "T43",
+        "T50"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "09-improve-plan",
+      "json_pointer": "/steps/8/gaps/0",
+      "reported_gap_sha256": "795f5be66c64a0afbd87264b246e00e0cbd89f1cc9f88c0e45a280908f8ad6ab",
+      "finding": "Notes flag already specifies a file",
+      "disposition": "retain",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "09-improve-plan",
+      "json_pointer": "/steps/8/gaps/1",
+      "reported_gap_sha256": "8d95ae22171151dd5f0050276c06ea3e920ca8e5f8d6e78469bc8ee14c1e92d9",
+      "finding": "Put conditional final-result and work-items rules in parent-return",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "10-prepare",
+      "json_pointer": "/steps/9/gaps/0",
+      "reported_gap_sha256": "e1fce523801504d8967d0ed42931bd8b0a610bea6156fc9d3b4f2286467918ee",
+      "finding": "Prepare already probes consumer entry access",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R06"
+      ],
+      "plan_sections": [
+        "4.2"
+      ],
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R06",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "11-step-plan",
+      "json_pointer": "/steps/10/gaps/0",
+      "reported_gap_sha256": "518099e3d0eb3e1aee44e3f075021d57f48ac69c30a975512b4de42dc881a676",
+      "finding": "Per-step checks already replace item-wide implement checks",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R01"
+      ],
+      "plan_sections": [
+        "4.1,5"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T27",
+        "T31",
+        "T36"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "11-step-plan",
+      "json_pointer": "/steps/10/gaps/1",
+      "reported_gap_sha256": "e75de4a8ec75179444844ed018cd3be8c821abaf011006ad7f9dfd5dcbcd81b6",
+      "finding": "A later item-level check is valid at test/verify; clarify its ownership rather than relabeling a real criterion",
+      "disposition": "qualify example",
+      "reference_ids": [
+        "R01",
+        "R12"
+      ],
+      "plan_sections": [
+        "4.1,5",
+        "4.5"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T27",
+        "T31",
+        "T36",
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "11-step-plan",
+      "json_pointer": "/steps/10/gaps/2",
+      "reported_gap_sha256": "8a8210021128e6f30a6fad63b77fb8c56ca378f4928bb0643e5d6ca8e055d66a",
+      "finding": "Keep stage-loop state in the durable run-owned directory",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R19"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T12",
+        "T42",
+        "T49"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R19",
+          "status": "outstanding"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "11-step-plan",
+      "json_pointer": "/steps/10/gaps/3",
+      "reported_gap_sha256": "c0e728a86d15e3bf4e60681c1bdc8ef46d4edfcebc1ade3de2eaf26b424166dd",
+      "finding": "Print scoring and gate facts; do not prohibit reading source",
+      "disposition": "adopt clarification; reject ban",
+      "reference_ids": [
+        "R08",
+        "R12",
+        "R13"
+      ],
+      "plan_sections": [
+        "3.1,4.3,4.5,8",
+        "4.3",
+        "4.5"
+      ],
+      "tests": [
+        "T18",
+        "T19",
+        "T37",
+        "T42",
+        "T43",
+        "T45"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "12-improve-step-plan",
+      "json_pointer": "/steps/11/gaps/0",
+      "reported_gap_sha256": "a2dc54981a64e6424689da77c84e565657edad0e35ea76fada98ada0308a2f1e",
+      "finding": "Review already rejects later-artifact or skip-if-missing step Proof",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R01",
+        "R05"
+      ],
+      "plan_sections": [
+        "4.1,5",
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T25",
+        "T26",
+        "T27",
+        "T29",
+        "T31",
+        "T34",
+        "T36"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R05",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-prep.json",
+      "step": "12-improve-step-plan",
+      "json_pointer": "/steps/11/gaps/1",
+      "reported_gap_sha256": "7583bfe1e84d225cea39e3ba61501b3c8ab8cd361421061ceceb0bf2b2c0bc07",
+      "finding": "Every behavioral criterion needs an observation that exercises it",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R03",
+        "R05"
+      ],
+      "plan_sections": [
+        "3.3,5",
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T7",
+        "T17",
+        "T25",
+        "T26",
+        "T27",
+        "T29",
+        "T33",
+        "T34"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R03",
+          "status": "superseded"
+        },
+        {
+          "id": "R05",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "13-test-spec",
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_gap_sha256": "d2fabad18b2f6b0e163cc85044416a9eae6720e9d15e56fb1aafc405194d1686",
+      "finding": "Render stage-valid open-item consumers from the validator",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "13-test-spec",
+      "json_pointer": "/steps/0/gaps/1",
+      "reported_gap_sha256": "04087ba34fa200e0fb66caf5fd879a7eb2628e1e2ae697b4de851099fa0e24d3",
+      "finding": "Name the existing summary location for justified not-applicable coverage",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "14-improve-test-spec",
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_gap_sha256": "cb3f6eadab29392a8d9f83586ff91491827d3f92e4e20ec18ccc6043bc24f186",
+      "finding": "Per-step Proof fixes ambiguous scheduling; retain regression coverage",
+      "disposition": "retain",
+      "reference_ids": [
+        "R01"
+      ],
+      "plan_sections": [
+        "4.1,5"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T27",
+        "T31",
+        "T36"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "16-implement",
+      "json_pointer": "/steps/3/gaps/0",
+      "reported_gap_sha256": "7e929a71f83b7767be0b43200ef63de9fe9e8916cbe4c588c1c22e697f1ee000",
+      "finding": "Step block and done gate already use the active step Proof",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R01",
+        "R02"
+      ],
+      "plan_sections": [
+        "2.2,3.1,3.4,8",
+        "4.1,5"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T16",
+        "T18",
+        "T19",
+        "T27",
+        "T31",
+        "T36"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R02",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "16-implement",
+      "json_pointer": "/steps/3/gaps/1",
+      "reported_gap_sha256": "86b492e489cdc65a7c5aafc00116cc8d873d289855503cbb1d4a80db191cb504",
+      "finding": "Explain how a stopped-blocked receipt supports revise or blocked",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R12",
+        "R19"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T12",
+        "T42",
+        "T49"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "17-step-plan",
+      "json_pointer": "/steps/4/gaps/0",
+      "reported_gap_sha256": "db577c7f4249640a4d3ce27eea389c7b7a30d536abf4779781b35ce86de9aa4c",
+      "finding": "Revisit is in the head; narrow the prior result to the same step",
+      "disposition": "retain and extend",
+      "reference_ids": [
+        "R11"
+      ],
+      "plan_sections": [
+        "4.4"
+      ],
+      "tests": [
+        "T40",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "17-step-plan",
+      "json_pointer": "/steps/4/gaps/1",
+      "reported_gap_sha256": "f4d48996743ba33ebcc41eabd8760c0804f43c28a7e6e83bbca57ab9bb43e751",
+      "finding": "Execute Proof at step completion; no extra speculative pre-step run",
+      "disposition": "retain",
+      "reference_ids": [
+        "R01"
+      ],
+      "plan_sections": [
+        "4.1,5"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T27",
+        "T31",
+        "T36"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "18-improve-step-plan",
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_gap_sha256": "5f7c91e6102c585ca06baeb2aa4c96438dafa5f777cfe165ab5b5a6ce512952a",
+      "finding": "Allow whole-item uncounted checks at the later test/verify owner",
+      "disposition": "clarify",
+      "reference_ids": [
+        "R01",
+        "R12"
+      ],
+      "plan_sections": [
+        "4.1,5",
+        "4.5"
+      ],
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T27",
+        "T31",
+        "T36",
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "18-improve-step-plan",
+      "json_pointer": "/steps/5/gaps/1",
+      "reported_gap_sha256": "d0a89b9bbc5113108225f3b70243ca75beb3c7a5ca8be60a6469a1db040aea03",
+      "finding": "Carry the preservation rule into Improve with revise evidence",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R11"
+      ],
+      "plan_sections": [
+        "4.4"
+      ],
+      "tests": [
+        "T40",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "18-improve-step-plan",
+      "json_pointer": "/steps/5/gaps/2",
+      "reported_gap_sha256": "7ec5074d47152de828e532b9912eebbe62420d4e7e17e368e0602437b4785759",
+      "finding": "Challenge unsupported step merges or splits without freezing legitimate replans",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R11"
+      ],
+      "plan_sections": [
+        "4.4"
+      ],
+      "tests": [
+        "T40",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "19-test-spec",
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_gap_sha256": "d4a3aedf166d9bf6f7c2b0f32b180d7318f32f7c1a11b75eccc59358564890e5",
+      "finding": "Revisit machinery already covers test-spec and implement",
+      "disposition": "retain",
+      "reference_ids": [
+        "R11"
+      ],
+      "plan_sections": [
+        "4.4"
+      ],
+      "tests": [
+        "T40",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "20-improve-test-spec",
+      "json_pointer": "/steps/7/gaps/0",
+      "reported_gap_sha256": "929bbb21cb313d157fee5f317635f3cfdb83e3e6c4d378468c3846d8a10c8155",
+      "finding": "Improve already locates the previous accepted stage result",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R11"
+      ],
+      "plan_sections": [
+        "4.4"
+      ],
+      "tests": [
+        "T40",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "22-implement",
+      "json_pointer": "/steps/9/gaps/0",
+      "reported_gap_sha256": "35e6b29cb29bb79b4824735a6ee9cf1d66e0cd45ed271639a5a0f14e53034c9b",
+      "finding": "Head already includes current criterion text; test long-packet preservation",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R02"
+      ],
+      "plan_sections": [
+        "2.2,3.1,3.4,8"
+      ],
+      "tests": [
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T16",
+        "T18",
+        "T19"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R02",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "22-implement",
+      "json_pointer": "/steps/9/gaps/1",
+      "reported_gap_sha256": "d647cd2364b5965dbe3ee778bec301a91990e4a02fdce342eb83559684f14ac1",
+      "finding": "Allow only the already-authorized exact remote test route",
+      "disposition": "narrow",
+      "reference_ids": [
+        "R15"
+      ],
+      "plan_sections": [
+        "4.1,4.5"
+      ],
+      "tests": [
+        "T28",
+        "T35",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "22-implement",
+      "json_pointer": "/steps/9/gaps/2",
+      "reported_gap_sha256": "9ba6afbc7202ea4e7766bdfca150067d9fd4ec45a0c8ccef4aa0af3df2ae03af",
+      "finding": "Use platform/project ignore rules for regenerated tool state",
+      "disposition": "adopt follow-up",
+      "reference_ids": [
+        "R17"
+      ],
+      "plan_sections": [
+        "4.5,7"
+      ],
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "23-improve-implement",
+      "json_pointer": "/steps/10/gaps/0",
+      "reported_gap_sha256": "0b67acadf25a6f25179b7f8db9d0ffc6228dd5484d39cae0aa95d4ba1484278c",
+      "finding": "Use valid scoped probe evidence; do not defer an unresolved current criterion into not-covered",
+      "disposition": "narrow",
+      "reference_ids": [
+        "R03",
+        "R15"
+      ],
+      "plan_sections": [
+        "3.3,5",
+        "4.1,4.5"
+      ],
+      "tests": [
+        "T7",
+        "T17",
+        "T26",
+        "T27",
+        "T28",
+        "T33",
+        "T35",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R03",
+          "status": "superseded"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-build.json",
+      "step": "24-test",
+      "json_pointer": "/steps/11/gaps/0",
+      "reported_gap_sha256": "1707b0be0d91116bdef5150ce460b37e7d3725bba0f519703adb2bc873efb507",
+      "finding": "Keep regenerated CLI state out of inappropriate mutation/commit scope",
+      "disposition": "adopt follow-up",
+      "reference_ids": [
+        "R17"
+      ],
+      "plan_sections": [
+        "4.5,7"
+      ],
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "26-verify",
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_gap_sha256": "4249ee30a3cdf42810820185b21cea32d52743bd4c98ed68fccc7a021aeba281",
+      "finding": "Prevent later regeneration of tool state from bypassing item-commit scope",
+      "disposition": "adopt follow-up",
+      "reference_ids": [
+        "R17"
+      ],
+      "plan_sections": [
+        "4.5,7"
+      ],
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "27-carry-forward",
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_gap_sha256": "b8408fe883b4ec7121cca265f573bff6dd4af1d803dd27944609fa5efe298aaf",
+      "finding": "Render only the fields valid for a none skill decision",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "27-carry-forward",
+      "json_pointer": "/steps/1/gaps/1",
+      "reported_gap_sha256": "d90cd32192a7a8446e3cfd9bd8604726dd4cf3a4c37b39c3c02f42833feb02b3",
+      "finding": "Describe actual loop completion semantics, not a misleading trivial-review count label",
+      "disposition": "narrow",
+      "reference_ids": [
+        "R12",
+        "R19"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T12",
+        "T42",
+        "T49"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "28-improve-carry-forward",
+      "json_pointer": "/steps/2/gaps/0",
+      "reported_gap_sha256": "928df44d09af8a170f06048af377488e11cf9644a6e711e23b683e00d0ba65ae",
+      "finding": "Add inherited-procedure review to carry-forward Improve",
+      "disposition": "adopt",
+      "reference_ids": [
+        "R05"
+      ],
+      "plan_sections": [
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "29-system-test-author",
+      "json_pointer": "/steps/3/gaps/0",
+      "reported_gap_sha256": "df532dea93a4a66df8585a01ff0515eb9dbd4b6123494108e66975e50516ca93",
+      "finding": "Qualify cross-stage command reuse; equal command and product tree are insufficient",
+      "disposition": "pilot",
+      "reference_ids": [
+        "R21"
+      ],
+      "plan_sections": [
+        "4.6"
+      ],
+      "tests": [
+        "T45",
+        "T51"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R21",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "29-system-test-author",
+      "json_pointer": "/steps/3/gaps/1",
+      "reported_gap_sha256": "ed32932b80b53c4787a4be9d25b37ab5263696f020f1adddf31555e71870f4fa",
+      "finding": "API replay is conditional on equivalent state and existing authority",
+      "disposition": "narrow",
+      "reference_ids": [
+        "R05",
+        "R15"
+      ],
+      "plan_sections": [
+        "4.1,4.5",
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T25",
+        "T26",
+        "T28",
+        "T29",
+        "T34",
+        "T35",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "30-improve-system-test-author",
+      "json_pointer": "/steps/4/gaps/0",
+      "reported_gap_sha256": "e6b44852f9cdb67a5e4255c9e51a5214e49c115b0c92c09a6256e6039490daad",
+      "finding": "Classification follows actual inspection; elapsed time/read telemetry is no review gate",
+      "disposition": "adopt evidence; reject timer",
+      "reference_ids": [
+        "R14"
+      ],
+      "plan_sections": [
+        "3.1,4.5"
+      ],
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R14",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "31-system-test",
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_gap_sha256": "2dbbfdff013392a123cffd5ba2a6fc0eb37716b170108c97bc36ba8ee6830be6",
+      "finding": "Expose the required script-owned system run and avoid redundant producer runs",
+      "disposition": "pilot",
+      "reference_ids": [
+        "R21"
+      ],
+      "plan_sections": [
+        "4.6"
+      ],
+      "tests": [
+        "T45",
+        "T51"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R21",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "32-product-acceptance",
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_gap_sha256": "cb14a8336232b576f9cb9a9039bd7f5f522487d89c774a1d4032497bb6e49e17",
+      "finding": "Keep release-plan necessity gate and visible settling template",
+      "disposition": "retain and qualify",
+      "reference_ids": [
+        "R07",
+        "R12"
+      ],
+      "plan_sections": [
+        "0.2,4.2,10.6",
+        "4.5"
+      ],
+      "tests": [
+        "T26",
+        "T42",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R07",
+          "status": "partial"
+        },
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "33-release-plan",
+      "json_pointer": "/steps/7/gaps/0",
+      "reported_gap_sha256": "5149e091f9740cfc8187ea8a8f0f16d52c5eb5e1125901e0df139109e0980be1",
+      "finding": "Delivery assessment template and Checked-by already expose the gate",
+      "disposition": "retain",
+      "reference_ids": [
+        "R12"
+      ],
+      "plan_sections": [
+        "4.5"
+      ],
+      "tests": [
+        "T42"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "33-release-plan",
+      "json_pointer": "/steps/7/gaps/1",
+      "reported_gap_sha256": "3d2aac5e5cca0bebd6a431d543bbebe1f3e3e9c52cc4cd78b319df5c7cfced83",
+      "finding": "Make outcomes answerable without removing detailed required behaviors",
+      "disposition": "reject shortcut; improve granularity",
+      "reference_ids": [
+        "R07"
+      ],
+      "plan_sections": [
+        "0.2,4.2,10.6"
+      ],
+      "tests": [
+        "T26",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "33-release-plan",
+      "json_pointer": "/steps/7/gaps/2",
+      "reported_gap_sha256": "1099a510e9216db5949d233439dc2a7615236a9693d6ff4b1673c5f07336a9bd",
+      "finding": "Account for regenerated tool state before the planned source return",
+      "disposition": "adopt follow-up",
+      "reference_ids": [
+        "R17"
+      ],
+      "plan_sections": [
+        "4.5,7"
+      ],
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "34-improve-release-plan",
+      "json_pointer": "/steps/8/gaps/0",
+      "reported_gap_sha256": "43220b94c7db105576d8bc2888898ed3b36137ac67e1ad9d450c6a6c10614f64",
+      "finding": "Planning procedure walk exists; replay is conditional and boundary-limited",
+      "disposition": "retain and narrow",
+      "reference_ids": [
+        "R05",
+        "R15"
+      ],
+      "plan_sections": [
+        "4.1,4.5",
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T25",
+        "T26",
+        "T28",
+        "T29",
+        "T34",
+        "T35",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "34-improve-release-plan",
+      "json_pointer": "/steps/8/gaps/1",
+      "reported_gap_sha256": "54a70039427c7ef4979c21773d3b2243e06d6e0999dca62be3ce4b529eb4bc80",
+      "finding": "Review whether later commands invalidate the source-return plan",
+      "disposition": "adopt follow-up",
+      "reference_ids": [
+        "R17"
+      ],
+      "plan_sections": [
+        "4.5,7"
+      ],
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "35-release-check",
+      "json_pointer": "/steps/9/gaps/0",
+      "reported_gap_sha256": "591012f9b41a2cedfefa42774ffb3309ad4ba9db7e6e409d689c6d63d8f34a03",
+      "finding": "Surface undecided leftovers instead of committing them silently",
+      "disposition": "adopt follow-up",
+      "reference_ids": [
+        "R17"
+      ],
+      "plan_sections": [
+        "4.5,7"
+      ],
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "37-release-verify",
+      "json_pointer": "/steps/11/gaps/0",
+      "reported_gap_sha256": "ac748ca6fb871e98db5f0928ffe57b9c8f65b4b196307b75401135ffc366da9d",
+      "finding": "Validate person-facing inputs and observable output before asking",
+      "disposition": "adopt and narrow",
+      "reference_ids": [
+        "R05",
+        "R07"
+      ],
+      "plan_sections": [
+        "0.2,4.2,10.6",
+        "4.2,10.6"
+      ],
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "38-release-verify",
+      "json_pointer": "/steps/12/gaps/0",
+      "reported_gap_sha256": "999f82d8a1f5194db6ba6a57561c9fbd435c6558593019707a4a5bf2a39a2dde",
+      "finding": "Unconfirmed is not passed or waived; explicit owner scope change uses correction/replan and declined checks are not repeatedly asked",
+      "disposition": "reject automatic waiver; honor refusal",
+      "reference_ids": [
+        "R07"
+      ],
+      "plan_sections": [
+        "0.2,4.2,10.6"
+      ],
+      "tests": [
+        "T26",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-chess-release.json",
+      "step": "38-release-verify",
+      "json_pointer": "/steps/12/gaps/1",
+      "reported_gap_sha256": "bdcee71113371691e03cd90d73962366332befa708b257936cf571c328eabdce",
+      "finding": "Enforce authorized routes without provider-specific prohibition of ordinary signed-in tools",
+      "disposition": "reject blanket ban; retain boundary",
+      "reference_ids": [
+        "R15"
+      ],
+      "plan_sections": [
+        "4.1,4.5"
+      ],
+      "tests": [
+        "T28",
+        "T35",
+        "T44"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "These 58 gaps include repeated observations; they are not 58 independent defects.",
+    "Reported counts/timings remain report-scoped and are not merged with differently scoped audit metrics.",
+    "No raw model reasoning is reproduced. Source references verify change sites, not live outcomes."
+  ],
+  "current_reference_revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "reference_code_map": "reference-code-map-2026-10-18.json",
+  "current_reference_map": "reference-code-map-2026-10-25.json",
+  "historical_plan": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17-as-of-2026-10-18.md"
+}

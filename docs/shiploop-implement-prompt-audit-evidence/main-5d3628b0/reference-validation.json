@@ -1,0 +1,37 @@
+{
+  "status": "failed",
+  "revision": "5d3628b0497c2402d7554c73011bb3d87a13bf55",
+  "head": "5d3628b0497c2402d7554c73011bb3d87a13bf55",
+  "origin_main": "891be21e471e1f1817a9b5a36c57cba45829576f",
+  "scope": "committed source provenance, not working-tree or live acceptance",
+  "anchors": 118,
+  "source_files": 27,
+  "recommendations": 22,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "qualification_ids": 52,
+  "source_gap_entries": {
+    "chess": 58,
+    "battleship": 91
+  },
+  "ranked_chess_fixes": 8,
+  "local_links_checked": 242,
+  "static_assertions": {
+    "STATE_VERSION": 9,
+    "HEAD_LIMIT": 20000,
+    "HEAD_REQUIRED_END": 19500,
+    "IMPROVE_TRIVIAL_REVIEWS": 1
+  },
+  "changed_prior_excerpts": [
+    "step-proof",
+    "judge",
+    "base-run",
+    "mutation",
+    "remote-split",
+    "step-plan",
+    "glossary"
+  ],
+  "errors": [
+    "origin/main differs from audited main"
+  ]
+}

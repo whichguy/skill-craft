@@ -1,0 +1,125 @@
+{
+  "checks": [
+    {
+      "command": "python3 -B test/shiploop-e2e.test.py",
+      "duration_ms": "194330",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/01-e2e-full.log",
+      "outcome": "PASS",
+      "reported_duration_s": 194.023,
+      "reported_tests": 453,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/01-e2e-full.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-slice.test.py",
+      "duration_ms": "116377",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/02-e2e-slice-full.log",
+      "nonfatal_output_notes": "slice suite emitted informational implement/verify messages; suite ended OK.",
+      "outcome": "PASS",
+      "reported_duration_s": 116.141,
+      "reported_tests": 79,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/02-e2e-slice-full.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-test-loop.test.py MaskedZeroExitFailureTests VerifyLimitTests UnavailableExecutionTests RefusedRunTallyTests",
+      "duration_ms": "6986",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/03-test-loop-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 6.826,
+      "reported_tests": 32,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/03-test-loop-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-test-counts.test.py",
+      "duration_ms": "135",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/04-test-counts.log",
+      "outcome": "PASS",
+      "reported_duration_s": 0.018,
+      "reported_tests": 46,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/04-test-counts.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-actual-improve-cli.test.py EphemeralImproveCliTests.test_a_revised_final_result_over_a_producer_bound_is_refused_and_one_within_imports LoopContractShapeTests",
+      "duration_ms": "1825",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/05-actual-improve-cli-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 1.675,
+      "reported_tests": 4,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/05-actual-improve-cli-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-packet-completeness.test.py",
+      "duration_ms": "8874",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/06-packet-completeness.log",
+      "outcome": "PASS",
+      "reported_duration_s": 8.734,
+      "reported_tests": 63,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/06-packet-completeness.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-callback-contract.test.py StepSizingRouteTests PrimaryRequirementRouteTests",
+      "duration_ms": "14611",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/07-callback-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 14.451,
+      "reported_tests": 11,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/07-callback-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-handoff.test.py SendBackBudgetCliTests TestLayerGateTests",
+      "duration_ms": "6253",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/08-handoff-layer-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 6.076,
+      "reported_tests": 11,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/08-handoff-layer-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-loophole-gates.test.py LoopholeGateTests",
+      "duration_ms": "6491",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/09-loophole-gates.log",
+      "outcome": "PASS",
+      "reported_duration_s": 6.328,
+      "reported_tests": 2,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/09-loophole-gates.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-packet-obligations.test.py",
+      "duration_ms": "5137",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e/10-packet-obligations.log",
+      "outcome": "PASS",
+      "reported_duration_s": 5.05,
+      "reported_tests": 15,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/10-packet-obligations.log"
+    }
+  ],
+  "evidence_dir": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-main-891be21e",
+  "overall": "PASS",
+  "source": {
+    "entries_after": 5818,
+    "entries_before": 5818,
+    "generated_changes": [
+      "ignored Python __pycache__ directories only"
+    ],
+    "head_after": "891be21e471e1f1817a9b5a36c57cba45829576f",
+    "head_before": "891be21e471e1f1817a9b5a36c57cba45829576f",
+    "identity_sha256_after": "4544b2449aae25736d2df2c4cd97062466f3b61fc0810e02d4605832e665dbdd",
+    "identity_sha256_before": "4544b2449aae25736d2df2c4cd97062466f3b61fc0810e02d4605832e665dbdd",
+    "manifest_sha256_after": "efa4870a60fe1296d2f8b83037f4d37dd5da90c9ca07835a7f966a230d093790",
+    "manifest_sha256_before": "efa4870a60fe1296d2f8b83037f4d37dd5da90c9ca07835a7f966a230d093790",
+    "root": "/tmp/shiploop-main-conflict-20261025T142207/verification",
+    "status_unchanged": true,
+    "tracked_diff_unchanged": true,
+    "untracked_nonignored_unchanged": true
+  },
+  "original_evidence_dir": "/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e"
+}

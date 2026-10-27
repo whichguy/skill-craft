@@ -1,0 +1,4 @@
+command=python3 -B test/shiploop-e2e.test.py EffortScheduleThroughMainTest.test_a_schedule_uses_the_unlimited_default_timeout_and_resume_budget EffortScheduleThroughMainTest.test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes
+exit_code=1
+duration_ms=7285
+log=/tmp/shiploop-main-conflict-20261025T142207/checks-initial/01-e2e-focused.log

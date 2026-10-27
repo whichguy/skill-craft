@@ -1,0 +1,66 @@
+{
+  "schedule": {
+    "M": "medium",
+    "I2": "medium",
+    "D": "medium"
+  },
+  "mechanical": [
+    "operations",
+    "prepare",
+    "product-acceptance",
+    "release",
+    "release-check",
+    "release-verify",
+    "system-test"
+  ],
+  "classes": {
+    "M": "mechanical stage",
+    "I2": "Improve pass 2 or later",
+    "D": "every other position"
+  },
+  "launches": [
+    {
+      "t": 1792897352.763,
+      "class": "D",
+      "effort": "medium",
+      "why": "start"
+    },
+    {
+      "t": 1792901088.842,
+      "class": "M",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792901116.559,
+      "class": "M",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792901135.302,
+      "class": "M",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792901247.432,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    }
+  ],
+  "restarts": [
+    {
+      "n": 1,
+      "t": 1792901247.431,
+      "from": "M",
+      "to": "D",
+      "stage": "handoff",
+      "why": "stage handoff",
+      "revision": 31,
+      "effort_before": "medium",
+      "effort_after": "medium"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "checks": [
+    {
+      "command": "python3 -B test/shiploop-e2e.test.py EffortScheduleThroughMainTest.test_a_schedule_uses_the_unlimited_default_timeout_and_resume_budget EffortScheduleThroughMainTest.test_a_schedule_boundary_is_allowed_with_zero_ordinary_resumes",
+      "duration_ms": "14361",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-final/01-e2e-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 13.897,
+      "reported_tests": 2,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-final/01-e2e-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-slice.test.py EffortSliceMainTests",
+      "duration_ms": "2265",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-final/02-e2e-slice-focused.log",
+      "outcome": "PASS",
+      "reported_duration_s": 1.779,
+      "reported_tests": 1,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-final/02-e2e-slice-focused.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e.test.py",
+      "duration_ms": "199787",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-final/03-e2e-full.log",
+      "outcome": "PASS",
+      "reported_duration_s": 199.432,
+      "reported_tests": 453,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-final/03-e2e-full.log"
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-slice.test.py",
+      "duration_ms": "109518",
+      "exit_code": "0",
+      "log": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-final/04-e2e-slice-full.log",
+      "nonfatal_output_notes": "slice suite emitted informational implement/verify messages; suite ended OK.",
+      "outcome": "PASS",
+      "reported_duration_s": 109.293,
+      "reported_tests": 79,
+      "original_log": "/tmp/shiploop-main-conflict-20261025T142207/checks-final/04-e2e-slice-full.log"
+    }
+  ],
+  "evidence_dir": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-final",
+  "overall": "PASS",
+  "prior_failure_evidence": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-prompt-audit-evidence/main-98983fa2/checks-initial/receipt.json",
+  "source": {
+    "entries_after": 5816,
+    "entries_before": 5816,
+    "fingerprint_after": "2f2d472297d5b2094e7ac2700925b69eff7e1cc3963bd161e6a4b30d40015878",
+    "fingerprint_before": "2f2d472297d5b2094e7ac2700925b69eff7e1cc3963bd161e6a4b30d40015878",
+    "generated_changes": [
+      "ignored __pycache__ directories"
+    ],
+    "head": "5d3628b0497c2402d7554c73011bb3d87a13bf55",
+    "root": "/tmp/shiploop-main-conflict-20261025T142207/verification",
+    "tracked_and_untracked_inventory_unchanged": true
+  },
+  "original_evidence_dir": "/tmp/shiploop-main-conflict-20261025T142207/checks-final"
+}

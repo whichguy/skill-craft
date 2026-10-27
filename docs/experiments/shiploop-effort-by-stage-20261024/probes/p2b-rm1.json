@@ -1,0 +1,66 @@
+{
+  "label": "p2b-rm1",
+  "host": "grok",
+  "model": "grok-4.7",
+  "prompt_key": "A",
+  "effort_requested": "medium",
+  "effort_argv": [
+    "medium"
+  ],
+  "resume": "01a16ef4-12ff-7020-9e59-c6b703b2d5e0",
+  "argv_shape": [
+    "grok",
+    "--cwd",
+    "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/21b08...",
+    "--prompt-file",
+    "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/21b08...",
+    "--verbatim",
+    "--output-format",
+    "streaming-json",
+    "--model",
+    "grok-4.7",
+    "--max-turns",
+    "3",
+    "--permission-mode",
+    "auto",
+    "--no-auto-update",
+    "--resume",
+    "01a16ef4-12ff-7020-9e59-c6b703b2d5e0",
+    "--reasoning-effort",
+    "medium"
+  ],
+  "run": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 20.4
+  },
+  "session_id": "01a16ef4-12ff-7020-9e59-c6b703b2d5e0",
+  "usage_events": [
+    {
+      "type": "usage",
+      "usage": {
+        "input_tokens": 3045,
+        "output_tokens": 1688,
+        "cache_read_input_tokens": 17408,
+        "cache_creation_input_tokens": 0,
+        "reasoning_tokens": 1538
+      }
+    },
+    {
+      "type": "end",
+      "usage": {
+        "input_tokens": 3045,
+        "cache_read_input_tokens": 17408,
+        "cache_creation_input_tokens": 0,
+        "output_tokens": 1688,
+        "reasoning_tokens": 1538,
+        "total_tokens": 22141
+      },
+      "total_cost_usd": 0.024922,
+      "num_turns": 1,
+      "stopReason": "end_turn"
+    }
+  ],
+  "stderr_tail": "",
+  "events_bytes": 17505
+}

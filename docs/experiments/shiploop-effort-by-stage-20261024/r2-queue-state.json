@@ -1,0 +1,72 @@
+{
+ "runs": {
+  "treatment-hello": {
+   "status": "final",
+   "resumes": 0,
+   "foreign_at_launch": [],
+   "started": 1792953336.171542,
+   "last_launch": 1792953336.1715431,
+   "returncode": 0,
+   "finished": 1792957372.050963,
+   "facts": {
+    "engine": "done",
+    "pass": true,
+    "plugin_ok": true,
+    "seconds": 4030.8,
+    "tokens": 41659602,
+    "restarts": 11
+   }
+  },
+  "control-hello": {
+   "status": "final",
+   "resumes": 0,
+   "foreign_at_launch": [],
+   "started": 1792953336.1734002,
+   "last_launch": 1792953336.1734002,
+   "returncode": 1,
+   "finished": 1792959184.4450402,
+   "facts": {
+    "engine": "done",
+    "pass": false,
+    "plugin_ok": true,
+    "seconds": 5836.8,
+    "tokens": 65540870,
+    "restarts": 14
+   }
+  },
+  "treatment-seat-reservations": {
+   "status": "final",
+   "resumes": 0,
+   "foreign_at_launch": [],
+   "started": 1792959460.399905,
+   "last_launch": 1792959460.399905,
+   "returncode": 1,
+   "finished": 1792968011.9996889,
+   "facts": {
+    "engine": "done",
+    "pass": false,
+    "plugin_ok": true,
+    "seconds": 8536.4,
+    "tokens": 71574646,
+    "restarts": 17
+   }
+  },
+  "control-seat-reservations": {
+   "status": "final",
+   "resumes": 0,
+   "foreign_at_launch": [],
+   "started": 1792959460.402576,
+   "last_launch": 1792959460.402577,
+   "returncode": 1,
+   "finished": 1792968692.736367,
+   "facts": {
+    "engine": "done",
+    "pass": false,
+    "plugin_ok": true,
+    "seconds": 9214.9,
+    "tokens": 75925838,
+    "restarts": 18
+   }
+  }
+ }
+}

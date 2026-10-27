@@ -1,0 +1,38 @@
+{
+ "grades": {
+  "met": "the artifact meets the criterion's met condition",
+  "partial": "the criterion's partial condition holds",
+  "missed": "the criterion's missed condition holds",
+  "na": "the criterion's N/A condition holds"
+ },
+ "criteria": {
+  "F1": [
+   "Recorded facts",
+   "Every statement the artifact makes about what this run did (commands run and their exits, test ids and counts, pass or fail, commits, deploy or release identities, times, Improve pass labels and whether the tree changed) agrees with the run record wherever the record covers it. Statements the record does not cover are judged under F4, not here. Met: no covered statement disagrees with the record. Partial: a detail disagrees (a count, an id, a commit, a time, a label) while the main outcome agrees. Missed: the main outcome or a central result disagrees with the record, for example a pass the record shows failed or never ran, or 'no change' where the record shows a commit. N/A: the record covers none of the artifact's statements. Evidence: the decisive artifact statement; fact: the record line it agrees or disagrees with."
+  ],
+  "F2": [
+   "Required fields",
+   "The artifact reports every item its kind must report (the kind list above), each with content a reader can act on, not a placeholder. Met: every required item is present and specific. Partial: one required item is missing, empty or only gestured at (for example 'checks pass' with no command or result), or a not-run or unverified item lacks its reason or its owner. Missed: two or more required items are missing, or the artifact is a bare verdict. Evidence: the span that decides it (for missed, what stands in for the missing items, or none)."
+  ],
+  "F3": [
+   "Fresh evidence",
+   "The results the artifact relies on were produced after the last edit to the product files they cover (code, tests, configuration, metadata), judged from the record's commit times, rerun creation times and pass times. Documentation-only commits, including ShipLoop's own 'docs(shiploop): record ...' knowledge commits, are not product edits. Met: no relied-on result predates a later product edit as far as the record shows, or the artifact says which result predates an edit and why it still holds. Partial: a secondary result predates a later product edit and the artifact does not say so. Missed: the main result predates a later product edit and is presented as current. N/A: the artifact relies on no result (for example a review that ran no check and says so). Evidence: the artifact's statement of the result it relies on; fact: the record line that dates it or the later edit."
+  ],
+  "F4": [
+   "Supported claims",
+   "Every claim of success, coverage, readiness or absence of defects is backed by a result in the run record or by evidence the artifact itself cites (a command with its exit or output, a test id, a named file), and claims no more than that evidence shows. Nothing is said to be verified, observed or passed that the record or the artifact shows was not run. Met: every such claim is backed and in proportion. Partial: one secondary claim is unbacked or broader than its evidence (for example 'all tests pass' where the evidence covers one suite). Missed: the main success claim is unbacked or overstated (for example 'verified in the browser' with no browser check, or 'nothing unverified' while a due check did not run). Evidence: the decisive claim; fact: the record line that backs or contradicts it, or none."
+  ]
+ },
+ "groups": {
+  "truth": ["F1", "F4"],
+  "completeness": ["F2"],
+  "freshness": ["F3"]
+ },
+ "guardrails": ["truth"],
+ "anchors": {
+  "met": "the criterion's met condition holds. Quote the decisive artifact span.",
+  "partial": "the criterion's partial condition holds. Quote the vague, incomplete or disagreeing artifact span.",
+  "missed": "the criterion's missed condition holds. Quote the disagreeing or overstated span, or \"none\" when the required content is absent.",
+  "na": "the criterion's N/A condition holds. Evidence is \"na\"."
+ }
+}

@@ -1,0 +1,123 @@
+{
+  "from": "6ed817622426dcfde4840a4b5bac945bc64f151a",
+  "to": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+  "count": 29,
+  "commits": [
+    {
+      "commit": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+      "subject": "fix(shiploop): the unread refusal points at the platform card, which now names the Python and Jest reporters"
+    },
+    {
+      "commit": "9e67545df6b99d09992c039b70a14726ce1d1bed",
+      "subject": "fix(shiploop): a base run's not-run refusal starts with the command's exit code, and says when it printed nothing"
+    },
+    {
+      "commit": "0d80eeed3dea4c958105f082d35e15b7db182168",
+      "subject": "fix(shiploop): the base run's dependency directories come from the platform cards, not an engine constant"
+    },
+    {
+      "commit": "5f71657f5be0aa577c8bf72f5e729ca279612111",
+      "subject": "test(e2e): status_card.py renders the owner's illustrated status card from a JSON model"
+    },
+    {
+      "commit": "31933a73ea5cc273c3e8a89e1a5c148245cf4915",
+      "subject": "release: skill-craft 2.9.0, improve 0.7.0, shiploop 1.9.0, shiploop-e2e-audit 0.7.7, shiploop-run-review 0.3.2"
+    },
+    {
+      "commit": "6051924cc69d84369cf5600926936f49a13c3e27",
+      "subject": "fix(shiploop): the file-guard rule names no language's file API, only the shell forms (run-5 batch, genericity)"
+    },
+    {
+      "commit": "df6b91e21ff46379d538702f22ab1647c50f7d4f",
+      "subject": "revert(shiploop): the path catalog takes no Apex test-class patterns; ShipLoop stays generic (run-5 batch)"
+    },
+    {
+      "commit": "f04cbdde94b118f9bc9f4810024afd714928a57f",
+      "subject": "fix(shiploop): advisor pass 2 fixes: a folded command keeps its target, a mixed item's survivors are advisory, F5 reads the Git toplevel, a command names its target or none, a guard is a file test (run-5 batch)"
+    },
+    {
+      "commit": "484f4a67d5079faa55d0bf1614245658299d5e17",
+      "subject": "test(e2e): dodge counters count only grep_executed, guarded REDs and surviving mutants as dodges"
+    },
+    {
+      "commit": "f820b4ea3e9718dbd69e2047fe99bc47ae4163a2",
+      "subject": "test(e2e): run-level dodge counters in metrics.json and the run report"
+    },
+    {
+      "commit": "91d7364a7b2ceefd2479d9943884884bf6c7625b",
+      "subject": "feat(shiploop): an Improve code fix names its regression test on a commit line improve-commit checks (run-5 batch F5)"
+    },
+    {
+      "commit": "66703f483e941e7c208914884b4a9b8a4bbf9d80",
+      "subject": "fix(shiploop): the path catalog classes Apex test classes and their sidecars as test, so a test-only step is refused on Salesforce"
+    },
+    {
+      "commit": "f9d1f4cf732e9d63b46349c69e7cec3b6207995e",
+      "subject": "feat(shiploop): the spec names the primary requirements, and an unverified primary outcome needs a passed lower-layer test (run-5 batch F6)"
+    },
+    {
+      "commit": "5c0e8f5f373bde0f1154d0723ed7b718e2e0ef9d",
+      "subject": "test(shiploop): known dodges go through the real CLI in one table; the Run Review catalog follows R2 (run-5 batch)"
+    },
+    {
+      "commit": "a92de59790240251984709758fbe90af8b6bc730",
+      "subject": "refactor(shiploop): a result starts an Improve stage, a refusal names the callback, and a print ends with the print marker; the Until Loop's record is its receipt (run-5 batch R4)"
+    },
+    {
+      "commit": "145aefbb76500a1e986d5850858d7e5d3090d945",
+      "subject": "feat(shiploop): a file guard is refused, commands name the target they run on, remote commands are left out per command (run-5 batch F2 rest, F3, I2, I1)"
+    },
+    {
+      "commit": "bed88d7bb12511c401d552936c50ec4904862880",
+      "subject": "refactor(shiploop): an open item is due at a due_stage, the plan's at a due_item; consumer keeps one meaning (run-5 batch R3)"
+    },
+    {
+      "commit": "6c669532e4f3f5592d8c4602bf7f26867cdec485",
+      "subject": "refactor(shiploop): a criterion is a step plan's C<n>, a requirement is an R-<n>, and a requirement holds acceptance lines (run-5 batch R2)"
+    },
+    {
+      "commit": "9233929211ffd8d8e454020e48e9f6b702753ed6",
+      "subject": "refactor(shiploop): a step's command is its proof and an open item is settled by settle; check keeps one meaning (run-5 batch R1)"
+    },
+    {
+      "commit": "ec74e2ea55737745ac120bd92f05becfd68ecbe7",
+      "subject": "feat(shiploop, e2e): a glossary defines each ShipLoop term once, and a test and a run record keep retired terms out (run-5 batch 3b, S-16)"
+    },
+    {
+      "commit": "ed41369f50881e773e933e7f5d8823f0bad0146b",
+      "subject": "fix(shiploop): one term per concept in the stage texts, refusals and references; F1's rows become test_layers (run-5 batch term fixes)"
+    },
+    {
+      "commit": "d21c770e5c71888069f239c7e2156b22ae515b61",
+      "subject": "feat(improve, shiploop): every Improve stage reads a 9.7 KB route core instead of the 47 KB route card"
+    },
+    {
+      "commit": "2535a7af890ffd1e6baa38d03c3a42b58c6622be",
+      "subject": "feat(shiploop-e2e): measure which ShipLoop refusal gates fired and were caught"
+    },
+    {
+      "commit": "52789f8f0659361748beed3a0d601ca4e88146d3",
+      "subject": "feat(shiploop): test layers become result fields with gates, and every criterion says how it is confirmed (run-5 batch F1)"
+    },
+    {
+      "commit": "9ed4ec24f8481a1841820033a35d31804ebb9dab",
+      "subject": "feat(shiploop): stage rules from a product review of run 4, graded B- (run-4 quality Q1, Q3-Q7)"
+    },
+    {
+      "commit": "7f6f1942259435beb4ebf6cfed4919bd21b2a162",
+      "subject": "feat(e2e): measure what fills a Grok run's context between compactions"
+    },
+    {
+      "commit": "195cf5e0c09c0dd3dca9501b9b73d9def25a95dc",
+      "subject": "fix(shiploop): an item must bring its own focused tests, and a printed path no longer fakes RED (run-4 quality Q2)"
+    },
+    {
+      "commit": "e074ccd3bcbf081b0591588b9cdab244efe508aa",
+      "subject": "fix(shiploop): the test stage's base run does not run a command that tests a deployed target (run-5 prep)"
+    },
+    {
+      "commit": "9c324cd9c5b380db9af739592711821194a25469",
+      "subject": "fix(shiploop): the inline implement head always carries the look-back, one line per commit (run-5 prep)"
+    }
+  ]
+}

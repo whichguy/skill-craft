@@ -1,0 +1,1883 @@
+{
+  "kind": "plan-to-code traceability; audit evidence only",
+  "date": "2026-10-18",
+  "revision": "c70a33f46ed71cd2eed537353438cdd61c51a2ba",
+  "repo": "/Users/dadleet/src/skill-craft",
+  "assumption": "Use the recommendation baseline; no subsequent evolution audit.",
+  "plan": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17.md",
+  "source_paths_are_relative_to_repo": true,
+  "anchors": [
+    {
+      "id": "step-plan",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[step-plan]",
+      "start": 1268,
+      "end": 1295,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "51d6b5de6fd2d1053b0e82940e103954695d4eadb1a353b18bf3fb966dd19641",
+      "excerpt": "4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.\n   - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable\n     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with\n     \"and\", or too large for one review. Fold a step no check confirms alone (half a rename, scaffolding) into the\n     first step that uses it. A single bug fix or mechanical rename is one step.\n   - Tests are not a step (the test stage writes them after the last implement step); a step changing only test\n     files is refused unless the whole item is tests.\n   - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the\n     `criteria` it satisfies and its `check`; its `task` cites IDs, not their text. Every criterion is satisfied by\n     some step. Optional `paths` (inside the item's) serve the parallel chain.\n   - `check`: the one command, from the repository root, that proves the step's criteria with only this step and\n     accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release\n     artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file\n     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only. None runs\n     now: change the step boundary.\n   - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List\n     `{\"name\", \"why\", \"locator\"}` for each with a concrete use in the step, else []. Prefer a repository-local skill\n     reused unchanged. `locator`, when given, is an existing SKILL.md or card path.\n5. **`test_commands`** (`[{\"command\", \"suite\", \"ids\", \"criteria\"}]`), run from the repository root; the test and\n   verify stages run exactly these.\n   - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,\n     pytest `-v`, others: GUIDES/platforms/; never dot or junit). \"\"\" + ID_WORD_RULE + \"\"\" `min_tests`\n     where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.\n   - regression: the retained suites the changed paths affect.\n   - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no\n     `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.\n     The test and verify stages run these; implement runs only each step's own `check`.\n   - Every criterion is named in some command's `criteria`, and a command names only listed criteria.\n",
+      "excerpt_document_line": 7
+    },
+    {
+      "id": "step-schema",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_check_step_sizing",
+      "start": 2451,
+      "end": 2477,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "6fe57148f0abd86635f331aa57562bff83a9ab0717b5070a0d07a3c2896b1a0e",
+      "excerpt": "def _check_step_sizing(result: Mapping[str, Any]) -> None:\n    \"\"\"Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).\n\n    Every step names the criteria it satisfies and its ``check``, the command that proves them (implement-step fix\n    plan section 4.1); every criterion is satisfied by some step; a step's optional paths are a subset of the item's;\n    and no step only changes test files, unless the whole item is tests (the test stage writes the tests after the\n    last implement step, so a test-only step would be a no-op).\n    \"\"\"\n    steps = result.get(\"steps\") or []\n    known = [str(row.get(\"id\")) for row in result.get(\"criteria\") or () if isinstance(row, Mapping)]\n    item_paths = list(result.get(\"paths\") or ())\n    shape = ('[{\"id\": \"S1\", \"task\": \"...\", \"deps\": [], \"criteria\": [\"C1\"], \"check\": \"<command that proves C1>\"}]')\n    for step in steps:\n        if not isinstance(step, Mapping):\n            continue\n        name = str(step.get(\"id\"))\n        _need(step.get(\"check\"), \"step \" + name + \" must record its check: the one command, run from the repository \"\n              \"root, that proves the criteria it satisfies using only this step and accepted earlier steps (ShipLoop \"\n              \"runs it when the step reports done). Steps are \" + shape)\n        if known:\n            _need(step.get(\"criteria\"), \"step \" + name + \" must list criteria: the IDs of the criteria it satisfies (\"\n                  + \", \".join(known) + \"). A step no check can confirm on its own belongs in the step it serves.\")\n            unknown = [c for c in step[\"criteria\"] if c not in known]\n            _need(not unknown, \"step \" + name + \" names criteria the result does not list: \" + \", \".join(unknown))\n        outside = [path for path in step.get(\"paths\") or ()\n                   if not any(path == item or fnmatch.fnmatchcase(path, item) for item in item_paths)]\n        _need(not outside, \"step \" + name + \" changes paths the item does not declare: \" + \", \".join(outside)\n",
+      "excerpt_document_line": 42
+    },
+    {
+      "id": "stage-proof",
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "implement completion runs",
+      "start": 409,
+      "end": 426,
+      "source_sha256": "90a0fc0b9367c02a6a515bb1852e3a37f5e692a86493d453bd10113efe9b3fb5",
+      "excerpt_sha256": "631f68d2a54b88164b427afc7abd54683a84b9af2ef5a1ab4b5585296dfc7eac",
+      "excerpt": "        steps_goal=\"Make the change of steps {steps} on their paths ({paths}) in WORKTREE; exit codes go to \"\n                   \"RUN/notes/<action>.md, uncovered behaviour to `not_covered`.\",\n        steps_done_when=(\n            \"only the paths of steps {steps} ({paths}) changed since the first of them began, and no work outside \"\n            \"those steps is in them\",\n            STEP_PROOF_CONDITION,\n            \"after the last edit, the lint gate reports no unwaived new finding on a line these steps changed\",\n            \"the result lists each behaviour the changes added that no test-spec case covers (or none), and whether \"\n            \"each step's skills were used\",\n        ),\n        develop=\"Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.\",\n        test=\"After each meaningful change, run the step's Proof; change the work, never the Proof or what it \"\n             \"expects. Tests are written in the test stage.\",\n        tools=\"Run `shiploop lint --action` after each edit; the lint gate runs at complete, on every step.\",\n        edits=frozenset({\"code\"}),\n        entry_runs=(\"loop-contract\",),\n        # step-proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.\n        complete_runs=(\"loop-terminal\", \"lint-gate\", \"step-proof\"),\n",
+      "excerpt_document_line": 76
+    },
+    {
+      "id": "command-owner",
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "stage_commands",
+      "start": 284,
+      "end": 310,
+      "source_sha256": "bb714f73ece9c25c81efd84e73322a0f71d972742be828dec7ed7454badc498d",
+      "excerpt_sha256": "0f4e40ea08a96dedeb297cfc6a005aae05570afe07b08654cee5b19d8dbab16b",
+      "excerpt": "def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, Any]], str]:\n    \"\"\"This stage's commands and, when there are none, why.\n\n    The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An inline implement step and its\n    Improve review run only that step's Proof, the step plan's ``check`` for it (``step_command``: the implement-step\n    fix plan's section 4.1); the item's commands stay with the test stage and verify.  Every other item stage, and the\n    ask-agent route's one implement action for every step, runs every command the latest accepted step plan recorded.\n    The base run takes the focused and regression ones (``base_commands``).\n    \"\"\"\n    if stage in STEP_PROOF_STAGES:\n        step = step_command(state, work_item)\n        if step is not None:\n            return [step[1]], \"\"\n    if stage in OUTER_SOURCES:\n        source, field = OUTER_SOURCES[stage]\n        result = _latest_root_result(state, source)\n        commands = [dict(row) for row in result.get(field) or ()]\n        return commands, (\"\" if commands else str(result.get(field + \"_na\") or \"\"))\n    _action, result = _step_plan(state, work_item)\n    if \"test_commands\" not in result:\n        return [], \"\"\n    commands = [dict(row) for row in result[\"test_commands\"]]\n    if commands:\n        return commands, \"\"\n    return [], str(result.get(\"test_commands_na\") or \"\")\n\n\n",
+      "excerpt_document_line": 101
+    },
+    {
+      "id": "step-receipt",
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "step_proof",
+      "start": 1357,
+      "end": 1385,
+      "source_sha256": "bb714f73ece9c25c81efd84e73322a0f71d972742be828dec7ed7454badc498d",
+      "excerpt_sha256": "f59da53776f87b128b43cd97971c6ed6ad030b5b763c06dc2d5f0ff26c3b8458",
+      "excerpt": "def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str, *, count: bool = True,\n               phase: str = \"complete\", runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,\n               clock: Optional[Callable[[], float]] = None, command_timeout: float = COMMAND_TIMEOUT_SECONDS,\n               budget: float = STAGE_BUDGET_SECONDS) -> Tuple[Dict[str, str], str, List[str]]:\n    \"\"\"Run the inline implement step's Proof on the candidate; return (record writes, refusal body, summary lines).\n\n    The Proof is the step plan's ``check`` for the step (``step_command``), judged as a check (``judge``: exit 0, and a\n    runner summary that shows no test ran is no pass), with the test loop's timeout, budget and capture.  Its record\n    (``step_proof_path``, or ``step_proof_check_only_path`` for ``count=False``) is bound to the action, the step, the\n    command and the candidate: the working trees the run started on and left (``_tree``).  A passed record of this\n    action for the same step and command whose trees include today's is taken instead of running again, so an\n    unchanged candidate reuses its receipt; at complete that writes a numbered record that says so, and at the Improve\n    import (``phase`` \"improve-import\") nothing is written.  An empty refusal means the Proof passed.  A step with no\n    check is refused: the step plan gate requires one, so only a run positioned another way lacks it.\n    \"\"\"\n    root = Path(root)\n    found = step_command(state, work_item)\n    if found is None:\n        return {}, (\"ShipLoop step proof: the step this action builds records no check (its Proof) in the accepted step \"\n                    \"plan, so ShipLoop cannot confirm it. Report revise so the step plan records one.\"), []\n    step, row = found\n    step_id = str(step.get(\"id\"))\n    repo = Path(str(state[\"repo\"]))\n    tree = _tree(root, repo)\n    number = _count(root, action, step_proof_path) + 1\n    matched = next(((relative, record) for relative, record in reversed(_proof_records(root, action))\n                    if record.get(\"passed\") is True and record.get(\"step\") == step_id\n                    and record.get(\"command\") == row[\"command\"] and tree and tree in (record.get(\"trees\") or ())),\n                   None) if count else None\n",
+      "excerpt_document_line": 133
+    },
+    {
+      "id": "step-execute",
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "step_proof execution and evidence",
+      "start": 1395,
+      "end": 1418,
+      "source_sha256": "bb714f73ece9c25c81efd84e73322a0f71d972742be828dec7ed7454badc498d",
+      "excerpt_sha256": "6a10514f82222faf2bbb5174534ede7fc3875864dea24a0c7dcdfd7d499deb6f",
+      "excerpt": "                  \"runs\": list(matched[1].get(\"runs\") or ()), \"trees\": [tree],\n                  \"reused\": {\"path\": matched[0], \"created_at\": matched[1].get(\"created_at\"), \"tree\": tree}}\n        return {step_proof_path(action, number): store.dumps(record, \"ShipLoop step proof\")}, \"\", [line]\n    runner = runner or lint.run_argv\n    clock = clock or time.monotonic\n    environment = dict(os.environ if env is None else env)\n    deadline = clock() + budget\n    left = deadline - clock()\n    if left <= 1.0:\n        run: Dict[str, Any] = _skipped(row, budget)\n    else:\n        fields, output = _run_command(runner, row[\"command\"], repo, min(command_timeout, left), environment, clock)\n        run = {**row, **fields}\n        if \"status\" not in run:\n            run.update(judge(row, run[\"exit\"], output))\n    disposition = _disposition([run], PASSING)\n    record = {\"schema\": SCHEMA, \"kind\": \"step-proof\", \"action\": action, \"stage\": STEP_PROOF_STAGES[0],\n              \"work_item\": work_item, \"step\": step_id, \"command\": row[\"command\"], \"phase\": phase,\n              \"created_at\": created, \"cwd\": str(repo), \"passed\": disposition == \"passed\", \"disposition\": disposition,\n              \"runs\": [run], \"trees\": [found_tree for found_tree in dict.fromkeys([tree, _tree(root, repo)]) if found_tree]}\n    if not count:\n        record[\"counted\"] = False\n    relative = step_proof_path(action, number) if count else step_proof_check_only_path(action)\n    writes = {relative: store.dumps(record, \"ShipLoop step proof\")}\n",
+      "excerpt_document_line": 169
+    },
+    {
+      "id": "proof-gate",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_step_proof_gate",
+      "start": 3754,
+      "end": 3778,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "8c359b817e9bc28118fb7da650ebb36289514614e5b386b43528df5b744cbdc1",
+      "excerpt": "def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, workitem: str | None,\n                     submitted: Any, *, check_only: bool = False) -> list[str]:\n    \"\"\"Accept an inline implement step's done only after ShipLoop runs the step's Proof on the candidate (implement-step\n    fix plan section 4.1, unit W2-A); return its ``Gates:`` line.\n\n    The whole-plan ask-agent action is not gated (its chain runs the steps and the item's checks stay its own).  A\n    refusal names both routes through the loop with its literal start command: fix the work and report done, or, when\n    the Proof cannot assess the step as planned, stop the loop blocked and report revise.  ``check_only`` runs the Proof\n    without counting it (``test_loop.step_proof(count=False)``).\"\"\"\n    if (not isinstance(submitted, Mapping) or submitted.get(\"outcome\") != \"done\"\n            or step_view(state, workitem) is None):\n        return []\n    writes, refusal, lines = test_loop.step_proof(root, state, workitem or \"\", action_id, count=not check_only)\n    for relative, text in writes.items():\n        store.atomic_write_text(root / relative, text)\n    if refusal:\n        try:\n            start = loops.start_command(loops.runtime(state), loops.receipt_path(root, action_id),\n                                        root / loops.contract_path(action_id))\n        except loops.LoopError:\n            start = \"\"\n        route = (\"Start the Until Loop again with: \" + start + \"  (it replaces the receipt), then either \"\n                 if start else \"In the stage's Until Loop, either \")\n        raise NavigatorError(refusal + \"\\n\" + route + \"fix the work until the Proof passes (never the Proof or what it \"\n                             \"expects) and report done, or, for a Proof that needs a later step, a test the test stage \"\n",
+      "excerpt_document_line": 200
+    },
+    {
+      "id": "improve-reproof",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_change_gate",
+      "start": 3897,
+      "end": 3918,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "e29968de98c55b8c62a7b4a7f3306a7d9b5eacfc1d5e5bbac7f4048a582648a3",
+      "excerpt": "                             + _callback(core, root, \"complete\", action=improve_id(state)))\n    if child.get(\"stage\") == \"implement\" and step_view(state, _current_work_item(state)) is not None:\n        # The step's Proof passed at implement's done; a review that changed the candidate must pass it again before\n        # the step is accepted, and an unchanged candidate reuses that record (implement-step fix plan section 2.1).\n        writes, refusal, _lines = test_loop.step_proof(root, state, _current_work_item(state) or \"\", action_id,\n                                                       phase=\"improve-import\")\n        for relative, text in writes.items():\n            store.atomic_write_text(root / relative, text)\n        if refusal:\n            message_path = improve_commit_message_path(child)\n            raise NavigatorError(\n                refusal + \"\\nFix it within the review's scope, commit the fix (write the message to \" + str(message_path)\n                + \" with a file tool, then run: \" + _callback(core, root, \"improve-commit\", action=improve_id(state),\n                                                               message=str(message_path))\n                + \"), then run the complete command again: \" + _callback(core, root, \"complete\", action=improve_id(state)))\n        return\n    if child.get(\"stage\") != \"carry-forward\" or (changes is not None and not changes[0]):\n        return\n    commands = improve_changes.rerun_commands(state)\n    writes, refusal = test_loop.verify(root, state, \"\", action_id, \"end-of-work review\", commands=commands)\n    for relative, text in writes.items():\n        store.atomic_write_text(root / relative, text)\n",
+      "excerpt_document_line": 232
+    },
+    {
+      "id": "step-block",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "step_block",
+      "start": 6200,
+      "end": 6241,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "13b9adead2f6f1b9e902755136d77afaabd3b40a106be90c8aa46a8136881431",
+      "excerpt": "def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:\n    \"\"\"The one Step block of an inline implement step (implement-step fix plan section 3.1, trimmed to what state holds):\n    the task, the criteria it serves by value with their test cases, what it depends on, its Proof, its skills, the\n    accepted earlier steps and the later ones by their first sentence.  ``render``, ``packet_head`` and\n    ``improve_handoff_text`` print these lines word for word (packet review F15: the head and the Improve hand-off lacked\n    them).  No path fence (the fix plan's D3): the item's declared paths bound the change.  [] outside an inline step.\n    \"\"\"\n    view = step_view(state, work_item)\n    if view is None:\n        return []\n    step = view.step\n    listed = [str(ident) for ident in step.get(\"criteria\") or ()]\n    criteria = [(str(row.get(\"id\")), _one_line(row.get(\"text\"))) for row in view.plan.get(\"criteria\") or ()\n                if isinstance(row, Mapping) and str(row.get(\"id\")) in listed]\n    action = planning_revision.current_actions(state).get((work_item, \"test-spec\"))\n    spec = (state.get(\"accepted\") or {}).get(action) if action else None\n    cases = [str(case.get(\"id\")) for case in (spec.get(\"test_cases\") or () if isinstance(spec, Mapping) else ())\n             if isinstance(case, Mapping) and str(case.get(\"criterion\")) in listed]\n    accepted = {str(earlier.get(\"id\")): row for earlier, row in view.accepted}\n    deps = [str(dep) for dep in step.get(\"deps\") or ()]\n    check = str(step.get(\"check\") or \"\").strip()\n    lines = [f\"Step {step['id']} ({view.number} of {len(view.steps)}), the only work for this packet: \"\n             + _one_line(step.get(\"task\")),\n             *([\"  Serves (each criterion this step satisfies, in the step plan's words):\",\n                *(\"    \" + ident + \": \" + text for ident, text in criteria)] if criteria else []),\n             *([\"  Test cases of these criteria (the test stage writes them later; their oracles: the test-spec result): \"\n                + \", \".join(cases)] if cases else []),\n             \"  Depends on: \" + (\"; \".join(dep + (\" (accepted: RUN/results/\" + str(accepted[dep][\"action\"]) + \".md)\"\n                                                  if dep in accepted else \"\") for dep in deps) or \"none\"),\n             (\"  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): \" + check) if check else\n             \"  Proof: none recorded in the step plan; report revise so the step plan records the step's check.\",\n             \"  Skills (use each; the summary says whether you did): \"\n             + (\", \".join(str(skill.get(\"name\")) for skill in step.get(\"skills\") or () if isinstance(skill, Mapping))\n                or \"none\")]\n    for earlier, row in view.accepted:\n        lines.append(f\"Accepted step {earlier['id']}: {row['summary']}\")\n    later = view.steps[view.number:]\n    if later:\n        lines.append(\"Later steps (ShipLoop issues each after this one; do not start them): \"\n                     + \"; \".join(str(row.get(\"id\")) + \" \" + _first_sentence(row.get(\"task\"), 200).rstrip(\".\")\n                                 for row in later))\n    return lines + [STEP_FILES_LINE.format(plan=view.plan_action)]\n",
+      "excerpt_document_line": 261
+    },
+    {
+      "id": "head",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "packet_head",
+      "start": 1904,
+      "end": 1917,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "c0dccef8afa2976baeddc2982579a1e5a1d9c68300904f6440f37434cf051507",
+      "excerpt": "def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,\n                timeline: Mapping[str, Any] | None = None, *, measure: Callable[[str], int] = len) -> str:\n    \"\"\"The printed part of an active packet longer than ``PRINT_LIMIT``: what to do, in the order a reader cut short needs.\n\n    The blocks of ``_producer_blocks`` in print order: the stage line, the two pointer lines and the callback, goal and\n    loop, the status, the duties and rules, the stage's own inputs, the result template; then, while the head fits\n    ``HEAD_LIMIT``, the lookups, the chrome and the knowledge files' contents with the hand-offs (the file has them all).\n    Owner, 2026-10-16: the head used to leave the duties in the file, so a reader of the printed text alone never saw them\n    (measured offline at 2686b427).\n    \"\"\"\n    if state.get(\"active_improve\") is not None:\n        return improve_packet(core, root, state, timeline) + HEAD_END + \"\\n\"\n    blocks = _select_head(_producer_blocks(core, root, state, timeline, path=path), measure)\n    return _text_of(blocks, head=True) + \"\\n\" + HEAD_END + \"\\n\"\n",
+      "excerpt_document_line": 310
+    },
+    {
+      "id": "block-producer",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_producer_blocks assignment",
+      "start": 2045,
+      "end": 2053,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "0087d9dbcb2095331b161cddf04bb513c3e2532d02d367f3e5187af33f5afd63",
+      "excerpt": "    blocks.append(_Block(\"goal\", P0, _goal_lines(state, stage, root)))\n    loop = _loop_lines(root, state, stage, action_id, workitem)\n    # An inline implement step's packet puts its Step block right after Done when and ends with its loop, in the file and\n    # in the head (implement-step fix plan D4 and section 3.1); every other looped stage keeps its loop here.\n    step = _step_lines(state, stage, workitem)\n    if step:\n        blocks.append(_Block(\"step\", P1, [*step, \"\"]))\n    elif loop:\n        blocks.append(_Block(\"loop\", P0, [*loop, \"\"]))\n",
+      "excerpt_document_line": 331
+    },
+    {
+      "id": "loop-last",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_producer_blocks tail",
+      "start": 2105,
+      "end": 2115,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "6fcb7d17f0b3aca225ea2c3abac8c3d050f9be2e50c6fa29f965a0fddb9b9622",
+      "excerpt": "    blocks.append(_Block(\"deltas\", FILE_ONLY, [\n        *_replan_delta_lines(root, state, stage), *_knowledge_lines(root, state, stage)]))\n    blocks.append(_Block(\"lint-records\", FILE_ONLY, _lint_lines(core, root, state, stage, action_id, commands=False)))\n    if stage == quality.STAGE:\n        blocks.append(_Block(\"change-inventory\", FILE_ONLY, quality.inventory_lines(root, state, workitem or \"\", action_id)))\n    if step and loop:\n        blocks.append(_Block(\"loop\", P0, loop))  # its leading blank line parts it from the block before\n    return [block._replace(\n        lines=_symbolic_lines(block.lines, core, root, state),\n        head=None if block.head is None else _symbolic_lines(block.head, core, root, state))\n        for block in blocks if block.lines]\n",
+      "excerpt_document_line": 347
+    },
+    {
+      "id": "handoff",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "improve_handoff_text",
+      "start": 6402,
+      "end": 6418,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "d1244914168a177e617a5c2658fcb12e87b576a07148f145fdd0a083be1020ce",
+      "excerpt": "    context = [\n        *_goal_lines(state, stage, root),\n        *references,\n        *([f\"Work item: {workitem} \u2014 \" + str(state[\"work_items\"][state[\"work_index\"]].get(\"title\", \"\")),\n           \"Work item context: \" + str(state[\"work_items\"][state[\"work_index\"]].get(\"context\", \"\"))]\n          if workitem is not None else []),\n        # The step under review: the producer's own Step block, word for word, and the diff base it began from (W2-B).\n        *(step_block(state, workitem) if stage == \"implement\" else []),\n        *_review_base_line(root, state, child),\n        *_test_context_lines(state, root),\n        *_reviewed_input_lines(root, state, stage, workitem),\n        # An Improve review never mentions Backchain (owner, 2026-10-11), so its guides are left out here.\n        *(label + \": \" + str(reference_dir / reference) for label, reference in guidance.STAGE_REFERENCES.get(stage, ())\n          if \"backchain\" not in (label + reference).lower()\n          and not (route == guidance.INLINE and label == \"Parallel-chain guide\")),\n        *_run_rules(core, root, state, named),\n        *_queue_lines(root, state, stage),\n",
+      "excerpt_document_line": 365
+    },
+    {
+      "id": "review-base",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_review_base_line",
+      "start": 6268,
+      "end": 6286,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "de5986bdcbce6963255822a0c6e0c0377b71893a67bcfc4f48d041f1da28f403",
+      "excerpt": "def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:\n    \"\"\"The step-entry diff base the step's Improve review starts from: the tree the transition recorded in the action\n    record (``_step_entry``) and the tree ShipLoop snapshotted when it bound this review, as one runnable diff.\"\"\"\n    if child.get(\"stage\") != \"implement\" or step_view(state, _current_work_item(state)) is None:\n        return []\n    action = current_action(state)\n    base = action.get(\"base\") if isinstance(action, Mapping) else None\n    bound = None\n    try:\n        record = store.read_record(Path(root) / improve_changes.bind_path(child[\"action_id\"]))\n        bound = record.get(\"tree\") if isinstance(record, Mapping) else None\n    except (OSError, store.StorageError):\n        bound = None\n    if not base or not bound:\n        return [\"Review base: not recorded when the step began (outside a Git checkout, or its snapshot failed): review \"\n                \"the change the step's result names against the Accepted step lines above.\"]\n    return [\"Review base (the step's change since it began, untracked files included): git -C \" + str(state[\"repo\"])\n            + \" diff \" + str(base) + \" \" + str(bound) + \" (\" + str(base)[:12] + \": the working tree when the step \"\n            \"began; \" + str(bound)[:12] + \": when this review was bound; your own edits since then show in git status).\"]\n",
+      "excerpt_document_line": 389
+    },
+    {
+      "id": "result-shape",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_canonical_result outcome and evidence_refs",
+      "start": 910,
+      "end": 943,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "846a297b99853941fae3f2e9c6545c3890552ffdc5b515c3ef434ca85d99fb0e",
+      "excerpt": "        _need(stage == \"plan\" and set(value) - {\"headline\"} == {\n            \"outcome\", \"summary\", \"evidence_refs\", \"reconciliation_target\",\n        }, \"reconcile is allowed only as the exact plan result\")\n    else:\n        _need(\"reconciliation_target\" not in value,\n              \"reconciliation_target is allowed only with a reconcile result\")\n    if \"headline\" in value:\n        headline = _text(value[\"headline\"], \"result headline\")\n        _need(headline != HEADLINE_PLACEHOLDER,\n              \"headline still holds the template placeholder; write one line for the user saying \"\n              \"what this step established\")\n        _need(\"\\n\" not in headline and len(headline.strip()) <= HEADLINE_LIMIT,\n              f\"headline must be one line of at most {HEADLINE_LIMIT} characters\")\n    if outcome == \"replan\":\n        _need(stage in guidance.OUTER and \"work_items\" in value,\n              \"replan requires corrective work_items at an outer stage\")\n    if \"blocked_by\" in value:\n        _need(outcome == \"blocked\" and value[\"blocked_by\"] in BLOCKED_BY,\n              \"blocked_by is only for a blocked result and must be user, access or external\")\n    result: dict[str, Any] = {\n        \"outcome\": outcome,\n        \"summary\": _text(value.get(\"summary\"), \"result summary\"),\n    }\n    _need(\" \".join(result[\"summary\"].split()) not in _summary_placeholders(),\n          \"summary still holds the template placeholder; write what the placeholder asks for\")\n    if \"headline\" in value:\n        result[\"headline\"] = value[\"headline\"].strip()\n    refs = value.get(\"evidence_refs\", [])\n    _need(isinstance(refs, list), \"evidence_refs must be a list\")\n    _need(EVIDENCE_PLACEHOLDER not in refs,\n          \"evidence_refs still holds the template placeholder; list the absolute path of each \"\n          \"file this stage wrote or of the check output it recorded\")\n    result[\"evidence_refs\"] = [\n        _text(reference, \"evidence reference\") for reference in refs\n",
+      "excerpt_document_line": 415
+    },
+    {
+      "id": "scope",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_IMPLEMENT_SCOPE_INLINE",
+      "start": 724,
+      "end": 728,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "155d2c59e58b3631549482d602484e453b185d8e7f171067d6f5525d465e3f07",
+      "excerpt": "_IMPLEMENT_SCOPE_INLINE = \"\"\"\\\n1. **Scope.** Do only this step: meet its criteria, nothing no criterion asks for, and break none of the item's\n   other requirements. Earlier steps are accepted. Write no tests, start no later step, and leave unrelated code as is\n   (no reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:\n   change one only when a criterion says to.\n",
+      "excerpt_document_line": 456
+    },
+    {
+      "id": "procedure",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "PROCEDURE_WALK and consumers",
+      "start": 758,
+      "end": 779,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "d5dbe6ca0d3b6b3d852f71112240af6ef5601ae0fbf455726762ace18a4441f1",
+      "excerpt": "# Procedure validity (implement-step fix plan 2026-10-17 section 4.2, unit W2-C): an ordered procedure can name\n# repeatable actions and still be impossible.  A live run's release check asked for one more action after the state\n# that allows it had ended, and passed every review handoff on the way.  The walk is worded once: the shared focus item\n# below carries it to the spec and test-strategy duties and to every planning review, and test-spec's duty applies it to\n# the cases that stage owns.\nPROCEDURE_WALK = (\"Walk it from its stated start: can the actor reach that start under recorded authority, can each \"\n                  \"action occur in the state the preceding actions leave, can the chosen observer see the expected \"\n                  \"result?\")\n_PROCEDURE_ITEM = textwrap.fill(\n    \"an ordered procedure (calls, commands, interactions) that cannot happen as written. \" + PROCEDURE_WALK\n    + \" Use an existing local check where one fits. Record an unreachable start as an open prerequisite, revise an \"\n    \"invalid action or oracle, claim no execution from a plan, and treat an observation made before its setup changed \"\n    \"as stale\", width=80, initial_indent=\"- \", subsequent_indent=\"  \", break_on_hyphens=False)[2:]\n# Test-spec's duty item 4: the walk applied to the cases that stage owns, and where a procedure's locator rides, so the\n# stages that quote the case or the open item (implement and its Improve, test, verify, system-test-author, the open\n# item's consumer) run that one procedure rather than a copy.\n_TEST_SPEC_PROCEDURE = textwrap.fill(\n    \"4. A case's setup and actions are an ordered procedure. \" + PROCEDURE_WALK + \" An unreachable start is an open \"\n    \"prerequisite (item 7); an impossible action or unobservable oracle is revised here (a forbidden action is its own \"\n    \"failure case). A procedure another record holds (HOME/architecture.md ## Real-boundary checks): its locator in \"\n    \"`oracle` or the open item's `check`. A plan is not a run; a setup change makes an earlier observation stale.\",\n    width=117, subsequent_indent=\"   \", break_on_hyphens=False) + \"\\n\"\n",
+      "excerpt_document_line": 468
+    },
+    {
+      "id": "planning-focus",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_REVIEW_FOCUS_ITEMS",
+      "start": 785,
+      "end": 808,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "e228e6cca4c799f9ae5f3f146282eb9b6116270a90e02ba6a1d0b05a93e0f106",
+      "excerpt": "_REVIEW_FOCUS_ITEMS = (\n    \"a step, example or expected result that cannot be replayed exactly: name the\\n\"\n    \"  concrete inputs, values, identifiers and sample interactions\",\n    _PROCEDURE_ITEM,\n    \"an expected result or check that a weaker stand-in would pass: a hardcoded\\n\"\n    \"  value, a missing assertion, a title-only test, or an absent required name\",\n    \"a documented command that does not run what it claims on the target runtime:\\n\"\n    \"  run it once and record the exit code and the cases it executes\",\n    \"a required requirement, test ID or case dropped or weakened compared with the\\n\"\n    \"  prior accepted version\",\n    \"a claim about what the runtime, platform or a library can do that a decision\\n\"\n    \"  depends on, with no primary-documentation source or probe result: check it,\\n\"\n    \"  and correct the plan where it is wrong\",\n)\n# One line (the completeness test reads a bullet's first line): the steps condition, with the step check's two faults.\n_REVIEW_FOCUS_STEPS = (\"a missing prerequisite, wrong order or unowned verification, or a check that needs a later step's \"\n                       \"work or passes by skipping a missing artifact, in the steps\")\n\n\ndef _focus_list(items: tuple) -> str:\n    return \"\".join(\"- \" + item + (\";\" if index < len(items) - 1 else \".\") + \"\\n\" for index, item in enumerate(items))\n\n\nREVIEW_FOCUS_CONDITIONS = _focus_list(_REVIEW_FOCUS_ITEMS + (_REVIEW_FOCUS_STEPS,))\n",
+      "excerpt_document_line": 497
+    },
+    {
+      "id": "carry-focus",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_focus",
+      "start": 6502,
+      "end": 6515,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "df8dd31c0c0779f8ec26ecfc67597e8ca729b8ec3964297383b4881f7843d0ff",
+      "excerpt": "def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[list[str], list[str]]:\n    \"\"\"(the review focus, the Code craft rubric) for the reviewed stage; the rubric is [] where the focus has none.\"\"\"\n    stage = child[\"stage\"]\n    # The focus is numbered F1..Fn when FOCUS_IDS is on (U19); the Code craft rubric has no bullets, so the ids are the same\n    # as ``focus_ids``, which counts the whole focus text.\n    if stage in guidance.PLANNING_REVIEW_STAGES:\n        return _numbered_focus(guidance.PLANNING_REVIEW_FOCUS.rstrip(), state, child), []\n    if stage == \"carry-forward\":\n        return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]\n    if stage in stage_spec.with_improve(\"step\"):\n        return (_numbered_focus(_several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), state, stage), state,\n                                child), [guidance.CODE_CRAFT.rstrip()])\n    return [], []\n\n",
+      "excerpt_document_line": 528
+    },
+    {
+      "id": "prepare-access",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[prepare]",
+      "start": 1225,
+      "end": 1245,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "876ad1279fdd14c12166035726d5433b46c62376c67a3ba226571d2d45499be6",
+      "excerpt": "    \"prepare\": \"\"\"\\\n1. Prepare or verify the development and test environments the plan's items and HOME/environment.md name\n   (Environment preparation guidance), using what the repository declares. Install nothing without authority.\n2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,\n   baseline identity (Workspace and return guidance).\n3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help\n   that proves it starts, not the suite); save the output and list each file in `evidence_refs`.\n4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,\n   keep the original observation, and rerun the original initial check on the unchanged product and tests before any\n   dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.\n5. Recheck discovery's source-return trigger and the authorized delivery and verification route from the execution\n   checkout before the first dependent work. If the return must precede a consumer check, record the ordering\n   conflict in `summary` as unresolved. Never return early, deploy, or bypass the final-handoff return guard.\n6. The consumer's access: name the consumer's account or role, the entry route the plan gives them and what reaching\n   it needs (account, role, visibility, permission). Check it read-only, with the probe the target's platform guide\n   names where it has one (GUIDES/platforms/), and record each prerequisite under HOME/environment.md ## Access and\n   accounts; one still unresolved stays open there with its owner (who can grant it) and the stage that needs it.\n   Create no grant; it does not block this stage.\n7. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the\n   commands that start each runner, the observations. Record not-applicable only when this candidate needs no\n   preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.\n",
+      "excerpt_document_line": 548
+    },
+    {
+      "id": "person-ask",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[release-verify]",
+      "start": 1787,
+      "end": 1809,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "f130d456942f5f2d4a41d01121fd62dbbac499c06c44afe9e69eaabd32309ba5",
+      "excerpt": "4. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A (Deployment and\n   handoff guidance); reconcile each affected requirement clause with its case, required surface and due phase,\n   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM\n   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and\n   prerequisites. Check that no clause or case was dropped; claim no requirement met while a required observation\n   is unrun.\n5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release again blindly.\n6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Verify every\n   other case first and record it as an open item in `assumptions` (who does what, where, and what they report). Only\n   when the release cannot be accepted without it, report `blocked`, `awaiting` kind `present`, asked once: step 1\n   reaches the consumer entry (menu entry or URL path) and says what to answer if it is missing or hidden; `report`\n   is a fill-in list, one yes/no line per case with what to look for (`2. after <action>, <what shows>: yes/no`).\n   The run's exclusions bind the run, not the person: ask what they changed. On the reply, recheck only the cases it\n   answers, against the same release; an unanswered case is not-run, an open item for handoff quoting the reply, and\n   the stage continues. Block again only when it answers none, or a required delivery-contract behavior obligation\n   still has no passed observation (ask then only its lines).\n7. Isolated run: this stage cannot return (Which checkout release-verify observes). A defect the checks find in the\n   delivered result goes through `replan` with one corrective work item; release then returns the fix. Write\n   nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).\n8. Local-only work: verify the current local candidate and its consumer behaviour; external activation N/A does not\n   make these checks N/A.\n9. A material change to code, tests, fixtures, configuration or target invalidates the observations it affects:\n   rerun those, reuse the rest only with identity and relevance stated.\n",
+      "excerpt_document_line": 576
+    },
+    {
+      "id": "delivery-gate",
+      "path": "skills/shiploop/scripts/shiploop_consumer_delivery.py",
+      "symbol": "validate_transition and validate_terminal",
+      "start": 657,
+      "end": 707,
+      "source_sha256": "a87108f1b7adff1dfeb43ba5aa64ee8f0ed2a13e267b58d32b8d1f46e7b6d80e",
+      "excerpt_sha256": "dc517147e3b3b968184c3d5c26c2fec2c99d355ca6fea66b88b38acb891bdbe7",
+      "excerpt": "def validate_transition(\n    state: Mapping[str, Any], action_id: str, stage: str, result: Mapping[str, Any]\n) -> dict[str, Any]:\n    \"\"\"Reject declared false completion without mutating navigator state.\"\"\"\n    projection = _project_submission(state, action_id, stage, result)\n    if result[\"outcome\"] != \"done\":\n        return projection\n    if stage == \"plan\":\n        _need(projection[\"contract\"] is not None,\n              \"delivery contract is required before successful plan\")\n        _need(projection[\"replan_required\"] is None, projection[\"replan_required\"])\n    elif stage == \"system-test\":\n        _need(not _pending(projection, phase=\"system-test\"),\n              \"required pre-update obligations are not current\")\n    elif stage in RELEASE_GATED_STAGES:\n        if stage != \"release-plan\":\n            _need(projection[\"replan_required\"] is None, projection[\"replan_required\"])\n        _require_release_ready(projection)\n        if stage == \"release\":\n            _need(not _pending(projection, phase=\"release\"),\n                  \"required release obligations need effect and identity observations\")\n        elif stage == \"release-verify\":\n            _need(not _pending(projection, phase=\"release\"),\n                  \"required release obligations need current effect and identity observations\")\n            _need(not _pending(projection, phase=\"release-verify\"),\n                  \"required release-verify behavior obligations are not current\")\n        elif stage in {\"operations\", \"handoff\"}:\n            _need(not _pending(projection),\n                  \"required consumer-delivery obligations remain unfinished\")\n    return projection\n\n\ndef validate_terminal(state: Mapping[str, Any]) -> None:\n    \"\"\"Reject a structurally complete marked state with declared work still due.\"\"\"\n    if (type(state.get(\"delivery_contract_version\")) is not int\n            or state.get(\"delivery_contract_version\") != DELIVERY_CONTRACT_VERSION):\n        return\n    if state.get(\"status\") != \"done\":\n        return\n    projection = project(state)\n    contract = projection[\"contract\"]\n    _need(isinstance(contract, Mapping),\n          \"completed consumer-delivery run has no accepted delivery contract\")\n    _need(projection[\"replan_required\"] is None, projection[\"replan_required\"])\n    _need(contract[\"necessity\"] != \"unresolved\",\n          \"completed consumer-delivery run has unresolved delivery necessity\")\n    if contract[\"necessity\"] == \"required\":\n        _need(contract[\"authority\"][\"status\"] == \"approved\",\n              \"completed consumer-delivery run has unresolved delivery authority\")\n    _need(not _pending(projection),\n          \"completed consumer-delivery run has unfinished required obligations\")\n",
+      "excerpt_document_line": 606
+    },
+    {
+      "id": "delivery-correction",
+      "path": "skills/shiploop/scripts/shiploop_consumer_delivery.py",
+      "symbol": "_requires_user_correction",
+      "start": 352,
+      "end": 367,
+      "source_sha256": "a87108f1b7adff1dfeb43ba5aa64ee8f0ed2a13e267b58d32b8d1f46e7b6d80e",
+      "excerpt_sha256": "77237c4f5c197cb28eb9379cbf16844e079c3bd6b9c895ddcd3bf04669f022bc",
+      "excerpt": "def _requires_user_correction(prior: Mapping[str, Any], current: Mapping[str, Any]) -> bool:\n    # Candidate changes describe a new artifact under the same requested\n    # delivery outcome.  They can demand replanning, but are not themselves a\n    # user scope reduction.  All other delivery requirement changes are.\n    for key in (\"consumer\", \"target\", \"behavior\", \"operation\", \"necessity\", \"exclusions\", \"authority\"):\n        if prior[key] != current[key]:\n            return True\n    previous = {row[\"id\"]: row for row in _required_rows(prior)}\n    replacement = {row[\"id\"]: row for row in _required_rows(current)}\n    for identifier, row in previous.items():\n        replacement_row = replacement.get(identifier)\n        if replacement_row is None or not _same_obligation(row, replacement_row):\n            return True\n    # Adding a new required check preserves (and can strengthen) the prior\n    # outcome; it does not require the user to re-approve the existing scope.\n    return False\n",
+      "excerpt_document_line": 664
+    },
+    {
+      "id": "correction-project",
+      "path": "skills/shiploop/scripts/shiploop_consumer_delivery.py",
+      "symbol": "project contract correction/replan",
+      "start": 505,
+      "end": 527,
+      "source_sha256": "a87108f1b7adff1dfeb43ba5aa64ee8f0ed2a13e267b58d32b8d1f46e7b6d80e",
+      "excerpt_sha256": "f2712d9e34c8770e8ea18dc8e693d558920f919baba905514a891911bae91530",
+      "excerpt": "                if previous is None:\n                    _need(\"supersedes\" not in assessment and \"correction\" not in assessment,\n                          \"initial delivery contract cannot supersede or correct another contract\")\n                    retained: dict[str, dict[str, Any]] = {}\n                else:\n                    _need(assessment.get(\"supersedes\") == projection[\"anchor\"],\n                          \"delivery contract correction must supersede the current contract anchor\")\n                    if _requires_user_correction(previous, assessment[\"contract\"]):\n                        _need(\"correction\" in assessment,\n                              \"delivery correction needs a user-approved correction source\")\n                    retained = _preserved_observations(\n                        projection[\"observations\"], previous, assessment[\"contract\"]\n                    )\n                    material_change = _material_post_plan_change(\n                        previous, assessment[\"contract\"]\n                    )\n                    if post_plan_replan_pending and material_change:\n                        fresh_system_test_after_replan = False\n                    if (release_plan_completed\n                            and entry[\"stage\"] in _POST_RELEASE_PLAN_MUTATION_STAGES\n                            and material_change):\n                        projection[\"replan_required\"] = _REPLAN_MESSAGE\n                projection[\"contract\"] = deepcopy(assessment[\"contract\"])\n",
+      "excerpt_document_line": 687
+    },
+    {
+      "id": "delivery-template",
+      "path": "skills/shiploop/scripts/shiploop_consumer_delivery.py",
+      "symbol": "template_assessment authority fill",
+      "start": 727,
+      "end": 751,
+      "source_sha256": "a87108f1b7adff1dfeb43ba5aa64ee8f0ed2a13e267b58d32b8d1f46e7b6d80e",
+      "excerpt_sha256": "96bb37a05d16c0ed4d0827c0cb6b2bd67f9fa6b91463b69c82ef897f48c0f489",
+      "excerpt": "    if contract is None:\n        common = {\n            \"consumer\": \"...\",\n            \"target\": \"...\",\n            \"candidate\": \"...\",\n        }\n        return {\n            \"kind\": \"contract\",\n            \"contract\": {\n                **common,\n                \"behavior\": \"...\",\n                \"operation\": \"...\",\n                \"necessity\": \"unresolved\",\n                \"basis\": \"...\",\n                \"exclusions\": [],\n                # The authority's target and operation are the contract's: ShipLoop fills them in (``_authority``).\n                \"authority\": {\n                    \"status\": \"unresolved\",\n                    \"kind\": \"user-decision\",\n                    \"reference\": \"...\",\n                },\n                # This is a valid minimal early declaration.  When necessity\n                # becomes required, add required effect, identity, and\n                # behavior rows as described in the linked reference.\n                \"obligations\": [],\n",
+      "excerpt_document_line": 717
+    },
+    {
+      "id": "settling-template",
+      "path": "skills/shiploop/scripts/shiploop_consumer_delivery.py",
+      "symbol": "_settling_template",
+      "start": 798,
+      "end": 820,
+      "source_sha256": "a87108f1b7adff1dfeb43ba5aa64ee8f0ed2a13e267b58d32b8d1f46e7b6d80e",
+      "excerpt_sha256": "824c6e60ac57144dea60bae15867d98a093d577daa948219c6057d2bc9997e19",
+      "excerpt": "    contract = projection[\"contract\"]\n    authority = {key: value for key, value in contract[\"authority\"].items() if key not in (\"target\", \"operation\")}\n    if authority[\"status\"] != \"approved\":\n        authority[\"status\"] = SETTLE_STATUS\n    correction = {\"kind\": authority[\"kind\"], \"reference\": SETTLE_REFERENCE}\n    if \"approval_ref\" in authority:\n        correction[\"approval_ref\"] = authority[\"approval_ref\"]\n    rows = [dict(row) for row in contract[\"obligations\"]]\n    required = {row[\"kind\"] for row in rows if row[\"required\"] is True}\n    ids = {row[\"id\"] for row in rows}\n    for kind in (\"effect\", \"identity\", \"behavior\"):\n        if kind in required:\n            continue\n        identifier, number = \"O-\" + kind, 2\n        while identifier in ids:\n            identifier, number = f\"O-{kind}-{number}\", number + 1\n        ids.add(identifier)\n        rows.append({\"id\": identifier, \"consumer\": contract[\"consumer\"],\n                     \"target\": contract[\"target\"] if kind != \"behavior\" else \"...\", \"kind\": kind,\n                     \"phase\": _PHASE_FOR_KIND[kind], \"expected\": \"...\", \"required\": True})\n    settled = {key: deepcopy(value) for key, value in contract.items() if key not in (\"authority\", \"obligations\")}\n    return {\"kind\": \"contract\", \"supersedes\": projection[\"anchor\"], \"correction\": correction,\n            \"contract\": {**settled, \"necessity\": SETTLE_NECESSITY, \"authority\": authority, \"obligations\": rows}}\n",
+      "excerpt_document_line": 749
+    },
+    {
+      "id": "judge",
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "judge",
+      "start": 609,
+      "end": 633,
+      "source_sha256": "bb714f73ece9c25c81efd84e73322a0f71d972742be828dec7ed7454badc498d",
+      "excerpt_sha256": "2ad8d448f7fd333f5547d25f0373c89f076d109365e9e2ac3f80894cc4a5c512",
+      "excerpt": "def judge(row: Mapping[str, Any], code: Optional[int], output: str) -> Dict[str, Any]:\n    \"\"\"Classify one finished candidate run from its exit code and its own output.\n\n    ``passed`` needs exit 0, a recognised count of at least ``min_tests`` (1 by default) and every listed ID shown; a\n    focused command whose count cannot be read passes only when it lists IDs and all appear.  A regression command\n    without ids or min_tests may pass uncounted.  A check is judged by its exit code, but a runner summary in its output\n    must show a test ran.\n    \"\"\"\n    tally = counts.count(output, code)\n    if row.get(\"suite\") == \"check\":\n        # A runner recorded as a check must not pass by running nothing (a release-verify `node --test` did so with\n        # counts null).\n        if code == 0 and tally is not None and tally[\"ran\"] == 0:\n            return {\"counts\": tally, \"ids_missing\": [], \"status\": \"no-tests\"}\n        return {\"counts\": tally, \"ids_missing\": [], \"status\": \"passed\" if code == 0 else \"failed\"}\n    ids = list(row.get(\"ids\") or ())\n    names = counts.named(output, ids) if ids else {\"shown\": [], \"missing\": []}\n    minimum = int(row.get(\"min_tests\") or 1)\n    verdict: Dict[str, Any] = {\"counts\": tally, \"ids_missing\": names[\"missing\"]}\n    if names.get(\"inside\"):\n        verdict[\"ids_inside\"] = names[\"inside\"]\n    if code != 0:\n        verdict[\"status\"] = \"no-tests\" if tally is not None and tally[\"ran\"] == 0 else \"failed\"\n    elif tally is not None and tally[\"ran\"] == 0:\n        verdict[\"status\"] = \"no-tests\"\n",
+      "excerpt_document_line": 779
+    },
+    {
+      "id": "id-outcomes",
+      "path": "skills/shiploop/scripts/shiploop_test_counts.py",
+      "symbol": "outcomes",
+      "start": 268,
+      "end": 290,
+      "source_sha256": "37fd7ae6a460219e1cd96e8f6e1675b8748946be85308152cdfb95e3bf97472b",
+      "excerpt_sha256": "253ceda8bbf03e053ba9dbdd1c397498c3b545baf433f0c05fb03daaa07a0525",
+      "excerpt": "def outcomes(output: str, ids: Sequence[str]) -> Dict[str, str]:\n    \"\"\"Per declared ID, what the output says about that one test: ``failed``, ``passed``, ``shown`` or ``missing``.\n\n    Built on ``named``'s line rule: only a non-skip line holding the ID as its own word counts.  ``failed`` when such a\n    line carries the runner's failure mark (or follows unittest's ``FAIL:``/``ERROR:`` header), else ``passed`` when one\n    carries its pass mark, else ``shown`` (named, but no line says how it ended: a reporter that marks no outcome), and\n    ``missing`` when no line names it (it did not run, or the file holding it failed to load).\n    \"\"\"\n    lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]\n    result: Dict[str, str] = {}\n    for test_id in ids:\n        pattern = _id_pattern(test_id)\n        hits = [index for index, line in enumerate(lines) if pattern.search(line) and not _SKIP_LINE.search(line)]\n        if not hits:\n            result[test_id] = \"missing\"\n        elif any(_FAIL_LINE.search(lines[index]) or (index and _FAIL_HEADER.match(lines[index - 1]))\n                 for index in hits):\n            result[test_id] = \"failed\"\n        elif any(_PASS_LINE.search(lines[index]) for index in hits):\n            result[test_id] = \"passed\"\n        else:\n            result[test_id] = \"shown\"\n    return result\n",
+      "excerpt_document_line": 811
+    },
+    {
+      "id": "base-order",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_test_loop_gate",
+      "start": 3733,
+      "end": 3749,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "3f7bff9c11e53624b8512e8e1a1825f41675b8aa57324dae9a1740977b453a08",
+      "excerpt": "        if check_only:\n            ok, lines = test_loop.red_check(root, state, workitem or \"\", action_id, submitted,\n                                            base_commit=preparatory_base(root, workitem or \"\"))\n            _need(ok, \"\\n\".join([\"ShipLoop check-only: the base run would refuse this result:\"] + lines))\n            found = [line for line in lines if line.startswith(\"base: \")]\n            found += test_loop.loop_run(root, state, workitem or \"\", action_id, submitted, count=False)\n            found += test_loop.mutation_check(root, state, workitem or \"\", action_id, submitted, count=False,\n                                              base_commit=preparatory_base(root, workitem or \"\"))\n            return [\"Gates: \" + line for line in found]\n        found = test_loop.base_check(root, state, workitem or \"\", action_id, submitted,\n                                     base_commit=preparatory_base(root, workitem or \"\"))\n        found += test_loop.loop_run(root, state, workitem or \"\", action_id, submitted)\n        # On new code the base run can only see a load failure (RED by rule); the mutation check is what proves the\n        # tests assert real behaviour (owner decision 2026-10-11).\n        found += test_loop.mutation_check(root, state, workitem or \"\", action_id, submitted,\n                                          base_commit=preparatory_base(root, workitem or \"\"))\n        return [\"Gates: \" + line for line in found]\n",
+      "excerpt_document_line": 841
+    },
+    {
+      "id": "mutation-restore",
+      "path": "skills/shiploop/scripts/shiploop_mutation.py",
+      "symbol": "_check local finally",
+      "start": 281,
+      "end": 310,
+      "source_sha256": "71534e4ca2d9ee9e71d3df46e7d868f14389670bb8ee09d0b1e42526f6694b67",
+      "excerpt_sha256": "a5024bfe355b123def96752ff4128f6a2ef52b501e3b6282f77657d8850fc4f8",
+      "excerpt": "        with tree as cwd:\n            record[\"cwd\"] = str(cwd)\n            status, by, seconds = _run_focused(runner, commands, cwd, test_loop.COMMAND_TIMEOUT_SECONDS, environment,\n                                               clock, deadline)\n            record[\"unmutated\"] = {\"status\": \"passed\" if status == \"survived\" else status, \"by\": by,\n                                   \"seconds\": round(seconds, 3)}\n            if status != \"survived\":\n                record[\"skipped\"] = (\"the unmutated copy did not pass its focused commands (\" + status + \": \" + by\n                                     + \"), so no mutant can be judged there\")\n                return record\n            timeout = min(MUTANT_TIMEOUT_SECONDS, seconds * MUTANT_TIMEOUT_FACTOR + MUTANT_TIMEOUT_SLACK_SECONDS)\n            for mutant in chosen:\n                target = tree.tree / mutant[\"file\"]\n                original = target.read_bytes()\n                lines = texts[mutant[\"file\"]].splitlines(keepends=True)\n                line = lines[mutant[\"line\"] - 1]\n                ending = line[len(line.rstrip(\"\\r\\n\")):]\n                lines[mutant[\"line\"] - 1] = mutant[\"mutated\"] + ending\n                try:\n                    target.write_bytes(\"\".join(lines).encode(\"utf-8\"))\n                    status, by, seconds = _run_focused(runner, commands, cwd, timeout, environment, clock, deadline)\n                finally:\n                    target.write_bytes(original)\n                row = {key: mutant[key] for key in (\"file\", \"line\", \"column\", \"operator\", \"original\", \"replacement\")}\n                row[\"file\"] = test_loop._relative(mutant[\"file\"], base)\n                row.update(status=status, seconds=round(seconds, 3))\n                if by:\n                    row[\"by\"] = by\n                record[\"mutants\"].append(row)\n    except (test_loop.TestLoopError, lint.LintError, OSError) as exc:\n",
+      "excerpt_document_line": 865
+    },
+    {
+      "id": "mutation-record",
+      "path": "skills/shiploop/scripts/shiploop_mutation.py",
+      "symbol": "mutation_check",
+      "start": 325,
+      "end": 358,
+      "source_sha256": "71534e4ca2d9ee9e71d3df46e7d868f14389670bb8ee09d0b1e42526f6694b67",
+      "excerpt_sha256": "0b444933fd8edafcbaa0a1235a96fe60a11dbb87aaf967a132f804440655ddcf",
+      "excerpt": "def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,\n                   result: Optional[Mapping[str, Any]] = None, *, count: bool = True,\n                   base_commit: Optional[str] = None, runner: Any = None,\n                   env: Optional[Mapping[str, str]] = None, clock: Optional[Callable[[], float]] = None,\n                   budget: float = MUTATION_BUDGET_SECONDS, **_options: Any) -> List[str]:\n    \"\"\"The test stage's mutation check, after ``loop_run`` passed; raises ``TestLoopError`` with the refusal.\n\n    Writes ``tests/<action>-mutation<N>.md`` (``count=False``: ``tests/<action>-mutation-check-only.md``, never\n    counted) and returns its summary line.  Refused only when at least one mutant ran and none was killed; that\n    refusal counts toward ``MAX_REFUSED_RUNS``.  ``result`` is accepted for the gate's uniform call and not read.\n    \"\"\"\n    del result\n    root = Path(root)\n    refused = test_loop.refused_runs(root, action_id)\n    if count and refused >= test_loop.MAX_REFUSED_RUNS:\n        raise test_loop.TestLoopError(test_loop._cap_refusal(root, test_loop.STAGES[0], refused, str(\n            root / mutation_path(action_id, test_loop._mutation_count(root, action_id)))))\n    started = time.monotonic()\n    record = _check(root, state, work_item, base_commit=base_commit, runner=runner, env=env, clock=clock,\n                    budget=budget)\n    record[\"action\"] = action_id\n    record[\"seconds\"] = round(time.monotonic() - started, 3)\n    refuse = bool(record[\"mutants\"]) and record[\"killed\"] == 0 and record[\"survived\"] > 0\n    # A check that could not judge anything (no focused command, no item base, no mutant, a copy that was not green)\n    # passes, and says ``skipped`` so no reader takes it for a proof; one that refused is ``failed`` as before.\n    record.update(passed=not refuse,\n                  disposition=\"failed\" if refuse else \"skipped\" if record.get(\"skipped\") else \"passed\")\n    if count:\n        record[\"attempt\"] = test_loop._next_attempt(root, action_id)\n        relative = mutation_path(action_id, test_loop._mutation_count(root, action_id) + 1)\n    else:\n        record[\"counted\"] = False\n        relative = test_loop.mutation_check_only_path(action_id)\n    store.atomic_write_text(root / relative, store.dumps(record, \"ShipLoop test mutation check\"))\n",
+      "excerpt_document_line": 902
+    },
+    {
+      "id": "command-reuse",
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "symbol": "_reused",
+      "start": 1082,
+      "end": 1107,
+      "source_sha256": "bb714f73ece9c25c81efd84e73322a0f71d972742be828dec7ed7454badc498d",
+      "excerpt_sha256": "577503a76ddf10571c5b97e6650182264046efacb379117ac39cab63a593e962",
+      "excerpt": "def _reused(root: Path, action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,\n            held: Mapping[str, Mapping[str, Any]]) -> Optional[Tuple[List[Dict[str, Any]], Dict[str, Any]]]:\n    \"\"\"The runs of this action's passed check-only record, held to today's floors, when ``complete`` takes them instead\n    of running every command again (owner decision D5, 2026-10-17); else None.\n\n    It takes them when that record passed at this stage and item, lists exactly ``commands``, and the repository's\n    working content (``_tree``) is now a tree the check-only run started on or left.  A run the floor now refuses is\n    not taken: the commands run again, so a refusal always comes from a run made now.  Returns (runs, the ``reused``\n    entry the counted record carries: which check-only record and the tree).\n    \"\"\"\n    path = Path(root) / check_only_path(action)\n    if not path.is_file():\n        return None\n    try:\n        record = store.read_record(path)\n    except (OSError, store.StorageError):\n        return None\n    if not (isinstance(record, Mapping) and record.get(\"passed\") is True and record.get(\"stage\") == stage\n            and record.get(\"work_item\") == work_item and record.get(\"commands\") == list(commands)\n            and record.get(\"trees\")):\n        return None\n    tree = _tree(root, repo)\n    if not tree or tree not in record[\"trees\"]:\n        return None\n    runs: List[Dict[str, Any]] = []\n    for run in record.get(\"runs\") or ():\n",
+      "excerpt_document_line": 943
+    },
+    {
+      "id": "progress",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "implement_progress",
+      "start": 2403,
+      "end": 2418,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "99683389b90e44bcb43843a13e6b72a4b4b4e676c8020b1f38ba4035f9532bd9",
+      "excerpt": "def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple[int, list[dict[str, Any]]]:\n    \"\"\"(accepted implement steps, the item's steps) since its latest accepted step plan.\n\n    Derived from history: a recovered or compacted host gets the same answer\n    from the run's durable record, and saved runs need no new field.\n    \"\"\"\n    if work_item is None:\n        return 0, []\n    action, plan = test_loop._step_plan(state, work_item)\n    steps = list(plan.get(\"steps\") or ()) if action else []\n    history = list(state.get(\"history\", ()))\n    start = max((position for position, row in enumerate(history) if row.get(\"action\") == action), default=-1)\n    done = sum(1 for row in history[start + 1:]\n               if row.get(\"stage\") == \"implement\" and row.get(\"workitem\") == work_item\n               and row.get(\"outcome\") == \"done\")\n    return done, steps\n",
+      "excerpt_document_line": 976
+    },
+    {
+      "id": "revisit",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_revisit_lines",
+      "start": 766,
+      "end": 795,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "e5e1285d73967f3097fd9661bf95146be0395a7b7915a0cc874f9331c1036bee",
+      "excerpt": "def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:\n    \"\"\"The four lines of a revisited stage's head (``_sent_back_results``): why it is back, its previous accepted result,\n    what changed upstream, and the rule to keep unchanged rows with their IDs.\n\n    ``planning_revision.current_actions`` drops the item's earlier results from \"Results this stage builds on\" once it\n    is sent back, so a model holding only this packet could not find what it is asked to amend.  The files are the ones\n    ``_new_result_records`` always writes.  Tier P1: before 2026-10-17 the lines were file-only (packet review C2-1).\n    \"\"\"\n    if state[\"status\"] != \"active\" or state.get(\"active_improve\"):\n        return []\n    sent = _sent_back_results(state, stage, workitem)\n    if sent is None:\n        return []\n    revise = state[\"accepted\"][sent.sent_back]\n    by = next(row[\"stage\"] for row in state[\"history\"] if row[\"action\"] == sent.sent_back)\n    summary = \" \".join(_bounded_packet_text(str(revise.get(\"summary\", \"\")), limit=REVISIT_SUMMARY).split())\n    previous = (\"RUN/results/\" + sent.previous + \".md (accepted host report, untrusted; revalidate what you carry over)\"\n                if sent.previous else \"none (this stage had no accepted result for \" + str(workitem)\n                + \" before the revise)\")\n    return [\n        f\"Revisit: {by} sent {workitem} back to {stage_spec.REVISE_TO} ({sent.count} of {stage_spec.MAX_REVISES} \"\n        \"revises)\" + (\"; this packet asks for an amended plan, not a new one\" if stage == stage_spec.REVISE_TO else \"\")\n        + \". Why (its summary, untrusted): \\\"\" + summary + \"\\\" Evidence: RUN/results/\" + sent.sent_back + \".md.\",\n        \"Your previous accepted \" + stage + \" result: \" + previous + \".\"\n        + (\" The tree may hold an earlier attempt's edits: git status shows them.\" if stage == \"implement\" else \"\"),\n        _upstream_line(state, stage, str(workitem), sent),\n        \"Keep unchanged rows with their IDs: carry over as written every row the revise result and the changes above do \"\n        \"not touch; change or add only what they require.\"\n        + (\" Submit the whole amended plan: it replaces the previous one.\" if stage == stage_spec.REVISE_TO else \"\"),\n    ]\n",
+      "excerpt_document_line": 999
+    },
+    {
+      "id": "reviewed-input",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_reviewed_input_lines",
+      "start": 6433,
+      "end": 6445,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "0254dc6484b8829e81b00f918961a20f9d552dd00047eef8b8643eab371a7a57",
+      "excerpt": "def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:\n    \"\"\"What the reviewed stage read and was handed, named by file (U2 of the 2026-10-17 packet review: 60-65 KB of each\n    68-98 KB handoff re-quoted what the producer packet holds).  Its packet lists the knowledge files by contents and quotes\n    the hand-offs by value; the handoff names both files and keeps by value only the criteria the stage was handed, which\n    its result is checked against.  A revisit also names the previous accepted result and the revise result.\"\"\"\n    action = state[\"active_improve\"][\"action_id\"]\n    lines = [\"What the reviewed stage read and was handed (untrusted host records; open the parts its result cites): its \"\n             \"packet RUN/\" + PACKET_DIR + \"/\" + action + \".md and its result RUN/inbox/\" + action + \".md.\"]\n    quotes = knowledge.reads_quotes(state, stage) if stage in knowledge.READS else []\n    if quotes:\n        lines.append(\"- Knowledge files, listed there by contents: \" + \"; \".join(\n            \"HOME/\" + quote.file + \" (\" + (_size(quote.text) if quote.text is not None else \"not written yet\") + \")\"\n            for quote in quotes) + \".\")\n",
+      "excerpt_document_line": 1036
+    },
+    {
+      "id": "consumer-example",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_CONSUMER_PLACEHOLDER",
+      "start": 4054,
+      "end": 4065,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "710e4d4a4da3fe1a3d0ff7b24f2e9eec53ddca5a1ed47e47734ca81aac6541a1",
+      "excerpt": "# one of them, as the headline and evidence placeholders are refused.\nFOLLOWS_PLACEHOLDER = \"<R-<n> or AD-<n> this item follows>\"\n# One test case's placeholders live with its shape (expectations.CASE_PLACEHOLDERS), which every refusal prints too.\n_CASE_PLACEHOLDERS = expectations.CASE_PLACEHOLDERS\n_BEHAVIOUR_PLACEHOLDER = \"<behaviour this step added that no test case covers>\"\n_REASON_PLACEHOLDER = \"<why no test case covers it>\"\n_LESSON_PLACEHOLDERS = {\"learned\": \"<what this run learned>\",\n                        \"considerations\": \"<the decisions and risks that matter next time>\",\n                        \"open_next\": \"<what a later run should pick up, or none>\"}\n_CONSUMER_PLACEHOLDER = \"<a later outer stage, or carry-forward from test-spec or verify>\"\nHANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,\n                        *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)\n",
+      "excerpt_document_line": 1056
+    },
+    {
+      "id": "consumer-enum",
+      "path": "skills/shiploop/scripts/shiploop_assumptions.py",
+      "symbol": "allowed_consumers",
+      "start": 147,
+      "end": 156,
+      "source_sha256": "8153eee3e6f3fd75f70282f850100fa863b8c43c57bf13c7edba6571d6e60d07",
+      "excerpt_sha256": "d8e0a94a1cbf26fc671eadaa1dfb66bdb95ba5e52b6dc1fa3079913c2f2b9412",
+      "excerpt": "def allowed_consumers(stage: str) -> Tuple[str, ...]:\n    \"\"\"The consumers an open item at an open-item ``stage`` may name, in graph order.\n\n    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec or verify.  Work for a\n    later work item goes through carry-forward's work_items, as before (K12).\n    \"\"\"\n    order = stage_spec.STAGES\n    later = [name for name in stage_spec.OUTER if order.index(name) > order.index(stage)]\n    return tuple(([\"carry-forward\"] if stage in CARRY_FORWARD_PRODUCERS else []) + later)\n\n",
+      "excerpt_document_line": 1075
+    },
+    {
+      "id": "loop-stop-semantics",
+      "path": "skills/shiploop/scripts/shiploop_standalone_improve.py",
+      "symbol": "unchanged review completion gates",
+      "start": 615,
+      "end": 637,
+      "source_sha256": "320abf69a49dd0bf78409d91380643ce7f639e636dc3d041fc42ef755ae8476c",
+      "excerpt_sha256": "ac1f88b047735308038a8330d565c3e5e729d2e570ba34608f80b9f7a40c6e42",
+      "excerpt": "# The runtime's required_trivial_reviews values for \"trivial, and the content is unchanged\": 2 ends the review on one such\n# pass, 3 (code reviews) on the first pass or on two in a row once a pass has changed the content.  Both complete only on\n# a pass the runtime measured unchanged, so the terminal check below is the same for both.\n_UNCHANGED_GATES = (2, 3)\n_PROGRESS_KEYS = {\"action_number\", \"required_trivial_reviews\", \"last_pass_changed_tree\"}\n_OLDER_RUNTIME = (\n    \"Until Loop {kind} packet was written by an older Until Loop (it counts a trivial streak or reports \"\n    \"unchanged_first_pass), which ShipLoop no longer imports: the Improve review now ends on a trivial pass that \"\n    \"leaves the content unchanged (a code review: two in a row once a pass has changed it). Preserve this run; start \"\n    \"new work with init or workspace start in a fresh --run-dir\"\n)\n\n\ndef _progress(value: Any, kind: str) -> Mapping[str, Any]:\n    \"\"\"The Improve child's progress as the bundled runtime reports it at its unchanged-content gate.\"\"\"\n    _need(isinstance(value, Mapping), f\"Until Loop {kind} progress has an invalid schema\")\n    gate = value.get(\"required_trivial_reviews\")\n    # The older runtime counted a streak at this gate and reported unchanged_first_pass; the current one never does.\n    _need(\"unchanged_first_pass\" not in value and not (\"trivial_streak\" in value and gate in _UNCHANGED_GATES),\n          _OLDER_RUNTIME.format(kind=kind))\n    _need(gate in _UNCHANGED_GATES, f\"Until Loop {kind} packet was not run at Improve's unchanged-content review gate\")\n    _need(set(value) == _PROGRESS_KEYS, f\"Until Loop {kind} progress has an invalid schema\")\n    changed = value[\"last_pass_changed_tree\"]\n",
+      "excerpt_document_line": 1091
+    },
+    {
+      "id": "metrics-reviews",
+      "path": "test/shiploop_e2e/metrics.py",
+      "symbol": "improve_reviews",
+      "start": 605,
+      "end": 621,
+      "source_sha256": "d441148d1cff1384c899e438abf809c51c952e64cd548995bbbbaf63f8bed3c8",
+      "excerpt_sha256": "0a46fad804b89ef9d06bcc1669535a95e8bc8c204a7df4247be50fc07515e59a",
+      "excerpt": "def improve_reviews(run_dir: Path | None) -> dict:\n    \"\"\"Review passes per Improve child, from the review notes the run's worktree keeps.\n\n    A child's passes are its review-<n>.md files; seconds is the time between its first and last note, so a long\n    child shows where review passes, not stages, spent the run. Used to decide whether repeat passes are wasted.\n    \"\"\"\n    root = run_dir.parent / \"worktree\" / \".shiploop-improve\" if run_dir else None\n    children = []\n    for reviews in sorted(root.glob(\"*/*/reviews\")) if root and root.is_dir() else []:\n        notes = sorted(reviews.glob(\"review-*.md\"))\n        if notes:\n            stamps = [n.stat().st_mtime for n in notes]\n            children.append({\"child\": reviews.parent.name, \"passes\": len(notes),\n                             \"seconds\": round(max(stamps) - min(stamps), 1),\n                             \"bytes\": sum(n.stat().st_size for n in notes)})\n    return {\"children\": len(children), \"passes\": sum(c[\"passes\"] for c in children),\n            \"max_passes\": max((c[\"passes\"] for c in children), default=0), \"per_child\": children}\n",
+      "excerpt_document_line": 1121
+    },
+    {
+      "id": "case-shape",
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "TEST_CASE_KEYS and placeholders",
+      "start": 91,
+      "end": 105,
+      "source_sha256": "69b92ef60e066216267c03c0054c40919dbafa39782580d5ef9e2bd8d6f0d576",
+      "excerpt_sha256": "7bec97dbfbad68ecded26bbfe4d0bbfb843660b8e506188904d4573704c157f1",
+      "excerpt": "_ID = re.compile(r\"^[A-Za-z][A-Za-z0-9_-]{0,63}$\")\n# A test-spec result's cases (consumer contract 3.3, D4: no surface key; the oracle names it).\nTEST_CASE_KEYS = (\"id\", \"criterion\", \"requirement\", \"oracle\", \"red\", \"green\")\n# What the printed shape holds in each field, and the only values the template and every refusal print: a placeholder,\n# never an example ID.  An example ID is accepted wherever such an ID exists, so a copied row mapped a case to the wrong\n# requirement silently, and a model copied a refusal's example requirement and wrote a spec entry to match (2026-10-17,\n# SPEC-3/X-5).  A row that keeps a placeholder is refused as one (the navigator's HANDOFF_PLACEHOLDERS lists these).\nCASE_PLACEHOLDERS = {\"id\": \"<a focused command ID>\", \"criterion\": \"<a step-plan criterion id>\", \"requirement\": \"R-<n>\",\n                     \"oracle\": \"<what observes the behaviour, and where>\", \"red\": \"<how the case fails before the change>\",\n                     \"green\": \"<what the case shows once the change works>\"}\n_TEST_CASE_SHAPE = \"test_cases are \" + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])\n# The test-spec template prints at most this many skeleton rows (about 220 characters each); the focused IDs after them are\n# named in one line.  A plan with dozens of IDs would otherwise push the head past the host's 20,000-character print, and a\n# host that elides the middle of a long print would drop template rows that the gate requires.\nSKELETON_ROWS = 12\n",
+      "excerpt_document_line": 1145
+    },
+    {
+      "id": "case-coverage",
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "coverage_notices",
+      "start": 516,
+      "end": 534,
+      "source_sha256": "69b92ef60e066216267c03c0054c40919dbafa39782580d5ef9e2bd8d6f0d576",
+      "excerpt_sha256": "06212749cae3b94a9cca1a279b914431df4aa220a709df46bec1cadb4151046e",
+      "excerpt": "def coverage_notices(state: Mapping[str, Any], result: Mapping[str, Any]) -> List[str]:\n    \"\"\"A counted notice per step-plan criterion that nothing confirms: never a refusal (SPEC-6).\n\n    A criterion is confirmed by a test case naming it, by a recorded command that is not a focused one and lists it in\n    ``criteria``, or by an open item of the result that names it.  The plan's exit condition 1 (every criterion has a\n    case or a justified not-applicable) is otherwise a clause of the free-text summary.  Reads state only.\n    \"\"\"\n    _item, plan = _plan_of(state)\n    criteria = [str(row.get(\"id\")) for row in plan.get(\"criteria\") or () if isinstance(row, Mapping) and row.get(\"id\")]\n    covered = {str(case.get(\"criterion\")) for case in result.get(\"test_cases\") or () if isinstance(case, Mapping)}\n    for row in plan.get(\"test_commands\") or ():\n        if isinstance(row, Mapping) and row.get(\"suite\") != \"focused\":\n            covered |= {str(name) for name in row.get(\"criteria\") or ()}\n    said = \" \".join(str(row.get(key) or \"\") for row in result.get(\"assumptions\") or () if isinstance(row, Mapping)\n                    for key in (\"assumption\", \"check\", \"reason\"))\n    return [COVERAGE_PREFIX + \"Criterion \" + name + \" has no test case and no recorded non-focused command lists it in \"\n            \"criteria: add a case, add the command to the step plan, or record an assumptions open item naming the \"\n            \"inspection that confirms it (this result is accepted).\"\n            for name in criteria if name not in covered and not re.search(r\"\\b\" + re.escape(name) + r\"\\b\", said)]\n",
+      "excerpt_document_line": 1167
+    },
+    {
+      "id": "case-gate",
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "check_test_cases",
+      "start": 555,
+      "end": 580,
+      "source_sha256": "69b92ef60e066216267c03c0054c40919dbafa39782580d5ef9e2bd8d6f0d576",
+      "excerpt_sha256": "1ca834843fc326b2b59e82a3819bbb123e3c1401a8feca06fbee7593be5ec484",
+      "excerpt": "    cases = list(result.get(\"test_cases\") or ())\n    shape = ('Shape: {\"id\", \"criterion\", \"requirement\", \"oracle\", \"red\", \"green\"}, one per ID this item\\'s focused '\n             'commands list. The implement, test, verify and system-test-author packets quote them.')\n    if not cases:\n        if not focused:\n            return None\n        return (\"Add test_cases to {result}\", \"adds test_cases\", [shape, \"Focused IDs: \" + \", \".join(focused) + \".\"])\n    unlisted = [case[\"id\"] for case in cases if case[\"id\"] not in focused]\n    if unlisted:\n        return (\"Fix the case IDs in {result}\", \"fixes the case IDs\",\n                [\"Give every case an ID this item's focused commands list, or report revise so the step plan lists it.\",\n                 \"Not listed by a focused command of \" + str(work_item) + \": \" + \", \".join(unlisted) + \".\"])\n    have = {case[\"id\"] for case in cases}\n    missing = [ident for ident in focused if ident not in have]\n    if missing:\n        return (\"Add the missing cases to {result}\", \"adds the cases\",\n                [\"Add a case to test_cases for every ID this item's focused commands list. \" + shape,\n                 \"Focused IDs with no case: \" + \", \".join(missing) + \".\"])\n    criteria = [str(row.get(\"id\")) for row in plan.get(\"criteria\") or () if isinstance(row, Mapping)]\n    wrong = [case[\"id\"] + \" names \" + case[\"criterion\"] for case in cases if case[\"criterion\"] not in criteria]\n    if wrong:\n        return (\"Fix the case criteria in {result}\", \"fixes the criteria\",\n                [\"Set each case's criterion to a criterion of this item's step plan.\",\n                 \"; \".join(wrong) + \"; the criteria are \" + (\", \".join(criteria) or \"none\") + \".\"])\n    spec = Path(str(state[\"repo\"])) / knowledge.HOME / \"spec.md\"\n    entries = knowledge.entries(Path(str(state[\"repo\"])), \"spec.md\")\n",
+      "excerpt_document_line": 1193
+    },
+    {
+      "id": "parent-return",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "Improve parent-return file",
+      "start": 7983,
+      "end": 7996,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "7de42fa5718f73784b36280729a746ff4f535c28495977b0ec174007fe2ed9ac",
+      "excerpt": "        \"## The parent's return\", \"\",\n        \"Only after the runtime wrote a complete terminal packet to \" + str(receipt) + \", run:\",\n        _callback(core, root, \"complete\", action=improve_id(state)),\n        \"The child never runs the complete command; a stopped or blocked child leaves the Improve stage pending.\",\n        \"\"]))\n    start = receipt.with_name(\"start.json\")\n    store.atomic_write_text(start, loop_contract.dumps(contract))\n    state_dir = root / \"until-loop\"\n    state_dir.mkdir(exist_ok=True)\n    try:\n        done = subprocess.run(\n            [sys.executable, \"-B\", child[\"skill\"][\"runtime_cli\"], \"start\", \"--directory\", str(state_dir),\n             \"--receipt\", str(receipt)],\n            input=json.dumps(contract, ensure_ascii=False).encode(\"utf-8\"), capture_output=True, timeout=60,\n",
+      "excerpt_document_line": 1226
+    },
+    {
+      "id": "work-items",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "Improve outcome guidance",
+      "start": 6348,
+      "end": 6359,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "88bff48efb4a088be00c4d83a78502202323d01e798dd4b64210c47ac43d9532",
+      "excerpt": "            described.append(\"revise (the item's step plan or test spec is wrong or unachievable: it goes \"\n                             \"back to \" + stage_spec.REVISE_TO + \" with this result as evidence; \"\n                             + str(left) + \" of \" + str(stage_spec.MAX_REVISES) + \" left for this item)\")\n        else:\n            described.append(outcome)\n    outcomes = \" | \".join(described)\n    lines = [\"Allowed outcomes: \" + outcomes + \".\"]\n    if stage == \"plan\":\n        lines.append(\"Optional work_items replaces the whole queue: list every item in order, not a delta.\")\n    elif stage == \"carry-forward\":\n        lines.append(\"Optional work_items replaces the queue after this item: list every still-required \"\n                     \"future item in order, not a delta.\")\n",
+      "excerpt_document_line": 1247
+    },
+    {
+      "id": "notes-file",
+      "path": "skills/shiploop/scripts/shiploop_protocol.py",
+      "symbol": "Improve parser flags",
+      "start": 620,
+      "end": 634,
+      "source_sha256": "a7bde728fb59e80b33ef14d8f14ea6994d0988e1cab15002a59afdd34edf2bd0",
+      "excerpt_sha256": "65e05adcbf28e70136d7718ad7ea4008ffa26d6a35d3efc8fd5e1cd2446b484c",
+      "excerpt": "            # improve stage takes no result (--final-result is its changed result).\n            sub.add_argument(\"--result\", help=\"the result file; default and only accepted path: RUN/inbox/<action>.md\")\n        if name == \"complete\":\n            sub.add_argument(\"--check-only\", dest=\"check_only\", action=\"store_true\",\n                             help=\"run this stage's script gates on the result and report, without completing the \"\n                                  \"action (an Until Loop's way to observe its exit conditions before done)\")\n        if name == \"complete\":\n            sub.add_argument(\"--notes\", metavar=\"FILE\",\n                             help=\"optional: the path of a plain-text file (not the text itself) holding the review's \"\n                                  \"lessons for later steps; the handoff names the file to write\")\n            sub.add_argument(\"--final-result\", dest=\"final_result\",\n                             help=\"optional step-result record, only when the review changed a decision\")\n            sub.add_argument(\"--no-commit\", dest=\"no_commit\",\n                             help=\"the user's or repository's instruction not to commit the review's edits\")\n        if name == \"context\":\n",
+      "excerpt_document_line": 1266
+    },
+    {
+      "id": "guide-lines",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_stage_guide_lines",
+      "start": 4748,
+      "end": 4757,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "de9089a6af669fbe470b9d35defbdf1b1d1b4f6ab0b908763c65ac9ad070f874",
+      "excerpt": "def _stage_guide_lines(core: Any, state: Mapping[str, Any], stage: str, named: str | None) -> list[str]:\n    \"\"\"The stage's guides (``STAGE_REFERENCES``), each as ``<label>: <path>``: those whose label the text ``named``\n    names, or every one (``named`` None).\"\"\"\n    reference_dir = _reference_dir(core)\n    route = delegation(state)\n    return [label + \": \" + str(reference_dir / reference)\n            for label, reference in guidance.STAGE_REFERENCES.get(stage, ())\n            # Inline runs execute reviewed steps directly and never bind a chain.\n            if not (route == guidance.INLINE and label == \"Parallel-chain guide\")\n            and (named is None or label in named)]\n",
+      "excerpt_document_line": 1288
+    },
+    {
+      "id": "guide-head",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_cited_guides",
+      "start": 4768,
+      "end": 4789,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "5188d145eeac964719161425464392cfaf2a7fe170584adfc51026ccf3f8b776",
+      "excerpt": "def _cited_guides(core: Any, root: Path, state: Mapping[str, Any], stage: str, stage_text: str) -> CitedGuides:\n    \"\"\"What an active producer's guidance cites by label, with the locator, and what only the file keeps.\n\n    A guide or policy the stage text names (\"Repeatable test-suite guide\", \"Interaction design guide\") prints with its\n    path unless the text already prints that guide's path (a duty that says \"Plan record guide (GUIDES/plan-record.md)\").\n    The Backchain lines print with the paragraph or line that cites them; the loop-resource status only where the text\n    names its \"Loop resources\" line.  Before 2026-10-17 all of them were file-only, so a head cited a guide it did not\n    locate and the model searched the packet file for it (packet review F3, A AX-2, E C-1, G29-2 and G32-1).\n    \"\"\"\n    reference_dir = _reference_dir(core)\n    stage_text = \" \".join(stage_text.split())  # the duties wrap: a label may break across two lines\n    labels = {label for label, _ in guidance.STAGE_REFERENCES.get(stage, ())}\n    located = {label for label, reference in guidance.STAGE_REFERENCES.get(stage, ())\n               if \"GUIDES/\" + reference.split(\"#\", 1)[0] in stage_text}\n    every = _stage_guide_lines(core, state, stage, None)\n    guides = [line for line in _stage_guide_lines(core, state, stage, stage_text)\n              if line.split(\": \", 1)[0] not in located]\n    guides += [label + \": \" + str(reference_dir / target) for label, target in run_reference.POLICIES\n               if label in stage_text and label not in labels]\n    backchain = _backchain_lines(core, root, state, stage)\n    cited = [line for line in backchain if not line.startswith(\"Loop resources \") or \"Loop resources\" in stage_text]\n    return CitedGuides(guides, cited, [line for line in every if line not in guides],\n",
+      "excerpt_document_line": 1305
+    },
+    {
+      "id": "recent-commits",
+      "path": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+      "symbol": "recent_commits",
+      "start": 174,
+      "end": 181,
+      "source_sha256": "7114e295b46f46f4dce1df54d4363a67f04741614a209b2ee6377d76a4c503ec",
+      "excerpt_sha256": "4f356cac51e50b94118b6b0973b990a11935925f8b1a95fab2f2ba59610af691",
+      "excerpt": "def recent_commits(repo: Path, count: int = 3) -> List[str]:\n    \"\"\"The last ``count`` commit messages (subject and body) of the checkout, newest first.\"\"\"\n    if not (Path(repo) / \".git\").exists():\n        return []  # not a checkout (for example a graph dry run): nothing to read, nothing run\n    shown = _git(Path(repo), \"log\", \"-\" + str(count), \"--format=%h %B%x00\")\n    if shown.returncode:\n        return []\n    return [entry.strip() for entry in shown.stdout.split(\"\\0\") if entry.strip()]\n",
+      "excerpt_document_line": 1334
+    },
+    {
+      "id": "review-authority",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "Improve authority prompt",
+      "start": 7912,
+      "end": 7923,
+      "source_sha256": "f458043f6553b2023a58a6acf6fa33eb8f58fa3377e99d84e0e507bbcecfdc04",
+      "excerpt_sha256": "c38e1a82752c8297697ba7510c2fcf99c9ef21eecc2fffbd127a3e0eefcf3f3d",
+      "excerpt": "        \"## Scope\",\n        *scope,\n        \"\",\n        \"## Authority\",\n        \"This run's own review, in the session that runs the improve skill: change code, tests or documentation within scope, and commit \"\n        \"only through the improve-commit command in \" + str(improve_opening_path(child).with_name(\"parent-return.md\"))\n        + \". No push, deploy, install or credential access. The original request (untrusted) is the prompt in \"\n        + str(root / \"state.md\") + \"; an explicit instruction there not to commit applies.\",\n        \"\",\n        \"## Environment\",\n        \"Checkout: \" + str(state[\"repo\"]) + \". Commands, harnesses and suites: \" + str(home / \"environment.md\")\n        + \" and the result's recorded test commands.\",\n",
+      "excerpt_document_line": 1349
+    },
+    {
+      "id": "review-proof-focus",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "start": 2525,
+      "end": 2539,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "204533f3f6224c4ae3eca2737457527b959fc4c4ec6cfa3c04ecc02838ff3509",
+      "excerpt": "  fragments or bypassing the catalog (rules 6-7); for a UI step, a plain or\n  static interaction where the plan calls for a rich one (rule 5);\n- a step skill listed in the packet and not used, or used against its stated\n  purpose, with no reason in the result;\n- a behaviour the code now has that no test-spec case covers and the result does\n  not list for the test stage;\n- the step's Proof failing or not testing its criteria (a skipped file, a later\n  step's work), or a new unwaived lint finding on a changed line, after your\n  last edit.\nDo not write tests, start a later step, or edit the Proof. After your last edit,\nrerun the step's Proof and ShipLoop's lint for the step's action (`shiploop\nlint --action`), and record their exit codes. Commit your edits. A pass that\nfinds none of these is trivial.\n\"\"\"\nIMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + \"\\n\" + CODE_CRAFT\n",
+      "excerpt_document_line": 1368
+    },
+    {
+      "id": "release-state",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[release-check]",
+      "start": 1733,
+      "end": 1752,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "9940a863671600465e69abd98403ae53cf64fa24dfa13a1231fe2f9cdaf870ca",
+      "excerpt": "1. Name the release plan you check: the latest done release-plan and system-test-author records after the last\n   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Guess no\n   missing plan: recover it, or report `repeat` (`replan` for missing product work).\n2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its\n   evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's\n   readiness, any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe that the\n   consumer can reach the entry (HOME/environment.md ## Access and accounts; the target's platform guide names one\n   where it has one) and save its output beside the dry run's. A gap this run may not fix stays open there with who\n   can grant it, for release-verify's step 1; create no grant.\n3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in\n   RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.\n4. Run each `consumer_checks` post-release confirm command once against the current target; save its \"not there yet\"\n   output in the same file. A confirm command that cannot tell present from absent is fixed now in\n   HOME/environment.md ## Commands and rerun.\n5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a\n   dry run; decisions are kept for the return at release). Compare review-return's expected return with the\n   procedure in HOME/environment.md; if they differ, correct the procedure and rerun plan-return.\n6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A\n   material change to code, tests, fixtures, configuration or target invalidates the observations it affects: rerun\n   those through the planned route, reuse the rest only with identity and relevance stated.\n",
+      "excerpt_document_line": 1390
+    },
+    {
+      "id": "leftovers",
+      "path": "skills/shiploop/scripts/shiploop_workspace.py",
+      "symbol": "commit_leftovers",
+      "start": 1293,
+      "end": 1316,
+      "source_sha256": "51c4cc8d80c4075a0b3374307e7d3c79201301714d89c4b01dcec15d7cf1d119",
+      "excerpt_sha256": "31735f6d37edcc1a56a614a1d7d684dfd77577c5a441098d0ab1c021a1c52fc4",
+      "excerpt": "@_locked_existing_root\ndef commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:\n    \"\"\"Commit product files still uncommitted in the candidate before the return is planned.\n\n    A file written after the last work item (a system test, a release note) is\n    otherwise untracked at return, which forces the working-tree route and keeps\n    every run commit off the user's branch.  Committing it here lets the reviewed\n    plan fast-forward; a path the review then excludes still falls back to the\n    working-tree route.  Run evidence, protected paths and caller exclusions are never committed.\n    \"\"\"\n    root = _resolved_directory(Path(workspace_root), label=\"workspace root\")\n    manifest = _manifest(root)\n    worktree = _resolved_directory(Path(manifest[\"worktree\"]), label=\"workspace worktree\")\n    if _branch(worktree) != manifest[\"branch\"]:\n        _fail(\"workspace branch changed after preparation\")\n    tracked = [name for name in _git_bytes(worktree, \"diff\", \"--name-only\", \"-z\", \"HEAD\").decode(\n        \"utf-8\", \"surrogateescape\").split(\"\\0\") if name]\n    paths = sorted({*tracked, *(row[\"path\"] for row in _untracked(worktree))})\n    chosen = [path for path in paths if not never_committed(path, manifest[\"excluded\"])]\n    if not chosen:\n        return shiploop_git.Committed(\"\", [])\n    try:\n        return shiploop_git.commit_paths(worktree, chosen, \"chore(shiploop): commit files written after the last \"\n                                         \"work item, before the return\")\n",
+      "excerpt_document_line": 1417
+    },
+    {
+      "id": "item-commit",
+      "path": "skills/shiploop/scripts/shiploop_item_scope.py",
+      "symbol": "commit_scope",
+      "start": 220,
+      "end": 234,
+      "source_sha256": "0812332d58ed71713b90d0cbfb95fc7a229a036595703d590ff22c2fdff17664",
+      "excerpt_sha256": "9e79b7dfb081e955004c1828f9364bd161e8ed078b64c197ab12acffae27f550",
+      "excerpt": "def commit_scope(changed: Sequence[str], allowed: Sequence[str],\n                 never: Optional[Callable[[str], bool]] = None) -> Tuple[List[str], List[str]]:\n    \"\"\"Split an item's changed paths into (those ShipLoop commits, those it leaves).\n\n    ShipLoop commits the paths the step plan declared (``allowed``), ShipLoop's own knowledge home and any other\n    changed file in the ``docs`` path class: the document stage edits documentation, and a README or AGENTS.md it adds\n    outside the declared paths was otherwise committed by the model by hand (3 of 16 recorded runs).  A path ``never``\n    holds (``withheld``: a worktree run's protected and caller-excluded paths, which ``workspace.commit_leftovers``\n    skips too) is never committed.  Every other undeclared file is left: plan-return commits it in a worktree run.\n    \"\"\"\n    undeclared = set(outside(changed, allowed))\n    left = [path for path in changed\n            if (never is not None and never(path)) or (path in undeclared and classify(path) != \"docs\")]\n    return [path for path in changed if path not in left], left\n\n",
+      "excerpt_document_line": 1448
+    },
+    {
+      "id": "classify",
+      "path": "skills/shiploop/scripts/shiploop_item_scope.py",
+      "symbol": "classify and behavioural_paths",
+      "start": 53,
+      "end": 69,
+      "source_sha256": "0812332d58ed71713b90d0cbfb95fc7a229a036595703d590ff22c2fdff17664",
+      "excerpt_sha256": "04d29787bcbc8f1f08cb4722a158370c5ed28f5f31df0db95ac3bc6d1eb3f046",
+      "excerpt": "def classify(path: str, catalog: Optional[Mapping[str, Any]] = None) -> str:\n    \"\"\"The first matching class for a repository-relative path; ``code`` when none matches.\"\"\"\n    catalog = catalog or _catalog()\n    for name in catalog[\"order\"]:\n        if any(_matches(path, pattern) for pattern in catalog[\"classes\"][name]):\n            return name\n    return \"code\"\n\n\ndef behavioural_paths(paths: Sequence[str], catalog: Optional[Mapping[str, Any]] = None) -> List[str]:\n    \"\"\"The entries of ``paths`` that count as code or test (any class outside ``non_behavioural``).\"\"\"\n    catalog = catalog or _catalog()\n    allowed = set(catalog[\"non_behavioural\"])\n    return [path for path in paths if classify(path, catalog) not in allowed]\n\n\ndef behavioural(paths: Sequence[str], catalog: Optional[Mapping[str, Any]] = None) -> bool:\n",
+      "excerpt_document_line": 1469
+    },
+    {
+      "id": "platform-card",
+      "path": "skills/shiploop/references/platforms/salesforce.md",
+      "symbol": "Apex reporter and copy delivery",
+      "start": 104,
+      "end": 113,
+      "source_sha256": "25255c224e05b651fc16bc672a997bf9a39c2864ac4829ec019f58abadaf5367",
+      "excerpt_sha256": "d2fb2b68445e6ab249168e6d8dd5fb2929163ab7da5726c7aa0ae32522071bc2",
+      "excerpt": "ShipLoop judges a focused Apex test from the runner's own pass or fail mark on\nthe line that names it, so record the command with a reporter it can read:\n`sf apex run test --target-org <alias> --class-names <TestClass> --synchronous\n--result-format tap` prints an `ok` or `not ok` line per test, while the default\ntable and `--result-format human` put the outcome word after the test name,\nwhich ShipLoop does not read, so a focused command that uses them is refused as\nunread. An Apex test runs the code already in the org, so on the item's base it\ncannot fail unless the command deploys the tree first: name each new org-bound\ntest in the test result's `red_na` with that reason, and let the candidate run\nand the mutation check carry the proof.\n",
+      "excerpt_document_line": 1493
+    },
+    {
+      "id": "harness-grade",
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "grade_shiploop",
+      "start": 1055,
+      "end": 1078,
+      "source_sha256": "a0bbcef2619d53e5477a0aa85672815c30fdd8c49ded4691faa141ea59dae5ad",
+      "excerpt_sha256": "7ddf1ebba785e1e8e1ae6c12a2f2eacf014fd3dee9fea57071464dd4c481c962",
+      "excerpt": "def grade_shiploop(out: Path) -> dict:\n    \"\"\"The state of the ShipLoop run this output folder's invocation created (SPEC: a verdict is earned by the run graded).\n\n    The run is the one RUN_IDENTITY records. Until one is recorded it is the only run that was not already there when the\n    invocation started, or, among several, the only one the host's ShipLoop commands named; that run is then recorded.\n    Several candidates that nothing tells apart are reported as ambiguous and never pass: an unrelated finished run is\n    never preferred (2026-10-16 E2E audit, docs/experiments/shiploop-e2e-audit-20261016/grading/).\n    \"\"\"\n    runs = shiploop_runs(out)\n    if not runs:\n        return {\"pass\": False, \"reason\": \"no ShipLoop state.md under the output directory\"}\n    identity = run_identity(out)\n    before = identity.get(\"preexisting\") if isinstance(identity.get(\"preexisting\"), dict) else {}\n    mine = [found for found in runs\n            if found[\"run_dir\"] not in before or state_digest(found[\"run_dir\"]) != before[found[\"run_dir\"]]]\n    bound = identity.get(\"run_dir\")\n    # A recorded run whose state is gone is not a choice any more: the rules below pick again (still never a run that was\n    # there before the invocation started) and record what they pick.\n    chosen = next((found for found in mine if found[\"run_dir\"] == bound), None) if bound else None\n    basis = \"recorded\"\n    if chosen is None and len(mine) == 1:\n        chosen, basis = mine[0], \"the only run that was not there before the invocation\"\n    elif chosen is None and len(mine) > 1:\n        named = named_run_dirs(out) & {found[\"run_dir\"] for found in mine}\n",
+      "excerpt_document_line": 1510
+    },
+    {
+      "id": "harness-verdict",
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "outcome_class",
+      "start": 3257,
+      "end": 3281,
+      "source_sha256": "a0bbcef2619d53e5477a0aa85672815c30fdd8c49ded4691faa141ea59dae5ad",
+      "excerpt_sha256": "f41a20675ba599988eb3df2f3e8cd1c439c2e21b15efa3596e7b4ae883d20f80",
+      "excerpt": "def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:\n    \"\"\"(class, basis): how a run ended, a pure function of ``pass`` and the termination block (SPEC S-14).\n\n    PASS: every verdict passed. BLOCKED: the engine accepted a blocked result, or is paused (it awaits resume the same way);\n    the class says what the engine recorded and never that the block was warranted, which is a model judgement S-9 excludes\n    as evidence. FAILED: the engine finished or halted without passing, or the host ended on its own with the engine\n    unfinished. STOPPED: the harness ended the run (a requested stop, a signal, the deadline, a spent resume budget, or a host\n    session that ended on the cap the harness gave it: ``CAP_STOPS``). None:\n    unknown, and the basis says why (a regrade that observed no host, or an ending this function does not know). The engine's\n    status wins over how the host ended: a stop requested after the engine blocked does not turn the block into a stop.\n    A regrade that kept the original ending reads the engine as it is now (the ``*_at_regrade`` fields) and the ending as it\n    was recorded.\n    \"\"\"\n    if passed:\n        return \"PASS\", \"every verdict passed\"\n    regraded = \"engine_status_at_regrade\" in t\n\n    def now(key: str):\n        return t.get(f\"{key}_at_regrade\") if regraded else t.get(key)\n\n    engine = now(\"engine_status\") or \"unknown\"\n    stage = now(\"engine_stage\") or \"unknown\"\n    reason = now(\"engine_status_reason\")\n    why = f\" ({_head(reason)})\" if reason else \"\"\n    if engine == \"paused\":\n",
+      "excerpt_document_line": 1541
+    },
+    {
+      "id": "harness-keep",
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "keep_decision",
+      "start": 2292,
+      "end": 2317,
+      "source_sha256": "a0bbcef2619d53e5477a0aa85672815c30fdd8c49ded4691faa141ea59dae5ad",
+      "excerpt_sha256": "5e6e3d910ef3712ef5889766b8324521e316167882058193753b3cb47cebcd68",
+      "excerpt": "def keep_decision(*, keep_checks: tuple | list = (), **ended) -> tuple[str | None, str | None]:\n    \"\"\"How a --keep-platform request ends: (KEPT_FINISHED, None) for a finished delivery (keep_refusal), (KEPT_UNFINISHED, None)\n    for a run that did not finish (ShipLoop not done, or the host timed out) whose platform is nevertheless working, or\n    (None, why) when it is cleaned. The platform of an unfinished run is working when the case declares ``keep_checks`` (words of\n    its own checks, for example `deployed`, `tests`, `rules`) and every one of them ran and passed; a person's stop, a signal, an\n    invalid trial and a failed earlier cleanup (keep_blocker) forbid it. The run is then recorded NOT a pass. A run whose ShipLoop\n    is done and whose host did not time out is judged as a finished delivery only: a failed check there is a failed delivery.\"\"\"\n    why = keep_refusal(**ended)\n    if why is None:\n        return KEPT_FINISHED, None\n    unfinished = ended[\"process\"].get(\"status\") == \"timeout\" or ended[\"engine\"].get(\"status\") != \"done\"\n    if not (keep_checks and unfinished) or keep_blocker(process=ended[\"process\"], stop_seen=ended[\"stop_seen\"], stop_file=ended[\"stop_file\"],\n                                                         invalid=ended[\"invalid\"], earlier_cleanup=ended.get(\"earlier_cleanup\")):\n        return None, why\n    unmet = [word for word in keep_checks\n             if not any(word in str(check[\"command\"]).split() and check[\"pass\"] for check in ended[\"checks\"])]\n    if unmet:\n        return None, f\"{why}; not kept as an unfinished run either: the keep check(s) {', '.join(unmet)} did not pass\"\n    return KEPT_UNFINISHED, None\n\n\nclass PlatformGuard:\n    \"\"\"Owns the platform cleanup of one invocation. ``arm`` it once the model may start (or has started); ``finish`` runs the\n    cleanup once, from the normal path after grading and again from main's `finally`, which is what covers a crash, a\n    KeyboardInterrupt and a SystemExit. Before it acts on the platform it ends this thread's own host and waits for it to be\n    gone (HOST_END_WAIT), so a cleanup never runs beside a model that can still deploy. ``keep`` instead leaves a finished\n",
+      "excerpt_document_line": 1573
+    },
+    {
+      "id": "harness-cleanup",
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "PlatformGuard.finish",
+      "start": 2359,
+      "end": 2380,
+      "source_sha256": "a0bbcef2619d53e5477a0aa85672815c30fdd8c49ded4691faa141ea59dae5ad",
+      "excerpt_sha256": "7896b266fb56e353917539d65cb2cc7c87e38dc37284159ffc72b1cb28a159d2",
+      "excerpt": "    def finish(self) -> dict | None:\n        if self.spec is None or self.done:\n            return self.record\n        self.done = True\n        # A Ctrl-C or an exception can arrive while this case's host still works: end it and wait until it is gone, so the\n        # cleanup never overlaps a model that can still deploy.\n        with contextlib.suppress(KeyboardInterrupt):  # a second Ctrl-C ends the wait, never the cleanup\n            end_live_hosts(thread=threading.get_ident(), wait=HOST_END_WAIT)\n        command = self.spec.get(\"cleanup\")\n        if not command:\n            self.record = {\"ran\": False, \"ok\": True, \"reason\": \"the case names no cleanup command\"}\n            return self.record\n        try:\n            done = run_platform_command(command, self.out, platform_env(dict(os.environ), self.out / \"platform\"))\n            self.record = {\"ran\": True, \"ok\": done[\"ok\"], \"returncode\": done[\"returncode\"], \"output\": done[\"output\"]}\n        except BaseException as exc:  # noqa: BLE001 - the record of a cleanup that could not run is the point\n            self.record = {\"ran\": True, \"ok\": False, \"returncode\": None,\n                           \"output\": scrub(f\"cleanup could not run: {type(exc).__name__}: {exc}\")[-PLATFORM_TAIL:]}\n        if not self.record[\"ok\"]:\n            print(cleanup_banner(self.out, self.spec, self.record), flush=True)\n        write_cleanup_record(self.out, self.record)\n        return self.record\n",
+      "excerpt_document_line": 1606
+    },
+    {
+      "id": "loop-start",
+      "path": "skills/shiploop/scripts/shiploop_loops.py",
+      "symbol": "start_command",
+      "start": 529,
+      "end": 533,
+      "source_sha256": "a842bde90d7d25eceaef467f6177e36d3f468379c34209d0bce3d87e973fc86c",
+      "excerpt_sha256": "82474767f1d11cc4f30253cfc127cb0fa7b2aa6a19de011d950b9201ec5aabbe",
+      "excerpt": "def start_command(bound: Mapping[str, str], receipt: Path, contract_file: Path) -> str:\n    \"\"\"The one command that starts a bound loop: the packet prints it, and the refusal for a loop that never ran\n    repeats it.\"\"\"\n    return (shlex.join([\"python3\", bound[\"runtime_cli\"], \"start\", \"--receipt\", str(receipt)])\n            + \" < \" + shlex.quote(str(contract_file)))\n",
+      "excerpt_document_line": 1635
+    },
+    {
+      "id": "loop-result",
+      "path": "skills/shiploop/scripts/shiploop_loops.py",
+      "symbol": "_RESULT_HEAD and result instructions",
+      "start": 561,
+      "end": 576,
+      "source_sha256": "a842bde90d7d25eceaef467f6177e36d3f468379c34209d0bce3d87e973fc86c",
+      "excerpt_sha256": "ff5f83fdfbe536f0eea443fffdd66bd655ef1cd4c4930a5755ae512f8404ca8d",
+      "excerpt": "                    \"ShipLoop refuses done without it.\")\nRESUME_LINE = (\"The loop already started: do not start it again (a second start resets it). While the receipt's status \"\n               \"is active, run its next_argv once and follow the packet it prints; when complete or stopped, submit this \"\n               \"stage's result.\")\n# The runtime's report schema requires all five fields; its enums are printed here so the done report is written once.\nREPORT_FIELDS = (\"Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment \"\n                 \"satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and \"\n                 \"handoff (nonblank text).\")\n_RESULT_HEAD = (\"Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run \"\n                \"the Callback command above. If that refuses for the loop, \")\nRESULT_LINE = (_RESULT_HEAD + \"run the start command above again (an active receipt: its next_argv instead), then run \"\n               \"the Callback again. \" + REPORT_FIELDS)\n# A packet read after the start prints no start command (a second start resets the loop), so its result line names the\n# receipt's next_argv alone.\nRESUME_RESULT_LINE = (_RESULT_HEAD + \"run the receipt's next_argv once and follow the packet it prints, then run the \"\n                      \"Callback again. \" + REPORT_FIELDS)\n",
+      "excerpt_document_line": 1647
+    },
+    {
+      "id": "discovery-applicability",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[discovery] connected services",
+      "start": 953,
+      "end": 977,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "2f21d7f4e74b7af1348b996976b01b43176c998a5ed3354074bde4fc053d29f0",
+      "excerpt": "9. Resolve internal terms and background beyond the checkout with Connected knowledge discovery: find the MCP readers\n   (Slack or Teams, internal sites, design docs, private Git), search, and follow hits to the content. Record terms\n   and conflicting claims with provenance, access and coverage gaps, and safe locators in RUN/notes/discovery.md.\n   Keep private queries and content off public surfaces; a reader is no runtime dependency.\n10. Establish the current-system account (Current-system baseline guide): read README first, reuse and revalidate an\n    adequate account or recover one from docs, code, tests and authorized read-only observation. Write\n    RUN/notes/current-system-baseline.md with as-of identity, coverage, conflicts, locators and durable home; cite it\n    in `evidence_refs`. A repository without ShipLoop knowledge is not a new system. Keep the incoming change\n    separate; consequential gaps leave dependent work unready.\n11. For affected flows apply Service discovery guidance; record in RUN/notes/discovery.md:\n    - observability: event owners and sinks to reuse;\n    - service boundaries: consumer needs traced through business services to the real MCP, API and runtime\n      capabilities, identities, schema and state;\n    - cache, invalidation and async questions, inventing no infrastructure;\n    - unproven access or caching: a safe policy-enforced read route, or a denial (privileged direct access is no\n      fallback);\n    - schema or projection delta: preserved state and its read-back check;\n    - async flow: processor and recovery owner and the acceptance/completion boundary, else unknown (a status poller\n      establishes neither); gate only that flow;\n    - retained application state: the Runtime state placement section.\n    Safe authorized reads may resolve a gap; an unavailable or partial observation is not absence. Turn unknown\n    ownership into a scoped probe and a conditional change, gating only dependent work.\n12. Establish the current target and effective identity; use it for dependent remote reads. Distinguish discovery\n    operator, deployed runtime and end user. Record each unknown role or authority and its consumer under\n    ## Access and accounts.\n",
+      "excerpt_document_line": 1670
+    },
+    {
+      "id": "ui-applicability",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[plan] UI qualification",
+      "start": 1168,
+      "end": 1178,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "fa276cbe5b29b750e30c02d376fd85f8c0e89a9e2df5e1591b3f18a35fe00f8e",
+      "excerpt": "   state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but\n   before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the\n   design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose and\n   reduced-motion alternative or an explicit static choice. A human-facing UI takes the ambition the request states\n   (a simple one when it asks for simple); one that states none defaults to an ambitious, highly interactive design:\n   name the rich interactions planned (direct manipulation, inline editing, live preview, keyboard paths, animated\n   transitions) and any scaled back, with the reason. A consequential UI choice gives the\n   guide's ambition, the reuse, evolve or upgrade decision, effort and benefit, and the compatibility check.\n   Allocate each UI decision to the item that owns it (UI planning ownership guide) and put it, with planned check\n   locators, in that item's `context` and `evidence_refs`. Reuse accepted choices for unaffected scope. Start no\n   nested review.\n",
+      "excerpt_document_line": 1702
+    },
+    {
+      "id": "module-applicability",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[plan] module qualification",
+      "start": 1199,
+      "end": 1208,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "6a36b4cb918c3f966bc816e281ecd8fe4f4bf6ed23441a80a788f62bab5ebe0b",
+      "excerpt": "12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and\n    UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.\n13. Each item's `context` states the loadable seam its tests import, so a test loads before the implementation exists,\n    and, where the language has more than one module format (CommonJS or ESM, with or without package.json), the one\n    its files use.\n14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different\n    prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge\n    fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small\n    change may be one item; no minimum, quota or scaffolding item. Preservation and negative requirements are checks\n    on the affected item unless they need their own change. Add no item for step planning, validation, build, test,\n",
+      "excerpt_document_line": 1720
+    },
+    {
+      "id": "system-author",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[system-test-author] command runs",
+      "start": 1596,
+      "end": 1615,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "3aed7239e4a151e47c7efbbbdc67b78444cb993c61ca556e6d08029ea2724946",
+      "excerpt": "5. Run each system command once now and confirm its discovery and rerun work. A command that cannot pass here is\n   changed to observe the same requirement another way, saying what and why in `summary`. Every case ends validated,\n   validated another way or unachievable (item 7); a case written but not run has no end state.\n6. `system_commands`: one row per runnable command, shaped like test_commands, suite `focused`, `regression` or\n   `check`. `focused` and `regression` suit runners whose output ShipLoop can count and carry the case `ids`; a\n   non-runner (shell pipeline, grep, curl probe) is `check`, judged by exit code, no ids or min_tests. A row whose\n   cases need a host tool (browser, device, account, service) gets `\"host_dependent\": true`: ShipLoop then also runs\n   the regression commands at system-test and refuses if any of that row's ids appears in their output, as the\n   default suite must pass without the host tool. No system test applies: empty list with `system_commands_na` and\n   the reason.\n7. A case that cannot run here (a browser or account this host cannot reach) is unachievable. Leave its command out\n   of `system_commands` (ShipLoop reruns every recorded command and refuses unless each passes). Record it as an\n   open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `check` = who does what\n   and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose\n   external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,\n   replan when the plan is wrong.\n8. The integrated test plan goes in `summary` under the catalog and in HOME/environment.md ## Harnesses and suites\n   (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and\n   sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the\n   authorized release first. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan\n",
+      "excerpt_document_line": 1737
+    },
+    {
+      "id": "system-execute",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[system-test]",
+      "start": 1619,
+      "end": 1637,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "3f6bc127dd0e93e2c88d4d46222b3eb4c81abe7d2781a2777b7706cbd8455f90",
+      "excerpt": "1. Name the plan you run: the latest done system-test-author record after the most recent accepted replan, and its\n   integrated test plan in that summary and HOME/environment.md ## Harnesses and suites (OUTER test-planning\n   handshake). Before running, revalidate its candidate, case selection, target and fixture assumptions. Its\n   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as repeat,\n   blocked or replan; never guess a command or drop a required case.\n2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote\n   framework availability, and the deployed or test revision. Add no deploy to unblock a test (a recorded command's\n   own deploy step runs as recorded); use production only with authority.\n3. Run the due cases on the intended candidate and boundary (System-test placement guidance, Real-boundary test\n   guidance). Substitute no planned case or local mock for a required system observation. A local pass replaces no\n   blocked or unrun required remote check and establishes no combined full-suite pass; keep that check's owner and\n   boundary. Check repeatability when fixtures changed. Never blindly replay an uncertain external effect.\n   `evidence_refs`: each command, candidate and target, scope, cleanup outcome and unrun check.\n4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Fix the\n   candidate, report replan for missing product work, or blocked when nothing else can proceed.\n5. After a material change to code, tests, fixtures, configuration or target, rerun the affected observations; reuse\n   unaffected evidence only with its identity and relevance stated.\n6. Run any open item system-test-author recorded that this stage can now run, reporting each in the summary (not\n   recorded evidence: ShipLoop's rerun covers only recorded system commands). Leave the rest listed with their due\n",
+      "excerpt_document_line": 1764
+    },
+    {
+      "id": "craft-producer",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_prompt_parts",
+      "start": 2401,
+      "end": 2424,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "b64a43af78d40f7088aea9c9d9b4795162542378eb115cd37a9ccd73a29b6461",
+      "excerpt": "def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,\n                  execution_mode: str | None, one_step_item: str | None = None,\n                  interactions: bool = True) -> list[tuple[str, str]]:\n    \"\"\"The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.\n\n    ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a\n    stage that may call Backchain), ``craft`` or ``rules``.\n    \"\"\"\n    parts = [(\"duty\", duty(stage, delegation=delegation, planning_review=planning_review,\n                           backchain_passes=backchain_passes, execution_mode=execution_mode,\n                           one_step_item=one_step_item, interactions=interactions))]\n    # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,\n    # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to\n    # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.\n    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:\n        parts.append((\"audit\", INLINE_BACKCHAIN_AUDIT))\n    elif stage in BACKCHAIN_FOLDED_STAGES:\n        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)\n    elif stage in BACKCHAIN_STAGES:\n        parts.append((\"backchain\", _swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage,\n                                            planning_review)))\n    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)\n        parts.append((\"craft\", CODE_CRAFT))\n    parts.append((\"rules\", STAGE_RULES))\n",
+      "excerpt_document_line": 1790
+    },
+    {
+      "id": "craft-end",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS",
+      "start": 2490,
+      "end": 2496,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "f28c9d340fec65c7140b439a3cc6e3a005d771103b4206e742bf33629b411846",
+      "excerpt": "END_REVIEW_FOCUS_HEAD = \"\"\"\\\nEnd-of-work code review focus. Across every executed work item's change, trace\neach new or changed public entry point with a valid, a boundary and an invalid\ninput, then review the change against the rubric below. Fix violations within\nscope. A pass that finds no material violation is trivial.\n\"\"\"\nEND_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + \"\\n\" + CODE_CRAFT\n",
+      "excerpt_document_line": 1821
+    },
+    {
+      "id": "craft-step",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS",
+      "start": 2531,
+      "end": 2539,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "6edf5bcb39e7a276773216b830d55020147b919b5eb6765ebd381cba3d2e2966",
+      "excerpt": "- the step's Proof failing or not testing its criteria (a skipped file, a later\n  step's work), or a new unwaived lint finding on a changed line, after your\n  last edit.\nDo not write tests, start a later step, or edit the Proof. After your last edit,\nrerun the step's Proof and ShipLoop's lint for the step's action (`shiploop\nlint --action`), and record their exit codes. Commit your edits. A pass that\nfinds none of these is trivial.\n\"\"\"\nIMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + \"\\n\" + CODE_CRAFT\n",
+      "excerpt_document_line": 1835
+    },
+    {
+      "id": "craft-chain",
+      "path": "skills/shiploop/scripts/shiploop_chain.py",
+      "symbol": "_planning_worker_instructions",
+      "start": 1108,
+      "end": 1124,
+      "source_sha256": "d3e0a6432d28b6618f234299172b4f1c297a4bb5ec4cba5a8fd1fb1b1bb6064e",
+      "excerpt_sha256": "7281303c88ae1cc4add771a6821a3478f6e38d838b5bb7390981ed9aea8d3737",
+      "excerpt": "def _planning_worker_instructions(packet: dict[str, Any]) -> None:\n    \"\"\"Append worker guidance to the ``instructions`` list of ``packet`` in place and return nothing. It adds the\n    implementation-stage reference locators (without the parallel-chain guide), the code-craft prompt, handoff\n    and blocking rules, and planning-context rules when ``packet`` has a ``planning_context`` key. Entries\n    already present are skipped; ``packet`` must already hold an ``instructions`` list.\n    \"\"\"\n    reference_dir = Path(__file__).resolve().parents[1] / \"references\"\n    instructions = [\n        f\"{label}: {reference_dir / relative}\"\n        for label, relative in _WORKER_GUIDANCE_ROUTES\n    ]\n    instructions.append(navigator_prompts.CODE_CRAFT.rstrip())\n    instructions.extend((\n        \"Before scoped edits, select and apply only the relevant practice and platform guidance; consult the accepted planning/context, repository conventions, and applicable baseline.\",\n        \"Return material discoveries, decision rationale, actual checks and their limits, and unresolved uncertainty. Put essential findings and the next action/owner in the manifest summary; use declared files for supporting detail and evidence. If there are no new findings, say so explicitly. Keep this handoff self-contained for a parent or successor without this conversation.\",\n        \"If a required guidance locator is unavailable, mark the step BLOCKED and retain the uncertainty rather than guessing.\",\n        \"These references do not change the task, definition of ready/done, scope, or authority; they do not authorize a nested ShipLoop or Improve cycle or parent callbacks.\",\n",
+      "excerpt_document_line": 1851
+    },
+    {
+      "id": "craft-quality",
+      "path": "skills/shiploop/scripts/shiploop_quality.py",
+      "symbol": "rubric_writes",
+      "start": 29,
+      "end": 32,
+      "source_sha256": "b230f60e56df6d1438ab0fc81130e29b720a34818ee6904ab1cf0ef63765d8ed",
+      "excerpt_sha256": "c56e12d95b8803df9d031476fbaf4e784926ba18652bad21539354bf35886b16",
+      "excerpt": "def rubric_writes() -> dict[str, str]:\n    \"\"\"Run-relative path -> text of the Code craft rubric verify's review applies (written on entry to verify).\"\"\"\n    return {RUBRIC_PATH: guidance.CODE_CRAFT}\n\n",
+      "excerpt_document_line": 1875
+    },
+    {
+      "id": "guidance-loader-site",
+      "path": "skills/shiploop/scripts/shiploop_reference.py",
+      "symbol": "module imports and source-reference responsibility",
+      "start": 1,
+      "end": 24,
+      "source_sha256": "71e3c60911546464a0464c097b78fe7d442799b751c689e68433308cbe46b990",
+      "excerpt_sha256": "5c10636118330af95c20a81441263b5d1c8436b9dc0bec79a9da9f7ba76f3f5d",
+      "excerpt": "\"\"\"The run reference file, `<run>/reference.md`: run-wide detail a packet names by section instead of reprinting.\n\nOwner, 2026-10-10: a packet holds the key file references, what to do, when it is complete, and what to execute.\nDetail a stage seldom needs lives here, in labelled sections. A packet names only the sections its stage uses\n(`reference#<anchor>`) and says when to open each one. Grounding never moves here (SPEC S-6): a stage's goal,\noperation, Done-when, Checked-by, result contract, recovery command and the rules it can hit stay in its packet.\n\nThe file is derived from state.md and the package: `navigator.save()` writes it with every transition (beside\ncontext-index.md, in the same transaction), and `emit` writes it again when it is missing or was written by another\nShipLoop version, so a run that started before this file existed gets it on its next `next`.\n\"\"\"\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import Any, Mapping\n\nimport shiploop_prompts as guidance\n\nREFERENCE_FILE = \"reference.md\"\nSCRIPTS = Path(__file__).resolve().parent\nREFERENCES = SCRIPTS.parent / \"references\"\nVERSION_LINE = \"<!-- shiploop-reference: {version} -->\"\n\n# (anchor, heading). Packets cite `reference#<anchor>`; tests check every cited anchor exists.\n",
+      "excerpt_document_line": 1885
+    },
+    {
+      "id": "plan-skill-check",
+      "path": "skills/shiploop/scripts/shiploop_expectations.py",
+      "symbol": "check_step_plan",
+      "start": 332,
+      "end": 359,
+      "source_sha256": "69b92ef60e066216267c03c0054c40919dbafa39782580d5ef9e2bd8d6f0d576",
+      "excerpt_sha256": "5d9c3d0a14ec7052374bca6d2fc3bffa9feceed5c615fb8282f827dee3a09cad",
+      "excerpt": "def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, Any]) -> None:\n    \"\"\"Refuse a done step-plan result whose expectations, check suite or step skills are incomplete.\n\n    ``root`` is the run directory and ``state`` the run state with this item current (its lint base is recorded at\n    step-plan entry).  Refused: a missing or malformed ``expectations``; a check that is not one read-only shell\n    command; an expectation naming an unknown step; an existing step path with no works or broken expectation, or a\n    new one with no absent expectation; a works or broken path missing on the base, or an absent path present there;\n    an open plan assumption whose consumer is this item and that no expectation cites in ``from`` (or a ``from``\n    naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a step\n    without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.\n    \"\"\"\n    if not isinstance(result, Mapping) or result.get(\"outcome\") != \"done\":\n        return\n    repo = Path(str(state[\"repo\"]))\n    work_item, _action = _cursor(state)\n    _check_check_suite(result)\n    steps = [step for step in result.get(\"steps\") or () if isinstance(step, Mapping)]\n    step_ids = {str(step.get(\"id\")) for step in steps}\n    for step in steps:\n        _need(\"skills\" in step, \"step \" + str(step.get(\"id\")) + \" must list skills (\" + _SKILL_SHAPE + \"): reread \"\n              \"the host's skills and the repository's skill directory, and name one only for a concrete use\")\n        for skill in normalise_skills(step[\"skills\"], str(step.get(\"id\"))):\n            _need(\"locator\" not in skill or _locator_exists(repo, skill[\"locator\"]),\n                  \"step \" + str(step.get(\"id\")) + \" skill \" + skill[\"name\"] + \": locator \" + skill.get(\"locator\", \"\")\n                  + \" does not exist. Give the absolute path of its SKILL.md or card, or drop the locator.\")\n    _need(\"expectations\" in result,\n          \"a done step-plan result must list expectations: the facts its steps build on, each with a check \"\n          \"ShipLoop runs at validate-existing before anything changes; \" + _SHAPE)\n",
+      "excerpt_document_line": 1916
+    },
+    {
+      "id": "craft-1",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 1",
+      "start": 629,
+      "end": 632,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "d93da616f564306f23a61faf43bebebc6b458ac16dc6cadfc4b804cc7484acbc",
+      "excerpt": "1. Match the house. The repository's error types, validation helpers, docstring\n   style and logging come first; record any justified departure. Add no\n   dependency, option or fallback without a present need. An argument that\n   lets an existing unit serve this change instead of a copy is a present need.\n",
+      "excerpt_document_line": 1951
+    },
+    {
+      "id": "craft-2",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 2",
+      "start": 633,
+      "end": 640,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "c9150450b737356a81a57fb32dfde1ee2aee8115b947534ead1203e6a1cc363e",
+      "excerpt": "2. Fail at the door. A function reachable from outside its module (exported\n   API, CLI handler, request or event handler, callback) checks its arguments\n   before any effect: required values present, type and shape, range or allowed\n   set, and consistency between arguments. Reject with the house error type,\n   naming the argument, the constraint and the received value (redacted when\n   sensitive). Code called only by validated code may trust its caller; say so\n   once where that is not obvious. Never swallow an error or substitute a\n   success default; keep the original cause when rethrowing.\n",
+      "excerpt_document_line": 1962
+    },
+    {
+      "id": "craft-3",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 3",
+      "start": 641,
+      "end": 645,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "b951671a522cd4255458d14bec81076ef0c799d83fd51f0052535fe4da1ebb1c",
+      "excerpt": "3. State the contract where it lives. A new file opens with one or two lines on\n   its purpose. A public function's docstring gives purpose, argument\n   constraints, return, errors raised and side effects. In a body, comment only\n   what the code cannot say: why this approach, an invariant, a workaround and\n   its trigger, a removed approach that must not return.\n",
+      "excerpt_document_line": 1977
+    },
+    {
+      "id": "craft-4",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 4",
+      "start": 646,
+      "end": 648,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "9f0f4694851689722e2c3d56f03d4edc961a67d3637335b6fcfd9590123dbc1a",
+      "excerpt": "4. Spend tokens on information. Delete comments that restate a name, signature\n   or the next line. No banners, change history or commented-out code. Prefer a\n   precise name to a comment and one authoritative explanation to several.\n",
+      "excerpt_document_line": 1989
+    },
+    {
+      "id": "craft-5",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 5",
+      "start": 649,
+      "end": 651,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "5f9ed343788f70c64fa907a1cacf8a31df15454147016be978aacc911c4d738a",
+      "excerpt": "5. Small, not thin. KISS and YAGNI limit features and speculative\n   abstractions. They never remove an argument check, an error path, a\n   contract docstring, or the rich UI interaction the plan calls for.\n",
+      "excerpt_document_line": 1999
+    },
+    {
+      "id": "craft-6",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 6",
+      "start": 652,
+      "end": 657,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "c3b288695d10984d677432a7e1de21bdf5586d0aba6d138be67db52116d091ee",
+      "excerpt": "6. Make failure diagnosable. Check a response's contract, not only transport\n   success. Before mutation or cleanup, keep the context that explains a\n   failure: operation, relevant IDs, expected versus observed. Errors name the\n   operation and that mismatch. Reuse the existing debug switch for short,\n   redacted state summaries at major actions, with no diagnostic work while it\n   is off. Keep secrets and duplicate stack traces out of user-facing messages.\n",
+      "excerpt_document_line": 2009
+    },
+    {
+      "id": "craft-7",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 7",
+      "start": 658,
+      "end": 663,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "d3d38329dc20829c2e34a4297ce326d97a4cb3919735887800f5fa808c95dd84",
+      "excerpt": "7. Write text that can be translated. User-facing messages go through the\n   repository's message catalog or i18n helper when one exists; otherwise keep\n   each message one whole sentence with named placeholders, never assembled\n   from fragments, so it can be externalized later. Format numbers, dates,\n   currency and plurals through locale-aware APIs. Keep log text, error codes\n   and machine identifiers stable and untranslated.\n",
+      "excerpt_document_line": 2022
+    },
+    {
+      "id": "craft-8",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 8",
+      "start": 664,
+      "end": 669,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "71bfe649a3bdafb76d580ae68e17db4e98d77801d5c50ba048be324daf7ed2f0",
+      "excerpt": "8. Put it where it belongs. New code lives in the namespace the step plan\n   chose, with the narrowest visibility a present consumer needs. A new name\n   must not collide with or shadow one in the shared space of any runtime it\n   runs in (such as globals, an import path, a shell or a platform org) or in a\n   library the code uses. No new generic bucket such as `utils`. Stored data\n   follows the planned schema and storage policy.\n",
+      "excerpt_document_line": 2035
+    },
+    {
+      "id": "craft-9",
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "CODE_CRAFT rule 9",
+      "start": 670,
+      "end": 677,
+      "source_sha256": "063a0bb73fc8d9c7663fe7784a2babda9ec15a848ba1a5515cf8b8712235202a",
+      "excerpt_sha256": "673243eab9c96a0ce4a12d1a16538dbb67fffd44e8abd878abc6f4aab5f99ffc",
+      "excerpt": "9. Compose before you build. Before writing a new unit, evaluate reusing an\n   existing one unchanged, composing existing ones, or augmenting one (a new\n   argument, an extension point, or a shared piece extracted from existing\n   code) while its current callers keep working. Augment only when the units\n   share one meaning, not merely similar code: a near-copy of existing logic\n   is a defect, and so is a parameter that fuses two different rules. State\n   the option chosen and why in one line.\n\"\"\"\n",
+      "excerpt_document_line": 2048
+    },
+    {
+      "id": "test-step",
+      "path": "test/shiploop-delegation.test.py",
+      "symbol": "test_each_step_packet_carries_its_own_proof_and_no_item_check",
+      "start": 333,
+      "end": 341,
+      "source_sha256": "78d72fbde367f62d0364da544126900d0632833476cdd489d696353e760b0435",
+      "excerpt_sha256": "4e8925b91ba047d611129406d9abc57240c6c6a5264a14dc923aa41d44d977d9",
+      "excerpt": "    def test_each_step_packet_carries_its_own_proof_and_no_item_check(self):\n        \"\"\"Chess run 2026-10-17: S1 was given a grep for files only S3 creates, failed, and the revise merged S1-S3.\n\n        The step Proof replaces 603a709c's interim rule (a check due from the step that finishes its criteria): each step\n        packet names the one command its step plan recorded for it, and the item's check rows stay with test and verify.\n        \"\"\"\n        steps = [{\"id\": \"S1\", \"task\": \"Add the parser.\", \"criteria\": [\"C1\"], \"check\": \"python3 -B probe_parser.py\"},\n                 {\"id\": \"S2\", \"task\": \"Add the validator.\", \"criteria\": [\"C2\"], \"check\": \"python3 -B probe_validator.py\"},\n                 {\"id\": \"S3\", \"task\": \"Add the report page.\", \"criteria\": [\"C3\"], \"check\": \"grep -q report report.html\"}]\n",
+      "excerpt_document_line": 2063
+    },
+    {
+      "id": "test-surfaces",
+      "path": "test/shiploop-delegation.test.py",
+      "symbol": "test_the_file_the_head_and_the_handoff_print_one_step_block",
+      "start": 557,
+      "end": 565,
+      "source_sha256": "78d72fbde367f62d0364da544126900d0632833476cdd489d696353e760b0435",
+      "excerpt_sha256": "956de5b541d942a0d6f583beccebca654ab747a8f75750670b52733877ddd20e",
+      "excerpt": "    def test_the_file_the_head_and_the_handoff_print_one_step_block(self):\n        \"\"\"T8: the same Step block (task, criteria by value, dependencies, Proof, later steps) on all three surfaces; the\n        hand-off names the step's entry base as a diff command; no surface fences the step to paths.\"\"\"\n        state = self.at_step(1)\n        base = nav.current_action(state)[\"base\"]\n        texts = self.surfaces(state)\n        block = self.step_lines(texts[\"file\"])\n        self.assertEqual(block[0], \"Step S1 (1 of 3), the only work for this packet: \"\n                                   \"Add the parser. It reads one record per line.\")\n",
+      "excerpt_document_line": 2079
+    },
+    {
+      "id": "test-tail",
+      "path": "test/shiploop-delegation.test.py",
+      "symbol": "test_the_loop_invocation_closes_the_file_and_the_head_even_when_the_head_is_cut_short",
+      "start": 595,
+      "end": 603,
+      "source_sha256": "78d72fbde367f62d0364da544126900d0632833476cdd489d696353e760b0435",
+      "excerpt_sha256": "1ec8ba35093c1d4b3cd52384afbdecf1e4510f507821b4e952c4373198f457c7",
+      "excerpt": "    def test_the_loop_invocation_closes_the_file_and_the_head_even_when_the_head_is_cut_short(self):\n        \"\"\"T10: the last block of the packet file and of the printed head is the /until-loop invocation; with a head\n        budget too small for any optional block the step block and the loop are still there, the loop last.\"\"\"\n        state = self.at_step(2)\n        path = nav.packet_path(self.run, state)\n\n        def last_block(text: str) -> str:\n            blocks = [chunk for chunk in re.split(r\"\\n\\s*\\n\", text.replace(nav.HEAD_END, \"\").strip()) if chunk.strip()]\n            return blocks[-1]\n",
+      "excerpt_document_line": 2095
+    },
+    {
+      "id": "test-exits",
+      "path": "test/shiploop-step-packets.test.py",
+      "symbol": "test_each_exit_condition_and_recorded_command_appears_once",
+      "start": 103,
+      "end": 111,
+      "source_sha256": "3f7c7b93cdb924c34d15e2b764eed79ab0eb0b52756c7562cc8f7c30c2f330ad",
+      "excerpt_sha256": "4b071bcfa96f92e6dc4e3529c78eeb5afcabed8f3af112eb8c6eb3ba604d2487",
+      "excerpt": "    def test_each_exit_condition_and_recorded_command_appears_once(self) -> None:\n        \"\"\"Each thing once (owner, 2026-10-11): the /until-loop argument is the one home of the exit conditions and the\n        test stage's command list, so no inner producer packet repeats either.\n\n        A condition is counted as its text; a recorded command as its listing (\"[<suite>] <command>\"), because the\n        bare command text can sit inside a rule (the count rule names \"node --test\" as a runner example).\n        \"\"\"\n        for name, found in self.found.items():\n            listing = \"[focused] \" + CASES[name][\"checks\"][0]\n",
+      "excerpt_document_line": 2111
+    },
+    {
+      "id": "test-craft",
+      "path": "test/shiploop-delegation.test.py",
+      "symbol": "test_the_inline_handoff_keeps_the_per_step_wording_byte_for_byte",
+      "start": 1046,
+      "end": 1054,
+      "source_sha256": "78d72fbde367f62d0364da544126900d0632833476cdd489d696353e760b0435",
+      "excerpt_sha256": "cf310097740928479fa6ae0ced02aaa88e4cccb3bc2718b482b611fa6b0189b8",
+      "excerpt": "    def test_the_inline_handoff_keeps_the_per_step_wording_byte_for_byte(self):\n        text = self.handoff(self.at_implement(\"inline\"))\n        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), text)    # the focus, then the Code craft rubric\n        self.assertIn(prompts.CODE_CRAFT.rstrip(), text)\n        row = stage_spec.stage(\"implement\")\n        self.assertIn(\"Goal: \" + row.goal[0].upper() + row.goal[1:], text)\n        for condition in row.done_when:\n            self.assertIn(\"- \" + condition + \"\\n\", text)\n        self.assertNotIn(\"S1 to S2\", text)\n",
+      "excerpt_document_line": 2127
+    },
+    {
+      "id": "test-person",
+      "path": "test/shiploop-consumer-delivery.test.py",
+      "symbol": "test_a_partial_person_reply_closes_no_required_behavior_and_the_ask_again_it_names_is_accepted",
+      "start": 1294,
+      "end": 1302,
+      "source_sha256": "567ca1459012237fb673b86e1c38f8c49a468f682db2404a0ba3d460c14bc536",
+      "excerpt_sha256": "c55ee2a371de7864d8f73454f4ed180affc14f7929879bb24050d289ab22f397",
+      "excerpt": "    def test_a_partial_person_reply_closes_no_required_behavior_and_the_ask_again_it_names_is_accepted(self) -> None:\n        \"\"\"Packet review 2026-10-17 (F X-1): a reply that leaves cases unanswered lets a stage continue with them open,\n        but in a marked run it closes no required behavior obligation.  The resumed packet says so; done with the\n        obligation unrun is refused by the delivery gate, and the route the line names (ask again, for only the\n        unanswered lines) is accepted.\"\"\"\n        state = self.to_release(self.accepted_contract(self.new_state()))\n        state = self.advance(state, \"release\",\n                             delivery_assessment=self.observation(state, \"update-effect\", \"update-identity\"))\n        asked = navigator.current_action(state)[\"id\"]\n",
+      "excerpt_document_line": 2143
+    },
+    {
+      "id": "test-id",
+      "path": "test/shiploop-test-loop.test.py",
+      "symbol": "test_an_id_that_starts_another_id_is_a_missing_test_not_a_title_to_fix",
+      "start": 1357,
+      "end": 1365,
+      "source_sha256": "8d405f2378548890dd162ad157f887a32bccb3da028b63b5990abfc0d3931005",
+      "excerpt_sha256": "64563ec64f2284f2ded2b02a92da77f6e06cbdb2f3c8835d15f0438136668547",
+      "excerpt": "    def test_an_id_that_starts_another_id_is_a_missing_test_not_a_title_to_fix(self):\n        \"\"\"GUARD (kills a raw substring match): `TC-1` listed, `TC-10` and `TC-13` printed.  The test is missing;\n        \"title each test so its ID stands alone\" would send the model to retitle tests that are fine, so the\n        select-and-print remedy stays.\"\"\"\n        self.start()\n        self.drive_to(\"test\", step_plan=self.id_item(ids=[\"TC-1\", \"TC-3\"]))\n        (self.repo / \"retained.txt\").write_text(\"retained\\n\")\n        red = (\"failed\", 1, \"\\u2716 TC-1 a\\n\\u2716 TC-3 b\\nRan 2 tests in 0.001s\\nFAILED (failures=2)\\n\".encode(), b\"\")\n        printed = (b\"\\xe2\\x9c\\x94 TC-10 a (1ms)\\n\\xe2\\x9c\\x94 TC-13 b (1ms)\\n\\xe2\\x9c\\x94 TC-2 c (1ms)\\n\"\n",
+      "excerpt_document_line": 2159
+    },
+    {
+      "id": "test-mutation",
+      "path": "test/shiploop-test-loop.test.py",
+      "symbol": "test_the_checkout_is_byte_identical_after_the_check",
+      "start": 1573,
+      "end": 1581,
+      "source_sha256": "8d405f2378548890dd162ad157f887a32bccb3da028b63b5990abfc0d3931005",
+      "excerpt_sha256": "621b81cd5942e6847b2625a8175129c4601cfd9e43ee7ccb973b87b8aed6e405",
+      "excerpt": "    def test_the_checkout_is_byte_identical_after_the_check(self):\n        self.calc_item(self.REAL_TEST)\n        before = self.tree_bytes()\n        lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())\n        self.assertRegex(lines[0], r\"^mutation: [1-9]\\d* of \\d+ mutants\")\n        self.assertEqual(self.tree_bytes(), before)\n        with self.assertRaises(test_loop.TestLoopError):\n            (self.repo / \"test_calc.py\").write_text(self.EMPTY_TEST)\n            before = self.tree_bytes()\n",
+      "excerpt_document_line": 2175
+    },
+    {
+      "id": "test-return",
+      "path": "test/shiploop-workspace.test.py",
+      "symbol": "test_files_left_uncommitted_are_committed_before_the_return_so_it_fast_forwards",
+      "start": 842,
+      "end": 850,
+      "source_sha256": "6d848a4b1d314d40ebd7b73692bba783c0571704efe1bc95b5e6cd7402d9ff0c",
+      "excerpt_sha256": "d095fbb3faa76f5e92870716bf582982c7bb85855d4ef546819463714b3d84da",
+      "excerpt": "    def test_files_left_uncommitted_are_committed_before_the_return_so_it_fast_forwards(self) -> None:\n        record = self._prepare(name=\"leftover files\")\n        root = self.base / \"leftover files\"\n        worktree = self._worktree(record)\n        (worktree / \"app.txt\").write_text(\"work item\\n\", encoding=\"utf-8\")\n        self._commit_all(worktree, \"work item\")\n        (worktree / \"system\").mkdir()\n        (worktree / \"system\" / \"check.js\").write_text(\"late system test\\n\", encoding=\"utf-8\")\n        (worktree / \"settings.env\").write_text(\"Authorization: Bearer 0123456789abcdefghij\\n\", encoding=\"utf-8\")\n",
+      "excerpt_document_line": 2191
+    },
+    {
+      "id": "test-loop",
+      "path": "test/shiploop-loops.test.py",
+      "symbol": "test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+      "start": 339,
+      "end": 347,
+      "source_sha256": "f1124a9288fc826d0d5c576fbcab8796dc9b991aacfdf1e5c71acc2baa017408",
+      "excerpt_sha256": "d13bae12f4956ea647217daabf03d73b810d7dd7c5612f7951e9ed6b57b03f8f",
+      "excerpt": "    def test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop(self):\n        \"\"\"The printed command is the one that starts the loop, on this action's own contract and receipt.\"\"\"\n        for stage in (\"step-plan\", \"test\", \"document\", \"verify\"):\n            with self.subTest(stage=stage):\n                state = self.state_for(stage)\n                self.write(state)\n                block = self.block(state)\n                action = \"A-\" + stage\n                contract_file, receipt = self.root / loops.contract_path(action), loops.receipt_path(self.root, action)\n",
+      "excerpt_document_line": 2207
+    },
+    {
+      "id": "test-keep",
+      "path": "test/shiploop-e2e-chess-salesforce.test.py",
+      "symbol": "test_keep_never_cleans_prints_the_command_and_exits_zero_when_the_checks_pass",
+      "start": 1948,
+      "end": 1956,
+      "source_sha256": "279d9829abf7119d1e0c65ded2a5735f4b1ed9905e14573f11c0b433aba08f40",
+      "excerpt_sha256": "fe9d8b9471c4393101c08167621e8637499ea7e897e1b1e4e471caa79d634360",
+      "excerpt": "    def test_keep_never_cleans_prints_the_command_and_exits_zero_when_the_checks_pass(self) -> None:\n        proc = self.run_reference(\"--keep\", \"--platform-dir\", str(self.tmp / \"kept\"))\n        self.assertEqual(proc.returncode, 0, self.out(proc))\n        self.assertEqual(self.deploys(destructive=True), [])\n        self.assertNotIn(\"cleanup:\", proc.stdout.replace(\"cleanup --org\", \"\"))\n        state = self.state()\n        self.assertTrue({\"SLChessEngine\", \"SLChessController\", \"SLChessEngineTest\"} <= set(state[\"apex_classes\"]))\n        self.assertIn(\"SLChess_Board\", state[\"types\"][\"CustomTab\"])\n        self.assertIn(\"SLChess\", state[\"types\"][\"CustomApplication\"])\n",
+      "excerpt_document_line": 2223
+    }
+  ],
+  "considerations": [
+    {
+      "id": "C1",
+      "label": "Whole step",
+      "anchors": [
+        "scope",
+        "step-block"
+      ],
+      "delta": "Extend the current step-scope instruction with complete required wiring/configuration/content at this boundary.",
+      "recommendations": [
+        "R01",
+        "R02",
+        "R04"
+      ],
+      "tests": [
+        "T15",
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C2",
+      "label": "Interactions",
+      "anchors": [
+        "procedure",
+        "craft-2"
+      ],
+      "delta": "Extend existing boundary/actor review with input/output/failure, compatibility and applicable accessibility; link Code craft detail.",
+      "recommendations": [
+        "R04",
+        "R05",
+        "R06"
+      ],
+      "tests": [
+        "T15",
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C3",
+      "label": "Building",
+      "anchors": [
+        "step-plan",
+        "command-owner"
+      ],
+      "delta": "Retain executable project commands; add artifact/prerequisite guidance without substituting compilation for behavior.",
+      "recommendations": [
+        "R01",
+        "R04",
+        "R08"
+      ],
+      "tests": [
+        "T15",
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C4",
+      "label": "Deploying",
+      "anchors": [
+        "prepare-access",
+        "review-authority",
+        "release-state"
+      ],
+      "delta": "Add order/settings/post-check/undo guidance; render the same granted test route while keeping release effects separately authorized.",
+      "recommendations": [
+        "R04",
+        "R06",
+        "R15",
+        "R16"
+      ],
+      "tests": [
+        "T15",
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C5",
+      "label": "State",
+      "anchors": [
+        "craft-8",
+        "scope"
+      ],
+      "delta": "Existing rubric requires planned schema/storage; add product-state ownership, transition, compatibility, atomicity and recovery guidance.",
+      "recommendations": [
+        "R04",
+        "R05"
+      ],
+      "tests": [
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C6",
+      "label": "Operating",
+      "anchors": [
+        "craft-6"
+      ],
+      "delta": "Expand diagnostic guidance with ownership, limits, retention/cleanup and justified bounded concurrency.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C7",
+      "label": "What exists",
+      "anchors": [
+        "craft-1",
+        "craft-9",
+        "discovery-applicability"
+      ],
+      "delta": "Retain reuse/compose/augment; add platform-service preference and existing-example binding.",
+      "recommendations": [
+        "R04",
+        "R13"
+      ],
+      "tests": [
+        "T20",
+        "T24"
+      ]
+    },
+    {
+      "id": "C8",
+      "label": "Proof",
+      "anchors": [
+        "step-receipt",
+        "proof-gate",
+        "review-proof-focus"
+      ],
+      "delta": "Keep execution gate; add criterion observations and valid procedure/current-vs-later separation.",
+      "recommendations": [
+        "R01",
+        "R03",
+        "R05",
+        "R08"
+      ],
+      "tests": [
+        "T15",
+        "T20",
+        "T24"
+      ]
+    }
+  ],
+  "code_craft": [
+    {
+      "id": "CC1",
+      "label": "Match the house",
+      "anchors": [
+        "craft-1"
+      ],
+      "status": "retain",
+      "delta": "Retain verbatim.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC2",
+      "label": "Fail at the door",
+      "anchors": [
+        "craft-2"
+      ],
+      "status": "retain",
+      "delta": "Retain verbatim.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC3",
+      "label": "Contract and tombstone",
+      "anchors": [
+        "craft-3"
+      ],
+      "status": "extend",
+      "delta": "Extend existing removed-approach advice with the owner-requested complex-unit tombstone.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC4",
+      "label": "Information-dense comments",
+      "anchors": [
+        "craft-4"
+      ],
+      "status": "extend",
+      "delta": "Extend with explicit token-efficient rationale; preserve single explanation.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC5",
+      "label": "Small, not thin",
+      "anchors": [
+        "craft-5"
+      ],
+      "status": "retain",
+      "delta": "Retain verbatim.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC6",
+      "label": "Diagnostics and cleanup",
+      "anchors": [
+        "craft-6"
+      ],
+      "status": "extend",
+      "delta": "Add release of acquired resources on every failure/success path.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC7",
+      "label": "Translatable text",
+      "anchors": [
+        "craft-7"
+      ],
+      "status": "retain",
+      "delta": "Retain verbatim.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC8",
+      "label": "Placement and schema",
+      "anchors": [
+        "craft-8"
+      ],
+      "status": "retain",
+      "delta": "Retain verbatim.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC9",
+      "label": "Compose before/build to compose",
+      "anchors": [
+        "craft-9"
+      ],
+      "status": "extend",
+      "delta": "Add narrow interface, pure core and side-effect edges to existing reuse/compose/augment guidance.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC10",
+      "label": "Justified concurrency",
+      "anchors": [
+        "craft-producer",
+        "craft-step"
+      ],
+      "status": "proposed; no current equivalent rule",
+      "delta": "New rule; add to shared source and step review.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC11",
+      "label": "Use the platform first",
+      "anchors": [
+        "craft-producer",
+        "craft-step"
+      ],
+      "status": "proposed; no current equivalent rule",
+      "delta": "New rule; discovery/platform cards provide context, not this rubric rule.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC12",
+      "label": "Bound remote calls",
+      "anchors": [
+        "craft-producer",
+        "craft-step"
+      ],
+      "status": "proposed; no current equivalent rule",
+      "delta": "New rule; bound calls, idempotent retries, fetch size and response checks.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC13",
+      "label": "Configuration, not constants",
+      "anchors": [
+        "craft-producer",
+        "craft-step"
+      ],
+      "status": "proposed; no current equivalent rule",
+      "delta": "New rule; use project/platform configuration and secret storage.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    },
+    {
+      "id": "CC14",
+      "label": "Determinism seams",
+      "anchors": [
+        "craft-producer",
+        "craft-step"
+      ],
+      "status": "proposed; no current equivalent rule",
+      "delta": "New rule; clock/randomness/I/O seams where replay is needed.",
+      "recommendations": [
+        "R04"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T23",
+        "T24"
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "R01",
+      "title": "Step-specific executable checks",
+      "status": "retain + qualify",
+      "anchors": [
+        "step-plan",
+        "step-schema",
+        "stage-proof",
+        "command-owner",
+        "step-receipt",
+        "step-execute",
+        "proof-gate",
+        "test-step"
+      ],
+      "current": "Per-step check, optional step paths, separate item commands and candidate-bound receipt already exist.",
+      "delta": "Retain scheduling; add meaningful behavioral/procedure evidence and complete prerequisites. Do not rebuild the gate or make a missing artifact skip pass.",
+      "tests": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T27",
+        "T31",
+        "T36"
+      ],
+      "plan_sections": "4.1,5"
+    },
+    {
+      "id": "R02",
+      "title": "One assignment on every surface",
+      "status": "retain + extend",
+      "anchors": [
+        "step-block",
+        "head",
+        "block-producer",
+        "loop-last",
+        "handoff",
+        "review-base",
+        "test-surfaces",
+        "test-tail",
+        "test-exits"
+      ],
+      "current": "A shared block, current criteria/Proof, step-entry diff and closing loop already exist.",
+      "delta": "Add missing anchors/cards/exemplar/prerequisites/observer facts; filter future tasks; measure actual emitted head without dropping binding.",
+      "tests": [
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T16",
+        "T18",
+        "T19"
+      ],
+      "plan_sections": "2.2,3.1,3.4,8"
+    },
+    {
+      "id": "R03",
+      "title": "Criterion evidence and changed-candidate proof",
+      "status": "new evidence schema; retain rerun",
+      "anchors": [
+        "result-shape",
+        "proof-gate",
+        "improve-reproof",
+        "step-receipt"
+      ],
+      "current": "Generic evidence_refs exist; Improve import already reruns/reuses the step Proof.",
+      "delta": "Add criterion_evidence/implement-record coverage and candidate binding; keep observational meaning under review and preserve the existing Improve rerun. Required-field state migration applies only to genuinely new fields.",
+      "tests": [
+        "T7",
+        "T17",
+        "T26",
+        "T27",
+        "T33"
+      ],
+      "plan_sections": "3.3,5"
+    },
+    {
+      "id": "R04",
+      "title": "Static method, cards, match and Code craft",
+      "status": "proposed extraction/expansion",
+      "anchors": [
+        "scope",
+        "plan-skill-check",
+        "step-schema",
+        "craft-producer",
+        "craft-end",
+        "craft-step",
+        "craft-chain",
+        "craft-quality",
+        "guidance-loader-site",
+        "test-craft"
+      ],
+      "current": "Code craft is a Python constant with five consumers; proposed implement-guidance.md/code-craft.md and static_text are absent.",
+      "delta": "Add the two reference files/loader; populate cards/cards_na/match from accepted records; keep item return scope; insert general method for all steps and full Code craft for applicable code steps. No eight-answer gate.",
+      "tests": [
+        "T3",
+        "T4",
+        "T13",
+        "T15",
+        "T20",
+        "T21",
+        "T22",
+        "T23",
+        "T24"
+      ],
+      "plan_sections": "3.2,3.5,3.6,5"
+    },
+    {
+      "id": "R05",
+      "title": "Valid procedures through final review and person ask",
+      "status": "partial; extend consumers",
+      "anchors": [
+        "procedure",
+        "planning-focus",
+        "carry-focus",
+        "person-ask",
+        "case-shape"
+      ],
+      "current": "Procedure walk is shared by planning/test-spec; carry-forward chooses end focus without that condition.",
+      "delta": "Add inherited-procedure review at carry-forward and recheck the person ask. Conditional authorized API replay may refute transitions but cannot certify another observation boundary. Preserve six-field cases.",
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34"
+      ],
+      "plan_sections": "4.2,10.6"
+    },
+    {
+      "id": "R06",
+      "title": "Early actor/access prerequisites",
+      "status": "retain + close deferral gaps",
+      "anchors": [
+        "prepare-access",
+        "planning-focus",
+        "discovery-applicability",
+        "person-ask"
+      ],
+      "current": "Prepare already names role/entry/read-only access and owned gaps.",
+      "delta": "Carry blocking prerequisites with earliest feasible checks; distinguish host startup, entry configuration and actual interaction. Keep later candidate-dependent checks owned.",
+      "tests": [
+        "T28",
+        "T29",
+        "T44"
+      ],
+      "plan_sections": "4.2"
+    },
+    {
+      "id": "R07",
+      "title": "Required acceptance and partial/declined replies",
+      "status": "retain gate; repair continuity/ask",
+      "anchors": [
+        "person-ask",
+        "delivery-gate",
+        "delivery-correction",
+        "correction-project",
+        "settling-template",
+        "test-person"
+      ],
+      "current": "Contract gate requires current required behavior; corrections can invalidate observations and require replan. Prompt permits some unanswered handoff, creating a continuity risk outside contract coverage.",
+      "delta": "Preserve requirement-to-obligation continuity including no reply. Record only confirmed outcomes. Explicit acceptance changes use existing correction/replan; no shortcut that turns unconfirmed details into waiver. Honor a declined check without repeating asks; remain unverified.",
+      "tests": [
+        "T26",
+        "T44"
+      ],
+      "plan_sections": "0.2,4.2,10.6"
+    },
+    {
+      "id": "R08",
+      "title": "Observe the intended copy and reporter outcomes",
+      "status": "open correctness delta",
+      "anchors": [
+        "judge",
+        "id-outcomes",
+        "base-order",
+        "platform-card",
+        "test-id"
+      ],
+      "current": "judge checks exit/count/ID presence; per-ID outcomes parser exists. Card overstates scoring and permits base exemption without delivering mutated copies.",
+      "delta": "Use actual per-ID outcomes; correct card before exposing it to planning. Bind base/candidate/mutant target, distinguish setup failure from behavioral failure, preserve requested acceptance format.",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "plan_sections": "4.3"
+    },
+    {
+      "id": "R09",
+      "title": "Mutation restoration and interrupted recovery",
+      "status": "open; adapter qualification",
+      "anchors": [
+        "base-order",
+        "mutation-restore",
+        "mutation-record",
+        "test-mutation"
+      ],
+      "current": "Sequence ends at mutation; finally restores only the local mutated file.",
+      "delta": "Record in_progress before authorized effects; run accepted candidate last and verify non-source reset as needed; retain separate restore result and recover interrupted restore. No remote campaign without a prepared isolated route.",
+      "tests": [
+        "T37",
+        "T38"
+      ],
+      "plan_sections": "4.3"
+    },
+    {
+      "id": "R10",
+      "title": "Mutation check-only reuse",
+      "status": "open; preserve existing policy",
+      "anchors": [
+        "mutation-record",
+        "command-reuse"
+      ],
+      "current": "Command check-only reuse exists; mutation_check always invokes _check before writing its result.",
+      "delta": "Reuse matching mutation verdict with candidate/base/commands/operator/sample/config keys; restoration is a separate gate. Do not infer observation-only remote freshness from local equality.",
+      "tests": [
+        "T39"
+      ],
+      "plan_sections": "4.4"
+    },
+    {
+      "id": "R11",
+      "title": "Narrow revisions and unchanged prefix reuse",
+      "status": "partial; guarded pilot",
+      "anchors": [
+        "progress",
+        "revisit",
+        "reviewed-input",
+        "planning-focus",
+        "step-receipt"
+      ],
+      "current": "Progress starts after latest step-plan; stage-level revisit/history machinery exists.",
+      "delta": "Add same-step prior locators and preservation rule to producer+Improve. Exact records plus unchanged product permit only unchanged-prefix reuse with fresh script-run Proofs. Unresolved product repair must reopen work.",
+      "tests": [
+        "T40",
+        "T41"
+      ],
+      "plan_sections": "4.4"
+    },
+    {
+      "id": "R12",
+      "title": "Compact, valid result and callback contracts",
+      "status": "partial; repair examples",
+      "anchors": [
+        "consumer-example",
+        "consumer-enum",
+        "case-shape",
+        "case-coverage",
+        "parent-return",
+        "work-items",
+        "notes-file",
+        "loop-result",
+        "loop-stop-semantics",
+        "delivery-template",
+        "settling-template"
+      ],
+      "current": "Validators/enums exist; some examples omit accepted values or return rules. Notes-as-file and delivery settling template already exist.",
+      "delta": "Render actual consumers, conditional fields/skill-none shape, N/A location, parent final-result/work-items rules and stopped-blocked route; use host-appropriate invocation. Test examples through real validators.",
+      "tests": [
+        "T42"
+      ],
+      "plan_sections": "4.5"
+    },
+    {
+      "id": "R13",
+      "title": "Resolvable references and essential facts",
+      "status": "partial; qualify concision",
+      "anchors": [
+        "guide-lines",
+        "guide-head",
+        "platform-card",
+        "step-block"
+      ],
+      "current": "Cited paths are printed; bounded heading ranges/revision binding and required inline command facts remain incomplete.",
+      "delta": "Render exact resolved ranges/identity; keep command/target/authority facts by value and link background. Correct wrong card facts first; no ban on source reads.",
+      "tests": [
+        "T18",
+        "T19",
+        "T43"
+      ],
+      "plan_sections": "3.1,4.3,4.5,8"
+    },
+    {
+      "id": "R14",
+      "title": "Evidence-based Improve and relevant history",
+      "status": "partial; guidance refinement",
+      "anchors": [
+        "recent-commits",
+        "review-proof-focus",
+        "reviewed-input",
+        "improve-reproof",
+        "test-craft"
+      ],
+      "current": "Recent commits helper defaults to three; existing focus/rerun/import records support actual inspection.",
+      "delta": "Select two relevant commits since item base; retain findings and pending-vs-submitted distinction. Classification follows evidence; no seven-commit quota, read telemetry, timer or one-command-per-prose-condition gate.",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41"
+      ],
+      "plan_sections": "3.1,4.5"
+    },
+    {
+      "id": "R15",
+      "title": "Same scoped probe authority for implement and Improve",
+      "status": "open prompt consistency delta",
+      "anchors": [
+        "step-plan",
+        "review-authority",
+        "prepare-access"
+      ],
+      "current": "Step-plan permits recorded remote test route; Improve prompt says no deploy/install/credential access.",
+      "delta": "Render one existing authority source with exact route/target/effects. Preserve scope; documentation cannot certify an unobserved current behavior, and a session route cannot bypass a denied/person-only boundary.",
+      "tests": [
+        "T28",
+        "T35",
+        "T44"
+      ],
+      "plan_sections": "4.1,4.5"
+    },
+    {
+      "id": "R16",
+      "title": "Actual release state, not invented absence",
+      "status": "open duty correction",
+      "anchors": [
+        "release-state",
+        "delivery-gate"
+      ],
+      "current": "release-check requests not-there-yet output despite possible earlier staging.",
+      "delta": "Observe current state/identity and actual delta; retain historical absence as historical; neither reset nor effect is authorized by the term dry run.",
+      "tests": [
+        "T35",
+        "T46"
+      ],
+      "plan_sections": "4.5"
+    },
+    {
+      "id": "R17",
+      "title": "Product/test/tool-state classification and source return",
+      "status": "separate follow-up",
+      "anchors": [
+        "classify",
+        "item-commit",
+        "leftovers",
+        "platform-card",
+        "test-return"
+      ],
+      "current": "Item commit leaves undeclared non-doc files; leftover commit gathers almost all untracked paths. No generic generated class exists.",
+      "delta": "Improve existing classification/ignore card and review undecided leftovers before commit; preserve product metadata; return and commit remain distinct claims.",
+      "tests": [
+        "T30",
+        "T47"
+      ],
+      "plan_sections": "4.5,7"
+    },
+    {
+      "id": "R18",
+      "title": "Harness keep, terminal state and reporting",
+      "status": "separate follow-up",
+      "anchors": [
+        "harness-grade",
+        "harness-verdict",
+        "harness-keep",
+        "harness-cleanup",
+        "metrics-reviews",
+        "test-keep"
+      ],
+      "current": "Engine status, product verdict and cleanup already have separate code paths; keep eligibility depends on host/result evidence.",
+      "delta": "Qualify documented keep intent for done-but-uncommitted and failed host outcomes; terminate using run-bound engine plus host terminal evidence. Preserve failed cleanup; read Improve passes from the actual bound child/receipt paths instead of assuming one worktree layout.",
+      "tests": [
+        "T30",
+        "T48"
+      ],
+      "plan_sections": "4.5,7"
+    },
+    {
+      "id": "R19",
+      "title": "Run-owned loop state and recovery",
+      "status": "open small runtime contract fix",
+      "anchors": [
+        "loop-start",
+        "loop-result",
+        "parent-return",
+        "test-loop"
+      ],
+      "current": "Stage-loop start passes receipt but no directory; Improve start already uses RUN/until-loop.",
+      "delta": "Give stage start the same run-owned directory and recover its existing receipt/next_argv. Clarify stopped-blocked routing without changing stop semantics.",
+      "tests": [
+        "T12",
+        "T42",
+        "T49"
+      ],
+      "plan_sections": "4.5"
+    },
+    {
+      "id": "R20",
+      "title": "Applicable guidance across software packages",
+      "status": "retain qualifiers; measured rendering pilot",
+      "anchors": [
+        "discovery-applicability",
+        "ui-applicability",
+        "module-applicability"
+      ],
+      "current": "UI and module-format duties are already conditional; discovery still needs target/service facts for empty repositories.",
+      "delta": "Keep existing conditions; qualify rendering/examples against accepted stack and surface. Only remove proven irrelevant material; no request-keyword router or empty-repo shortcut.",
+      "tests": [
+        "T15",
+        "T43",
+        "T50"
+      ],
+      "plan_sections": "4.6"
+    },
+    {
+      "id": "R21",
+      "title": "Avoid redundant system-stage executions",
+      "status": "deferred measured pilot",
+      "anchors": [
+        "system-author",
+        "system-execute",
+        "command-owner",
+        "command-reuse"
+      ],
+      "current": "Author asks to run commands; system-test asks to run cases and script also owns a recorded run. Existing reuse is within an action.",
+      "delta": "Expose script-owned execution/receipt, keep useful diagnostics. Cross-stage reuse requires candidate/cases/fixture/target/freshness equality and authority, otherwise run. Extend existing receipt logic only after evidence, not a new cache service.",
+      "tests": [
+        "T45",
+        "T51"
+      ],
+      "plan_sections": "4.6"
+    }
+  ],
+  "limits": [
+    "Code excerpts and test definitions were verified; runtime suites and reviewer/live pilots were not run.",
+    "Existing tests are extension sites, not proof that proposed T-tests exist or pass.",
+    "Instructional guidance modifies prompt producers/consumers; it is not deterministic enforcement of arbitrary product semantics."
+  ]
+}

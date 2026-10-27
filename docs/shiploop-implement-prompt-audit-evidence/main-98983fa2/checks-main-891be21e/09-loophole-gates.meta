@@ -1,0 +1,4 @@
+command=python3 -B test/shiploop-loophole-gates.test.py LoopholeGateTests
+exit_code=0
+duration_ms=6491
+log=/tmp/shiploop-main-conflict-20261025T142207/checks-main-891be21e/09-loophole-gates.log

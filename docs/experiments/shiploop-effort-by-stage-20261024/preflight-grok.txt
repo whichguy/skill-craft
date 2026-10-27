@@ -1,0 +1,1 @@
+marketplace preflight: origin/main 6ed81762 publishes skill-craft 2.8.0 / ShipLoop 1.8.0; grok marketplace add + install (fresh profile) got skill-craft 2.8.0 / ShipLoop 1.8.0; unreleased notes: 0; main CI: success; OK

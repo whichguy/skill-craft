@@ -1,0 +1,603 @@
+{
+ "control": {
+  "output": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/control-hello",
+  "pass": true,
+  "status_line": "done",
+  "schedule": {
+   "M": "medium",
+   "I2": "medium",
+   "D": "medium"
+  },
+  "totals": {
+   "run": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/control-hello",
+   "model_calls": 310,
+   "prompt_tokens": 41274829,
+   "output_tokens": 210633,
+   "reasoning_tokens": 103689,
+   "tokens": 41485462,
+   "seconds": 3985.6,
+   "sessions": 5,
+   "sessions_unended": 0
+  },
+  "sessions": [
+   {
+    "n": 1,
+    "kind": "first",
+    "reason": "start",
+    "effort": "medium",
+    "seconds": 3732.0,
+    "status": "exited"
+   },
+   {
+    "n": 2,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 27.6,
+    "status": "exited"
+   },
+   {
+    "n": 3,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 18.6,
+    "status": "exited"
+   },
+   {
+    "n": 4,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 112.0,
+    "status": "interrupted"
+   },
+   {
+    "n": 5,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 95.4,
+    "status": "exited"
+   }
+  ],
+  "launches": [
+   [
+    "D",
+    "medium",
+    "start"
+   ],
+   [
+    "M",
+    "medium",
+    "resume"
+   ],
+   [
+    "M",
+    "medium",
+    "resume"
+   ],
+   [
+    "M",
+    "medium",
+    "resume"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ]
+  ],
+  "restarts": [
+   [
+    1,
+    "M",
+    "D",
+    "handoff",
+    "medium",
+    "medium"
+   ]
+  ],
+  "improve": {
+   "children": 9,
+   "passes": 11,
+   "passes_ge2": 2,
+   "ge2_changed_tree": 0,
+   "ge2_tree_unknown": 0,
+   "children_with_ge2": 2,
+   "per_child_passes": [
+    1,
+    2,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "schedule_check": {
+   "restarts_into_I2": 0,
+   "matched_to_a_child_that_reached_pass_2": 0,
+   "unmatched": [],
+   "children_that_reached_pass_2": 2
+  },
+  "stage_seconds": [
+   [
+    "intake",
+    84.6
+   ],
+   [
+    "discovery",
+    152.0
+   ],
+   [
+    "research",
+    76.0
+   ],
+   [
+    "spec",
+    163.0
+   ],
+   [
+    "test-strategy",
+    232.0
+   ],
+   [
+    "plan",
+    359.0
+   ],
+   [
+    "prepare",
+    76.0
+   ],
+   [
+    "step-plan",
+    532.0
+   ],
+   [
+    "test-spec",
+    313.0
+   ],
+   [
+    "validate-existing",
+    0.0
+   ],
+   [
+    "implement",
+    400.0
+   ],
+   [
+    "test",
+    194.0
+   ],
+   [
+    "document",
+    135.0
+   ],
+   [
+    "verify",
+    90.0
+   ],
+   [
+    "carry-forward",
+    180.0
+   ],
+   [
+    "system-test-author",
+    279.0
+   ],
+   [
+    "system-test",
+    62.0
+   ],
+   [
+    "product-acceptance",
+    37.0
+   ],
+   [
+    "release-plan",
+    212.0
+   ],
+   [
+    "release-check",
+    64.0
+   ],
+   [
+    "release",
+    72.0
+   ],
+   [
+    "release-verify",
+    134.0
+   ],
+   [
+    "operations",
+    41.0
+   ],
+   [
+    "handoff",
+    86.0
+   ]
+  ]
+ },
+ "treatment": {
+  "output": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/treatment-hello",
+  "pass": true,
+  "status_line": "done",
+  "schedule": {
+   "M": "low",
+   "I2": "low",
+   "D": "medium"
+  },
+  "totals": {
+   "run": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/treatment-hello",
+   "model_calls": 343,
+   "prompt_tokens": 44506666,
+   "output_tokens": 221620,
+   "reasoning_tokens": 99633,
+   "tokens": 44728286,
+   "seconds": 4062.8,
+   "sessions": 12,
+   "sessions_unended": 0
+  },
+  "sessions": [
+   {
+    "n": 1,
+    "kind": "first",
+    "reason": "start",
+    "effort": "medium",
+    "seconds": 273.2,
+    "status": "exited"
+   },
+   {
+    "n": 2,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 24.6,
+    "status": "exited"
+   },
+   {
+    "n": 3,
+    "kind": "continued",
+    "reason": "resume-loop",
+    "effort": "medium",
+    "seconds": 644.9,
+    "status": "interrupted"
+   },
+   {
+    "n": 4,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 98.3,
+    "status": "interrupted"
+   },
+   {
+    "n": 5,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 260.5,
+    "status": "interrupted"
+   },
+   {
+    "n": 6,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 80.3,
+    "status": "interrupted"
+   },
+   {
+    "n": 7,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 1826.6,
+    "status": "interrupted"
+   },
+   {
+    "n": 8,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 106.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 9,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 296.7,
+    "status": "interrupted"
+   },
+   {
+    "n": 10,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 90.4,
+    "status": "interrupted"
+   },
+   {
+    "n": 11,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "low",
+    "seconds": 268.6,
+    "status": "interrupted"
+   },
+   {
+    "n": 12,
+    "kind": "continued",
+    "reason": "effort",
+    "effort": "medium",
+    "seconds": 92.3,
+    "status": "exited"
+   }
+  ],
+  "launches": [
+   [
+    "D",
+    "medium",
+    "start"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "D",
+    "medium",
+    "resume"
+   ],
+   [
+    "I2",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "M",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ],
+   [
+    "I2",
+    "low",
+    "restart"
+   ],
+   [
+    "M",
+    "low",
+    "restart"
+   ],
+   [
+    "D",
+    "medium",
+    "restart"
+   ]
+  ],
+  "restarts": [
+   [
+    1,
+    "D",
+    "I2",
+    "test-strategy",
+    "medium",
+    "low"
+   ],
+   [
+    2,
+    "I2",
+    "D",
+    "plan",
+    "low",
+    "medium"
+   ],
+   [
+    3,
+    "D",
+    "M",
+    "prepare",
+    "medium",
+    "low"
+   ],
+   [
+    4,
+    "M",
+    "D",
+    "step-plan",
+    "low",
+    "medium"
+   ],
+   [
+    5,
+    "D",
+    "M",
+    "system-test",
+    "medium",
+    "low"
+   ],
+   [
+    6,
+    "M",
+    "D",
+    "release-plan",
+    "low",
+    "medium"
+   ],
+   [
+    7,
+    "D",
+    "I2",
+    "release-plan",
+    "medium",
+    "low"
+   ],
+   [
+    8,
+    "I2",
+    "M",
+    "release-check",
+    "low",
+    "low"
+   ],
+   [
+    9,
+    "M",
+    "D",
+    "handoff",
+    "low",
+    "medium"
+   ]
+  ],
+  "improve": {
+   "children": 9,
+   "passes": 11,
+   "passes_ge2": 2,
+   "ge2_changed_tree": 0,
+   "ge2_tree_unknown": 0,
+   "children_with_ge2": 2,
+   "per_child_passes": [
+    1,
+    1,
+    1,
+    2,
+    1,
+    1,
+    1,
+    1,
+    2
+   ]
+  },
+  "schedule_check": {
+   "restarts_into_I2": 2,
+   "matched_to_a_child_that_reached_pass_2": 2,
+   "unmatched": [],
+   "children_that_reached_pass_2": 2
+  },
+  "stage_seconds": [
+   [
+    "intake",
+    75.9
+   ],
+   [
+    "discovery",
+    174.0
+   ],
+   [
+    "research",
+    124.0
+   ],
+   [
+    "spec",
+    152.0
+   ],
+   [
+    "test-strategy",
+    513.0
+   ],
+   [
+    "plan",
+    259.0
+   ],
+   [
+    "prepare",
+    82.0
+   ],
+   [
+    "step-plan",
+    325.0
+   ],
+   [
+    "test-spec",
+    268.0
+   ],
+   [
+    "validate-existing",
+    0.0
+   ],
+   [
+    "implement",
+    217.0
+   ],
+   [
+    "test",
+    311.0
+   ],
+   [
+    "document",
+    154.0
+   ],
+   [
+    "verify",
+    110.0
+   ],
+   [
+    "carry-forward",
+    182.0
+   ],
+   [
+    "system-test-author",
+    259.0
+   ],
+   [
+    "system-test",
+    53.0
+   ],
+   [
+    "product-acceptance",
+    53.0
+   ],
+   [
+    "release-plan",
+    387.0
+   ],
+   [
+    "release-check",
+    116.0
+   ],
+   [
+    "release",
+    63.0
+   ],
+   [
+    "release-verify",
+    54.0
+   ],
+   [
+    "operations",
+    37.0
+   ],
+   [
+    "handoff",
+    82.0
+   ]
+  ]
+ }
+}

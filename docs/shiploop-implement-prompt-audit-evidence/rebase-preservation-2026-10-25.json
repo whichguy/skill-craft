@@ -1,0 +1,14 @@
+{
+  "same_local_added_removed_lines": true,
+  "per_file": {
+    "skills/rubric-eval/references/judges.json": true,
+    "skills/rubric-eval/scripts/rubric_eval.py": true,
+    "test/shiploop-e2e-slice.test.py": true,
+    "test/shiploop-e2e.test.py": true,
+    "test/shiploop_e2e/run.py": true,
+    "test/shiploop_e2e/sessionlog.py": true,
+    "test/shiploop_e2e/slice.py": true
+  },
+  "pre_head": "6ed817622426dcfde4840a4b5bac945bc64f151a",
+  "post_head": "e707b794de0a0bd802988ca68dac8e29ac0b3315"
+}

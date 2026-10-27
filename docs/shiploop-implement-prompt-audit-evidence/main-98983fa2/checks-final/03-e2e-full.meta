@@ -1,0 +1,4 @@
+command=python3 -B test/shiploop-e2e.test.py
+exit_code=0
+duration_ms=199787
+log=/tmp/shiploop-main-conflict-20261025T142207/checks-final/03-e2e-full.log

@@ -1,0 +1,157 @@
+{
+ "source": "Salesforce chess E2E run 2 (2026-10-17), Grok 4.7 medium, inline delegation; run folder not committed",
+ "read_file_counts_whole_run": {
+  "docs/shiploop/environment.md": 18,
+  "docs/shiploop/spec.md": 14,
+  "references/review-policy.md": 7,
+  "results/nav-1878dd4381fe457aa943620ee9da93e4.md": 7,
+  "docs/shiploop/architecture.md": 6,
+  "results/nav-faabbb605cbf4fdeb357c071e47c1177.md": 4,
+  "results/nav-3384b1a64cb949599a8a9ad120daf35c.md": 3,
+  "results/nav-cc2cdf1439ab4852a6475dbff3060794.md": 3,
+  "results/nav-bbbf0a391cce425dbd052d8f924f54bc.md": 2,
+  "references/consumer-delivery.md": 1,
+  "references/delivery-authority.md": 1,
+  "references/environment-lifecycle.md": 1,
+  "references/requirements-definition.md": 1,
+  "references/backchain-planning.md": 1,
+  "references/house-style.md": 1,
+  "references/coding-guidance.md": 1,
+  "references/platforms/salesforce.md": 1,
+  "references/coding-practices.md": 1,
+  "results/nav-adfd6e3be3d74960b0bd5d10c30ad3b9.md": 1,
+  "results/nav-8508011e13784a22ae8b166eb827be01.md": 1,
+  "references/testing-and-documentation.md": 1,
+  "references/current-system-baseline.md": 1,
+  "results/nav-b55476c199344782b7a9cd655495fe8b.md": 1
+ },
+ "coding_guidance_md_reads": 1,
+ "implement_stages": [
+  {
+   "outcome": "done",
+   "seconds": 549.0,
+   "turns": 25,
+   "tool_calls": 38,
+   "context_peak": 201465
+  },
+  {
+   "outcome": "done",
+   "seconds": 1194.0,
+   "turns": 55,
+   "tool_calls": 89,
+   "context_peak": 204848
+  },
+  {
+   "outcome": "done",
+   "seconds": 335.0,
+   "turns": 23,
+   "tool_calls": 47,
+   "context_peak": 203767
+  },
+  {
+   "outcome": "done",
+   "seconds": 191.0,
+   "turns": 16,
+   "tool_calls": 24,
+   "context_peak": 174289
+  },
+  {
+   "outcome": "done",
+   "seconds": 401.0,
+   "turns": 35,
+   "tool_calls": 60,
+   "context_peak": 203092
+  },
+  {
+   "outcome": "done",
+   "seconds": 470.0,
+   "turns": 37,
+   "tool_calls": 65,
+   "context_peak": 163848
+  },
+  {
+   "outcome": "done",
+   "seconds": 160.0,
+   "turns": 14,
+   "tool_calls": 26,
+   "context_peak": 185175
+  }
+ ],
+ "W1_step_plan_steps": [
+  {
+   "id": "S1",
+   "deps": [],
+   "criteria": [
+    "C1"
+   ],
+   "paths": [
+    "sfdx-project.json",
+    "force-app/main/default/.gitkeep"
+   ],
+   "skills": []
+  },
+  {
+   "id": "S2",
+   "deps": [
+    "S1"
+   ],
+   "criteria": [
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10"
+   ],
+   "paths": [
+    "force-app/main/default/classes/SLChessEngine.cls",
+    "force-app/main/default/classes/SLChessEngine.cls-meta.xml"
+   ],
+   "skills": []
+  }
+ ],
+ "W1_test_commands": [
+  {
+   "suite": "focused",
+   "command": "sf apex run test --target-org de --class-names SLChessRulesTest --synchronous --result-format human --code-coverage",
+   "criteria": [
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8"
+   ]
+  },
+  {
+   "suite": "regression",
+   "command": "sf apex run test --target-org de --class-names SLChessRulesTest --synchronous --result-format human --code-coverage",
+   "criteria": null
+  },
+  {
+   "suite": "check",
+   "command": "test -f sfdx-project.json && test -d force-app && rg -q 'path.: .force-app' sfdx-project.json && rg -q 'sourceApiVersion.: .67.0' sfdx-project.json",
+   "criteria": [
+    "C1"
+   ]
+  },
+  {
+   "suite": "check",
+   "command": "rg -q FEN force-app/main/default/classes/SLChessEngine.cls && rg -q UCI force-app/main/default/classes/SLChessEngine.cls && rg -q IllegalMoveException force-app/main/default/classes/SLChessEngine.cls",
+   "criteria": [
+    "C9"
+   ]
+  },
+  {
+   "suite": "check",
+   "command": "sf project deploy start --target-org de",
+   "criteria": [
+    "C10"
+   ]
+  }
+ ]
+}

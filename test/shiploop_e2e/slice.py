@@ -50,12 +50,14 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import run  # noqa: E402  (also puts skills/shiploop/scripts on sys.path)
 import clear  # noqa: E402
+import effort  # noqa: E402
 import hosts  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
@@ -182,14 +184,18 @@ def clear_records(out: Path) -> list[dict]:
 
 def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, timeout: int, watch: bool,
           translate=None, host_name: str = "fake", model: str | None = None, first: bool = True,
-          resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None) -> dict:
+          resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None,
+          planner: "effort.Planner | None" = None, effort_now: str | None = None) -> dict:
     """One host session that the slice stop ends. Its status is ``slice-complete`` when the slice ended it, or when the
     session ended by itself with the slice already complete.
 
     With `clear_at` (clear.parse_spec) the session is also ended at the first position not yet cleared (status
     ``cleared``): the positions fire in order, and clear.json holds the ones that already did. The stop point is
     appended to clear.json and the caller continues in a fresh session. `told` is what that session's prompt named
-    (sessions.jsonl)."""
+    (sessions.jsonl).
+
+    With `planner` (effort.Planner) the session is also ended when the position leaves the session's class (status
+    ``reeffort``, the boundary kept in ``planner.pending``); `effort_now` is the effort this session was launched at."""
     hit: list = []
     earlier = clear_records(out)
     spec = clear_at[len(earlier)] if clear_at and len(earlier) < len(clear_at) else None
@@ -204,6 +210,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
             if found:
                 hit.append(found)
                 return True
+        if planner and not slice_complete(state) and planner.stop_when():
+            return True
         return slice_complete(state)
 
     started: list = []
@@ -211,7 +219,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
 
     def begin(line: int) -> None:
         started.append(sessionlog.start(out, kind="first" if first else "continued", reason="slice", host=host_name,
-                                        model=model, events_line=line, told=told, resumed_session=resumed_session))
+                                        model=model, events_line=line, told=told, resumed_session=resumed_session,
+                                        effort=effort_now))
 
     process = None
     try:
@@ -231,6 +240,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
         record = {"n": len(earlier) + 1, **spec, "triggered": hit[0], "stopped": actual}
         (out / CLEAR_RECORD).write_text(json.dumps([*earlier, record], indent=2) + "\n")
         process["status"] = "cleared"
+    elif planner and planner.pending and process["status"] == "interrupted":
+        process["status"] = "reeffort"
     elif process["status"] == "interrupted" or (process["status"] == "exited" and slice_complete(read_state(run_dir))):
         process["status"] = "slice-complete"
     return process
@@ -288,6 +299,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
     p.add_argument("--model", help="default: the host's (claude-sonnet-5-5 on claude)")
     p.add_argument("--effort")
+    p.add_argument("--effort-schedule", metavar="FILE|JSON",
+                   help="experiment E-EFF1 (effort.py): an effort per class of position, {\"M\": .., \"I2\": .., \"D\": ..}. "
+                        "The session ends at every change of class; a resumable host continues in its resumed session, "
+                        "another in a fresh one (as after --clear-at), at the new class's effort")
     p.add_argument("--delegation", choices=("inline", "ask-agent"), default="inline",
                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
     p.add_argument("--plugin-dir", type=Path, help="a skill-craft plugin build to test (default: build this checkout)")
@@ -358,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
     work = out / "work"
     work.mkdir()
     host = hosts.host(args.host, getattr(args, f"{args.host}_bin"))
-    model, effort = args.model or host.model, args.effort or host.effort
+    model, effort_level = args.model or host.model, args.effort or host.effort
     env = host.env(out / "home")
     plugin_dir = (args.plugin_dir.expanduser().resolve() if args.plugin_dir else run.build_candidate(out))
     plugin = host.install_plugin(env, plugin_dir)
@@ -368,13 +383,52 @@ def main(argv: list[str] | None = None) -> int:
                           home=not args.seed_without_home)
     run_dir = Path(seeded["run_dir"])
     opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation))
-    common = dict(cwd=work, model=model, effort=effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
+    common = dict(cwd=work, model=model, effort=effort_level, permission_mode=args.permission_mode, max_turns=args.max_turns,
                   max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
-    invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "model": model, "effort": effort,
+    planner = None
+    fresh_start, planned_id = 0, None
+
+    def current_session_id() -> str | None:
+        events = out / "events.jsonl"
+        return (run.last_session_id(events, since=fresh_start) if events.exists() else None) or planned_id
+
+    def fresh_argv(prompt: str, prompt_file: Path) -> list[str]:
+        nonlocal fresh_start, planned_id
+        fresh_start, planned_id = run.events_line_count(out / "events.jsonl"), None
+        argv = host.argv(prompt=prompt, prompt_file=prompt_file, **common)
+        if planner and host.name == "grok":
+            planned_id = str(uuid.uuid4())
+            argv += ["--session-id", planned_id]
+            (out / run.PLANNED_SESSION_FILE).write_text(planned_id + "\n")
+        return argv
+
+    if args.effort_schedule is not None:
+        try:
+            schedule = effort.parse_schedule(args.effort_schedule)
+            effort.check_levels(schedule, host.name)
+            if args.effort and args.effort != schedule["D"]:
+                raise effort.ScheduleError(f"--effort {args.effort} with --effort-schedule: the schedule names every level, "
+                                           f"so drop --effort or make it class D's ({schedule['D']})")
+            effort_level = schedule["D"]
+            (out / effort.SCHEDULE_FILE).write_text(json.dumps(schedule, indent=2) + "\n")
+            planner = effort.Planner(out, schedule, locate=lambda: run_dir, current_stage=metrics.current_stage,
+                                     can_resume=((lambda: current_session_id() is not None)
+                                                 if host.resumable else None))  # a fresh-session host needs no id
+        except effort.ScheduleError as err:
+            raise SystemExit(str(err))
+        common["effort"] = planner.at_launch("start")[1]  # a slice starts at step-plan: class D
+
+    def next_effort(why: str) -> str | None:
+        """The effort the next session starts at: the schedule's for the class the run is in now, else the run's own."""
+        if planner:
+            common["effort"] = planner.at_launch(why)[1]
+        return common["effort"] if planner else None
+    invocation = {"case": args.case, "kind": "step-slice", "host": host.name, "model": model, "effort": effort_level,
                   "delegation": args.delegation, "plugin_dir": str(plugin_dir), "plugin": plugin,
                   "versions": run.installed_versions(plugin_dir), "local_head": run.git("rev-parse", "HEAD").strip(),
                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
-                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt}
+                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt,
+                  "effort_schedule": planner.schedule if planner else None}
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     (out / "prompt.txt").write_text(case["prompt"] + "\n")
     if not args.quiet:
@@ -386,9 +440,9 @@ def main(argv: list[str] | None = None) -> int:
               "will not fire", flush=True)
     deadline = time.monotonic() + (args.timeout or float("inf"))  # active time, as in run.py: sleep spends none of it
     session_args = dict(work=work, out=out, env=env, run_dir=run_dir, watch=not args.quiet,
-                        translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at)
-    process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
-                    timeout=args.timeout or float("inf"), **session_args)
+                        translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at, planner=planner)
+    first_argv = fresh_argv(opening, out / "host-prompt.txt")
+    process = drive(first_argv, timeout=args.timeout or float("inf"), effort_now=common["effort"] if planner else None, **session_args)
     sessions = [process]
     resumes = 0
     while True:
@@ -399,19 +453,44 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"cleared at {clear_records(out)[-1]['stopped']}; continuing in a fresh session "
                       f"(prompt {args.resume_prompt})", flush=True)
             prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
-            process = drive(host.argv(prompt=prompt, prompt_file=out / f"resume-after-clear-{number}.txt", **common),
-                            timeout=max(60, deadline - time.monotonic()), first=False, told=told, **session_args)
+            now = next_effort("clear")
+            process = drive(fresh_argv(prompt, out / f"resume-after-clear-{number}.txt"),
+                            timeout=max(60, deadline - time.monotonic()), first=False, told=told, effort_now=now,
+                            **session_args)
+        elif process["status"] == "reeffort" and deadline - time.monotonic() > 60:
+            # The position left its class (effort.py): the control arm restarts here too, at the same level. A host that
+            # can resume continues its own session; another gets a fresh one, as after a clear. Neither spends the resume
+            # budget.
+            boundary = planner.consume()
+            now = next_effort("restart")
+            if not args.quiet:
+                print(f"effort boundary {boundary['from']} -> {boundary['to']} at {boundary['stage']} ({boundary['why']}); "
+                      f"continuing at effort {now}", flush=True)
+            session_id = current_session_id() if host.resumable else None
+            if host.resumable and not session_id:
+                break
+            if host.resumable:
+                argv = host.argv(prompt=run.resume_prompt(str(run_dir), cli, effort.RESTART_NOTE),
+                                 prompt_file=out / f"resume-{len(sessions)}.txt", resume=session_id, **common)
+                process = drive(argv, timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
+                                told=run.resume_told(str(run_dir), cli), effort_now=now, **session_args)
+            else:
+                prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
+                process = drive(fresh_argv(prompt, out / f"resume-after-effort-{len(sessions)}.txt"),
+                                timeout=deadline - time.monotonic(), first=False, told=told, effort_now=now, **session_args)
         elif (host.resumable and process["status"] == "exited" and (args.max_resumes is None or resumes < args.max_resumes)
               and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.monotonic() > 60):
             # A headless Grok or Codex session ends whenever the model ends its turn; continue it while the slice is
             # unfinished (the clears still to come stay in force). A clear is not a resume: it does not use the budget.
-            session_id = run.last_session_id(out / "events.jsonl")
+            session_id = current_session_id()
             if not session_id:
                 break
             resumes += 1
+            now = next_effort("resume")
             argv = host.argv(prompt=run.resume_prompt(str(run_dir), cli), prompt_file=out / f"resume-{len(sessions)}.txt",
                              resume=session_id, **common)
             process = drive(argv, timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
+                            effort_now=now,
                             told=run.resume_told(str(run_dir), cli), **session_args)
         else:
             break

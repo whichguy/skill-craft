@@ -1,0 +1,14 @@
+Step S1 (1 of 2), the only work for this packet: Create the Salesforce DX project at the worktree root. Write sfdx-project.json whose packageDirectories array has exactly one object and that object's path is force-app, and whose sourceApiVersion is 67.0. Create force-app/main/default/.gitkeep so the package directory is tracked and contains no metadata. Do not add package.json, a scratch-org defin
+Later steps (ShipLoop issues each one after this callback; do not start them): S2 Add public class SLChessEngine under force-app/main/default/classes, with SLChessEngine.cls-meta.xml apiVersion 67.0 and status Active. Public static methods only: startFen, legalMoves, applyMove, and status. Define public inner IllegalMoveException. No instance state and no SOQL. Represent the position as 64 integer
+criteria (W1 step-plan):
+- C1: sfdx-project.json is at the repository root, names package directory force-app, sets sourceApiVersion 67.0, and force-app is a directory. Confirm by: test -f sfdx-project.json && test -d force-a
+- C2: startFen returns the standard start FEN and status of that position is ongoing. Confirm by: sf apex run test of SLChessRulesTest; pass when the human output shows TC_1 and that method asserts th
+- C3: legalMoves returns every legal UCI move sorted alphabetically: 20 from the start, 48 from Kiwipete including e1c1 and e1g1, and 14 and 44 from the two count positions, and the Kiwipete call is t
+- C4: A pinned piece cannot move off the pin line. Confirm by: SLChessRulesTest TC_5; pass when e2d2 is absent and e2e3 is present for the pin FEN in spec.md. Exercised in the org. Serves R-3.
+- C5: applyMove returns the exact R-4 FENs, including castling-rights updates and an en-passant target after every double pawn push. Confirm by: SLChessRulesTest TC_6; pass when each asserted FEN equa
+- C6: applyMove of e2e5 from the start throws SLChessEngine.IllegalMoveException, and the en-passant capture e5d6 returns the R-6 FEN. Confirm by: SLChessRulesTest TC_7; pass when the exception type i
+- C7: Fool's mate and scholar's mate are checkmate at the spec FENs, the stalemate FEN is stalemate, and e2e4 then f7f6 then d1h5 is check with moves still legal. Confirm by: SLChessRulesTest TC_8, TC
+- C8: Castling is refused out of, through, and into check, both sides castle to the spec result FENs, and promotion accepts q, r, b, and n with those result FENs. Confirm by: SLChessRulesTest TC_11; p
+- C9: The class comment states the FEN and UCI contract, and the class declares IllegalMoveException. Confirm by: rg -q FEN, rg -q UCI, and rg -q IllegalMoveException on SLChessEngine.cls; pass when t
+- C10: The W1 project deploys to alias de, which is the rules-test prerequisite. Confirm by: sf project deploy start --target-org de; pass when that command exits 0. Exercised against the org. Serves 
+test_cases (W1 test-spec):

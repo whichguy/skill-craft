@@ -1,0 +1,84 @@
+{
+  "label": "c-a-med-1",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "prompt_key": "A",
+  "effort_requested": "medium",
+  "effort_argv": [
+    "medium"
+  ],
+  "resume": null,
+  "argv_shape": [
+    "claude",
+    "-p",
+    "Solve step by step, then answer in one line: A train leaves ...",
+    "--model",
+    "claude-sonnet-5-5",
+    "--max-turns",
+    "3",
+    "--max-budget-usd",
+    "10.0",
+    "--permission-mode",
+    "auto",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project,local",
+    "--strict-mcp-config",
+    "--effort",
+    "medium"
+  ],
+  "run": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 7.8
+  },
+  "session_id": null,
+  "usage_events": [
+    {
+      "type": "result",
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 4605,
+        "cache_read_input_tokens": 26356,
+        "output_tokens": 479,
+        "output_tokens_details": {
+          "thinking_tokens": 259
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 4605,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 479,
+            "cache_read_input_tokens": 26356,
+            "cache_creation_input_tokens": 4605,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 4605
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.0258496,
+      "num_turns": 1,
+      "is_error": false,
+      "subtype": "success"
+    }
+  ],
+  "stderr_tail": "",
+  "events_bytes": 14241
+}

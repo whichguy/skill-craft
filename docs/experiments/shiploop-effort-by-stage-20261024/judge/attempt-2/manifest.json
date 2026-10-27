@@ -1,0 +1,20 @@
+{
+ "suite": "shiploop-run",
+ "frame": "import",
+ "reviews": false,
+ "trials": 2,
+ "prompts": 0,
+ "min_words": 1,
+ "arms": {
+  "hist": {
+   "sha": "2758280c61dc5dbb",
+   "source": "30 artifacts imported from ShipLoop run folders",
+   "words": 6513
+  }
+ },
+ "condition": {
+  "model": "imported: historical ShipLoop E2E runs, mixed subjects (claude sonnet, grok-4.7)",
+  "tools": "",
+  "imported": "shiploop-run import_run.py"
+ }
+}

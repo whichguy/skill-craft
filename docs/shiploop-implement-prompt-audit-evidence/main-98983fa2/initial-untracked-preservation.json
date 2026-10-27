@@ -1,0 +1,10 @@
+{
+  "initial_count": 200,
+  "missing": [],
+  "changed": [
+    "docs/shiploop-implement-prompt-audit-evidence/validate-reference-map.py",
+    "docs/shiploop-implement-prompt-audit-journal.md",
+    "docs/shiploop-implement-step-fix-plan-2026-10-17.md"
+  ],
+  "scope": "only audit documents intentionally updated; every other initially untracked file remains byte-identical"
+}

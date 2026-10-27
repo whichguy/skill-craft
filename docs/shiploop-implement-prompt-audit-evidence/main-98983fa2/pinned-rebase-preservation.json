@@ -1,0 +1,29 @@
+{
+  "revision": "ef3fb8be50b9223876517315413dabb34ec854c0",
+  "files_checked": 238,
+  "changed_preexisting_files": [],
+  "unmerged": "",
+  "delta_from_test_revision": [
+    "docs/ARCHITECTURE.md",
+    "docs/experiments/improve-schedule-panel-20261025/final.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass1-astra.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass1-kimi.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-codex.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-grok.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-kimi.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-opus.md",
+    "docs/experiments/local-validation-20261025/prompt-jobs8-5d3628b0-ledger-red.receipt.json",
+    "docs/experiments/local-validation-20261025/quick-jobs8.receipt.json",
+    "docs/experiments/local-validation-20261025/quick-serial-5d3628b0.receipt.json",
+    "docs/experiments/local-validation-20261025/slow-suites-by-class.txt",
+    "docs/local-validation-journal.md",
+    "docs/shiploop-improve-schedule-proposal-2026-10-25.md",
+    "docs/shiploop-run5-followups-journal-2026-10-25.md",
+    "test/README.md",
+    "test/run_suites.py",
+    "test/suite_catalog.py",
+    "test/test-groups.test.py"
+  ],
+  "delta_affects_checked_shiploop_code": false,
+  "source_test_group_runner_not_used_by_checks": true
+}

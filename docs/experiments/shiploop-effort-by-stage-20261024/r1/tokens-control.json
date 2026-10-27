@@ -1,0 +1,32 @@
+{
+ "control-hello--9398b5b2": {
+  "input_tokens": 47421328,
+  "output_tokens": 219114,
+  "seconds": 4339.8
+ },
+ "control-hello--4deffa8b": {
+  "input_tokens": 47421328,
+  "output_tokens": 219114,
+  "seconds": 4339.8
+ },
+ "control-hello--1e55c949": {
+  "input_tokens": 47421328,
+  "output_tokens": 219114,
+  "seconds": 4339.8
+ },
+ "control-hello--083a5eaa": {
+  "input_tokens": 47421328,
+  "output_tokens": 219114,
+  "seconds": 4339.8
+ },
+ "control-hello--release-plan-c623c3eb-r2": {
+  "input_tokens": 47421328,
+  "output_tokens": 219114,
+  "seconds": 4339.8
+ },
+ "control-hello--spec-278bb348-r2": {
+  "input_tokens": 47421328,
+  "output_tokens": 219114,
+  "seconds": 4339.8
+ }
+}

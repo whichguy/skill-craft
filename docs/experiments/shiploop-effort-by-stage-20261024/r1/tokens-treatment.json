@@ -1,0 +1,27 @@
+{
+ "treatment-hello--ca458908": {
+  "input_tokens": 47622910,
+  "output_tokens": 250505,
+  "seconds": 4503.9
+ },
+ "treatment-hello--9cd67763": {
+  "input_tokens": 47622910,
+  "output_tokens": 250505,
+  "seconds": 4503.9
+ },
+ "treatment-hello--e07b46ec": {
+  "input_tokens": 47622910,
+  "output_tokens": 250505,
+  "seconds": 4503.9
+ },
+ "treatment-hello--0fb2d98c": {
+  "input_tokens": 47622910,
+  "output_tokens": 250505,
+  "seconds": 4503.9
+ },
+ "treatment-hello--release-plan-b93cc347-r2": {
+  "input_tokens": 47622910,
+  "output_tokens": 250505,
+  "seconds": 4503.9
+ }
+}

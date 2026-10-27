@@ -1,0 +1,196 @@
+{
+  "schedule": {
+    "M": "low",
+    "I2": "low",
+    "D": "medium"
+  },
+  "mechanical": [
+    "operations",
+    "prepare",
+    "product-acceptance",
+    "release",
+    "release-check",
+    "release-verify",
+    "system-test"
+  ],
+  "classes": {
+    "M": "mechanical stage",
+    "I2": "Improve pass 2 or later",
+    "D": "every other position"
+  },
+  "launches": [
+    {
+      "t": 1792896699.925,
+      "class": "D",
+      "effort": "medium",
+      "why": "start"
+    },
+    {
+      "t": 1792896977.434,
+      "class": "D",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792897002.049,
+      "class": "D",
+      "effort": "medium",
+      "why": "resume"
+    },
+    {
+      "t": 1792897647.03,
+      "class": "I2",
+      "effort": "low",
+      "why": "restart"
+    },
+    {
+      "t": 1792897745.433,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792898006.024,
+      "class": "M",
+      "effort": "low",
+      "why": "restart"
+    },
+    {
+      "t": 1792898086.404,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792899913.107,
+      "class": "M",
+      "effort": "low",
+      "why": "restart"
+    },
+    {
+      "t": 1792900019.622,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    },
+    {
+      "t": 1792900316.435,
+      "class": "I2",
+      "effort": "low",
+      "why": "restart"
+    },
+    {
+      "t": 1792900406.939,
+      "class": "M",
+      "effort": "low",
+      "why": "restart"
+    },
+    {
+      "t": 1792900675.717,
+      "class": "D",
+      "effort": "medium",
+      "why": "restart"
+    }
+  ],
+  "restarts": [
+    {
+      "n": 1,
+      "t": 1792897647.029,
+      "from": "D",
+      "to": "I2",
+      "stage": "test-strategy",
+      "why": "improve pass 2",
+      "revision": 6,
+      "effort_before": "medium",
+      "effort_after": "low"
+    },
+    {
+      "n": 2,
+      "t": 1792897745.433,
+      "from": "I2",
+      "to": "D",
+      "stage": "plan",
+      "why": "stage plan",
+      "revision": 7,
+      "effort_before": "low",
+      "effort_after": "medium"
+    },
+    {
+      "n": 3,
+      "t": 1792898006.023,
+      "from": "D",
+      "to": "M",
+      "stage": "prepare",
+      "why": "stage prepare",
+      "revision": 9,
+      "effort_before": "medium",
+      "effort_after": "low"
+    },
+    {
+      "n": 4,
+      "t": 1792898086.404,
+      "from": "M",
+      "to": "D",
+      "stage": "step-plan",
+      "why": "stage step-plan",
+      "revision": 10,
+      "effort_before": "low",
+      "effort_after": "medium"
+    },
+    {
+      "n": 5,
+      "t": 1792899913.106,
+      "from": "D",
+      "to": "M",
+      "stage": "system-test",
+      "why": "stage system-test",
+      "revision": 23,
+      "effort_before": "medium",
+      "effort_after": "low"
+    },
+    {
+      "n": 6,
+      "t": 1792900019.621,
+      "from": "M",
+      "to": "D",
+      "stage": "release-plan",
+      "why": "stage release-plan",
+      "revision": 25,
+      "effort_before": "low",
+      "effort_after": "medium"
+    },
+    {
+      "n": 7,
+      "t": 1792900316.433,
+      "from": "D",
+      "to": "I2",
+      "stage": "release-plan",
+      "why": "improve pass 2",
+      "revision": 26,
+      "effort_before": "medium",
+      "effort_after": "low"
+    },
+    {
+      "n": 8,
+      "t": 1792900406.938,
+      "from": "I2",
+      "to": "M",
+      "stage": "release-check",
+      "why": "stage release-check",
+      "revision": 27,
+      "effort_before": "low",
+      "effort_after": "low"
+    },
+    {
+      "n": 9,
+      "t": 1792900675.716,
+      "from": "M",
+      "to": "D",
+      "stage": "handoff",
+      "why": "stage handoff",
+      "revision": 31,
+      "effort_before": "low",
+      "effort_after": "medium"
+    }
+  ]
+}

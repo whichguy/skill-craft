@@ -1,0 +1,54 @@
+{
+  "status": "failed",
+  "revision": "e707b794de0a0bd802988ca68dac8e29ac0b3315",
+  "source_scope": "committed main; unrelated local experiment edits excluded",
+  "working_tree_differences_in_anchored_files": [
+    "test/shiploop_e2e/run.py"
+  ],
+  "code_anchors": 105,
+  "source_files": 24,
+  "historical_maps_revalidated": [
+    {
+      "revision": "17ddec369f49383f9436ea4f2c6fba7c0c54f643",
+      "anchors": 105
+    },
+    {
+      "revision": "c70a33f46ed71cd2eed537353438cdd61c51a2ba",
+      "anchors": 93
+    }
+  ],
+  "recommendation_groups": 22,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "qualification_ids": 52,
+  "source_gap_entries": {
+    "chess": 58,
+    "battleship": 91
+  },
+  "ranked_chess_fixes": 8,
+  "local_links_checked": 225,
+  "fence_pairs": {
+    "docs/shiploop-implement-step-fix-plan-2026-10-17.md": 7,
+    "docs/shiploop-implement-prompt-audit-journal.md": 0,
+    "docs/shiploop-implement-prompt-audit-evidence/reference-code-map-2026-10-25.md": 0,
+    "docs/shiploop-implement-prompt-audit-evidence/reference-code-excerpts-2026-10-25.md": 105,
+    "docs/shiploop-implement-prompt-audit-evidence/opus-main-refresh-2026-10-25.md": 0
+  },
+  "static_assertions": {
+    "STATE_VERSION": 9,
+    "HEAD_LIMIT": 20000,
+    "HEAD_REQUIRED_END": 19500,
+    "LOOK_BACK_COMMITS": 2,
+    "IMPROVE_TRIVIAL_REVIEWS": 1
+  },
+  "focused_suites": {
+    "tests": 329,
+    "all_suites_exited_zero": true,
+    "overall_receipt": "INCOMPLETE: unrelated non-exempt untracked experiment files appeared"
+  },
+  "live_validation": "not performed",
+  "visual_render": "not inspected; prior policy denial not bypassed",
+  "errors": [
+    "origin/main changed during refresh"
+  ]
+}

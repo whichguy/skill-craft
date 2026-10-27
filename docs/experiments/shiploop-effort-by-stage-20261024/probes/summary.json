@@ -1,0 +1,1103 @@
+{
+ "host": "grok 1.0.70 (f50904eaee6c), model grok-4.7, through test/shiploop_e2e/hosts.py GrokHost.argv + env + run_agent with a throwaway HOME",
+ "valid_effort_values": "xhigh, high, medium, low (CLI error: unknown effort level 'bogus'; use one of: xhigh, high, medium, low)",
+ "groups": {
+  "P1_prompt_A_medium": {
+   "reasoning_tokens": {
+    "values": [
+     1204,
+     729,
+     1266,
+     1166
+    ],
+    "mean": 1091,
+    "median": 1185.0,
+    "min": 729,
+    "max": 1266
+   },
+   "output_tokens": {
+    "values": [
+     1252,
+     768,
+     1317,
+     1205
+    ],
+    "mean": 1136,
+    "median": 1228.5,
+    "min": 768,
+    "max": 1317
+   },
+   "seconds": {
+    "values": [
+     14.5,
+     9.2,
+     16.6,
+     13.3
+    ],
+    "mean": 13,
+    "median": 13.9,
+    "min": 9.2,
+    "max": 16.6
+   }
+  },
+  "P1_prompt_A_low": {
+   "reasoning_tokens": {
+    "values": [
+     764,
+     856,
+     721,
+     679
+    ],
+    "mean": 755,
+    "median": 742.5,
+    "min": 679,
+    "max": 856
+   },
+   "output_tokens": {
+    "values": [
+     834,
+     893,
+     756,
+     715
+    ],
+    "mean": 800,
+    "median": 795.0,
+    "min": 715,
+    "max": 893
+   },
+   "seconds": {
+    "values": [
+     9.6,
+     10.4,
+     9.7,
+     8.9
+    ],
+    "mean": 10,
+    "median": 9.649999999999999,
+    "min": 8.9,
+    "max": 10.4
+   }
+  },
+  "P1_prompt_B_medium": {
+   "reasoning_tokens": {
+    "values": [
+     811,
+     1953,
+     1221,
+     1077
+    ],
+    "mean": 1266,
+    "median": 1149.0,
+    "min": 811,
+    "max": 1953
+   },
+   "output_tokens": {
+    "values": [
+     1001,
+     2108,
+     1373,
+     1245
+    ],
+    "mean": 1432,
+    "median": 1309.0,
+    "min": 1001,
+    "max": 2108
+   },
+   "seconds": {
+    "values": [
+     14.1,
+     25.7,
+     18.2,
+     15.1
+    ],
+    "mean": 18,
+    "median": 16.65,
+    "min": 14.1,
+    "max": 25.7
+   }
+  },
+  "P1_prompt_B_low": {
+   "reasoning_tokens": {
+    "values": [
+     986,
+     507,
+     1449,
+     629
+    ],
+    "mean": 893,
+    "median": 807.5,
+    "min": 507,
+    "max": 1449
+   },
+   "output_tokens": {
+    "values": [
+     1140,
+     667,
+     1631,
+     797
+    ],
+    "mean": 1059,
+    "median": 968.5,
+    "min": 667,
+    "max": 1631
+   },
+   "seconds": {
+    "values": [
+     15.5,
+     10.7,
+     21.1,
+     10.9
+    ],
+    "mean": 15,
+    "median": 13.2,
+    "min": 10.7,
+    "max": 21.1
+   }
+  },
+  "P2a_B_after_A_resumed_low": {
+   "reasoning_tokens": {
+    "values": [
+     408,
+     548,
+     564
+    ],
+    "mean": 507,
+    "median": 548,
+    "min": 408,
+    "max": 564
+   },
+   "output_tokens": {
+    "values": [
+     528,
+     685,
+     690
+    ],
+    "mean": 634,
+    "median": 685,
+    "min": 528,
+    "max": 690
+   },
+   "seconds": {
+    "values": [
+     8.4,
+     10.2,
+     9.4
+    ],
+    "mean": 9,
+    "median": 9.4,
+    "min": 8.4,
+    "max": 10.2
+   }
+  },
+  "P2a_B_after_A_resumed_medium": {
+   "reasoning_tokens": {
+    "values": [
+     538,
+     934,
+     445
+    ],
+    "mean": 639,
+    "median": 538,
+    "min": 445,
+    "max": 934
+   },
+   "output_tokens": {
+    "values": [
+     662,
+     1053,
+     608
+    ],
+    "mean": 774,
+    "median": 662,
+    "min": 608,
+    "max": 1053
+   },
+   "seconds": {
+    "values": [
+     11.3,
+     14.2,
+     9.6
+    ],
+    "mean": 12,
+    "median": 11.3,
+    "min": 9.6,
+    "max": 14.2
+   }
+  },
+  "P2b_A_after_B_resumed_low": {
+   "reasoning_tokens": {
+    "values": [
+     1090,
+     933,
+     788,
+     986
+    ],
+    "mean": 949,
+    "median": 959.5,
+    "min": 788,
+    "max": 1090
+   },
+   "output_tokens": {
+    "values": [
+     1233,
+     997,
+     883,
+     1061
+    ],
+    "mean": 1044,
+    "median": 1029.0,
+    "min": 883,
+    "max": 1233
+   },
+   "seconds": {
+    "values": [
+     15.3,
+     13.3,
+     11.6,
+     13.8
+    ],
+    "mean": 14,
+    "median": 13.55,
+    "min": 11.6,
+    "max": 15.3
+   }
+  },
+  "P2b_A_after_B_resumed_medium": {
+   "reasoning_tokens": {
+    "values": [
+     1538,
+     2006,
+     971,
+     1497
+    ],
+    "mean": 1503,
+    "median": 1517.5,
+    "min": 971,
+    "max": 2006
+   },
+   "output_tokens": {
+    "values": [
+     1688,
+     2175,
+     1061,
+     1615
+    ],
+    "mean": 1635,
+    "median": 1651.5,
+    "min": 1061,
+    "max": 2175
+   },
+   "seconds": {
+    "values": [
+     20.4,
+     28.8,
+     13.5,
+     19.6
+    ],
+    "mean": 21,
+    "median": 20.0,
+    "min": 13.5,
+    "max": 28.8
+   }
+  }
+ },
+ "single_calls": {
+  "g-t-low": {
+   "host": "grok",
+   "prompt": "T",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 2.8,
+   "output_tokens": 24,
+   "reasoning_tokens": 23,
+   "input_tokens": 4292,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.013784
+  },
+  "g-t-xhigh": {
+   "host": "grok",
+   "prompt": "T",
+   "effort_argv": [
+    "xhigh"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 2.5,
+   "output_tokens": 30,
+   "reasoning_tokens": 29,
+   "input_tokens": 7364,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.019964
+  },
+  "g-a-high-1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "high"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 13.3,
+   "output_tokens": 1309,
+   "reasoning_tokens": 1266,
+   "input_tokens": 7471,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.027852
+  },
+  "g-a-xhigh-1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "xhigh"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 15.5,
+   "output_tokens": 1244,
+   "reasoning_tokens": 1200,
+   "input_tokens": 7468,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.027456
+  }
+ },
+ "rows": {
+  "g-a-high-1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "high"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 13.3,
+   "output_tokens": 1309,
+   "reasoning_tokens": 1266,
+   "input_tokens": 7471,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.027852
+  },
+  "g-a-low-1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 9.6,
+   "output_tokens": 834,
+   "reasoning_tokens": 764,
+   "input_tokens": 7470,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.025
+  },
+  "g-a-low-2": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 10.4,
+   "output_tokens": 893,
+   "reasoning_tokens": 856,
+   "input_tokens": 7468,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.02535
+  },
+  "g-a-low-3": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 9.7,
+   "output_tokens": 756,
+   "reasoning_tokens": 721,
+   "input_tokens": 7466,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.024524
+  },
+  "g-a-low-4": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 8.9,
+   "output_tokens": 715,
+   "reasoning_tokens": 679,
+   "input_tokens": 7469,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.024284
+  },
+  "g-a-med-1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 14.5,
+   "output_tokens": 1252,
+   "reasoning_tokens": 1204,
+   "input_tokens": 7471,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.02751
+  },
+  "g-a-med-2": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 9.2,
+   "output_tokens": 768,
+   "reasoning_tokens": 729,
+   "input_tokens": 7467,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.024598
+  },
+  "g-a-med-3": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 16.6,
+   "output_tokens": 1317,
+   "reasoning_tokens": 1266,
+   "input_tokens": 7467,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.027892
+  },
+  "g-a-med-4": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 13.3,
+   "output_tokens": 1205,
+   "reasoning_tokens": 1166,
+   "input_tokens": 16427,
+   "cache_read": 1152,
+   "cost_usd_cli": 0.04066
+  },
+  "g-a-xhigh-1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "xhigh"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 15.5,
+   "output_tokens": 1244,
+   "reasoning_tokens": 1200,
+   "input_tokens": 7468,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.027456
+  },
+  "g-b-low-1": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 15.5,
+   "output_tokens": 1140,
+   "reasoning_tokens": 986,
+   "input_tokens": 7417,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.02673
+  },
+  "g-b-low-2": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 10.7,
+   "output_tokens": 667,
+   "reasoning_tokens": 507,
+   "input_tokens": 7291,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.023704
+  },
+  "g-b-low-3": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 21.1,
+   "output_tokens": 1631,
+   "reasoning_tokens": 1449,
+   "input_tokens": 7419,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.02968
+  },
+  "g-b-low-4": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 10.9,
+   "output_tokens": 797,
+   "reasoning_tokens": 629,
+   "input_tokens": 7421,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.02468
+  },
+  "g-b-med-1": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 14.1,
+   "output_tokens": 1001,
+   "reasoning_tokens": 811,
+   "input_tokens": 7417,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.025896
+  },
+  "g-b-med-2": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 25.7,
+   "output_tokens": 2108,
+   "reasoning_tokens": 1953,
+   "input_tokens": 17531,
+   "cache_read": 0,
+   "cost_usd_cli": 0.04771
+  },
+  "g-b-med-3": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 18.2,
+   "output_tokens": 1373,
+   "reasoning_tokens": 1221,
+   "input_tokens": 7292,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.027942
+  },
+  "g-b-med-4": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 15.1,
+   "output_tokens": 1245,
+   "reasoning_tokens": 1077,
+   "input_tokens": 7294,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.027178
+  },
+  "g-t-bogus": {
+   "host": "grok",
+   "prompt": "T",
+   "effort_argv": [
+    "bogus"
+   ],
+   "resumed": false,
+   "returncode": 1,
+   "seconds": 0.8,
+   "output_tokens": null,
+   "reasoning_tokens": null,
+   "input_tokens": null,
+   "cache_read": null,
+   "cost_usd_cli": null
+  },
+  "g-t-low": {
+   "host": "grok",
+   "prompt": "T",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 2.8,
+   "output_tokens": 24,
+   "reasoning_tokens": 23,
+   "input_tokens": 4292,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.013784
+  },
+  "g-t-xhigh": {
+   "host": "grok",
+   "prompt": "T",
+   "effort_argv": [
+    "xhigh"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 2.5,
+   "output_tokens": 30,
+   "reasoning_tokens": 29,
+   "input_tokens": 7364,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.019964
+  },
+  "p2-rl1": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 8.4,
+   "output_tokens": 528,
+   "reasoning_tokens": 408,
+   "input_tokens": 8888,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.026064
+  },
+  "p2-rl2": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 10.2,
+   "output_tokens": 685,
+   "reasoning_tokens": 548,
+   "input_tokens": 9063,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.027356
+  },
+  "p2-rl3": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 9.4,
+   "output_tokens": 690,
+   "reasoning_tokens": 564,
+   "input_tokens": 8771,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.026738
+  },
+  "p2-rm1": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 11.3,
+   "output_tokens": 662,
+   "reasoning_tokens": 538,
+   "input_tokens": 1499,
+   "cache_read": 17536,
+   "cost_usd_cli": 0.015738
+  },
+  "p2-rm2": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 14.2,
+   "output_tokens": 1053,
+   "reasoning_tokens": 934,
+   "input_tokens": 1186,
+   "cache_read": 17536,
+   "cost_usd_cli": 0.017458
+  },
+  "p2-rm3": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 9.6,
+   "output_tokens": 608,
+   "reasoning_tokens": 445,
+   "input_tokens": 1490,
+   "cache_read": 17536,
+   "cost_usd_cli": 0.015396
+  },
+  "p2-s1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 17.7,
+   "output_tokens": 1463,
+   "reasoning_tokens": 1391,
+   "input_tokens": 15919,
+   "cache_read": 1664,
+   "cost_usd_cli": 0.041448
+  },
+  "p2-s2": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 20.3,
+   "output_tokens": 1642,
+   "reasoning_tokens": 1594,
+   "input_tokens": 7467,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.029842
+  },
+  "p2-s3": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 14.3,
+   "output_tokens": 1216,
+   "reasoning_tokens": 1168,
+   "input_tokens": 7473,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.027298
+  },
+  "p2-t1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 15.8,
+   "output_tokens": 1372,
+   "reasoning_tokens": 1325,
+   "input_tokens": 7469,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.028226
+  },
+  "p2-t2": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 12.8,
+   "output_tokens": 1060,
+   "reasoning_tokens": 1017,
+   "input_tokens": 7468,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.026352
+  },
+  "p2-t3": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 16.0,
+   "output_tokens": 1362,
+   "reasoning_tokens": 1319,
+   "input_tokens": 7342,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.027976
+  },
+  "p2b-rl1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 15.3,
+   "output_tokens": 1233,
+   "reasoning_tokens": 1090,
+   "input_tokens": 280,
+   "cache_read": 18816,
+   "cost_usd_cli": 0.017366
+  },
+  "p2b-rl2": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 13.3,
+   "output_tokens": 997,
+   "reasoning_tokens": 933,
+   "input_tokens": 8743,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.028588
+  },
+  "p2b-rl3": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 11.6,
+   "output_tokens": 883,
+   "reasoning_tokens": 788,
+   "input_tokens": 9072,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.028562
+  },
+  "p2b-rl4": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "low"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 13.8,
+   "output_tokens": 1061,
+   "reasoning_tokens": 986,
+   "input_tokens": 8520,
+   "cache_read": 10112,
+   "cost_usd_cli": 0.028462
+  },
+  "p2b-rm1": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 20.4,
+   "output_tokens": 1688,
+   "reasoning_tokens": 1538,
+   "input_tokens": 3045,
+   "cache_read": 17408,
+   "cost_usd_cli": 0.024922
+  },
+  "p2b-rm2": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 28.8,
+   "output_tokens": 2175,
+   "reasoning_tokens": 2006,
+   "input_tokens": 1922,
+   "cache_read": 17408,
+   "cost_usd_cli": 0.025598
+  },
+  "p2b-rm3": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 13.5,
+   "output_tokens": 1061,
+   "reasoning_tokens": 971,
+   "input_tokens": 2309,
+   "cache_read": 17408,
+   "cost_usd_cli": 0.019688
+  },
+  "p2b-rm4": {
+   "host": "grok",
+   "prompt": "A",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": true,
+   "returncode": 0,
+   "seconds": 19.6,
+   "output_tokens": 1615,
+   "reasoning_tokens": 1497,
+   "input_tokens": 1136,
+   "cache_read": 17408,
+   "cost_usd_cli": 0.020666
+  },
+  "p2b-s1": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 12.9,
+   "output_tokens": 992,
+   "reasoning_tokens": 871,
+   "input_tokens": 7291,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.025654
+  },
+  "p2b-s2": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 17.2,
+   "output_tokens": 1321,
+   "reasoning_tokens": 1171,
+   "input_tokens": 7291,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.027628
+  },
+  "p2b-s3": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 21.6,
+   "output_tokens": 1651,
+   "reasoning_tokens": 1514,
+   "input_tokens": 7290,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.029606
+  },
+  "p2b-s4": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 13.1,
+   "output_tokens": 971,
+   "reasoning_tokens": 824,
+   "input_tokens": 7290,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.025526
+  },
+  "p2b-t1": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 35.1,
+   "output_tokens": 2788,
+   "reasoning_tokens": 2644,
+   "input_tokens": 7294,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.036436
+  },
+  "p2b-t2": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 23.8,
+   "output_tokens": 1666,
+   "reasoning_tokens": 1538,
+   "input_tokens": 7293,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.029702
+  },
+  "p2b-t3": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 22.7,
+   "output_tokens": 2056,
+   "reasoning_tokens": 1950,
+   "input_tokens": 7290,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.032036
+  },
+  "p2b-t4": {
+   "host": "grok",
+   "prompt": "B",
+   "effort_argv": [
+    "medium"
+   ],
+   "resumed": false,
+   "returncode": 0,
+   "seconds": 11.1,
+   "output_tokens": 881,
+   "reasoning_tokens": 757,
+   "input_tokens": 7292,
+   "cache_read": 10240,
+   "cost_usd_cli": 0.02499
+  }
+ }
+}

@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "revision": "c70a33f46ed71cd2eed537353438cdd61c51a2ba",
+  "code_anchors": 93,
+  "source_files": 28,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "recommendation_groups": 21,
+  "source_gap_entries": {
+    "chess": 58,
+    "battleship": 91
+  },
+  "ranked_chess_fixes": 8,
+  "proposed_test_ids": 51,
+  "local_links_checked": 207,
+  "fence_pairs": {
+    "shiploop-implement-step-fix-plan-2026-10-17.md": 27,
+    "shiploop-implement-prompt-audit-journal.md": 0,
+    "reference-code-map-2026-10-18.md": 0,
+    "reference-code-excerpts-2026-10-18.md": 93
+  },
+  "python_examples_syntax_checked": 2,
+  "runtime_tests": "not run; plan/evidence only",
+  "visual_render": "not inspected; earlier local-file browser policy denial not bypassed",
+  "errors": []
+}

@@ -1,0 +1,18 @@
+{
+  "revision": "79b3490e3c04ebcb2dc48d21ff0f98ae2c363e91",
+  "files_checked": 228,
+  "changed_preexisting_files": [],
+  "unmerged": "",
+  "delta_from_test_revision": [
+    "docs/experiments/improve-schedule-panel-20261025/final.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass1-astra.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass1-kimi.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-codex.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-grok.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-kimi.md",
+    "docs/experiments/improve-schedule-panel-20261025/pass2-opus.md",
+    "docs/shiploop-improve-schedule-proposal-2026-10-25.md",
+    "docs/shiploop-run5-followups-journal-2026-10-25.md"
+  ],
+  "delta_only_documentation": true
+}

@@ -1,0 +1,48 @@
+{
+ "basis": "/Users/dadleet/e2e-runs, every .shiploop-improve/*/reviews dir; a child's passes = highest review-<n>.md or pass-<n>.json; passes >= 2 = passes - 1 per child; the audit copy of salesforce-chess-int-802e29, the work/ copy of v1210-battleship-luna-xhigh and the experiments-smoke-20261024 slice are excluded; pass-<n>.json (with 'changed') exists only in runs from 2026-10-17; review-<n>.md 'Classification:' line is the older record (a proxy: trivial is not proven to mean 'tree unchanged'); the codex runs have no classification lines (older review format)",
+ "by_host": {
+  "grok": {
+   "children": 92,
+   "passes": 226,
+   "passes_ge2": 134,
+   "children_with_pass_ge2": 54,
+   "ge2_with_pass_json": 100,
+   "ge2_changed_true": 23,
+   "ge2_class_trivial": 74,
+   "ge2_class_non-trivial": 34,
+   "ge2_class_unclassified": 26,
+   "runs": 11,
+   "runs_with_pass_json": 6
+  },
+  "claude": {
+   "children": 382,
+   "passes": 655,
+   "passes_ge2": 273,
+   "children_with_pass_ge2": 131,
+   "ge2_class_unclassified": 182,
+   "ge2_class_trivial": 83,
+   "ge2_class_non-trivial": 8,
+   "runs": 50,
+   "runs_with_pass_json": 0
+  },
+  "unknown (gas-battleship-audit, a Grok medium run per LEARNINGS)": {
+   "children": 7,
+   "passes": 22,
+   "passes_ge2": 15,
+   "children_with_pass_ge2": 5,
+   "ge2_class_unclassified": 12,
+   "ge2_class_trivial": 3,
+   "runs": 1,
+   "runs_with_pass_json": 0
+  },
+  "codex": {
+   "children": 19,
+   "passes": 78,
+   "passes_ge2": 59,
+   "children_with_pass_ge2": 16,
+   "ge2_class_unclassified": 59,
+   "runs": 3,
+   "runs_with_pass_json": 0
+  }
+ }
+}

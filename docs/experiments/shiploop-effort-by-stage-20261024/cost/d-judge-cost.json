@@ -1,0 +1,28 @@
+{
+ "label": "ESTIMATE; no Opus 5.5 medium seconds or tokens per grade are recorded anywhere in the repo",
+ "recorded_facts": {
+  "judges.json": "opus claude-opus-5-5 medium, prompt v2, noise 2.07 points, kappa 0.835, 30 plans graded twice (round 4); no seconds or tokens",
+  "SPEC_s11": "workers default 8 subject, 10 judge; 'Grok at medium effort took about 6.5 minutes per rubric grade' (the only per-grade time on record); rubric_eval.py gives a Claude-host judge call a 300 s timeout (Grok 900 s)",
+  "SPEC_s7": "on 2,000-3,500-word outputs one Opus re-grade moved a score by 4.1 points (twice round 4's 2.07), so a decision round grades every output in at least 3 passes",
+  "usage_recorded": "rubric_eval.run writes tokens and seconds per SUBJECT output (usage.json); judge verdict files record no usage",
+  "round_4_scale": "416 verdicts per judge (SPEC s7, quote check)",
+  "suite_size": "architecture-v4 rubric: 36 criteria, 4,939 characters of criterion text; the shiploop-run suite does not exist yet (R0.5)"
+ },
+ "per_grade_estimate": {
+  "input_tokens": "3,000-8,000 (judge preamble + anchors + criteria stated before and after the artifact + a 1,000-3,500 word artifact)",
+  "output_tokens": "800-2,500 (a quote and a grade per applicable criterion; about 10-20 criteria assumed)",
+  "seconds": "30-120 (ASSUMPTION; bounded above by the 300 s call timeout)"
+ },
+ "grading_16_runs_x_10_artifacts_x_3_passes": {
+  "grades": 480,
+  "input_tokens_total": "1.4M-3.8M",
+  "output_tokens_total": "0.4M-1.2M",
+  "wall_minutes_at_10_workers": "24-96 (480 x 30-120 s / 10; rate limits may stretch it)",
+  "cost_usd": "not computed: rubric-eval records no judge dollars and the Opus list price is not in the repo"
+ },
+ "acceptance_check_R0.5": {
+  "grades": "30 artifacts x 2 gradings = 60",
+  "note": "SPEC s7 asks at least 30 plans re-graded"
+ },
+ "caveat": "the 10 artifacts per run is the brief's figure; the count of Improve review-n (n>=2) artifacts varies by run: of the 23 hello-case run folders with an Improve tree (incl. S-6 slices), 9 have no pass beyond 1 (c-improve-mass.json)"
+}

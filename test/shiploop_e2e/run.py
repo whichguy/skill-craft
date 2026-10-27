@@ -124,6 +124,7 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 
 # datetime.strptime imports _strptime on its first call. Load it now: run 5a (2026-10-24) crashed at its end when
 # Homebrew swapped the interpreter under the running process and that module was no longer on disk.
@@ -134,6 +135,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import counters  # noqa: E402
+import effort  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
 import flow  # noqa: E402
@@ -876,10 +878,25 @@ def shiploop_cli_ran(events_path: Path) -> bool:
     return False
 
 
-def last_session_id(events_path: Path) -> str | None:
-    """The host session to resume: the last session id the event stream carried."""
+PLANNED_SESSION_FILE = "planned-session-id.txt"
+
+
+def planned_session_id(out: Path) -> str | None:
+    """The session id the harness chose for a run's first Grok session (--session-id), or None. Grok reports its own id only
+    when a turn ends, so a session ended before that (an effort boundary, a crash) could not be resumed; a chosen id can
+    (probe docs/experiments/shiploop-effort-by-stage-20261024/probes/session-id-midturn-kill.json: killed at 14 s, resumed, the
+    model recalled what it had written and the command it was running)."""
+    try:
+        text = (Path(out) / PLANNED_SESSION_FILE).read_text().strip()
+    except OSError:
+        return None
+    return text or None
+
+
+def last_session_id(events_path: Path, *, since: int = 0) -> str | None:
+    """The last host session id after an optional fresh-session event offset."""
     found = None
-    for line in events_path.read_text(errors="replace").splitlines():
+    for line in events_path.read_text(errors="replace").splitlines()[since:]:
         try:
             event = json.loads(line)
         except ValueError:
@@ -929,7 +946,8 @@ def resume_command(out: Path, args) -> str:
     records). The binary flag is carried because a fake or a non-default binary is part of the invocation.
     """
     parts = ["python3", str(Path(__file__).resolve()), "--resume-run", str(out), "--host", args.host,
-             "--model", args.model, *(["--effort", args.effort] if args.effort else []),
+             "--model", args.model, *(["--effort", args.effort] if args.effort and not getattr(args, "effort_schedule", None) else []),
+             *(["--effort-schedule", str(out / effort.SCHEDULE_FILE)] if getattr(args, "effort_schedule", None) else []),
              *(["--timeout", str(args.timeout)] if args.timeout else []),
              *(["--max-resumes", str(args.max_resumes)] if args.max_resumes is not None else []),
              *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
@@ -1466,6 +1484,12 @@ def chain_in_flight(out: Path) -> bool:
         if open_attempts:
             return True
     return False
+
+
+def either(*checks):
+    """One stop_when from several: true when any is. A check that is None is left out; none at all gives None."""
+    live = [check for check in checks if check is not None]
+    return (lambda: any(check() for check in live)) if live else None
 
 
 def knowledge_facts(work: Path) -> dict:
@@ -2548,6 +2572,11 @@ def parser() -> argparse.ArgumentParser:
                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
     p.add_argument("--model", help="default: claude-sonnet-5-5 (claude) or grok-4.7 (grok)")
     p.add_argument("--effort", help="reasoning effort; default: host default (claude), medium (grok)")
+    p.add_argument("--effort-schedule", metavar="FILE|JSON",
+                   help="experiment E-EFF1 (effort.py): an effort per class of position, {\"M\": .., \"I2\": .., \"D\": ..}. "
+                        "The session ends at every change of class and the run continues in the host's resumed session at "
+                        "the new class's effort; give each arm its own --baseline file. Needs a resumable host; a resume "
+                        "continues the run's recorded schedule")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
@@ -3975,7 +4004,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             return None
 
     def session(*launch_args, kind: str, reason: str, told: dict | None = None, resumed_session: str | None = None,
-                **launch_kw) -> dict:
+                effort_now: str | None = None, **launch_kw) -> dict:
         """One host launch, bracketed in sessions.jsonl: the start row before the host runs (a harness that dies keeps the
         boundary), the end row after it, with the ledger as it stands at that moment (also when the launch raises)."""
         events_path = out / "events.jsonl"
@@ -3983,7 +4012,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
 
         def begin(events_line: int) -> None:
             started.append(sessionlog.start(out, kind=kind, reason=reason, host=host.name, model=args.model, told=told,
-                                            events_line=events_line, resumed_session=resumed_session, engine=engine_now()))
+                                            events_line=events_line, resumed_session=resumed_session, engine=engine_now(),
+                                            effort=effort_now))
 
         done = None
         try:
@@ -4000,8 +4030,32 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     os.environ.update(isolate_git_discovery(os.environ, out))
     host = the_host(args)
     args.model = args.model or host.model
+    asked_effort = args.effort  # before the host default fills it: a schedule names every level itself
     args.effort = args.effort or host.effort
     args.skill = args.skill or host.skill
+    planner = None
+    if not regrade:
+        if args.effort_schedule is None and (out / effort.SCHEDULE_FILE).is_file():
+            args.effort_schedule = str(out / effort.SCHEDULE_FILE)  # a resume continues the run's own schedule
+        if args.effort_schedule is not None:
+            if not host.resumable:
+                raise SystemExit(f"--effort-schedule needs a host whose session can be resumed ({', '.join(n for n, h in sorted(hosts.HOSTS.items()) if h.resumable)}); "
+                                 f"{host.name} cannot, so a boundary would clear its context. Use slice.py --effort-schedule, "
+                                 "which continues a non-resumable host in a fresh session at the same positions in both arms.")
+            try:
+                schedule = effort.parse_schedule(args.effort_schedule)
+                effort.check_levels(schedule, host.name)
+                if asked_effort and not resumed and asked_effort != schedule["D"]:
+                    raise effort.ScheduleError(f"--effort {asked_effort} with --effort-schedule: the schedule names every "
+                                               f"level, so drop --effort or make it class D's ({schedule['D']})")
+                (out / effort.SCHEDULE_FILE).write_text(json.dumps(schedule, indent=2) + "\n")
+                planner = effort.Planner(out, schedule, locate=lambda: grade_shiploop(out).get("run_dir"),
+                                         current_stage=metrics.current_stage,
+                                         can_resume=lambda: (last_session_id(out / "events.jsonl")
+                                                             or planned_session_id(out)) is not None)
+            except effort.ScheduleError as err:
+                raise SystemExit(str(err))
+            _, args.effort = planner.at_launch("resume-run" if resumed else "start")
     env = host.env(out / "home")
     earlier_platform = earlier_result.get("platform") or {}
     # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
@@ -4131,6 +4185,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
                     plugin_dir=None if host.marketplace else plugin_dir, allow=host_allow)
+    if planner and host.name == "grok" and resumed is None and not regrade:
+        planned = str(uuid.uuid4())  # resumable from the first second: see planned_session_id
+        cli = [*cli, "--session-id", planned]
+        (out / PLANNED_SESSION_FILE).write_text(planned + "\n")
     # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
     # that ran). Claude's build is its init event's (read below), so it is never probed.
@@ -4157,7 +4215,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         LAUNCH_PREDATES if regrade and "plugin_sha256" not in versions else "no reason recorded")
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
-    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
+    invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
+                  "effort_schedule": planner.schedule if planner else None, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
@@ -4248,15 +4307,18 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"
-        stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
+        stop_when = either((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None,
+                           planner.stop_when if planner else None)
         process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
                          reason="start" if resumed is None else "resume-run",
-                         told=resume_told(resumed["run_dir"], the_cli) if resumed else None)
+                         told=resume_told(resumed["run_dir"], the_cli) if resumed else None,
+                         effort_now=args.effort if planner else None)
     sessions = [] if regrade else [dict(process, resumed=None, host=host.name)]  # a regrade launched no session
-    if process["status"] == "interrupted":
+    restarts = 0  # sessions an effort boundary ended: they do not spend the resume budget
+    if process["status"] == "interrupted" and not (planner and planner.pending):
         state = grade_shiploop(out)
         interrupt_file.write_text(json.dumps({
             "at": interrupt_at, "elapsed_seconds": process["elapsed_seconds"], "stage": state.get("stage"),
@@ -4264,14 +4326,17 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not args.quiet:
             print(f"interrupted: killed the host at {process['elapsed_seconds']}s with a chain worker in flight; "
                   "resuming with a fresh session", flush=True)
+        after_effort = planner.at_launch("after-interrupt")[1] if planner else args.effort
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
                          prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
-                         effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
+                         effort=after_effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
                          allow=host_allow)
         process = session(argv, work, out, env, max(60, deadline - time.monotonic()), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file,
-                         kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
+                         stop_when=planner.stop_when if planner else None,
+                         kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli),
+                         effort_now=after_effort if planner else None)
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session instead of losing the run.
@@ -4280,9 +4345,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     stop_seen = not regrade and process["status"] == "stopped"  # a requested stop ended the host
     # Resumed sessions in a row that left ShipLoop's revision unchanged (None before ShipLoop wrote any state counts too).
     stalled, failures, launched_at, resumed_any = 0, 0, None, False
-    while host.resumable and not regrade and (args.max_resumes is None or len(sessions) <= args.max_resumes):
+    while host.resumable and not regrade and (args.max_resumes is None
+            or (planner is not None and planner.pending is not None)
+            or len(sessions) - restarts <= args.max_resumes):
         state = grade_shiploop(out)
-        session_id = last_session_id(out / "events.jsonl")
+        session_id = last_session_id(out / "events.jsonl") or planned_session_id(out)
         remaining = deadline - time.monotonic()
         if resumed_any:
             moved = state.get("revision") != launched_at
@@ -4315,15 +4382,20 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not args.quiet:
             print(f"resume {len(sessions)}/{args.max_resumes if args.max_resumes is not None else 'no limit'}: session {session_id} ended with ShipLoop "
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
-        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
+        boundary = planner.consume() if planner else None  # the class change that ended the last session, if one did
+        resume_effort = planner.at_launch("restart" if boundary else "resume")[1] if planner else args.effort
+        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli, effort.RESTART_NOTE if boundary else None),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
-                         effort=args.effort, permission_mode=args.permission_mode,
+                         effort=resume_effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id, allow=host_allow)
         launched_at, resumed_any = state.get("revision"), True
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
-                         translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
-                         told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)
-        sessions.append(dict(process, resumed=session_id, host=host.name))
+                         translate=host.translator(), stop_file=stop_file, stop_when=planner.stop_when if planner else None,
+                         kind="continued", reason="effort" if boundary else "resume-loop",
+                         told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id,
+                         effort_now=resume_effort if planner else None)
+        restarts += 1 if boundary else 0
+        sessions.append(dict(process, resumed=session_id, host=host.name, **({"effort": resume_effort} if planner else {})))
         stop_seen = process["status"] == "stopped"
     if resume_stop is None and host.resumable:
         # The loop also ends on its budget without grading the run again, and the last session it
@@ -4345,6 +4417,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         process["pass"] = None if process["status"] == "stopped" else process["status"] == "exited"
     if platform_spec and not regrade:
         scrub_files(out)  # the event stream is a record: a credential the model's tool output showed is not kept in it
+    if planner:
+        args.effort = planner.schedule["D"]  # the run's identity effort is its class D level; every launch is in effort.json
     cli_seen = summarize_events(out / "events.jsonl")
     write_transcript(out / "events.jsonl", out / "transcript.md")
     cli_seen["truncated_outputs"] = host_truncations(out / "events.jsonl")
@@ -4509,6 +4583,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
            "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
     identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
+              "effort_schedule": ({"schedule": planner.schedule, "launches": len(planner.record["launches"]),
+                                   "restarts": len(planner.record["restarts"]), "record": str(out / effort.RECORD)}
+                                  if planner else None),
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
               # folder masked, the host CLI's build (Claude's

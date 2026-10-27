@@ -1,0 +1,21 @@
+timestamp=2026-10-25T21:33:32Z
+root=/tmp/shiploop-main-conflict-20261025T142207/verification
+head=5d3628b0497c2402d7554c73011bb3d87a13bf55
+top=/private/tmp/shiploop-main-conflict-20261025T142207/verification
+status-short:
+ M test/shiploop-e2e-slice.test.py
+ M test/shiploop-e2e.test.py
+ M test/shiploop_e2e/run.py
+ M test/shiploop_e2e/sessionlog.py
+ M test/shiploop_e2e/slice.py
+?? test/shiploop_e2e/effort.py
+tracked-diff-name-status:
+M	test/shiploop-e2e-slice.test.py
+M	test/shiploop-e2e.test.py
+M	test/shiploop_e2e/run.py
+M	test/shiploop_e2e/sessionlog.py
+M	test/shiploop_e2e/slice.py
+untracked-nonignored:
+test/shiploop_e2e/effort.py
+ignored-summary:
+!! test/__pycache__/

@@ -1,0 +1,3348 @@
+{
+  "kind": "audit evidence, not runtime state or a new task registry",
+  "date": "2026-10-18",
+  "artifact": "https://claude.ai/artifact/4dwjgqaNCzRCCj5tzUr5ey",
+  "artifact_title": "Battleship Run Analysis",
+  "run": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f",
+  "frozen_source": "7fecda449ca48ee6f0976d82adafbf6e1fb0aa8b",
+  "integration_source_inspected": "c70a33f46ed71cd2eed537353438cdd61c51a2ba",
+  "scope": "All gap entries in the four source analyses are mapped; overlapping prep/build entries remain separately attributable. Report claims are not automatically independently verified. Main plan distinguishes retained results, report estimates and proposed qualifications.",
+  "source_files": [
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-build-1.json",
+      "sha256": "91ac6a43e9535b348108d20e7be3e1944e32417a4cecfc729c571ffce8d1a24f",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-build-1.json"
+    },
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-build-2.json",
+      "sha256": "98cd77548bfdbf5b92a7aaea20f5c49a28c3a5e1f42b969024c7e5f8610b10c8",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-build-2.json"
+    },
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-prep.json",
+      "sha256": "84b04534ed92fa99860bdffe0a2a224ab91c4427130b712baed51f5ae9870429",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-prep.json"
+    },
+    {
+      "path": "/Users/dadleet/src/skill-craft/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-release.json",
+      "sha256": "329a04bf62c24444933916bf5248e8bd5f8a355c65ab60e037c9a77196a5ab67",
+      "historical_path": "/Users/dadleet/src/skill-craft/.claude/worktrees/shiploop-eff-int-c5f79b/docs/experiments/run-analysis-2026-10-18/bs/analysis-bs-release.json"
+    }
+  ],
+  "group_dispositions": {
+    "G1": {
+      "plan": "4.1",
+      "tests": [
+        "T1",
+        "T25",
+        "T36"
+      ],
+      "decision": "adopt with bounded proof semantics",
+      "rule": "Require evidence at the assigned boundary; temporary probes may be authored now. Source/build checks cannot silently satisfy runtime criteria. Reallocate obligations only by explicit revision.",
+      "reference_ids": [
+        "R01",
+        "R03"
+      ]
+    },
+    "G2": {
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "decision": "adopt",
+      "rule": "Expose platform execution/reporter facts, bind candidate/base/target, distinguish planned and executed cases, and map newly added regression behaviors without extending focused test_cases schema.",
+      "reference_ids": [
+        "R08",
+        "R13"
+      ]
+    },
+    "G3": {
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "decision": "adopt with isolated execution and explicit limits",
+      "rule": "Validate copy delivery and mutation scope, retain behavioral RED/kill distinctions, run accepted candidate last with interrupted-restore recovery, and reuse matching mutation verdict separately from cleanup status. No universal coverage detector, destructive sentinel or score weakening.",
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ]
+    },
+    "G4": {
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "decision": "pilot guarded reuse",
+      "rule": "Use exact normalized records and unchanged product content to preserve only an unchanged prefix; rerun retained Proofs by script and reopen on failure. No model-decided semantic equivalence or empty-diff shortcut.",
+      "reference_ids": [
+        "R11"
+      ]
+    },
+    "G5": {
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "decision": "adopt contract clarification",
+      "rule": "Render actual schema/enums/stop rules, bounded resolvable guides, execution facts, accurate due-here status and concise recovery/progress from existing authorities.",
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ]
+    },
+    "G6": {
+      "plan": "4.2",
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34",
+        "T44"
+      ],
+      "decision": "adopt",
+      "rule": "Retain procedure trace and actual entry/access checks. Person forms reuse cases; required status comes from accepted obligations and cannot be downgraded by the final stage on partial or absent reply.",
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ]
+    },
+    "G7": {
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "decision": "adopt with existing review contract",
+      "rule": "Preserve Code craft, recent relevant commits and evidence-based review; clarify authority/import/recovery without adding self-attestation or tool-open telemetry gates.",
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ]
+    },
+    "G8": {
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "decision": "adopt bounded release/return follow-up",
+      "rule": "Observe actual target state; dry-run wording grants no authority. Retain retry evidence; classify/review generated and undecided paths before commits and keep return/commit claims distinct.",
+      "reference_ids": [
+        "R16",
+        "R17"
+      ]
+    },
+    "G9": {
+      "plan": "4.5,7",
+      "tests": [
+        "T30",
+        "T48"
+      ],
+      "decision": "separate harness follow-up",
+      "rule": "Honor documented keep intent, report cleanup independently, stop on run-bound engine and host terminal evidence, and do not turn these changes into new step acceptance gates.",
+      "reference_ids": [
+        "R18"
+      ]
+    }
+  },
+  "count": 91,
+  "findings": [
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "11-step-plan",
+      "gap": 1,
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_finding": "Duty 4 says the `check` needs no unwritten test and 'Remote-only target: the recorded test route only'. With 'Tests are not a step', that leaves an org-only engine with no runnable behavioural Proof at any step, so the criteria were weakened to source strings. Fix: for a remote-only target, allow a step Proof that compiles or deploy-validates only that step's files, or a bounded anonymous-Apex probe (both unprobed here). Also let a criterion name the later test that proves its behaviour, as distinct from its step check. Generated in skills/shiploop/scripts/shiploop_prompts.py, step-plan duty 4 (near line 1278).",
+      "group": "G1",
+      "disposition": "adopt with bounded proof semantics",
+      "plan": "4.1",
+      "tests": [
+        "T1",
+        "T25",
+        "T36"
+      ],
+      "qualification": "Do not adopt source-only completion for a runtime criterion or add a step path fence. Use an authorized behavioral probe or explicitly revise the allocation.",
+      "reference_ids": [
+        "R01",
+        "R03"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R03",
+          "status": "superseded"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "11-step-plan",
+      "gap": 2,
+      "json_pointer": "/steps/0/gaps/1",
+      "reported_finding": "Duty 5 on focused commands never says that ShipLoop reruns them on a base copy (base run) and on mutated copies (mutation check). A focused command against a remote copy therefore has to deploy the tree it judges. The plan recorded plain `sf apex run test`, and the test stage had to revise. Fix: add to duty 5 'a remote-resident focused command deploys the tree it judges, then restores it', and to the Checked-by line, refuse a remote focused row without that deploy. shiploop_prompts.py, duty 5 (near line 1288).",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "11-step-plan",
+      "gap": 3,
+      "json_pointer": "/steps/0/gaps/2",
+      "reported_finding": "The coverage gate in shiploop_navigator.py (`_normalise_criteria`) only checks that some command names each criterion ID, and the packet does not say so. The first draft named C1, C3, C4 and C5 on an Apex regression run that never reads the board or the metadata (the Improve caught it). Fix: state in duty 5 that the command naming a criterion must observe that criterion's paths.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "11-step-plan",
+      "gap": 4,
+      "json_pointer": "/steps/0/gaps/3",
+      "reported_finding": "Platform card skills/shiploop/references/platforms/salesforce.md (lines 104-110) says human output 'is refused as unread', but the request requires human. The model raised this and never recorded it. At the test stage, the candidate run with human output passed through to the mutation check, so the card's claim did not hold here. Fix the card sentence, or the parser in shiploop_test_counts.py, so they agree.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "12-improve-step-plan",
+      "gap": 1,
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_finding": "The planning review focus (shiploop_prompts.py near line 791) has no line on where a command executes relative to the copies ShipLoop judges (base worktree, mutation copy). A reviewer without that gate knowledge cannot see the defect that later forced the revise. Fix: add 'a focused command that runs against a remote or deployed copy cannot observe ShipLoop's base or mutated copies unless it deploys them'.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "13-test-spec",
+      "gap": 1,
+      "json_pointer": "/steps/2/gaps/0",
+      "reported_finding": "Duty 3 'RED: how it fails on the item's base' assumes the base run executes the base tree. For an org-resident runner, the base run queries the org, which by the test stage holds the class. RED cannot hold, so red_na is forced at the test stage. Fix: for a remote runner, have duty 3 ask whether the base run can see the base, and otherwise record red_na with its reason here. shiploop_prompts.py near line 1337.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "13-test-spec",
+      "gap": 2,
+      "json_pointer": "/steps/2/gaps/1",
+      "reported_finding": "Duty 1 says 'One test_cases row per ID the step plan's focused commands list; no other ID'. That left sameSeed, sink, gameOver, shotAfterGameOver, outOfRange, repeatShot and fullBoard without an oracle, RED or GREEN. Implement then listed them as not_covered, and the test stage wrote them from architecture.md alone. Fix: also require a case for each regression ID the item itself adds. shiploop_prompts.py near line 1330.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "14-improve-test-spec",
+      "gap": 1,
+      "json_pointer": "/steps/3/gaps/0",
+      "reported_finding": "Same as the step-plan review: the handoff's focus never asks where the case's command executes relative to ShipLoop's base and mutation copies (shiploop_prompts.py near line 791).",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "16-implement",
+      "gap": 1,
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_finding": "Implement exit 1 (STEP_CRITERIA_CONDITION, skills/shiploop/scripts/shiploop_stage_spec.py:76: 'each requirement assigned to this step is satisfied ... shown by a command or file') let the model report 'C1 and C2 hold' from a string Proof. C2 itself says the later org methods 'exercise the behavior'. Fix: when a criterion names a later test as its behavioural proof, the exit should say the step proves shape only and list that behaviour as unproven.",
+      "group": "G1",
+      "disposition": "adopt with bounded proof semantics",
+      "plan": "4.1",
+      "tests": [
+        "T1",
+        "T25",
+        "T36"
+      ],
+      "qualification": "Reject weakening a current behavioral criterion to shape-only done. Preserve the unmet obligation and revise its stage/step ownership explicitly.",
+      "reference_ids": [
+        "R01",
+        "R03"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R03",
+          "status": "superseded"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "16-implement",
+      "gap": 2,
+      "json_pointer": "/steps/5/gaps/1",
+      "reported_finding": "The belief 'Apex throws on signed Long overflow' drove the 16-bit-limb multiply. The org probe ran only the workaround, never a native Long multiply, so whether the workaround is needed was never established, and Improve 17 carried it as a 'Fact'. Implement duty 2 asks to check code and versions but not to probe a platform behaviour that a design choice rests on (only the Improve focus asks that). shiploop_prompts.py, implement duties (near line 1380).",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "16-implement",
+      "gap": 3,
+      "json_pointer": "/steps/5/gaps/2",
+      "reported_finding": "The Proof is printed without its cwd ('ShipLoop runs it from WORKTREE at done', shiploop_navigator.py:6229). The model ran it from the original checkout twice (here and in Improve 21). Fix: print the model's own invocation as `cd <WORKTREE> && <proof>`.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "17-improve-implement",
+      "gap": 1,
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_finding": "The implement review focus (shiploop_prompts.py near lines 2531-2566) names dead code but does not say that a noticed instance is material. The reviewer judged it not material and passed. Fix: say that a found dead branch or a misused error type is fixed, or recorded with a reason.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "19-improve-implement",
+      "gap": 1,
+      "json_pointer": "/steps/8/gaps/0",
+      "reported_finding": "The review's 'Read:' line is self-reported, and improve-pass checks only that checks.md is newer than the last edit. Fix: have improve-pass record whether each changed file was opened during the pass, from the host tool log where available, as it already notes for skill calls.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "qualification": "Defer tool-log file-open auditing; opening a file is not proof of review. Require actual diff/criterion evidence under the existing review contract.",
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "20-implement",
+      "gap": 1,
+      "json_pointer": "/steps/9/gaps/0",
+      "reported_finding": "Duty 4 of step-plan rejects 'asserting only that a file exists' but not a check that matches the implementation's own text (a literal, a token count). Such a check dictates code form, not behaviour, as with S3's `length: 10` count and S2's 'cacheable' ban. Fix: add that sentence to step-plan duty 4 (shiploop_prompts.py near line 1278).",
+      "group": "G1",
+      "disposition": "adopt with bounded proof semantics",
+      "plan": "4.1",
+      "tests": [
+        "T1",
+        "T25",
+        "T36"
+      ],
+      "reference_ids": [
+        "R01",
+        "R03"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R03",
+          "status": "superseded"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "21-improve-implement",
+      "gap": 1,
+      "json_pointer": "/steps/10/gaps/0",
+      "reported_finding": "Compaction recovery inside Improve still took 5 file reads to learn that review-1 was written but improve-pass had not run (plan finding F11). Fix: the reprinted Improve packet or handoff should state the last recorded pass and any unsubmitted reviews/review-<n>.md (the improve packet renderer in shiploop_navigator.py).",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "24-test",
+      "gap": 1,
+      "json_pointer": "/steps/13/gaps/0",
+      "reported_finding": "Mutation and the base run for org-resident runners: shiploop_mutation.mutation_check (skills/shiploop/scripts/shiploop_mutation.py:325) mutates a temporary copy and reruns focused commands that never read it. BASE_RULE (shiploop_test_loop.py:406) does the same for the base. Neither the test Checked-by (shiploop_navigator.py:5227) nor step-plan duty 5 says so. Fix: before sampling, run one sentinel mutant that breaks the build. If the focused commands still pass, refuse with 'the focused commands do not read the tree: report revise and record a deploying focused command' rather than 'add assertions'.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "qualification": "Pilot a candidate-observation diagnostic only on an authorized isolated route. A passed build-breaking sentinel is a clue, not a universal semantic diagnosis; do not deploy destructive sentinels blindly.",
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "24-test",
+      "gap": 2,
+      "json_pointer": "/steps/13/gaps/1",
+      "reported_finding": "skills/shiploop/references/platforms/salesforce.md lines 110-113 say 'name each new org-bound test in red_na ... and let the candidate run and the mutation check carry the proof'. The mutation check cannot carry the proof for a non-deploying command. Fix the sentence to require the deploy, and state who restores the org after mutants.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "24-test",
+      "gap": 3,
+      "json_pointer": "/steps/13/gaps/2",
+      "reported_finding": "Of the 8 sampled mutants, only 1 touched engine logic (SLBattleEngine.cls:123 '<' to '>='). Two hit `.sf/orgs/.../localSourceTracking/config` (CLI state the deploy created) and one hit the test class (SLBattleRulesTest.cls:206), because skills/shiploop/references/path-classes.json has no `**/*Test.cls` test pattern and no `**/.sf/**` config pattern. The other four were in board and project files (slBattleBoard html, js and js-meta.xml, sfdx-project.json) that no Apex test reads. Fix: add both patterns.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "24-test",
+      "gap": 4,
+      "json_pointer": "/steps/13/gaps/3",
+      "reported_finding": "The refusal text (shiploop_mutation.py:376, 'Add or strengthen assertions ... start the Until Loop again') names no route out when assertions cannot help. The docstring 'revise opens only at the cap' (shiploop_loops.py:744) misled the model into planning 11 refusals. Fix: the refusal should add 'if the focused commands cannot observe the mutated copy, stop the Until Loop blocked and report revise naming the command'.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-1.json",
+      "step": "24-test",
+      "gap": 5,
+      "json_pointer": "/steps/13/gaps/4",
+      "reported_finding": "A revise whose only defect is test_commands still re-runs test-spec, validate-existing, all 4 implement steps and their 4 Improves (stages 25-37). Fix: in the navigator's revise routing, keep accepted implement steps when the new step plan changes only test_commands, and go from step-plan (and test-spec, if its IDs changed) straight to test.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "25-step-plan",
+      "gap": 1,
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_finding": "A plan change limited to test_commands still restarts every implement step and its Improve (see 30-37). implement_progress (shiploop_navigator.py) counts steps from the latest accepted step plan. Fix: when _id_changes reports no change to steps, criteria or expectations (_upstream_line already computes this), carry the accepted steps over after ShipLoop reruns their Proofs, and go straight from test-spec to test.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "25-step-plan",
+      "gap": 2,
+      "json_pointer": "/steps/0/gaps/1",
+      "reported_finding": "Step-plan duty 5 (shiploop_prompts.py) and the Salesforce platform reference (references/platforms/) never say how a remote-only target interacts with the base run and the mutation gate. Fix: add one line: the focused command must deploy the candidate and then test; on the base the deploy fails, so record red_na; the last deployed mutant stays in the org until the next deploy.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "25-step-plan",
+      "gap": 3,
+      "json_pointer": "/steps/0/gaps/2",
+      "reported_finding": "_revisit_lines truncates the revise summary at REVISIT_SUMMARY = 600, which cuts off the ask. The step-plan head then prints the whole summary again under LAST ACCEPTED SUMMARY. Fix: quote the whole revise summary once, or keep its last sentences, and drop the duplicate block on a revisit.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "26-improve-step-plan",
+      "gap": 1,
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_finding": "The Authority text and the review focus contradict each other. 'No push, deploy' (shiploop_navigator.py:7918) conflicts with the planning focus 'run it once and record the exit code' (shiploop_prompts.py:792) when the recorded command deploys. Fix: let the Authority line say that the recorded test commands may run under the run's deploy grant and nothing else may deploy, or have the focus cite the latest recorded run for a command that deploys.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "27-test-spec",
+      "gap": 1,
+      "json_pointer": "/steps/2/gaps/0",
+      "reported_finding": "_change_text counts test commands by command text, so the deploy prefix reads as '3 added, 3 removed' and never says the IDs and suites are unchanged. Fix: match command rows on suite+ids and report 'changed (same IDs)'.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "30-implement",
+      "gap": 1,
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_finding": "_sent_back_results returns earlier[-1], the last implement result before the revise (S4), as the 'previous accepted implement result' for S1. Fix: for implement, name the accepted result of the same step id.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "30-implement",
+      "gap": 2,
+      "json_pointer": "/steps/5/gaps/1",
+      "reported_finding": "There is no 'unchanged step' line. Fix: in step_block, when the step row equals the previous plan's, print 'S1 unchanged since RUN/results/<S1>.md: if the Proof passes on the current tree, carry that result, with no edit'. Better still, ShipLoop runs the Proof and skips the packet (see 25).",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "31-improve-implement",
+      "gap": 1,
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_finding": "The implement focus in shiploop_prompts.py (around line 2512) drops the received-value clause of Code craft 2. Fix: quote that clause.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "31-improve-implement",
+      "gap": 2,
+      "json_pointer": "/steps/6/gaps/1",
+      "reported_finding": "ShipLoop knows the base and bound trees are equal (_review_base_line in shiploop_navigator.py) but still issues the review. Fix: when the step diff is empty and the step row is unchanged, record the Improve as not needed instead of binding a review.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "qualification": "Do not skip Improve on empty diff alone; requirements, evidence, dependencies or review focus may have changed.",
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "32-implement",
+      "gap": 1,
+      "json_pointer": "/steps/7/gaps/0",
+      "reported_finding": "Later steps of a revisited plan get no line naming their own previous accepted result. Fix: step_block prints 'Previous accepted S<n> result: RUN/results/...md' for every step of an amended plan.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "32-implement",
+      "gap": 2,
+      "json_pointer": "/steps/7/gaps/1",
+      "reported_finding": "'Show the user this narrative exactly as written' (shiploop_narrative.py / status_block) does not say 'once' or 'if not already shown'. After a compaction the model hunts old packets for it. Fix: 'If you already showed it, or lost it, skip it; never search for an earlier narrative.'",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "34-implement",
+      "gap": 1,
+      "json_pointer": "/steps/9/gaps/0",
+      "reported_finding": "The same missing per-step previous-result line as at 32.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "38-test",
+      "gap": 1,
+      "json_pointer": "/steps/13/gaps/0",
+      "reported_finding": "The mutation check is not covered by check-only reuse. _reused in shiploop_test_loop.py covers only the command runs, so mutation_check / shiploop_mutation reran about 171 s of deploys on an unchanged tree. Fix: let complete take a passed mutation-check-only record when the candidate tree and focused commands are unchanged (the D5 rule extended).",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "38-test",
+      "gap": 2,
+      "json_pointer": "/steps/13/gaps/1",
+      "reported_finding": "When a focused command writes to a remote target, no restore follows the mutation gate. Fix: shiploop_mutation._check reruns the unmutated focused command once after the last mutant, or the test packet states that the host must restore and that complete reruns the mutants.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "38-test",
+      "gap": 3,
+      "json_pointer": "/steps/13/gaps/2",
+      "reported_finding": "shiploop_item_scope.classify marks .sf/orgs/<id>/localSourceTracking/{HEAD,config} as code, so 2 of 8 sampled mutants (54 s) went to tool state. Fix: classify .sf/ and .sfdx/ as generated, via the Salesforce platform reference.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "38-test",
+      "gap": 4,
+      "json_pointer": "/steps/13/gaps/3",
+      "reported_finding": "The stage that issued the revise gets no revisit line on its return; REVISIT_STAGES = (step-plan, test-spec, implement). Fix: add test with 'you sent W1 back for X; the amended plan changed Y'.",
+      "group": "G4",
+      "disposition": "pilot guarded reuse",
+      "plan": "4.4",
+      "tests": [
+        "T39",
+        "T40",
+        "T41"
+      ],
+      "reference_ids": [
+        "R11"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R11",
+          "status": "deferred"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "39-document",
+      "gap": 1,
+      "json_pointer": "/steps/14/gaps/0",
+      "reported_finding": "The loop argument says 'Repeat while ...' but not that one satisfied report ends this loop (TRIVIAL_REVIEWS[document] = 0). Verify's loop does say it ('the review gate needs one complete iteration that finds only trivial issues'). Fix: in shiploop_loops.py (stage Work text near line 87), state for every stage loop whether a trivial confirming pass is needed.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "39-document",
+      "gap": 2,
+      "json_pointer": "/steps/14/gaps/1",
+      "reported_finding": "'Delete generated output the product does not need' is printed while .sf/orgs/.../localSourceTracking/* is listed under 'Changed since the item base'. Nobody acted until release excluded the files. Fix: the platform reference names Salesforce tool state, and the changed-files line marks it as generated.",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "40-verify",
+      "gap": 1,
+      "json_pointer": "/steps/15/gaps/0",
+      "reported_finding": "Checked-by says 'an open item whose consumer is not a later outer stage' but never names the stages. Fix: print shiploop_assumptions.allowed_consumers('verify') in the head.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "40-verify",
+      "gap": 2,
+      "json_pointer": "/steps/15/gaps/1",
+      "reported_finding": "Review duty 5 lists 'missing argument checks or contract docstrings at an entry point' but not that a rejection names the received value. Fix: quote Code craft 2's reject clause there too.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "41-carry-forward",
+      "gap": 1,
+      "json_pointer": "/steps/16/gaps/0",
+      "reported_finding": "The result template prints path, evidence and index placeholders 'only for update or create' even for none. Fix: print {decision, reason} only, or 'omit the other keys for none' (the template builder near _check_skill_decision in shiploop_navigator.py).",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "41-carry-forward",
+      "gap": 2,
+      "json_pointer": "/steps/16/gaps/1",
+      "reported_finding": "'Commands that passed at verify and are not named in HOME/environment.md' (shiploop_navigator.py:6113) does not say what 'named' means. Fix: add 'named = the command text, whitespace collapsed, appears under ## Commands'.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "42-improve-carry-forward",
+      "gap": 1,
+      "json_pointer": "/steps/17/gaps/0",
+      "reported_finding": "The Authority line forbids deploys, the target is remote-only, and the hand-off says ShipLoop reruns the recorded commands at import. Fix: tell the reviewer to let the import rerun be the org proof and to run only local checks (shiploop_navigator.py:7918).",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-build-2.json",
+      "step": "42-improve-carry-forward",
+      "gap": 2,
+      "json_pointer": "/steps/17/gaps/1",
+      "reported_finding": "The Evidence line of the improve_handoff_text text does not say: (a) whether improve-pass's 'tree unchanged since the bind' applies per pass, and (b) that the reviewed stage's own HOME edits are uncommitted until import and are not this review's changes. Fix: one line for each.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "01-intake",
+      "gap": 1,
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_finding": "Guide references are '#slug' anchors (shiploop_prompts.py references table, e.g. line 201 ('Discovery investigation guidance', 'research-loop.md#plan-the-investigation')). A slug is not grep-able text in the file, so the 'open only the section' rule at shiploop_prompts.py:137 cannot be followed. Fix: render each reference as the heading text plus its line range, computed at packet render (e.g. 'project-knowledge.md lines 101-125, ## New work versus recovery').",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "01-intake",
+      "gap": 2,
+      "json_pointer": "/steps/0/gaps/1",
+      "reported_finding": "Prelude packets print 'Work items planned: 1; execution starts after the preparation graph completes.' (shiploop_navigator.py:4930) before plan exists, which contradicts the narrative's 'Work items (set by plan)'. Fix: print 'Work items: set by plan' until plan is accepted.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "02-discovery",
+      "gap": 1,
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_finding": "No empty-checkout branch: for a checkout that holds only the baseline commit, items 3-6 and 9-13 could collapse to 'none, recorded' (shiploop_prompts.py discovery block near line 925). Fix: add a first line 'An empty checkout (no files beyond the baseline commit): record none for house style, skills, specs, services and consumers, and spend discovery on the delivery target and access'.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "qualification": "Empty checkout can omit repository-specific recovery work, but cannot establish that no external service, environment convention or consumer exists.",
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "02-discovery",
+      "gap": 2,
+      "json_pointer": "/steps/1/gaps/1",
+      "reported_finding": "Section anchors push the model to whole-file reads (see 01-intake).",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "03-research",
+      "gap": 1,
+      "json_pointer": "/steps/2/gaps/0",
+      "reported_finding": "Research item 11 lets an assumption stay 'open (the check that would settle it, why not run)' even when one allowed, read-only command settles it now. Fix (shiploop_prompts.py, research items): 'An unknown that one command allowed by this run's guard settles (anonymous code run, read-only query) is probed now and saved; open is only for a check that needs a later artifact or a person.'",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "qualification": "Probe consequential assumptions when useful and authorized, not every possible unknown just because a one-command probe exists. Anonymous code is not inherently read-only.",
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "04-spec",
+      "gap": 1,
+      "json_pointer": "/steps/3/gaps/0",
+      "reported_finding": "The item-10 walk leaves no trace, so 'before you submit' cannot be checked. Fix (shiploop_prompts.py, spec item 10): ask for one 'Walked:' line in summary per ordered procedure (start state, the replayed inputs, the observer), so skipping or deferring the walk is visible to Improve.",
+      "group": "G6",
+      "disposition": "adopt",
+      "plan": "4.2",
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34",
+        "T44"
+      ],
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R06",
+          "status": "implemented"
+        },
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "05-improve-spec",
+      "gap": 1,
+      "json_pointer": "/steps/4/gaps/0",
+      "reported_finding": "packet.json shows 'required_trivial_reviews': 2 (shiploop_loop_contract.py:18-32). In the runtime, 2 means the unchanged-content gate, one trivial pass (until_loop_ephemeral.py:140), but the model reads it as a count. All 4 BS prep Improves show the misread. Fix: print the gate as text in the contract and receipt (e.g. 'review_gate: ends on the first trivial pass that leaves content unchanged'), or rename the field.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "05-improve-spec",
+      "gap": 2,
+      "json_pointer": "/steps/4/gaps/1",
+      "reported_finding": "shiploop-route.md (46k chars) is reread after every compaction ('Open ROUTE once per context'). Fix: split the route's recovery and commit sections into an excerpt the handoff names by line range.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "06-test-strategy",
+      "gap": 1,
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_finding": "No platform-card pointer for runner format and deploy order. Fix (shiploop_prompts.py test-strategy items 4/9, near lines 1091-1100): 'Target platform card: GUIDES/platforms/<platform>.md#<runner section>. ShipLoop's focused and regression commands follow its reporter and deploy-first rules. A command the user mandates stays as the acceptance command beside them.'",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "06-test-strategy",
+      "gap": 2,
+      "json_pointer": "/steps/5/gaps/1",
+      "reported_finding": "Item 11 (shiploop_prompts.py:1102) accepts a file: stand-in as the probe. That proves only that the browser runs, not that the authenticated entry can be reached under this run's guard ('org open' is not in its allow list). Fix: also probe the entry's authentication step, or read the guard's allow list, now; record the failure at test-strategy as a person-only open item with an owner, not as release-verify's problem.",
+      "group": "G6",
+      "disposition": "adopt",
+      "plan": "4.2",
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34",
+        "T44"
+      ],
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R06",
+          "status": "implemented"
+        },
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "07-improve-test-strategy",
+      "gap": 1,
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_finding": "Planning-review focus item (shiploop_prompts.py:791) 'a documented command that does not run what it claims on the target runtime' is too abstract. Reviewers read it as 'run it once, see RED'. Fix: '... e.g. a test command against a remote runtime that does not first deploy the tree under test runs the old copy; a reporter the platform card says ShipLoop cannot read'.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "07-improve-test-strategy",
+      "gap": 2,
+      "json_pointer": "/steps/6/gaps/1",
+      "reported_finding": "History window (improve/references/shiploop-route.md:22) gives no command. Fix: print the literal 'git -C <WORKTREE> log -7 --format=full' in the handoff.",
+      "group": "G7",
+      "disposition": "adopt with existing review contract",
+      "plan": "3.1-3.5,4.5",
+      "tests": [
+        "T14",
+        "T24",
+        "T33",
+        "T41",
+        "T42"
+      ],
+      "qualification": "Keep the owner-decided two relevant commit messages; do not replace this with a new universal seven-commit read quota.",
+      "reference_ids": [
+        "R04",
+        "R14",
+        "R15"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R04",
+          "status": "superseded"
+        },
+        {
+          "id": "R14",
+          "status": "implemented"
+        },
+        {
+          "id": "R15",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "07-improve-test-strategy",
+      "gap": 3,
+      "json_pointer": "/steps/6/gaps/2",
+      "reported_finding": "The Improve packet's step 2 does not say that --check-only is unavailable. Fix: append '(Improve has no --check-only)' where the packet prints the complete command.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "08-plan",
+      "gap": 1,
+      "json_pointer": "/steps/7/gaps/0",
+      "reported_finding": "Refusal rules were not stated where the model writes. Fix in the plan template and 'Checked by' (shiploop_navigator.py:5930): 'evidence: an existing absolute path or an https URL'; 'an ID moved under ## Superseded or ## Retired counts as kept'; the work_items context limit, if any (shiploop_navigator.py:516 _normalise_work_items).",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "08-plan",
+      "gap": 2,
+      "json_pointer": "/steps/7/gaps/1",
+      "reported_finding": "The backchain-check line (shiploop_navigator.py:4819) does not say that parallel_groups is computed (shiploop_backchain_graph.py:501 compute_parallel_groups). Fix: add 'leave parallel_groups as []; the check computes it'.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "08-plan",
+      "gap": 3,
+      "json_pointer": "/steps/7/gaps/2",
+      "reported_finding": "The test-command defects (no deploy, human reporter) passed through plan unchallenged. Chess's plan stage had tap and deploy-first commands inline in its packet, from its environment.md. The BS packet lists environment.md as headings only, so those commands are never in view. Fix: when a packet lists knowledge by headings, quote '## Commands' whole (it is short, and every later stage acts on it).",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "09-improve-plan",
+      "gap": 1,
+      "json_pointer": "/steps/8/gaps/0",
+      "reported_finding": "Same focus-item wording gap as 07 (shiploop_prompts.py:791). The review focus list could carry the platform card's two Salesforce facts (deploy before test; tap reporter) whenever a recorded command targets a remote runtime.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "10-prepare",
+      "gap": 1,
+      "json_pointer": "/steps/9/gaps/0",
+      "reported_finding": "Prepare item 3 (shiploop_prompts.py:1230) checks only that a runner starts. Fix: add 'and that each recorded focused command runs the tree under test (a remote target deploys first) with a reporter ShipLoop reads (platform card); a user-mandated format stays the acceptance command, not the focused one'.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "11-step-plan",
+      "gap": 1,
+      "json_pointer": "/steps/10/gaps/0",
+      "reported_finding": "'Tests are not a step' plus 'Remote-only target: the recorded test route only. None runs now: change the step boundary.' (shiploop_prompts.py:1273-1287) leaves a remote-runtime step no behavioural Proof. Fix: allow, for a remote-only target, a step check that deploys only the step's paths and runs an anonymous probe the guard allows (e.g. 'sf project deploy start --target-org de --source-dir <paths> && sf apex run --target-org de --file <probe>'), with the probe file listed as a step path.",
+      "group": "G1",
+      "disposition": "adopt with bounded proof semantics",
+      "plan": "4.1",
+      "tests": [
+        "T1",
+        "T25",
+        "T36"
+      ],
+      "reference_ids": [
+        "R01",
+        "R03"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R01",
+          "status": "implemented"
+        },
+        {
+          "id": "R03",
+          "status": "superseded"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "11-step-plan",
+      "gap": 2,
+      "json_pointer": "/steps/10/gaps/1",
+      "reported_finding": "path-classes.json 'test' has no Apex pattern, so SLBattleRulesTest.cls counts as code: expectations need it, and the mutation check mutated the test class ('including ... a test integer change', 24-test). Fix: add '**/classes/*Test.cls' and '**/classes/*Test.cls-meta.xml' to skills/shiploop/references/path-classes.json.",
+      "group": "G3",
+      "disposition": "adopt with isolated execution and explicit limits",
+      "plan": "4.3-4.4",
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T47"
+      ],
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R09",
+          "status": "conditional"
+        },
+        {
+          "id": "R10",
+          "status": "deferred"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "11-step-plan",
+      "gap": 3,
+      "json_pointer": "/steps/10/gaps/2",
+      "reported_finding": "Path rules (exact files, no '*' across '/') and the validator's expectation shapes are learned only from source. Fix: state both in the step-plan template next to 'paths' and 'expectations'.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-prep.json",
+      "step": "12-improve-step-plan",
+      "gap": 1,
+      "json_pointer": "/steps/11/gaps/0",
+      "reported_finding": "Same as 07 and 09: the 'does not run what it claims' focus item needs the remote-runtime example (shiploop_prompts.py:791).",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "43-system-test-author",
+      "gap": 1,
+      "json_pointer": "/steps/0/gaps/0",
+      "reported_finding": "The OUTER open-item template prints \"assumptions\": [] with no row. Item 7 lists assumption/check/owner/reason/consumer but omits the required id and disposition 'open', and it never lists the allowed consumers, so the model read shiploop_assumptions.py. Fix: render one open row {id, assumption, disposition: open, check, reason, consumer, owner} and list assumptions.allowed_consumers(stage). Generated at skills/shiploop/scripts/shiploop_navigator.py:4135-4136 (result['assumptions'] = [] for OUTER open-item stages); item 7 text at shiploop_prompts.py:1608.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "43-system-test-author",
+      "gap": 2,
+      "json_pointer": "/steps/0/gaps/1",
+      "reported_finding": "The double-negative gate 'refuses ... an open item whose consumer is not a later outer stage' was read as forbidding later-stage consumers. Fix: state it positively, e.g. 'consumer must be one of: system-test, product-acceptance, release-plan, release-check, release, release-verify, operations, handoff'. Generated at shiploop_navigator.py:5934.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "43-system-test-author",
+      "gap": 3,
+      "json_pointer": "/steps/0/gaps/2",
+      "reported_finding": "The template's system_commands example has ids [\"ST-1\"], next to a catalog whose case IDs are SYS-...; the ids must be names the runner prints (Apex method names). Fix: 'ids are the test names as the runner prints them, not catalog case IDs'. Generated at shiploop_navigator.py:4122; item 6 at shiploop_prompts.py:1599-1600.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "44-improve-system-test-author",
+      "gap": 1,
+      "json_pointer": "/steps/1/gaps/0",
+      "reported_finding": "The runtime progress shows required_trivial_reviews: 2, a field that now means 'one trivial pass with unchanged content', while the handoff says one unchanged trivial pass ends the review. Both Improve reviews in this group debated it. Fix: rename the field or drop it from the lean return. Generated in skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py (adaptation in PROVENANCE.json); the handoff text is at shiploop_navigator.py:6839.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "45-system-test",
+      "gap": 1,
+      "json_pointer": "/steps/2/gaps/0",
+      "reported_finding": "Item 3 says 'Run the due cases', and the rerun note says complete runs them. It does not say the check-only run may serve as this stage's run, so the model wrote 'passed' into the result before any run existed. Fix: 'the check-only rerun is this stage's run; write pass or fail after it'. Generated in the system-test duties at shiploop_prompts.py:1623-1646.",
+      "group": "G2",
+      "disposition": "adopt",
+      "plan": "4.2-4.3",
+      "tests": [
+        "T37",
+        "T43",
+        "T45"
+      ],
+      "reference_ids": [
+        "R08",
+        "R13"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R08",
+          "status": "outstanding"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "46-product-acceptance",
+      "gap": 1,
+      "json_pointer": "/steps/3/gaps/0",
+      "reported_finding": "'Carry in the open items earlier stages recorded (system-test-author, system-test)' does not say which field to use, and this stage has no assumptions list. Fix: 'carry them as unverified rows; product-acceptance takes no assumptions list'. Generated at shiploop_prompts.py:1668.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "46-product-acceptance",
+      "gap": 2,
+      "json_pointer": "/steps/3/gaps/1",
+      "reported_finding": "The gate 'a due_stage that is not a later stage' does not list the stages. Fix: print the allowed due_stage values (release-plan, release-check, release, release-verify, operations, handoff). Generated at shiploop_navigator.py:5949.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "46-product-acceptance",
+      "gap": 3,
+      "json_pointer": "/steps/3/gaps/2",
+      "reported_finding": "Row shapes and rules the model learned from source are lost at a context reset, so it re-read source in 46 and again in 51. Putting the shapes in the packet removes both rounds of reading.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "47-release-plan",
+      "gap": 1,
+      "json_pointer": "/steps/4/gaps/0",
+      "reported_finding": "The present/absent confirm rule assumes the target is untouched before release. Here every test command deploys to org de, so 'absent' cannot be observed and both release-plan and release-check had to work around it. Fix: 'If earlier stages already placed the candidate on the target, cite the last recorded absent observation and expect present at release-check.' Generated at shiploop_prompts.py:1716 (release-plan item 5), shiploop_prompts.py:1744 (release-check item 4) and shiploop_stage_spec.py:574 (release-check done-when).",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "qualification": "Historical absence stays historical. Validate current target/candidate identity and actual release delta; do not cite old absence as a fresh release-check observation.",
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "47-release-plan",
+      "gap": 2,
+      "json_pointer": "/steps/4/gaps/1",
+      "reported_finding": "'consumer_checks, shaped like test_commands' points to a schema the packet does not contain. Fix: print the row inline as {command, suite: check|focused|regression, ids?, min_tests?}. Generated at shiploop_prompts.py:1718.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "47-release-plan",
+      "gap": 3,
+      "json_pointer": "/steps/4/gaps/2",
+      "reported_finding": "Nothing tells release-plan that plan-return commits every untracked path, including tool state such as .sf/. Fix: release-plan item 8 should add: 'list untracked tool-state directories; add them to .gitignore or plan them as --exclude before release-check runs plan-return'. Better, fix commit_leftovers itself (see 49). Generated at shiploop_workspace.py:1294.",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "47-release-plan",
+      "gap": 4,
+      "json_pointer": "/steps/4/gaps/3",
+      "reported_finding": "The consumer check does not have to observe the consumer entry. Fix: 'at least one consumer check observes what consumer_entry names on the target (here CustomTab SLBattle_Board and CustomApplication SLBattle)'. Generated at shiploop_prompts.py:1718-1725.",
+      "group": "G6",
+      "disposition": "adopt",
+      "plan": "4.2",
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34",
+        "T44"
+      ],
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R06",
+          "status": "implemented"
+        },
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "47-release-plan",
+      "gap": 5,
+      "json_pointer": "/steps/4/gaps/4",
+      "reported_finding": "The template rule says to replace every <...> placeholder, but the packet's own rollback recipe contains '<kept paths>'. The model planned around a refusal that does not exist, because _placeholders only walks the hand-off fields. Fix: print the recipe with the return plan's keep rows filled in, or say the recipe text is exempt.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "48-improve-release-plan",
+      "gap": 1,
+      "json_pointer": "/steps/5/gaps/0",
+      "reported_finding": "The release-stage Improve text forbids 'execute or replay a release effect (a deployment ...)' without saying that a planned dry run is not a release effect. Fix: add 'A planned dry run (validate, check-only, plan, what-if) is not a release effect: run it once and record its exit code.' Generated at shiploop_prompts.py:2765, next to the focus line at shiploop_prompts.py:791.",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "qualification": "Reject the blanket assertion that validate/check-only/plan/what-if is not a release effect. Resolve exact effect, target and existing authority.",
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "48-improve-release-plan",
+      "gap": 2,
+      "json_pointer": "/steps/5/gaps/1",
+      "reported_finding": "Same stop-rule mismatch as 44 (required_trivial_reviews: 2 against a one-pass exit). Generated in skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "49-release-check",
+      "gap": 1,
+      "json_pointer": "/steps/6/gaps/0",
+      "reported_finding": "commit_leftovers committed untracked .sf/ source-tracking files before review-return could exclude them, and excluding committed paths forces working-tree-return: no commit on main. Consequences: the E2E 'committed' check failed (mismatch.md: HEAD 45e3cc53, 0 files in HEAD, 18 uncommitted), and the done packet asked an absent user to commit. Fix: skip untracked tool-state paths (anything a review would exclude) until review-return decides, or list undecided untracked paths before committing. Generated at skills/shiploop/scripts/shiploop_workspace.py:1294 (commit_leftovers; its docstring already notes 'a path the review then excludes still falls back to the working-tree route').",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "49-release-check",
+      "gap": 2,
+      "json_pointer": "/steps/6/gaps/1",
+      "reported_finding": "The done-when 'recorded its not-there-yet output' cannot be met when earlier stages already deployed to the target; see the first gap under 47. Generated at shiploop_stage_spec.py:574.",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "49-release-check",
+      "gap": 3,
+      "json_pointer": "/steps/6/gaps/2",
+      "reported_finding": "Item 3 saves the dry-run output to one file, so a retry after a fix overwrote the failing output. Fix: 'keep the failing run's output beside the retry's'. Generated at shiploop_prompts.py:1742.",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "51-release-verify",
+      "gap": 1,
+      "json_pointer": "/steps/8/gaps/0",
+      "reported_finding": "Item 6 does not name the consumer for an open item only a person can act on, so the model read stage_spec and assumptions source to pick handoff over operations. Fix: 'record it with consumer handoff'. Generated at shiploop_prompts.py:1794-1802.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "51-release-verify",
+      "gap": 2,
+      "json_pointer": "/steps/8/gaps/1",
+      "reported_finding": "The fill-in form ('step 1 reaches the consumer entry (menu entry or URL path) ...; report is a fill-in list, one yes/no line per case') applies only to a blocked/awaiting ask. A person-owned open item gets free text with no reply route. Fix: require the same entry line and yes/no lines in every person-owned open item's check, carry them into report.html as a checklist, and drop agent-only prohibitions from asks addressed to a person. Generated at shiploop_prompts.py:1794-1802; open-row fields in shiploop_assumptions.py _FIELDS.",
+      "group": "G6",
+      "disposition": "adopt",
+      "plan": "4.2",
+      "tests": [
+        "T25",
+        "T26",
+        "T29",
+        "T34",
+        "T44"
+      ],
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R05",
+          "status": "partial"
+        },
+        {
+          "id": "R06",
+          "status": "implemented"
+        },
+        {
+          "id": "R07",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "51-release-verify",
+      "gap": 3,
+      "json_pointer": "/steps/8/gaps/2",
+      "reported_finding": "Every stage re-listed the same open item, so release-verify's packet quotes A1 five times. Fix: dedupe by id and text in the packet, and tell stages 'an open item already recorded for a later consumer stays open; do not re-list it'. Generated at shiploop_navigator.py:5640-5652 (_source_lines for assumptions) and in the open-item duties (shiploop_prompts.py:1608, 1641, 1724).",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "51-release-verify",
+      "gap": 4,
+      "json_pointer": "/steps/8/gaps/3",
+      "reported_finding": "The opposite case appears at 43 and 47: 'open items: none open' was printed while A1 and A2 were open for later stages. The list is filtered to this stage's consumer, but the label does not say so. Fix: 'open items due here: none (N open for later stages)'. Generated at shiploop_navigator.py:5644.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "53-handoff",
+      "gap": 1,
+      "json_pointer": "/steps/10/gaps/0",
+      "reported_finding": "The done packet says 'Ask the user to commit the returned files' even in an unattended run; this follows from the working-tree-return (see 49). Fix: repair commit_leftovers upstream. For unattended runs, record the uncommitted return as an open item in report.html rather than a question nobody will answer. Generated at shiploop_navigator.py:4426.",
+      "group": "G8",
+      "disposition": "adopt bounded release/return follow-up",
+      "plan": "4.5",
+      "tests": [
+        "T35",
+        "T46",
+        "T47"
+      ],
+      "reference_ids": [
+        "R16",
+        "R17"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R16",
+          "status": "outstanding"
+        },
+        {
+          "id": "R17",
+          "status": "partial"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "53-handoff",
+      "gap": 2,
+      "json_pointer": "/steps/10/gaps/1",
+      "reported_finding": "The narrative rule 'Show the user this narrative exactly as written' does not say whether narratives missed before a context reset must be replayed, and the model went back and forth. Fix: 'show only this packet's narrative'. Generated at shiploop_navigator.py:2261.",
+      "group": "G5",
+      "disposition": "adopt contract clarification",
+      "plan": "4.5",
+      "tests": [
+        "T18",
+        "T19",
+        "T41",
+        "T42",
+        "T43"
+      ],
+      "reference_ids": [
+        "R12",
+        "R13",
+        "R19",
+        "R20"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R12",
+          "status": "implemented"
+        },
+        {
+          "id": "R13",
+          "status": "partial"
+        },
+        {
+          "id": "R19",
+          "status": "outstanding"
+        },
+        {
+          "id": "R20",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "source": "analysis-bs-release.json",
+      "step": "53-handoff",
+      "gap": 3,
+      "json_pointer": "/steps/10/gaps/2",
+      "reported_finding": "Harness, not directive: the Grok host did not exit after handle_prompt.done. The E2E runner should end the session on the done packet or the turn end instead of waiting for its timeout.",
+      "group": "G9",
+      "disposition": "separate harness follow-up",
+      "plan": "4.5,7",
+      "tests": [
+        "T30",
+        "T48"
+      ],
+      "qualification": "Do not terminate on a printed string alone. Require bound engine terminal status and host completion, preserve failure/cleanup evidence.",
+      "reference_ids": [
+        "R18"
+      ],
+      "current_recommendations": [
+        {
+          "id": "R18",
+          "status": "implemented"
+        }
+      ]
+    }
+  ],
+  "additional_verified_acceptance_finding": {
+    "finding": "system-test-author calls post-release interaction required; release-verify accepts without it and transfers A1 to handoff, with no owner waiver cited there.",
+    "plan": "0.2,4.2,10.5",
+    "test": "T44",
+    "records": [
+      {
+        "path": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run/results/nav-61a07bedabe74fe99dd0b442cb8aa919.md",
+        "sha256": "508179542c18de90f55e4c6577de1d1cfc361a88a92a23f0c655c52cbbefaff9",
+        "summary": "Catalog (also HOME/environment.md ## Harnesses and suites and RUN/notes/system-test-catalog.md). Pre-release is required. Post-release is required for the release deploy record and the Lightning click. Migration, WCAG, and an availability target are N/A under R-13.\n\nSYS-ORG-SUITE, pre-release, R-3 through R-8, R-10, R-11. Expected: ten methods passed, fullBoard has no query and no DML. Target: org de, remote Apex. Prerequisite: W1. Command: the full-suite line under Commands. Owner: system-test. Ran now: deploy 0Afaj00000oARtNCAW succeeded, 10 passed, org 00Daj000018BzO3EAK. Engine was Unchanged. Stateless. Teardown none.\n\nSYS-SOURCE, pre-release, R-1, R-2 metaShape, R-8 controllerShape, R-9 boardSource, R-12 source. Expected: exit 0. Target: this worktree. Command: the fourth recorded line. Owner: system-test. Ran now: exit 0.\n\nSYS-RELEASE, post-release, R-2 metadataDeploy. Expected: deploy succeeds and the assignment query returns SLBattle_Access. Owner: release. Not a system command: a repeat assign can exit nonzero on a duplicate. Open as A2.\n\nSYS-BOARD, post-release, R-9 visual and R-12 board. Expected: headed Lightning shows miss, hit, sunk, shots, ships left, and game over. Owner: release-verify. No Lightning session and sf org open stays forbidden. Open as A1.\n\nHarness reused: sf apex run test, CLI 2.154.4, class SLBattleRulesTest. No new facility. Smoke stays fleet, miss, hit. Regression is the full class. The four Commands strings still match the verify record.",
+        "assumptions": [
+          {
+            "assumption": "SYS-BOARD: a headed Lightning session can open app SLBattle on tab SLBattle Board and show a miss, a hit, a sunk cell, the shot count, ships left, and the game-over line. R-9 visual half and R-12 board stay unverified.",
+            "check": "After the release deploy and assign, open the SLBattle app in headed Chrome and run boardClick from docs/shiploop/architecture.md. Do not run sf org open. Report the six observations.",
+            "consumer": "release-verify",
+            "disposition": "open",
+            "id": "A1",
+            "owner": "the operator of this machine, if the CLI session cannot open Lightning without a new login",
+            "reason": "This host has no Lightning session. The Chrome stand-in did not open the org."
+          },
+          {
+            "assumption": "SYS-RELEASE: sf project deploy start --target-org de from this repository deploys only the allowed SLBattle metadata, and sf org assign permset --name SLBattle_Access --target-org de leaves that set assigned. R-2 metadataDeploy stays unverified as the release record.",
+            "check": "At release, run those two commands and the assignment query in docs/shiploop/environment.md. The manifest lists only the allowed types.",
+            "consumer": "release",
+            "disposition": "open",
+            "id": "A2",
+            "owner": "release",
+            "reason": "A repeat assign on 2026-10-18 reported a duplicate, so the assign is not a command that must exit 0 on every rerun. Release still owns the record."
+          }
+        ]
+      },
+      {
+        "path": "/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run/results/nav-227628329d94408f94f8f16b4264f00c.md",
+        "sha256": "4082785f4d26cd154517872a210868c4def5f876fea461cb33e65b0bc856cef9",
+        "summary": "Plans: release-plan nav-96e62ae44e4147beab963dd0140dc116, system-test-author nav-61a07bedabe74fe99dd0b442cb8aa919, release nav-a8375facfe6f43a9b75a5493e6ea782b. Source sync: working-tree-return, receipt status returned, candidate 9224be0898cc8279622542b491cd50ce00414b57; this stage wrote only docs/shiploop/environment.md in the worktree and nothing in the user checkout, and it did not return. Artifact identity: deploy 0Afaj00000oAEksCAG, status Succeeded, allowed SLBattle types only. Operation receipt: that deploy exited 0 and the assign exited 1 with Duplicate PermissionSetAssignment; this stage did not deploy or assign again. Consumer behaviour: the confirm command passed (exit 0, three classes retrieved 3, SLBattle_Access retrieved 1, scratch/release-verify-confirm.txt). ShipLoop reruns that command from the consumer-check copy. SYS-ORG-SUITE and SYS-SOURCE stay pre-release passes and do not close the board. SYS-RELEASE stays observed at release. SYS-BOARD and request sentences S4, S15, S20 and S21 are not-run: no Lightning session, no sf org open. A1 is open for handoff. R-13 stays N/A. The release is accepted without the click.",
+        "assumptions": [
+          {
+            "assumption": "SYS-BOARD: a headed Lightning session can open app SLBattle on tab SLBattle Board and show a miss, a hit, a sunk cell, the shot count, ships left, and the game-over line. R-9 visual half, R-12 board, and request sentences S4, S15, S20 and S21 stay unverified.",
+            "check": "Open app SLBattle in headed Chrome and run boardClick from docs/shiploop/architecture.md. Report the six observations: miss, hit, sunk cell, shot count, ships left, and the game-over line. Do not run sf org open.",
+            "consumer": "handoff",
+            "disposition": "open",
+            "id": "A1",
+            "owner": "the operator of this machine, if the CLI session cannot open Lightning without a new login",
+            "reason": "This host has no Lightning session. The confirm command checks Apex classes and the permission-set assignment only. A rendered click is not a command, and the release can be accepted without it."
+          }
+        ]
+      }
+    ]
+  },
+  "advisor_review": "opus-battleship-plan-review-2026-10-18.md",
+  "reference_code_map": "reference-code-map-2026-10-18.json",
+  "current_reference_revision": "79b3490e3c04ebcb2dc48d21ff0f98ae2c363e91",
+  "current_reference_map": "reference-code-map-2026-10-25.json",
+  "historical_plan": "/Users/dadleet/src/skill-craft/docs/shiploop-implement-step-fix-plan-2026-10-17-as-of-2026-10-18.md"
+}

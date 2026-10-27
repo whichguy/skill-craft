@@ -1,0 +1,179 @@
+{
+  "revision": "79b3490e3c04ebcb2dc48d21ff0f98ae2c363e91",
+  "boundary": "direct committed helper calls, not CLI/live acceptance",
+  "cases": [
+    {
+      "scenario": "original_masked_failure",
+      "row": {
+        "command": "wrapped-test",
+        "suite": "focused",
+        "ids": [
+          "CASE-1"
+        ]
+      },
+      "exit": 0,
+      "output": "test_config.py::test_value[CASE-1] FAILED\n================ 1 failed in 0.01s ================\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 1,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "failed"
+      }
+    },
+    {
+      "scenario": "original_masked_failure",
+      "row": {
+        "command": "wrapped-test",
+        "suite": "check"
+      },
+      "exit": 0,
+      "output": "test_config.py::test_value[CASE-1] FAILED\n================ 1 failed in 0.01s ================\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 1,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "failed"
+      }
+    },
+    {
+      "scenario": "mixed_pass_and_error",
+      "row": {
+        "command": "wrapped-test",
+        "suite": "focused",
+        "ids": [
+          "CASE-1"
+        ]
+      },
+      "exit": 0,
+      "output": "test_config.py::test_value[CASE-1] PASSED\n================ 1 passed, 1 error in 0.01s ================\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "scenario": "mixed_pass_and_error",
+      "row": {
+        "command": "wrapped-test",
+        "suite": "check"
+      },
+      "exit": 0,
+      "output": "test_config.py::test_value[CASE-1] PASSED\n================ 1 passed, 1 error in 0.01s ================\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "scenario": "passing_title_contains_FAILED",
+      "row": {
+        "command": "wrapped-test",
+        "suite": "focused",
+        "ids": [
+          "CASE-1"
+        ]
+      },
+      "exit": 0,
+      "output": "test_config.py::test_FAILED_value[CASE-1] PASSED\n================ 1 passed in 0.01s ================\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "scenario": "passing_title_contains_FAILED",
+      "row": {
+        "command": "wrapped-test",
+        "suite": "check"
+      },
+      "exit": 0,
+      "output": "test_config.py::test_FAILED_value[CASE-1] PASSED\n================ 1 passed in 0.01s ================\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    }
+  ],
+  "stale_receipt": {
+    "boundary": "_reused with a saved pre-fix-shaped receipt; only product tree lookup stubbed as unchanged",
+    "receipt": {
+      "schema": "shiploop-test-loop/v1",
+      "action": "A1",
+      "stage": "verify",
+      "work_item": "W1",
+      "passed": true,
+      "commands": [
+        {
+          "command": "wrapped-test",
+          "suite": "focused",
+          "ids": [
+            "CASE-1"
+          ]
+        }
+      ],
+      "trees": [
+        "same-product-tree"
+      ],
+      "runs": [
+        {
+          "command": "wrapped-test",
+          "suite": "focused",
+          "ids": [
+            "CASE-1"
+          ],
+          "exit": 0,
+          "status": "passed",
+          "counts": {
+            "ran": 1,
+            "failed": 1,
+            "runners": [
+              "pytest"
+            ]
+          },
+          "stdout": "test_config.py::test_value[CASE-1] FAILED\n================ 1 failed in 0.01s ================\n",
+          "stderr": ""
+        }
+      ]
+    },
+    "reused": true,
+    "returned_status": "passed"
+  }
+}

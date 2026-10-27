@@ -61,12 +61,16 @@ def _append(out: Path, row: dict) -> None:
 
 
 def start(out: Path, *, kind: str, reason: str, host: str, model: str | None, events_line: int, told: dict | None,
-          resumed_session: str | None = None, engine: dict | None = None, t: float | None = None) -> dict:
-    """Append the ``start`` row of a launch that is about to happen, and return it (the caller closes it with ``end``)."""
+          resumed_session: str | None = None, engine: dict | None = None, t: float | None = None,
+          effort: str | None = None) -> dict:
+    """Append the ``start`` row of a launch that is about to happen, and return it (the caller closes it with ``end``).
+
+    ``effort`` is the reasoning effort the session was launched at, recorded only where a schedule sets it per session
+    (effort.py, ``reason`` ``effort``: the session continues a run whose class changed); None otherwise."""
     number = 1 + sum(1 for row in _lines(out) or [] if row["row"] == "start")
     row = {"row": "start", "n": number, "kind": kind, "reason": reason, "host": host, "model": model,
            "t": round(time.time() if t is None else t, 3), "events_line": events_line, "told": told,
-           "resumed_session": resumed_session, "engine": engine}
+           "resumed_session": resumed_session, "engine": engine, **({"effort": effort} if effort else {})}
     _append(out, row)
     return row
 

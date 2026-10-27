@@ -1,0 +1,39 @@
+{
+  "label": "g-t-bogus",
+  "host": "grok",
+  "model": "grok-4.7",
+  "prompt_key": "T",
+  "effort_requested": "bogus",
+  "effort_argv": [
+    "bogus"
+  ],
+  "resume": null,
+  "argv_shape": [
+    "grok",
+    "--cwd",
+    "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/21b08...",
+    "--prompt-file",
+    "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/21b08...",
+    "--verbatim",
+    "--output-format",
+    "streaming-json",
+    "--model",
+    "grok-4.7",
+    "--max-turns",
+    "3",
+    "--permission-mode",
+    "auto",
+    "--no-auto-update",
+    "--reasoning-effort",
+    "bogus"
+  ],
+  "run": {
+    "status": "failed",
+    "returncode": 1,
+    "elapsed_seconds": 0.8
+  },
+  "session_id": null,
+  "usage_events": [],
+  "stderr_tail": "Error: --effort/--reasoning-effort: unknown effort level 'bogus'; use one of: xhigh, high, medium, low\n",
+  "events_bytes": 247
+}

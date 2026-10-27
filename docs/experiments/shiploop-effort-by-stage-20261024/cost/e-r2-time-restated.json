@@ -1,0 +1,80 @@
+{
+ "label": "ALL FIGURES ARE ESTIMATES; restated 2026-10-24 after R1, updated with the second pair",
+ "basis": {
+  "hello_session_seconds": {
+   "r1_control": 4339.8,
+   "r1_treatment": 4503.9,
+   "r1b_control": 3985.6,
+   "r1b_treatment": 4062.8
+  },
+  "hello_measured_mean": 4223.0,
+  "hello_range": [
+   3985.6,
+   4503.9
+  ],
+  "hello_earlier_estimate": 2558,
+  "factor_vs_earlier_hello_estimate": 1.651,
+  "n": "one case, four runs in two pairs; R1 on the marketplace 2.8.0 build, pair 2 on the checkout 2.8.0 build with another session's Grok run active",
+  "earlier": "cost/b-grok-time-estimate.json: Claude median x 5.34"
+ },
+ "central": {
+  "per_case_seconds": {
+   "hello": 4223,
+   "seat-reservations": 6876,
+   "battleship-scoring": 8367,
+   "csv-report": 5202,
+   "unit-converter": 7053,
+   "word-report": 7053,
+   "temperature-report": 7053,
+   "temperature-plain": 7053
+  },
+  "runs16_seconds": 105760,
+  "serial_hours": 29.4,
+  "two_at_a_time_hours": 14.7,
+  "assumption": "hello measured (mean of four runs); the seven other cases at the earlier estimate times the hello factor"
+ },
+ "low": {
+  "per_case_seconds": {
+   "hello": 4223,
+   "seat-reservations": 4165,
+   "battleship-scoring": 5068,
+   "csv-report": 3151,
+   "unit-converter": 4272,
+   "word-report": 4272,
+   "temperature-report": 4272,
+   "temperature-plain": 4272
+  },
+  "runs16_seconds": 67390,
+  "serial_hours": 18.7,
+  "two_at_a_time_hours": 9.4,
+  "assumption": "hello measured; the seven others as estimated before R1"
+ },
+ "high": {
+  "per_case_seconds": {
+   "hello": 4223,
+   "seat-reservations": 14229,
+   "battleship-scoring": 14229,
+   "csv-report": 14229,
+   "unit-converter": 14229,
+   "word-report": 14229,
+   "temperature-report": 14229,
+   "temperature-plain": 14229
+  },
+  "runs16_seconds": 207652,
+  "serial_hours": 57.7,
+  "two_at_a_time_hours": 28.8,
+  "assumption": "hello measured; each other case as long as the 2.6.0 battleship run stopped at 232 min (14,229 s of sessions, a lower bound)"
+ },
+ "cli_reported_cost": {
+  "r1_two_runs_usd": 4.079,
+  "usd_per_session_second": 0.00046,
+  "central_usd": 49,
+  "earlier_scale_usd": 143,
+  "note": "CLI figures are lower bounds; not a bill; Grok dollars are not metered by the harness. Pair 2 cost lines were not collected here."
+ },
+ "not_included": [
+  "judge calls (about 480 grades; rubric-eval records no Opus seconds or dollars)",
+  "restarts: a run with more Improve pass-2 cycles has more sessions",
+  "other sessions on the same Grok account"
+ ]
+}

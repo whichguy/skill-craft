@@ -1,0 +1,17 @@
+ M skills/rubric-eval/references/judges.json
+ M skills/rubric-eval/scripts/rubric_eval.py
+ M test/shiploop-e2e-slice.test.py
+ M test/shiploop-e2e.test.py
+ M test/shiploop_e2e/run.py
+ M test/shiploop_e2e/sessionlog.py
+ M test/shiploop_e2e/slice.py
+?? docs/experiments/shiploop-effort-by-stage-20261024/
+?? docs/shiploop-effort-by-stage-experiment-plan-2026-10-24.md
+?? docs/shiploop-implement-prompt-audit-evidence/
+?? docs/shiploop-implement-prompt-audit-journal.md
+?? docs/shiploop-implement-step-fix-plan-2026-10-17-packet-mock.md
+?? docs/shiploop-implement-step-fix-plan-2026-10-17.md
+?? docs/type1-fast-models-sdlc-journal-2026-10-24.md
+?? p_step.txt
+?? skills/rubric-eval/suites/shiploop-run/
+?? test/shiploop_e2e/effort.py

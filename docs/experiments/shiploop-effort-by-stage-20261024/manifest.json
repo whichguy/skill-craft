@@ -1,0 +1,871 @@
+{
+  "analysis": [
+    "import_run.py collect <the 8 run folders of one arm> --out pool-<arm>.jsonl",
+    "run_totals.py tokens pool-<arm>.jsonl --out tokens-<arm>.json   (run totals; also --class M and --class I2 into tokens-<arm>-M.json and tokens-<arm>-I2.json)",
+    "import_run.py place RUN --pool pool-<arm>.jsonl --arm control|treatment --condition grok:grok-4.7 --tokens tokens-<arm>.json   (both arms into one RUN folder; repeat into RUN-M and RUN-I2 with the class token files for the beside analyses)",
+    "rubric-eval judge RUN --model opus --dest judge_p1 ; again for judge_p2 and judge_p3 (one loop at a time)",
+    "rubric-eval analyze RUN --baseline control --judge-dir judge_p1,judge_p2,judge_p3   (decides)",
+    "run_totals.py refusals <each run folder>   (the refusal gate, restart-induced apart)"
+  ],
+  "analysis_scripts": {
+    "run_totals.py": "0693c4c009bbb899bf263acf4d052299542916bf66087a8618c3cbe358ec3937"
+  },
+  "blocking": "both arms restart the session at every change of class; the control schedule names one level three times",
+  "classes": {
+    "D": "every other position, Improve pass 1 and handoff included",
+    "I2": "an Improve child's pass n >= 2: the Until Loop receipt packet is active with progress.action_number >= 2 (effort.running_pass)",
+    "M": [
+      "prepare",
+      "system-test",
+      "product-acceptance",
+      "release-check",
+      "release",
+      "release-verify",
+      "operations"
+    ]
+  },
+  "decision_rule": "skills/rubric-eval/SPEC.md section 8: near-identical quality first (interval inside the judge's measured noise, three passes): fewer tokens that are significant (95% cluster bootstrap and Wilcoxon signed-rank over per-scenario means, both agreeing), then less time; a material quality difference trumps; a tie keeps the control; fewer than 8 scenarios blocks a win",
+  "environment": {
+    "note": "Homebrew replaced Python 3.14.7 with 3.14.9 and moved python3 to 3.15.1 at 18:33 on 2026-10-24; R1 ran on 3.14.7; the plan-sizing session saw lazy stdlib imports fail in processes started before the upgrade. The touched suites pass on 3.15.1 (slice 77 tests, e2e 433).",
+    "python3": "Python 3.15.1",
+    "python3_path": "/opt/homebrew/opt/python@3.15/bin/python3.15"
+  },
+  "estimates": {
+    "central": {
+      "serial_hours": 29.4,
+      "two_at_a_time_hours": 14.7
+    },
+    "cli_reported_usd": {
+      "central_usd": 49,
+      "earlier_scale_usd": 143,
+      "note": "CLI figures are lower bounds; not a bill; Grok dollars are not metered by the harness. Pair 2 cost lines were not collected here.",
+      "r1_two_runs_usd": 4.079,
+      "usd_per_session_second": 0.00046
+    },
+    "high": {
+      "serial_hours": 57.7,
+      "two_at_a_time_hours": 28.8
+    },
+    "label": "estimates from one case (hello, 4,340 s and 4,504 s at two at a time); four scenarios have no Claude timing; the Grok account is shared with other sessions' batches",
+    "low": {
+      "serial_hours": 18.7,
+      "two_at_a_time_hours": 9.4
+    },
+    "restated_after": "R1 (cost/e-r2-time-restated.json)"
+  },
+  "frozen_at": "2026-10-25T09:13:21-0700",
+  "harness": {
+    "clear.py": "67503c94233366b657611e8cfe014ef9328f8eeb70f22e9564a9d84bc9cacb80",
+    "effort.py": "09ff1bf354d2681cd3445e431769f0ada0032bc91d730bdeb90c3dc2265f9170",
+    "hosts.py": "b756d33f35a0ffb3591f9fade00b06f79aa8c44b3380a4adf5a8ade7ae13a05c",
+    "metrics.py": "bcebe526130c26b52b36b7ff3d6df33cfc1825915cb9e1718df94ca4aeece41a",
+    "run.py": "1498ee35655c1c38c39bb6979b1949cd8437b22fdaff7213175a960c072ef0fc",
+    "sessionlog.py": "a9a946f8ef8b243ecd0b4477c12b5941bf266ec5c577833d51a116244ec72b51",
+    "slice.py": "b4b82ba0ed91a8bdde51f05dd4828ca35a945b707422b7dc4a3d801e427a734a"
+  },
+  "harness_checkout": {
+    "base_commit": "31933a73ea5cc273c3e8a89e1a5c148245cf4915",
+    "base_is": "the skill-craft 2.9.0 / ShipLoop 1.9.0 release commit (31933a73), a published ancestor of origin/main",
+    "cwd_for_runs": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+    "overlay": "the experiment's changes applied uncommitted: sync/tracked-changes.patch (7 tracked files), effort.py, the shiploop-run suite, run_totals.py",
+    "overlay_patch_sha256": "94d800217acdecffb4b4fea96424ca49846995d0a98cdf9e0e5bd6723ab492c9",
+    "recipe": "docs/experiments/shiploop-effort-by-stage-20261024/sync/make_r2_harness.sh",
+    "root": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+    "why_not_the_canonical_checkout": "another session rebased it onto origin/main on 2026-10-24 (autostash kept the uncommitted work); 13 more harness commits changing run.py and cases.json are due; the harness imports ShipLoop's modules from its own checkout, so it must match the plugin under test"
+  },
+  "id": "E-EFF1",
+  "judge": {
+    "model": "claude:claude-opus-5-5@medium",
+    "one_judge": true,
+    "passes": 3,
+    "recorded_reliability": {
+      "cross_judge": {
+        "band": "moderate",
+        "kappa": 0.443,
+        "mean_score_gap_points": 7.29,
+        "note": "each judge agrees with itself far better than with the other: never mix judges within a round",
+        "pair": [
+          "opus",
+          "sonnet"
+        ],
+        "plans": 30
+      },
+      "opus": {
+        "band": "almost perfect",
+        "effort": "medium",
+        "judge_prompt": "v2",
+        "kappa": 0.835,
+        "measured": "2026-09-27, architecture round 4 reviews, graded twice",
+        "model": "claude-opus-5-5",
+        "noise_points": 2.07,
+        "plans": 30
+      },
+      "opus_shiploop_run": {
+        "band": "almost perfect",
+        "effort": "medium",
+        "judge_prompt": "suites/shiploop-run/judge.txt sha acb278ae91cf2aec",
+        "kappa": 0.914,
+        "measured": "2026-10-24, 30 real ShipLoop run artifacts (6 each: system-test, product-acceptance, release-verify, operations, Improve review n>=2; 25-638 words, median 161) graded twice; attempt 1 (fact quotes not required verbatim) was 0.727 substantial, 6.67 points; docs/experiments/shiploop-effort-by-stage-20261024/judge/",
+        "model": "claude-opus-5-5",
+        "noise_points": 1.67,
+        "plans": 30,
+        "suite": "shiploop-run"
+      },
+      "sonnet": {
+        "band": "substantial",
+        "judge_prompt": "v2",
+        "kappa": 0.759,
+        "measured": "2026-09-26, architecture round 3, graded twice",
+        "model": "sonnet",
+        "noise_points": 1.69,
+        "plans": 30
+      }
+    },
+    "suite": ".claude/worktrees/eeff1-r2-ac0ac8/skills/rubric-eval/suites/shiploop-run",
+    "suite_sha256": {
+      "README.md": "34737dc75cdf4c3d73083a0e8151e42d84d1b340be194451aa1b1f8f92ab1552",
+      "import_run.py": "99c7b2d016bd5cab79f8e5ec1241b032091e1d497f46341eb03222a176630b50",
+      "judge.txt": "acb278ae91cf2aec1603f37bd6b81384b2ddc90762703dcce15cbf49eb85766a",
+      "rubric.json": "a9aa880aa9fb4404e5c06785e3a92029737223abbba3cccff38adb9fee52d328",
+      "scenarios.json": "2b81f6fbc73f90e7f161405b0d22bc78551096d4573d36c4577ccd0899fdfb9b"
+    }
+  },
+  "limits": [
+    "Improve reviews were all at the ceiling in the acceptance set, so the judged score may not separate a weaker low-effort review; Q1 gates and the R3 replay carry I2 quality",
+    "arms pair by order within case and slot: a pass that exists in one arm only is dropped from the quality comparison, its cost stays in the run totals",
+    "with fewer than 3 judge passes analyze falls back to another judge row's noise; the plan uses 3",
+    "the acceptance set mixed Grok and Claude artifacts and made no comparison",
+    "Grok per-run time is uncertain: hello took 4,340 s and 4,504 s at two at a time in R1 (1.7x the earlier estimate); the other seven scenarios are scaled from it or from older runs",
+    "R1 saw run-to-run variance in the unchanged class (reasoning per call +24%, seconds +18%) several times the M-class effect, so the run totals may not resolve it at 8 scenarios; that is why class measures are reported",
+    "a restart-induced refusal rule can hide a real improve-pass error in a restart session; same in both arms",
+    "the `committed` verdict differed between two R1 runs of one case and is not shown to be effort-related"
+  ],
+  "metrics": {
+    "class_measures": "beside the totals, same tests: tokens and seconds of the M-class sessions per scenario (every run visits the same mechanical stages) and of the I2-class sessions where a run reached pass 2 (a run with none is left out, never zero); per-call reasoning and output tokens by class are descriptive",
+    "quality": "Q1 script gates (run verdicts, refusals, SPEC flips, ledger obligations, tree-digest agreement of Improve passes) and Q2 shiploop-run rubric percent per artifact, mean per scenario, three judge passes",
+    "reading_rule": "the run totals decide, as the decision rule says. A class measure does not decide. If the totals are inconclusive and quality is near-identical, a significant saving in the M class is reported as 'mechanism seen, total not detectable at 8 scenarios' and the owner decides whether more scenarios are worth it",
+    "refusals": "the refusal gate counts navigator refusals per run minus restart-induced ones (an improve-pass refusal of the two kinds R1 showed, in a session started for a boundary); both counts are reported for each arm",
+    "seconds": "host session span per run, the sum of end minus start in sessions.jsonl",
+    "tokens": "prompt plus output as the CLI reports them, summed over a run's model calls (run_totals.py): prompt = input_tokens + cache_read_input_tokens + cache_creation_input_tokens; output includes reasoning. Output alone and reasoning are reported beside it.",
+    "unit": "the scenario (8); an artifact carries its run's totals so the per-scenario mean is the run's"
+  },
+  "order_seed": 20261024,
+  "plan": {
+    "path": "docs/shiploop-effort-by-stage-experiment-plan-2026-10-24.md",
+    "sha256": "f0d6f89ad1df02fc4279bef8bdb308dd885f6485d815e5d1acba715589290594"
+  },
+  "plugin": {
+    "chosen_by": "the owner, 2026-10-25: R2 on --source checkout from the pinned worktree at 31933a73",
+    "earlier_preflight_2.8.0": "marketplace preflight: origin/main 6ed81762 publishes skill-craft 2.8.0 / ShipLoop 1.8.0; grok marketplace add + install (fresh profile) got skill-craft 2.8.0 / ShipLoop 1.8.0; unreleased notes: 0; main CI: success; OK",
+    "gate": "none for --source checkout; the marketplace gate was REFUSING when frozen (3 unreleased change notes on origin/main), which no longer matters",
+    "is_the_marketplace_payload": "plugins/skill-craft is identical between 31933a73 and origin/main (checked at e707b794): the marketplace serves origin/main's plugins/skill-craft byte for byte, so --plugin-dir at it tests the 2.9.0 marketplace payload with no gate and no drift",
+    "launch_guard": "before every run: git -C harness root rev-parse HEAD is 31933a73, freeze_manifest.py --check is clean, and the payload digest equals payload_sha256; after launch the run's invocation.json versions.plugin_sha256 must equal it (a run on any other build is not an R2 run)",
+    "marketplace_state_when_frozen": "marketplace preflight: origin/main e707b794 publishes skill-craft 2.9.0 / ShipLoop 1.9.0; grok marketplace add + install (fresh profile) got skill-craft 2.9.0 / ShipLoop 1.9.0; unreleased notes: 3; main CI: success; REFUSED: origin/main has unreleased changes (changes/shiploop/dependency-directories-from-cards.md, changes/shiploop/not-run-refusal-exit-code.md, changes/shiploop/unread-refusal-points-at-card.md): run scripts/release.py and push so the marketplace serves them",
+    "payload_sha256": "86b138e1652e",
+    "plugin_dir": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft",
+    "release_commit": "31933a73",
+    "source": "checkout",
+    "versions": {
+      "shiploop": "1.9.0",
+      "skill_craft": "2.9.0"
+    },
+    "why_plugin_dir": "the default checkout build also packs the experiment's rubric-eval overlay (3 paths under skills/rubric-eval; digest 4dd13076c669): sync/plugin-build-comparison.json"
+  },
+  "question": "does low effort on mechanical stages and Improve passes 2+ cut tokens and time without a material loss of quality?",
+  "revision": {
+    "after": "the owner chose --source checkout for R2 (journal section 16)",
+    "changes": [
+      "revision 6: the plugin under test is the committed 2.9.0 payload of the pinned worktree (--source checkout --plugin-dir), byte-identical to what the marketplace serves; the marketplace gate no longer applies; the launch guard checks the worktree HEAD, the harness hashes and the payload digest",
+      "revision 5: the plugin under test is the marketplace 2.9.0 build (31933a73), run from a pinned harness worktree at that commit with the experiment's changes uncommitted; the harness file hashes are of that worktree; a launch guard stops the queue if the marketplace moves past 2.9.0 or the gate refuses",
+      "revision 4: the harness chooses the first Grok session's id (--session-id) and resumes by it, so a boundary before the first turn ends is resumable; the can_resume guard stays for other hosts",
+      "revision 4: refusal fixes tested live: the hold removes the 'loop already ended' refusal, the restart note does not remove the 'write this pass's review' one (attributed by rule)",
+      "revision 4: time and cost estimate updated with the second pair's hello timings",
+      "revision 3: the interpreter is recorded (environment)",
+      "revision 2 changes follow:",
+      "I2 class is held while the Improve loop is closing (effort.running_pass), so no boundary falls between the loop's completion and the model's complete call",
+      "the session after a boundary is told nothing was undone (effort.RESTART_NOTE)",
+      "restart-induced improve-pass refusals are attributed and kept out of the refusal gate (run_totals.py refusals)",
+      "M-class and I2-class tokens and seconds per scenario are reported beside the run totals (run_totals.py classes; tokens --class)",
+      "time and cost restated from R1"
+    ],
+    "n": 6,
+    "supersedes": [
+      {
+        "n": 1,
+        "sha256": "2b4120c17fb092ba5d0e7f3424dffe245dae0ed54f86290134f7dc7c8bd52026"
+      },
+      {
+        "n": 2,
+        "sha256": "fb47d9d736d2bcb3ec50fc735b43324cfac1d9062c5f8c0141e86c6185a67962"
+      },
+      {
+        "n": 3,
+        "sha256": "177a6a334f4f9b450e6049fd303ddf3fd2a891ec9a63d6771a46380fff754390"
+      },
+      {
+        "n": 4,
+        "sha256": "815996c5b51f77b76520dc9ca402f7ef023f607dd0dafd151ec0cf576ffd379a"
+      },
+      {
+        "n": 5,
+        "sha256": "23dabea9c5564c8dd20a75343b9ddcb6399a4ad04323c53ec00376988dd336d9"
+      }
+    ]
+  },
+  "run_rules": [
+    "run from the pinned harness checkout (harness_checkout.root), never from the canonical checkout",
+    "check plugin.launch_guard before every launch; the queue stops, it does not continue on another build",
+    "run_in_background with run.py --resume-run after the background limit, never nohup",
+    "at most two runs at a time; the two arms of one scenario are adjacent in the queue",
+    "no engine change, release or restart of a run mid-batch; an unfinished run is a recorded outcome",
+    "a progress monitor re-armed every 30 minutes",
+    "separate --baseline file per arm"
+  ],
+  "runs": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "hello",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-hello",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "hello",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-hello",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-hello"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "hello",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-hello",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "hello",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-hello",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-hello"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "seat-reservations",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-seat-reservations",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "seat-reservations",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-seat-reservations",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-seat-reservations"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "seat-reservations",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-seat-reservations",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "seat-reservations",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-seat-reservations",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-seat-reservations"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "battleship-scoring",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-battleship-scoring",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "battleship-scoring",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-battleship-scoring",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-battleship-scoring"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "battleship-scoring",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-battleship-scoring",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "battleship-scoring",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-battleship-scoring",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-battleship-scoring"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "csv-report",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-csv-report",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "csv-report",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-csv-report",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-csv-report"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "csv-report",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-csv-report",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "csv-report",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-csv-report",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-csv-report"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "unit-converter",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-unit-converter",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "unit-converter",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-unit-converter",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-unit-converter"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "unit-converter",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-unit-converter",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "unit-converter",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-unit-converter",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-unit-converter"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "word-report",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-word-report",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "word-report",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-word-report",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-word-report"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "word-report",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-word-report",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "word-report",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-word-report",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-word-report"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "temperature-report",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-temperature-report",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "temperature-report",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-temperature-report",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-temperature-report"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "temperature-report",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-temperature-report",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "temperature-report",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-temperature-report",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-temperature-report"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "temperature-plain",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/control-temperature-plain",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "control",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-control.jsonl",
+      "case": "temperature-plain",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "control-temperature-plain",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/control-temperature-plain"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop_e2e/run.py",
+        "--case",
+        "temperature-plain",
+        "--host",
+        "grok",
+        "--model",
+        "grok-4.7",
+        "--effort-schedule",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "--baseline",
+        "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+        "--output",
+        "/Users/dadleet/e2e-runs/effort-eeff1/treatment-temperature-plain",
+        "--timeout",
+        "10800",
+        "--source",
+        "checkout",
+        "--plugin-dir",
+        "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8/plugins/skill-craft"
+      ],
+      "arm": "treatment",
+      "baseline": "/Users/dadleet/src/skill-craft/docs/experiments/shiploop-effort-by-stage-20261024/baselines-treatment.jsonl",
+      "case": "temperature-plain",
+      "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/eeff1-r2-ac0ac8",
+      "id": "treatment-temperature-plain",
+      "output": "/Users/dadleet/e2e-runs/effort-eeff1/treatment-temperature-plain"
+    }
+  ],
+  "scenarios": [
+    {
+      "arm_order": [
+        "treatment",
+        "control"
+      ],
+      "case": "hello",
+      "claude_basis": "measured: median of 15 Claude rows with stages (n=15)",
+      "claude_seconds": 479,
+      "grok_seconds_estimate": 4223,
+      "grok_seconds_high_estimate": 4223,
+      "grok_seconds_low_estimate": 4223,
+      "why": "smallest full run; 15 Claude rows"
+    },
+    {
+      "arm_order": [
+        "treatment",
+        "control"
+      ],
+      "case": "seat-reservations",
+      "claude_basis": "ESTIMATE: no Claude row with stages; legacy (pre-10-04) turns 386 vs battleship legacy 400 => 0.97 x battleship median 800",
+      "claude_seconds": 780,
+      "grok_seconds_estimate": 6876,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 4165,
+      "why": "a service with state; legacy rows only"
+    },
+    {
+      "arm_order": [
+        "control",
+        "treatment"
+      ],
+      "case": "battleship-scoring",
+      "claude_basis": "measured: 1 Claude row (n=1)",
+      "claude_seconds": 949,
+      "grok_seconds_estimate": 8367,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 5068,
+      "why": "a heavier service; 1 Claude row"
+    },
+    {
+      "arm_order": [
+        "treatment",
+        "control"
+      ],
+      "case": "csv-report",
+      "claude_basis": "ESTIMATE: no Claude row with stages; legacy turns median 294 vs battleship legacy 400 => 0.74 x battleship median 800",
+      "claude_seconds": 590,
+      "grok_seconds_estimate": 5202,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 3151,
+      "why": "a file-processing tool; legacy rows only"
+    },
+    {
+      "arm_order": [
+        "treatment",
+        "control"
+      ],
+      "case": "unit-converter",
+      "claude_basis": "ASSUMPTION: no Claude row at all; parallel-graph case, set equal to battleship median 800 (range 479 hello to ~1500)",
+      "claude_seconds": 800,
+      "grok_seconds_estimate": 7053,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 4272,
+      "why": "parallel-graph case; no baseline row"
+    },
+    {
+      "arm_order": [
+        "treatment",
+        "control"
+      ],
+      "case": "word-report",
+      "claude_basis": "ASSUMPTION: as unit-converter (5 modules, two dependency levels)",
+      "claude_seconds": 800,
+      "grok_seconds_estimate": 7053,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 4272,
+      "why": "parallel-graph case; no baseline row"
+    },
+    {
+      "arm_order": [
+        "treatment",
+        "control"
+      ],
+      "case": "temperature-report",
+      "claude_basis": "ASSUMPTION: as unit-converter (Ask-Agent delegation; one legacy row with 0 turns, no data)",
+      "claude_seconds": 800,
+      "grok_seconds_estimate": 7053,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 4272,
+      "why": "Ask-Agent delegation; no current baseline row"
+    },
+    {
+      "arm_order": [
+        "control",
+        "treatment"
+      ],
+      "case": "temperature-plain",
+      "claude_basis": "ASSUMPTION: as unit-converter",
+      "claude_seconds": 800,
+      "grok_seconds_estimate": 7053,
+      "grok_seconds_high_estimate": 14229,
+      "grok_seconds_low_estimate": 4272,
+      "why": "inline counterpart of temperature-report; no baseline row"
+    }
+  ],
+  "schedules": {
+    "control": {
+      "D": "medium",
+      "I2": "medium",
+      "M": "medium"
+    },
+    "files": {
+      "control": {
+        "path": "docs/experiments/shiploop-effort-by-stage-20261024/control.json",
+        "sha256": "0c975813289a1709f6a0795856e5a6af4ae8b2e6b747268bc081404826366222"
+      },
+      "treatment": {
+        "path": "docs/experiments/shiploop-effort-by-stage-20261024/treatment.json",
+        "sha256": "ba995a17720f61e2a135ee849ce103d121174923da1e64f08345ca6725db9c5f"
+      }
+    },
+    "treatment": {
+      "D": "medium",
+      "I2": "low",
+      "M": "low"
+    }
+  },
+  "sha256": "abc0896c1000c12a3f07f1f9d644554bca1d68356e2b03799d29095c801615aa",
+  "subject": {
+    "fallback": "codex gpt-6-luna xhigh against low if Grok credits are out; claude is exploratory only",
+    "host": "grok",
+    "host_build": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "levels": {
+      "control": "medium everywhere",
+      "treatment": "low on M and I2, medium on D"
+    },
+    "model": "grok-4.7"
+  },
+  "trials": 1,
+  "unresolved_before_r2": [
+    "a Grok window: another session's E6 batch (32 slices, 4 lanes, from about 22:50, 2.5 to 3 hours) and the other session's chess-salesforce run share the account; seconds are a measured quantity",
+    "one 'write this pass's review' refusal per D to I2 boundary remains (attributed by rule)",
+    "the blocked design (control restarting at treatment's positions) was last seen in R1; the chosen-id fix restores it and has not been run since",
+    "four scenarios have no Claude timing and no Grok timing under 2.8.0",
+    "a Grok window: another session's batch runs three concurrent slices; seconds are measured",
+    "Opus judge seconds and tokens are not recorded by rubric-eval (acceptance: 123 calls, about 1.23M tokens in the agent's tally)",
+    "committing skills/rubric-eval needs a changes/rubric-eval note or a No-Change-Note trailer"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "session_id_chosen": "3d4d9daf-d3ad-4d49-aa9f-904abce1ee14",
+  "first_run": {
+    "result": {
+      "status": "timeout",
+      "returncode": -9,
+      "elapsed_seconds": 14.0
+    },
+    "seconds": 14.0,
+    "had_session_id_in_events": false,
+    "marker_in_first_output": true
+  },
+  "second_run_resume": {
+    "result": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 2.2
+    },
+    "sessionId_echoed": true,
+    "reply": "MARKER-7731, command `sleep 60`.",
+    "recalls_marker": true,
+    "mentions_sleep": true
+  },
+  "stderr2_tail": ""
+}

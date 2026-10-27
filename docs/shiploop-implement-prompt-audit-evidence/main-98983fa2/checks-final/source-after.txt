@@ -1,0 +1,27 @@
+timestamp=2026-10-25T21:47:48Z
+root=/tmp/shiploop-main-conflict-20261025T142207/verification
+head=5d3628b0497c2402d7554c73011bb3d87a13bf55
+top=/private/tmp/shiploop-main-conflict-20261025T142207/verification
+status-short:
+ M test/shiploop-e2e-slice.test.py
+ M test/shiploop-e2e.test.py
+ M test/shiploop_e2e/run.py
+ M test/shiploop_e2e/sessionlog.py
+ M test/shiploop_e2e/slice.py
+?? docs/experiments/shiploop-effort-by-stage-20261024/
+?? test/shiploop_e2e/effort.py
+tracked-diff-name-status:
+M	test/shiploop-e2e-slice.test.py
+M	test/shiploop-e2e.test.py
+M	test/shiploop_e2e/run.py
+M	test/shiploop_e2e/sessionlog.py
+M	test/shiploop_e2e/slice.py
+untracked-nonignored:
+docs/experiments/shiploop-effort-by-stage-20261024/run_totals.py
+test/shiploop_e2e/effort.py
+ignored-summary:
+!! skills/improve/runtime/until-loop/scripts/__pycache__/
+!! skills/shiploop-run-review/scripts/__pycache__/
+!! skills/shiploop/scripts/__pycache__/
+!! test/__pycache__/
+!! test/shiploop_e2e/__pycache__/

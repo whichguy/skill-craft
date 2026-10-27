@@ -1,0 +1,60 @@
+{
+  "repo": "/Users/dadleet/src/skill-craft",
+  "head": "621beeb0e2c7016c1925d251e9e765f27254ef67",
+  "origin_main": "5d3628b0497c2402d7554c73011bb3d87a13bf55",
+  "changed": [
+    "skills/rubric-eval/references/judges.json",
+    "skills/rubric-eval/scripts/rubric_eval.py",
+    "test/shiploop-e2e-slice.test.py",
+    "test/shiploop-e2e.test.py",
+    "test/shiploop_e2e/run.py",
+    "test/shiploop_e2e/sessionlog.py",
+    "test/shiploop_e2e/slice.py"
+  ],
+  "unmerged": [
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "mode": "100644",
+      "sha": "4454d36f27dc000546e3a485bd317eb7e97b124b",
+      "stage": 1
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "mode": "100644",
+      "sha": "9560a375db595e8a733fd56e274a19a9d2519a6e",
+      "stage": 2
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "mode": "100644",
+      "sha": "b154a1831bc0f111750de71f8f5ee80574ef41a6",
+      "stage": 3
+    },
+    {
+      "path": "test/shiploop_e2e/slice.py",
+      "mode": "100644",
+      "sha": "582eb7bb15922d7009f22e189aca013c0f2ce85d",
+      "stage": 1
+    },
+    {
+      "path": "test/shiploop_e2e/slice.py",
+      "mode": "100644",
+      "sha": "9487b9f0bc0539ac36f1ba51e678396b68fd5ebb",
+      "stage": 2
+    },
+    {
+      "path": "test/shiploop_e2e/slice.py",
+      "mode": "100644",
+      "sha": "ad44049ec5109d812ca1d33a289fa310bb7ef4ff",
+      "stage": 3
+    }
+  ],
+  "untracked_count": 200,
+  "git_operations": {
+    "rebase-merge": false,
+    "rebase-apply": false,
+    "MERGE_HEAD": false,
+    "CHERRY_PICK_HEAD": false,
+    "REVERT_HEAD": false
+  }
+}

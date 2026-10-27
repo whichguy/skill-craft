@@ -1,0 +1,3 @@
+{"run": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/control-hello", "refusals": {"total": 1, "restart_induced": 0, "other": 1, "restart_induced_messages": [], "other_messages": ["expectation E3 is absent, but .gitignore exists on the item'"]}}
+{"run": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/treatment-hello", "refusals": {"total": 2, "restart_induced": 2, "other": 0, "restart_induced_messages": ["Write this pass's review to /Users/dadleet/e2e-runs/effort-e", "Write this pass's review to /Users/dadleet/e2e-runs/effort-e"], "other_messages": []}}
+{"run": "/Users/dadleet/e2e-runs/effort-eeff1-r1b/control-hello-failed-no-session-id", "refusals": {"total": 0, "restart_induced": 0, "other": 0, "restart_induced_messages": [], "other_messages": []}}

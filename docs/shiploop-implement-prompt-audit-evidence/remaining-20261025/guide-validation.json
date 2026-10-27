@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "scope": "source excerpts, local links, recommendation coverage and template substitutions; not behavioral acceptance",
+  "checkout_revision": "98983fa276ffe4f2f3995ed2acd7985110773f23",
+  "main_revision": "5485b8963c8f385d6a8216cc202bdca8612db9e4",
+  "anchors_checked": 128,
+  "local_links_checked": 99,
+  "remaining_recommendations_covered": [
+    "R04",
+    "R05",
+    "R07",
+    "R08",
+    "R09",
+    "R10",
+    "R11",
+    "R13",
+    "R15",
+    "R16",
+    "R17",
+    "R19",
+    "R21",
+    "R22"
+  ],
+  "additional_qualification_ids": [
+    "R01"
+  ],
+  "work_template_characters": {
+    "before": 364,
+    "after": 161
+  },
+  "errors": []
+}
