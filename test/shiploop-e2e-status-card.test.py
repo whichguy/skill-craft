@@ -185,6 +185,72 @@ class Builders(unittest.TestCase):
                       status_card.render(model))
         self.assertEqual((meta["status"], meta["events"][0]["text"]), ("running", "done: step-plan (W2)"))
 
+    def traced_folder(self) -> Path:
+        """A run on W1's test-spec whose trace holds two accepted prelude stages, a review, a refusal and a check."""
+        folder = self.base / "battleship-traced"
+        run = folder / ".shiploop-runs" / "work-1" / "run"
+        run.mkdir(parents=True)
+        history = [{"stage": stage, "outcome": "done", "workitem": None} for stage in ("intake", "discovery")]
+        history.append({"stage": "step-plan", "outcome": "done", "workitem": "W1"})
+        state = {"status": "active", "stage": "inner-loop", "work_index": 0, "work_items": [{"id": "W1"}],
+                 "history": history, "inner_loops": {"W1": {"stage": "test-spec"}}}
+        (run / "state.md").write_text("# state\n\n```shiploop-state\n" + json.dumps(state) + "\n```\n", encoding="utf-8")
+        rows = [{"kind": "command", "verb": "workspace", "exit": 0, "ts": 1000.0},
+                {"kind": "packet", "action": "a1", "stage": "intake", "item": None, "ts": 1001.0},
+                {"kind": "command", "verb": "complete", "exit": 0, "stage": ["intake", "discovery"], "action": "a1", "ts": 1060.0},
+                {"kind": "command", "verb": "complete", "exit": 2, "stage": ["discovery", "discovery"], "action": "a2",
+                 "ts": 1090.0, "error": "every primary requirement needs a test case. Missing: R-6."},
+                {"kind": "command", "verb": "complete", "exit": 0, "stage": ["discovery", "improve"], "action": "a2", "ts": 1120.0},
+                {"kind": "command", "verb": "improve-pass", "exit": 0, "stage": ["improve", "improve"], "action": "i1", "ts": 1200.0},
+                {"kind": "command", "verb": "complete", "exit": 0, "stage": ["improve", "step-plan"], "action": "i1", "ts": 1300.0},
+                {"kind": "packet", "action": "a3", "stage": "step-plan", "item": "W1", "ts": 1301.0},
+                {"kind": "command", "verb": "complete", "exit": 2, "check_only": True, "stage": ["step-plan", "step-plan"],
+                 "action": "a3", "ts": 1320.0, "error": "no result file"},
+                {"kind": "command", "verb": "complete", "exit": 0, "check_only": True, "stage": ["step-plan", "step-plan"],
+                 "action": "a3", "ts": 1330.0},
+                {"kind": "command", "verb": "complete", "exit": 0, "stage": ["step-plan", "test-spec"], "action": "a3", "ts": 1400.0}]
+        (run / "trace.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows) + "not json\n", encoding="utf-8")
+        (folder / "events.jsonl").write_text("", encoding="utf-8")
+        return folder
+
+    def test_an_e2e_trace_puts_each_stage_and_review_on_one_time_axis_with_refusals_marked(self):
+        model, _meta = status_card.build_e2e(self.traced_folder(), NOW)
+        line = model["timeline"]
+        self.assertEqual((line["start"], line["end"], line["lanes"]), (1000.0, None, ["Prelude", "W1"]))
+        # Each accepted callback closes its stage's span; a review sits in the lane of the stage it reviews; a passed
+        # --check-only check moves nothing; the stage the run is on is open (end None).
+        self.assertEqual([(s["lane"], s["stage"], s["kind"], s["start"], s["end"]) for s in line["spans"]],
+                         [("Prelude", "intake", "stage", 1000.0, 1060.0), ("Prelude", "discovery", "stage", 1060.0, 1120.0),
+                          ("Prelude", "discovery", "improve", 1120.0, 1300.0), ("W1", "step-plan", "stage", 1300.0, 1400.0),
+                          ("W1", "test-spec", "stage", 1400.0, None)])
+        self.assertEqual([(m["lane"], m["stage"], m["kind"], m["at"]) for m in line["marks"]],
+                         [("Prelude", "discovery", "refusal", 1090.0), ("W1", "step-plan", "check", 1320.0)])
+        self.assertIn("Missing: R-6", line["marks"][0]["text"])
+        tiles = {tile["label"]: tile for tile in model["tiles"]}
+        self.assertEqual((tiles["Elapsed"]["live"], tiles["Elapsed"]["since"]), ("elapsed", 1000.0))
+        self.assertEqual((tiles["Improve reviews"]["value"], tiles["Improve reviews"]["sub"]), ("1", "3.0 min"))
+        self.assertEqual((tiles["Refusals"]["value"], tiles["Refusals"]["sub"]), ("2", "1 a --check-only check"))
+        self.assertEqual(tiles["Stages"]["value"], "3 of " + str(model["progress"]["total"]))
+        # A run before the trace has no timeline, and the inline card ignores the new keys.
+        untraced, _meta = status_card.build_e2e(self.e2e_folder(), NOW)
+        self.assertNotIn("timeline", untraced)
+        self.assertNotIn("timeline", status_card.render(model))
+
+    def test_the_job_document_passes_tiles_comparison_and_bands_through(self):
+        model, meta = status_card.build_e2e(self.traced_folder(), NOW)
+        job = {"tiles": [{"label": "Improve windows", "value": "11 → 8", "tone": "ok"}],
+               "comparison": {"columns": ["Baseline", "This run"],
+                              "rows": [{"label": "Verdict", "values": ["PASS", "PASS"], "verdict": {"text": "met", "tone": "ok"}}]},
+               "bands": [{"start": 1100.0, "end": 1250.0, "label": "Mac asleep"}]}
+        document = status_card.job_document(model, meta, job, NOW)
+        self.assertEqual(document["tiles"], job["tiles"])            # the job's own tiles replace the builder's
+        self.assertEqual(document["comparison"], job["comparison"])
+        self.assertEqual(document["timeline"]["bands"], job["bands"])
+        self.assertEqual(document["timeline"]["spans"], model["timeline"]["spans"])
+        plain = status_card.job_document(model, meta, {}, NOW)
+        self.assertEqual(plain["tiles"], model["tiles"])
+        self.assertNotIn("comparison", plain)
+
     def test_the_job_document_carries_the_live_card_keys_and_the_cli_prints_each_view(self):
         folder = self.e2e_folder()
         model, meta = status_card.build_e2e(folder, NOW)

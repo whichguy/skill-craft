@@ -1,0 +1,520 @@
+<title>Live Run Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centred column that redraws in place: header and job chips, progress, headline tiles, the run's timeline
+   (stages accepted over time above one lane per run phase), the baseline comparison, findings, the stage grid, the feed.
+   The page source lives in skill-craft test/shiploop_e2e/live_run_card.html; status_card.py --job writes its documents. */
+:root {
+  --bg: #f4f4f1; --panel: #ffffff; --panel-2: #efefea; --ink: #18191b; --ink-2: #55565b; --ink-3: #8b8c90;
+  --line: rgba(24, 25, 27, 0.10); --line-2: rgba(24, 25, 27, 0.28);
+  --result: #2a78d6; --result-soft: rgba(42, 120, 214, 0.16); --run: #ba7517; --run-bg: #faeeda; --run-ink: #854f0b;
+  --review: #0f7f70; --review-soft: rgba(15, 127, 112, 0.18);
+  --ok-bg: #eaf3de; --ok-ink: #3b6d11; --bad-bg: #fcebeb; --bad-ink: #a32d2d; --err: #a32d2d;
+  --band: rgba(24, 25, 27, 0.10); --sheen: rgba(255, 255, 255, 0.55);
+  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121214; --panel: #1b1b1e; --panel-2: #26262a; --ink: #ececea; --ink-2: #b9b9b4; --ink-3: #85857f;
+  --line: rgba(255, 255, 255, 0.10); --line-2: rgba(255, 255, 255, 0.30);
+  --result: #3987e5; --result-soft: rgba(57, 135, 229, 0.22); --run: #ef9f27; --run-bg: #3a2405; --run-ink: #fac775;
+  --review: #3cc4ae; --review-soft: rgba(60, 196, 174, 0.20);
+  --ok-bg: #1d3608; --ok-ink: #c0dd97; --bad-bg: #4a1414; --bad-ink: #f7c1c1; --err: #e24b4a;
+  --band: rgba(255, 255, 255, 0.12); --sheen: rgba(255, 255, 255, 0.18); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121214; --panel: #1b1b1e; --panel-2: #26262a; --ink: #ececea; --ink-2: #b9b9b4; --ink-3: #85857f;
+  --line: rgba(255, 255, 255, 0.10); --line-2: rgba(255, 255, 255, 0.30);
+  --result: #3987e5; --result-soft: rgba(57, 135, 229, 0.22); --run: #ef9f27; --run-bg: #3a2405; --run-ink: #fac775;
+  --review: #3cc4ae; --review-soft: rgba(60, 196, 174, 0.20);
+  --ok-bg: #1d3608; --ok-ink: #c0dd97; --bad-bg: #4a1414; --bad-ink: #f7c1c1; --err: #e24b4a;
+  --band: rgba(255, 255, 255, 0.12); --sheen: rgba(255, 255, 255, 0.18); color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.top > div:first-child { flex: 1 1 260px; min-width: 0; }
+.top h1 { font-size: 21px; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.top .sub { color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+.live { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px;
+  border: 0.5px solid var(--line); background: var(--panel); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); position: relative; }
+.live.on .dot { background: var(--run); }
+.live.done .dot { background: var(--ok-ink); }
+.live.failed .dot, .live.stale .dot { background: var(--err); }
+.live.stale { color: var(--bad-ink); background: var(--bad-bg); border-color: transparent; }
+.live.late { color: var(--run-ink); background: var(--run-bg); border-color: transparent; }
+.ago { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.jobs { display: flex; gap: 6px; flex-wrap: wrap; }
+.jobs button { font: inherit; font-size: 12px; padding: 6px 10px 7px; border-radius: 9px; border: 0.5px solid var(--line-2);
+  background: transparent; color: var(--ink-2); cursor: pointer; display: grid; grid-template-columns: auto 1fr; gap: 3px 7px;
+  align-items: center; min-width: 150px; max-width: 100%; text-align: left; }
+.jobs button .jd { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.jobs button .jd.running { background: var(--run); } .jobs button .jd.done { background: var(--ok-ink); }
+.jobs button .jd.failed { background: var(--err); }
+.jobs button .jt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.jobs button .jb { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--panel-2); overflow: hidden; }
+.jobs button .jb i { display: block; height: 100%; background: var(--result); }
+.jobs button[aria-pressed="true"] { background: var(--panel); color: var(--ink); border-color: var(--result); }
+.jobs button:focus-visible, .seg:focus-visible { outline: 2px solid var(--result); outline-offset: 2px; }
+.card { background: var(--panel); border: 0.5px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.card h2 { font-size: 13px; font-weight: 500; margin: 0 0 12px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.card h2 span { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-weight: 400; }
+.plan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 8px; border: 0.5px solid var(--line); }
+.chip svg { width: 13px; height: 13px; flex: none; }
+.chip.done { background: var(--ok-bg); color: var(--ok-ink); border-color: transparent; }
+.chip.running { background: var(--run-bg); color: var(--run-ink); border-color: transparent; }
+.chip.waiting { color: var(--ink-2); border-style: dashed; }
+.chip.pending { color: var(--ink-3); }
+.arrow { color: var(--ink-3); }
+.count { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
+.count b { font-family: var(--mono); font-weight: 500; font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.count b small { font-family: var(--sans); font-size: 14px; color: var(--ink-2); font-weight: 400; letter-spacing: 0; }
+.count span { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; position: relative; margin: 0 0 18px; }
+.fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--result), color-mix(in srgb, var(--result) 70%, var(--review))); border-radius: 5px; transition: width 1.2s cubic-bezier(.2, .8, .2, 1); position: relative; overflow: hidden; }
+/* Tiles: the run's headline numbers, each with an optional before value, a delta pill and a tone stripe. */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tile { background: var(--panel); border: 0.5px solid var(--line); border-radius: 12px; padding: 12px 14px 12px 16px; position: relative;
+  overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--line-2); }
+.tile.ok::before { background: var(--ok-ink); } .tile.warn::before { background: var(--run); } .tile.bad::before { background: var(--err); }
+.tile .tlabel { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.tile b { font-family: var(--mono); font-weight: 500; font-size: 22px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  line-height: 1.25; overflow-wrap: anywhere; }
+.tile b s { color: var(--ink-3); font-size: 15px; text-decoration-thickness: 1px; margin-right: 4px; }
+.tile .tsub { font-size: 12px; color: var(--ink-2); }
+.tile .pill { align-self: flex-start; margin-top: 3px; }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--panel-2); color: var(--ink-2); white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.pill.warn { background: var(--run-bg); color: var(--run-ink); }
+.pill.bad, .pill.no { background: var(--bad-bg); color: var(--bad-ink); }
+/* Timeline: stages accepted over time, then one lane per phase on the same axis. */
+.tl { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 0 10px; }
+.tl .lbl { font-size: 12px; font-weight: 500; display: flex; align-items: center; height: 26px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tl .lbl.curve { height: 74px; align-items: flex-start; flex-direction: column; justify-content: flex-start; font-weight: 400; color: var(--ink-3); font-size: 11px; }
+.tl .lbl.curve b { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--ink); letter-spacing: -0.02em; }
+.tl .lbl.axis { height: 22px; }
+.curvebox { position: relative; height: 74px; }
+.curvebox svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.curvebox .grid line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.curvebox .area { fill: var(--result-soft); }
+.curvebox .stroke { fill: none; stroke: var(--result); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.curvebox .fore { fill: none; stroke: var(--result); stroke-width: 1.5; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.curvebox .endpt { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--result); transform: translate(-50%, 50%);
+  box-shadow: 0 0 0 3px var(--panel); }
+.curvebox .ylab { position: absolute; left: 4px; top: -2px; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.tracks { position: relative; }
+.track { position: relative; height: 26px; border-bottom: 0.5px dashed var(--line); }
+.seg { position: absolute; top: 4px; height: 18px; border-radius: 4px; background: var(--result); min-width: 2px; box-sizing: border-box;
+  color: #fff; font-size: 10px; line-height: 18px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: clip; cursor: default; }
+.seg.stage:nth-child(even) { background: color-mix(in srgb, var(--result) 78%, var(--panel)); }
+.seg.improve { background: var(--review); top: 7px; height: 12px; line-height: 12px; font-size: 9px; }
+.seg.open { background: repeating-linear-gradient(135deg, var(--run) 0 6px, color-mix(in srgb, var(--run) 70%, var(--panel)) 6px 12px); color: #1a1205; }
+.seg.open.improve { background: repeating-linear-gradient(135deg, var(--review) 0 6px, color-mix(in srgb, var(--review) 65%, var(--panel)) 6px 12px); }
+.mark { position: absolute; top: 0; height: 26px; width: 0; border-left: 2px solid var(--err); z-index: 3; }
+.mark::after { content: ""; position: absolute; top: -1px; left: -5px; border: 4px solid transparent; border-top: 6px solid var(--err); }
+.mark.check { border-left: 2px dotted var(--run); }
+.mark.check::after { border-top-color: var(--run); }
+.band { position: absolute; top: 0; bottom: 0; z-index: 2; pointer-events: none;
+  background: repeating-linear-gradient(135deg, var(--band) 0 3px, transparent 3px 7px); border-left: 0.5px solid var(--band); }
+.forecast { position: absolute; top: 0; bottom: 0; z-index: 1; border-left: 1px dashed var(--line-2);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--result) 7%, transparent), transparent); pointer-events: none; }
+.now { position: absolute; top: -78px; bottom: 0; width: 0; border-left: 1.5px solid var(--run); z-index: 4; pointer-events: none; }
+.now::before { content: ""; position: absolute; top: -3px; left: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--run); }
+.now span { position: absolute; top: -18px; left: 4px; font-family: var(--mono); font-size: 10px; color: var(--run-ink); white-space: nowrap; }
+.axis { position: relative; height: 22px; }
+.axis span { position: absolute; top: 4px; transform: translateX(-50%); font-family: var(--mono); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+.axis span::before { content: ""; position: absolute; left: 50%; top: -5px; height: 4px; border-left: 1px solid var(--line-2); }
+.tlegend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 11px; color: var(--ink-3); }
+.tlegend i { display: inline-block; width: 18px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--result); }
+.tlegend i.rv { background: var(--review); height: 6px; vertical-align: 0; }
+.tlegend i.op { background: repeating-linear-gradient(135deg, var(--run) 0 4px, color-mix(in srgb, var(--run) 60%, var(--panel)) 4px 8px); }
+.tlegend i.bd { background: repeating-linear-gradient(135deg, var(--ink-3) 0 2px, transparent 2px 5px); }
+.tlegend i.mk { width: 2px; height: 11px; background: var(--err); border-radius: 0; }
+.tlegend i.ck { width: 0; height: 11px; border-left: 2px dotted var(--run); background: none; border-radius: 0; }
+/* Comparison: baseline against this run, one verdict pill per row. */
+.cmpwrap { overflow-x: auto; }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 460px; }
+.cmp th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); padding: 0 10px 8px; }
+.cmp td { padding: 8px 10px; border-top: 0.5px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+.cmp td:first-child { color: var(--ink-2); }
+.cmp td.v { font-family: var(--mono); font-size: 12px; }
+.cmp td:last-child { text-align: right; }
+.cmp caption { caption-side: bottom; text-align: left; font-size: 11px; color: var(--ink-3); padding-top: 10px; }
+/* Grid of stage slots, unchanged in meaning. */
+.gridwrap { overflow-x: auto; }
+.grid { display: grid; gap: 8px; align-items: center; min-width: 0; }
+.ch { font-size: 13px; font-weight: 500; text-align: center; }
+.rn b { display: block; font-size: 13px; font-weight: 500; }
+.rn span { font-size: 12px; color: var(--ink-3); }
+.cell { background: var(--panel-2); border-radius: 8px; padding: 9px 10px; }
+.slots { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.s { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 28px; }
+.s i { display: block; width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; margin: 2px 0; }
+.s .f { background: var(--result); width: 18px; height: 18px; margin: 0; }
+.s .o { border: 2px solid var(--result); }
+.s .r { border: 2px dashed var(--run); }
+.s .p { border: 1.5px dotted var(--line-2); }
+.s .e { border: 2px solid var(--err); border-radius: 3px; }
+.s em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--ink-3); height: 14px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 11px; color: var(--ink-3); }
+.legend .s { flex-direction: row; width: auto; gap: 5px; }
+.legend .s .f { width: 10px; height: 10px; }
+/* Findings: tag, status, title, then the real example, a before and after, and the evidence file. */
+.finds .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.find { border: 0.5px solid var(--line); border-radius: 11px; padding: 11px 13px; font-size: 12px; color: var(--ink-2); display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.find .fh { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.find b { font-size: 13px; font-weight: 500; color: var(--ink); }
+.find.superseded b { text-decoration: line-through; color: var(--ink-3); }
+.find.superseded { opacity: 0.75; }
+.find pre { margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.45; padding: 7px 9px; border-radius: 7px; white-space: pre-wrap;
+  overflow-wrap: anywhere; background: var(--panel-2); color: var(--ink-2); }
+.find pre.before { background: var(--bad-bg); color: var(--bad-ink); }
+.find pre.after { background: var(--ok-bg); color: var(--ok-ink); }
+.find .ba { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.find .ba .to { text-align: center; color: var(--ink-3); font-size: 11px; line-height: 1; }
+.find .evid { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--panel-2); color: var(--ink-2); font-family: var(--mono); }
+.st { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--panel-2); color: var(--ink-3); }
+.st.firm { background: var(--ok-bg); color: var(--ok-ink); } .st.early, .st.interim { background: var(--run-bg); color: var(--run-ink); }
+.st.missed, .st.bad { background: var(--bad-bg); color: var(--bad-ink); }
+/* Feed. */
+.feed ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ev { display: grid; grid-template-columns: 56px 10px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 4px 6px; border-radius: 6px; }
+.ev time { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.ev .k { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); align-self: center; }
+.ev .k.done { background: var(--result); } .ev .k.warn { background: var(--run); } .ev .k.error { background: var(--err); }
+.ev p { margin: 0; font-size: 13px; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.empty { text-align: center; padding: 36px 18px; color: var(--ink-2); }
+.empty b { display: block; font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+.note { font-size: 11px; color: var(--ink-3); text-align: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .live.on .dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--run); animation: ping 1.8s ease-out infinite; }
+  .s .r { animation: spin 2.2s linear infinite; }
+  .chip.running svg { animation: spin 1.4s linear infinite; }
+  .fill.moving::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, var(--sheen), transparent); animation: sheen 2.6s ease-in-out infinite; }
+  .s .pop { animation: pop 0.7s cubic-bezier(.2, 1.4, .4, 1); }
+  .ev.in { animation: rise 4s ease-out; }
+  .seg.open { background-size: 17px 17px; animation: march 1.2s linear infinite; }
+  .now::before { animation: ping-dot 1.8s ease-out infinite; }
+  .tile b.bump { animation: bump 0.9s cubic-bezier(.2, 1.4, .4, 1); }
+  .curvebox .endpt.live { animation: ping-dot 1.8s ease-out infinite; }
+}
+@keyframes ping { from { transform: scale(0.6); opacity: 0.9 } to { transform: scale(1.8); opacity: 0 } }
+@keyframes ping-dot { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--run) 55%, transparent) } 100% { box-shadow: 0 0 0 9px transparent } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes sheen { from { transform: translateX(-100%) } to { transform: translateX(260%) } }
+@keyframes march { to { background-position: 17px 0 } }
+@keyframes bump { 0% { transform: translateY(3px); color: var(--result) } 60% { transform: translateY(-1px) } 100% { transform: none } }
+@keyframes pop { 0% { transform: scale(0.3) } 60% { transform: scale(1.25); box-shadow: 0 0 0 6px color-mix(in srgb, var(--result) 25%, transparent) } 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent } }
+@keyframes rise { 0% { transform: translateY(-4px); background: var(--run-bg) } 15% { transform: translateY(0); background: var(--run-bg) } 100% { background: transparent } }
+@media (max-width: 560px) { .count b { font-size: 23px } .card { padding: 14px } .tl { grid-template-columns: 58px minmax(0, 1fr); gap: 0 6px }
+  .tl .lbl { font-size: 11px } .seg { font-size: 0 } .tile b { font-size: 19px } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div><h1 id="title">Live run</h1><div class="sub" id="sub">Waiting for the first status</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <span class="live" id="live"><span class="dot" aria-hidden="true"></span><span id="liveText">Connecting</span></span>
+      <span class="ago" id="ago"></span>
+    </div>
+  </header>
+  <nav class="jobs" id="jobs" aria-label="Jobs"></nav>
+  <main id="main" style="display:flex;flex-direction:column;gap:14px">
+    <section class="card empty">
+      <b>No live job yet</b>
+      Claude adds a job here when a long run starts and redraws this card on every check, about every 3.5 minutes.
+    </section>
+  </main>
+  <p class="note" id="note">Status is pushed by Claude from the running session; this page never writes.</p>
+</div>
+
+<script>
+const ICON = {
+  done: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+  running: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 2a6 6 0 1 1-6 6"/></svg>',
+  waiting: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 2h8M4 14h8M5 2c0 3 6 3 6 6s-6 3-6 6M11 2c0 3-6 3-6 6s6 3 6 6"/></svg>',
+  pending: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.2 2.2"><circle cx="8" cy="8" r="5.5"/></svg>'
+};
+const SLOT = { pass: "f", below: "o", running: "r", pending: "p", error: "e" };
+const TONES = new Set(["ok", "warn", "bad"]);
+const STALE_MIN = 10;
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const when = iso => { const t = Date.parse(iso || ""); return Number.isFinite(t) ? t : null; };
+const clock = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const span = ms => { const m = Math.max(0, Math.round(ms / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + String(m % 60).padStart(2, "0") + " min"; };
+const tick2 = ms => { const s = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : String(m)) + ":" + String(r).padStart(2, "0"); };
+const agoText = ms => { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + " s ago" : span(ms) + " ago"; };
+const tone = t => TONES.has(t) ? t : "";
+
+let jobs = [], chosen = null, seenSlots = new Map(), seenEvents = new Set(), seenTiles = new Map(), lastJob = null, lastLine = 0;
+let db = null, dbState = "Connecting";
+try { chosen = localStorage.getItem("live-run-card.job"); } catch (e) {}
+
+function current() { return jobs.find(j => j.id === chosen) || jobs[0] || null; }
+
+function renderJobs() {
+  const nav = document.getElementById("jobs");
+  if (jobs.length < 2) { nav.innerHTML = ""; return; }
+  const cur = current();
+  nav.innerHTML = jobs.map(j => {
+    const p = j.progress || {}, pct = p.total ? Math.round(100 * (p.done || 0) / p.total) : 0;
+    const st = ["running", "done", "failed"].includes(j.status) ? j.status : "";
+    return `<button type="button" id="job-${esc(j.id)}" data-id="${esc(j.id)}" aria-pressed="${j === cur}" title="${esc(j.title || j.id)}">`
+      + `<span class="jd ${st}" aria-hidden="true"></span><span class="jt">${esc(j.title || j.id)}</span>`
+      + `<span class="jb" aria-hidden="true"><i style="width:${pct}%"></i></span></button>`;
+  }).join("");
+}
+document.getElementById("jobs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-id]"); if (!b) return;
+  chosen = b.dataset.id; try { localStorage.setItem("live-run-card.job", chosen); } catch (err) {}
+  render();
+});
+
+function slotHtml(slot, key, animate) {
+  const kind = SLOT[slot.state] || "p";
+  const prev = seenSlots.get(key);
+  const pop = animate && prev && prev !== slot.state && (slot.state === "pass" || slot.state === "below" || slot.state === "error");
+  seenSlots.set(key, slot.state);
+  const since = slot.state === "running" && slot.since ? ` data-since="${esc(slot.since)}"` : "";
+  return `<span class="s" title="${esc(slot.tip || slot.state || "pending")}"><i class="${kind}${pop ? " pop" : ""}"></i><em${since}>${esc(slot.label)}</em></span>`;
+}
+
+function tilesHtml(job, animate) {
+  const tiles = job.tiles || [];
+  if (!tiles.length) return "";
+  return `<section class="tiles" aria-label="Headline numbers">` + tiles.map((t, i) => {
+    const live = t.live === "elapsed" && Number.isFinite(Number(t.since));
+    const value = live ? tick2(Date.now() - Number(t.since) * 1000) : t.value;
+    const key = (t.label || i) + "";
+    const bump = animate && !live && seenTiles.has(key) && seenTiles.get(key) !== String(value);
+    seenTiles.set(key, String(value));
+    const from = t.from != null ? `<s>${esc(t.from)}</s>` : "";
+    return `<div class="tile ${tone(t.tone)}"><span class="tlabel">${esc(t.label)}</span>`
+      + `<b${live ? ` data-elapsed="${Number(t.since)}"` : ""}${bump ? ' class="bump"' : ""}>${from}${esc(value ?? "")}</b>`
+      + (t.sub ? `<span class="tsub">${esc(t.sub)}</span>` : "")
+      + (t.delta ? `<span class="pill ${tone(t.tone)}">${esc(t.delta)}</span>` : "") + `</div>`;
+  }).join("") + `</section>`;
+}
+
+function niceStep(ms) {
+  const steps = [5, 10, 15, 30, 60, 120, 180, 240, 360].map(m => m * 60000);
+  return steps.find(s => ms / s <= 7) || steps[steps.length - 1];
+}
+
+function timelineHtml(job) {
+  const t = job.timeline;
+  if (!t || !(t.spans || []).length) return "";
+  const now = Date.now(), p = job.progress || {};
+  const start = t.start * 1000;
+  const open = t.end == null && job.status === "running";
+  const lastEnd = Math.max(start, ...t.spans.map(s => (s.end ?? s.start) * 1000), ...(t.marks || []).map(m => m.at * 1000));
+  const head = open ? Math.max(now, lastEnd) : (t.end != null ? t.end * 1000 : lastEnd);
+  const eta = open ? when(p.etaAt) : null;
+  const end = Math.max(head + (open ? 60000 : 0), eta && eta > head ? eta : 0, start + 120000);
+  const x = ms => Math.max(0, Math.min(100, (ms - start) / (end - start) * 100));
+  const lanes = t.lanes && t.lanes.length ? t.lanes : [...new Set(t.spans.map(s => s.lane))];
+  const repeats = {};
+  t.spans.forEach(s => { if (s.kind === "stage") { const k = s.lane + "|" + s.stage; repeats[k] = (repeats[k] || 0) + 1; } });
+  const seen = {};
+  const tracks = lanes.map(lane => {
+    const segs = t.spans.filter(s => s.lane === lane).map(s => {
+      const a = s.start * 1000, b = s.end != null ? s.end * 1000 : head;
+      const left = x(a), width = Math.max(0.35, x(b) - left);
+      let name = s.stage;
+      if (s.kind === "stage" && repeats[s.lane + "|" + s.stage] > 1) { const k = s.lane + "|" + s.stage; seen[k] = (seen[k] || 0) + 1; name += " " + seen[k]; }
+      const label = s.kind === "improve" ? "review" : name;
+      const tip = `${name}${s.kind === "improve" ? " · Improve review" : ""} · ${span(b - a)} (${clock(a)}–${s.end != null ? clock(b) : "now"})`;
+      return `<span class="seg ${s.kind === "improve" ? "improve" : "stage"}${s.end == null ? " open" : ""}" tabindex="0" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%" title="${esc(tip)}">${width > 7 ? esc(label) : ""}</span>`;
+    }).join("");
+    const marks = (t.marks || []).filter(m => m.lane === lane).map(m =>
+      `<span class="mark ${m.kind === "check" ? "check" : ""}" style="left:${x(m.at * 1000).toFixed(3)}%" title="${esc((m.kind === "check" ? "check refused at " : "refused at ") + m.stage + " " + clock(m.at * 1000) + ": " + String(m.text || "").slice(0, 240))}"></span>`).join("");
+    return `<div class="track">${segs}${marks}</div>`;
+  }).join("");
+  const bands = (t.bands || []).map(b => { const l = x(b.start * 1000), r = x(b.end * 1000);
+    return r > l ? `<span class="band" style="left:${l.toFixed(3)}%;width:${(r - l).toFixed(3)}%" title="${esc(b.label || "")}"></span>` : ""; }).join("");
+  const asleep = (t.bands || []).reduce((sum, b) => sum + Math.max(0, Math.min(b.end * 1000, head) - Math.max(b.start * 1000, start)), 0);
+  const forecast = eta && eta > head ? `<span class="forecast" style="left:${x(head).toFixed(3)}%;width:${(x(eta) - x(head)).toFixed(3)}%" title="ETA ${esc(clock(eta))}"></span>` : "";
+  const nowLine = open ? `<span class="now" style="left:${x(now).toFixed(3)}%"><span>now ${esc(clock(now))}</span></span>` : "";
+  // Stages accepted over time: a step curve on the same axis, with the forecast to the ETA dashed.
+  const closes = t.spans.filter(s => s.kind === "stage" && s.end != null).map(s => s.end * 1000).sort((a, b) => a - b);
+  const top = Math.max(p.total || 0, closes.length, 1);
+  const X = ms => x(ms) * 10, Y = n => 100 - n / top * 100;
+  let d = `M0 100`, n = 0;
+  closes.forEach(ms => { d += ` H${X(ms).toFixed(2)} V${Y(++n).toFixed(2)}`; });
+  d += ` H${X(head).toFixed(2)}`;
+  const area = d + ` V100 Z`;
+  const fore = eta && eta > head && p.total ? `<path class="fore" d="M${X(head).toFixed(2)} ${Y(n).toFixed(2)} L${X(eta).toFixed(2)} ${Y(p.total).toFixed(2)}"/>` : "";
+  const grid = [0.25, 0.5, 0.75].map(f => `<line x1="0" x2="1000" y1="${(100 - f * 100).toFixed(1)}" y2="${(100 - f * 100).toFixed(1)}"/>`).join("");
+  const step = niceStep(end - start);
+  let ticks = "";
+  for (let at = Math.ceil(start / step) * step; at <= end; at += step) { const l = x(at); if (l > 3 && l < 97) ticks += `<span style="left:${l.toFixed(2)}%">${esc(clock(at))}</span>`; }
+  const reviews = t.spans.filter(s => s.kind === "improve");
+  const reviewMs = reviews.reduce((sum, s) => sum + ((s.end != null ? s.end * 1000 : head) - s.start * 1000), 0);
+  const meta = `${clock(start)} → ${open ? "now" : clock(head)} · ${span(head - start)}${asleep ? " · asleep " + span(asleep) : ""} · reviews ${span(reviewMs)}`;
+  const curveLabel = `<div class="lbl curve"><span>accepted</span><b>${n}</b><span>stage results</span></div>`;
+  const curve = `<div class="curvebox" aria-hidden="true"><svg viewBox="0 0 1000 100" preserveAspectRatio="none"><g class="grid">${grid}</g><path class="area" d="${area}"/><path class="stroke" d="${d}"/>${fore}</svg>`
+    + `<span class="endpt${open ? " live" : ""}" style="left:${x(head).toFixed(3)}%;bottom:${(100 - Y(n)).toFixed(2)}%"></span><span class="ylab">${top}</span></div>`;
+  const labels = lanes.map(l => `<div class="lbl" title="${esc(l)}">${esc(l)}</div>`).join("");
+  const marksAny = (t.marks || []).length;
+  const legend = `<div class="tlegend"><span><i></i>stage</span><span><i class="rv"></i>Improve review</span>${open ? '<span><i class="op"></i>running now</span>' : ""}`
+    + `${marksAny ? '<span><i class="mk"></i>refused callback</span><span><i class="ck"></i>refused --check-only check</span>' : ""}`
+    + `${bands ? '<span><i class="bd"></i>' + esc((t.bands[0] || {}).label || "paused") + "</span>" : ""}${forecast ? "<span>dashed: forecast to the ETA</span>" : ""}</div>`;
+  return `<section class="card" aria-label="Timeline: ${esc(meta)}"><h2>Timeline<span>${esc(meta)}</span></h2>`
+    + `<div class="tl">${curveLabel}${curve}<div style="display:flex;flex-direction:column">${labels}</div>`
+    + `<div class="tracks">${tracks}${bands}${forecast}${nowLine}</div><div class="lbl axis"></div><div class="axis">${ticks}</div></div>${legend}</section>`;
+}
+
+function comparisonHtml(job) {
+  const c = job.comparison;
+  if (!c || !(c.rows || []).length) return "";
+  const cols = c.columns || [];
+  const head = `<tr><th>${esc(c.label || "Criterion")}</th>${cols.map(h => `<th>${esc(h)}</th>`).join("")}<th></th></tr>`;
+  const rows = c.rows.map(r => `<tr><td>${esc(r.label)}</td>${(r.values || []).map(v => `<td class="v">${esc(v)}</td>`).join("")}`
+    + `<td>${r.verdict ? `<span class="pill ${tone(r.verdict.tone)}">${esc(r.verdict.text)}</span>` : ""}</td></tr>`).join("");
+  return `<section class="card" aria-label="Comparison"><h2>${esc(c.title || "Against the baseline")}${c.note ? `<span>${esc(c.note)}</span>` : ""}</h2>`
+    + `<div class="cmpwrap"><table class="cmp"><thead>${head}</thead><tbody>${rows}</tbody>${c.caption ? `<caption>${esc(c.caption)}</caption>` : ""}</table></div></section>`;
+}
+
+function findingsHtml(job) {
+  const finds = job.findings || [];
+  if (!finds.length) return "";
+  return `<section class="card finds" aria-label="Findings"><h2>Findings so far<span>${finds.length}</span></h2><div class="list">` + finds.map(f => {
+    const st = String(f.status || "");
+    const ba = f.before || f.after ? `<div class="ba">${f.before ? `<pre class="before">${esc(f.before)}</pre>` : ""}${f.before && f.after ? '<span class="to" aria-hidden="true">↓</span>' : ""}${f.after ? `<pre class="after">${esc(f.after)}</pre>` : ""}</div>` : "";
+    return `<article class="find ${st === "superseded" ? "superseded" : ""}"><div class="fh"><span class="tag">${esc(f.tag || "finding")}</span>${st ? `<span class="st ${esc(st)}">${esc(st)}</span>` : ""}</div>`
+      + `<b>${esc(f.title)}</b>${f.text ? `<span>${esc(f.text)}</span>` : ""}${f.example ? `<pre>${esc(f.example)}</pre>` : ""}${ba}`
+      + `${f.evidence ? `<span class="evid">${esc(f.evidence)}</span>` : ""}</article>`;
+  }).join("") + `</div></section>`;
+}
+
+function render() {
+  renderJobs();
+  const job = current();
+  const main = document.getElementById("main");
+  if (!job) {
+    document.getElementById("title").textContent = "Live run";
+    document.getElementById("sub").textContent = "Waiting for the first status";
+    main.innerHTML = '<section class="card empty"><b>No live job yet</b>Claude adds a job here when a long run starts and redraws this card on every check, about every 3.5 minutes.</section>';
+    tick(); return;
+  }
+  const animate = lastJob === job.id;
+  if (!animate) { seenSlots = new Map(); seenEvents = new Set(); seenTiles = new Map(); }
+  lastJob = job.id;
+  document.title = (job.title || "Live run") + " · Live Run Card";
+  document.getElementById("title").textContent = job.title || job.id;
+  document.getElementById("sub").textContent = job.subtitle || "";
+  const p = job.progress || {};
+  const done = p.done || 0, total = p.total || 0, pct = total ? Math.round(100 * done / total) : 0;
+  const unit = p.unit ? " " + p.unit : "";
+  const plan = (job.plan || []).map(s => {
+    const st = ICON[s.state] ? s.state : "pending";
+    return `<span class="chip ${st}">${ICON[st]}${esc(s.step)}${s.note ? " · " + esc(s.note) : ""}</span>`;
+  }).join('<span class="arrow" aria-hidden="true">→</span>');
+  const cols = job.columns || [];
+  const rows = job.rows || [];
+  const width = Math.max(cols.length, ...rows.map(r => (r.cells || []).length), 1);
+  let grid = `<div></div>` + cols.map(c => `<div class="ch">${esc(c)}</div>`).join("") + "<div></div>".repeat(width - cols.length);
+  rows.forEach((r, ri) => {
+    grid += `<div class="rn"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></div>`;
+    (r.cells || []).forEach((c, ci) => {
+      const slots = (c.slots || []).map((s, si) => slotHtml(s, `${ri}.${ci}.${si}`, animate)).join("");
+      const v = c.verdict === "supports" ? '<span class="pill ok">supports</span>' : c.verdict === "contradicts" ? '<span class="pill no">contradicts</span>' : c.verdict ? `<span>${esc(c.verdict)}</span>` : "";
+      grid += `<div class="cell"><div class="slots">${slots}</div><div class="foot"><span>${esc(c.summary)}</span>${v}</div></div>`;
+    });
+  });
+  const lg = Object.assign({ pass: "passed", below: "below target", running: "running (minutes)", pending: "pending", note: "" }, job.legend || {});
+  const legend = `<div class="legend"><span class="s"><i class="f"></i>${esc(lg.pass)}</span><span class="s"><i class="o"></i>${esc(lg.below)}</span><span class="s"><i class="r" style="animation:none"></i>${esc(lg.running)}</span><span class="s"><i class="p"></i>${esc(lg.pending)}</span>${lg.note ? `<span>${esc(lg.note)}</span>` : ""}</div>`;
+  const events = (job.events || []).slice(0, 12).map(ev => {
+    const key = (ev.at || "") + "|" + (ev.text || "");
+    const fresh = animate && !seenEvents.has(key);
+    seenEvents.add(key);
+    const t = when(ev.at);
+    return `<li class="ev${fresh ? " in" : ""}"><time>${t ? esc(clock(t)) : ""}</time><span class="k ${esc(ev.kind || "")}"></span><p>${esc(ev.text)}</p></li>`;
+  }).join("");
+  const moving = job.status === "running" && done < total;
+  main.innerHTML = `
+    <section class="card" aria-label="Progress">
+      ${plan ? `<div class="plan">${plan}</div>` : ""}
+      <div class="count"><b>${done}<small> of ${total}${esc(unit)}</small></b><span id="etaLine">${p.running || 0} running</span></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}" aria-label="${done} of ${total}${esc(unit)} finished"><div class="fill${moving ? " moving" : ""}" id="fill"></div></div>
+      ${rows.length ? `<div class="gridwrap"><div class="grid" style="grid-template-columns:minmax(120px,1.3fr) repeat(${width},minmax(96px,1fr))">${grid}</div></div>${legend}` : ""}
+    </section>
+    ${tilesHtml(job, animate)}
+    <div id="timeline">${timelineHtml(job)}</div>
+    ${comparisonHtml(job)}
+    ${findingsHtml(job)}
+    ${events ? `<section class="card feed" aria-label="Latest"><h2>Latest</h2><ol>${events}</ol></section>` : ""}`;
+  lastLine = Date.now();
+  requestAnimationFrame(() => { const f = document.getElementById("fill"); if (f) f.style.width = pct + "%"; });
+  tick();
+}
+
+function tick() {
+  const job = current(), now = Date.now();
+  const live = document.getElementById("live"), text = document.getElementById("liveText"), ago = document.getElementById("ago");
+  if (!job) { live.className = "live"; text.textContent = db ? "Waiting" : (dbState || "Connecting"); ago.textContent = ""; return; }
+  const updated = when(job.updatedAt || (job.progress || {}).updatedAt);
+  const age = updated ? now - updated : null;
+  const status = job.status || "running";
+  let cls = "live", label = "Live";
+  if (status === "done") { cls += " done"; label = "Finished"; }
+  else if (status === "failed") { cls += " failed"; label = "Stopped"; }
+  else if (status === "paused") { label = "Paused"; }
+  else if (age !== null && age > STALE_MIN * 60000) { cls += " stale"; label = "No update for " + span(age); }
+  else { cls += " on"; }
+  live.className = cls; text.textContent = label;
+  const refresh = job.refresh || {};
+  const every = Number(refresh.everySeconds) > 0 ? Number(refresh.everySeconds) * 1000 : null;
+  const due = updated && every ? updated + every : null;
+  if (status === "running" && due && now > due + 60000 && !cls.includes("stale")) {
+    cls = "live late"; label = "Update overdue";
+    live.className = cls; text.textContent = label;
+  }
+  const parts = [];
+  if (refresh.count) parts.push("update " + refresh.count);
+  if (updated) parts.push("updated " + agoText(age));
+  if (status === "running" && due) parts.push(now <= due ? "next by " + clock(due) : "next was due " + clock(due));
+  ago.textContent = parts.join(" · ");
+  const p = job.progress || {}, line = document.getElementById("etaLine");
+  if (line) {
+    const etaAt = when(p.etaAt);
+    let s = (p.running || 0) + " running";
+    if (status === "done" || (p.total && p.done >= p.total)) s += " · complete";
+    else if (etaAt) s += " · ETA about " + clock(etaAt) + (etaAt > now ? " (in " + span(etaAt - now) + ")" : " (due)");
+    else if (p.eta) s += " · ETA about " + p.eta;
+    line.textContent = s;
+  }
+  document.querySelectorAll("em[data-since]").forEach(el => { const t = when(el.dataset.since); if (t) el.textContent = Math.max(0, Math.round((now - t) / 60000)) + "m"; });
+  document.querySelectorAll("b[data-elapsed]").forEach(el => { el.textContent = tick2(now - Number(el.dataset.elapsed) * 1000); });
+  // The open span, the now line and the curve's head move with the clock: redraw the timeline every 15 s while running.
+  if (status === "running" && job.timeline && now - lastLine > 15000) {
+    const box = document.getElementById("timeline");
+    if (box) { box.innerHTML = timelineHtml(job); lastLine = now; }
+  }
+}
+setInterval(tick, 1000);
+
+(async () => {
+  const api = window.claude;
+  db = api && typeof api.use === "function" ? await api.use("db") : null;
+  if (!db) { dbState = "Offline"; document.getElementById("note").textContent = "Open this page on claude.ai, signed in, to see live status."; tick(); return; }
+  db.collection("jobs").orderBy("updatedAt", "desc").limit(8).onSnapshot(snap => {
+    jobs = snap.docs.filter(d => d.exists).map(d => Object.assign({ id: d.id }, d.data()));
+    render();
+  }, err => {
+    dbState = "Disconnected";
+    document.getElementById("note").textContent = err && err.code === "revoked" ? "Live status is no longer available here." : "The live feed stopped. Reload the page to reconnect.";
+    tick();
+  });
+})();
+render();
+</script>

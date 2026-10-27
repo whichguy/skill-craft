@@ -32,7 +32,15 @@ One builder per kind of long job reads the job's own files and returns that mode
 `build` prints the model as JSON; `--html` prints the card instead (the inline view); `--job JOB.json` prints the Live Run
 Card's job document (the artifact view): the model plus `title`, `subtitle`, `status`, `updatedAt`, `events` (newest
 first, 12 at most) and `findings`, with `progress.updatedAt` and `progress.etaAt`. JOB is `{title, subtitle, status,
-events, findings}`, every key optional; its events come before the builder's.
+events, findings, tiles, comparison, bands}`, every key optional; its events come before the builder's.
+
+An e2e run with a run trace also gets `timeline` (`start`, `end`, `lanes`, `spans` of each stage and Improve review,
+`marks` of each refused callback, epoch seconds) and `tiles` (elapsed, stages, Improve reviews, refusals). In the job
+document, JOB's `tiles` replace the builder's, `comparison` (`{title, note, columns, rows: [{label, values, verdict:
+{text, tone: ok|warn|bad}}], caption}`) is passed through, and `bands` (`[{start, end, label}]`, such as the periods the
+machine slept) joins the timeline. A finding may carry `example`, `before`, `after` and `evidence` beside its `tag`,
+`status` (firm, interim, early, superseded, missed), `title` and `text`. The Live Run Card page that draws all of this is
+live_run_card.html beside this file (published at the artifact named in memory illustrated-status-card).
 """
 from __future__ import annotations
 
@@ -369,9 +377,96 @@ def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
         ("Run Review", folder / "review-export" / "run-review.html"), ("flow", folder / "flow.html")) if path.exists()]
     if links:
         model["links"] = links
+    line = _timeline(states[0].parent / "trace.jsonl", current[0], stage_spec) if states else None
+    if line:
+        model["timeline"] = line
+        model["tiles"] = _e2e_tiles(line, progress)
     return model, {"title": "E2E " + folder.name, "subtitle": str(round(minutes)) + " min · "
                    + ("refusals not read" if refusals is None else str(refusals) + " refusals") + " · "
                    + str(restarts) + " host restarts", "status": status, "events": events, "eta_at": eta}
+
+
+def _trace_rows(path: Path) -> list[dict]:
+    rows = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and isinstance(row.get("ts"), (int, float)):
+            rows.append(row)
+    return rows
+
+
+def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
+    """The run on one time axis, from ShipLoop's run trace (RUN/trace.jsonl, shiploop 1.12.0 and later): each accepted
+    callback closes the span of the stage it finished and opens the next; an Improve review is its own span (kind
+    `improve`) in the lane of the stage it reviews; each refused callback is a mark (`check` when it was a --check-only
+    check). Lanes are Prelude, each work item, Outer. Times are epoch seconds; the stage the run is on has end None.
+    None when the run has no trace."""
+    rows = _trace_rows(trace) if trace.is_file() else []
+    if not rows:
+        return None
+    items = {row.get("action"): row.get("item") for row in rows if row.get("kind") == "packet" and row.get("item")}
+    spans, marks, lanes = [], [], []
+    opened, reviewed = round(rows[0]["ts"], 1), (None, None)   # reviewed: the last stage span's (lane, stage)
+
+    def lane(stage, action) -> str:
+        if stage == "improve":
+            return reviewed[0] or "Prelude"
+        if stage in stage_spec.PRELUDE:
+            return "Prelude"
+        if stage in stage_spec.OUTER:
+            return "Outer"
+        return str(items.get(action) or open_item or "Work")
+
+    def add(span: dict) -> None:
+        spans.append(span)
+        if span["lane"] not in lanes:
+            lanes.append(span["lane"])
+
+    last = None
+    for row in rows:
+        stage = row.get("stage") if isinstance(row.get("stage"), list) and len(row["stage"]) == 2 else None
+        if row.get("kind") != "command" or row.get("verb") != "complete" or not stage:
+            continue
+        at = round(row["ts"], 1)
+        if row.get("exit") not in (0, None):
+            marks.append({"at": at, "kind": "check" if row.get("check_only") else "refusal",
+                          "lane": lane(stage[0], row.get("action")), "stage": stage[0], "text": str(row.get("error") or "")})
+            continue
+        if row.get("check_only"):
+            continue
+        name = reviewed[1] if stage[0] == "improve" else stage[0]
+        span = {"lane": lane(stage[0], row.get("action")), "stage": name,
+                "kind": "improve" if stage[0] == "improve" else "stage", "start": opened, "end": at}
+        add(span)
+        if span["kind"] == "stage":
+            reviewed = (span["lane"], span["stage"])
+        opened, last = at, stage[1]
+    if last and last != "done":
+        add({"lane": lane(last, None), "stage": reviewed[1] if last == "improve" else last,
+             "kind": "improve" if last == "improve" else "stage", "start": opened, "end": None})
+    order = ["Prelude"] + [name for name in lanes if name not in ("Prelude", "Outer")] + ["Outer"]
+    return {"start": round(rows[0]["ts"], 1), "end": opened if last == "done" else None,
+            "lanes": [name for name in order if name in lanes], "spans": spans, "marks": marks}
+
+
+def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
+    """The Live Run Card's headline numbers for a traced run: elapsed (live while it runs), stages, Improve reviews and
+    refusals."""
+    reviews = [span for span in line["spans"] if span["kind"] == "improve"]
+    minutes = sum(span["end"] - span["start"] for span in reviews if span["end"] is not None) / 60
+    checks = sum(mark["kind"] == "check" for mark in line["marks"])
+    elapsed = {"label": "Elapsed", "live": "elapsed", "since": line["start"]}
+    if line["end"] is not None:
+        total = round(line["end"] - line["start"])
+        elapsed = {"label": "Elapsed", "value": f"{total // 3600} h {total % 3600 // 60:02d} min"}
+    return [elapsed,
+            {"label": "Stages", "value": f'{progress.get("done", 0)} of {progress.get("total", 0)}'},
+            {"label": "Improve reviews", "value": str(len(reviews)), "sub": f"{minutes:.1f} min"},
+            {"label": "Refusals", "value": str(len(line["marks"])),
+             "sub": f'{checks} a --check-only check' if checks == 1 else f"{checks} --check-only checks"}]
 
 
 BUILDERS = {"tier": build_tier, "advisors": build_advisors, "e2e": build_e2e}
@@ -383,10 +478,17 @@ def job_document(model: dict, meta: dict, job: dict | None = None, now: datetime
     progress = dict(model.get("progress") or {}, updatedAt=_iso(now))
     if meta.get("eta_at"):
         progress["etaAt"] = _iso(meta["eta_at"])
-    return {**model, "progress": progress, "title": job.get("title") or meta["title"],
-            "subtitle": job.get("subtitle") or meta["subtitle"], "status": job.get("status") or meta["status"],
-            "updatedAt": _iso(now), "events": (list(job.get("events") or ()) + list(meta["events"]))[:EVENTS],
-            "findings": list(job.get("findings") or ())}
+    document = {**model, "progress": progress, "title": job.get("title") or meta["title"],
+                "subtitle": job.get("subtitle") or meta["subtitle"], "status": job.get("status") or meta["status"],
+                "updatedAt": _iso(now), "events": (list(job.get("events") or ()) + list(meta["events"]))[:EVENTS],
+                "findings": list(job.get("findings") or ())}
+    if job.get("tiles"):
+        document["tiles"] = list(job["tiles"])
+    if job.get("comparison"):
+        document["comparison"] = job["comparison"]
+    if job.get("bands") and document.get("timeline"):
+        document["timeline"] = {**document["timeline"], "bands": list(job["bands"])}
+    return document
 
 
 def main(argv: list[str] | None = None) -> int:
