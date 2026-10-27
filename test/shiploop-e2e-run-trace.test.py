@@ -102,7 +102,10 @@ def traced_output(base: Path) -> Path:
                    ["complete", "--run-dir", str(run), f"--action={intake}"],
                    shown=lambda done: (done.stdout + done.stderr).strip().splitlines()[-1])
     assert hidden.returncode == 2, hidden.stdout + hidden.stderr
-    # The keepalive's stop hook, as it records a decision that put text into the turn.
+    # The keepalive's stop hook, as it records a decision that put text into the turn. It fires after that result arrives; the
+    # trace stamps to the millisecond, so a hook recorded within 0.5 ms of the result would round below it and sort first.
+    while round(time.time(), 3) <= stamps[-1]:
+        time.sleep(0.001)
     assert shiploop_trace.record_stop(str(run), "claude", "session-1",
                                       {"decision": "continue", "why": "the run is active", "reason": CONTINUED})
     (run / "inbox" / f"{intake}.md").write_text(INTAKE, encoding="utf-8")
