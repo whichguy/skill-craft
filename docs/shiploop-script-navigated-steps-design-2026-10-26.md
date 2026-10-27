@@ -3,6 +3,9 @@
 Status: **P0 built, not released** (2026-10-26, owner's go: the change that adds
 `changes/shiploop/improve-once-per-item.md`); P1–P3 are design only. P0's validation runs need a release first.
 
+Update 2026-10-27: P0 shipped in 2.17.0 and was checked live. Its item review missed Sonnet's defects when one item
+spanned the app; the follow-up is [the wide-item review design](shiploop-wide-item-review-design-2026-10-27.md).
+
 Consumer: the owner, deciding what to build, then the session that builds it. The owner asked for "discrete steps in
 the prompts that are actually navigated by the shiploop scripts", which can be visualized, starting with the test stage.
 It also folds in the trimmed Improve schedule: drop the test-spec review, and run one implement review per work item.

@@ -1,0 +1,57 @@
+# Review passes per Improve stage: n = a non-trivial pass (it found and changed something), t = trivial.
+# From each stage's .shiploop-improve/<stage>-<id>/reviews/review-<n>.md front matter (classification).
+== 20261026/live-sonnet-battleship-01b9b3
+  carry-forward-0751aad1             passes=2  nt
+  implement-1f17cb21                 passes=2  nt
+  implement-97fbd0f2                 passes=2  nt
+  implement-b26af30d                 passes=2  nt
+  plan-0962f3ad                      passes=2  nt
+  release-plan-02f0d431              passes=1  t
+  spec-b9080c07                      passes=2  nt
+  step-plan-08604917                 passes=2  nt
+  system-test-author-e098902c        passes=1  t
+  test-spec-fd828997                 passes=2  nt
+  test-strategy-27cab0b2             passes=2  nt
+== 20261027/v2170-sonnet-battleship-491d9a
+  carry-forward-8b5f95bd             passes=2  nt
+  implement-fbeb9800                 passes=2  nt
+  plan-a2ae7a70                      passes=2  nt
+  release-plan-bdc2c569              passes=2  nt
+  spec-b63688de                      passes=2  nt
+  step-plan-8f3e7a0b                 passes=1  t
+  system-test-author-9e151f59        passes=1  t
+  test-strategy-ba26bc4f             passes=2  nt
+== 20261026/ds-flash-978478-battleship
+  carry-forward-77dfc222             passes=1  t
+  implement-22401cdc                 passes=1  t
+  implement-3adeee7f                 passes=1  t
+  implement-450c698a                 passes=1  t
+  implement-46d5dd95                 passes=1  t
+  implement-93cb1ca8                 passes=2  nt
+  implement-94a15165                 passes=1  t
+  implement-97647391                 passes=1  t
+  implement-c21936c7                 passes=2  nt
+  implement-cb32338e                 passes=2  nt
+  implement-e20d3c91                 passes=2  nt
+  implement-e510b622                 passes=1  t
+  implement-f1859c7f                 passes=1  t
+  plan-7a444102                      passes=3  nnt
+  release-plan-7c48bc1d              passes=3  nnt
+  spec-0b5edca2                      passes=5  nnnnt
+  step-plan-79f8865f                 passes=2  nt
+  step-plan-d264e71f                 passes=2  nt
+  system-test-author-7aadf5f6        passes=3  nnt
+  test-spec-088c7bd5                 passes=2  nt
+  test-spec-d6368698                 passes=2  nt
+  test-strategy-3c29216f             passes=4  nnnt
+== 20261027/v2170-ds-battleship-759a03
+  carry-forward-1d2d9649             passes=4  nnnt
+  implement-6d8889ea                 passes=3  nnt
+  implement-768ae1f5                 passes=3  nnt
+  implement-bfaa54d9                 passes=1  t
+  plan-5bdd4bb3                      passes=2  nt
+  release-plan-18902b16              passes=4  nnnt
+  spec-d49f5f4d                      passes=12 nnnnnnnnnnnt
+  step-plan-43d3b5e6                 passes=1  t
+  system-test-author-bca030cb        passes=3  nnt
+  test-strategy-4178a210             passes=8  nnnnnnnt

@@ -3896,3 +3896,34 @@ Setup:
   UI requests), or keeps a per-step review for such items. Measure it on Sonnet battleship, where one item spans
   the app.
 - Watch spec and carry-forward review length (DeepSeek 9.8→23.6 min). They are outside P0's scope.
+
+## Why one item review missed on Sonnet: review count, not handoff detail (2026-10-27, analysis of the four battleship runs) — status: interim (n=1 per model; no new run)
+
+**Question.** The P0 live check left one finding open: Sonnet's single item review missed the three defects its
+per-step baseline fixed. Was the review short of information, or short of depth?
+
+**Method.** No new run. Two tables were read from the existing records of 01b9b3, 491d9a, 978478 and 759a03, all under
+`~/e2e-runs/`:
+- `review-passes.txt`: every Improve stage's passes, from each `reviews/review-<n>.md` classification;
+- `item-width.txt`: every work item's step paths, grouped by shared path, across the 12 runs with step plans
+  (`item_width.py`).
+
+Both are in `docs/experiments/e2e-v2170-validation-20261027/`.
+
+**Findings.**
+- **Depth, not information.** Sonnet's item handoff carried the whole diff, and pass 1 read `game.js` and `server.js`
+  whole. It applied "fail at the door" to `game.js` but not to `createServer({maxGames})`. S2's own result pointed at
+  none of the misses.
+- **Sonnet makes one finding pass per review.** In all 19 of its Improve stages, no stage had a second non-trivial
+  pass. DeepSeek's stages had up to 11. So on Sonnet the number of reviews sets the number of finding passes. P0's
+  premise, that one review keeps passing until it is done, holds on DeepSeek only.
+- **Item width.** 5 of 12 multi-step items have steps on separate paths. Catches were lost only where one Sonnet review
+  covered several of these groups. DeepSeek's narrow items made 4 finding passes in 3 reviews (9 defects fixed, 10.4
+  min), against 4 finding passes in its 12 baseline step reviews (28.0 min).
+- **Paths are not components.** In 491d9a, S2 (routes) and S3 (page) share `server.js`. A review per path group would
+  still give them one Sonnet finding pass.
+
+**Next.** `docs/shiploop-wide-item-review-design-2026-10-27.md`: wide items, those with more than one path group, keep
+per-step reviews. It recommends a replay (X1) on 491d9a's own code before building. It supersedes the "Next" candidate
+of the entry above, which proposed handoff text naming each step's diff and the component edges: none of the four
+defects sat at an edge.
