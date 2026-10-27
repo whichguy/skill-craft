@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.16.1
+version: 1.17.0
 allowed-tools: all
 license: MIT
 platforms:

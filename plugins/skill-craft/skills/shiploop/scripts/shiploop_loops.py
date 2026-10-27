@@ -513,6 +513,29 @@ def implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Opti
             "count": len(ids)}
 
 
+def step_path_groups(steps: Sequence[Mapping[str, Any]], item_paths: Sequence[str]) -> int:
+    """How many groups ``steps`` form when steps that share a path are joined, directly or through other steps; a step
+    that declares no paths works on the item's (``item_paths``), as in ``implement_scope``, and steps with no paths at all
+    share one group.  An item of more than one group is wide: its steps work on separate parts, and each keeps its own
+    Improve review (design 8e9d2d55, owner 2026-10-27: Sonnet makes one finding pass per review, so one review of a
+    three-part item missed what three step reviews found)."""
+    owner: dict[str | None, int] = {}
+    parent = list(range(len(steps)))
+
+    def root(index: int) -> int:
+        while parent[index] != index:
+            index = parent[index]
+        return index
+
+    for index, row in enumerate(steps):
+        for path in [str(path) for path in (row.get("paths") or ()) or item_paths] or [None]:
+            if path in owner:
+                parent[root(index)] = root(owner[path])
+            else:
+                owner[path] = index
+    return len({root(index) for index in range(len(steps))})
+
+
 def contract_writes(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
     """Run-relative path -> text for the current inner action's loop contract (and verify's rubric); {} outside one.
 

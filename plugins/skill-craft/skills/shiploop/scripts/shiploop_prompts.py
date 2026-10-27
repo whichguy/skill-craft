@@ -494,7 +494,8 @@ A justified N/A is still an output that states
 what was assessed and why it does not apply. ShipLoop starts an Improve stage
 after planning results (spec, test-strategy, plan, step-plan,
 system-test-author, release-plan; step-plan only for the first work item and
-after a send-back), after each work item's last accepted implement step, and after
+after a send-back), after each work item's last accepted implement step (each
+changed step when the item's steps work on separate paths), and after
 the carry-forward that leaves no work item pending. Run only the checks this step's change needs. When this step changes no
 product file, its check is the named command, its exit code and its required output
 substrings: record them, cite the earlier accepted stage that ran the same command,
@@ -2381,9 +2382,9 @@ _NO_REVIEW_SWAPS = (
     ("*", """\
 after planning results (spec, test-strategy, plan, step-plan,
 system-test-author, release-plan; step-plan only for the first work item and
-after a send-back), after each work item's last accepted implement step, and after""",
+after a send-back), after each work item's last accepted implement step (each""",
      "after planning results (" + _NONE_REVIEWED + "),\n"
-     "after each work item's last accepted implement step, and after"),
+     "after each work item's last accepted implement step (each"),
 )
 
 

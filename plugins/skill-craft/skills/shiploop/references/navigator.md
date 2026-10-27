@@ -119,7 +119,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each item's last `implement` step (one review of the item's whole change), last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each item's last `implement` step (one review of the item's whole change; each changed step of a wide item), last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
@@ -692,7 +692,8 @@ refused, and its refusal opens that action's send-back even though the step's
 Until Loop has completed.
 
 The inner path makes post-code quality visible: the expectations are checked
-before any change, each item's implemented change is reviewed by one Improve stage after its last step,
+before any change, each item's implemented change is reviewed by one Improve stage after its last step
+(each changed step of a wide item, whose steps work on separate paths),
 the tests are written from the test spec and must fail on the item's base and
 pass on the candidate, documentation follows observed behaviour, and `verify`
 reruns every command and reviews the whole diff with justified fixes and

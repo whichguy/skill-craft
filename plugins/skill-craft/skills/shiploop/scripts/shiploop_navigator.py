@@ -484,13 +484,18 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     # step, over the item's whole change, whatever the planning review option. The ask-agent route's one action builds
     # every step, so its result is the item's last. Except (advisors panel 2026-10-25, P4) a round of steps that changed
     # no file: live runs 3 and 5b reviewed such reissued steps after a send-back three times, each a single trivial pass.
+    # A wide item (its steps on separate paths, ``_wide_item``) reviews each step that changed a file instead (owner,
+    # 2026-10-27, design 8e9d2d55: Sonnet's one review of a three-part item missed the three defects its step reviews fixed).
     if stage in stage_spec.with_improve("item"):
         view = step_view(state, _current_work_item(state))
+        action = _active_cursor(state)[1]
+        unchanged = (isinstance(action, Mapping) and bool(action.get("base"))
+                     and action.get("after") == action.get("base"))
+        if view is not None and _wide_item(view):
+            return not unchanged and result["outcome"] == "done"
         if view is not None and view.number < len(view.steps):
             return False
-        action = _active_cursor(state)[1]
-        if (isinstance(action, Mapping) and action.get("round_changed") is False and action.get("base")
-                and action.get("after") == action.get("base")):
+        if unchanged and action.get("round_changed") is False:
             return False
         return result["outcome"] == "done"
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
@@ -6745,7 +6750,7 @@ def _improve_rerun_clause(stage: str) -> str:
     if stage in stage_spec.with_improve("last-item"):
         return "ShipLoop reruns every completed item's recorded commands over it."
     if stage in stage_spec.with_improve("item"):
-        return "the item's test stage, which follows, runs over it."
+        return "the item's test stage, after its last step, runs over it."
     return "no command reruns over it here, so check it yourself before importing."
 
 
@@ -7459,15 +7464,21 @@ def _several_steps(text: str, state: Mapping[str, Any], stage: str) -> str:
     return guidance.for_steps(text, *named) if named else text
 
 
+def _wide_item(view: StepView) -> bool:
+    """Whether an inline item's steps work on separate paths (``loops.step_path_groups`` > 1): each of its steps that
+    changed a file is reviewed on its own, with the one-step hand-off, instead of one review after its last step."""
+    return loops.step_path_groups(view.steps, [str(path) for path in view.plan.get("paths") or ()]) > 1
+
+
 def _item_steps(state: Mapping[str, Any], stage: str) -> tuple[str, str] | None:
     """(the steps' name, their paths) while the review rule item starts after an inline item's last step is the active
-    Improve stage, when the item has several steps; None otherwise (a producer packet among them).  Its paths follow
-    ``loops.implement_scope``: the steps' own, else the item's."""
+    Improve stage, when the item has several steps on one path group; None otherwise (a producer packet among them, or a
+    wide item's step review).  Its paths follow ``loops.implement_scope``: the steps' own, else the item's."""
     child = state.get("active_improve")
     if stage != "implement" or not isinstance(child, Mapping) or child.get("stage") != "implement":
         return None
     view = step_view(state, _current_work_item(state))
-    if view is None or len(view.steps) < 2 or view.number < len(view.steps):
+    if view is None or len(view.steps) < 2 or view.number < len(view.steps) or _wide_item(view):
         return None
     rows = [row for row in view.steps if isinstance(row, Mapping)]
     paths = list(dict.fromkeys(str(path) for row in rows for path in (row.get("paths") or ()))) \

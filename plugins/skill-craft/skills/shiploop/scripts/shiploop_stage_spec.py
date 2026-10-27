@@ -60,7 +60,10 @@ ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective item
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
 # and "item" once per work item, after its last accepted implement step, over the item's whole change, whatever the
 # planning review option says (owner, 2026-10-26, design 560c396f P0; it was "step", one review per step, owner
-# 2026-10-10: a live three-item run on DeepSeek flash ran 12 step reviews in 28 minutes for 3 real code fixes).
+# 2026-10-10: a live three-item run on DeepSeek flash ran 12 step reviews in 28 minutes for 3 real code fixes).  A wide
+# item, one whose steps work on separate paths (``shiploop_loops.step_path_groups`` > 1), has each step that changed a
+# file reviewed instead (owner, 2026-10-27, design 8e9d2d55: Sonnet makes one finding pass per review, so one review of a
+# three-part item missed the three defects its step reviews had fixed).
 # "first-item" starts one only for the first work item, and for an item that was sent back (its redone plan is
 # reviewed): later items follow the pattern the first item's review set (owner, 2026-10-19: in a live four-item run
 # the step plan's review took 5-14 min on every item, and Improve was 42% of the run).  The planning review option governs it as it

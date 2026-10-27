@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.16.1
+# ShipLoop navigator 1.17.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
