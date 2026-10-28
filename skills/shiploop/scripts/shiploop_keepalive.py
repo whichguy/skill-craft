@@ -938,13 +938,17 @@ def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> 
     raise ValueError(f"unknown host {host!r}")
 
 
-def drive(host: str, run_dir: str, *, max_sessions: int, session_timeout: int,
-          extra: list[str], cwd: str | None, out: Callable[[str], Any] = print,
-          runner: Callable[..., Any] = subprocess.run) -> int:
-    """Start or resume host sessions until the run stops being active."""
-    if max_sessions < 1 or session_timeout < 1:
-        raise ValueError(f"shiploop-drive needs max_sessions >= 1 and session_timeout >= 1, "
-                         f"got {max_sessions} and {session_timeout}")
+def drive(host: str, run_dir: str, *, session_timeout: int, extra: list[str], cwd: str | None,
+          max_minutes: int | None = None, out: Callable[[str], Any] = print,
+          runner: Callable[..., Any] = subprocess.run, clock: Callable[[], float] = time.monotonic) -> int:
+    """Start or resume host sessions until the run stops being active.
+
+    No ceiling by default (owner, 2026-10-28: runs are meant to go on for a very long time); ``max_minutes``, when
+    given, bounds the whole drive by wall clock.
+    """
+    if session_timeout < 1 or (max_minutes is not None and max_minutes < 1):
+        raise ValueError(f"shiploop-drive needs session_timeout >= 1 and, when given, max_minutes >= 1, "
+                         f"got {session_timeout} and {max_minutes}")
     status = run_status(run_dir)
     if status.get("error"):
         out(f"shiploop-drive: cannot read the run: {status['error']}")
@@ -962,22 +966,26 @@ def drive(host: str, run_dir: str, *, max_sessions: int, session_timeout: int,
         out(f"shiploop-drive: another shiploop-drive is already running this run ({run_dir}).")
         return EXIT_NEEDS_USER
     try:
-        return _drive_sessions(host, run_dir, logs, journal, max_sessions=max_sessions,
+        deadline = None if max_minutes is None else clock() + max_minutes * 60
+        return _drive_sessions(host, run_dir, logs, journal, deadline=deadline, max_minutes=max_minutes,
                                session_timeout=session_timeout, extra=extra, cwd=cwd,
-                               out=out, runner=runner)
+                               out=out, runner=runner, clock=clock)
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         os.close(lock_fd)
 
 
-def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, max_sessions: int,
-                    session_timeout: int, extra: list[str], cwd: str | None, out: Callable[[str], Any],
-                    runner: Callable[..., Any]) -> int:
+def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadline: float | None,
+                    max_minutes: int | None, session_timeout: int, extra: list[str], cwd: str | None,
+                    out: Callable[[str], Any], runner: Callable[..., Any], clock: Callable[[], float]) -> int:
     """Run host sessions in turn, checking the run's status around each; stops when the run is no longer active,
-    needs the user, stalls, or ``max_sessions`` is reached.
+    needs the user or stalls, or when a given wall-clock ``deadline`` passes.  A session never runs past that deadline:
+    its timeout is cut to the time left.
     """
     stalled = 0
-    for number in range(1, max_sessions + 1):
+    number = 0
+    while deadline is None or clock() < deadline:
+        number += 1
         before = run_status(run_dir)
         if before.get("error"):
             out(f"shiploop-drive: cannot read the run: {before['error']}")
@@ -990,10 +998,11 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, max_s
             bound = bindings_for_run(host, run_dir)
             session = bound[0]["session"] if bound else None
         argv = host_argv(host, _driver_prompt(before), session, extra)
-        started = time.time()
+        started = clock()
+        timeout = session_timeout if deadline is None else max(1, min(session_timeout, round(deadline - started)))
         try:
             proc = runner(argv, cwd=cwd or before.get("repo") or None, capture_output=True,
-                          text=True, timeout=session_timeout, stdin=subprocess.DEVNULL)
+                          text=True, timeout=timeout, stdin=subprocess.DEVNULL)
             code, stdout, stderr = proc.returncode, proc.stdout or "", proc.stderr or ""
         except subprocess.TimeoutExpired as exc:
             code, stdout, stderr = "timeout", str(exc.stdout or ""), str(exc.stderr or "")
@@ -1007,7 +1016,7 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, max_s
         after = run_status(run_dir)
         moved = not after.get("error") and after["revision"] != before["revision"]
         entry = {"session": number, "host": host, "resumed": session, "exit": code,
-                 "seconds": round(time.time() - started), "revision": [before["revision"], after.get("revision")],
+                 "seconds": round(clock() - started), "revision": [before["revision"], after.get("revision")],
                  "status": after.get("status"), "log": str(session_log)}
         with journal.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry) + "\n")
@@ -1020,7 +1029,8 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, max_s
         if stalled >= 2:
             out(f"shiploop-drive: two sessions in a row made no progress; stopping. See {journal}")
             return EXIT_STUCK
-    out(f"shiploop-drive: reached --max-sessions {max_sessions}; the run is still active.")
+    out(f"shiploop-drive: reached --max-minutes {max_minutes} after {number} session(s); the run is still active. "
+        "Run shiploop-drive again to continue it.")
     return EXIT_CAP
 
 
@@ -1084,7 +1094,8 @@ def drive_main(argv: list[str] | None = None) -> int:
                     "Arguments after -- go to the host command unchanged (model, permissions).")
     parser.add_argument("--host", choices=HOSTS, required=True)
     parser.add_argument("--run-dir", required=True)
-    parser.add_argument("--max-sessions", type=_positive_int, default=20)
+    parser.add_argument("--max-minutes", type=_positive_int,
+                        help="optional wall-clock ceiling for the whole drive; none unless given")
     parser.add_argument("--session-timeout", type=_positive_int, default=3600, help="seconds per host session")
     parser.add_argument("--cwd", help="directory to run the host in (default: the run's repository)")
     raw = list(sys.argv[1:] if argv is None else argv)
@@ -1094,5 +1105,5 @@ def drive_main(argv: list[str] | None = None) -> int:
         raw, extra = raw[:split], raw[split + 1:]
     args = parser.parse_args(raw)
     return drive(args.host, str(Path(args.run_dir).expanduser().resolve()),
-                 max_sessions=args.max_sessions, session_timeout=args.session_timeout,
+                 max_minutes=args.max_minutes, session_timeout=args.session_timeout,
                  extra=extra, cwd=args.cwd)

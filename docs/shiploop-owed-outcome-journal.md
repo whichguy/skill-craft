@@ -464,7 +464,19 @@ Built on branch `feat/owed-phase-a-573963`. Status: firm for what the tests cove
   134, loops 58 and stage-spec 12 OK.
 - **Held back on the owner's instruction (2026-10-28: "before you put any limits, check with me").** Replacing the
   driver's `--max-sessions` (default 20) with a wall-clock ceiling, and releasing a turn whose model does nothing
-  twice while the same background task runs (F10, F11), were drafted, then reverted. Both await the owner's call.
+  twice while the same background task runs (F10, F11), were drafted, then reverted.
+- **Owner decisions, 2026-10-28.** F11: the driver gets no default ceiling; `--max-sessions` is removed and an
+  optional `--max-minutes` bounds the drive only when given (part 2 below). F10: keep refusing every stop while a
+  background task runs; no change, and F10 is closed as the owner's choice.
+
+## Phase A, part 2: no default ceiling for the driver (2026-10-28)
+
+`shiploop_keepalive.drive` and `_drive_sessions` run until the run stops being active, a host fails without
+advancing it, or two sessions in a row make no progress; `max_minutes`, when given, sets a wall-clock deadline and
+cuts the last session's timeout to the time left. Tests: the driver suite's 10 tests OK, among them
+`test_there_is_no_ceiling_by_default` (21 sessions, past the old default of 20),
+`test_max_minutes_cuts_the_last_session_to_the_time_left` and `test_the_session_count_flag_is_gone`; the whole
+keepalive file 68 OK.
 
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 

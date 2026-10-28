@@ -881,10 +881,17 @@ class MarketplacePackageTests(KeepaliveTestCase):
 
 class DriverTests(KeepaliveTestCase):
     def drive(self, host: str, runner, **options) -> tuple[int, list[str]]:
+        """Drive with a clock that moves ``session_seconds`` (default 60) per host session."""
         lines: list[str] = []
-        code = keepalive.drive(host, str(self.run_dir), max_sessions=options.get("max_sessions", 5),
-                               session_timeout=60, extra=["--model", "test"], cwd=None,
-                               out=lines.append, runner=runner)
+        now = [0.0]
+
+        def timed(argv, **kwargs):
+            now[0] += options.get("session_seconds", 60)
+            return runner(argv, **kwargs)
+
+        code = keepalive.drive(host, str(self.run_dir), session_timeout=options.get("session_timeout", 60),
+                               extra=["--model", "test"], cwd=None, max_minutes=options.get("max_minutes"),
+                               out=lines.append, runner=timed, clock=lambda: now[0])
         return code, lines
 
     @staticmethod
@@ -928,9 +935,44 @@ class DriverTests(KeepaliveTestCase):
             self.advance()
             return self.done(argv)
 
-        code, _ = self.drive("cursor", runner, max_sessions=2)
+        code, _ = self.drive("cursor", runner, max_minutes=2)
         self.assertEqual(code, keepalive.EXIT_CAP)
         self.assertEqual(seen[0][:4], ["cursor-agent", "-p", "--resume", "chat-42"])
+
+    def test_there_is_no_ceiling_by_default(self) -> None:
+        # Owner 2026-10-28: runs go on for a very long time; the old default stopped after 20 sessions.
+        sessions = []
+
+        def runner(argv, **kwargs):
+            sessions.append(argv)
+            if len(sessions) <= 20:
+                self.advance()
+            else:
+                shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "owner stop")
+            return self.done(argv)
+
+        code, lines = self.drive("claude", runner)
+        self.assertEqual((code, len(sessions)), (keepalive.EXIT_NEEDS_USER, 21))
+        self.assertIn("run is paused after 21 session", lines[-1])
+
+    def test_max_minutes_cuts_the_last_session_to_the_time_left(self) -> None:
+        timeouts = []
+
+        def runner(argv, **kwargs):
+            timeouts.append(kwargs["timeout"])
+            self.advance()
+            return self.done(argv)
+
+        code, lines = self.drive("claude", runner, max_minutes=1, session_seconds=50, session_timeout=60)
+        self.assertEqual((code, timeouts), (keepalive.EXIT_CAP, [60, 10]))
+        self.assertIn("reached --max-minutes 1 after 2 session(s)", lines[-1])
+
+    def test_the_session_count_flag_is_gone(self) -> None:
+        import contextlib
+        import io
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            keepalive.drive_main(["--host", "claude", "--run-dir", str(self.run_dir), "--max-sessions", "2"])
+        self.assertIn("--max-sessions", err.getvalue())
 
     def test_a_second_driver_on_the_same_run_refuses(self) -> None:
         import fcntl
@@ -955,7 +997,7 @@ class DriverTests(KeepaliveTestCase):
             self.advance()
             return self.done(argv)
 
-        self.drive("claude", runner, max_sessions=2)
+        self.drive("claude", runner, max_minutes=2)
         self.assertEqual(owners, ["claude:driven-0", "claude:driven-1"])
 
     def test_session_logs_and_journal_are_kept_outside_the_run(self) -> None:

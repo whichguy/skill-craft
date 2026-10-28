@@ -165,7 +165,9 @@ clean context.
 The driver stops when the run is not active (exit 0 when done, 3 when paused,
 blocked or halted), when a host exits non-zero without advancing the run (exit 4,
 often a host that could not start), after two sessions in a row without progress
-(exit 4), or at `--max-sessions` (exit 5). It keeps one JSON line per session in
+(exit 4), or, only when you pass `--max-minutes N`, once N minutes of wall clock
+have passed (exit 5; a session's timeout is cut to the time left). There is no
+ceiling by default: runs are meant to go on for a long time. It keeps one JSON line per session in
 `drive.log` and each session's output under
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/drive/<run id>/`, never in
 the run directory.

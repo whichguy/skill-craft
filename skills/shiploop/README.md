@@ -1014,7 +1014,7 @@ shiploop hook-status --run-dir RUN                        # read-only JSON; neve
 scripts/shiploop-hook install|status|uninstall --host HOST [--dry-run]
 # Run trace (see references/status-display.md#run-trace): read-only; --html writes only the page
 shiploop trace    --run-dir RUN [--action ID | --request | --json | --html [PATH]] [--last N]
-scripts/shiploop-drive --host HOST --run-dir RUN [--max-sessions N] [--session-timeout S] [-- HOST_ARGS]
+scripts/shiploop-drive --host HOST --run-dir RUN [--max-minutes N] [--session-timeout S] [-- HOST_ARGS]
 # Inspection without project work
 shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 ```
