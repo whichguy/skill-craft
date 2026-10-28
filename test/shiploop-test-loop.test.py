@@ -3430,6 +3430,22 @@ class MaskedZeroExitFailureTests(unittest.TestCase):
         row = {"command": "wrapped-test", "suite": "focused", "ids": ["CASE-1", "CASE-9"]}
         self.assertEqual(test_loop.judge(row, 0, self.OUTPUT)["status"], "ids-missing")
 
+    def test_a_base_run_with_no_ids_reporting_a_failed_tally_is_red_even_at_exit_zero(self):
+        """Review finding: _judge_base's no-ids path had the identical masking bug as judge()'s, in the sibling
+        function that judges a command on the item's base.  A masked failure there must still be ``red`` (the
+        base correctly failed), not ``passes-on-base`` (which would wrongly say the test does not detect the
+        change)."""
+        row = {"command": "wrapped-test", "suite": "focused"}
+        verdict = test_loop._judge_base(row, 0, self.OUTPUT, [], [], [])
+        self.assertEqual(verdict["status"], "red")
+
+    def test_a_base_run_with_no_ids_and_a_clean_pass_is_still_passes_on_base(self):
+        """GUARD: the masked-failure path only ever changes an exit-zero verdict with a real failure in the tally."""
+        row = {"command": "wrapped-test", "suite": "focused"}
+        clean = "test_config.py::test_value[CASE-1] PASSED\n================ 1 passed in 0.01s ================\n"
+        self.assertEqual(test_loop._judge_base(row, 0, clean, [], [], [])["status"], "passes-on-base")
+        self.assertEqual(test_loop._judge_base(row, 1, self.OUTPUT, [], [], [])["status"], "red")
+
     def test_the_refusal_for_a_masked_failure_names_the_tally_instead_of_the_contradictory_exit_0(self):
         """Review finding: _explain() had no branch for a failed/exit-0 run and fell through to the bare
         ``exit 0``, which reads as success and drops the runner's own tally."""
