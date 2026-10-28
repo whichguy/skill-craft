@@ -128,17 +128,22 @@ Evidence in `docs/experiments/local-validation-20261025/`:
   durations, shards and the count pins by path, so a split needs a `load_tests` partition in the test file plus
   catalog entries that share a path. `shiploop-chain-async` is three tests in one class, so only a split by test name
   would work, and a new test would fall outside every shard. That is not a simple change. Splitting it three ways would
-  bring the baseline's floor to `shiploop-navigator-contract`, about 100 s against 133 s.
+  bring the baseline's floor to `shiploop-navigator-contract`, about 100 s against 133 s. Update 2026-10-28: the floor
+  is now `shiploop-navigator-contract`, at 86.4 s on CI and 156.5 s locally, so splitting `shiploop-chain-async` alone
+  would no longer shorten quick. See F17.
 - F5 (firm): the `prompt` group needs the obligation ledger. On 5d3628b0 the four packet-size suites pass while the
   ledger fails, which is the 2.11.0 CI failure. Proof: `prompt-jobs8-5d3628b0-ledger-red.receipt.json`.
 - F6 (exploratory, unrelated to the runner): `shiploop-actual-improve-cli`'s
   `test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output` depends on the checkout path's length. On
   5d3628b0 it writes 1,536 characters and fails at a checkout path of about 130 characters (a scratch worktree), and
-  passes at this worktree's 59-character path. CI's path is shorter still.
-- F4 (interim): GitHub CI now runs each group with 4 jobs, the runner's CPU count. Quick ran in parallel there and
-  passed: run 40237477513 took 1 min 23 s against 3 min 26 s serial. The full shards (`shiploop-1|2|3`, `core`) have
-  not yet run in parallel anywhere, and the first release commit will be their first parallel run. If one is flaky
-  under parallel load, `--jobs 1` in `ci.yml` restores the serial run.
+  passes at this worktree's 59-character path. CI's path is shorter still. Update 2026-10-28: it still reproduces on
+  337b09c5, writing 1,538 characters at a 150-character checkout path and passing at 59.
+- F4 (firm since 2026-10-28; interim when written on 2026-10-25): GitHub CI now runs each group with 4 jobs, the
+  runner's CPU count. Quick ran in parallel there and passed: run 40237477513 took 1 min 23 s against 3 min 26 s serial.
+  The full shards (`shiploop-1|2|3`, `core`) have not yet run in parallel anywhere, and the first release commit will be
+  their first parallel run. If one is flaky under parallel load, `--jobs 1` in `ci.yml` restores the serial run.
+  Superseded in part on 2026-10-28: the full shards have since run at `--jobs 4` in six release runs, and the last two
+  passed every shard. See the recheck below and F16.
 
 ## Round 2 (2026-10-26): a private state home per suite, and the suites that wrote the developer's state
 
@@ -303,3 +308,70 @@ round's changed files select.
 - F14 (firm): a duration bound measured with `time.time()` fails when the machine sleeps mid-test. Use
   `time.monotonic()` for durations, and keep the wall clock for timestamps the product compares (the same file's
   `launch_stamp` and overlap fixtures).
+
+## Recheck of round 1 (2026-10-28, on 337b09c5)
+
+**Question.** Main has gained 152 commits since round 1 landed (98983fa2). Do round 1's pieces and claims still hold?
+
+**Code on main.** All of round 1 is still present:
+
+- `test/run_suites.py`: `DEFAULT_JOBS`, `_outcomes`, `_stop_process_groups` and `_timing_line`. Round 2 added the
+  state home around `run_process`.
+- `test/suite_catalog.py`: `PACKET_SIZE_IDS`, `_SHIPLOOP_PACKET_SOURCES`, `prompt()`, and the unknown-id check in
+  `validate_catalog()`.
+
+Every name in `_SHIPLOOP_PACKET_SOURCES` still selects all of `_SHIPLOOP_PACKET_IDS` in `quick()`, and
+`select(("prompt",))` is still the four packet-size suites plus `shiploop-packet-obligations`. `.github/workflows/ci.yml`
+has no `--jobs` pin. The catalog has grown to 161 suites (106 ShipLoop), against 155 in round 1.
+
+**Local runs** (this worktree fast-forwarded to 337b09c5, no local changes, `--jobs 8`, load average 9.7 at the start
+and 18.5 at the end):
+
+| Run | Suites | Wall | Slowest | Result |
+|---|---|---|---|---|
+| `--group prompt` | 5 | 8.7 s | `shiploop-packet-completeness` 8.7 s | PASS |
+| `--group quick --changed-from HEAD` | 16 | 156.5 s | `shiploop-navigator-contract` 156.5 s, `shiploop-chain-async` 149.4 s, `shiploop-navigator-dry-run` 27.4 s | PASS |
+
+**CI quick.** Run [40714446518](https://github.com/whichguy/skill-craft/actions/runs/40714446518) (04c45dce) took
+86.5 s of runner wall for the same 16 suites. The slowest were `shiploop-navigator-contract` at 86.4 s, against 50.9 s in
+round 1, then `shiploop-navigator-dry-run` at 43.1 s and `shiploop-chain-async` at 40.0 s.
+`shiploop-navigator-contract` has 134 tests now, against 130 then.
+
+**CI full tier at `--jobs 4`.** Every release since round 1:
+
+| Release | Run | Result | Cause of a failure |
+|---|---|---|---|
+| 2.14.0 (6a5b9d24) | [40347599478](https://github.com/whichguy/skill-craft/actions/runs/40347599478) | failure | `shiploop-e2e-experiments`: a pinned ref (9ed4ec24) missing from CI's shallow clone; 26351fb9 skips it there |
+| 2.15.0 (cebe0c3c) | [40350502942](https://github.com/whichguy/skill-craft/actions/runs/40350502942) | failure | the same |
+| 2.16.0 (6f8f3af1) | [40364730883](https://github.com/whichguy/skill-craft/actions/runs/40364730883) | success | |
+| 2.17.0 (2c961b40) | [40447967270](https://github.com/whichguy/skill-craft/actions/runs/40447967270) | failure | 8 suites. Six had stale expectations from the release's own change (090c8c88, 70d88d37), and two had races "that the busier runner exposed": git's detached auto-maintenance lock in `shiploop-e2e`, and SIGPIPE under `pipefail` in `install-targets`. All were fixed in 595973e7 |
+| 2.17.1 (a1d6ed32) | [40599499725](https://github.com/whichguy/skill-craft/actions/runs/40599499725) | success | |
+| 2.18.0 (292a2a36) | [40604228225](https://github.com/whichguy/skill-craft/actions/runs/40604228225) | success | |
+
+At 2.18.0 each full shard's wall was set by one suite:
+
+| Shard | Suites | Wall | Slowest suite |
+|---|---|---|---|
+| `core` | 53 | 662.6 s | `plan-dispatcher-mutants`, 472.7 s |
+| `shiploop-1` | 30 | 466.1 s | `shiploop-chain-lifecycle`, 450.2 s |
+| `shiploop-2` | 37 | 515.1 s | `shiploop-test-loop`, 323.2 s |
+| `shiploop-3` | 39 | 244.1 s | `shiploop-e2e`, 119.9 s |
+| `e2e-apparatus` | 2 | 848.4 s | `shiploop-e2e-apparatus` |
+
+**F6 and the leaked state.** F6 still reproduces (see F6). A broad scan of the owner's keepalive health records for
+temp paths found 43, all dated 2026-10-16 or earlier. Each one's `run_dir` is a session scratchpad under
+`/private/tmp/claude-501`, which means a real run, not a test fixture. That agrees with F12: no test-fixture record
+remains.
+
+**Findings**
+
+- F15 (firm): round 1 holds on 337b09c5. The pieces are present, the packet-source rule and the prompt group select as
+  designed, and both groups pass. Proof: the checks and local runs above.
+- F16 (firm): the full tier passes at `--jobs 4` on GitHub's runners (2.17.1 and 2.18.0, every shard). Parallel load has
+  exposed three latent test races so far: the two at 2.17.0 (fixed in 595973e7) and the native-pilot hold (F11). Each
+  was a test defect that serial timing had hidden, not a runner defect, so `--jobs 1` was never needed. Proof: the
+  release table.
+- F17 (interim): the quick floor grew. `shiploop-navigator-contract` went from 50.9 s to 86.4 s on CI with 4 more
+  tests, and from about 101 s to 156.5 s locally, partly the higher load. It is now the quick tier's floor in both
+  places, so shortening that one suite is the next gain for quick. In the full tier, the apparatus (848 s) and one
+  heavy suite per shard set the wall.
