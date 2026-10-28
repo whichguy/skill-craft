@@ -459,3 +459,6 @@ no gain" branch does not apply. A firm claim would need 4 samples per arm, to me
 need a second subject (Grok 4.7 after its reset) to show the effect is not DeepSeek's alone.
 
 **Harness.** `r3_report.py` reads `E6D*-*` folders (it read only `E6D-*`, so it skipped E6D2).
+
+**Owner decision, 2026-10-28:** "No, keep as is." No firming round: the step bound stays as shipped on this
+evidence, and E-SIZE1 (E6) is closed. F43 to F45 stay interim; a later round on another subject would reopen them.
