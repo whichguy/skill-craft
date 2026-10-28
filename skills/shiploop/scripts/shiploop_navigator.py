@@ -3182,9 +3182,11 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
     if not stages:
         return
-    if stages[-1] in ("implement", "test") and step_view(after, _current_work_item(after)) is not None:
+    if (stages[-1] in ("implement", "test") and "stage" in after
+            and step_view(after, _current_work_item(after)) is not None):
         # Inside an inline step's iteration the step's one commit, after its document stage and review, takes the
-        # knowledge home with the step's code, tests and docs (design T §8); a commit here would split it.
+        # knowledge home with the step's code, tests and docs (design T §8); a commit here would split it.  A state
+        # with no navigator cursor is in no iteration.
         return
     try:
         committed = knowledge.commit(after, stages[-1],
