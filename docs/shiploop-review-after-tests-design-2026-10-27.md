@@ -1,6 +1,6 @@
 # Improve review after the item's tests pass (design T), 2026-10-27
 
-Status: **design only; nothing built.** **§8 (2026-10-27) is the current proposal:** the owner's per-step iteration (build, test, document, Improve, commit for each step in turn). It supersedes the item-level order of §1 and §4 and the item-level flow of §7, and keeps their gates and evidence. §7 (2026-10-27) adds the gated flow: verify's checks become tests and gates,
+Status: **design only; nothing built.** **§8 (2026-10-27) is the current proposal, amended by §9** (Astra's review, sound with changes): the owner's per-step iteration (build, test, document, Improve, commit for each step in turn). It supersedes the item-level order of §1 and §4 and the item-level flow of §7, and keeps their gates and evidence. §7 (2026-10-27) adds the gated flow: verify's checks become tests and gates,
 and acceptance becomes a script step.
 
 Consumer: first the owner, deciding D1 to D4 (§6) and E1 to E3 (§7), then the session that builds T. It sits beside
@@ -249,7 +249,9 @@ Carry-forward follows, unchanged.
     sub-cases of the closest quoted case. Duty 3 already asks for rejection cases.
   - The result maps them: `entry_points: [{"entry", "tests": [...]}]`.
   - The new gate checks that every entry point in ShipLoop's change inventory (verify's existing entry run, moved to
-    the test stage) names three tests that ran.
+    the test stage) names three tests that ran. **Corrected (§9, row 7):** the change inventory lists files, not entry
+    points, so the script checks the map's structure and the tests' IDs; whether every entry point is covered is the
+    review's judgement.
   - The trace that found defects then becomes regression tests that the mutation check covers.
 - **The latest review iteration is trivial:** Improve's own exit rule.
 - **Later-phase checks pending with their owner:** a test-stage result field, which acceptance requires.
@@ -379,7 +381,7 @@ The gates in the test row, in plain terms:
 - **Mutation:** ShipLoop makes one-token changes to this step's changed lines, for example a flipped comparison. It
   applies each alone in a temporary copy and reruns the focused tests, which must notice. A mutant that survives needs
   a test that kills it, or a recorded disposition: equivalent, out of scope, or not exercisable
-  (`shiploop_mutation.mutation_check`). It is the check that the tests would catch a bug. It refused at least once in
+  (`shiploop_mutation.mutation_check`). A run that kills no mutant at all is refused even with dispositions (§9). It is the check that the tests would catch a bug. It refused at least once in
   every one of the five runs (`gate_counts.mutation_not_done`: 2, 1, 1, 3 and 4 times).
 - **Entry-point map** (new, §7.3): each entry point this step changed has its three cases, and they ran.
 
@@ -418,8 +420,8 @@ packets read what this one learned.
   - **clarified:** a vague requirement made precise by what the step decided, stated as observable behaviour;
   - **satisfied by:** the requirement, the files and step that meet it, and the tests that show it. 36036c wrote these
     for every requirement, but only at carry-forward;
-  - **changed:** the requirement's intent itself moved. That is never silent: it carries an open item, recorded as an
-    assumption in an unattended run.
+  - **changed:** the requirement's intent itself moved. That is never silent. **Corrected (§9, row 1):** as today
+    (`knowledge_home.step_spec_refusal`), it is a send-back to step-plan, not an open item.
 
   Stack choices stay out of the spec and go to architecture, because the two are orthogonal.
 - **Architecture (`KNOWLEDGE/architecture.md`).** A decision the step made or changed becomes a new `AD-<n>`, or
@@ -552,7 +554,54 @@ across the 13 runs listed none.
   an open item.
 - **F8. The skill decision per step,** moved from carry-forward. Recommended: yes, keeping today's repeat-evidence
   rule.
-- **F9. Skills in every iteration packet,** with the optional `stages` field. Recommended: yes.
+- **F9. Skills in every iteration packet,** with the optional `stages` field, the knowledge stage's included (§9).
+  Recommended: yes.
+
+## 9. Astra's review of §8, and the changes it makes (2026-10-27)
+
+Astra reviewed §8 at max effort in a read-only sandbox (`gpt-6-astra`, no fallback). Its verdict: **"sound with
+changes. The order is coherent; the proposal needs stronger contracts for iteration identity, final verification,
+and evidence retention."** The question and the answer, verbatim, are in
+[`astra-review-20261027.md`](experiments/e2e-review-after-tests-20261027/astra-review-20261027.md).
+
+I checked each finding against the code before taking it. Every P1 and P2 holds where I checked it:
+
+| # | finding | checked against | what changes in §8 |
+|---|---|---|---|
+| 1 (P1) | The knowledge stage could change a requirement's intent, or add an executable skill, after the last verification | `knowledge_home.step_spec_refusal`: an implement step may only add acceptance lines inside an existing R-n, each ending with its step marker such as `(W1/S2)`; changing or removing a line "changes the contract, which is the step plan's to decide: the refusal names send-back" | The knowledge stage keeps that rule. Clarified and satisfied-by entries are additions carrying the step marker. **A change of intent is a send-back to step-plan, not an open item** (this corrects 8.2b). A skill that adds executable files gets the lint gate and its own check at the knowledge stage's done |
+| 2 (P1) | A step currently advances when its build is accepted, and one Improve child is bound to the current producer | `implement_progress` counts accepted implement actions since the step plan; `validate` requires `active_improve.action_id` to be the current action | An **iteration identity** (item, plan revision, step, base) is carried through all six stages, and the step advances only after its commit. Improve's child binds to document's action; an omitted document's not-applicable record goes through the same checkpoint. The ask-agent route gets the same step boundaries (G1) |
+| 3 (P1) | Commit must be a recoverable gate, and other code also commits | `_item_commit` fires on verify; `_step_commit` tolerates failure; `_skill_commit` and `_knowledge_close` also commit; `commit_scope` leaves undeclared non-doc files, such as a new skill's scripts | **Within an iteration only the commit stage commits.** Improve runs with no-commit for its passes and its completion, and the knowledge-record and skill commits are suppressed. The commit stage persists a pending operation, checks the parent and the tree, retries idempotently, and the step advances only on success. Skill files are in its scope |
+| 4 (P1) | Assigning cases to steps is not enough for RED and GREEN | `stage_commands` gives the item's commands to test and verify; `new_ids`, `accepted_counts` and `floors` are item-level | For each step there are three sets: the commands active so far; **GREEN**, every case due so far; and **RED**, only this step's newly due cases, against the iteration base. `red_na` stays for characterization and test-only steps. A spanning case is due at its last dependency. The iteration base is threaded through the base check, mutation and lint. Tests a review adds are registered by ID, so the reruns include them |
+| 5 (P1) | Send-back and no-change are underspecified | `stage_spec._finish` uses `verify` as the send-back range's end | Each stage's send-back states which base survives, which receipts it invalidates and how retained edits are revalidated. A stage is skipped only when its obligations are already met, not merely because build changed nothing |
+| 6 (P1) | Earlier steps' evidence and obligations can disappear | `planning_revision.current_actions` keeps the latest done result per (item, stage); `_ITEM_RECORDS` gives system-test-author the item's one test result | **One revision-aware aggregate** of every step's receipts and open obligations. Carry-forward, system-test-author and the reconciliation verify did all read it. Each mock maps to a real system case and its owner |
+| 7 (P2) | Several "script gates" are model judgements in disguise | `lint.inventory_writes` records changed files, not entry points; `_check_skill_decision` accepts any nonempty evidence strings | **Correction to §7.3 and §8.2:** the change inventory is a list of files. Scripts check structure: map rows name real changed files and executed, distinct test IDs; AD IDs are unique; skill evidence names real step or item IDs where the procedure ran. Whether every entry point is covered, how an intent is classified and whether two procedures are the same are the review's judgement, and the packets say so |
+| 8 (P2) | Run Review needs more than a catalog refresh | `export.stage_model` reads every state version from 5 up with today's tables | A new lifecycle version (v6). Run Review renders it per step and still reads older runs. Fresh runs only, with no migration of saved states (one supported version) |
+| 9 (P2) | §8.4 is not a total-cost forecast | My recount: P0's item flow for three steps is 7 model actions (three implement, one Improve, test, document, verify); §8 is 15 (five per step) | §8.4 becomes a **pilot** that measures non-overlapping model time and packet volume. The cheapest faithful shape keeps the order with compact step packets, shared harnesses, reuse of unchanged receipts and a script-only commit |
+
+Nits, also taken:
+- **Lint.** Lint can be `off`, or a tool can be unavailable or time out; the coverage line (F6) reports both.
+- **Mutation.** A run in which no mutant is killed is refused even when every survivor has a disposition. Dispositions answer survivors only once at least one mutant was killed (this corrects 8.2's wording).
+- **Skills block.** F9's skills block includes the knowledge stage's packet.
+
+**9.1 Build order** (Astra's, which I adopt):
+1. Specify the iteration identity, producer ownership, retry invalidation and the final-tree commit invariant.
+2. Implement one two-step lifecycle, including an omitted document stage and the ask-agent route.
+3. Add due-case projection, cumulative floors, shared baselines and obligation aggregation.
+4. Exercise send-back, commit failure and retry, test-only steps, cross-step cases and tests a review adds.
+5. Update the packets and Run Review (v6, with older runs still read). Then run the two pilots, with stage-level
+   defect and cost attribution.
+
+**9.2 New decisions:**
+- **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
+  item-level, which is a second lifecycle to maintain.
+- **G2. Framing.** Recommended: present §8 as a quality and feedback-speed pilot. Its cost is measured, not forecast.
+
+Still unproven (Astra's open unknowns):
+- the net cost;
+- how faithful the mocks are;
+- whether the relocated review and the entry-point tests catch what verify used to catch.
+
+The pilots decide these.
 
 ## Not in this design
 
