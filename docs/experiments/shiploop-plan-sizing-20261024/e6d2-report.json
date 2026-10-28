@@ -1,0 +1,670 @@
+[
+ {
+  "experiment": "E6D2-K2",
+  "arm": "Cg",
+  "n": 3,
+  "delivered": 1.0,
+  "samples": [
+   {
+    "experiment": "E6D2-K2",
+    "arm": "Cg",
+    "sample": 1,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 5,
+    "host_cancelled": 0,
+    "implement_steps": 9,
+    "implement_seconds": 948.0,
+    "implement_seconds_per_step": 105.3,
+    "item_minutes": 78.3,
+    "improve_children": 3,
+    "improve_passes": 9,
+    "send_backs": 1,
+    "turns": 956,
+    "input_peak": 145363,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 4697.4,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K2",
+    "arm": "Cg",
+    "sample": 2,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 6,
+    "host_cancelled": 0,
+    "implement_steps": 6,
+    "implement_seconds": 949.0,
+    "implement_seconds_per_step": 158.2,
+    "item_minutes": 51.9,
+    "improve_children": 3,
+    "improve_passes": 5,
+    "send_backs": 0,
+    "turns": 665,
+    "input_peak": 147377,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 3114.8,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K2",
+    "arm": "Cg",
+    "sample": 3,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 5,
+    "host_cancelled": 0,
+    "implement_steps": 5,
+    "implement_seconds": 1627.0,
+    "implement_seconds_per_step": 325.4,
+    "item_minutes": 63.4,
+    "improve_children": 3,
+    "improve_passes": 4,
+    "send_backs": 0,
+    "turns": 615,
+    "input_peak": 143896,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 3803.4,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   }
+  ],
+  "steps": [
+   5,
+   6,
+   5
+  ],
+  "steps_median": 5,
+  "implement_steps": [
+   9,
+   6,
+   5
+  ],
+  "implement_steps_median": 6,
+  "implement_seconds_per_step": [
+   105.3,
+   158.2,
+   325.4
+  ],
+  "implement_seconds_per_step_median": 158.2,
+  "item_minutes": [
+   78.3,
+   51.9,
+   63.4
+  ],
+  "item_minutes_median": 63.4,
+  "improve_children": [
+   3,
+   3,
+   3
+  ],
+  "improve_children_median": 3,
+  "improve_passes": [
+   9,
+   5,
+   4
+  ],
+  "improve_passes_median": 5,
+  "send_backs": [
+   1,
+   0,
+   0
+  ],
+  "send_backs_median": 0,
+  "turns": [
+   956,
+   665,
+   615
+  ],
+  "turns_median": 665,
+  "input_peak": [
+   145363,
+   147377,
+   143896
+  ],
+  "input_peak_median": 145363
+ },
+ {
+  "experiment": "E6D2-K2",
+  "arm": "T",
+  "n": 3,
+  "delivered": 1.0,
+  "samples": [
+   {
+    "experiment": "E6D2-K2",
+    "arm": "T",
+    "sample": 1,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 4,
+    "host_cancelled": 0,
+    "implement_steps": 6,
+    "implement_seconds": 883.0,
+    "implement_seconds_per_step": 147.2,
+    "item_minutes": 72.7,
+    "improve_children": 4,
+    "improve_passes": 8,
+    "send_backs": 1,
+    "turns": 894,
+    "input_peak": 146085,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 4364.5,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K2",
+    "arm": "T",
+    "sample": 2,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 7,
+    "host_cancelled": 0,
+    "implement_steps": 7,
+    "implement_seconds": 2015.0,
+    "implement_seconds_per_step": 287.9,
+    "item_minutes": 124.3,
+    "improve_children": 3,
+    "improve_passes": 8,
+    "send_backs": 0,
+    "turns": 972,
+    "input_peak": 148471,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 7457.5,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K2",
+    "arm": "T",
+    "sample": 3,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 10,
+    "host_cancelled": 0,
+    "implement_steps": 10,
+    "implement_seconds": 2310.0,
+    "implement_seconds_per_step": 231.0,
+    "item_minutes": 145.5,
+    "improve_children": 3,
+    "improve_passes": 7,
+    "send_backs": 0,
+    "turns": 919,
+    "input_peak": 144620,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 8729.7,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   }
+  ],
+  "steps": [
+   4,
+   7,
+   10
+  ],
+  "steps_median": 7,
+  "implement_steps": [
+   6,
+   7,
+   10
+  ],
+  "implement_steps_median": 7,
+  "implement_seconds_per_step": [
+   147.2,
+   287.9,
+   231.0
+  ],
+  "implement_seconds_per_step_median": 231.0,
+  "item_minutes": [
+   72.7,
+   124.3,
+   145.5
+  ],
+  "item_minutes_median": 124.3,
+  "improve_children": [
+   4,
+   3,
+   3
+  ],
+  "improve_children_median": 3,
+  "improve_passes": [
+   8,
+   8,
+   7
+  ],
+  "improve_passes_median": 8,
+  "send_backs": [
+   1,
+   0,
+   0
+  ],
+  "send_backs_median": 0,
+  "turns": [
+   894,
+   972,
+   919
+  ],
+  "turns_median": 919,
+  "input_peak": [
+   146085,
+   148471,
+   144620
+  ],
+  "input_peak_median": 146085
+ },
+ {
+  "experiment": "E6D2-K4",
+  "arm": "Cg",
+  "n": 3,
+  "delivered": 1.0,
+  "samples": [
+   {
+    "experiment": "E6D2-K4",
+    "arm": "Cg",
+    "sample": 1,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 4,
+    "host_cancelled": 0,
+    "implement_steps": 4,
+    "implement_seconds": 1498.0,
+    "implement_seconds_per_step": 374.5,
+    "item_minutes": 96.1,
+    "improve_children": 3,
+    "improve_passes": 6,
+    "send_backs": 0,
+    "turns": 1105,
+    "input_peak": 153483,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 5767.8,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K4",
+    "arm": "Cg",
+    "sample": 2,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 5,
+    "host_cancelled": 0,
+    "implement_steps": 5,
+    "implement_seconds": 1415.0,
+    "implement_seconds_per_step": 283.0,
+    "item_minutes": 153.2,
+    "improve_children": 3,
+    "improve_passes": 8,
+    "send_backs": 0,
+    "turns": 1113,
+    "input_peak": 155152,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 9194.0,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K4",
+    "arm": "Cg",
+    "sample": 3,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 5,
+    "host_cancelled": 0,
+    "implement_steps": 5,
+    "implement_seconds": 622.0,
+    "implement_seconds_per_step": 124.4,
+    "item_minutes": 55.9,
+    "improve_children": 4,
+    "improve_passes": 10,
+    "send_backs": 1,
+    "turns": 1006,
+    "input_peak": 151281,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 3353.0,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   }
+  ],
+  "steps": [
+   4,
+   5,
+   5
+  ],
+  "steps_median": 5,
+  "implement_steps": [
+   4,
+   5,
+   5
+  ],
+  "implement_steps_median": 5,
+  "implement_seconds_per_step": [
+   374.5,
+   283.0,
+   124.4
+  ],
+  "implement_seconds_per_step_median": 283.0,
+  "item_minutes": [
+   96.1,
+   153.2,
+   55.9
+  ],
+  "item_minutes_median": 96.1,
+  "improve_children": [
+   3,
+   3,
+   4
+  ],
+  "improve_children_median": 3,
+  "improve_passes": [
+   6,
+   8,
+   10
+  ],
+  "improve_passes_median": 8,
+  "send_backs": [
+   0,
+   0,
+   1
+  ],
+  "send_backs_median": 0,
+  "turns": [
+   1105,
+   1113,
+   1006
+  ],
+  "turns_median": 1105,
+  "input_peak": [
+   153483,
+   155152,
+   151281
+  ],
+  "input_peak_median": 153483
+ },
+ {
+  "experiment": "E6D2-K4",
+  "arm": "T",
+  "n": 3,
+  "delivered": 1.0,
+  "samples": [
+   {
+    "experiment": "E6D2-K4",
+    "arm": "T",
+    "sample": 1,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 6,
+    "host_cancelled": 0,
+    "implement_steps": 6,
+    "implement_seconds": 1256.0,
+    "implement_seconds_per_step": 209.3,
+    "item_minutes": 123.9,
+    "improve_children": 3,
+    "improve_passes": 10,
+    "send_backs": 0,
+    "turns": 1188,
+    "input_peak": 153529,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 7433.9,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K4",
+    "arm": "T",
+    "sample": 2,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 3,
+    "host_cancelled": 0,
+    "implement_steps": 3,
+    "implement_seconds": 863.0,
+    "implement_seconds_per_step": 287.7,
+    "item_minutes": 127.0,
+    "improve_children": 3,
+    "improve_passes": 8,
+    "send_backs": 0,
+    "turns": 884,
+    "input_peak": 152133,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 7617.5,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   },
+   {
+    "experiment": "E6D2-K4",
+    "arm": "T",
+    "sample": 3,
+    "value": 1,
+    "verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "steps": 6,
+    "host_cancelled": 0,
+    "implement_steps": 6,
+    "implement_seconds": 1574.0,
+    "implement_seconds_per_step": 262.3,
+    "item_minutes": 82.9,
+    "improve_children": 3,
+    "improve_passes": 9,
+    "send_backs": 0,
+    "turns": 1044,
+    "input_peak": 151078,
+    "slice_pass": true,
+    "slice_verdicts": {
+     "process": true,
+     "inner_loop": true,
+     "no_overshoot": true,
+     "assembled": true,
+     "checks": true
+    },
+    "seconds": 4973.3,
+    "commit": "337b09c5417f81a8949a4ee8351361baa373ea79",
+    "planning_review": "stage"
+   }
+  ],
+  "steps": [
+   6,
+   3,
+   6
+  ],
+  "steps_median": 6,
+  "implement_steps": [
+   6,
+   3,
+   6
+  ],
+  "implement_steps_median": 6,
+  "implement_seconds_per_step": [
+   209.3,
+   287.7,
+   262.3
+  ],
+  "implement_seconds_per_step_median": 262.3,
+  "item_minutes": [
+   123.9,
+   127.0,
+   82.9
+  ],
+  "item_minutes_median": 123.9,
+  "improve_children": [
+   3,
+   3,
+   3
+  ],
+  "improve_children_median": 3,
+  "improve_passes": [
+   10,
+   8,
+   9
+  ],
+  "improve_passes_median": 9,
+  "send_backs": [
+   0,
+   0,
+   0
+  ],
+  "send_backs_median": 0,
+  "turns": [
+   1188,
+   884,
+   1044
+  ],
+  "turns_median": 1044,
+  "input_peak": [
+   153529,
+   152133,
+   151078
+  ],
+  "input_peak_median": 152133
+ }
+]

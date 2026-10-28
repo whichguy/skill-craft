@@ -23,7 +23,7 @@ FIELDS = ("steps", "implement_steps", "implement_seconds_per_step", "item_minute
 
 def rows(out: Path) -> list[dict]:
     table = []
-    for exp in sorted(p for p in out.glob("E6D-*") if p.is_dir()):
+    for exp in sorted(p for p in out.glob("E6D*-*") if p.is_dir()):  # E6D (Grok, 9ed4ec24) and E6D2 (DeepSeek flash, 337b09c5)
         for arm in sorted(p for p in exp.iterdir() if p.is_dir()):
             scores = [json.loads(s.read_text()) for s in sorted(arm.glob("*/score.json"), key=lambda p: int(p.parent.name))]
             if not scores:

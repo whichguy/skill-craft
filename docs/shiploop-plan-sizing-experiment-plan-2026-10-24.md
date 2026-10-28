@@ -194,7 +194,8 @@ the word to E-EFF1 before they reach main.
   the refused samples. The table comes from `r3_report.py`. Since 2026-10-28 R3 runs as `E6D2-K2` and `E6D2-K4` on
   today's ShipLoop (337b09c5, the bound as shipped against the same commit without it) on DeepSeek flash through the
   Claude host (journal entry 11): `experiment.py queue E6D2-K2 E6D2-K4 --arms T,Cg --samples 3 --jobs 4
-  --timeout=14400`.
+  --timeout=14400`. Done 2026-10-28 (journal entry 12): 12 of 12 delivered, the median item faster with the bound on
+  both cases (K2 63 against 124 minutes, K4 96 against 124), plans narrower; the bound stays as shipped.
 
 **Decision rule** (memory `eval-decision-priority`; `skills/rubric-eval/SPEC.md` section 8): quality, then tokens,
 then time; a tie keeps the control. Blocking for any arm: a K5 to K7 case over its band in a majority of repetitions,
