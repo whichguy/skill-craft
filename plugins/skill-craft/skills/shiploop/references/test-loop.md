@@ -115,8 +115,8 @@ it is the same rule: run the checks; when one fails, diagnose it, fix the
 product code and rerun; change a check only for an independent reason that the
 check itself is wrong. Only a final full pass after the last edit counts. The
 stage ends on exactly one of: every check passes (`done`); a check proven
-unachievable (`send-back`); or, at `implement`, the same check still failing after
-7 genuine fix attempts (`send-back`). A check that needs a tool, access or
+unachievable (`send-back`); or, at `implement`, the same check still failing in the same way after a genuine fix
+that taught nothing new about why (`send-back`). A check that needs a tool, access or
 authority that is absent ends `blocked`, awaiting the person or service that must act. The loop judges its
 own iterations; ShipLoop's gates at `complete` (lint, the test runs, the
 expectation checks) are the script-enforced part.

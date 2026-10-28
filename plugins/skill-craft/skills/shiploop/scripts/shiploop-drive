@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """shiploop-drive — start or resume host sessions until a ShipLoop run stops moving.
 
-  shiploop-drive --host HOST --run-dir DIR [--max-sessions N] [--session-timeout S] [-- HOST ARGS]
+  shiploop-drive --host HOST --run-dir DIR [--max-minutes N] [--session-timeout S] [-- HOST ARGS]
 """
 
 import sys

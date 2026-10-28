@@ -91,10 +91,13 @@ STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied an
 # Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
 # is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
-# The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
-# after this many genuine fix attempts ends the stage as send-back. No script counts the attempts; the model applies it, and
-# test/shiploop-stage-spec.test.py pins every prose copy to this value.
-GENUINE_FIX_ATTEMPTS = 7
+# The step exit criteria's stopping rule (SPEC S-10, owner decision 2026-10-10; a criterion, not a count, since the owner
+# chose it on 2026-10-28 in place of the old seven-attempt count): a genuine fix that leaves the same check failing the
+# same way, and taught nothing new about why, shows the plan is wrong, so the stage reports send-back. No script judges
+# it; the model applies it. Every prose copy carries STUCK_FIX_ANCHOR (test/shiploop-stage-spec.test.py).
+STUCK_FIX = ("the same check still fails in the same way after a genuine fix, and the fix taught you nothing new "
+             "about why")
+STUCK_FIX_ANCHOR = "in the same way after a genuine fix"
 
 
 @dataclass(frozen=True)

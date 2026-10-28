@@ -672,8 +672,6 @@ file cold with no run history. Every rule serves that reader.
 # What a producer packet prints instead of CODE_CRAFT: one line per rule; the full rubric stays in the reference.
 
 
-# The step exit criteria's stopping rule; test/shiploop-stage-spec.test.py pins every prose copy to this value.
-_FIX_ATTEMPTS = str(stage_spec.GENUINE_FIX_ATTEMPTS)
 
 # Delegation-specific paragraphs: the ask-agent text is in DUTIES; _INLINE_DUTY_PARAGRAPHS swaps in the inline one.
 _STEP_PLAN_GRAPH = """\
@@ -1432,7 +1430,7 @@ preparatory commit); a mismatch there is a send-back.
      done, with existing behaviour kept at the conflict point;
    - confirming it needs an absent tool, runtime, access or authority;
    - satisfying it would exceed the item;
-   - the same check still fails after """ + _FIX_ATTEMPTS + """ genuine fix attempts;
+   - """ + stage_spec.STUCK_FIX + """;
    - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
      selection) or needs a new prerequisite or authority boundary.
    Report blocked, with awaiting, only when a person (a decision or a grant) or an outside service must resolve it.

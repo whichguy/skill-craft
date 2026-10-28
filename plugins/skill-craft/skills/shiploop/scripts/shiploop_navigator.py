@@ -4715,6 +4715,11 @@ def _callback(core: Any, root: Path, command: str, **flags: str) -> str:
     return " ".join(shlex.quote(value) for value in argv)
 
 
+def complete_command(core: Any, root: Path, action_id: str) -> str:
+    """The `complete` callback a packet prints for ``action_id``, so the stop hook can name the same command."""
+    return _callback(core, root, "complete", action=action_id)
+
+
 def _result_input_path(root: Path, action_id: str) -> Path:
     return root / "inbox" / f"{action_id}.md"
 

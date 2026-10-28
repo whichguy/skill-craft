@@ -10,7 +10,7 @@ optional; runs work without it.
 | Part | What it does |
 |------|--------------|
 | Packet marker | Every packet prints `Keepalive marker: SHIPLOOP-RUN run=<id> rev=<n> dir=<run dir>`. |
-| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `repo`, `next`. Exit 2 with an `error` field when the run cannot be read. |
+| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `progress`, `repo`, `next`, and what the stop asks for: `loop` (the innermost Until Loop's `kind`, `status`, `iteration` and read-only `next`), `callback` (the step's `complete` command) and `delegation`. Exit 2 with an `error` field when the run cannot be read. |
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
@@ -23,11 +23,14 @@ that run, the packet command warns once on stderr ("ShipLoop keepalive is not
 active in this <host> session") with the host's fix, such as restarting Grok so
 its leader loads the plugin hooks. A session that was bound and later released
 does not warn. Its
-`progress` field is `<revision>.<callback attempts>.<Improve pass>`: an accepted
-result, a refused callback (the model is fixing and resubmitting) and each pass
-of an active Improve review all count as progress, so a long review or a fix
-loop is not mistaken for a stall. No count of continuations without an
-accepted result releases the turn: only a host's own cap (Grok's, below) ends one.
+`progress` field is `<revision>.<callback attempts>.<loop iteration>`: an accepted
+result, a refused callback (the model is fixing and resubmitting) and each reported
+iteration of the innermost Until Loop (an active Improve review's, else the current
+inner stage's) all count as progress, so a long review, a stage's loop or a fix
+loop is not mistaken for a stall. Running `next` binds the run again but is not
+progress: a re-bind of the same run keeps the stop's memory. No count of
+continuations without an accepted result releases the turn: only a host's own cap
+(Grok's, below) ends one.
 
 Each stop also counts the turn's continuations (the host's `stopHookActive` /
 `stop_hook_active` flag marks a continuation). Grok ends a turn after 8
@@ -40,7 +43,7 @@ and the driver never read `state.md` themselves.
 
 | Run state | Hook reply |
 |-----------|------------|
-| `active`, progress moved since the last refusal | Refuse the stop; the reason names `shiploop next --run-dir …`. |
+| `active`, progress moved since the last refusal | Refuse the stop; the reason names the report the run is owed: while the step's Until Loop is active, its next iteration report (the receipt's read-only `next_argv`); once a stage's loop has ended, the step's `complete` callback; otherwise, and always under `delegation: ask-agent`, `shiploop next --run-dir …`. Every reason also names `next` for a model that lost context. |
 | `active`, a host background task still running | Refuse the stop; the reason says to wait for the task in this turn. |
 | `active`, progress unchanged since the last refusal | Allow, with a notice that the run made no progress. |
 | `paused`, `blocked`, `halted`, `done` | Allow quietly and drop the binding. A `blocked` run waiting on the user (`awaiting` in hook-status) stays stopped until the user's reply resumes it. |
@@ -162,7 +165,9 @@ clean context.
 The driver stops when the run is not active (exit 0 when done, 3 when paused,
 blocked or halted), when a host exits non-zero without advancing the run (exit 4,
 often a host that could not start), after two sessions in a row without progress
-(exit 4), or at `--max-sessions` (exit 5). It keeps one JSON line per session in
+(exit 4), or, only when you pass `--max-minutes N`, once N minutes of wall clock
+have passed (exit 5; a session's timeout is cut to the time left). There is no
+ceiling by default: runs are meant to go on for a long time. It keeps one JSON line per session in
 `drive.log` and each session's output under
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/drive/<run id>/`, never in
 the run directory.

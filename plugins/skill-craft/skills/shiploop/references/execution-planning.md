@@ -317,7 +317,8 @@ Every `implement` step, like every other inner stage, runs its fix-until-confirm
 loop inside one bound Until Loop that ShipLoop writes for it
 ([stage Until Loops](inner-loop.md#stage-until-loops)): `work` is the step,
 `exit_condition` is the stage's Done-when lines, `repeat_condition` carries the
-proven-unachievable rule and the stop after 7 genuine fix attempts, and
+proven-unachievable rule and the stop when the same check still fails in the same way after a genuine fix that
+taught nothing new about why, and
 `required_trivial_reviews` is 0. A criterion that contradicts another criterion,
 the item or a protected file stops the loop, and the stage reports `send-back`. Before the owner decision of
 2026-10-10 this loop was selective, because on bounded steps it produced the
