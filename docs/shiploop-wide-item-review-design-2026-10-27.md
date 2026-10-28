@@ -2,7 +2,7 @@
 
 Status: **B released in 2.18.0 (292a2a36); its first live run did not exercise it** (2026-10-27, v2180-sonnet-battleship-36036c:
 no step declared paths, so the item formed one group; see `test/shiploop_e2e/LEARNINGS.md`, "Wide-item rule (B) live check").
-B needs reliable per-step paths first (F1, the owner's call). Earlier status: B built, not released (2026-10-27). The owner chose B without the replay ("Skip X1 and build design B
+B needs reliable per-step paths first (F1, the owner's call). **Update 2026-10-27:** F1 is dropped; [design C](shiploop-measured-width-design-2026-10-27.md) measures each step's change instead of reading declared paths, and reviews at the item's end, one review per group; not built. Earlier status: B built, not released (2026-10-27). The owner chose B without the replay ("Skip X1 and build design B
 (per-step reviews for wide items) with its fail-first tests and change note"). It is described under "Built" at the end of
 §3. The design itself came first, with nothing built ("Design the wide-item review fix here … build nothing yet").
 

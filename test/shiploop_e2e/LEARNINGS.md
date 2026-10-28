@@ -3985,7 +3985,11 @@ Setup:
 is shown by reading the page, as in 491d9a. Cost $9.32 and 365 turns, against 01b9b3's $8.47 and 339.
 
 **Next.**
-- **F1:** make B's input reliable.
+- ~~**F1:** make B's input reliable.~~ Superseded 2026-10-27: the owner asked for width measured from what each step
+  changed, not predicted by the plan. Measured from this run's step commits, its steps changed `game.js` /
+  `server.js` / `public/index.html`: three groups, as in 01b9b3. Design C:
+  [`docs/shiploop-measured-width-design-2026-10-27.md`](../../docs/shiploop-measured-width-design-2026-10-27.md),
+  evidence `docs/experiments/e2e-measured-width-20261027/step-changes.txt`. The F1 text, kept for the record:
   - Recommended: step-plan refuses a plan of two or more steps that does not name each step's paths.
   - Alternative: a step with no paths counts as its own group.
   - Then rerun Sonnet battleship.

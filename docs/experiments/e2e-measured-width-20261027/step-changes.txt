@@ -1,0 +1,13 @@
+# Each delivered run's implement steps: the files each step's own commit changed, and the groups they form (see step_changes.py).
+# From: python3 step_changes.py <skill-craft at 0ed6ce38> <scratch> ~/e2e-runs/2026102*/<run>/ (runs with delivery/work.bundle)
+ds-flash-978478-battleship           W1 r1 changed-steps=4 all=1 beh=1 code=1 C=1 | S1:lib/game.js[code] | S2:lib/game.js[code] | S3:lib/game.js[code] | S4:lib/game.js[code]
+ds-flash-978478-battleship           W2 r1 changed-steps=6 all=3 beh=3 code=3 C=2 | S1:public/index.html[code],server.js[code] | S2:server.js[code] | S3:server.js[code] | S4:server.js[code] | S5:README.md[docs] | S6:test-assets/intentional-failure.js[code],test-support/server.js[code]
+ds-flash-978478-battleship           W3 r1 changed-steps=2 all=1 beh=1 code=1 C=1 | S1:public/index.html[code] | S2:e2e/chrome.js[code],public/index.html[code]
+live-sonnet-battleship-01b9b3        W1 r1 changed-steps=3 all=3 beh=3 code=3 C=3 | S1:game.js[code] | S2:index.html[code] | S3:server.js[code]
+live-sonnet-hello-b01d1c             W1 r1 changed-steps=1 all=1 beh=1 code=1 C=1 | S1:hello.py[code]
+pilot-ollama-dsflash-993a9d-hello    W1 r1 changed-steps=2 all=2 beh=2 code=2 C=1 | S1:hello.py[code] | S2:.gitignore[config]
+v2170-ds-battleship-759a03           W1 r1 changed-steps=3 all=1 beh=1 code=1 C=1 | S1:.gitignore[config],battleship.js[code] | S2:battleship.js[code] | S3:battleship.js[code]
+v2170-ds-battleship-759a03           W2 r1 changed-steps=3 all=1 beh=1 code=1 C=1 | S1:public/index.html[code],server.js[code] | S2:public/index.html[code],server.js[code] | S3:server.js[code]
+v2170-ds-battleship-759a03           W3 r1 changed-steps=1 all=1 beh=1 code=1 C=1 | S1:browser-check/cdp.js[code],docs/shiploop/environment.md[docs]
+v2170-sonnet-battleship-491d9a       W1 r1 changed-steps=3 all=2 beh=2 code=2 C=2 | S1:game.js[code] | S2:server.js[code] | S3:server.js[code]
+v2180-sonnet-battleship-36036c       W1 r1 changed-steps=3 all=3 beh=3 code=3 C=3 | S1:game.js[code] | S2:server.js[code] | S3:public/index.html[code]
