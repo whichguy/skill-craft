@@ -1,6 +1,6 @@
 # Improve review after the item's tests pass (design T), 2026-10-27
 
-Status: **design only; nothing built.** **§8 (2026-10-27) is the current proposal:** the owner's per-step iteration (build, test, Improve, document, commit for each step in turn). It supersedes the item-level order of §1 and §4 and the item-level flow of §7, and keeps their gates and evidence. §7 (2026-10-27) adds the gated flow: verify's checks become tests and gates,
+Status: **design only; nothing built.** **§8 (2026-10-27) is the current proposal:** the owner's per-step iteration (build, test, document, Improve, commit for each step in turn). It supersedes the item-level order of §1 and §4 and the item-level flow of §7, and keeps their gates and evidence. §7 (2026-10-27) adds the gated flow: verify's checks become tests and gates,
 and acceptance becomes a script step.
 
 Consumer: first the owner, deciding D1 to D4 (§6) and E1 to E3 (§7), then the session that builds T. It sits beside
@@ -287,37 +287,57 @@ Removing it is the largest of T, C and this flow.
   model, and per-stage defect attribution in the report, so the batch can still be read. The alternative is
   separate releases, each measured alone.
 
-## 8. One iteration per step: build, test, Improve, document, commit (current proposal, 2026-10-27)
+## 8. One iteration per step: build, test, document, Improve, commit (current proposal, 2026-10-27)
 
-The owner, in four messages:
+**Revised the same day.** The first version ran Improve before document. The owner moved it after document, and asked
+that the test stage be defined as building out the test specification. 8.2 and 8.3 say what changed.
+
+The owner, in five messages:
 - "To be very clear, I want to build one step, then test, improve, and document, and then build step number two,
   then test it, improve it, document it, and so forth and so forth. The goal is not to just do one monolithic build of
   all the steps."
 - "We should have a very specific stage which is like 'commit all the changes,' not just 'verify.' 'Verify' is too
   generic."
 - "We should commit on every iteration right after the documentation."
+- "I think the improve step should come after document, and we should clear that the tests should build out from the
+  test specification. The test specification should actually build out the tests themselves, performing the tests,
+  looping as needed."
 - Earlier (memory `todo-step-series-order`, 2026-10-17): each planned step runs its own series, in plan order.
 
 **8.1 The shape.**
 
 | when | stages | who works |
 |---|---|---|
-| once per item, before the steps | step-plan; test-spec, with each case assigned to a step; validate-existing | model |
-| **for each step, in plan order** | **build → test → Improve → document → commit** | model, except commit: ShipLoop only |
+| once per item, before the steps | step-plan; test-spec, which specifies every case (its ID, oracle, RED and GREEN) and assigns each to a step; validate-existing | model |
+| **for each step, in plan order** | **build → test → document → Improve → commit** | model, except commit: ShipLoop only |
 | once per item, after the last step | carry-forward | model |
 
-Verify is retired. The commit stage replaces it and is named for what it does. The next step's build starts from
-that commit.
+- Verify is retired. The commit stage replaces it and is named for what it does.
+- The commit stage follows Improve, the iteration's last edit. It is still the commit "on every iteration right after
+  the documentation": the documented and reviewed step goes into one commit.
+- The next step's build starts from that commit.
 
 **8.2 Each stage and its exit gates** (all run by ShipLoop; a refusal returns to the same stage):
 
 | stage | the work | exit gates |
 |---|---|---|
 | build | write this step's code | lint gate; the step's Proof |
-| test | write this step's cases (its assigned test-spec cases, plus a valid, a boundary and an invalid case for each entry point it changed); run every recorded command; fix the code (or a test, for a recorded reason) until green | the tests pass; IDs; floors; RED against the code before this step; mutation of this step's changed lines; lint; the entry-point map |
-| Improve | review this step's code and tests, now green; each behaviour fix adds a test; rerun every command after each edit | its own rule (a pass that changes nothing material ends it); at import: lint and a rerun of every recorded command |
-| document | update the docs this step's change affects | lint on docs; the doc checks among the recorded commands |
-| commit | ShipLoop commits everything the iteration changed (code, tests, review fixes, docs) as one `feat(<item>/<step>)` commit. Its message carries the step's learnings and decisions, the review's lessons and the evidence. | none of its own: it checks that the tree is the one the last gates ran on |
+| test: build out the test specification | turn each test-spec case assigned to this step into a test, titled with its ID and asserting the case's oracle (never the code's current behaviour); add a valid, a boundary and an invalid case for each entry point the step changed; perform them by running every recorded command; loop: fix the code, or a test for a recorded independent reason, until one run after the last edit passes every gate | the tests pass; IDs; floors; RED against the code before this step; mutation of this step's changed lines; lint; the entry-point map |
+| document | update the docs this step's change affects, from the behaviour the tests now show | lint on docs; the doc checks among the recorded commands |
+| Improve | review the whole step together (code, tests and docs), now green and documented. A behaviour fix adds a test for it and corrects the docs it affects; a doc that disagrees with the code is a finding. Rerun every command after each edit | its own rule (a pass that changes nothing material ends it); at import, the iteration's final gate: lint and a rerun of every recorded command, doc checks included |
+| commit | ShipLoop commits everything the iteration changed (code, tests, docs, review fixes) as one `feat(<item>/<step>)` commit. Its message carries the step's learnings and decisions, the review's lessons and the evidence. | none of its own: it checks that the tree is the one Improve's final gate ran on |
+
+**The test stage, defined.** The test specification is the source of every test. The test stage builds out this
+step's part of it into tests, performs them, and loops until they pass:
+1. **Build out:** one test per assigned case, titled with its ID, asserting the oracle the spec states.
+2. **Perform:** run every recorded command, which covers this step's focused tests, the earlier steps' tests and the
+   regression suite.
+3. **Loop:** for each failure, find its cause with one small observation and fix the product. Change a test only for
+   an independent reason recorded in the notes. Never weaken, delete or skip one. Repeat until one complete run after
+   the last edit passes every gate. There is no iteration limit.
+
+The stage's Goal line says exactly this: §2's wording, scoped to the step's cases. The test-spec stage itself still writes no test code: it fixes what
+each test must assert before any code exists, so a test asserts the spec, not whatever the code does.
 
 The gates in the test row, in plain terms:
 - **The tests pass:** every recorded command exits 0. This is "run the tests and see if they pass".
@@ -335,8 +355,9 @@ The gates in the test row, in plain terms:
 - **Entry-point map** (new, §7.3): each entry point this step changed has its three cases, and they ran.
 
 **8.3 What changes from today:**
-- **Tests per step.** Today they are written once per item, after every step. The test-spec assigns each case to the
-  step whose code it tests. A case that needs several steps goes to the last of them.
+- **Tests per step, built out from the spec.** Today they are written once per item, after every step. The
+  test-spec assigns each case to the step whose code it tests. A case that needs several steps goes to the last of
+  them.
 
   This also fixes the cause in `todo-step-series-order`. There, item-wide checks could not pass on S1, so a chess run
   collapsed three steps into one. A check bound to its step is due only when that step is done.
@@ -344,15 +365,22 @@ The gates in the test row, in plain terms:
   test/game.test.js TC-7,8,9,12,13,14 then game.js; (2) test/helpers.js + test/server.test.js … then server.js; (3)
   public/index.html with TC-4; (4) test/browser.test.js TC-15", and ShipLoop's stage order deferred every test to
   after S3.
-- **A review per step, after its tests.** This returns to the count from before P0, now after green.
+- **Document, then Improve.**
+  - The review sees the step whole: code, tests and the docs that describe them. A doc that disagrees with the code
+    becomes a review finding, not something nobody checks.
+  - The review is the iteration's last edit, so its final gate is the gate the commit relies on.
+  - The cost: a review fix that changes behaviour must also correct the docs, and the review's handoff says so.
+- **A review per step, after its tests and docs.** This returns to the count from before P0.
   - Design C is not needed: each step is reviewed on its own change.
   - B's declared-path rule goes.
 - **A document stage per step.** It is left out when the step changed no behavioural path (the existing left-out
   rule).
-- **One commit per iteration, after document.** It replaces three kinds of commit today: the step commit before
-  Improve, the review's own commits, and the item commit at verify. On this route the review leaves its edits
-  uncommitted for the commit stage; the improve skill's route already has a no-commit request. The look-back reads
-  one commit per step, holding everything that step learned.
+- **One commit per iteration, as the last stage.**
+  - It replaces three kinds of commit today: the step commit before Improve, the review's own commits, and the item
+    commit at verify.
+  - On this route the review leaves its edits uncommitted for the commit stage; the improve skill's route already has
+    a no-commit request.
+  - The look-back reads one commit per step, holding everything that step learned.
 - **Each iteration starts from a commit.** The next step's base is HEAD, so its RED check, review diff and look-back
   each name one step.
 
@@ -367,8 +395,8 @@ The gates in the test row, in plain terms:
   - a review whose first pass is trivial ends after one pass;
   - each step's tests and mutants cover one step's lines, not the whole item;
   - verify's stage and packet are gone.
-- **Prediction to measure:** after green tests, more step reviews end on a trivial first pass than the 8 of 12 seen
-  in 978478 before P0.
+- **Prediction to measure:** after green tests and written docs, more step reviews end on a trivial first pass than
+  the 8 of 12 seen in 978478 before P0.
 
 **8.5 Decisions for the owner:**
 - **F1. Cases assigned to steps in the test-spec.** Recommended: yes, with a gate that every case names a step of the
@@ -377,6 +405,10 @@ The gates in the test row, in plain terms:
   after test as well, so the review's commits stay separate.
 - **F3. Accept the per-step cost, and measure it.** Recommended: yes, with one Sonnet and one DeepSeek battleship run.
   The report shows each stage's minutes per step, and which stage fixed each defect.
+- **F4. Where the test code is written.** Recommended: in each step's test stage, from the spec, after the step's code
+  (above). This matches the owner's order "author the code, do the tests, make the code fit the tests". The
+  alternative is test-first: the test-spec stage writes each step's tests before its build, RED by design, and the
+  build loops until they pass.
 
 ## Not in this design
 
