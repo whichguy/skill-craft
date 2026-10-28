@@ -382,6 +382,7 @@ _CORE_SUITES = (
     _suite("agent-harness-delivery", "core", "test/agent-harness-delivery.test.py", "python3", "-B", "test/agent-harness-delivery.test.py", groups=("agent-harness", "in-parallel")),
     _suite("agent-harness-boundaries", "core", "test/agent-harness-boundaries.test.py", "python3", "-B", "test/agent-harness-boundaries.test.py", groups=("agent-harness", "in-parallel")),
     _suite("agent-harness-audit", "core", "test/experiments/agent_harness/test_audit.py", "python3", "-B", "test/experiments/agent_harness/test_audit.py", groups=("agent-harness", "in-parallel")),
+    _suite("agent-harness-controller", "core", "test/experiments/ask_agent_parallel_worktrees/test_controller.py", "python3", "-B", "test/experiments/ask_agent_parallel_worktrees/test_controller.py", groups=("agent-harness", "in-parallel")),
     _suite("skill-interop-hygiene", "core", "test/skill-interop-hygiene.test.sh", "bash", "test/skill-interop-hygiene.test.sh"),
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
@@ -563,6 +564,8 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 _PREFIX_SUITE_IDS = {
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
+    "test/experiments/agent_harness/": ("agent-harness-audit",),
+    "test/experiments/ask_agent_parallel_worktrees/controller.py": ("agent-harness-controller", "agent-harness-audit"),
     "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.

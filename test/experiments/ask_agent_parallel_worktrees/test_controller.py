@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import controller
 
@@ -28,6 +28,36 @@ class ControllerControls(unittest.TestCase):
     def verifier(self,*args,**kwargs):
         self.write('verification.json',{'passed':True})
         return subprocess.CompletedProcess(args[0],0,'verified','')
+
+    def test_live_launcher_retains_normal_permissions_and_exact_invocation(self):
+        # Exercise the launch boundary without a model or permission-setting mutation.
+        (self.op/'launch.json').unlink()
+        (self.run/'caller').mkdir()
+        (self.run/'manifest.json').write_text('{}\n')
+        binary = self.run/'fake grok'
+        binary.write_text('offline executable fixture\n')
+        process = Mock(pid=12345, stdout=iter(()))
+        process.wait.return_value = 0
+
+        def metadata(argv, **kwargs):
+            output = 'offline-version' if '--version' in argv else '{}'
+            return subprocess.CompletedProcess(argv, 0, output, '')
+
+        with patch('controller.subprocess.run', side_effect=metadata), \
+                patch('controller.subprocess.Popen', return_value=process) as spawn, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(controller.launch(self.run, str(binary)), 0)
+        launch = json.loads((self.op/'launch.json').read_text())
+        argv = spawn.call_args.args[0]
+        self.assertEqual(argv, launch['argv'])
+        self.assertEqual(argv[argv.index('--permission-mode') + 1], 'default')
+        self.assertNotIn('--always-approve', argv)
+        self.assertNotIn('bypassPermissions', argv)
+        self.assertNotIn('--resume', argv)
+        self.assertEqual(argv[argv.index('--prompt-file') + 1], str((self.op/'parent-prompt.txt').resolve()))
+        self.assertEqual(spawn.call_args.kwargs['cwd'], (self.run/'caller').resolve())
+        self.assertEqual(launch['pid'], process.pid)
+        self.assertEqual(json.loads((self.op/'process-result.json').read_text())['exit_code'], 0)
 
     def test_failed_parent_cannot_pass_file_verification(self):
         self.write('process-result.json',{'exit_code':1})

@@ -46,6 +46,7 @@ class InParallelQueueTests(unittest.TestCase):
     _sha256 = _FIXTURES.AgentHarnessOfflineContractTests._sha256
     _git_snapshot = _FIXTURES.AgentHarnessOfflineContractTests._git_snapshot
     _make_dirty_parent = _FIXTURES.AgentHarnessOfflineContractTests._make_dirty_parent
+    _worktree_registered = _FIXTURES.AgentHarnessOfflineContractTests._worktree_registered
 
     def _tasks(self, prefix: str, count: int) -> list[dict[str, Any]]:
         return [self._task(f"{prefix}-{number}", write_set=[]) for number in range(1, count + 1)]
@@ -139,6 +140,207 @@ class InParallelQueueTests(unittest.TestCase):
         self.assertEqual(blocked.get("code"), "WORKERS_NOT_ACCEPTED", blocked)
         self.assertFalse((run / "result.json").exists())
         return blocked
+
+    def _worktree_outputs(self, task_id: str) -> dict[str, str]:
+        return {
+            f"contributions/{task_id}.txt": f"contribution::{task_id}\n",
+            f"resources/{task_id}.json": json.dumps(
+                {"id": task_id, "resource": f"resource::{task_id}"}, sort_keys=True,
+            ) + "\n",
+        }
+
+    def _exercise_worktree_output_queue(self, *, run_name: str, task_count: int,
+                                        capacity: int | None, expected_capacity: int) -> None:
+        before = self._make_dirty_parent()
+        parent_files = {
+            name: (self.source / name).read_bytes()
+            for name in (".gitignore", ".claspignore", "caller.txt", "caller-note.txt")
+        }
+        task_ids = [f"{run_name}-{number}" for number in range(1, task_count + 1)]
+        outputs_by_task = {task_id: self._worktree_outputs(task_id) for task_id in task_ids}
+        expected_files = {
+            path: content
+            for task_outputs in outputs_by_task.values()
+            for path, content in task_outputs.items()
+        }
+        tasks = [self._task(task_id, write_set=list(outputs_by_task[task_id])) for task_id in task_ids]
+        check_code = (
+            "from pathlib import Path; expected = " + repr(expected_files) +
+            "; actual = {path: Path(path).read_text(encoding='utf-8') for path in expected}; "
+            "assert actual == expected, (actual, expected); "
+            "print('all queued contributions and resources verified')"
+        )
+        request = self._request(
+            tasks, workspace="worktree", mode="edit", capacity=capacity, integration="apply",
+            checks=[[sys.executable, "-c", check_code]],
+        )
+        self.assertEqual("capacity" in request, capacity is not None, request)
+        run = self._init(request, run_name)
+        metadata = json.loads((run / "run.json").read_text(encoding="utf-8"))
+        self.assertEqual(metadata["request"]["capacity"], expected_capacity, metadata["request"])
+        self.assertEqual(list((run / "prepared").glob("*.json")), [],
+                         "Planning the full backlog must not prepare workers eagerly")
+        self.assertTrue(all(not (self.source / path).exists() for path in expected_files))
+
+        response = self._dispatch(run)
+        self.assertEqual(response.get("status"), "LAUNCH_REQUIRED", response)
+        initial = response.get("launches", [])
+        self.assertEqual(len(initial), expected_capacity, initial)
+        self.assertEqual({launch["task"] for launch in initial}, set(task_ids[:expected_capacity]))
+
+        scheduled: list[dict[str, Any]] = []
+        scheduled_ids: list[str] = []
+        attempts: set[str] = set()
+        handles: set[str] = set()
+        handles_by_attempt: dict[str, str] = {}
+        worktree_cwds: set[str] = set()
+        launch_by_task: dict[str, dict[str, Any]] = {}
+        active: dict[str, dict[str, Any]] = {}
+        records: dict[str, dict[str, Any]] = {}
+        completion_order: list[str] = []
+
+        def remember_launches(launches: list[dict[str, Any]]) -> None:
+            for launch in launches:
+                task_id = launch["task"]
+                attempt = launch["attempt"]
+                cwd = launch["cwd"]
+                worker_root = Path(cwd)
+                handle = self._handle(launch)
+                self.assertIn(task_id, task_ids, launch)
+                self.assertNotIn(task_id, scheduled_ids, launch)
+                self.assertNotIn(attempt, attempts, launch)
+                self.assertNotIn(handle, handles, launch)
+                self.assertNotIn(cwd, worktree_cwds, launch)
+                self.assertTrue(worker_root.is_absolute(), launch)
+                self.assertTrue(worker_root.is_dir(), launch)
+                self.assertTrue(self._worktree_registered(worker_root), launch)
+                for name, contents in parent_files.items():
+                    self.assertEqual((worker_root / name).read_bytes(), contents, (launch, name))
+                for path in expected_files:
+                    self.assertFalse((worker_root / path).exists(), (launch, path))
+                attempts.add(attempt)
+                handles.add(handle)
+                handles_by_attempt[attempt] = handle
+                worktree_cwds.add(cwd)
+                scheduled_ids.append(task_id)
+                scheduled.append(launch)
+                launch_by_task[task_id] = launch
+                active[attempt] = launch
+
+        def assert_parent_untouched() -> None:
+            self.assertEqual(self._git_snapshot(self.source), before)
+            for name, contents in parent_files.items():
+                self.assertEqual((self.source / name).read_bytes(), contents, name)
+            for path in expected_files:
+                self.assertFalse((self.source / path).exists(), path)
+
+        remember_launches(initial)
+        self.assertEqual({path.stem for path in (run / "prepared").glob("*.json")}, attempts)
+        self.assertEqual(self._active_attempts(run, expected_capacity), set(active))
+        assert_parent_untouched()
+
+        # Finish a later initial task first, then an earlier one, so refill is
+        # exercised while other initially reserved contexts remain active.
+        completion_queue = [initial[-1], *initial[:-1]]
+        while completion_queue:
+            launch = completion_queue.pop(0)
+            task_id = launch["task"]
+            self.assertIn(launch["attempt"], active)
+            self.assertNotIn(task_id, records)
+            if len(records) == task_count - 1:
+                self._finish_blocked(run)
+                assert_parent_untouched()
+
+            record = self._accept_finding(
+                run, launch, self._expected_findings([task_id])[task_id],
+                edits=outputs_by_task[task_id], commit=True,
+            )
+            self.assertEqual(record["result"]["native_handle"], handles_by_attempt[launch["attempt"]])
+            records[task_id] = record
+            completion_order.append(task_id)
+            active.pop(launch["attempt"])
+            assert_parent_untouched()
+
+            pending = set(task_ids) - set(scheduled_ids)
+            response = self._dispatch(run)
+            new_launches = response.get("launches", [])
+            expected_new = min(expected_capacity - len(active), len(pending))
+            self.assertEqual(len(new_launches), expected_new, response)
+            self.assertEqual(response.get("status"),
+                             "LAUNCH_REQUIRED" if expected_new else "NO_NEW_LAUNCH", response)
+            reserved_before_refill = set(active)
+            remember_launches(new_launches)
+            if len(records) == 1:
+                self.assertEqual(len(new_launches), 1, response)
+                self.assertEqual(len(active), expected_capacity, active)
+                self.assertEqual({item["attempt"] for item in initial[:-1]}, reserved_before_refill)
+                self.assertTrue(reserved_before_refill.issubset(active), active)
+                self._finish_blocked(run)
+                assert_parent_untouched()
+            completion_queue.extend(new_launches)
+            self.assertLessEqual(len(active), expected_capacity, active)
+            self.assertEqual(self._active_attempts(run, expected_capacity), set(active))
+            self.assertEqual({path.stem for path in (run / "prepared").glob("*.json")}, attempts,
+                             "Only yielded queue items may have prepared worker contexts")
+
+        self.assertEqual(completion_order[:2], [initial[-1]["task"], initial[0]["task"]])
+        self.assertNotEqual(completion_order[:2], [launch["task"] for launch in initial[:2]])
+        self.assertEqual(set(scheduled_ids), set(task_ids))
+        self.assertEqual(len(scheduled_ids), task_count)
+        self.assertEqual(len(attempts), task_count)
+        self.assertEqual(len(handles), task_count)
+        self.assertEqual(len(worktree_cwds), task_count)
+        self.assertEqual(set(records), set(task_ids))
+        self.assertEqual(active, {})
+        self.assertEqual(self._active_attempts(run, expected_capacity), set())
+        self.assertEqual(self._dispatch(run).get("status"), "NO_NEW_LAUNCH")
+        assert_parent_untouched()
+
+        finished = self._harness("finish", "--run", str(run))
+        self._assert_final_aggregate(finished, task_ids, self._expected_findings(task_ids), records,
+                                     integration="applied")
+        self.assertEqual(finished.get("cleanup_status"), "complete", finished)
+        applied_paths = finished["integration"]["applied_paths"]
+        self.assertEqual(len(applied_paths), len(expected_files))
+        self.assertEqual(set(applied_paths), set(expected_files))
+        self.assertTrue(finished["integration"]["postcondition"]["head_and_index_preserved"])
+        self.assertTrue(finished["integration"]["postcondition"]["worker_files_match"])
+        for path, content in expected_files.items():
+            self.assertEqual((self.source / path).read_text(encoding="utf-8"), content, path)
+        for name, contents in parent_files.items():
+            self.assertEqual((self.source / name).read_bytes(), contents, name)
+        after = self._git_snapshot(self.source)
+        for key in ("head", "index_bytes", "index_entries", "cached_diff"):
+            self.assertEqual(after[key], before[key], key)
+        self.assertIn("caller.txt", after["status"])
+        self.assertIn("caller-note.txt", after["status"])
+
+        committed_workers = finished["integration"].get("workers")
+        self.assertIsInstance(committed_workers, list, finished["integration"])
+        self.assertEqual({worker["id"] for worker in committed_workers}, set(task_ids))
+        registered = self._git(self.source, "worktree", "list", "--porcelain").stdout.splitlines()
+        for worker in committed_workers:
+            self.assertTrue(worker.get("commits"), worker)
+            worker_root = Path(launch_by_task[worker["id"]]["cwd"])
+            self.assertFalse(worker_root.exists(), worker)
+            self.assertNotIn("worktree " + str(worker_root), registered)
+            for commit in worker["commits"]:
+                self.assertIn(commit, finished["retained_locations"])
+                self._git(self.source, "cat-file", "-e", f"{commit}^{{commit}}")
+            accepted = next(item for item in finished["workers"] if item["id"] == worker["id"])
+            self._git(self.source, "show-ref", "--verify", "refs/heads/" + accepted["branch"])
+
+    def test_worktree_output_queue_drains_eight_tasks_at_explicit_capacity_three(self) -> None:
+        self._exercise_worktree_output_queue(
+            run_name="worktree-queue-eight-cap-three", task_count=8,
+            capacity=3, expected_capacity=3,
+        )
+
+    def test_worktree_output_queue_defaults_to_five_for_eleven_tasks(self) -> None:
+        self._exercise_worktree_output_queue(
+            run_name="worktree-queue-eleven-default-capacity", task_count=11,
+            capacity=None, expected_capacity=5,
+        )
 
     def _drain_queue(self, run: Path, initial: list[dict[str, Any]], task_ids: list[str],
                      findings: Mapping[str, str], capacity: int,

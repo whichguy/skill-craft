@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 83)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 51)
-        self.assertEqual(len(suite_catalog.SUITES), 136)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 52)
+        self.assertEqual(len(suite_catalog.SUITES), 137)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -136,6 +136,7 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual({suite.id for suite in selected}, {
             "agent-harness", "agent-harness-delivery", "agent-harness-boundaries",
             "agent-harness-audit", "plan-dispatcher-harness", "in-parallel-composition", "in-parallel-queue", "in-parallel-queue-audit",
+            "agent-harness-controller",
         })
         self.assertEqual(suite_catalog.select(("agent-harness",)), selected)
         self.assertEqual(suite_catalog.select(("in-parallel", "agent-harness")), selected)
@@ -156,17 +157,23 @@ class TestGroupTests(unittest.TestCase):
             "skills/in-parallel/scripts/harness.py": {
                 "agent-harness", "agent-harness-delivery", "agent-harness-boundaries",
                 "agent-harness-audit", "plan-dispatcher-harness", "in-parallel-composition", "in-parallel-queue", "in-parallel-queue-audit",
+                "agent-harness-controller",
                 "marketplace-package",
             },
             "agents/in-parallel.md": {
                 "agent-harness", "agent-harness-delivery", "agent-harness-boundaries",
                 "agent-harness-audit", "plan-dispatcher-harness", "in-parallel-composition", "in-parallel-queue", "in-parallel-queue-audit",
+                "agent-harness-controller",
                 "marketplace-package",
             },
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity",
                                          "shiploop-packet-completeness", "shiploop-step-packets",
                                          "shiploop-reference", "shiploop-packet-recut"},
+            "test/experiments/agent_harness/experiment.py": {"agent-harness-audit"},
+            "test/experiments/ask_agent_parallel_worktrees/controller.py": {
+                "agent-harness-controller", "agent-harness-audit",
+            },
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
             # The Run Review leaf: its own suite plus the package build that gates a new leaf.
             "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},

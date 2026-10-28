@@ -18,6 +18,15 @@ ROOT = Path(__file__).resolve().parent
 def write_json(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
+def build_launch_argv(binary, session_id, run, *, model='grok-4.7', effort='medium'):
+    """Start one fresh coordinator with normal host permission checks intact."""
+    run = Path(run)
+    return [str(binary), '--cwd', str(run / 'caller'),
+            '--prompt-file', str(run / 'operator' / 'parent-prompt.txt'),
+            '--verbatim', '--output-format', 'streaming-json', '--model', model,
+            '--reasoning-effort', effort, '--session-id', session_id,
+            '--permission-mode', 'default']
+
 def launch(run, grok_binary=None, model='grok-4.7', effort='medium'):
     run = Path(run).resolve()
     op = run / 'operator'
@@ -80,9 +89,7 @@ def launch(run, grok_binary=None, model='grok-4.7', effort='medium'):
     grok = Path(executable).resolve(strict=True)
     version = subprocess.run([str(grok), '--version'], capture_output=True, text=True, check=True).stdout.strip()
     session = str(uuid.uuid4())
-    argv = [str(grok), '--cwd', str(run / 'caller'), '--prompt-file', str(prompt),
-            '--verbatim', '--output-format', 'streaming-json', '--model', model,
-            '--reasoning-effort', effort, '--session-id', session, '--always-approve']
+    argv = build_launch_argv(grok, session, run, model=model, effort=effort)
     started = time.time()
     started_clock = time.monotonic()
     identity = {'session_id': session, 'argv': argv, 'cwd': str(run / 'caller'),

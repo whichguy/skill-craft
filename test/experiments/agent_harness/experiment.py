@@ -33,6 +33,8 @@ EXTERNAL_APPARATUS = (
     LEGACY / "controller.py", LEGACY / "native_trace.py",
 )
 FORMULAS = ((2, 3), (3, 5), (5, 7), (7, 11), (11, 13))
+DEFAULT_WORKER_CAPACITY = 5
+RESOURCE_FIXTURE_VERSION = "module-json/v1"
 
 
 class ExperimentError(RuntimeError):
@@ -125,6 +127,19 @@ def _validate_launch_identity(case_dir: Path, case: dict, launch: dict, process:
             raise ExperimentError("Grok root launch manifest hash differs")
         if not isinstance(launch.get("version"), str) or not launch["version"].strip():
             raise ExperimentError("Grok root launch lacks its CLI version")
+        if "grok_permission_mode" in case:
+            if case["grok_permission_mode"] != "default":
+                raise ExperimentError("new Grok cases require the recorded default permission mode")
+            sys.path.insert(0, str(LEGACY))
+            import controller
+            expected_argv = controller.build_launch_argv(
+                launch["argv"][0], launch["session_id"], case_dir,
+                model=case["model"], effort=case["effort"],
+            )
+            if launch["argv"] != expected_argv:
+                raise ExperimentError("Grok root argv differs from the pinned normal-permission invocation")
+            if any(flag in launch["argv"] for flag in ("--always-approve", "--yolo", "--dangerously-skip-permissions")):
+                raise ExperimentError("new Grok launch contains a permission-bypass flag")
     else:
         raise ExperimentError("Unknown root provider in retained launch")
 
@@ -160,6 +175,27 @@ def _git(root: Path, *args: str, check: bool = True) -> str:
     return proc.stdout.strip()
 
 
+def _formula(index: int) -> tuple[int, int]:
+    if index < 1:
+        raise ExperimentError("synthetic task indexes start at one")
+    if index <= len(FORMULAS):
+        return FORMULAS[index - 1]
+    return index + 1, 2 * index + 3
+
+
+def _task_count(case: dict) -> int:
+    return case.get("task_count", case["workers"])
+
+
+def _effective_capacity(case: dict) -> int:
+    return case.get("effective_capacity", case["workers"])
+
+
+def _resource_metadata(module: str, factor: int, offset: int) -> dict:
+    return {"module": module, "factor": factor, "offset": offset,
+            "transform_0": offset, "transform_4": factor * 4 + offset}
+
+
 def _fixture(root: Path, count: int, mode: str = "edit") -> dict:
     root.mkdir(parents=True)
     (root / ".gitignore").write_text("__pycache__/\n*.tmp\n")
@@ -173,22 +209,38 @@ def _fixture(root: Path, count: int, mode: str = "edit") -> dict:
     (root / "src" / "__init__.py").write_text("\"\"\"Synthetic modules for isolated agent-harness trials.\"\"\"\n")
     (root / "scratch").mkdir()
     (root / "scratch" / ".keep").write_text("Synthetic scratch directory.\n")
+    expected = []
     for index in range(1, count + 1):
+        factor, offset = _formula(index)
         module = f"module_{index:02}.py"
+        metadata = f"module_{index:02}.json"
         if mode == "report-only":
-            factor, offset = FORMULAS[index - 1]
             contents = f"def transform(value):\n    return value * {factor} + {offset}\n"
         else:
             contents = "# Implement the formula specified in the task packet.\nraise NotImplementedError\n"
         (root / "src" / module).write_text(contents)
+        metadata_path = root / "src" / metadata
+        if mode == "report-only":
+            metadata_path.write_text(json.dumps(_resource_metadata(f"src/{module}", factor, offset),
+                                               sort_keys=True) + "\n")
+        else:
+            metadata_path.write_text('{"pending": true}\n')
+        expected.append((f"src/{module}", factor, offset))
     verifier = [
+        "import json",
         "from importlib import import_module",
-        "FORMULAS = " + repr(FORMULAS[:count]),
-        "for index, (factor, offset) in enumerate(FORMULAS, 1):",
+        "FORMULAS = " + repr(expected),
+        "SAMPLES = (-3, 0, 4, 11)",
+        "for index, (relative, factor, offset) in enumerate(FORMULAS, 1):",
         "    module = import_module(f'src.module_{index:02}')",
-        "    assert module.transform(4) == factor * 4 + offset, (index, module.transform(4))",
-        "    assert module.transform(0) == offset, (index, module.transform(0))",
-        "print(f'PASS: {len(FORMULAS)} independent module implementations')",
+        "    for value in SAMPLES:",
+        "        assert module.transform(value) == factor * value + offset, (index, value, module.transform(value))",
+        "    with open(relative[:-3] + '.json', encoding='utf-8') as stream:",
+        "        metadata = json.load(stream)",
+        "    expected_metadata = {'module': relative, 'factor': factor, 'offset': offset,",
+        "                         'transform_0': offset, 'transform_4': factor * 4 + offset}",
+        "    assert metadata == expected_metadata, (index, metadata)",
+        "print(f'PASS: {len(FORMULAS)} complete module/resource pairs')",
     ]
     (root / "verify_modules.py").write_text("\n".join(verifier) + "\n")
     _git(root, "init", "-q")
@@ -215,7 +267,11 @@ def _fixture(root: Path, count: int, mode: str = "edit") -> dict:
         "head": baseline_head,
         "staged_paths": sorted(cached),
         "required_dirty_paths": [".claspignore", ".gitignore", "context/brief.md"],
-        "owned_paths": [f"src/module_{i:02}.py" for i in range(1, count + 1)],
+        "control_sha256": {path: _sha((root / path).read_bytes())
+                           for path in (".claspignore", ".gitignore", "context/brief.md")},
+        "owned_paths": [path for i in range(1, count + 1)
+                        for path in (f"src/module_{i:02}.py", f"src/module_{i:02}.json")],
+        "resource_paths": [f"src/module_{i:02}.json" for i in range(1, count + 1)],
         "verifier": "verify_modules.py",
     }
 
@@ -223,13 +279,20 @@ def _fixture(root: Path, count: int, mode: str = "edit") -> dict:
 def _request(case: dict, mode: str, workspace: str, integration: str) -> dict:
     source = Path(case["caller"])
     tasks = []
-    for index, (factor, offset) in enumerate(FORMULAS[:case["workers"]], 1):
+    task_count = _task_count(case)
+    for index in range(1, task_count + 1):
+        factor, offset = _formula(index)
         task_id = f"module-{index:02}"
         target = f"src/module_{index:02}.py"
+        metadata = f"src/module_{index:02}.json"
         if mode == "edit":
-            objective = f"Implement transform(value) in {target} as value * {factor} + {offset}; keep all edits inside this file."
-            expected = f"{target} defines transform(value) returning value * {factor} + {offset}; zero and four satisfy the formula."
-            writes = [target]
+            expected_metadata = _resource_metadata(target, factor, offset)
+            objective = (f"Implement transform(value) in {target} as value * {factor} + {offset}, and write {metadata} "
+                         f"as JSON with exactly these fields and values: {json.dumps(expected_metadata, sort_keys=True)}. "
+                         f"Keep all edits inside {target} and {metadata}.")
+            expected = (f"{target} defines transform(value) returning value * {factor} + {offset}, and {metadata} "
+                        f"contains exactly {json.dumps(expected_metadata, sort_keys=True)}.")
+            writes = [target, metadata]
         elif mode == "ephemeral":
             target = f"scratch/findings_{index:02}.md"
             objective = (f"Inspect the known synthetic formula for module {index:02}: transform(value) = value * {factor} + {offset}. "
@@ -243,19 +306,26 @@ def _request(case: dict, mode: str, workspace: str, integration: str) -> dict:
             expected = f"Findings state transform(value) = value * {factor} + {offset}, transform(0) = {offset}, and transform(4) = {factor * 4 + offset}."
             writes = []
         tasks.append({"id": task_id, "objective": objective, "expected_result": expected, "write_set": writes})
-    return {
-        "objective": f"Complete {case['workers']} independent synthetic module tasks using in-parallel in {case['arm']} mode.",
+    request = {
+        "objective": f"Complete {task_count} independent synthetic module tasks using in-parallel in {case['arm']} mode.",
         "source": str(source.resolve()), "workspace": workspace, "mode": mode,
-        "tasks": tasks, "capacity": case["workers"], "integration": integration,
+        "tasks": tasks, "integration": integration,
         "checks": [["python3", "-B", "verify_modules.py"]] if mode == "edit" and integration == "apply" else [],
         "writers_quiescent": True if workspace == "worktree" else None,
         "exclusive_writer": True if workspace == "current" and mode == "edit" else None,
         "current_learnings": "The only source payload is this generated synthetic fixture. Preserve its staged and unstaged control files. For native trace instrumentation, run worker-start and worker-finish each in a separate Bash call containing only the exact pinned command, optionally preceded by cd to the assigned cwd and &&. Do not combine these phase calls with edits, checks, commits, output redirection, or other operations.",
         "authorization": "Authorized bounded live experiment: selected root model may delegate only the stated synthetic task through the selected native host and skills.",
     }
+    if case.get("capacity_explicit", True):
+        request["capacity"] = case.get("requested_capacity", case["workers"])
+    return request
 
 
 def _parent_prompt(case: dict, request_path: Path) -> str:
+    task_count = _task_count(case)
+    capacity_text = (f"Requested worker capacity: {case['requested_capacity']}; normalized effective capacity: {case['effective_capacity']}."
+                     if case.get("capacity_explicit", True) else
+                     f"Worker capacity is omitted from the request; production default and mode normalization yield {case['effective_capacity']}.")
     skill_paths = "\n".join(f"- {name}: {path}" for name, path in PACKAGES.items())
     init = _init_argv(case, request_path)
     role = (
@@ -271,7 +341,9 @@ def _parent_prompt(case: dict, request_path: Path) -> str:
         "references/hosts.md. The selected Ask Agent and Plan Dispatcher cards below are pinned helper dependencies; "
         "read only their relevant task/dispatcher contract sections if needed, not their complete script trees. "
         "Inspect the live native tool schema; initialize with the exact command; and drive the full recorded lifecycle. "
-        "Use one fresh native worker per task, have every worker run its exact packet-pinned worker-start and worker-finish "
+        "Use one fresh native worker per task, launch every assignment in a returned Dispatcher batch before waiting, and "
+        "after any completion refill available capacity while other workers continue; do not add artificial waits or batch barriers. "
+        "Have every worker run its exact packet-pinned worker-start and worker-finish "
         "commands in its actual assigned context, each as a standalone shell call (only an optional exact cd cwd && prefix). This is a trace instrumentation requirement; preserve the exact prepared worker prompt. Retain native handles and terminal results, independently verify, accept, "
         "and finish. Do not invoke a model CLI or external API for workers; do not use fake workers or a second root CLI. "
         "For edit mode run the combined verifier after integration. For report-only make no filesystem changes. For ephemeral "
@@ -284,7 +356,8 @@ def _parent_prompt(case: dict, request_path: Path) -> str:
 Case: {case['case_id']}
 Arm: {case['arm']}
 Provider/model/effort: {case['provider']} / {case['model']} / {case['effort']}
-Expected independent native task workers: {case['workers']}
+Independent task count: {task_count}
+{capacity_text}
 Mode/workspace/integration: {case['mode']} / {case['workspace']} / {case['integration']}
 Synthetic checkout: {case['caller']}
 External harness run: {case['harness_run']}
@@ -298,7 +371,7 @@ Exact production harness initialization command (run from the synthetic checkout
 
 {coordinator}
 
-The fixture tasks implement independent known functions in their one-file write sets. Keep all changes in the synthetic checkout or helper-managed worktrees. The checkout deliberately starts with staged and unstaged changes in context/brief.md, .gitignore, and .claspignore; do not reset, stash, overwrite, or “clean up” them. The audit checks those bytes and the original parent HEAD/index separately from native evidence.
+The fixture tasks implement independent known functions in their declared write sets. In edit mode, each task owns one module and its JSON metadata file; the combined verifier checks every pair after integration. Complete all {task_count} task IDs even when the task list exceeds the worker capacity. Keep all changes in the synthetic checkout or helper-managed worktrees. The checkout deliberately starts with staged and unstaged changes in context/brief.md, .gitignore, and .claspignore; do not reset, stash, overwrite, or “clean up” them. The audit checks those bytes and the original parent HEAD/index separately from native evidence.
 
 Use only the synthetic fixture and the selected skill instructions. Do not inspect or include unrelated project files, credentials, or conversation history. Return a concise final outcome and evidence paths; the offline auditor will independently inspect retained host traces and Git state.
 """
@@ -316,28 +389,43 @@ def prepare_case(args) -> dict:
         raise ExperimentError(f"Case destination already exists; preserve it and choose a fresh directory: {out}")
     if args.provider == "grok" and args.arm != "direct":
         raise ExperimentError("This bounded apparatus supports Grok direct cases only")
-    workers = args.workers
-    if workers not in (3, 5):
-        raise ExperimentError("worker count must be 3 or 5")
+    requested_capacity = getattr(args, "workers", None)
+    requested_tasks = getattr(args, "tasks", None)
+    task_count = requested_tasks if requested_tasks is not None else (requested_capacity if requested_capacity is not None else 3)
+    if type(task_count) is not int or task_count < 1:
+        raise ExperimentError("task count must be a positive integer")
+    if requested_capacity is not None and (type(requested_capacity) is not int or requested_capacity < 1):
+        raise ExperimentError("worker capacity must be a positive integer")
+    capacity_explicit = requested_capacity is not None
+    effective_capacity = requested_capacity if capacity_explicit else min(DEFAULT_WORKER_CAPACITY, task_count)
     model, effort = ("sonnet", "medium") if args.provider == "claude" else ("grok-4.7", "medium")
     workspace = args.workspace or ("worktree" if args.mode in ("edit", "ephemeral") else "current")
     integration = args.integration or ("return-only" if args.mode == "ephemeral" else "apply")
+    if workspace == "current" and args.mode == "edit":
+        effective_capacity = 1
     if args.mode == "ephemeral" and workspace != "worktree":
         raise ExperimentError("ephemeral mode requires worktree workspace")
     out.mkdir(parents=True)
     case = {
         "schema": "agent-harness-experiment.case/v1", "case_id": str(uuid.uuid4()),
         "provider": args.provider, "model": model, "effort": effort, "arm": args.arm,
-        "workers": workers, "mode": args.mode, "workspace": workspace, "integration": integration,
+        "workers": task_count, "task_count": task_count,
+        "requested_capacity": requested_capacity, "effective_capacity": effective_capacity,
+        "capacity_explicit": capacity_explicit, "fixture_version": RESOURCE_FIXTURE_VERSION,
+        **({"grok_permission_mode": "default"} if args.provider == "grok" else {}),
+        "mode": args.mode, "workspace": workspace, "integration": integration,
         "caller": str((out / "caller").resolve()), "harness_run": str((out / "harness").resolve()),
         "prepared_epoch": time.time(),
     }
-    case["fixture"] = _fixture(Path(case["caller"]), workers, args.mode)
+    case["fixture"] = _fixture(Path(case["caller"]), task_count, args.mode)
     sys.path.insert(0, str(SKILL_ROOT / "in-parallel" / "scripts"))
     import delivery
     case["parent_snapshot"] = delivery.capture(case["caller"])
+    case["parent_index_sha256"] = _sha((Path(case["caller"]) / ".git" / "index").read_bytes())
     request = _request(case, args.mode, workspace, integration)
     normalized_request = _normalized_request(request)
+    if normalized_request.get("capacity") != effective_capacity:
+        raise ExperimentError("normalized request capacity differs from the prepared case")
     # Freeze what init is expected to record, including documented defaults and capacity adjustments.
     request_path = out / "harness-request.json"
     _write_new(request_path, request)
@@ -353,6 +441,8 @@ def prepare_case(args) -> dict:
     _write_new(out / "case.json", manifest)
     _write_new(out / "manifest.json", manifest)
     return {"status": "PREPARED", "case": str(out), "case_id": case["case_id"],
+            "task_count": task_count, "requested_capacity": requested_capacity,
+            "effective_capacity": effective_capacity,
             "freeze_sha256": manifest["freeze_sha256"], "prompt": str((operator / "parent-prompt.txt").resolve()),
             "launch": [sys.executable, "-B", str(HERE / "experiment.py"), "launch", "--case", str(out),
                        "--expected-freeze-sha256", manifest["freeze_sha256"], "--authorized-case", case["case_id"]]}
@@ -486,8 +576,13 @@ def _jsonl(path: Path) -> list[dict]:
 
 def audit_native_graph(case: dict, nodes: list[dict]) -> dict:
     """Validate a normalized tree made only from native host events and transcripts."""
-    expected_workers = {f"module-{i:02}" for i in range(1, case["workers"] + 1)}
+    task_count = _task_count(case)
+    capacity = _effective_capacity(case)
+    expected_workers = {f"module-{i:02}" for i in range(1, task_count + 1)}
     errors = []
+    if type(capacity) is not int or capacity < 1:
+        errors.append("effective worker capacity is not a positive integer")
+        capacity = 0
     by_id = {}
     intervals_by_node = {}
     invalid_interval_nodes = set()
@@ -564,10 +659,13 @@ def audit_native_graph(case: dict, nodes: list[dict]) -> dict:
     else: root = roots[0]
     coordinators = [node for node in nodes if node.get("role") == "coordinator"]
     workers = [node for node in nodes if node.get("role") == "worker"]
-    expected_node_count = 1 + case["workers"] + (1 if case["arm"] == "nested" else 0)
+    expected_node_count = 1 + task_count + (1 if case["arm"] == "nested" else 0)
     if len(nodes) != expected_node_count:
         errors.append("native tree contains missing or unexpected child sessions")
-    if len(workers) != case["workers"] or {node.get("task_id") for node in workers} != expected_workers:
+    task_ids = [node.get("task_id") for node in workers]
+    valid_task_ids = [task_id for task_id in task_ids if isinstance(task_id, str)]
+    if (len(workers) != task_count or set(valid_task_ids) != expected_workers
+            or len(valid_task_ids) != len(task_ids) or len(set(valid_task_ids)) != len(valid_task_ids)):
         errors.append("native worker identities do not equal the requested independent task set")
     if case["arm"] == "direct":
         if coordinators: errors.append("direct arm unexpectedly contains a separate coordinator")
@@ -607,22 +705,78 @@ def audit_native_graph(case: dict, nodes: list[dict]) -> dict:
     for start, stop, ident, index in intervals:
         invocation_id = (ident, index)
         points.extend(((start, 1, invocation_id), (stop, -1, invocation_id)))
-    active, peak = set(), 0
-    for _, delta, ident in sorted(points, key=lambda item: (item[0], item[1])):
-        if delta < 0: active.discard(ident)
-        else: active.add(ident); peak = max(peak, len(active))
+    def peak_for_tie_order(start_first: bool) -> int:
+        active, peak = set(), 0
+        for _, delta, ident in sorted(points, key=lambda item: (item[0], -item[1] if start_first else item[1])):
+            if delta < 0:
+                active.discard(ident)
+            else:
+                active.add(ident)
+                peak = max(peak, len(active))
+        return peak
+
+    peak = peak_for_tie_order(False)
+    possible_peak = peak_for_tie_order(True)
     coordinator_stops = coordinators[0].get("terminal_stop_epochs", []) if coordinators else []
     worker_intervals_complete = bool(workers) and all(
         id(node) not in invalid_interval_nodes and isinstance(node.get("id"), str)
         for node in workers
     )
+    worker_invocation_counts = {
+        node.get("task_id"): len(intervals_by_node.get(id(node), [])) for node in workers
+    }
+    resumed_tasks = sorted(task_id for task_id, count in worker_invocation_counts.items()
+                           if isinstance(task_id, str) and count > 1)
+    if case.get("fixture_version") == RESOURCE_FIXTURE_VERSION and resumed_tasks:
+        errors.append("queued fixture requires one native invocation per task; resumed worker contexts were observed")
+    measured_peak = peak if worker_intervals_complete and intervals else "unavailable"
+    possible_measured_peak = possible_peak if worker_intervals_complete and intervals else "unavailable"
+    if worker_intervals_complete and intervals:
+        if peak > capacity:
+            errors.append(f"native worker overlap exceeded effective capacity: peak {peak}, capacity {capacity}")
+        elif possible_peak > capacity:
+            errors.append("native worker capacity cannot be proven because equal-timestamp lifecycle order is unavailable")
+    queued_workers = []
+    refill_boundary_ambiguous = False
+    timed_workers = [node for node in workers if type(node.get("start_epoch")) in (int, float)]
+    for node in timed_workers:
+        start_epoch = node["start_epoch"]
+        earlier = sum(other["start_epoch"] < start_epoch for other in timed_workers)
+        tied = sum(other["start_epoch"] == start_epoch for other in timed_workers)
+        if earlier >= capacity:
+            queued_workers.append(node)
+        elif earlier < capacity < earlier + tied:
+            refill_boundary_ambiguous = True
+    refill_observed = False if queued_workers else None
+    for queued in queued_workers:
+        launch_epoch = queued.get("start_epoch")
+        if type(launch_epoch) not in (int, float):
+            continue
+        for peer in workers:
+            if peer is queued:
+                continue
+            for start, finish in intervals_by_node.get(id(peer), []):
+                if start < launch_epoch < finish:
+                    refill_observed = True
+                elif start <= launch_epoch <= finish and launch_epoch in (start, finish):
+                    refill_boundary_ambiguous = True
+    if not queued_workers and task_count > capacity:
+        refill_observed = False
     return {"status": "PASS" if not errors else "FAIL", "errors": errors,
             "root_id": root.get("id"), "coordinator_ids": [n.get("id") for n in coordinators],
             "child_ids": sorted(node.get("id") for node in nodes if node.get("role") != "root"),
             "worker_session_ids": sorted(node.get("id") for node in workers),
             "task_ids": sorted(expected_workers),
+            "effective_worker_capacity": capacity,
+            "native_invocation_count": sum(worker_invocation_counts.values()),
+            "resumed_worker_task_ids": resumed_tasks,
             "worker_start_spread_seconds": round(max(starts) - min(starts), 6) if len(starts) == len(workers) and starts else "unavailable",
-            "peak_native_worker_overlap": peak if worker_intervals_complete and intervals else "unavailable",
+            "peak_native_worker_overlap": measured_peak,
+            "possible_peak_with_equal_timestamp_order_reversed": possible_measured_peak,
+            "reached_capacity": peak == capacity if measured_peak != "unavailable" else "unavailable",
+            "queued_refill_observed": refill_observed,
+            "queued_refill_timestamp_ambiguous": refill_boundary_ambiguous,
+            "proof_scope": "Strict native child start/finish intervals; equal timestamps have unknown event order, and tool-call issue times or CPU parallelism are not measured.",
             "coordinator_terminal_stop_epochs": coordinator_stops,
             "worker_intervals": [{"id": n.get("id"), "task_id": n.get("task_id"),
                                   "start_epoch": n.get("start_epoch"), "finish_epoch": n.get("finish_epoch"),
@@ -1260,10 +1414,10 @@ def _ephemeral_worker_audit(case_dir: Path, case: dict, raw_request: dict, prepa
             note_text = note_bytes.decode("utf-8", errors="replace")
             note_sha = _sha(note_bytes)
             index = int(task_match.group(1))
-            if not 1 <= index <= len(FORMULAS):
+            if not 1 <= index <= _task_count(case):
                 errors.append(f"ephemeral worker {task_id} has no known synthetic formula")
             else:
-                factor, offset = FORMULAS[index - 1]
+                factor, offset = _formula(index)
                 compact = re.sub(r"\s+", "", note_text).lower()
                 expected_formula = f"transform(value)=value*{factor}+{offset}".lower()
                 if expected_formula not in compact:
@@ -1342,7 +1496,244 @@ def _native_grok_time(rows: list[dict], session_id: str, kind: str, child_id: st
     return matches[0]
 
 
-def _filesystem_audit(case_dir: Path, case: dict) -> dict:
+def _new_fixture_delivery_audit(case: dict, harness_path: Path, final_result: dict,
+                               delivery_result: dict, status_result: dict,
+                               native_nodes: list[dict], raw_request: dict) -> dict:
+    """Join the new fixture's native, accepted, delivered, and cleanup records."""
+    # Production records canonical paths; callers may use a directory alias
+    # (including macOS /var -> /private/var). Compare the same path identity.
+    harness_path = harness_path.resolve(strict=True)
+    errors = []
+    tasks = raw_request.get("tasks", [])
+    expected = {task.get("id") for task in tasks if isinstance(task, dict)}
+    if len(expected) != len(tasks) or len(tasks) != _task_count(case):
+        errors.append("queued frozen request does not contain the exact task count and unique task ids")
+
+    progress = status_result.get("progress", {})
+    completed = progress.get("completed", []) if isinstance(progress, dict) else []
+    completed_ids = {row.get("step") for row in completed if isinstance(row, dict)}
+    if (status_result.get("workers_accepted") is not True or completed_ids != expected
+            or status_result.get("active") != []):
+        errors.append("production status does not show every requested task accepted with no active worker")
+
+    native_by_task = {node.get("task_id"): node for node in native_nodes if node.get("role") == "worker"}
+    if set(native_by_task) != expected or len(native_by_task) != sum(node.get("role") == "worker" for node in native_nodes):
+        errors.append("native child handles do not map one-to-one to every frozen task")
+
+    prepared_by_task = {}
+    prepared_paths = sorted((harness_path / "prepared").glob("*.json"))
+    for prepared_path in prepared_paths:
+        prepared = _read(prepared_path)
+        packet_info = prepared.get("packet")
+        packet_path = Path(packet_info.get("path", "")) if isinstance(packet_info, dict) else Path()
+        if not packet_path.is_absolute() or packet_path.is_symlink() or not packet_path.is_file():
+            errors.append(f"prepared attempt {prepared_path.stem!r} lacks a retained regular packet")
+            continue
+        packet_bytes = _regular_bytes(packet_path)
+        if packet_info.get("sha256") != _sha(packet_bytes):
+            errors.append(f"prepared attempt {prepared_path.stem!r} packet bytes differ from their pinned hash")
+            continue
+        packet = _read(packet_path)
+        packet_task = packet.get("task") if isinstance(packet, dict) else None
+        matches = [task for task in tasks if isinstance(task, dict) and isinstance(packet_task, dict)
+                   and packet_task.get("objective") == task.get("objective")
+                   and packet_task.get("expected_result") == task.get("expected_result")
+                   and isinstance(task.get("write_set"), list)
+                   and packet_task.get("write_set") == sorted(task["write_set"])]
+        if len(matches) != 1 or matches[0].get("id") in prepared_by_task:
+            errors.append(f"prepared attempt {prepared_path.stem!r} does not uniquely map to one frozen task")
+            continue
+        prepared_by_task[matches[0]["id"]] = (prepared_path.stem, prepared, packet)
+    if set(prepared_by_task) != expected or len(prepared_paths) != len(tasks):
+        errors.append("prepared attempts do not cover the frozen task set exactly once")
+
+    collected_paths = sorted((harness_path / "collected").glob("*.json"))
+    verified_paths = sorted((harness_path / "verified").glob("*.json"))
+    accepted = []
+    for task in tasks:
+        if not isinstance(task, dict) or task.get("id") not in prepared_by_task:
+            continue
+        task_id = task["id"]
+        attempt, prepared, packet = prepared_by_task[task_id]
+        collected_path = harness_path / "collected" / f"{attempt}.json"
+        verified_path = harness_path / "verified" / f"{attempt}.json"
+        if not collected_path.is_file() or collected_path.is_symlink():
+            errors.append(f"task {task_id} lacks its collected native terminal record")
+            continue
+        if not verified_path.is_file() or verified_path.is_symlink():
+            errors.append(f"task {task_id} lacks its independent acceptance record")
+            continue
+        record, verdict = _read(collected_path), _read(verified_path)
+        result = record.get("result", {})
+        node = native_by_task.get(task_id, {})
+        native_id = node.get("id")
+        if (record.get("native_evidence_kind") != "coordinator_attestation"
+                or result.get("native_terminal") is not True
+                or result.get("status") != "SUCCEEDED"
+                or not isinstance(result.get("native_handle"), str)
+                or result.get("native_handle") != native_id):
+            errors.append(f"task {task_id} collected terminal handle does not match its native child session")
+        if (verdict.get("passed") is not True or not isinstance(verdict.get("reason"), str)
+                or not verdict.get("reason", "").strip()
+                or not isinstance(verdict.get("evidence"), list) or not verdict["evidence"]):
+            errors.append(f"task {task_id} lacks a passing independent verification record")
+        if not isinstance(record.get("verified"), dict) or record["verified"].get("status") != "READY_FOR_PARENT_ACCEPTANCE":
+            errors.append(f"task {task_id} lacks a successful Ask Agent verify-return record")
+        criteria = result.get("criteria", [])
+        expected_result = task.get("expected_result")
+        if (not isinstance(criteria, list) or not any(
+                isinstance(row, dict) and row.get("criterion") == expected_result
+                and row.get("level") in {"confirmed", "inspected"} for row in criteria)):
+            errors.append(f"task {task_id} has no confirmed native result for its exact expected criterion")
+        verify_return = record.get("verified")
+        workspace_evidence = (verify_return.get("workspace_evidence", {})
+                              if isinstance(verify_return, dict) else {})
+        inspection = (workspace_evidence.get("inspection", {})
+                      if isinstance(workspace_evidence, dict) else {})
+        accepted.append({"id": task_id, "attempt": attempt, "native_id": native_id,
+                         "native_handle": result.get("native_handle"),
+                         "collected_path": str(collected_path),
+                         "collected_sha256": _sha(_regular_bytes(collected_path)),
+                         "verified_path": str(verified_path),
+                         "verified_sha256": _sha(_regular_bytes(verified_path)),
+                         "inspection_fingerprint": inspection.get("fingerprint"),
+                         "verified": verdict.get("passed") is True})
+
+    if len(collected_paths) != len(tasks) or len(verified_paths) != len(tasks):
+        errors.append("retained collection and verification records are not exactly one per queued task")
+
+    delivery_workers = delivery_result.get("workers", [])
+    delivery_by_id = {row.get("id"): row for row in delivery_workers if isinstance(row, dict)}
+    if set(delivery_by_id) != expected or len(delivery_workers) != len(tasks):
+        errors.append("immutable delivery rows do not cover the frozen task set exactly once")
+    if delivery_result.get("status") != "SUCCEEDED":
+        errors.append("immutable delivery result is not SUCCEEDED")
+
+    applied = case.get("mode") == "edit" and case.get("workspace") == "worktree" and case.get("integration") == "apply"
+    if applied:
+        expected_paths = set(case.get("fixture", {}).get("owned_paths", []))
+        integration = delivery_result.get("integration", {})
+        applied_paths = integration.get("applied_paths", [])
+        if (integration.get("outcome") != "applied" or not isinstance(applied_paths, list)
+                or len(applied_paths) != len(expected_paths) or set(applied_paths) != expected_paths):
+            errors.append("delivery applied-path union does not equal every required module and JSON resource")
+        integration_workers = integration.get("workers", [])
+        per_worker_paths = {row.get("id"): row.get("paths", [])
+                            for row in integration_workers if isinstance(row, dict)}
+        for task in tasks:
+            task_id = task.get("id")
+            expected_write_set = task.get("write_set", [])
+            expected_write_set = sorted(expected_write_set) if isinstance(expected_write_set, list) else expected_write_set
+            if (not isinstance(expected_write_set, list)
+                    or per_worker_paths.get(task_id) != expected_write_set):
+                errors.append(f"delivery row for task {task_id} does not apply its complete declared resource set")
+            saved_row = delivery_by_id.get(task_id, {})
+            if saved_row.get("write_set") != expected_write_set:
+                errors.append(f"immutable delivery worker {task_id} differs from its prepared write set")
+        checks = delivery_result.get("checks", [])
+        expected_check_count = len(raw_request.get("checks", []))
+        if (len(checks) != expected_check_count
+                or any(row.get("status") != "PASSED" or row.get("exit_code") != 0 for row in checks)):
+            errors.append("immutable delivery does not retain every successful combined check")
+
+        if final_result.get("cleanup_status") != "complete" or final_result.get("status") != "SUCCEEDED":
+            errors.append("successful queued edit delivery did not complete its cleanup phase")
+        cleanup = final_result.get("cleanup", {})
+        cleanup_rows = cleanup.get("workers", []) if isinstance(cleanup, dict) else []
+        cleanup_by_id = {row.get("id"): row for row in cleanup_rows if isinstance(row, dict)}
+        final_workers = final_result.get("workers", [])
+        final_by_id = {row.get("id"): row for row in final_workers if isinstance(row, dict)}
+        if set(cleanup_by_id) != expected or len(cleanup_rows) != len(tasks):
+            errors.append("cleanup outcomes do not cover the accepted task set exactly once")
+        if set(final_by_id) != expected or len(final_workers) != len(tasks):
+            errors.append("final result workers do not cover the accepted task set exactly once")
+        sys.path.insert(0, str(SKILL_ROOT / "in-parallel" / "scripts"))
+        import harness as production_harness
+        delivery_path = harness_path / "delivery" / "result.json"
+        delivery_sha = _sha(_regular_bytes(delivery_path))
+        source = Path(case["caller"])
+        accepted_by_id = {row["id"]: row for row in accepted}
+        for task_id in sorted(expected):
+            cleanup_row = cleanup_by_id.get(task_id, {})
+            delivered = delivery_by_id.get(task_id, {})
+            final_worker = final_by_id.get(task_id, {})
+            accepted_row = accepted_by_id.get(task_id, {})
+            attempt = accepted_row.get("attempt")
+            packet_workspace = prepared_by_task.get(task_id, (None, {}, {}))[2].get("workspace", {})
+            delivery_detail = delivered.get("delivery", {})
+            expected_worktree = packet_workspace.get("root")
+            expected_receipt = packet_workspace.get("receipt")
+            worktree = cleanup_row.get("worktree")
+            branch = delivered.get("branch")
+            commits = delivery_detail.get("commits", []) if isinstance(delivery_detail, dict) else []
+            if (cleanup_row.get("status") != "closed"
+                    or cleanup_row.get("worktree_path_status") != "removed"
+                    or cleanup_row.get("attempt") != attempt
+                    or cleanup_row.get("receipt") != expected_receipt
+                    or not isinstance(expected_worktree, str)
+                    or worktree != expected_worktree
+                    or cleanup_row.get("branch") != branch
+                    or not isinstance(worktree, str) or Path(worktree).exists()
+                    or Path(expected_worktree).exists()
+                    or production_harness._git_worktree_registered(source, expected_worktree) is not False):
+                errors.append(f"accepted task {task_id} worktree remains or is still registered after cleanup")
+            if (final_worker.get("attempt") != attempt
+                    or delivered.get("worktree") != expected_worktree
+                    or delivered.get("receipt") != expected_receipt
+                    or packet_workspace.get("branch") != branch):
+                errors.append(f"accepted task {task_id} final result and delivery are not bound to its prepared workspace")
+            if (not isinstance(branch, str)
+                    or not production_harness._git_reference_present(source, "branch", branch)
+                    or not isinstance(commits, list) or not commits
+                    or any(not production_harness._git_reference_present(source, "commit", commit) for commit in commits)):
+                errors.append(f"accepted task {task_id} branch or delivered commit was not retained")
+            if cleanup_row.get("branch") != branch or cleanup_row.get("commits") != commits:
+                errors.append(f"accepted task {task_id} cleanup evidence differs from retained branch/commit delivery")
+            outcome = cleanup_row.get("helper_outcome", {})
+            if outcome.get("status") != "closed" or outcome.get("removed") is not True:
+                errors.append(f"accepted task {task_id} lacks successful close-helper removal evidence")
+            acceptance_info = cleanup_row.get("acceptance")
+            if isinstance(acceptance_info, dict) and isinstance(acceptance_info.get("path"), str):
+                acceptance_path = Path(acceptance_info["path"])
+                if (acceptance_path.is_symlink() or not acceptance_path.is_file()
+                        or _sha(_regular_bytes(acceptance_path)) != acceptance_info.get("sha256")):
+                    errors.append(f"accepted task {task_id} cleanup acceptance bytes do not match their retained hash")
+                else:
+                    acceptance = _read(acceptance_path)
+                    delivery_reference = f"{delivery_path} sha256={delivery_sha}"
+                    completion_reference = (f"native terminal handle {accepted_row.get('native_handle')} in "
+                                            f"{accepted_row.get('collected_path')} "
+                                            f"sha256={accepted_row.get('collected_sha256')}")
+                    verification_reference = (f"accepted verification {accepted_row.get('verified_path')} "
+                                              f"sha256={accepted_row.get('verified_sha256')}")
+                    if (acceptance.get("decision") != "integrated" or acceptance.get("workers_stopped") is not True
+                            or acceptance.get("inspection_fingerprint") != accepted_row.get("inspection_fingerprint")
+                            or cleanup_row.get("inspection_fingerprint") != accepted_row.get("inspection_fingerprint")
+                            or completion_reference not in acceptance.get("completion_reference", "")
+                            or delivery_reference not in acceptance.get("acceptance_reference", "")
+                            or verification_reference not in acceptance.get("acceptance_reference", "")):
+                        errors.append(f"accepted task {task_id} cleanup is not bound to its terminal result, verification, delivery, and inspection")
+            else:
+                errors.append(f"accepted task {task_id} lacks retained cleanup acceptance bytes")
+            close_path = cleanup_row.get("close_evidence")
+            if isinstance(close_path, str) and Path(close_path).is_file() and not Path(close_path).is_symlink():
+                close = _read(Path(close_path))
+                if (close.get("status") != "closed" or close.get("removed") is not True
+                        or close.get("receipt") != expected_receipt
+                        or close.get("worktree") != expected_worktree
+                        or close.get("branch") != branch
+                        or close.get("inspection_fingerprint") != accepted_row.get("inspection_fingerprint")):
+                    errors.append(f"accepted task {task_id} close evidence does not prove removal")
+            else:
+                errors.append(f"accepted task {task_id} lacks retained close-helper evidence")
+    return {"status": "PASS" if not errors else "FAIL", "errors": errors,
+            "task_acceptance": accepted, "delivery_worker_ids": sorted(delivery_by_id),
+            "applied_paths": sorted(delivery_result.get("integration", {}).get("applied_paths", [])),
+            "cleanup_worker_ids": sorted((row.get("id") for row in final_result.get("cleanup", {}).get("workers", [])
+                                           if isinstance(row, dict)))}
+
+
+def _filesystem_audit(case_dir: Path, case: dict, native_nodes: list[dict] | None = None) -> dict:
     sys.path.insert(0, str(SKILL_ROOT / "in-parallel" / "scripts"))
     import delivery
     root = Path(case["caller"])
@@ -1371,10 +1762,18 @@ def _filesystem_audit(case_dir: Path, case: dict) -> dict:
     if after.get("head") != baseline.get("head"): errors.append("parent HEAD moved")
     if after.get("index_entries") != before.get("index_entries"): errors.append("parent Git index changed")
     if after.get("cached_diff_sha256") != before.get("cached_diff_sha256"): errors.append("staged parent diff changed")
+    if case.get("parent_index_sha256") is not None:
+        index_path = root / ".git" / "index"
+        if index_path.is_symlink() or not index_path.is_file() or _sha(_regular_bytes(index_path)) != case["parent_index_sha256"]:
+            errors.append("parent Git index bytes changed")
     allowed = set(baseline.get("owned_paths", [])) if case["mode"] == "edit" and case["integration"] == "apply" else set()
     if sorted(set(changed) - allowed): errors.append(f"parent changes escaped declared module outputs: {sorted(set(changed) - allowed)}")
     for path in baseline.get("required_dirty_paths", []):
         if paths_before.get(path) != paths_after.get(path): errors.append(f"dirty control changed: {path}")
+    for path, digest in baseline.get("control_sha256", {}).items():
+        control = root / path
+        if control.is_symlink() or not control.is_file() or _sha(_regular_bytes(control)) != digest:
+            errors.append(f"dirty control bytes changed: {path}")
     check_results = []
     ephemeral_worker_evidence = None
     if case["mode"] == "edit" and case["integration"] == "apply":
@@ -1388,6 +1787,17 @@ def _filesystem_audit(case_dir: Path, case: dict) -> dict:
         if ephemeral_worker_evidence["status"] != "PASS":
             errors.extend(ephemeral_worker_evidence["errors"])
     delivery_result = _read(harness / "delivery" / "result.json") if (harness / "delivery" / "result.json").is_file() else result
+    queued_audit = None
+    if case.get("fixture_version") == RESOURCE_FIXTURE_VERSION:
+        sys.path.insert(0, str(SKILL_ROOT / "in-parallel" / "scripts"))
+        import harness as production_harness
+        status_result = production_harness.execute("status", run=str(harness))
+        queued_audit = _new_fixture_delivery_audit(
+            case, harness, result, delivery_result, status_result, native_nodes or [], raw_request)
+        errors.extend(queued_audit["errors"])
+        if case["mode"] == "edit" and case["integration"] == "apply":
+            if set(changed) != set(baseline.get("owned_paths", [])):
+                errors.append("parent changed paths do not equal the complete declared module/resource union")
     if case["mode"] == "ephemeral" and list((case_dir / "caller" / "scratch").glob("findings_*.md")):
         errors.append("ephemeral scratch finding was imported into parent checkout")
     if case["mode"] == "ephemeral" and delivery_result.get("integration", {}).get("outcome") not in ("not-requested", "return-only", "no-import", "not-started"):
@@ -1399,6 +1809,7 @@ def _filesystem_audit(case_dir: Path, case: dict) -> dict:
             "baseline_cached_diff_sha256": before.get("cached_diff_sha256"),
             "after_cached_diff_sha256": after.get("cached_diff_sha256"),
             "changed_paths": changed, "independent_check_commands": check_results,
+            "queued_lifecycle": queued_audit,
             "ephemeral_worker_evidence": ephemeral_worker_evidence,
             "harness_delivery_status": delivery_result.get("status"), "snapshot_sha256": _sha(_canonical(after))}
 
@@ -1428,7 +1839,7 @@ def audit_case(args) -> dict:
         report["native_trace"] = {"status": graph["status"], "graph": graph, "nodes": nodes, "host_evidence": native}
         report["checks"]["native_trace"] = {"status": graph["status"], "errors": graph["errors"]}
         if graph["status"] != "PASS": raise ExperimentError("native event graph failed strict tree audit")
-        filesystem = _filesystem_audit(case_dir, case)
+        filesystem = _filesystem_audit(case_dir, case, nodes)
         report["filesystem_git"] = filesystem
         report["checks"]["filesystem_git"] = {"status": filesystem["status"], "errors": filesystem["errors"]}
         if filesystem["status"] != "PASS": raise ExperimentError("filesystem/Git checks failed")
@@ -1506,7 +1917,7 @@ def reaudit_case(args) -> dict:
         report["native_trace"] = {"status": graph["status"], "graph": graph,
                                   "nodes": nodes, "host_evidence": native}
         report["checks"]["native_trace"] = {"status": graph["status"], "errors": graph["errors"]}
-        filesystem = _filesystem_audit(case_dir, case)
+        filesystem = _filesystem_audit(case_dir, case, nodes)
         report["filesystem_git"] = filesystem
         report["checks"]["filesystem_git"] = {"status": filesystem["status"], "errors": filesystem["errors"]}
         report["elapsed_s"] = _elapsed(case_dir, case)
@@ -1566,11 +1977,15 @@ def write_report(args) -> dict:
         case, audit = _read(case_path / "case.json"), _read(case_path / "audit.json")
         rows.append({"case_id": case.get("case_id"), "provider": case.get("provider"), "model": case.get("model"),
                      "effort": case.get("effort"), "arm": case.get("arm"), "workers": case.get("workers"),
+                     "task_count": _task_count(case), "requested_capacity": case.get("requested_capacity"),
+                     "effective_capacity": _effective_capacity(case),
                      "mode": case.get("mode"), "status": audit.get("status"),
                      "source_freeze_sha256": case.get("freeze_sha256"),
                      "elapsed_s": audit.get("elapsed_s", "unavailable"),
                      "start_spread_s": audit.get("native_trace", {}).get("graph", {}).get("worker_start_spread_seconds", "unavailable"),
                      "peak_overlap": audit.get("native_trace", {}).get("graph", {}).get("peak_native_worker_overlap", "unavailable"),
+                     "reached_capacity": audit.get("native_trace", {}).get("graph", {}).get("reached_capacity", "unavailable"),
+                     "queued_refill_observed": audit.get("native_trace", {}).get("graph", {}).get("queued_refill_observed", "unavailable"),
                      "tokens": audit.get("token_usage", "unavailable"), "audit": str((case_path / "audit.json").resolve())})
     report = {"schema": "agent-harness-experiment.report/v1", "status": "PASS" if rows and all(row["status"] == "PASS" for row in rows) else "FAIL", "cases": rows}
     output = args.output.resolve()
@@ -1585,7 +2000,8 @@ def main(argv=None):
     prepare.add_argument("--case", type=Path, required=True)
     prepare.add_argument("--provider", choices=("claude", "grok"), required=True)
     prepare.add_argument("--arm", choices=("direct", "nested"), required=True)
-    prepare.add_argument("--workers", type=int, choices=(3, 5), default=3)
+    prepare.add_argument("--tasks", type=int, help="independent task count; defaults to --workers or the legacy count of 3")
+    prepare.add_argument("--workers", type=int, help="explicit positive concurrent-worker capacity; omit to use the production default")
     prepare.add_argument("--mode", choices=("edit", "report-only", "ephemeral"), default="edit")
     prepare.add_argument("--workspace", choices=("current", "worktree"))
     prepare.add_argument("--integration", choices=("apply", "return-only"))

@@ -11,7 +11,7 @@ Nested Claude attempts are retained as diagnostic failure evidence; do not
 prepare new nested trials while the pinned headless Claude host strategy is
 deferred.
 
-Each case has three or five independent module tasks and begins with a committed
+Each case begins with a committed
 synthetic baseline plus staged and unstaged changes in `context/brief.md`,
 `.gitignore`, and `.claspignore`. Report-only seeds known formulas before the
 baseline commit. Edit trials use helper-managed worktrees and the production
@@ -23,6 +23,20 @@ HEAD. The baseline also includes the exact empty feedback-collector backlog
 file so its create-only host hook does not create an unrelated path; later
 changes to the file remain detectable. Prompts contain only synthetic fixture
 data and selected skill instructions.
+
+The queued live extension separates independent task count from requested
+worker capacity. Existing `--workers N` preparations retain their old meaning:
+N tasks with capacity N. Add `--tasks N` to grow the preplanned task list; for
+example, `--tasks 8 --workers 3` requests eight tasks with capacity three. If
+`--workers` is omitted, the raw request omits `capacity` so production
+normalization selects its default, `min(5, task_count)`. Task formulas keep the
+original first five values and extend deterministically after them. Edit tasks
+own one Python module and one JSON metadata file; the combined verifier checks
+both for every task over several input values.
+
+These are preplanned independent tasks used to measure queue refill and full
+result aggregation. They are not a prompt-led decomposition apparatus and do
+not measure whether a root model can discover a useful task breakdown.
 
 Prepare a new output directory for every attempt. Preparation records package
 tree hashes for in-parallel, ask-agent, and plan-dispatcher, plus this
@@ -40,6 +54,10 @@ python3 -B "$APP" prepare --case /tmp/agent-harness-sonnet-direct5-ephemeral \
   --provider claude --arm direct --workers 5 --mode ephemeral
 python3 -B "$APP" prepare --case /tmp/agent-harness-grok-direct3 \
   --provider grok --arm direct --workers 3 --mode edit
+python3 -B "$APP" prepare --case /tmp/agent-harness-grok-queued8-cap3 \
+  --provider grok --arm direct --tasks 8 --workers 3 --mode edit
+python3 -B "$APP" prepare --case /tmp/agent-harness-grok-queued11-default \
+  --provider grok --arm direct --tasks 11 --mode edit
 ```
 
 Copy a case's `case_id` and `freeze_sha256` from its JSON response, then launch
@@ -92,17 +110,28 @@ result as JSON with the exact production success status. Missing or ambiguous
 evidence fails.
 
 Launch identity checks bind root argv, cwd, model, effort, prompt/request hashes,
-manifest, and source freeze to the prepared case. The filesystem audit compares
-parent HEAD, index entries, staged diff, and control-file bytes, then runs the
-combined synthetic verifier for edit/apply cases. Elapsed time, worker start
-spread, and peak worker overlap come from retained timing evidence. Root Claude
+manifest, and source freeze to the prepared case. For new queued fixtures, the
+audit joins each frozen task to its prepared attempt, native session, collected
+terminal handle, passing independent verification, and immutable delivery row.
+It checks the exact applied path union, every combined verification result,
+unchanged parent HEAD/index bytes and dirty-control bytes, and successful
+worktree removal with retained branch and commit references. The native report
+records effective capacity, `reached_capacity`, `queued_refill_observed`,
+invocation count, and strict start/finish interval overlap; an equal-timestamp
+boundary is reported as ambiguous and does not count as observed refill. The
+filesystem audit also compares parent HEAD, index entries, staged diff, and
+control-file bytes, then runs the combined synthetic verifier for edit/apply
+cases. Elapsed time, worker start spread, and peak worker overlap come from
+retained timing evidence. Root Claude
 input, cache-read input, cache-creation input, and output tokens are reported
 separately; total input is incomplete if either cache field is absent. Child
 token totals are unavailable. Observed host-wall-clock overlap does not
 establish CPU parallelism or speedup.
 
 `test_audit.py` contains offline checks for direct/nested graph requirements,
-resumed native invocation intervals, effective launch state, ephemeral findings
-and no-commit controls, fixture modes, request normalization, frozen inputs,
-and Grok phase-result parsing. Run the offline checks through `bash test/run-all.sh --group in-parallel`;
-the group's separate queue tests exercise bounded refill and complete task coverage.
+capacity/refill metrics, over-cap overlap, missing tasks/resources, reused
+handles, cleanup leftovers, resumed native invocation intervals, fixture modes,
+request normalization, frozen inputs, and Grok phase-result parsing. Run the
+narrow audit tests with `python3 -B test/experiments/agent_harness/test_audit.py`.
+The `in-parallel` group also contains the production queue and controller tests;
+those exercise bounded refill and complete task coverage.

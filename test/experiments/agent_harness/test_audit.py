@@ -1,5 +1,7 @@
 """Offline invariants for the reusable agent-harness experiment audit."""
 import tempfile
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -132,6 +134,90 @@ class NativeGraphAuditTests(unittest.TestCase):
         self.assertEqual(result["status"], "FAIL")
         self.assertEqual(result["peak_native_worker_overlap"], "unavailable")
 
+    def test_queued_graph_rejects_overlap_above_effective_capacity(self):
+        case = {"arm": "direct", "workers": 4, "task_count": 4,
+                "effective_capacity": 2, "fixture_version": experiment.RESOURCE_FIXTURE_VERSION}
+        nodes = [node("root", None, "root", 1, 10)]
+        nodes.extend(node(f"worker-{i}", "root", "worker", 2, 8, f"module-{i:02}")
+                     for i in range(1, 5))
+
+        result = experiment.audit_native_graph(case, nodes)
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["peak_native_worker_overlap"], 4)
+        self.assertIn("native worker overlap exceeded effective capacity: peak 4, capacity 2",
+                      result["errors"])
+
+    def test_queued_graph_records_capacity_and_refill_during_peer_activity(self):
+        case = {"arm": "direct", "workers": 4, "task_count": 4,
+                "effective_capacity": 2, "fixture_version": experiment.RESOURCE_FIXTURE_VERSION}
+        nodes = [node("root", None, "root", 1, 20),
+                 node("worker-1", "root", "worker", 2, 10, "module-01"),
+                 node("worker-2", "root", "worker", 2, 5, "module-02"),
+                 node("worker-3", "root", "worker", 6, 11, "module-03"),
+                 node("worker-4", "root", "worker", 12, 13, "module-04")]
+
+        result = experiment.audit_native_graph(case, nodes)
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["effective_worker_capacity"], 2)
+        self.assertTrue(result["reached_capacity"])
+        self.assertTrue(result["queued_refill_observed"])
+
+    def test_queued_graph_rejects_an_omitted_last_task(self):
+        case = {"arm": "direct", "workers": 4, "task_count": 4,
+                "effective_capacity": 2, "fixture_version": experiment.RESOURCE_FIXTURE_VERSION}
+        nodes = [node("root", None, "root", 1, 10)]
+        nodes.extend(node(f"worker-{i}", "root", "worker", 2 + i / 10, 8,
+                          f"module-{i:02}") for i in range(1, 4))
+
+        result = experiment.audit_native_graph(case, nodes)
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("native worker identities do not equal the requested independent task set",
+                      result["errors"])
+
+    def test_reused_native_session_handle_is_rejected(self):
+        nodes = [node("root", None, "root", 1, 10),
+                 node("worker-shared", "root", "worker", 2, 7, "module-01"),
+                 node("worker-shared", "root", "worker", 3, 8, "module-02"),
+                 node("worker-3", "root", "worker", 4, 9, "module-03")]
+
+        result = experiment.audit_native_graph(self.direct_case, nodes)
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("native node id is missing or duplicated", result["errors"])
+
+    def test_queued_trial_rejects_a_resumed_worker_context(self):
+        case = {"arm": "direct", "workers": 3, "task_count": 3,
+                "effective_capacity": 2, "fixture_version": experiment.RESOURCE_FIXTURE_VERSION}
+        nodes = [node("root", None, "root", 1, 10),
+                 node("worker-1", "root", "worker", 2, 8, "module-01"),
+                 node("worker-2", "root", "worker", 2, 6, "module-02"),
+                 node("worker-3", "root", "worker", 3, 7, "module-03")]
+        nodes[1]["invocation_intervals"] = [
+            {"start_epoch": 2, "finish_epoch": 4}, {"start_epoch": 6, "finish_epoch": 8}]
+
+        result = experiment.audit_native_graph(case, nodes)
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["native_invocation_count"], 4)
+        self.assertEqual(result["resumed_worker_task_ids"], ["module-01"])
+        self.assertTrue(any("one native invocation per task" in error for error in result["errors"]))
+
+    def test_queued_graph_requires_native_terminal_for_every_task(self):
+        case = {"arm": "direct", "workers": 4, "task_count": 4,
+                "effective_capacity": 2, "fixture_version": experiment.RESOURCE_FIXTURE_VERSION}
+        nodes = [node("root", None, "root", 1, 10)]
+        nodes.extend(node(f"worker-{i}", "root", "worker", 2 + i / 10, 8,
+                          f"module-{i:02}") for i in range(1, 5))
+        nodes[-1]["terminal"] = False
+
+        result = experiment.audit_native_graph(case, nodes)
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("native node 'worker-4' has no terminal event", result["errors"])
+
 
 class ClaudeLaunchEvidenceTests(unittest.TestCase):
     def test_omitted_background_argument_uses_native_effective_state(self):
@@ -238,6 +324,249 @@ class PreparedCaseTests(unittest.TestCase):
             self.assertEqual(normalized["capacity"], 1)
             self.assertEqual(frozen["normalized_request_sha256"], experiment._sha(experiment._canonical(normalized)))
             self.assertEqual(prepared["freeze_sha256"], frozen["freeze_sha256"])
+
+    def test_task_count_is_independent_of_explicit_or_default_capacity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            explicit_path = Path(temp) / "eight-cap-three"
+            explicit = experiment.prepare_case(SimpleNamespace(
+                case=explicit_path, provider="claude", arm="direct", workers=3, tasks=8,
+                mode="edit", workspace=None, integration=None,
+            ))
+            explicit_case = experiment._read(explicit_path / "case.json")
+            explicit_request = experiment._read(explicit_path / "harness-request.json")
+            self.assertEqual(explicit["task_count"], 8)
+            self.assertEqual(explicit_case["effective_capacity"], 3)
+            self.assertEqual(explicit_request["capacity"], 3)
+            self.assertEqual(len(explicit_request["tasks"]), 8)
+            self.assertEqual(explicit_request["tasks"][0]["write_set"],
+                             ["src/module_01.py", "src/module_01.json"])
+            self.assertEqual(experiment._formula(5), experiment.FORMULAS[4])
+            self.assertEqual(experiment._formula(6), (7, 15))
+
+            omitted_path = Path(temp) / "eleven-default-capacity"
+            omitted = experiment.prepare_case(SimpleNamespace(
+                case=omitted_path, provider="claude", arm="direct", workers=None, tasks=11,
+                mode="edit", workspace=None, integration=None,
+            ))
+            omitted_case = experiment._read(omitted_path / "case.json")
+            omitted_request = experiment._read(omitted_path / "harness-request.json")
+            self.assertEqual(omitted["task_count"], 11)
+            self.assertEqual(omitted["effective_capacity"], 5)
+            self.assertNotIn("capacity", omitted_request)
+            self.assertEqual(experiment._normalized_request(omitted_request)["capacity"], 5)
+            self.assertEqual(len(omitted_request["tasks"]), 11)
+            self.assertEqual(omitted_case["fixture"]["resource_paths"][-1], "src/module_11.json")
+
+    def test_combined_fixture_verifier_detects_a_missing_last_resource(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "caller"
+            fixture = experiment._fixture(root, 6)
+            for index in range(1, 7):
+                factor, offset = experiment._formula(index)
+                module = root / f"src/module_{index:02}.py"
+                module.write_text(f"def transform(value):\n    return value * {factor} + {offset}\n")
+                metadata = root / f"src/module_{index:02}.json"
+                if index != 6:
+                    metadata.write_text(json.dumps(experiment._resource_metadata(
+                        f"src/module_{index:02}.py", factor, offset), sort_keys=True) + "\n")
+
+            missing = subprocess.run(["python3", "-B", fixture["verifier"]], cwd=root,
+                                     capture_output=True, text=True)
+            self.assertNotEqual(missing.returncode, 0)
+
+            factor, offset = experiment._formula(6)
+            (root / "src/module_06.json").write_text(json.dumps(
+                experiment._resource_metadata("src/module_06.py", factor, offset), sort_keys=True) + "\n")
+            complete = subprocess.run(["python3", "-B", fixture["verifier"]], cwd=root,
+                                      capture_output=True, text=True)
+            self.assertEqual(complete.returncode, 0, complete.stderr)
+            self.assertIn("6 complete module/resource pairs", complete.stdout)
+
+
+class QueuedCleanupAuditTests(unittest.TestCase):
+    def test_production_harness_delivery_and_cleanup_records_pass_join_audit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "caller"
+            fixture = experiment._fixture(source, 2)
+            case = {"arm": "direct", "workers": 2, "task_count": 2,
+                    "requested_capacity": 1, "effective_capacity": 1,
+                    "capacity_explicit": True, "fixture_version": experiment.RESOURCE_FIXTURE_VERSION,
+                    "mode": "edit", "workspace": "worktree", "integration": "apply",
+                    "caller": str(source), "fixture": fixture}
+            sys.path.insert(0, str(experiment.SKILL_ROOT / "in-parallel" / "scripts"))
+            import delivery
+            import harness as production_harness
+            case["parent_snapshot"] = delivery.capture(source)
+            case["parent_index_sha256"] = experiment._sha((source / ".git" / "index").read_bytes())
+            raw_request = experiment._request(case, "edit", "worktree", "apply")
+            run = root / "harness"
+            request_path = root / "request.json"
+            experiment._write_new(request_path, raw_request)
+            initialized = production_harness.execute(
+                "init", run=str(run), request=str(request_path.resolve()),
+                ask_agent_card=str(experiment.PACKAGES["ask_agent"]),
+                dispatcher_card=str(experiment.PACKAGES["plan_dispatcher"]),
+            )
+            self.assertEqual(initialized["status"], "READY")
+
+            native_nodes = []
+            while True:
+                dispatched = production_harness.execute("dispatch", run=str(run))
+                launches = dispatched.get("launches", [])
+                if not launches:
+                    break
+                for launch in launches:
+                    task_id, attempt = launch["task"], launch["attempt"]
+                    handle = "offline-simulated-native:" + task_id
+                    native_nodes.append({"id": handle, "role": "worker", "task_id": task_id})
+                    production_harness.execute("launched", run=str(run), attempt=attempt, handle=handle)
+                    prepared = experiment._read(run / "prepared" / f"{attempt}.json")
+                    for phase in ("worker-start",):
+                        command = prepared["commands"][phase]
+                        started = subprocess.run(command["argv"], cwd=command["cwd"],
+                                                 capture_output=True, text=True)
+                        self.assertEqual(started.returncode, 0, started.stderr)
+                        self.assertEqual(json.loads(started.stdout)["status"], "WORKER_CONTEXT_READY")
+                    index = int(task_id.split("-")[-1])
+                    factor, offset = experiment._formula(index)
+                    worker_root = Path(launch["cwd"])
+                    (worker_root / f"src/module_{index:02}.py").write_text(
+                        f"def transform(value):\n    return value * {factor} + {offset}\n")
+                    (worker_root / f"src/module_{index:02}.json").write_text(json.dumps(
+                        experiment._resource_metadata(f"src/module_{index:02}.py", factor, offset),
+                        sort_keys=True) + "\n")
+                    task = next(row for row in raw_request["tasks"] if row["id"] == task_id)
+                    experiment._git(worker_root, "add", "--", *task["write_set"])
+                    experiment._git(worker_root, "commit", "-qm", f"offline worker {task_id}")
+                    command = prepared["commands"]["worker-finish"]
+                    finished_worker = subprocess.run(command["argv"], cwd=command["cwd"],
+                                                     capture_output=True, text=True)
+                    self.assertEqual(finished_worker.returncode, 0, finished_worker.stderr)
+                    self.assertEqual(json.loads(finished_worker.stdout)["status"], "READY_FOR_PARENT_ACCEPTANCE")
+
+                    criteria = [{"criterion": row["criterion"], "check": "offline formula and metadata check",
+                                 "observed": "module and exact JSON metadata committed",
+                                 "level": "confirmed"} for row in launch["result_contract"]["criteria"]]
+                    result_path = root / f"{attempt}-native-result.json"
+                    experiment._write_new(result_path, {
+                        "native_handle": handle, "native_terminal": True, "status": "SUCCEEDED",
+                        "summary": "[OFFLINE SIMULATED NATIVE RESULT] module and metadata implemented",
+                        "criteria": criteria, "evidence": [],
+                    })
+                    collected = production_harness.execute(
+                        "collect", run=str(run), attempt=attempt, result=str(result_path.resolve()))
+                    self.assertEqual(collected["status"], "AWAITING_VERIFICATION")
+
+                    proof_path = root / f"{attempt}-verification-evidence.txt"
+                    proof_path.write_text(f"independent verification for {task_id}\n")
+                    verification_path = root / f"{attempt}-verification.json"
+                    experiment._write_new(verification_path, {
+                        "passed": True, "reason": "independent offline fixture inspected the exact return",
+                        "evidence": [{"path": str(proof_path), "sha256": experiment._sha(proof_path.read_bytes())}],
+                    })
+                    accepted = production_harness.execute(
+                        "accept", run=str(run), attempt=attempt,
+                        verification=str(verification_path.resolve()))
+                    self.assertEqual(accepted["status"], "RECORDED_STATUS")
+
+            final_result = production_harness.execute("finish", run=str(run))
+            status_result = production_harness.execute("status", run=str(run))
+            delivery_result = experiment._read(run / "delivery" / "result.json")
+            audited = experiment._new_fixture_delivery_audit(
+                case, run, final_result, delivery_result, status_result, native_nodes, raw_request)
+
+            self.assertEqual(audited["status"], "PASS", audited["errors"])
+            self.assertEqual(final_result["cleanup_status"], "complete")
+
+            alias = root / "harness-alias"
+            alias.symlink_to(run, target_is_directory=True)
+            through_alias = experiment._new_fixture_delivery_audit(
+                case, alias, final_result, delivery_result, status_result, native_nodes, raw_request)
+            self.assertEqual(through_alias["status"], "PASS", through_alias["errors"])
+
+            prepared_path = next((run / "prepared").glob("*.json"))
+            prepared = experiment._read(prepared_path)
+            packet_path = Path(prepared["packet"]["path"])
+            original_packet = packet_path.read_bytes()
+            packet_path.write_bytes(original_packet + b"\n")
+            changed_packet = experiment._new_fixture_delivery_audit(
+                case, run, final_result, delivery_result, status_result, native_nodes, raw_request)
+            self.assertTrue(any("packet bytes differ from their pinned hash" in error
+                                for error in changed_packet["errors"]))
+            packet_path.write_bytes(original_packet)
+
+            cleanup_by_id = {row["id"]: row for row in final_result["cleanup"]["workers"]}
+            module_one = cleanup_by_id["module-01"]
+            module_two = cleanup_by_id["module-02"]
+            task_two_acceptance = module_two["acceptance"]
+            module_two["acceptance"] = module_one["acceptance"]
+            wrong_acceptance = experiment._new_fixture_delivery_audit(
+                case, run, final_result, delivery_result, status_result, native_nodes, raw_request)
+            self.assertTrue(any("module-02 cleanup is not bound to its terminal result" in error
+                                for error in wrong_acceptance["errors"]))
+            module_two["acceptance"] = task_two_acceptance
+
+            packet_document = experiment._read(Path(prepared["packet"]["path"]))
+            packet_workspace = packet_document["workspace"]
+            packet_task = packet_document["task"]
+            task_id = next(row["id"] for row in raw_request["tasks"]
+                           if packet_task.get("objective") == row.get("objective")
+                           and packet_task.get("expected_result") == row.get("expected_result")
+                           and packet_task.get("write_set") == sorted(row.get("write_set", [])))
+            actual_worktree = Path(packet_workspace["root"])
+            branch = packet_workspace["branch"]
+            experiment._git(source, "worktree", "add", "--detach", str(actual_worktree), branch)
+            wrong_worktree = root / "absent-sibling-worktree"
+            cleanup_row = cleanup_by_id[task_id]
+            original_worktree = cleanup_row["worktree"]
+            cleanup_row["worktree"] = str(wrong_worktree)
+            try:
+                wrong_path = experiment._new_fixture_delivery_audit(
+                    case, run, final_result, delivery_result, status_result, native_nodes, raw_request)
+                self.assertTrue(any(f"{task_id} worktree remains or is still registered" in error
+                                    for error in wrong_path["errors"]))
+            finally:
+                cleanup_row["worktree"] = original_worktree
+                if actual_worktree.exists():
+                    experiment._git(source, "worktree", "remove", "--force", str(actual_worktree))
+
+    def test_cleanup_audit_rejects_a_worktree_left_on_disk(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            source.mkdir()
+            harness = root / "harness"
+            (harness / "delivery").mkdir(parents=True)
+            worktree = root / "worker-tree"
+            worktree.mkdir()
+            task = {"id": "module-01", "objective": "implement module-01",
+                    "expected_result": "module-01 is correct", "write_set": ["src/module_01.py"]}
+            case = {"fixture_version": experiment.RESOURCE_FIXTURE_VERSION,
+                    "workers": 1, "task_count": 1, "effective_capacity": 1,
+                    "mode": "edit", "workspace": "worktree", "integration": "apply",
+                    "caller": str(source), "fixture": {"owned_paths": ["src/module_01.py"]}}
+            delivery_result = {"status": "SUCCEEDED", "workers": [{"id": "module-01",
+                                 "branch": "worker/module-01", "worktree": str(worktree),
+                                 "write_set": task["write_set"], "delivery": {"commits": []}}],
+                               "integration": {"outcome": "applied", "applied_paths": ["src/module_01.py"],
+                                               "workers": [{"id": "module-01", "paths": ["src/module_01.py"]}]},
+                               "checks": []}
+            delivery_path = harness / "delivery" / "result.json"
+            delivery_path.write_text(json.dumps(delivery_result))
+            final_result = {"status": "SUCCEEDED", "cleanup_status": "complete",
+                            "cleanup": {"status": "complete", "workers": [{"id": "module-01",
+                                        "status": "closed", "worktree": str(worktree),
+                                        "worktree_path_status": "removed",
+                                        "helper_outcome": {"status": "closed", "removed": True}}]}}
+            status_result = {"workers_accepted": True, "active": [],
+                             "progress": {"completed": [{"step": "module-01"}]}}
+
+            result = experiment._new_fixture_delivery_audit(
+                case, harness, final_result, delivery_result, status_result, [], {"tasks": [task], "checks": []})
+
+            self.assertEqual(result["status"], "FAIL")
+            self.assertTrue(any("worktree remains or is still registered" in error for error in result["errors"]))
 
     def test_ephemeral_audit_requires_numeric_findings_and_no_source_commit(self):
         with tempfile.TemporaryDirectory() as temp:
