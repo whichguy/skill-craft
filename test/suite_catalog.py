@@ -172,6 +172,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-e2e-run-trace.test.py",
     "test/shiploop-e2e-brownfield.test.py",
+    "test/shiploop-e2e-brownfield-tickets.test.py",
     "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
@@ -374,6 +375,11 @@ _DURATION_SECONDS = {
     # the reference delivery and runs the held-out checks and the base's pristine tests (real node) against each, and one fake-host
     # run goes through run.main. Local wall seconds, 2026-10-26: 21.1 s alone.
     "test/shiploop-e2e-brownfield.test.py": 22.0,
+    # The medium brownfield pair, ticket-assignment on fixtures/node-tickets and its follow-on ticket-escalation (D7 of the
+    # brownfield-baseline design): 24 tests; the calibration grades 54 variants side by side (held-out checks that start their
+    # own servers, then the base's pristine tests, real node), and the cases' checks and one fake-host run go through run.py.
+    # Local wall seconds, 2026-10-28: 82 to 93 s at load average 40 to 85 from other work, 46 s of it the calibration.
+    "test/shiploop-e2e-brownfield-tickets.test.py": 90.0,
     # The resource lifecycle (lifecycle.py; leases, recorded groups, crash and retry, disposal): 19 tests, real ps, flock and
     # signals on processes the tests start, one SIGKILLed harness subprocess. 7.3 s locally on 2026-10-26.
     "test/shiploop-e2e-lifecycle.test.py": 8.0,
@@ -702,7 +708,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/fidelity/": ("shiploop-e2e-fidelity",),
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
-    "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield"),
+    "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets"),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     # The two saved-run extracts the efficiency measurement reads, and the journal rows its test checks.
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),

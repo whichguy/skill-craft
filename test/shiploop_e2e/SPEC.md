@@ -378,8 +378,8 @@ on quickly before the breadth of everything is checked.
   `hello` covers in its focused suite and as the batch gate, or
   `parallel-graph`, whose cases have no qualified passing baseline and stay
   opt-in (`--case`), or `hosted-platform`, whose cases deploy to a real hosted
-  org and need the owner's go for each deploy, or `brownfield`, whose one case
-  (`user-listing`, build step 6) has not run live, so it has no baseline. A style joins breadth once its focused suite has passed
+  org and need the owner's go for each deploy, or `brownfield`, whose cases
+  (`user-listing`, build step 6, and the `ticket-assignment` pair, 2026-10-28) have not run live, so it has no baseline. A style joins breadth once its focused suite has passed
   (Promotion); until then the breadth claim leaves it out by name
   (amended 2026-10-16: the claim said every style while breadth held three
   of five).
@@ -576,6 +576,22 @@ and two decisions are compared only under the same id.
     not name: `paginate` drops a partial last page. Breadth leaves the style out until its focused suite has passed.
   - *What this does not do.* The base's tests are visible, since the model starts from them; only the acceptance is held
     out. It is one base and one task family: R10's Python CLI and Flask bases come later. No live run has used it yet.
+  - *The medium pair (added 2026-10-28; D7 of docs/shiploop-brownfield-baseline-design-2026-10-28.md).* `ticket-assignment`
+    extends `fixtures/node-tickets`, a help-desk ticket service of about 3,600 lines (1,700 of source) with eight decision
+    records, and `ticket-escalation` follows it, so it starts from the first run's delivery and runs the first case's checks
+    again beside its retention checks. The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
+    request does not name, and whether the follow-on keeps what the first run had to learn. As node-base does, its base holds a
+    latent defect in the flow the request touches, which the request depends on and does not name.
+    - *Checks that start the product themselves.* A held-out check may take a second parameter, the delivered copy
+      (`quality.Product`). It starts more servers of the product with an environment of its own (a data file, a
+      notification file, the background worker off), stops and restarts them, and runs the product's own command lines.
+      Each runs in a group the harness ends, under the same port guard; what the product writes for a check lives under
+      `<output>/quality`. A server whose free port was taken before it bound it is started again on another.
+    - *Pass-to-pass of a follow-on.* The follow-on's pass-to-pass checks reuse the first case's checks: against the first
+      run's delivery they read what that run built, so a check that passed after the first run and fails after the second
+      is something the second run lost.
+    - The latent facts, the documents and code they are in, and the checks that read them are in
+      docs/experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md, never shown to a model.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.

@@ -334,3 +334,46 @@ follows that evidence and is measured against it.
 
 Recorded below as the runs finish: the `user-listing` live run, and the medium brownfield case with its follow-on, both
 on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN_DEFAULT_BACKEND`).
+
+#### The medium case pair: built and calibrated, not yet run — firm (as an instrument)
+
+- **What.** `ticket-assignment` on a new base, `test/shiploop_e2e/fixtures/node-tickets`, and its follow-on
+  `ticket-escalation` (`follows`, run with `--continue-from`). The base is a dependency-free help-desk ticket service:
+  1,681 lines of source, 1,264 of tests (117 `node:test` tests), 624 of documents, with eight decision records (one
+  superseded), an index and a template. `user-listing`'s base is 149 lines; this one is about 24 times that, so reading it
+  again costs a run real time.
+- **What it measures (D7).** (1) Does a run keep behaviour and team decisions its request does not name? Thirteen latent
+  facts, LA1-LA8 for the first request and LB1-LB5 for the follow-on, each with the file and symbol that holds it and the
+  checks that read it: [node-tickets-expected.md](experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md).
+  Like node-base, the base breaks one of them in the flow the request touches: its listing combines two filters with "or"
+  where `docs/api.md` says every filter must match, and its tests try one filter at a time. (2) Does the follow-on keep what
+  the first run had to learn? The follow-on's seven pass-to-pass checks reuse the first case's checks, so against the first
+  run's delivery a check that passed after the first run and fails after the second is something the second run lost.
+- **Checks.** 18 held-out checks for the first case (6 pass-to-pass, 12 fail-to-pass) and 14 for the follow-on (7 and 7),
+  plus each case's visible checks (the first: `base_tests.py suite` and `pristine`, one HTTP check; the follow-on: two HTTP
+  checks and four retention checks in battleship-scoring's shape).
+- **Calibration** (`test/shiploop-e2e-brownfield-tickets.test.py`, 24 tests). 54 variants: each base fails exactly its
+  fail-to-pass checks and passes its pass-to-pass checks and the 117 pristine tests; each reference and each independently
+  written alternative passes everything; 27 targeted defects of the first case and 21 of the follow-on each fail exactly the
+  checks they read. Every check is failed by some defect, and every defect is caught by a check or the pristine tests.
+  Three defects break a base module and edit the base's tests to match, so only the pristine tests see them; three break
+  existing behaviour that both the pristine tests and a held-out pass-to-pass check see; and one, `update-rejects-resolved`
+  (in both cases), is seen only by a held-out pass-to-pass check, because nothing in the base's tests edits a resolved ticket.
+- **Harness change.** A held-out check may take a second parameter, the delivered copy (`quality.Product`): more servers
+  of the product with an environment of the check's own, restarts, and the product's command lines. `quality.free_port`
+  never hands out a port twice within 4,096, and a product server that exits on `EADDRINUSE` naming its own port is started
+  again on another. The evaluator digest changes for every case (as it does for any harness change), and the oracle digest
+  with the new check modules: a promotion decision never spans this commit.
+- **Findings while building it (firm for the instrument):**
+  - The base's tests first compared whole objects (a created ticket, the loaded data file, the configuration), so the
+    request's own `assignee` field, or the follow-on's `ONCALL` setting, failed the pristine suite. A base whose tests forbid
+    the requested change is a broken case; they now compare the fields they own.
+  - Grading 54 variants side by side made thousands of short TCP connections a minute. Closing them from the product's side
+    left wait states on its ports, which `listen(0)` hands to the base's own test servers; closing them from the client's side
+    ran the ephemeral range out (`EADDRNOTAVAIL`). The checks now keep one connection per server and close it first, and the
+    base's test client keeps one per test. What remained, under load averages of 40 to 90 from other work, was about one
+    reset in two hundred concurrent `node --test` runs, never twice in a row; the calibration grades a disagreeing result once
+    more, alone, and pins that this happens at most four times.
+- **Runs.** None yet: the owner launches them. `python3 test/shiploop_e2e/run.py --case ticket-assignment --output <out>`,
+  then `python3 test/shiploop_e2e/run.py --case ticket-escalation --continue-from <out> --output <out2>`, both on the E2E
+  subject by default. The same pair runs again after section 10's build.
