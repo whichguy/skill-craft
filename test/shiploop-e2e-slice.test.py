@@ -897,6 +897,31 @@ class ClearSpecTests(unittest.TestCase):
                 clear.parse_spec([text])
 
 
+class SeedGapTests(unittest.TestCase):
+    def test_a_seed_past_step_plan_with_no_steps_is_refused_before_anything_starts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "slice"
+            with self.assertRaises(SystemExit) as caught:
+                step_slice.main(["--case", "node-fix-bug", "--seed-at", "test-spec", "--output", str(out)])
+            self.assertFalse(out.exists())
+        self.assertIn("no step to build its loop from", str(caught.exception))
+        self.assertIn("Nothing was started", str(caught.exception))
+
+    def test_seeds_up_to_step_plan_need_no_steps(self):
+        for seed_at in ("test-strategy", "step-plan"):
+            with self.subTest(seed_at):
+                self.assertEqual(step_slice.seed_gap(seed_at, None), "")
+
+    def test_every_experiment_seeded_past_step_plan_gives_step_plan_steps(self):
+        experiments = json.loads((step_slice.HERE / "experiments.json").read_text())
+        past = [e for e in experiments.values() if isinstance(e, dict) and e.get("seed_at") == "test-spec"]
+        self.assertTrue(past)
+        for experiment in past:
+            with self.subTest(experiment["case"]):
+                records = step_slice.merged_records(step_slice.load_step_case(experiment["case"]), None)
+                self.assertEqual(step_slice.seed_gap(experiment["seed_at"], records), "")
+
+
 FAKE_CLAUDE = textwrap.dedent('''
     import json, os, subprocess, sys, time
     from pathlib import Path

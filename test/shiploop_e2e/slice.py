@@ -139,6 +139,19 @@ def merged_records(case: dict, extra: Path | None) -> dict | None:
     return records or None
 
 
+def seed_gap(seed_at: str, records: dict | None) -> str:
+    """Why a seed past step-plan would leave implement nothing to build, or "".
+
+    Implement builds each step's Until Loop from the recorded step plan's steps; a synthetic step-plan without any makes it
+    refuse every done result, so the slice reaches implement only if test-spec happens to send the plan back.
+    """
+    if SEED_POINTS.index(seed_at) <= SEED_POINTS.index("step-plan") or ((records or {}).get("step-plan") or {}).get("steps"):
+        return ""
+    return (f"--seed-at {seed_at} records step-plan without doing it, and the case's seed_records give it no steps, so implement "
+            "would have no step to build its loop from. Seed at step-plan, or give step-plan steps in the case's seed_records "
+            "or --seed-records. Nothing was started.")
+
+
 def seed_state(case: dict, out: Path, env: dict) -> dict | None:
     """A case's ``seed_state`` ({"env": NAME, "from": "<fixture folder>"}): a local target that keeps state between
     commands, outside every checkout (<output>/target), pre-loaded from the fixture as an earlier stage left it. NAME is
@@ -503,6 +516,9 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--case is required (or --regrade OUTPUT)")
     case = load_step_case(args.case)
     clear_at = clear.parse_spec(args.clear_at)  # a malformed position ends the command before anything is built
+    records = merged_records(case, args.seed_records)
+    if why := seed_gap(args.seed_at, records):
+        raise SystemExit(why)
     run.install_termination_handlers()
     out = run.new_output_dir(args.output, f"slice-{args.case}")
     work = out / "work"
@@ -530,7 +546,7 @@ def main(argv: list[str] | None = None) -> int:
     cli = run.run_cli(host.name, out, plugin_dir)
     seeded = run.seed_run(cli, work, out, case["prompt"], args.seed_at, fixture=FIXTURES / case["fixture"],
                           work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
-                          home=not args.seed_without_home, records=merged_records(case, args.seed_records),
+                          home=not args.seed_without_home, records=records,
                           planning_review=args.planning_review,
                           improve_skill=str(run.improve_card(plugin_dir)) if args.planning_review == "none" else "")
     target = seed_state(case, out, env)
