@@ -259,9 +259,9 @@ class CardSplitSensitivityTests(unittest.TestCase):
         path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
     def test_a_lost_anchor_is_reported(self) -> None:
-        self.edit("references/test-loop.md", "7 genuine fix attempts", "several attempts")
+        self.edit("references/test-loop.md", "in the same way after a genuine fix", "after several attempts")
         self.assertEqual(card_split_problems(self.package, self.ledger),
-                         ["tests-pass-or-stop: test-loop.md lacks '7 genuine fix attempts'"])
+                         ["tests-pass-or-stop: test-loop.md lacks 'in the same way after a genuine fix'"])
 
     def test_an_unledgered_section_and_an_unlinked_file_are_reported(self) -> None:
         self.edit("references/chain-navigation.md", "## Navigation and settlement", "## Navigation\n\n## Settlement")

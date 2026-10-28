@@ -119,8 +119,8 @@ REPEAT: Mapping[str, str] = {
         "latest iteration changed code to fix it; " + _NO_LIMIT + " Stop blocked when none remains: the stage "
         "reports blocked when a person or an outside service must act (access, authority, a decision), and "
         "send-back when the plan is proven unachievable as planned (a criterion contradicts another criterion, the "
-        "item or a protected file; it needs a tool that is absent; or it would exceed the item), or when the same "
-        f"check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts. " + _NEVER_CANCEL),
+        "item or a protected file; it needs a tool that is absent; or it would exceed the item), or when "
+        + stage_spec.STUCK_FIX + ". " + _NEVER_CANCEL),
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
         "below the floor, a new ID passing on the base, a lint finding or a check-only refusal, and changed code or "
@@ -153,8 +153,7 @@ REPEAT_STEP = (
     "remains: report blocked when a person or an outside service must act (access, authority, a decision); report "
     "send-back, with the blocker and the attempts made, when the step is proven unachievable as planned (it contradicts "
     "a requirement, a decision, the item or a protected file; it needs a tool that is absent; or it would exceed the "
-    f"item), or when the same underlying failure persists after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts. "
-    + _NEVER_CANCEL)
+    "item), or when " + stage_spec.STUCK_FIX + ". " + _NEVER_CANCEL)
 
 # Verify's review gate: one complete iteration that finds only trivial issues.  Every other stage completes on its
 # first iteration whose exit assessment is satisfied.

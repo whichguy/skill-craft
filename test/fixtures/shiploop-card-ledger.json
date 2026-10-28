@@ -52,7 +52,7 @@
     {"id": "confirmation", "obligation": "a passing command is the only confirmation; unverified outcomes are listed", "old": "### Confirmation is a passing command", "home": "test-loop.md", "section": "## Confirmation is a passing command", "trigger": "references/test-loop.md",
      "anchors": ["A passing test that ShipLoop runs is the only confirmation", "a done `product-acceptance` lists it in `unverified`"]},
     {"id": "tests-pass-or-stop", "obligation": "the pass-or-stop rule at implement and test", "old": "### Tests pass or the step stops", "home": "test-loop.md", "section": "## Tests pass or the step stops", "trigger": "references/test-loop.md",
-     "anchors": ["7 genuine fix attempts", "Only a final full pass after the last edit counts"]},
+     "anchors": ["in the same way after a genuine fix", "Only a final full pass after the last edit counts"]},
     {"id": "backchain-passes-option", "obligation": "the backchain_passes option and what each value prints", "old": "### Backchain passes option", "home": "backchain-route.md", "section": "## Backchain passes option", "trigger": "references/backchain-route.md",
      "anchors": ["--backchain-passes one|converge|none", "no whole `plan`/`draft` is requested"]},
     {"id": "backchain-selection", "obligation": "the only Backchain route, its binding, the plan-only child and the graph check", "old": "## Source-aware Backchain selection", "home": "backchain-route.md", "section": "## Source-aware Backchain selection", "trigger": "references/backchain-route.md",

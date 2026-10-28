@@ -1763,7 +1763,7 @@ class PromptContractTests(unittest.TestCase):
                 self.assertIn("`lint_waivers`", packet)
                 self.assertIn("lint", " ".join(loops.REPEAT[stage].split()))
         implement = " ".join(guidance.prompt("implement", delegation=guidance.INLINE).split())
-        self.assertIn("the same check still fails after 7 genuine fix attempts", implement)
+        self.assertIn("the same check still fails in the same way after a genuine fix", implement)
 
 
 class CliTests(Fixture):

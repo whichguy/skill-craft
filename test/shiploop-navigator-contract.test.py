@@ -1316,7 +1316,7 @@ class NavigatorContractTests(unittest.TestCase):
             "report send-back, naming the criterion or command and the case",
             # A condition no command can confirm is not a criterion (step-plan), so no criterion carries "unconfirmable".
             "confirming it needs an absent tool, runtime, access or authority;",
-            f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
+            stage_spec.STUCK_FIX,
             "with existing behaviour kept at the conflict point",
         )
         parent = (
@@ -1357,7 +1357,7 @@ class NavigatorContractTests(unittest.TestCase):
         for stage in ("implement", "verify"):
             self.assertNotIn("satisfied only when a command or file shows it", " ".join(prompts.prompt(stage).split()))
         # The stopping rule is implement's: a stage that runs no check loop does not carry it.
-        self.assertNotIn("genuine fix attempts", " ".join(prompts.prompt("document").split()))
+        self.assertNotIn("genuine fix", " ".join(prompts.prompt("document").split()))
 
     def test_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers(self) -> None:
         """The global strategy chooses rerunnable coverage before item work starts."""

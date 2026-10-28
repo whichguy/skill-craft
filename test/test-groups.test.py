@@ -168,8 +168,9 @@ class TestGroupTests(unittest.TestCase):
             "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks"},
             "test/backchain_chunks.py": {"backchain-chunks"},
             "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks", "marketplace-package"},
+            # shiploop-loops reaches the stop hook end to end on a real run (owed-outcome phase A).
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli", "shiploop-domain-words",
-                                                          "shiploop-retired-terms", "shiploop-trace"},
+                                                          "shiploop-retired-terms", "shiploop-trace", "shiploop-loops"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words", "shiploop-retired-terms"},
             # Every ShipLoop skill path also selects the domain-word lint and the retired-term scan (the skills/shiploop/ row).
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},

@@ -159,22 +159,27 @@ class StageTableTest(unittest.TestCase):
         # Owner 2026-10-24: no run caps.  No refused-run cap, send-back cap or keepalive release remains.
         self.assertFalse(hasattr(test_loop, "MAX_REFUSED_RUNS") or hasattr(spec, "MAX_SEND_BACKS"))
 
-    def test_every_prose_copy_of_a_cap_names_its_constant_value(self) -> None:
-        """SPEC S-10 carve-out: the genuine-fix-attempt rule is a constant, and every copy of it in ShipLoop's text and
-        the SPEC says the same number.  The refused-run cap, the send-back cap and the keepalive release were removed on
-        2026-10-24 (owner: no run caps), so no text may still state one: a leftover copy would tell a model a stop rule
-        that no gate applies."""
+    def test_no_count_stop_remains_and_every_copy_of_the_stuck_rule_carries_its_anchor(self) -> None:
+        """SPEC S-10 (amended 2026-10-28): the model's stopping rule is a criterion, not a count.  The refused-run cap,
+        the send-back cap and the keepalive release were removed on 2026-10-24 and the genuine-fix count on 2026-10-28
+        (owner: no count stops), so no text may state one: a leftover copy would tell a model a stop rule that no gate
+        applies.  The prompts carry the rule itself and every prose copy its anchor."""
         import re
+        import shiploop_chain as chain
         import shiploop_keepalive as keepalive
+        import shiploop_loops as loops
+        import shiploop_prompts as prompts
         self.assertFalse(hasattr(keepalive, "STUCK_CONTINUATIONS"))
-        words = {"seven": 7, "eleven": 11, "three": 3, "fourteen": 14, "twenty-two": 22}
-        attempts = spec.GENUINE_FIX_ATTEMPTS
-        self.assertEqual(attempts, 7)
-        rules = (
-            (re.compile(r"\b(\d+)\s+genuine\s+fix\s+attempts\b"), attempts),
-            (re.compile(r"GENUINE_FIX_ATTEMPTS` \((\d+)\)"), attempts),
-        )
+        self.assertFalse(hasattr(spec, "GENUINE_FIX_ATTEMPTS"))
+        self.assertIn(spec.STUCK_FIX_ANCHOR, spec.STUCK_FIX)
+        for name, text in (("implement repeat", loops.REPEAT["implement"]), ("step repeat", loops.REPEAT_STEP),
+                           ("implement duty", prompts.prompt("implement", delegation=prompts.INLINE))):
+            with self.subTest(prompt=name):
+                self.assertIn(spec.STUCK_FIX, " ".join(text.split()))
+        self.assertIn(spec.STUCK_FIX_ANCHOR, " ".join(chain._EXIT_CRITERIA_INSTRUCTION.split()))
         gone = (
+            re.compile(r"\b(?:\d+|seven|three)\s+genuine\s+fix\s+attempts\b", re.IGNORECASE),
+            re.compile(r"GENUINE_FIX_ATTEMPTS"),
             re.compile(r"\b\d+\s+refused\s+runs\b"),
             re.compile(r"\b\d+(?:st|nd|rd|th)\s+refused\s+run\b"),
             re.compile(r"\b(?:spend one of|reach) the \d+\b"),
@@ -185,22 +190,23 @@ class StageTableTest(unittest.TestCase):
         )
         sources = [*sorted((ROOT / "skills/shiploop").rglob("*.md")), *sorted((ROOT / "skills/shiploop/scripts").glob("*.py")),
                    ROOT / "test/shiploop_e2e/SPEC.md"]
-        found = 0
+        lead = spec.STUCK_FIX_ANCHOR.removesuffix("genuine fix")
+        copies = 0
         for path in sources:
-            text = path.read_text(encoding="utf-8")
-            for pattern, value in rules:
-                for match in pattern.finditer(text):
-                    number = next(group for group in match.groups() if group)
-                    number = words.get(number.lower(), number)
-                    found += 1
-                    with self.subTest(file=str(path.relative_to(ROOT)), text=match.group(0)):
-                        self.assertEqual(int(number), value)
+            raw = path.read_text(encoding="utf-8")
             if path.name == "SPEC.md":
-                continue  # the SPEC's carve-out names the removed constants as history
+                self.assertIn(spec.STUCK_FIX_ANCHOR, " ".join(raw.split()))
+                continue  # its carve-out names the removed constants and the old count as history
+            if path.suffix == ".md":
+                text = " ".join(raw.split())
+                for match in re.finditer("genuine fix", text):
+                    copies += 1
+                    with self.subTest(file=str(path.relative_to(ROOT)), text=text[match.start() - 40:match.end()]):
+                        self.assertEqual(text[match.start() - len(lead):match.start()], lead)
             for pattern in gone:
                 with self.subTest(file=str(path.relative_to(ROOT)), removed=pattern.pattern):
-                    self.assertIsNone(pattern.search(text))
-        self.assertGreater(found, 2)  # the scan reaches the copies (references, prompts, SPEC)
+                    self.assertIsNone(pattern.search(raw))
+        self.assertGreaterEqual(copies, 4)  # the scan reaches the copies: the skill card and the references
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint

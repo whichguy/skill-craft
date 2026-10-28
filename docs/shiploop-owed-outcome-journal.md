@@ -478,6 +478,30 @@ cuts the last session's timeout to the time left. Tests: the driver suite's 10 t
 `test_max_minutes_cuts_the_last_session_to_the_time_left` and `test_the_session_count_flag_is_gone`; the whole
 keepalive file 68 OK.
 
+## Phase A, part 3: the stuck rule becomes a criterion (2026-10-28)
+
+The owner approved the wording ("Use the criterion"): a step reports send-back when the same check still fails in
+the same way after a genuine fix, and the fix taught nothing new about why. It replaces the seven-attempt count.
+
+- One source: `shiploop_stage_spec.STUCK_FIX` (the full rule) and `STUCK_FIX_ANCHOR` ("in the same way after a
+  genuine fix", which every prose copy carries); the implement duty, `shiploop_loops.REPEAT["implement"]`,
+  `REPEAT_STEP` and the chain contract print it; the skill card, test-loop.md, parallel-chain.md and
+  execution-planning.md carry the anchor; SPEC S-10 is amended; the card ledger anchors on the new phrase.
+- The skill card was already at its 30,500-byte bound, so its copy is the short form ("keeps failing in the same way
+  after a genuine fix", linking the step exit criteria) and two words elsewhere in that item were trimmed; no bound
+  was raised there. The implement packet's printed head grew 53 characters on both routes; `head_table.json` records
+  the new values with the reason (every head still fits the 20,000 cut and the 19,500 required-text bound).
+- Tests that judge what the model actually receives, added on the owner's request (2026-10-28: "update unit tests or
+  mock tests as needed to help adjudicate whether the prompt, feedback, or scripts are actually all correct"):
+  `test_no_count_stop_remains_and_every_copy_of_the_stuck_rule_carries_its_anchor` (stage-spec: no count in any
+  source; the rule in both Repeat conditions, the implement duty and the chain contract; the anchor in every prose
+  copy); `test_the_implement_packet_and_its_loop_carry_the_stuck_rule` (loops: the rendered implement packet and the
+  Until Loop's own instruction); `test_the_stop_hook_names_the_loops_report_then_the_steps_own_callback` (loops, a
+  real run: no loop yet gives the generic ask; an active loop's named command is its real read-only `next`, returning
+  the same packet; a finished loop's named callback is the packet's own). Neither end-to-end test passes on main.
+- Evidence: the quick tier with `--changed-from c076485c` passed, 67 suites, after two expected fixes: test-groups
+  (a keepalive change now also selects shiploop-loops) and the head table above.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in

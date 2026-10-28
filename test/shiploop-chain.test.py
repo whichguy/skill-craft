@@ -925,7 +925,7 @@ class ChainIntegrationTests(ChainFixture):
             "leave that check failing and report the discrepancy",
             "After your last edit to any file, rerun every check in one pass; only that pass counts.",
             "change the work, not the check",
-            "the same check still failing after 7 genuine fix attempts → FAILED",
+            "the same check still failing in the same way after a genuine fix that taught nothing new about why → FAILED",
             "or reported `unconfirmable` when its text already says `Confirm by: unconfirmable here`, "
             "and none failed → SUCCEEDED",
             "for an item the plan did not already mark `Confirm by: unconfirmable here`",

@@ -194,15 +194,17 @@ planning reviews exists, so the rate of defects that escape without them is
 unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
 **S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop; amended 2026-10-24:
-the refused-run cap, the send-back cap and the keepalive release are removed.)
+the refused-run cap, the send-back cap and the keepalive release are removed; amended 2026-10-28: the genuine-fix
+count becomes a criterion, so no count remains.)
 - **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11", superseded on 2026-10-24
   by "Remove any other artificially imposed limits by our scripts": ShipLoop runs everything in a single context with
-  no limit on turns.
-- **One limit remains, a constant that a test pins against every prose copy** (`test/shiploop-stage-spec.test.py`):
-  **genuine fix attempts.** In the step exit criteria the model applies (the implement duty, implement's loop
-  contract and the chain step contract), the same check still failing after
-  `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix attempts ends the stage as `revise`. No script counts
-  these attempts; it is the model's stopping rule.
+  no limit on turns. On 2026-10-28 the owner chose a criterion over the last count, the seven genuine fix attempts,
+  in line with their 2026-10-11 rule "I want the thing achieved, I don't care how many loops".
+- **The model's stopping rule is a criterion** (`shiploop_stage_spec.STUCK_FIX`; `test/shiploop-stage-spec.test.py`
+  pins every prose copy to its anchor and refuses any count). In the step exit criteria the model applies (the
+  implement duty, implement's loop contract, the step loop and the chain step contract), the same check still failing
+  in the same way after a genuine fix that taught nothing new about why ends the stage as `send-back`. No script
+  judges it.
 - **Removed 2026-10-24.** No count of refused runs stops `done` (the packet still prints the tally); no count of
   send-backs refuses a `send-back`; no count of keepalive continuations without an accepted result releases a turn;
   the test stage, the mutation check and the lint pass have no whole-run time budget, and the lint pass no file-count
