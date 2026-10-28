@@ -280,6 +280,18 @@ def hook_owed_text(cli: Path, status: dict) -> str:
     return result.stdout
 
 
+def release_keepalive_owner(cli: Path, run_dir: str, env: dict) -> None:
+    """Free the run's keepalive owner, as shiploop_keepalive.drive does after each session: the cleared session is gone,
+    and until its claim goes stale (OWNER_STALE_SECONDS) the stop hook would let the fresh session stop as "another
+    session owns this run". The plugin under test's own release, in the environment its hooks run in."""
+    code = ("import sys; sys.path.insert(0, sys.argv[1]); import shiploop_keepalive as keepalive; "
+            "keepalive.release_owner(keepalive.run_status(sys.argv[2])['run_dir'])")
+    result = subprocess.run([sys.executable, "-c", code, str(Path(cli).parent), run_dir], env=env, capture_output=True,
+                            text=True, check=False, timeout=60)
+    if result.returncode != 0:
+        raise SystemExit("the plugin under test could not release the run's keepalive owner: " + result.stderr.strip()[-300:])
+
+
 def continue_prompt(condition: str, run_dir: str, cli: Path) -> tuple[str, dict | None]:
     """(the prompt that continues the run in a fresh session, what it told: sessions.jsonl `told`, None for nothing).
 
@@ -590,6 +602,7 @@ def main(argv: list[str] | None = None) -> int:
             if not args.quiet:
                 print(f"cleared at {clear_records(out)[-1]['stopped']}; continuing in a fresh session "
                       f"(prompt {args.resume_prompt})", flush=True)
+            release_keepalive_owner(cli, str(run_dir), env)
             prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
             process = drive(host.argv(prompt=prompt, prompt_file=out / f"resume-after-clear-{number}.txt", **common),
                             timeout=max(60, deadline - time.monotonic()), first=False, told=told, **session_args)
