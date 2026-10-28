@@ -51,7 +51,8 @@ class Decision(NamedTuple):
     reopen: str | None = None    # the stage a refusal sends the work back to, when one can fix it
 
 
-def _commit_id(value: Any) -> str:
+def commit_id(value: Any) -> str:
+    """``value`` when it is a full commit ID; ValueError otherwise."""
     if not isinstance(value, str) or not _COMMIT_ID.fullmatch(value):
         raise ValueError("an iteration's base is a full commit ID, never a snapshot or a short ID: " + repr(value))
     return value
@@ -76,7 +77,7 @@ def start(item: str, plan: str, steps: Sequence[Mapping[str, Any]], committed: S
 
     ``committed`` lists the steps this plan revision has committed, in order: steps are committed in plan order, so it
     must be a prefix of the plan."""
-    base = _commit_id(head)
+    base = commit_id(head)
     ids = [str(row.get("id")) for row in steps]
     if list(committed) != ids[:len(committed)]:
         raise ValueError("committed steps " + repr(list(committed)) + " are not the start of the plan " + repr(ids))
@@ -87,7 +88,7 @@ def start(item: str, plan: str, steps: Sequence[Mapping[str, Any]], committed: S
 
 def advance(current: Iteration, commit: Any) -> str:
     """The base of the next step's iteration: the commit ``current``'s commit stage made."""
-    return _commit_id(commit)
+    return commit_id(commit)
 
 
 def identity(current: Iteration) -> dict[str, Any]:

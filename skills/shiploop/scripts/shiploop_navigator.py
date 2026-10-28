@@ -39,6 +39,7 @@ import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
 import shiploop_git as shiploop_git
+import shiploop_iteration as iteration
 import shiploop_lessons as commit_lessons
 import shiploop_knowledge_home as knowledge
 import shiploop_loop_contract as loop_contract
@@ -2923,6 +2924,66 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
 
 # Run-relative file holding an inline implement step's commit (``_step_commit``): a revisit of the step names it.
 STEP_COMMIT = "commits/{action}.txt"
+# Run-relative file holding a work item's per-step iterations (design T §9.1 step 2b-1): {"plans": {<step plan action>:
+# {<step>: {"number", "base", "commit"}}}}.  ``base`` is the commit the step's entry left (``_iteration_entry``),
+# ``commit`` the step's own commit (``_step_commit``); ``current_iteration`` reads it.
+ITERATION_LEDGER = "iterations/{item}.json"
+
+
+def _iteration_ledger(root: Path, item: str) -> dict[str, Any]:
+    path = Path(root) / ITERATION_LEDGER.format(item=item)
+    try:
+        ledger = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"plans": {}}
+    return ledger if isinstance(ledger, dict) and isinstance(ledger.get("plans"), dict) else {"plans": {}}
+
+
+def _iteration_record(root: Path, item: str, plan: str, step: str, **fields: Any) -> None:
+    ledger = _iteration_ledger(root, item)
+    ledger["plans"].setdefault(plan, {}).setdefault(step, {}).update(fields)
+    store.atomic_write_text(Path(root) / ITERATION_LEDGER.format(item=item),
+                            json.dumps(ledger, indent=2, sort_keys=True) + "\n")
+
+
+def _head(repo: Path) -> str | None:
+    """The checkout's HEAD commit, or None outside Git or before its first commit."""
+    found = shiploop_git.git(Path(repo), "rev-parse", "--verify", "-q", "HEAD")
+    try:
+        return iteration.commit_id(found.stdout.strip()) if not found.returncode else None
+    except ValueError:
+        return None
+
+
+def _iteration_entry(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+    """Record the iteration of an inline implement step this call entered, once every commit the call makes has landed
+    (step, preparatory, skill and knowledge commits all run before this), so its base is the commit its later stages
+    build on.  Nothing is recorded outside Git, on the ask-agent route or when no step is current."""
+    stage, action, item = _active_cursor(after)
+    if stage != "implement" or after.get("status") != "active" or not isinstance(action, Mapping):
+        return
+    prior = _active_cursor(before)[1] if before.get("status") == "active" else None
+    view = step_view(after, item)
+    if view is None or (isinstance(prior, Mapping) and prior.get("id") == action.get("id")):
+        return
+    head = _head(Path(after["repo"]))
+    if head is not None:
+        _iteration_record(root, str(item), view.plan_action, str(view.step.get("id")),
+                          number=view.number, base=head, commit=None)
+
+
+def current_iteration(root: Path, state: Mapping[str, Any]) -> iteration.Iteration | None:
+    """The current inline step's iteration as its entry recorded it (``_iteration_entry``), or None."""
+    item = _current_work_item(state)
+    view = step_view(state, item)
+    if view is None:
+        return None
+    step = str(view.step.get("id"))
+    row = _iteration_ledger(root, str(item))["plans"].get(view.plan_action, {}).get(step)
+    if not isinstance(row, Mapping) or not row.get("base"):
+        return None
+    return iteration.Iteration(str(item), view.plan_action, step, int(row.get("number") or view.number),
+                               iteration.commit_id(row["base"]))
 # The subjects of ShipLoop's own record commits (knowledge, leftovers): the look-back skips them, they carry no learning.
 BOOKKEEPING_SUBJECTS = ("docs(shiploop): ", "chore(shiploop): ")
 # How many commits the look-back quotes, and how much of each: its subject and its Key learnings, one line per commit.
@@ -2968,6 +3029,7 @@ def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         return
     if commit:
         store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
+        _iteration_record(root, item, view.plan_action, str(view.step.get("id")), commit=commit)
         print("ShipLoop committed step " + item + "/" + str(view.step.get("id")) + " as " + commit[:12] + ".")
 
 
@@ -9241,6 +9303,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 # The last item's carry-forward is accepted only when its end review completes: commit its skill here.
                 _skill_commit(root, state, updated, action_id)
                 _knowledge_close(state, updated, root)
+                _iteration_entry(root, state, updated)
             if not_enforced is not None:
                 import shiploop_skill_calls as skill_calls
                 skill_calls.note_not_enforced(root, improve_id(state), not_enforced)
@@ -9388,6 +9451,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _skill_commit(root, state, updated, action_id)
         if not terminal_knowledge_closed:
             _knowledge_close(state, updated, root)
+        _iteration_entry(root, state, updated)
     emit(core, root, updated)
     # After the packet, not before it: the status display reads a print that starts at the packet's header.
     for line in gate_lines:

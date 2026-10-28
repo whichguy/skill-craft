@@ -4355,6 +4355,41 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                              for n, path in enumerate(paths, 1)],
         }
 
+    def test_each_step_records_its_iteration_and_starts_from_the_commit_its_entry_left(self) -> None:
+        # Design T §9.1 step 2b-1 (owner 2026-10-28, "Start 2b"): the per-step iteration's identity (shiploop_iteration:
+        # item, plan revision, step, base commit) is recorded as each step begins, from the commit the call that entered it
+        # left, so every later stage of the step names the same base. A base is a commit, never a dirty snapshot.
+        import shiploop_iteration as iteration
+        import shiploop_test_loop as test_loop
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan(one_group=True))
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        plan = test_loop._step_plan(self.state(), "W1")[0]
+        bases, commits = [], []
+        for number, path in enumerate(self.THREE_STEP_PATHS, 1):
+            state = self.state()
+            self.assertEqual(navigator.current_stage(state), "implement")
+            head = self.git("rev-parse", "HEAD").strip()
+            self.assertEqual(navigator.current_iteration(self.run_dir, state),
+                             iteration.Iteration("W1", plan, "S" + str(number), number, head))
+            if commits:
+                self.assertEqual(subprocess.run(["git", "-C", str(self.repo), "merge-base", "--is-ancestor",
+                                                 commits[-1], head]).returncode, 0,
+                                 "S" + str(number) + " starts from a commit that holds the step before it")
+            bases.append(head)
+            action = navigator.current_action(state)["id"]
+            (self.repo / path).write_text("# " + path + "\n")
+            self.accept(result(summary="Wrote " + path + "."))
+            commits.append(navigator.step_commit(self.run_dir, action))
+            self.assertTrue(commits[-1], "S" + str(number) + " was committed")
+        self.settle()
+        ledger = json.loads((self.run_dir / "iterations" / "W1.json").read_text(encoding="utf-8"))
+        self.assertEqual(ledger, {"plans": {plan: {
+            "S" + str(number): {"number": number, "base": base, "commit": commit}
+            for number, (base, commit) in enumerate(zip(bases, commits), 1)}}})
+
     def test_a_test_spec_result_starts_no_improve_stage(self) -> None:
         # Owner 2026-10-26 (design 560c396f, P0): the test-spec review is dropped. Over seven runs it made 2 real catches in
         # 14 reviews, and the test stage's own checks (RED on the base, the candidate run, the mutation check) bind its cases.
