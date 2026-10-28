@@ -963,7 +963,8 @@ class ClearThroughMainTests(unittest.TestCase):
         config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
                                       "run_dir": str(self.run_dir), "holds": holds, "improve_of": "implement"}))
         case = {**CASE, "fixture": "node-base"}
-        with mock.patch.dict(os.environ, {"FAKE_SLICE_CONFIG": str(config)}), \
+        with mock.patch.dict(os.environ, {"FAKE_SLICE_CONFIG": str(config),
+                                          "SHIPLOOP_KEEPALIVE_HOME": str(self.tmp / "keepalive")}), \
                 mock.patch.object(step_slice, "load_step_case", return_value=case), \
                 mock.patch.object(step_slice.hosts, "ollama_ready", return_value=ready), \
                 contextlib.redirect_stdout(io.StringIO()):
@@ -1017,6 +1018,28 @@ class ClearThroughMainTests(unittest.TestCase):
         self.assertEqual(sessionlog.read(self.out)[1]["told"], {"cli": str(self.cli), "run_dir": str(self.run_dir)})
         self.assertEqual(json.loads((self.out / "invocation.json").read_text())["resume_prompt"], "names-next")
         self.assertEqual((len(result["clear"]), result["clear_unfired"]), (1, []))
+
+    def owner_of_the_run(self) -> str | None:
+        import shiploop_keepalive as keepalive
+        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE_HOME": str(self.tmp / "keepalive")}):
+            return keepalive._load_owner(str(self.run_dir)).get("owner")
+
+    def claim_for_a_session_that_will_die(self) -> None:
+        import shiploop_keepalive as keepalive
+        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE_HOME": str(self.tmp / "keepalive")}):
+            self.assertTrue(keepalive.claim_owner(str(self.run_dir), "claude", "the-cleared-session"))
+
+    def test_a_clear_frees_the_runs_keepalive_owner_as_the_driver_does_between_sessions(self):
+        # The cleared session cannot release its own claim; while it held one, the stop hook let the fresh session stop
+        # as "another session owns this run" (arm B hook-owed 3, 2026-10-28).
+        self.claim_for_a_session_that_will_die()
+        self.main(["implement"], "--clear-at", "implement")
+        self.assertIsNone(self.owner_of_the_run())
+
+    def test_without_a_clear_the_owner_is_left_to_the_hooks(self):
+        self.claim_for_a_session_that_will_die()
+        self.main(["implement"])
+        self.assertEqual(self.owner_of_the_run(), "claude:the-cleared-session")
 
 
 VIEWER_STUB = r"""
