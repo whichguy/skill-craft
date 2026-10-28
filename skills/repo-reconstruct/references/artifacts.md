@@ -14,6 +14,8 @@ or “not applicable” with a reason. A search miss is not proof of global abse
   only with an acceptance source. Retain inputs/options/defaults, outputs,
   errors, ordering, state and observable edge conditions. Public names and
   signatures are part of a library's contract.
+  Include material scoped declaration/schema constraints, distinguishing static
+  rules from runtime enforcement; link maintained declarations for detail.
 - `## Non-functional requirements`: separate documented constraints from
   measurements and unverified claims. Name operating conditions; a benchmark
   script is not a measured guarantee.
@@ -35,6 +37,9 @@ and spec sections instead of duplicating them.
   executed/not-run/blocked/failed result and log or other evidence. An attempt is
   not a passing suite. Explain adaptations to CI commands. Never publish merely
   to fill the table.
+  For copied upstream recipes, keep attribution and execution status, and place
+  known missing prerequisites or contradictory setup steps beside the affected
+  command. Do not silently repair a quoted recipe or present an adaptation as run.
 - `## Harnesses and suites`: locations, coverage, gaps and invocations. Local
   success is distinct from the CI matrix, browser support, packaging correctness
   and external integration behavior.
@@ -57,7 +62,9 @@ fabricate working commands for a missing toolchain.
 - `## Conventions`: evidenced placement, layering and extension patterns.
 - `## Interfaces and boundaries`: module/storage/protocol boundaries,
   configuration ownership and error propagation, including swallowed errors or
-  deferred writes; link observable detail in spec.
+  deferred writes, and material resource ownership/cleanup on existing paths in
+  scope; link caller-visible effects in spec. Verify any claimed operation order
+  without making incidental ordering a requirement.
 - `## Real-boundary checks`: what local/static checks cannot establish and which
   component or maintainer role would verify it. Mark unknown ownership unknown.
 - `## Decisions`: stable `AD-<n>` records with choice, status (observed,
