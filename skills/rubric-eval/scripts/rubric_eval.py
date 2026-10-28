@@ -68,7 +68,9 @@ def load_suite(suite_dir: str | Path) -> dict:
     d = Path(suite_dir)
     suite = {"dir": str(d), "rubric": json.loads((d / "rubric.json").read_text()),
              "scenarios": json.loads((d / "scenarios.json").read_text()),
-             "frames": {f.stem: f.read_text() for f in sorted((d / "frames").glob("*.txt"))}}
+             "frames": {f.stem: f.read_text() for f in sorted((d / "frames").glob("*.txt"))},
+             # A suite that grades something other than architecture plans brings its own judge template.
+             "judge": (d / "judge.txt").read_text() if (d / "judge.txt").exists() else None}
     for key in ("criteria", "groups", "guardrails", "anchors"):
         if key not in suite["rubric"]:
             raise ValueError(f"load_suite: rubric.json lacks {key!r}")
@@ -233,16 +235,17 @@ Return only JSON: {{"tier_chosen": one of {tiers}, "criteria": {{criterion id: {
 """
 
 
-def judge_prompt(suite: dict, sid: str, rt: str, plan: str) -> str:
+def judge_prompt(suite: dict, sid: str, rt: str, plan: str, facts: str = "") -> str:
+    """The judge prompt; `facts` (an imported output's run record) fills a suite judge template's {facts}."""
     s = {x["id"]: x for x in suite["scenarios"]["scenarios"]}[sid]
     ext = rt in s.get("runtimes_ext", [])
     applies = s["applies"] + (s.get("applies_ui", []) if ext and s.get("ui") else [])
     R = suite["rubric"]; sc = suite["scenarios"]
-    return fill(JUDGE, runtime=sc.get("runtime_names", {}).get(rt, rt), request=request_text(s, s.get("ui") if ext else None),
+    return fill(suite.get("judge") or JUDGE, runtime=sc.get("runtime_names", {}).get(rt, rt), request=request_text(s, s.get("ui") if ext else None),
                 tier=s["tier"], tierdef=sc["tiers"][s["tier"]], overbuild=s["overbuild"],
                 anchors="\n".join(f"- {g}: {d}" for g, d in R["anchors"].items()),
                 criteria="\n".join(f"{c} {R['criteria'][c][0]}: {R['criteria'][c][1]}" for c in applies),
-                ids=", ".join(applies), tiers=json.dumps(list(sc["tiers"])), plan=plan).replace("{{", "{").replace("}}", "}")
+                ids=", ".join(applies), tiers=json.dumps(list(sc["tiers"])), facts=facts, plan=plan).replace("{{", "{").replace("}}", "}")
 
 
 def parse_verdict(output: str) -> dict | None:
@@ -270,16 +273,20 @@ def quote_found(quote: str, plan: str) -> bool:
     return bool(frags) and all(_norm(f) in p for f in frags)
 
 
-def verify_quotes(verdict: dict, plan: str) -> dict:
+def verify_quotes(verdict: dict, plan: str, facts: str | None = None) -> dict:
     """Quote check (judge v2 + check): a met or partial grade whose quote is not in the plan drops one level.
 
     The judge must quote before it grades; a quote the plan does not contain is evidence the grade is not
-    supported by the plan (it credits what the plan never says). Records the criteria it changed.
+    supported by the plan (it credits what the plan never says). With `facts` (an imported output's run
+    record), a "fact" quote the record does not contain lowers the grade the same way. Records the criteria
+    it changed.
     """
     changed = []
     for c, e in verdict.get("criteria", {}).items():
         g = verdict["grades"].get(c)
-        if g in ("met", "partial") and not quote_found(str(e.get("evidence", "")), plan):
+        fact = str(e.get("fact") or "none")
+        bad_fact = facts is not None and _norm(fact) not in ("none", "na", "") and not quote_found(fact, facts)
+        if g in ("met", "partial") and (not quote_found(str(e.get("evidence", "")), plan) or bad_fact):
             lowered = "partial" if g == "met" else "missed"
             verdict["grades"][c] = lowered; e["judge_grade"] = g; e["grade"] = lowered; changed.append(c)
     verdict["quote_check"] = {"unverified": changed}
@@ -290,7 +297,8 @@ def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int
           dest: str = "judge", only: list[str] | None = None) -> dict:
     """Grade every finished output not yet graded; log (never drop) outputs that cannot be graded."""
     run_ = Path(run_dir); jd = run_ / dest; jd.mkdir(exist_ok=True)
-    reviews = json.loads((run_ / "manifest.json").read_text()).get("reviews", False)
+    man = json.loads((run_ / "manifest.json").read_text()); reviews = man.get("reviews", False)
+    min_words = man.get("min_words", STUB_WORDS)  # imported outputs are real at any length, never stubs
     todo = []
     for f in sorted((run_ / "out").glob("*.json")):
         if only is not None and f.stem not in only:
@@ -298,19 +306,19 @@ def judge(run_dir: str | Path, suite: dict, *, model: str = "opus", workers: int
         d = jd / (f.stem + ".json")
         if d.exists():
             continue
-        plan = plan_text(json.loads(f.read_text())["text"], reviews)
-        if words(plan) >= STUB_WORDS:
-            todo.append((f.stem, plan, d))
+        rec = json.loads(f.read_text()); plan = plan_text(rec["text"], reviews)
+        if words(plan) >= min_words:
+            todo.append((f.stem, plan, d, rec.get("facts")))
 
     def one(job):
-        stem, plan, d = job
+        stem, plan, d, facts = job
         sid, rt = stem.split("_")[:2]
-        p = judge_prompt(suite, sid, rt, plan)
+        p = judge_prompt(suite, sid, rt, plan, facts or "")
         for _ in range(attempts):
             # Grok at medium effort took about 6.5 minutes per rubric grade in round 4; give it room.
             v = parse_verdict(call(model, p, timeout=300 if resolve(model)["host"] == "claude" else 900))
             if v:
-                v = verify_quotes(v, plan)
+                v = verify_quotes(v, plan, facts)
                 v["judge_model"] = spec(model)  # a run's verdicts must come from one judge (checked by analyze)
                 d.write_text(json.dumps(v, indent=1)); return True
         with open(jd / "failures.log", "a") as log:
@@ -711,7 +719,8 @@ def reliability(run_dir: str | Path, suite: dict, n: int = 30, seed: int = 11, m
     reviews = json.loads((run_ / "manifest.json").read_text()).get("reviews", False)
     for s in sample:  # judge() applies the quote check; compare like with like
         if s in first and "quote_check" not in first[s]:
-            first[s] = verify_quotes(first[s], plan_text(json.loads((run_ / "out" / f"{s}.json").read_text())["text"], reviews))
+            rec = json.loads((run_ / "out" / f"{s}.json").read_text())
+            first[s] = verify_quotes(first[s], plan_text(rec["text"], reviews), rec.get("facts"))
     return agreement(first, second, sample)
 
 

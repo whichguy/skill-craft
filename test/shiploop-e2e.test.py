@@ -231,7 +231,9 @@ probe_a_port()
 prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
 resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
 with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
-    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid()}}) + "\\n")
+    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid(),
+                          "effort": argv[argv.index("--reasoning-effort") + 1] if "--reasoning-effort" in argv else None,
+                          "session_id": argv[argv.index("--session-id") + 1] if "--session-id" in argv else None}}) + "\\n")
 if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
     sys.exit(1)  # a resumed session dies without writing any event
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
@@ -252,6 +254,33 @@ elif mode == "early" and not resumed:
     pass  # the first session ends before ShipLoop writes any state
 elif mode == "early":
     product()
+elif mode == "effort-late-id" and resumed:
+    import shutil
+    shutil.rmtree(".shiploop", ignore_errors=True)  # the resumed session finishes the same run
+    product()
+elif mode == "effort-late-id":
+    # The class changes at 3 s but the turn ends (and Grok first reports its session id) at 9 s: a stop in between could not be
+    # continued, so the harness must wait for the turn end and read the class again when it launches the next session.
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "intake", "revision": 1}})
+    import time
+    time.sleep(3)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "prepare", "revision": 2}})
+    time.sleep(6)
+elif mode == "effort-walk" and resumed:
+    import shutil
+    shutil.rmtree(".shiploop", ignore_errors=True)  # the resumed session finishes the same run
+    product()
+elif mode == "effort-walk":
+    # A run that is in planning (class D) and, three seconds later, in a mechanical stage (class M): the harness must end
+    # this session at the change and resume it at the schedule's level for M. The resumed session finishes the run.
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "intake", "revision": 1}})
+    print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
+    import time
+    time.sleep(3)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "prepare", "revision": 2}})
+    time.sleep(600)  # killed at the boundary
 elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
     if mode == "hang-active":
         Path(".shiploop").mkdir(exist_ok=True)
@@ -3457,6 +3486,90 @@ class SessionStopTest(unittest.TestCase):
         m = collect_stream([self.CLAUDE_API_ERROR], [])
         self.assertTrue(m["sessions"][0]["stop"].startswith("error: api_error"), m["sessions"])
         self.assertIn("error: api_error", metrics.summary_lines(m)[0])
+
+
+class EffortScheduleThroughMainTest(HarnessCase):
+    """run.main with --effort-schedule: the session ends where the position changes class, and the same host session is
+    resumed at the new class's effort; the control schedule restarts at the same place and keeps its level."""
+
+    def walk(self, schedule: dict) -> tuple[int, dict, Path]:
+        os.environ["FAKE_MODE"] = "effort-walk"
+        out = self.tmp / ("out-effort-" + "-".join(schedule.values()))
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "effort-baselines.jsonl"),
+                             "--effort-schedule", json.dumps(schedule), "--max-resumes", "3"])
+        return code, json.loads((out / "result.json").read_text()), out
+
+    def sessions(self, out: Path) -> list[dict]:
+        return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()
+                if json.loads(line)["pid"] is not None]
+
+    def test_the_session_ends_at_the_class_change_and_resumes_at_the_new_level(self):
+        code, result, out = self.walk({"M": "low", "I2": "low", "D": "medium"})
+        ran = self.sessions(out)
+        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), ("sess-1", "low")], ran)
+        self.assertNotIn("Do not repeat a command", ran[0]["prompt"])
+        self.assertIn("Do not repeat a command from before the restart", ran[1]["prompt"],
+                      "the session that continues after a boundary is told nothing was undone")
+        record = json.loads((out / "effort.json").read_text())
+        self.assertEqual([(r["from"], r["to"], r["stage"], r["effort_before"], r["effort_after"]) for r in record["restarts"]],
+                         [("D", "M", "prepare", "medium", "low")])
+        self.assertEqual([(x["class"], x["effort"], x["why"]) for x in record["launches"]],
+                         [("D", "medium", "start"), ("M", "low", "restart")])
+        starts = [json.loads(line) for line in (out / "sessions.jsonl").read_text().splitlines()
+                  if json.loads(line)["row"] == "start"]
+        self.assertEqual([(s["reason"], s["effort"]) for s in starts], [("start", "medium"), ("effort", "low")])
+        self.assertEqual(result["effort_schedule"]["restarts"], 1)
+        self.assertEqual(result["effort"], "medium", "the run's identity effort is its class D level")
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["effort_schedule"],
+                         {"M": "low", "I2": "low", "D": "medium"})
+
+    def test_the_first_session_has_a_chosen_id_so_a_boundary_before_its_first_turn_ends_is_resumed_by_that_id(self):
+        # R1b: Grok reports its session id only when a turn ends, so a boundary eight minutes into the first turn killed the
+        # host with nothing to resume. The harness now chooses the first session's id (--session-id) and resumes by it.
+        os.environ["FAKE_MODE"] = "effort-late-id"
+        out = self.tmp / "out-effort-late-id"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "late-baselines.jsonl"),
+                      "--effort-schedule", json.dumps({"M": "low", "I2": "low", "D": "medium"}), "--max-resumes", "3"])
+        ran = self.sessions(out)
+        chosen = ran[0]["session_id"]
+        self.assertTrue(chosen, "the first session was started with --session-id")
+        self.assertEqual((out / run.PLANNED_SESSION_FILE).read_text().strip(), chosen)
+        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), (chosen, "low")], ran)
+        starts = [json.loads(l) for l in (out / "sessions.jsonl").read_text().splitlines() if json.loads(l)["row"] == "start"]
+        self.assertEqual([(s["reason"], s["effort"]) for s in starts], [("start", "medium"), ("effort", "low")])
+        record = json.loads((out / "effort.json").read_text())
+        self.assertEqual([(r["from"], r["to"], r["stage"]) for r in record["restarts"]], [("D", "M", "prepare")])
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["argv"].count("--session-id"), 1)
+
+    def test_the_control_restarts_at_the_same_place_and_keeps_its_level(self):
+        code, result, out = self.walk({"M": "medium", "I2": "medium", "D": "medium"})
+        ran = self.sessions(out)
+        self.assertEqual([(s["resumed"], s["effort"]) for s in ran], [(None, "medium"), ("sess-1", "medium")], ran)
+        restarts = json.loads((out / "effort.json").read_text())["restarts"]
+        self.assertEqual([(r["from"], r["to"], r["stage"]) for r in restarts], [("D", "M", "prepare")])
+
+    def test_a_host_that_cannot_resume_is_refused_before_anything_starts(self):
+        os.environ["FAKE_MODE"] = "done"
+        out = self.tmp / "out-effort-claude"
+        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as caught:
+            run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "b.jsonl"),
+                      "--effort-schedule", '{"M": "low", "I2": "low", "D": "medium"}'])
+        self.assertIn("cannot", str(caught.exception))
+        self.assertFalse((out / "events.jsonl").exists(), "no host session was started")
+
+    def test_a_schedule_and_a_different_effort_flag_are_refused(self):
+        os.environ["FAKE_MODE"] = "done"
+        out = self.tmp / "out-effort-flag"
+        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as caught:
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.tmp / "b.jsonl"), "--effort", "high",
+                      "--effort-schedule", '{"M": "low", "I2": "low", "D": "medium"}'])
+        self.assertIn("drop --effort", str(caught.exception))
 
 
 class PrintedCase(HarnessCase):

@@ -4,5 +4,8 @@
  "sonnet": {"model": "sonnet", "judge_prompt": "v2", "noise_points": 1.69, "kappa": 0.759,
             "band": "substantial", "plans": 30, "measured": "2026-09-26, architecture round 3, graded twice"},
  "cross_judge": {"pair": ["opus", "sonnet"], "kappa": 0.443, "band": "moderate", "mean_score_gap_points": 7.29, "plans": 30,
-                 "note": "each judge agrees with itself far better than with the other: never mix judges within a round"}
+                 "note": "each judge agrees with itself far better than with the other: never mix judges within a round"},
+ "opus_shiploop_run": {"model": "claude-opus-5-5", "effort": "medium", "suite": "shiploop-run", "judge_prompt": "suites/shiploop-run/judge.txt sha acb278ae91cf2aec",
+                       "noise_points": 1.67, "kappa": 0.914, "band": "almost perfect", "plans": 30,
+                       "measured": "2026-10-24, 30 real ShipLoop run artifacts (6 each: system-test, product-acceptance, release-verify, operations, Improve review n>=2; 25-638 words, median 161) graded twice; attempt 1 (fact quotes not required verbatim) was 0.727 substantial, 6.67 points; docs/experiments/shiploop-effort-by-stage-20261024/judge/"}
 }

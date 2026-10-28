@@ -28,6 +28,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import clear  # noqa: E402
+import effort  # noqa: E402
 import flow  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
@@ -39,6 +40,7 @@ import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
@@ -121,13 +123,14 @@ class SliceCase(unittest.TestCase):
                             **{"checks": CASE["checks"], **options})
 
     def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: list[dict] | None = None,
-             first: bool = True) -> dict:
+             first: bool = True, planner=None, effort_now: str | None = None) -> dict:
         script = self.out / "fake_host.py"
         script.write_text(FAKE_HOST)
         argv = [sys.executable, str(script), str(CLI.parent), str(CLI), seeded["run_dir"], mode, pause_at]
         started = time.time()
         process = step_slice.drive(argv, work=self.work, out=self.out, env=GIT_ENV, run_dir=Path(seeded["run_dir"]),
-                                   timeout=90, watch=False, clear_at=clear_at, first=first)
+                                   timeout=90, watch=False, clear_at=clear_at, first=first, planner=planner,
+                                   effort_now=effort_now)
         process["wall"] = time.time() - started
         return process
 
@@ -1086,6 +1089,315 @@ class FlowTests(SliceCase):
         self.assertFalse((Path(seeded["run_dir"]) / "packets" / (stop + ".md")).exists())  # the race this pins
         found = flow.write(self.out)
         self.assertEqual((found["actions"][-1]["action"], found["actions"][-1]["stage"]), (stop, "system-test-author"))
+
+
+class EffortScheduleTests(unittest.TestCase):
+    """effort.py: the class of a position is read from the run's state and the Improve child's packet; a boundary is
+    every change of class, so the control and treatment schedules restart at the same positions."""
+
+    TREATMENT = {"M": "low", "I2": "low", "D": "medium"}
+    CONTROL = {"M": "medium", "I2": "medium", "D": "medium"}
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-effort-")
+        self.addCleanup(self.temp.cleanup)
+        self.out = Path(self.temp.name)
+        self.packet = self.out / "packet.json"
+
+    @staticmethod
+    def stage_of(state):
+        return state["stage"]
+
+    def receipt(self, child):
+        return self.packet
+
+    def classify(self, state):
+        return effort.classify(state, self.stage_of, receipt_of=self.receipt)
+
+    def write_packet(self, status="active", number=1):
+        self.packet.write_text(json.dumps({"status": status, "progress": {"action_number": number}}))
+
+    def test_a_schedule_names_exactly_the_three_classes_and_each_level_has_no_spaces(self):
+        self.assertEqual(effort.parse_schedule(json.dumps(self.TREATMENT)), self.TREATMENT)
+        path = self.out / "schedule.json"
+        path.write_text(json.dumps(self.CONTROL))
+        self.assertEqual(effort.parse_schedule(str(path)), self.CONTROL, "a path is read as a file")
+        for bad in ({"M": "low", "D": "medium"}, {**self.TREATMENT, "X": "low"}, {**self.TREATMENT, "M": ""},
+                    {**self.TREATMENT, "I2": "very low"}, {**self.TREATMENT, "D": None}, ["low"]):
+            with self.assertRaises(effort.ScheduleError, msg=bad):
+                effort.parse_schedule(json.dumps(bad))
+        for bad in ("{not json", str(self.out / "missing.json")):
+            with self.assertRaises(effort.ScheduleError, msg=bad):
+                effort.parse_schedule(bad)
+
+    def test_a_level_the_host_does_not_accept_is_refused_because_claude_would_ignore_it(self):
+        effort.check_levels(self.TREATMENT, "grok")
+        effort.check_levels({"M": "max", "I2": "low", "D": "high"}, "claude")
+        effort.check_levels({"M": "anything", "I2": "low", "D": "high"}, "codex")  # not probed: not checked
+        with self.assertRaises(effort.ScheduleError) as caught:
+            effort.check_levels({"M": "max", "I2": "low", "D": "medium"}, "grok")
+        self.assertIn("M=max", str(caught.exception))
+        with self.assertRaises(effort.ScheduleError):
+            effort.check_levels({"M": "lwo", "I2": "low", "D": "medium"}, "claude")
+
+    def test_the_mechanical_list_is_stages_of_the_table_that_are_not_inner_loop_stages(self):
+        self.assertTrue(effort.MECHANICAL <= set(stage_spec.STAGES), "a name in the list that the stage table lacks")
+        self.assertFalse(effort.MECHANICAL & set(stage_spec.INNER), "no inner-loop stage is mechanical (plan section 0)")
+        self.assertNotIn("handoff", effort.MECHANICAL, "handoff authors the final document and stays in D")
+        self.assertEqual(sorted(effort.MECHANICAL), sorted(("prepare", "system-test", "product-acceptance", "release-check",
+                                                            "release", "release-verify", "operations")),
+                         "the list is fixed before any run; changing it is a new experiment")
+
+    def test_a_mechanical_stage_is_m_and_every_other_stage_is_d(self):
+        active = {"status": "active"}
+        self.assertEqual(self.classify({**active, "stage": "release-verify"}), ("M", "stage release-verify"))
+        self.assertEqual(self.classify({**active, "stage": "implement"})[0], "D")
+        self.assertEqual(self.classify({**active, "stage": "handoff"})[0], "D")
+
+    def test_an_improve_child_is_d_on_pass_1_and_i2_from_pass_2_by_the_runtime_packet(self):
+        child = {**{"status": "active"}, "stage": "spec", "active_improve": {"action_id": "a"}}
+        for number, expected in ((1, "D"), (2, "I2"), (3, "I2")):
+            self.write_packet("active", number)
+            self.assertEqual(self.classify(child)[0], expected, number)
+        for status in ("complete", "stopped"):
+            self.write_packet(status, 4)
+            found = self.classify(child)
+            self.assertIsNone(found[0], "a loop that has ended but whose child is still bound is closing: " + status)
+            self.assertIn("closing", found[1])
+
+    def test_the_i2_class_is_held_until_the_child_clears_so_no_boundary_falls_inside_the_closing_calls(self):
+        # R1: a boundary the moment the loop completed ended the session before the model's own `complete` call.
+        planner = self.planner(self.TREATMENT, "hold")
+        planner.current = {"status": "active", "stage": "spec", "active_improve": {"action_id": "a"}}
+        self.write_packet("active", 1)
+        planner.at_launch("start")
+        self.write_packet("active", 2)
+        self.assertTrue(planner.stop_when(), "pass 2 begins: D to I2")
+        planner.consume()
+        planner.at_launch("restart")
+        self.assertEqual(planner.session_class, "I2")
+        self.write_packet("complete", 2)
+        self.assertFalse(planner.stop_when(), "the loop has completed but the child is still bound: hold")
+        planner.current = {"status": "active", "stage": "plan"}
+        self.assertTrue(planner.stop_when(), "the child cleared: I2 to D, after the model's complete call")
+        self.assertEqual((planner.pending["from"], planner.pending["to"]), ("I2", "D"))
+
+    def test_no_session_is_ended_before_the_host_has_an_id_to_resume_from(self):
+        # R1b: Grok reports its session id only at a turn end; a boundary eight minutes into the first turn killed the host
+        # and the run could not be continued.
+        known = []
+        out = self.out / "late"
+        out.mkdir()
+        planner = effort.Planner(out, self.TREATMENT, locate=lambda: None, current_stage=self.stage_of,
+                                 receipt_of=self.receipt, can_resume=lambda: bool(known))
+        planner.state = lambda: planner.current
+        planner.current = {"status": "active", "stage": "spec"}
+        planner.at_launch("start")
+        planner.current = {"status": "active", "stage": "prepare"}
+        self.assertFalse(planner.stop_when(), "the class changed but there is nothing to resume")
+        self.assertIsNone(planner.pending)
+        known.append("sess-1")
+        self.assertTrue(planner.stop_when(), "the id is known: the boundary is applied")
+        self.assertEqual((planner.pending["from"], planner.pending["to"]), ("D", "M"))
+
+    def test_the_restart_note_reaches_only_the_session_that_continues_after_a_boundary(self):
+        plain = run.resume_prompt("/r", Path("/p/shiploop"))
+        noted = run.resume_prompt("/r", Path("/p/shiploop"), effort.RESTART_NOTE)
+        self.assertTrue(noted.startswith(plain), "the resume prompt itself is unchanged")
+        self.assertIn("Do not repeat a command from before the restart", noted)
+        self.assertNotIn("Do not repeat a command", plain)
+
+    def test_what_cannot_be_read_is_indeterminate_and_never_a_class(self):
+        child = {"status": "active", "stage": "spec", "active_improve": {"action_id": "a"}}
+        self.assertIsNone(self.classify(child)[0], "no packet yet")
+        self.packet.write_text("{half")
+        self.assertIsNone(self.classify(child)[0], "a packet mid-write")
+        self.packet.write_text(json.dumps(["not", "an", "object"]))
+        self.assertIsNone(self.classify(child)[0])
+        self.packet.write_text(json.dumps({"status": "active"}))
+        self.assertIsNone(self.classify(child)[0], "active with no pass number")
+        self.assertIsNone(effort.classify(None, self.stage_of)[0], "no state yet")
+        self.assertIsNone(effort.classify({"status": "done", "stage": "handoff"}, self.stage_of)[0], "a run that is over")
+        self.assertIsNone(effort.classify({"status": "active"}, lambda state: state["missing"])[0], "no stage cursor")
+
+    def test_a_restart_point_exists_only_for_a_known_change_of_class(self):
+        active = {"status": "active", "revision": 7}
+        same = effort.restart_point({**active, "stage": "implement"}, "D", self.stage_of, receipt_of=self.receipt)
+        self.assertIsNone(same)
+        point = effort.restart_point({**active, "stage": "prepare"}, "D", self.stage_of, receipt_of=self.receipt)
+        self.assertEqual((point["from"], point["to"], point["stage"], point["revision"]), ("D", "M", "prepare", 7))
+        self.assertIsNone(effort.restart_point(None, "D", self.stage_of), "an unreadable state ends nothing")
+        self.assertIsNone(effort.restart_point({**active, "stage": "prepare"}, None, self.stage_of), "no session class yet")
+
+    def planner(self, schedule, name):
+        out = self.out / name
+        out.mkdir()
+        planner = effort.Planner(out, schedule, locate=lambda: None, current_stage=self.stage_of, receipt_of=self.receipt)
+        planner.current = None
+        planner.state = lambda: planner.current  # the state a test sets; the real reader is a file read
+        return planner
+
+    def walk(self, planner, positions):
+        """Drive one planner through (stage, improve pass or None) positions the way a run does; the boundaries it found."""
+        found = []
+        for stage, number in positions:
+            state = {"status": "active", "stage": stage, "revision": len(found)}
+            if number is not None:
+                state["active_improve"] = {"action_id": "a"}
+                self.write_packet("active", number)
+            planner.current = state
+            if planner.session_class is None:
+                planner.at_launch("start")
+            elif planner.stop_when():
+                found.append((planner.pending["from"], planner.pending["to"], stage))
+                planner.at_launch("restart")
+        return found
+
+    def test_control_and_treatment_restart_at_the_same_positions_and_differ_only_in_effort(self):
+        positions = [("intake", None), ("spec", None), ("spec", 1), ("spec", 2), ("spec", 3), ("spec", None), ("plan", None),
+                     ("prepare", None), ("step-plan", None), ("implement", 1), ("implement", 2), ("implement", None),
+                     ("system-test", None), ("release-verify", None), ("handoff", None)]
+        treatment, control = self.planner(self.TREATMENT, "t"), self.planner(self.CONTROL, "c")
+        found = self.walk(treatment, positions)
+        self.assertEqual(found, self.walk(control, positions), "the blocked pair: same boundaries")
+        self.assertEqual(found, [("D", "I2", "spec"), ("I2", "D", "spec"), ("D", "M", "prepare"), ("M", "D", "step-plan"),
+                                 ("D", "I2", "implement"), ("I2", "D", "implement"), ("D", "M", "system-test"),
+                                 ("M", "D", "handoff")])
+        t, c = (effort.recorded(self.out / name)["restarts"] for name in ("t", "c"))
+        self.assertEqual([(x["from"], x["to"], x["stage"]) for x in t], [(x["from"], x["to"], x["stage"]) for x in c])
+        self.assertEqual({x["effort_after"] for x in c}, {"medium"}, "the control never changes level")
+        self.assertEqual([x["effort_after"] for x in t if x["to"] != "D"], ["low"] * 4)
+        self.assertEqual([x["effort_after"] for x in t if x["to"] == "D"], ["medium"] * 4)
+
+    def test_a_resume_continues_the_recorded_schedule_and_refuses_another(self):
+        self.planner(self.TREATMENT, "r")
+        again = effort.Planner(self.out / "r", self.TREATMENT, locate=lambda: None, current_stage=self.stage_of)
+        self.assertEqual(again.record["schedule"], self.TREATMENT)
+        with self.assertRaises(effort.ScheduleError):
+            effort.Planner(self.out / "r", self.CONTROL, locate=lambda: None, current_stage=self.stage_of)
+
+    def test_a_launch_is_recorded_with_its_class_and_effort_and_a_pending_boundary_is_recorded_once(self):
+        planner = self.planner(self.TREATMENT, "l")
+        planner.current = {"status": "active", "stage": "prepare"}
+        self.assertEqual(planner.at_launch("start"), ("M", "low"))
+        planner.current = {"status": "active", "stage": "step-plan"}
+        self.assertTrue(planner.stop_when())
+        row = planner.consume()
+        self.assertEqual((row["n"], row["from"], row["to"], row["effort_before"], row["effort_after"]), (1, "M", "D", "low", "medium"))
+        self.assertIsNone(planner.consume(), "recorded once")
+        self.assertEqual(planner.at_launch("restart"), ("D", "medium"))
+        launches = effort.recorded(self.out / "l")["launches"]
+        self.assertEqual([(x["class"], x["effort"], x["why"]) for x in launches], [("M", "low", "start"), ("D", "medium", "restart")])
+
+    def test_either_ends_a_session_when_any_check_does_and_none_gives_none(self):
+        self.assertIsNone(run.either(None, None))
+        self.assertTrue(run.either(None, lambda: True)())
+        self.assertFalse(run.either(lambda: False, lambda: False)())
+
+    def test_the_flag_is_on_both_commands(self):
+        text = '{"M": "low", "I2": "low", "D": "medium"}'
+        self.assertEqual(run.parser().parse_args(["--case", "hello", "--effort-schedule", text]).effort_schedule, text)
+        self.assertEqual(step_slice.parser().parse_args(["--case", "node-fix-bug", "--effort-schedule", text]).effort_schedule, text)
+
+
+sys.path.insert(0, str(ROOT / "docs" / "experiments" / "shiploop-effort-by-stage-20261024"))
+import run_totals  # noqa: E402
+
+
+class EffortMeasureTests(unittest.TestCase):
+    """run_totals.py: tokens and seconds by the class each session ran in, and the refusals a restart causes."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-measure-")
+        self.addCleanup(self.temp.cleanup)
+        self.out = Path(self.temp.name)
+
+    @staticmethod
+    def usage(inp, out, reasoning, cache=0):
+        return json.dumps({"type": "usage", "usage": {"input_tokens": inp, "output_tokens": out, "reasoning_tokens": reasoning,
+                                                      "cache_read_input_tokens": cache}})
+
+    @staticmethod
+    def refusal(text):
+        return json.dumps({"type": "tool_call_update", "rawOutput": {"output_for_prompt": "ShipLoop navigator: " + text}})
+
+    def run_folder(self, classes=("D", "M", "D"), reasons=("start", "effort", "effort")):
+        lines = [
+            self.usage(100, 50, 20), self.refusal("This review loop has already ended (its receipt /x)"),
+            self.refusal("This review loop has already ended (its receipt /x)"), self.usage(100, 60, 30),      # session 1: 0-3
+            self.usage(100, 40, 10, cache=900), self.refusal("Write this pass's review to /x/reviews/review-2.md"),
+            self.refusal("Write this pass's review to /x/reviews/review-2.md"),                                # session 2: 4-6
+            self.usage(200, 70, 35), self.refusal("concerns is a list of {id, steps}"),
+            self.refusal("concerns is a list of {id, steps}"), self.usage(50, 10, 5),                           # session 3: 7-10
+        ]
+        (self.out / "events.jsonl").write_text("\n".join(lines) + "\n")
+        rows, edges = [], [(0, 100.0, 160.0), (4, 170.0, 200.0), (7, 210.0, 260.0)]
+        for n, ((line, start, end), reason) in enumerate(zip(edges, reasons), 1):
+            rows.append({"row": "start", "n": n, "reason": reason, "events_line": line, "t": start})
+            rows.append({"row": "end", "n": n, "t": end, "events_line": line, "status": "x"})
+        (self.out / "sessions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        (self.out / "effort.json").write_text(json.dumps({"schedule": {}, "launches": [{"class": c} for c in classes],
+                                                          "restarts": []}))
+        return self.out
+
+    def test_each_session_is_counted_in_the_class_of_its_launch(self):
+        found = run_totals.class_totals(self.run_folder())
+        self.assertEqual({k: (v["sessions"], v["seconds"], v["model_calls"], v["output_tokens"], v["reasoning_tokens"])
+                          for k, v in found.items()},
+                         {"D": (2, 110.0, 4, 190, 90), "M": (1, 30.0, 1, 40, 10)})
+        self.assertEqual(found["M"]["prompt_tokens"], 1000, "prompt = input + cache read + cache creation")
+        self.assertEqual(found["M"]["tokens"], 1040, "the decision's token count is prompt plus output")
+        self.assertEqual(found["D"]["reasoning_per_call"], 22.5)
+
+    def test_a_run_whose_launches_and_sessions_do_not_line_up_has_no_class_totals(self):
+        self.run_folder(classes=("D", "M"))
+        self.assertIsNone(run_totals.class_totals(self.out))
+        self.assertIsNone(run_totals.class_totals(self.out / "no-such-run"))
+
+    def test_the_two_restart_refusals_are_apart_only_in_a_session_started_for_a_boundary(self):
+        found = run_totals.refusals(self.run_folder())
+        self.assertEqual((found["total"], found["restart_induced"], found["other"]), (3, 1, 2),
+                         "the stream repeats each result; the 'already ended' refusal in the first session is not a boundary's")
+        self.assertEqual(found["restart_induced_messages"], ["Write this pass's review to /x/reviews/review-2.md"])
+        self.assertTrue(any(m.startswith("concerns is a list") for m in found["other_messages"]))
+        self.assertEqual(run_totals.refusals(self.run_folder(reasons=("start", "resume-loop", "resume-loop")))["restart_induced"], 0)
+
+    def test_a_class_file_leaves_out_a_run_with_no_session_of_that_class_and_never_writes_zero(self):
+        self.run_folder()
+        pool = self.out / "pool.jsonl"
+        pool.write_text(json.dumps({"id": "a", "source": {"run": str(self.out)}}) + "\n")
+        for cls, expected in (("M", (1000, 40, 30.0)), ("I2", (None, None, None)), ("all", (1450, 230, 140.0))):
+            target = self.out / f"tokens-{cls}.json"
+            run_totals.tokens_file(pool, target, cls)
+            row = json.loads(target.read_text())["a"]
+            self.assertEqual((row["input_tokens"], row["output_tokens"], row["seconds"]), expected, cls)
+
+
+class EffortSliceTests(SliceCase):
+    """slice.drive ends a session at a class boundary (status reeffort) and the next session continues the slice."""
+
+    def test_a_class_change_ends_the_session_and_the_slice_finishes_in_later_sessions(self):
+        seeded = self.seed()
+        # `implement` stands in for a mechanical stage: a slice reaches only inner stages, so the list is narrowed for the test.
+        planner = effort.Planner(self.out, {"M": "low", "I2": "low", "D": "medium"}, locate=lambda: seeded["run_dir"],
+                                 current_stage=metrics.current_stage, mechanical=frozenset({"implement"}))
+        self.assertEqual(planner.at_launch("start"), ("D", "medium"))
+        statuses, first, now = [], True, "medium"
+        for _ in range(6):
+            process = self.fake(seeded, "normal", pause_at="implement", first=first, planner=planner, effort_now=now)
+            statuses.append(process["status"])
+            first = False
+            if process["status"] != "reeffort":
+                break
+            planner.consume()
+            now = planner.at_launch("restart")[1]
+        self.assertEqual(statuses[0], "reeffort", statuses)
+        self.assertEqual(statuses[-1], "slice-complete", statuses)
+        restarts = effort.recorded(self.out)["restarts"]
+        self.assertEqual((restarts[0]["from"], restarts[0]["to"], restarts[0]["stage"]), ("D", "M", "implement"))
+        starts = [row for row in sessionlog._lines(self.out) if row["row"] == "start"]
+        self.assertEqual(starts[0]["effort"], "medium", "the session log says which effort each session ran at")
+        self.assertEqual(starts[1]["effort"], "low", "the session after the boundary ran at the mechanical class's level")
 
 
 if __name__ == "__main__":
