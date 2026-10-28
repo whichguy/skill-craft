@@ -188,8 +188,8 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
       an ID no case names is due at the last step.
     - The regression command runs at every step.
     - Any other command (a check) runs from the last step its ``criteria`` are due at, or at the last step when it
-      names none.  This is what lets a check that only a later step can satisfy wait for it (the chess run of
-      2026-10-17, memory ``todo-step-series-order``, collapsed three steps into one when it could not).
+      names none.  This is what lets a check that only a later step can satisfy wait for it (a run of 2026-10-17
+      collapsed a three-step plan into one step when it could not).
     How many tests each command must run per step (its floor) is build order step 3's."""
     _number(steps, number)
     due_at = {str(case.get("id")): _due(case.get("criterion"), steps) for case in cases}
