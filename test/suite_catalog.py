@@ -366,9 +366,10 @@ _DURATION_SECONDS = {
     # The template-field experiments (experiment.py, overlay.py, evaluators/): 22 tests, three seeds on the checkout's CLI, an
     # overlaid plugin copy and each evaluator's verify (real node). 13 s locally on 2026-10-24.
     "test/shiploop-e2e-experiments.test.py": 14.0,
-    # The harness's reading of ShipLoop's run trace (run_trace.py; metrics, fidelity, flow, owner page, arms): 15 tests on one
-    # real-CLI run in a temporary E2E folder. Local wall seconds, 2026-10-25: 2.1 s alone, 2.5 s in the quick tier.
-    "test/shiploop-e2e-run-trace.test.py": 2.0,
+    # The harness's reading of ShipLoop's run trace (run_trace.py; metrics, fidelity, flow, owner page, arms; the live checks and
+    # --owner-note-at's watcher, owner_note.py): 18 tests on two real-CLI runs in temporary E2E folders. Local wall seconds,
+    # 2026-10-28: 3.5 s alone at load average about 6.
+    "test/shiploop-e2e-run-trace.test.py": 3.5,
     # The brownfield case, user-listing on fixtures/node-base (build step 6): 24 tests; the calibration class builds 17 variants of
     # the reference delivery and runs the held-out checks and the base's pristine tests (real node) against each, and one fake-host
     # run goes through run.main. Local wall seconds, 2026-10-26: 21.1 s alone.

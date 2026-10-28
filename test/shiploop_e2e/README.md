@@ -328,9 +328,25 @@ compound command), the exit for the four the model piped, and the stage the run 
 (`refusals_source` in each summary); otherwise the gate is unmeasured and the decision stays open. Read `failures_source`
 before reading a refusal difference between a run before 1.12.0 and a later one.
 
+**Live checks** (`run_trace.checks`, in `metrics.json` as `run_trace.checks` and printed as the run's `trace checks` line).
+Three behaviours the fixtures prove had not been seen on a real run by 2026-10-28, so every run reads them:
+- `keepalive_text`: each keepalive stop decision that continued a turn recorded the text it put into the turn;
+- `packet_reprint`: each reprint names a kept copy (`packets/sent/<sha>.md`) whose text has that hash;
+- `owner_note`: each owner note was delivered, that is, a step was accepted after its packet quoted the note. The
+  evidence names the step, the action whose `complete` was held to show it, and whether the step's summary cites it.
+
+Each verdict is `pass`, `fail`, `not exercised` (the run never did it, which is not a pass) or, for a note the run had not
+delivered when it stopped short of done, `open`. A model rarely writes a note to its own run, so `--owner-note-at STAGE`
+writes one as the owner would (`owner_note.py`). A watcher thread polls the run every second. The first time a STAGE
+step is current and its packet has printed, it runs `shiploop note` with the run's own CLI. The note asks only that the
+step's summary cite it. The watcher records what happened in `owner-note.json` and writes one note per output folder; a
+resume keeps the stage and writes no second note. The flag changes what the model is asked, so leave it off a run that is
+a baseline.
+
 The check is `test/shiploop-e2e-run-trace.test.py`. It builds one real CLI run in a temporary E2E folder, with a Claude
 stream written around its calls, and reads it three ways: with the trace, without it, and with a trace that does not
-cover the run.
+cover the run. A second real CLI run has the watcher write a note mid-step and follows it through the held callback to
+delivery.
 
 ### Delivered quality (`quality`)
 

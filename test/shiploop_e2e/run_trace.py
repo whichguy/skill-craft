@@ -10,7 +10,10 @@ gives the harness's readers one shape:
 - ``failures``: every traced command that exited non-zero, in order (``--check-only`` failures included and flagged, as the
   host stream counted them), with the stage the run was in, the action, the refusal text and its first line;
 - ``packets``: per action, every print, with its text as sent, its size as printed and whether it repeated an earlier one;
-- ``hooks``: every keepalive stop decision with its text.
+- ``hooks``: every keepalive stop decision with its text;
+- ``notes``: every owner note and where it stands (waiting, shown, delivered), as ``shiploop trace`` reads it.
+
+``checks`` reads three live behaviours from them (keepalive text, packet reprints, owner notes) into metrics.json.
 
 The host stream stays the source of what the model did (its calls, text and turns); the trace is ShipLoop's account of what it
 sent and refused. A run with no ``trace.jsonl`` (before 1.12.0) reads None and its readers keep their stream sources.
@@ -28,6 +31,7 @@ so runs on either side of 1.13.1 count them with one instrument, and ``read`` le
 """
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import re
 import sys
@@ -106,6 +110,7 @@ def read(run_dir: Path | str | None) -> dict | None:
         "file": FILE, "covers": reason is None, "partial": reason, "traced_since": facts.get("traced_since"),
         "untraced_steps": facts.get("untraced_steps"), "seeded_steps": len(unseen) - len(missed),
         "failures": failures, "completes": completes, "packets": packets, "hooks": hooks, "counts": model["counts"],
+        "run_dir": str(run), "status": facts.get("status"), "notes": model.get("notes") or [],
     }
 
 
@@ -145,17 +150,77 @@ def sent_texts(run_dir: Path, traced: dict) -> dict[str, list[str]]:
     return texts
 
 
+def _check(verdict: str, evidence: str, lines: list | None = None) -> dict:
+    return {"verdict": verdict, "evidence": evidence, "lines": lines or []}
+
+
+def checks(traced: dict | None) -> dict | None:
+    """Three behaviours the trace's fixtures prove and a live run has not yet shown (docs/shiploop-run-trace-journal.md,
+    2026-10-28), each read from the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had
+    not delivered when it stopped short of done) or ``not exercised`` (the run never did the thing, which is not a pass).
+
+    - ``keepalive_text``: every keepalive stop decision that continued a turn recorded the text it put into the turn;
+    - ``packet_reprint``: every reprint of a packet names a kept copy (``packets/sent/<sha>.md``) whose text has that hash;
+    - ``owner_note``: every owner note was delivered (a step accepted with it shown); ``--owner-note-at`` writes one mid-step.
+    """
+    if traced is None or "error" in traced:
+        return None
+    def lines(rows: list[dict]) -> list:
+        return [row.get("i") for row in rows]
+
+    continued = [hook for hook in traced["hooks"] if hook.get("decision") == "continue"]
+    silent = [hook for hook in continued if not (hook.get("text") or "").strip()]
+    keepalive = (_check("not exercised", "no stop decision continued a turn") if not continued else
+                 _check("fail", f"{len(silent)} of {len(continued)} continuations recorded no text", lines(silent)) if silent else
+                 _check("pass", f"{len(continued)} continuation{'s' if len(continued) != 1 else ''} with text; first: "
+                                f"{first_line(continued[0]['text'], 120)}", lines(continued)))
+    repeats = [send for sends in traced["packets"].values() for send in sends if send.get("repeat")]
+    broken = []
+    for send in repeats:
+        try:
+            text = (Path(traced["run_dir"]) / str(send.get("file"))).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            text = None
+        if text is None or not send.get("sha") or hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] != send["sha"]:
+            broken.append(send)
+    reprint = (_check("not exercised", "no packet was printed twice for one action") if not repeats else
+               _check("fail", f"{len(broken)} of {len(repeats)} reprints name no kept copy with their hash", lines(broken))
+               if broken else _check("pass", f"{len(repeats)} reprint{'s' if len(repeats) != 1 else ''}, each with its kept copy",
+                                     lines(repeats)))
+    notes = traced.get("notes") or []
+    undelivered = [note for note in notes if note.get("state") != "delivered"]
+    told = "; ".join(f"{note['id']} {note.get('state')}" + (f" by {note['delivered_by']}" if note.get("delivered_by") else "")
+                     + (f", held once in {', '.join(map(str, note['held_in']))}" if note.get("held_in") else "")
+                     + ("" if note.get("cited") is None else ", cited" if note["cited"] else ", not cited") for note in notes)
+    note = (_check("not exercised", "no owner note was written to the run") if not notes else
+            _check("pass", told) if not undelivered else
+            _check("fail" if traced.get("status") == "done" else "open", told))
+    return {"keepalive_text": keepalive, "packet_reprint": reprint, "owner_note": note}
+
+
+def checks_line(found: dict | None) -> str | None:
+    """The run's printed line for ``checks``: each check's verdict, the evidence of any that is not ``not exercised``."""
+    if not found:
+        return None
+    return "; ".join(f"{name.replace('_', ' ')} {row['verdict']}" + ("" if row["verdict"] == "not exercised" else
+                                                                       f" ({row['evidence']})") for name, row in found.items())
+
+
 def summary(traced: dict | None, stream_failures: int | None = None) -> dict | None:
-    """The record metrics.json keeps of the trace: what it counted, whether it covers the run, and the stream's own count."""
+    """The record metrics.json keeps of the trace: what it counted, whether it covers the run, the stream's own count, and the
+    live checks (``checks``)."""
     if traced is None:
         return None
     if "error" in traced:
         return {"file": FILE, "error": traced["error"]}
     counts = traced["counts"]
     refusals = [f for f in traced["failures"] if not f["check_only"]]
+    notes = traced.get("notes") or []
     return {"file": FILE, "covers": traced["covers"], "partial": traced["partial"], "traced_since": traced["traced_since"],
             "untraced_steps": traced["untraced_steps"], "seeded_steps": traced["seeded_steps"],
             "commands": counts.get("commands"), "refusals": len(refusals), "checks_failed": counts.get("checks_failed"),
             "packets": counts.get("packets"), "reprints": counts.get("reprints"),
             "continuations": counts.get("continuations"), "stops": counts.get("stops"),
-            "stream_failures": stream_failures}
+            "notes": {"written": len(notes), "held": sum(bool(n.get("held_in")) for n in notes),
+                      "delivered": sum(n.get("state") == "delivered" for n in notes), "cited": sum(bool(n.get("cited")) for n in notes)},
+            "stream_failures": stream_failures, "checks": checks(traced)}

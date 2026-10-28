@@ -148,8 +148,10 @@ import hosts  # noqa: E402
 import lifecycle  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import owner_note  # noqa: E402
 import quality  # noqa: E402
 import release_slice  # noqa: E402
+import run_trace  # noqa: E402
 import runrecord  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
@@ -1171,6 +1173,17 @@ def record_preexisting_runs(out: Path) -> None:
     """Before the first host or seed of a new output folder: the runs already in it, each with its state.md digest, are not
     this invocation's. A run at one of those paths whose state has since changed is (a new run can reuse the path)."""
     record_run_identity(out, preexisting={found["run_dir"]: state_digest(found["run_dir"]) for found in shiploop_runs(out)})
+
+
+def live_run_dir(out: Path) -> str | None:
+    """While the host drives it, the run this invocation created: the one RUN_IDENTITY binds, else the only run that was not
+    already there (record_preexisting_runs); None while there is none, or several that nothing tells apart."""
+    identity = run_identity(out)
+    if identity.get("run_dir"):
+        return identity["run_dir"]
+    before = identity.get("preexisting") if isinstance(identity.get("preexisting"), dict) else {}
+    new = [found["run_dir"] for found in shiploop_runs(out) if found["run_dir"] not in before]
+    return new[0] if len(new) == 1 else None
 
 
 def named_run_dirs(out: Path) -> set[str]:
@@ -2652,6 +2665,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--interrupt-at", choices=("chain-launched",),
                    help="kill the host (and its workers) as soon as a chain worker is in flight, then resume the "
                         "run with a fresh session; graded as `recovery`")
+    p.add_argument("--owner-note-at", choices=stage_spec.STAGES, metavar="STAGE",
+                   help="write one owner note (`shiploop note`, with the run's own CLI) once a step of STAGE is current and its "
+                        "packet has printed, as the run's owner would mid-step; recorded in owner-note.json, and its fate "
+                        "(held, delivered, cited) in metrics.json run_trace.checks.owner_note. A resume keeps the stage")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--planning-review", choices=stage_spec.PLANNING_REVIEW_MODES,
                    help="the ShipLoop run option: append it to the prompt of a --case or --prompt run so the model starts "
@@ -4328,6 +4345,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         prompt = f"{prompt} {planning_review_sentence(improve_skill)}"
     seeded = earlier.get("seeded") if resumed else None
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
+    owner_note_at = earlier.get("owner_note_at") if resumed else args.owner_note_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
     the_cli = resumed_cli if resumed else run_cli(host.name, out, plugin_dir)
     # The machine and any declared capability, recorded before the host starts and before the deadline is set, so the probe
@@ -4393,7 +4411,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment,
+                  "interrupt_at": interrupt_at, "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
                   "planning_review": planning_review, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
@@ -4482,6 +4500,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # Active time, not wall time: a Mac that slept 10 h spent run 5's 5 h cap with 3.8 h of work (2026-10-25);
     # time.monotonic stops during sleep (mach_absolute_time, CLOCK_MONOTONIC), time.time does not.
     deadline = time.monotonic() + (args.timeout or float("inf"))
+    note_watcher = (owner_note.Watcher(out, the_cli, owner_note_at, lambda: live_run_dir(out)).start()
+                    if owner_note_at and not regrade else None)
     if regrade:
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
@@ -4564,6 +4584,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)
         sessions.append(dict(process, resumed=session_id, host=host.name))
         stop_seen = process["status"] == "stopped"
+    if note_watcher is not None:
+        note_watcher.stop()  # the host sessions are over: a note now would reach no model
     if resume_stop is None and host.resumable:
         # The loop also ends on its budget without grading the run again, and the last session it
         # was allowed may have finished it: say what the run is, not that the budget was spent.
@@ -4844,6 +4866,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         print(f"  keepalive {'installed' if keepalive['installed'] else 'NOT installed'}; "
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
+    if line := run_trace.checks_line((run_metrics.get("run_trace") or {}).get("checks")):
+        print(f"  trace checks  {line}")
     print(f"  stopped   {stopped_line(termination)}")
     print(f"  outcome   {outcome or 'unknown'}  {outcome_basis}")
     for line in environment.summary_lines(run_environment):

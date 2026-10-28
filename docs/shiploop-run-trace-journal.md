@@ -501,9 +501,46 @@ Verification (load average 50 to 72 from other sessions):
 
 Not run: the full tier, and a live ShipLoop run on a real host with a note written during a step.
 
+## 2026-10-28: three live checks in every E2E run, and a harness-written owner note (firm for the harness; live result open)
+
+**Question.** Three behaviours pass only in fixtures: the keepalive's continuation text, a packet reprint with its kept
+copy, and an owner note written mid-step reaching the model. The two hello reruns of 2026-10-25 had no continuation and no
+reprint, and no run has had a note. The owner chose (2026-10-28) to check them in the next E2E round, not a separate run.
+
+**Change.** Every E2E run now reads these three checks; nothing waits for someone to remember them.
+- `run_trace.checks` gives each a verdict from the trace: `pass`, `fail`, `not exercised` (not a pass) or, for an
+  undelivered note on a run that stopped short of done, `open`. The verdicts go into `metrics.json` `run_trace.checks`,
+  with counts in `run_trace.notes` (written, held, delivered, cited), and the run prints them as its `trace checks` line.
+  - `keepalive_text` fails a continuation that recorded no text.
+  - `packet_reprint` fails a reprint whose kept copy is missing or does not hash to its `sha`.
+  - `owner_note` passes when every note was delivered, naming the step, where it was held and whether it was cited.
+- `run.py --owner-note-at STAGE` (`owner_note.py`) writes the note, because a model never writes one to its own run. A
+  watcher thread polls every second. The first time a STAGE step is current and the trace holds a `packet` line for it, the
+  watcher runs `shiploop note` with the run's own CLI. The note asks only for a citation in the step's summary. The result
+  goes to `owner-note.json`, one note per output folder, and a resume keeps the stage.
+
+**Finding (firm, from the route test).** A note written mid-step takes two prints to deliver. The next `complete` is held
+and prints it, but a held callback never delivers a note. The note is delivered only when a packet that quotes it is
+read and that step is accepted. The first test assumed the accepted callback delivered it, and read `shown`. A live check
+must therefore read `owner_note` after the step following the held one, not at the held step.
+
+**Tests** (`test/shiploop-e2e-run-trace.test.py`, 18 tests, 3.5 s). The fixture's checks are: keepalive text pass,
+2 reprints pass, owner note not exercised. A copy with an emptied continuation and a changed kept copy fails both. A second
+real-CLI run starts the watcher right after `init`, which prints the intake packet. The note is `N1`, the check reads
+`open` while N1 waits, and a second watcher writes nothing. The held `complete` prints N1, `next` quotes it, and the accepted
+`complete` makes the check `pass` with "N1 delivered by <intake>, held once in <intake>, cited". Four mutations each fail
+one test: `due` ignoring the packet line, silent continuations ignored, the reprint hash unchecked and undelivered notes
+ignored. Quick tier (`run-all.sh --group quick --changed-from 337b09c5 --jobs 8`): PASS, 40 suites, 275.4 s wall.
+
+Earlier, 2026-10-27, another session fixed `a7bda6a2`, the fixture race that failed push CI on `595973e7`. The trace stamps
+to the millisecond and the fixture's stream does not, so a keepalive recorded within 0.5 ms of a result sorted before it.
+The full tier dispatched on `a7bda6a2` passed.
+
 ## Open (exploratory)
 
-- **Owner feedback during a run**: built (entry above). Not verified on a live host run.
+- **Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case
+  with `--owner-note-at implement` and reads `run_trace.checks` (2026-10-28 entry). The keepalive text and a reprint are
+  read on every run, so they settle whenever a run continues a turn or reprints a packet.
 - ~~**E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
   `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.~~ Superseded 2026-10-25: built,
   see "the E2E harness reads the trace" above; the exporter follows through `metrics.json`. The 1.13.1 rerun shows
