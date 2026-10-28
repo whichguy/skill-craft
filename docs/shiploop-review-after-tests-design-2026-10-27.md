@@ -1,8 +1,9 @@
 # Improve review after the item's tests pass (design T), 2026-10-27
 
-Status: **design only; nothing built.**
+Status: **design only; nothing built.** §7 (2026-10-27) adds the gated flow: verify's checks become tests and gates,
+and acceptance becomes a script step.
 
-Consumer: first the owner, deciding D1 to D4 (§6), then the session that builds T. It sits beside
+Consumer: first the owner, deciding D1 to D4 (§6) and E1 to E3 (§7), then the session that builds T. It sits beside
 [design C](shiploop-measured-width-design-2026-10-27.md), which decides how many implement reviews an item gets. T
 decides when they run.
 
@@ -188,6 +189,103 @@ tests. Under T the review comes after the tests, so it has to write the tests fo
 - **D3. The test stage's Goal.** Recommended: the spelled-out loop of §2.
 - **D4. Improve's cost.** Since P0, 82 to 83% of Improve's minutes are planning and end-of-work reviews (§3.4). Cutting
   them is a separate design, if cost is the aim.
+
+## 7. The gated flow: verify becomes tests and gates (proposal, 2026-10-27)
+
+The owner: "Help me think through and define this: how you think you would do it, with an optimistic point of view,
+and really look at this as we have gates to help us exit. The improve loop obviously would be done before
+documentation. I do wonder if the verify stage should be incorporated as part of the tests or the gates in some way."
+
+**7.1 What verify is today.** It is a model stage with four exit conditions (`shiploop_stage_spec`, row `verify`):
+1. every completion criterion is confirmed after the last edit;
+2. every recorded command exits 0;
+3. each changed public entry point is traced with a valid, a boundary and an invalid input, and the latest review
+   iteration found only trivial issues;
+4. later-phase checks are marked pending with their owner.
+
+Its script work:
+- on entry: the change inventory and an advisory lint;
+- at done: the lint gate and `test-rerun`.
+
+Its done also triggers the item commit (`_item_commit`), and carry-forward reads its result.
+
+**7.2 What verify found** (`verify-findings.txt`; time from `stage-minutes.txt`):
+
+| run | what verify found | verify minutes |
+|---|---|---|
+| Sonnet 01b9b3 | a throwing store in `GET /api/new` escaped the handler and would crash the process; fixed, TC-11 added | 3.8 of 36.6 (10%) |
+| Sonnet 491d9a | two untested but correct paths; TC_5 (b) and TC_9 (b) added | wall time includes sleep |
+| Sonnet 36036c | nothing; no code changed | 0.7 of 32.5 (2%) |
+| DeepSeek 759a03 | W1: one untested entry-point path; **W2: six material defects fixed**, including the `/api/new` crash and a New game race that reopened a won board; W3: none | 13.5 of 165.7 (8%) |
+| DeepSeek 978478 | W1: three contract gaps closed; W2: the column refusals and the catch-all 404 asserted, one issue fixed; W3: nothing edited | 16.6 of 222.1 (7%) |
+
+- **Every finding came from the entry-point trace,** a valid, a boundary and an invalid input per changed entry
+  point, not from the criteria or the reruns.
+- **Correction.** `test-stage-fixes.txt` had left 759a03 W2's in-flight lock unattributed; verify made it.
+- So verify is a structured probe. It fixed defects in 3 of the 5 runs and closed test gaps in a fourth. Its
+  mechanical half is two gates, lint and `test-rerun`.
+
+**7.3 The proposal.** Each stage expects to pass once, and only a gate refusal makes it loop.
+
+| stage | who works | exit gates (script) | on refusal |
+|---|---|---|---|
+| 1. Build: implement steps | model | lint gate, step Proof; each step's changed files recorded (design C) | the step fixes it |
+| 2. Test: write, run, fix until green | model | base RED; every ID runs; floors; every command exits 0; mutation; lint; **new: the entry-point map** | the loop continues; unachievable goes back to step-plan |
+| 3. Improve: one review per measured group | model | its own rule (a trivial pass); **moved here: lint gate and `test-rerun`** | the review fixes it |
+| 4. Document | model | **moved here: lint gate and `test-rerun`**, which includes the doc checks among the recorded commands | document fixes it |
+| 5. Accept | ShipLoop only | none of its own: the gates just held, so it records the evidence and makes the item commit | — |
+
+Carry-forward follows, unchanged.
+
+**Where verify's duties go:**
+- **Criteria confirmed after the last edit.**
+  - A criterion with a confirm-by command is a recorded command, and `test-rerun` at document's done is after the
+    last edit by construction.
+  - A criterion confirmed by inspection, with no command, is listed in the review's handoff. The review confirms it
+    after its last edit, in its result.
+- **Every recorded command exits 0:** `test-rerun` at Improve's import and at document's done.
+- **The entry-point trace becomes tests.**
+  - The test stage writes a valid, a boundary and an invalid case for each changed public entry point, titled as
+    sub-cases of the closest quoted case. Duty 3 already asks for rejection cases.
+  - The result maps them: `entry_points: [{"entry", "tests": [...]}]`.
+  - The new gate checks that every entry point in ShipLoop's change inventory (verify's existing entry run, moved to
+    the test stage) names three tests that ran.
+  - The trace that found defects then becomes regression tests that the mutation check covers.
+- **The latest review iteration is trivial:** Improve's own exit rule.
+- **Later-phase checks pending with their owner:** a test-stage result field, which acceptance requires.
+- **Assembling chained (ask-agent) work:** the item review, which reads the whole item.
+
+**Why this is the optimistic shape:**
+- Each stage's work is done once and judged by script.
+- Acceptance becomes a gate, not a model stage, so each item reads one packet fewer. The 36036c test packet alone was
+  45,540 bytes.
+- When the tests are green and the review's first pass is trivial, the item goes straight through.
+
+**7.4 Risk and how to watch it.**
+- In 759a03 W2, verify was the last fresh look and found six defects. Under this flow they depend on two things: the
+  entry-point tests, which the gate makes required, and the review after the tests.
+- The live check therefore attributes every defect fixed to the stage that fixed it (test, Improve, document), and
+  compares the totals with the baselines' verify findings above. A defect class that only verify used to catch, and
+  that now ships, reopens the decision.
+
+**7.5 Footprint.** Verify is woven into several places:
+- the item commit trigger;
+- carry-forward's `reads`;
+- the `reconciliation` block;
+- the packet counts (`SMALL_HOME_FINGERPRINTS`, e2e-efficiency);
+- the Run Review stage catalog;
+- the E2E metrics.
+
+Removing it is the largest of T, C and this flow.
+
+**7.6 Decisions:**
+- **E1. Dissolve verify into tests and gates.** Recommended: yes. The alternative keeps verify as a slimmer model
+  stage that only traces entry points.
+- **E2. The entry-point gate.** Recommended: the map checked against the change inventory and the IDs that ran. The
+  alternative is a duty with no gate.
+- **E3. Build order.** Recommended: T, C and this flow in one batch, with one release and one verification run per
+  model, and per-stage defect attribution in the report, so the batch can still be read. The alternative is
+  separate releases, each measured alone.
 
 ## Not in this design
 

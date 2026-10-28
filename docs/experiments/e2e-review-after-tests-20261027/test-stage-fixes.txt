@@ -28,3 +28,5 @@
 978478 W2: "One product defect surfaced and was fixed per duty 4: a signal-killed child reports no exitCode, so server.js now closes its socket and exits 0 on SIGTERM/SIGINT"
 36036c W1: "Sub-cases cover the implement stage's not_covered items and the review's crash/500 fixes." (tests written for the review's fixes)
 759a03 W2: the in-flight lock in public/index.html and the 500 for a fleet createGame cannot place landed in the item commit; no stage result names which stage made them.
+
+# Superseded 2026-10-27: 759a03 W2 verify result names them ("Six material findings, all fixed by changing the work", verify-findings.txt).
