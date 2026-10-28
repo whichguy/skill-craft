@@ -591,6 +591,34 @@ Nits, also taken:
 5. Update the packets and Run Review (v6, with older runs still read). Then run the two pilots, with stage-level
    defect and cost attribution.
 
+**Step 1 done (2026-10-28): the iteration contract.** `skills/shiploop/scripts/shiploop_iteration.py` specifies the four
+invariants as pure functions. `test/shiploop-iteration.test.py` pins them: 24 tests, written first and failing on the
+missing module.
+- **Identity.**
+  - `Iteration` holds (item, plan revision, step, number, base).
+  - `start` takes the plan's next uncommitted step, in plan order, from HEAD; `advance` gives the next base.
+  - A base is always a full commit ID. It is never a snapshot of a dirty checkout, so edits that a send-back leaves
+    behind count as the next iteration's change.
+  - `stale` marks a receipt recorded for another identity.
+- **Producer ownership.**
+  - `STAGES` is implement, test, document, knowledge, commit. The stage IDs keep `implement` for build.
+  - `MODEL_STAGES` holds every stage but commit, which is ShipLoop's alone.
+  - `owns_improve`: document owns the review.
+- **Retry invalidation.**
+  - `invalidated`: a send-back voids its target's receipt and every later one.
+  - `ends_iteration` and `after_send_back`: a send-back inside the iteration keeps its base; one to planning ends the
+    iteration.
+  - Commit is never a send-back target.
+- **The final-tree commit invariant.**
+  - `pending_record` is written before the commit.
+  - `commit_decision` commits the gated tree on the base, and refuses a tree that changed after the knowledge gate,
+    reopening knowledge.
+  - It recognises a commit that already happened, and refuses any other commit: only the commit stage commits.
+
+The navigator does not use it yet. Step 2 wires it in.
+
+The build stays on a feature branch until the lifecycle is complete, so no release from main ships half of it.
+
 **9.2 New decisions:**
 - **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
   item-level, which is a second lifecycle to maintain.

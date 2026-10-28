@@ -121,6 +121,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-lint.test.py",
     "test/shiploop-quality.test.py",
     "test/shiploop-loops.test.py",
+    "test/shiploop-iteration.test.py",
     "test/shiploop-test-loop.test.py",
     "test/shiploop-test-counts.test.py",
     "test/shiploop-backchain-check.test.py",
@@ -269,6 +270,9 @@ _DURATION_SECONDS = {
     # New 2026-10-10 (the Until Loop every inner stage runs).  Local wall seconds, one serial run at load average 11 to
     # 13 (other suites running): 24 tests, 18 s; the navigator classes walk a run to verify through the real runtime.
     "test/shiploop-loops.test.py": 18.0,
+    # New 2026-10-28 (the per-step iteration's contract, design T §9.1 step 1): pure functions, 24 tests in under
+    # 0.1 s locally.
+    "test/shiploop-iteration.test.py": 0.2,
     # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, one serial run at load
     # average 3.7 to 5.3 (batch 1010 G6, after the whole-word and count-floor tests and their review): 115 tests, 94.0 s (user
     # plus system CPU 81.2 s); the 79.0 s before was 67 tests at a higher load.  Under QUICK_MAX_SECONDS.
