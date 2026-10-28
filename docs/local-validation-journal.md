@@ -133,11 +133,31 @@ Evidence in `docs/experiments/local-validation-20261025/`:
   would no longer shorten quick. See F17.
 - F5 (firm): the `prompt` group needs the obligation ledger. On 5d3628b0 the four packet-size suites pass while the
   ledger fails, which is the 2.11.0 CI failure. Proof: `prompt-jobs8-5d3628b0-ledger-red.receipt.json`.
-- F6 (exploratory, unrelated to the runner): `shiploop-actual-improve-cli`'s
+- F6 (fixed 2026-10-28; exploratory when written, unrelated to the runner): `shiploop-actual-improve-cli`'s
   `test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output` depends on the checkout path's length. On
   5d3628b0 it writes 1,536 characters and fails at a checkout path of about 130 characters (a scratch worktree), and
   passes at this worktree's 59-character path. CI's path is shorter still. Update 2026-10-28: it still reproduces on
   337b09c5, writing 1,538 characters at a 150-character checkout path and passing at 59.
+  Fixed 2026-10-28 (test only, on 89a30e03): the cause was that the count included text the checkout decides. The
+  command and the runtime's done line carry the interpreter, the checkout and the temp directory, about 400 of the
+  1,380 characters at this worktree's 71-character path (review 578, command 283, done 519). Measured with those
+  three paths replaced by fixed placeholders (a scratch run, not committed), a pass is 985 characters (review 578,
+  command 143, done 264) at 71 and at 150 characters. The owner was offered keeping 1,500 for that path-free text
+  (515 characters, 52%, of headroom; the original 1,437 against 1,500 left 4%, ad794e11), a bound of 1,200 or 2,000,
+  or no number, and chose no number (2026-10-28; earlier the same day: "I'm also sensitive to fixing lengths with
+  numeric values. I don't think we should be doing something that's so tight.").
+  So the size test is removed. Its shape claim was already asserted by
+  `test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage` (ShipLoop writes
+  checks.md and the report JSON, and the commands are literal: no `$`, the receipt's own `done_argv`, the report by
+  its absolute path) and by the IMP-8 test (every printed command drives the run for the hooks). The first now carries
+  the reason in its docstring. What is no longer checked: a longer review, or longer but literal commands, are not
+  failed; the review is the model's own text, and what regressed the live tails (IMP-8: 35-39% of 2.0-2.4 KB per
+  tail typed through shell variables) is the shape.
+  Proof: the old test at a 150-character detached worktree still failed with 1,538 (578, 362, 598). The whole
+  `shiploop-actual-improve-cli` suite passes at 71 and at 150 characters. A done line typed through a shell variable
+  (`REPORT=...; ... < "$REPORT"`, patched into a scratch worktree's `shiploop_navigator.py`) fails the shape test at
+  its `assertNotIn("$", ...)`. `test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output` no longer
+  exists; the older evidence files that name it are history.
 - F4 (firm since 2026-10-28; interim when written on 2026-10-25): GitHub CI now runs each group with 4 jobs, the
   runner's CPU count. Quick ran in parallel there and passed: run 40237477513 took 1 min 23 s against 3 min 26 s serial.
   The full shards (`shiploop-1|2|3`, `core`) have not yet run in parallel anywhere, and the first release commit will be
@@ -410,7 +430,8 @@ that's so tight."
 **Not changed:** the counts pinned on purpose by other rounds and authors. These are the catalog audit counts in
 `test_audited_catalog_counts_and_fixed_commands`, the quick baseline's `assertLess(len(baseline), 17)`, and the
 1,500-character bound behind F6. They are left alone so this round undoes nothing it did not write. The F6 task card
-now asks for a path-independent measurement with headroom, and asks the owner before any number changes.
+now asks for a path-independent measurement with headroom, and asks the owner before any number changes. Update
+2026-10-28: the 1,500-character test is removed and its shape is asserted instead (see F6).
 
 **Findings**
 

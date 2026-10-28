@@ -2608,6 +2608,13 @@ class ImprovePassTests(ImproveCliFixture):
         return json.loads(result.stdout)
 
     def test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage(self):
+        """6.3 exit 2, as a shape rather than a length: what the model writes for one pass is the review file and the
+        printed commands it copies.  ShipLoop writes checks.md and the report JSON, and the commands are literal (no
+        shell variable, the receipt's own done_argv, the report by its absolute path); the live tails (2.0 to 2.4 KB
+        each, IMP-8) typed both through shell variables.  A character count of these commands was removed on
+        2026-10-28 (journal F6): it held the interpreter, checkout and temp paths, so it failed at a long checkout
+        path (1,538 at 150 characters, 1,380 at 71; 985 with the paths out), and the owner prefers no fixed number.
+        The review is the model's own text and has no bound here."""
         self.begin()
         self.write_review()
         out = self.invoke(*self.pass_args()).stdout
@@ -2913,23 +2920,6 @@ class ImprovePassTests(ImproveCliFixture):
                           encoding="utf-8")
         self.run_argv(wrapper)
         self.assertTrue((self.reviews() / "report-1.json").is_file())
-
-    def test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output(self):
-        """6.3 exit 2 (projected, offline): what the model writes for one pass is the review file and the two printed
-        commands it copies (improve-pass, then the runtime's done; complete runs once per stage, not per pass).  The
-        report JSON, checks.md and the shell variables of the live tails (2.0 to 2.4 KB per tail, IMP-8) are gone.
-        The commands carry this suite's paths (a run directory of about 100 characters)."""
-        self.begin("step-plan")
-        review = self.write_review(
-            found="S2 relies on a case-insensitive comparison that no command exercised; a one-line probe showed the "
-                  "language compares case-sensitively, so the step's criterion C3 held.",
-            why="nothing to change after the probe; the content is as the previous pass left it.")
-        out = self.invoke(*self.pass_args()).stdout
-        done, _complete, _again = self.printed(out)
-        command = shlex.join(["python3", *map(str, self.pass_args()[:1])]) + " " + shlex.join(
-            ["improve-pass", "--run-dir=" + str(self.run), "--action=" + self.improve])
-        written = len(review.read_bytes()) + len(command.encode()) + len(done.encode())
-        self.assertLessEqual(written, 1500, (len(review.read_bytes()), len(command), len(done), len(str(self.run))))
 
 
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
