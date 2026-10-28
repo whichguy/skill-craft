@@ -634,6 +634,43 @@ The navigator does not use it yet. Step 2 wires it in.
 
 The build stays on a feature branch until the lifecycle is complete, so no release from main ships half of it.
 
+**Step 2 plan (2026-10-28).** Step 2 is the lifecycle switch, and its reach is wide. Today `"verify"` appears in 96 test
+files and 11 ShipLoop modules, and in Run Review and the E2E audit harness. The per-step test stage also needs each
+case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, on the feature branch:
+- **2a. Due cases per step,** pure, in `shiploop_iteration`. **F1 needs no new field:**
+  - each test-spec case already names its step-plan `criterion`;
+  - each step already lists the `criteria` it satisfies;
+  - so a case is due at the last step that lists its criterion, and a case no step lists is due at the last step.
+
+  For each step, ShipLoop derives:
+  - **due cases:** every case due so far, which must be GREEN;
+  - **new cases:** this step's cases, the only ones RED applies to;
+  - **active commands:**
+    - a focused command runs from the first step one of its IDs is due, narrowed to the IDs due by then;
+    - a check command runs from the last step that lists its criteria;
+    - the regression command runs at every step.
+
+  On 36036c's real plan:
+  - **S1:** the game tests;
+  - **S2:** the server tests, and the docs check (it names C4 and C8);
+  - **S3:** the page's server test (TC-4) and the browser test.
+
+  Floors per step stay step 3's.
+  **2a done (2026-10-28):** `case_step`, `due_cases`, `new_cases` and `active_commands` in `shiploop_iteration`. Nine
+  fail-first tests in `test/shiploop-iteration.test.py` pin them on 36036c's plan, 33 tests in all. The navigator does
+  not use them yet.
+- **2b. The navigator switch.**
+  - The per-step stage sequence runs through `shiploop_iteration`, with the identity in the inner loop's record and
+    the step advancing after its commit.
+  - Rule `item` moves to document, so document owns the review.
+  - The knowledge stage gets its row and packet.
+  - The commit stage becomes a script step with its pending record. Verify is retired, and carry-forward follows the
+    last iteration.
+  - The test stage runs 2a's active commands, with RED on the new cases against the iteration base.
+  - The omitted-document route is covered.
+  - Every test that pins the old flow is updated in the same change, so there is one supported version.
+- **2c. The ask-agent route** gets the same step boundaries (G1).
+
 **9.2 New decisions:**
 - **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
   item-level, which is a second lifecycle to maintain.

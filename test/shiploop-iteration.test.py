@@ -8,6 +8,8 @@ the next step starts. These tests pin the four invariants step 1 specifies, befo
 - producer ownership (document owns the Improve review; commit is ShipLoop's alone);
 - retry invalidation (what a send-back keeps, what it voids, and when it ends the iteration);
 - the final-tree commit invariant (commit only the tree the last gate ran on, from the iteration's base, idempotently).
+Build order step 2a adds what each step owes its test stage: due cases, new (RED) cases and the active commands,
+pinned on the step plan and test spec of the 2.18.0 battleship run.
 """
 from __future__ import annotations
 
@@ -170,6 +172,83 @@ class CommitTests(unittest.TestCase):
         current = first()
         self.assertEqual(iteration.pending_record(current, self.TREE),
                          {"iteration": iteration.identity(current), "parent": BASE, "tree": self.TREE})
+
+
+# The step plan and test spec of v2180-sonnet-battleship-36036c (2026-10-27), trimmed to the fields the projection reads.
+BATTLESHIP_STEPS = [{"id": "S1", "criteria": ["C1", "C2", "C3", "C4"]},
+                    {"id": "S2", "criteria": ["C5", "C6", "C7", "C8"]},
+                    {"id": "S3", "criteria": ["C9", "C10"]}]
+BATTLESHIP_CASES = [{"id": case, "criterion": criterion} for case, criterion in (
+    ("TC-7", "C2"), ("TC-8", "C2"), ("TC-9", "C2"), ("TC-12", "C1"), ("TC-13", "C1"), ("TC-14", "C3"),
+    ("TC-1", "C5"), ("TC-2", "C5"), ("TC-3", "C5"), ("TC-4", "C9"), ("TC-5", "C6"), ("TC-6", "C6"),
+    ("TC-10", "C7"), ("TC-11", "C7"), ("TC-15", "C10"))]
+GAME = {"command": "node --test test/game.test.js", "suite": "focused",
+        "ids": ["TC-7", "TC-8", "TC-9", "TC-12", "TC-13", "TC-14"], "criteria": ["C1", "C2", "C3"]}
+SERVER = {"command": "node --test test/server.test.js", "suite": "focused",
+          "ids": ["TC-1", "TC-2", "TC-3", "TC-4", "TC-5", "TC-6", "TC-10", "TC-11"], "criteria": ["C5", "C6", "C7", "C9"]}
+BROWSER = {"command": "BROWSER_TESTS=1 node --test test/browser.test.js", "suite": "focused", "ids": ["TC-15"],
+           "criteria": ["C10"]}
+DOCS = {"command": "node RUN/scratch/check-docs.js", "suite": "check", "criteria": ["C4", "C8"]}
+REGRESSION = {"command": "node --test", "suite": "regression"}
+BATTLESHIP_COMMANDS = [GAME, SERVER, BROWSER, DOCS, REGRESSION]
+
+
+class DueCaseTests(unittest.TestCase):
+    """Build order step 2a: which cases and commands each step owes, from data ShipLoop already validates (each case
+    names its step-plan criterion; each step lists the criteria it satisfies), so the test spec needs no new field."""
+
+    def test_a_case_is_due_at_the_last_step_that_lists_its_criterion(self):
+        self.assertEqual(iteration.case_step("C2", BATTLESHIP_STEPS), "S1")
+        self.assertEqual(iteration.case_step("C9", BATTLESHIP_STEPS), "S3")
+        shared = [{"id": "S1", "criteria": ["C1"]}, {"id": "S2", "criteria": ["C1", "C2"]}]
+        self.assertEqual(iteration.case_step("C1", shared), "S2")
+
+    def test_a_case_whose_criterion_no_step_lists_is_due_at_the_last_step(self):
+        self.assertEqual(iteration.case_step("C99", BATTLESHIP_STEPS), "S3")
+        self.assertEqual(iteration.case_step("C1", [{"id": "S1"}, {"id": "S2"}]), "S2")
+
+    def test_each_step_owes_every_case_due_so_far_and_only_its_own_are_new(self):
+        self.assertEqual(iteration.due_cases(BATTLESHIP_CASES, BATTLESHIP_STEPS, 1),
+                         ["TC-7", "TC-8", "TC-9", "TC-12", "TC-13", "TC-14"])
+        self.assertEqual(iteration.new_cases(BATTLESHIP_CASES, BATTLESHIP_STEPS, 2),
+                         ["TC-1", "TC-2", "TC-3", "TC-5", "TC-6", "TC-10", "TC-11"])
+        self.assertEqual(iteration.new_cases(BATTLESHIP_CASES, BATTLESHIP_STEPS, 3), ["TC-4", "TC-15"])
+        self.assertEqual(len(iteration.due_cases(BATTLESHIP_CASES, BATTLESHIP_STEPS, 3)), len(BATTLESHIP_CASES))
+
+    def active(self, number):
+        return {row["command"]: row.get("ids") for row in
+                iteration.active_commands(BATTLESHIP_COMMANDS, BATTLESHIP_CASES, BATTLESHIP_STEPS, number)}
+
+    def test_s1_runs_the_game_tests_and_the_regression_command_only(self):
+        self.assertEqual(self.active(1), {GAME["command"]: GAME["ids"], REGRESSION["command"]: None})
+
+    def test_a_focused_command_runs_from_its_first_due_id_narrowed_to_the_ids_due(self):
+        at_two = self.active(2)
+        self.assertEqual(at_two[SERVER["command"]], ["TC-1", "TC-2", "TC-3", "TC-5", "TC-6", "TC-10", "TC-11"])
+        self.assertNotIn(BROWSER["command"], at_two)
+        self.assertEqual(self.active(3)[SERVER["command"]], SERVER["ids"])
+
+    def test_a_check_runs_from_the_last_step_that_lists_its_criteria(self):
+        self.assertNotIn(DOCS["command"], self.active(1))
+        self.assertIn(DOCS["command"], self.active(2))
+        unnamed = {"command": "make check", "suite": "check"}
+        self.assertEqual([row["command"] for row in iteration.active_commands([unnamed], [], BATTLESHIP_STEPS, 2)], [])
+        self.assertEqual([row["command"] for row in iteration.active_commands([unnamed], [], BATTLESHIP_STEPS, 3)],
+                         ["make check"])
+
+    def test_the_last_step_runs_every_command_as_recorded(self):
+        self.assertEqual(iteration.active_commands(BATTLESHIP_COMMANDS, BATTLESHIP_CASES, BATTLESHIP_STEPS, 3),
+                         BATTLESHIP_COMMANDS)
+
+    def test_a_projected_command_is_a_copy(self):
+        narrowed = iteration.active_commands(BATTLESHIP_COMMANDS, BATTLESHIP_CASES, BATTLESHIP_STEPS, 2)
+        next(row for row in narrowed if row["command"] == SERVER["command"])["ids"].append("TC-99")
+        self.assertNotIn("TC-99", SERVER["ids"])
+
+    def test_a_step_number_outside_the_plan_is_refused(self):
+        for number in (0, 4):
+            with self.subTest(number=number), self.assertRaises(ValueError):
+                iteration.due_cases(BATTLESHIP_CASES, BATTLESHIP_STEPS, number)
 
 
 if __name__ == "__main__":

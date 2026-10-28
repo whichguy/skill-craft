@@ -15,6 +15,10 @@ Build order step 1 (§9.1) specifies four invariants here, as pure functions, be
   one commit on top of the iteration's base. A pending record written before the commit lets a retry recognise a
   commit that already happened, and any other commit is refused: only the commit stage commits (§9 row 3).
 
+Build order step 2a adds what each step owes its test stage (``case_step``, ``due_cases``, ``new_cases``,
+``active_commands``), derived from data ShipLoop already validates: each test-spec case names its step-plan
+``criterion`` and each step lists the ``criteria`` it satisfies, so the test spec needs no field of its own (F1).
+
 Stage IDs keep today's names (``implement`` is the design's "build"); ``knowledge`` and ``commit`` are new, and
 ``verify`` has no place in an iteration (§7, §8.1).
 """
@@ -22,6 +26,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from typing import Any, NamedTuple
 
 STAGES = ("implement", "test", "document", "knowledge", "commit")
@@ -140,3 +145,65 @@ def commit_decision(current: Iteration, *, head: str, head_parent: str | None, h
         return Decision("done", "the commit on " + current.base[:12] + " already holds the pending tree")
     return Decision("refuse", "HEAD " + str(head)[:12] + " is not the iteration's base " + current.base[:12] + " or its "
                     "pending commit: only the commit stage commits inside an iteration")
+
+
+def case_step(criterion: str, steps: Sequence[Mapping[str, Any]]) -> str:
+    """The step a case proving ``criterion`` is due at: the last step, in plan order, whose ``criteria`` list it (a case
+    spanning steps is due once every step it needs is built), or the plan's last step when none lists it."""
+    ids = [str(row.get("id")) for row in steps]
+    if not ids:
+        raise ValueError("a step plan has at least one step")
+    listing = [str(row.get("id")) for row in steps if criterion in (row.get("criteria") or ())]
+    return listing[-1] if listing else ids[-1]
+
+
+def _due(criterion: Any, steps: Sequence[Mapping[str, Any]]) -> int:
+    """``case_step`` as the step's position, from 1."""
+    return [str(row.get("id")) for row in steps].index(case_step(str(criterion), steps)) + 1
+
+
+def _number(steps: Sequence[Mapping[str, Any]], number: Any) -> int:
+    if isinstance(number, bool) or not isinstance(number, int) or not 1 <= number <= len(steps):
+        raise ValueError("step number " + repr(number) + " is outside the plan's " + str(len(steps)) + " steps")
+    return number
+
+
+def due_cases(cases: Sequence[Mapping[str, Any]], steps: Sequence[Mapping[str, Any]], number: int) -> list[str]:
+    """The case IDs step ``number`` owes: every case due at it or an earlier step, each of which must pass (GREEN)."""
+    _number(steps, number)
+    return [str(case.get("id")) for case in cases if _due(case.get("criterion"), steps) <= number]
+
+
+def new_cases(cases: Sequence[Mapping[str, Any]], steps: Sequence[Mapping[str, Any]], number: int) -> list[str]:
+    """The case IDs due at step ``number`` itself: the only ones its RED check holds to failing on the iteration's
+    base, since an earlier step's cases already pass there."""
+    _number(steps, number)
+    return [str(case.get("id")) for case in cases if _due(case.get("criterion"), steps) == number]
+
+
+def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mapping[str, Any]],
+                    steps: Sequence[Mapping[str, Any]], number: int) -> list[dict[str, Any]]:
+    """The recorded commands step ``number``'s test stage runs, as copies.
+    - A command with ``ids`` runs from the first step one of them is due at, narrowed to the IDs due by step ``number``;
+      an ID no case names is due at the last step.
+    - The regression command runs at every step.
+    - Any other command (a check) runs from the last step its ``criteria`` are due at, or at the last step when it
+      names none.  This is what lets a check that only a later step can satisfy wait for it (the chess run of
+      2026-10-17, memory ``todo-step-series-order``, collapsed three steps into one when it could not).
+    How many tests each command must run per step (its floor) is build order step 3's."""
+    _number(steps, number)
+    due_at = {str(case.get("id")): _due(case.get("criterion"), steps) for case in cases}
+    active = []
+    for command in commands:
+        row = deepcopy(dict(command))
+        ids = command.get("ids")
+        if ids:
+            row["ids"] = [ident for ident in ids if due_at.get(str(ident), len(steps)) <= number]
+            if not row["ids"]:
+                continue
+        elif command.get("suite") != "regression":
+            criteria = command.get("criteria") or ()
+            if (max(_due(criterion, steps) for criterion in criteria) if criteria else len(steps)) > number:
+                continue
+        active.append(row)
+    return active
