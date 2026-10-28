@@ -1,0 +1,4 @@
+{"run": "X2c l4b-B", "arm": "B scoped (prompts/baseline-scoped.md)", "subject": "claude sonnet (agent)", "repo": "https://github.com/thomvaill/log4brains at 17e32021a8c5", "request": "requests/l4b-L1-list-json.md",
+ "duration_s": 1404.6, "subagent_tokens": 431108, "tool_uses": 101,
+ "reported": "BASELINE: 12 requirements, 33 decisions (19 linking repository records), deep: packages/cli, packages/cli-common, packages/global-cli, packages/core, packages/init, e2e-tests, open items: 9",
+ "c1_note": "the one C1 finding (AD-4) is a parser false positive: the prose line 'AD-4 and AD-10 appear under Superseded.' starts with an ID, and shiploop_knowledge_home._entries takes the first line that starts with an ID as the entry"}

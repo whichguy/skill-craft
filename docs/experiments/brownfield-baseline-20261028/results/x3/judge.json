@@ -1,0 +1,206 @@
+{
+  "plans": [
+    {
+      "label": "P1",
+      "request": "E1",
+      "choices": [
+        {"choice": "Flip delivery runs as the Celery task notify_flip(flip_id), one task per flip carrying only the id, consumed by celery worker processes on any number of machines; the sendalerts ThreadPoolExecutor, BoundedSemaphore and on_notify_done are removed", "class": "changed-authorized", "gt": "GT1", "evidence": "P1 AD-12 (changes AD-4) and W2, Basis: S1; replaces executor.submit(notify, flip) in hc/api/management/commands/sendalerts.py Command.process_one_flip; E1 S1 asks for Celery workers"},
+        {"choice": "Redis broker through an exact pin of celery[redis] in requirements.txt; no result backend, JSON serializer, dedicated queue 'healthchecks', prefetch multiplier 1", "class": "changed-authorized", "gt": "GT1", "evidence": "P1 AD-13 and W1, Basis: S1; requirements.txt has no queue or broker library today; E1 S1 names a Redis broker"},
+        {"choice": "Reference deployment: docker-compose gains a redis service (AOF on a named volume) and a scalable worker service from the same image and .env; docker/run.sh and the Dockerfile stay unchanged", "class": "changed-authorized", "gt": "GT1", "evidence": "P1 AD-18 and W3, Basis: S1; a long-lived process outside the management commands, which S1 asks for so delivery scales across worker machines"},
+        {"choice": "sendalerts stays the long-running polling management command for detection (handle_going_down, 2 s idle loop) and for the Flip.processed compare-and-set claim; a failed publish sets processed back to NULL", "class": "kept", "gt": "GT1", "evidence": "P1 AD-1, AD-2, AD-15; repo sendalerts.py Command.handle and Command.process_one_flip (num_updated claim)"},
+        {"choice": "notify() moved verbatim to hc/api/tasks.py; Channel.notify, TRANSPORTS and every hc/integrations/<kind> transport untouched; the Test! button and deletion notices stay synchronous", "class": "kept", "gt": "GT2", "evidence": "P1 AD-3 (Basis: S2), AD-9 and W2 'Reused untouched'; repo hc/api/models.py Channel.notify, TRANSPORTS"},
+        {"choice": "Each delivery still writes its Notification row and Channel.last_error through the unchanged Channel.notify", "class": "kept", "gt": "GT7", "evidence": "P1 AD-3, AD-7; AD-13 keeps durable state in Flip, Notification and Channel"},
+        {"choice": "No table, column or migration; Redis holds only transient task messages and durable state stays in the Django ORM database", "class": "kept", "gt": "GT5", "evidence": "P1 AD-13 (rejects a DB 'queued' column), AD-15"},
+        {"choice": "At-most-once delivery: early ack, no autoretry and no max_retries, so no delayed retry appears and the transports' inline retries are untouched", "class": "kept", "gt": "GT8", "evidence": "P1 AD-15"},
+        {"choice": "New environment variable CELERY_BROKER_URL read with envsecret (so _FILE works), listed in docker/.env.example and templates/docs/self_hosted_configuration.md; sendalerts raises CommandError when neither it nor eager mode is set", "class": "extended", "gt": "GT6", "evidence": "P1 AD-5, AD-13, AD-16, W1; repo hc/settings.py envsecret"},
+        {"choice": "Management API unchanged: the metrics endpoint keeps num_unprocessed_flips and max_notification_id (documented as counting only undispatched flips); no broker-backed queue-depth field", "class": "kept", "gt": "GT4", "evidence": "P1 AD-10, A6"},
+        {"choice": "New modules hc/celery.py (Celery app with include=['hc.api.tasks']) and hc/api/tasks.py; hc/__init__.py stays empty so gunicorn, smtpd and sendreports never import Celery", "class": "new", "gt": "none", "evidence": "P1 AD-14; the repository has no task module or Celery app"},
+        {"choice": "--num-workers stays accepted and is ignored with a printed WARNING; concurrency moves to celery worker --concurrency", "class": "kept", "gt": "none", "evidence": "P1 AD-11, AD-16; same handling as the existing --pool option in repo sendalerts.py Command.handle"},
+        {"choice": "Tests and checks: Celery eager flags in the hc/settings.py test block so CI needs no Redis; new Django tests in hc/api/tests; Celery typing through stubs or ignore_missing_imports as for [mypy-statsd.*]", "class": "extended", "gt": "GT9", "evidence": "P1 AD-8, AD-17, W1, W2; repo mypy.ini [mypy-statsd.*]"},
+        {"choice": "Asynchronous failures are logged on the existing hc logger (hc.logs Record rows read by sendlogs) with the worker hostname; statsd names kept", "class": "kept", "gt": "none", "evidence": "P1 AD-7, AD-10, AD-19; repo hc/settings.py LOGGING handler hc.logs.Handler"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 3,
+      "named_existing": 6,
+      "changes_with_basis": "all",
+      "verdict": "Makes only the authorized Celery-and-Redis move of flip delivery (task, broker and worker deployment, each with Basis S1), keeps sendalerts' polling detection and claim, the transports, Notification records, storage, the API and the absence of delayed retries, and adds the broker URL as an environment variable in the existing style; it names GT1, GT2, GT5, GT6, GT7 and GT9."
+    },
+    {
+      "label": "P2",
+      "request": "T2",
+      "choices": [
+        {"choice": "Serve S1 with the existing GET /api/v3/checks/ (views.checks -> get_checks) in the shared api/v1-v3 URL set, with its cors decorator and request-time status; no new route, view or namespace", "class": "kept", "gt": "GT4", "evidence": "P2 AD-1, AD-6, AD-11 (Basis: S1); repo hc/api/urls.py api_urls, hc/api/views.py get_checks"},
+        {"choice": "The token is the existing project read-only API key (hcr_ / api_key_readonly), accepted by authorize_read and refused by authorize on every write endpoint; no new token model, scope or auth scheme", "class": "kept", "gt": "GT4", "evidence": "P2 AD-2, AD-3, AD-4; repo hc/api/decorators.py authorize, authorize_read"},
+        {"choice": "JSON built by hand with Check.to_dict(readonly=True) and JsonResponse; no API framework", "class": "kept", "gt": "GT4", "evidence": "P2 AD-3, AD-5; AD-1 rejects a REST framework"},
+        {"choice": "No storage change: reads existing Check and Project columns through the Django ORM; no table or migration", "class": "kept", "gt": "GT5", "evidence": "P2 AD-5"},
+        {"choice": "No new setting or feature flag; configuration stays environment variables read in hc/settings.py", "class": "kept", "gt": "GT6", "evidence": "P2 AD-9 (rejects READONLY_API_ENABLED)"},
+        {"choice": "No background job, push channel or snapshot: status is derived per request by Check.get_status and dashboards poll", "class": "kept", "gt": "GT1", "evidence": "P2 AD-8"},
+        {"choice": "Proof by the existing per-app Django tests run unmodified; no product code or test added", "class": "kept", "gt": "GT9", "evidence": "P2 W1 proving check (ListChecksTestCase, AuthTestCase, ProjectTestCase and others)"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 0,
+      "named_existing": 5,
+      "changes_with_basis": "n/a",
+      "verdict": "Delivers S1 entirely by reusing GET /api/v3/checks/ and the read-only key with no source change and keeps every inherited decision; it names GT1, GT4, GT5, GT6 and GT9."
+    },
+    {
+      "label": "P3",
+      "request": "T1",
+      "choices": [
+        {"choice": "Delayed retries: up to 3, due 1, 5 and 25 minutes after each failed attempt (NOTIFY_RETRY_DELAYS), for non-permanent TransportError on saved flips, never for test sends or a group's own row", "class": "changed-authorized", "gt": "GT8", "evidence": "P3 AD-2, AD-4, AD-5, Basis: S1; departs from 'there is no delayed retry'; T1 S1 asks for it"},
+        {"choice": "Retries run in a new Command.process_one_retry step of the existing sendalerts polling loop (after the flip loop), claimed by compare-and-set on retry_at and submitted to the existing BoundedSemaphore and executor; revalidated against a newer flip and Flip.select_channels(); no new process, queue, scheduler or package", "class": "extended", "gt": "GT1", "evidence": "P3 AD-1, AD-2, W2; repo sendalerts.py Command.process_one_flip claim pattern"},
+        {"choice": "Every attempt is its own Notification row written by Channel.notify, with its error and Channel.last_error as today", "class": "kept", "gt": "GT7", "evidence": "P3 AD-3, AD-7, AD-8"},
+        {"choice": "Retry state as three columns on api_notification (flip FK with CASCADE, attempt default 1, retry_at) in migration 0124", "class": "extended", "gt": "GT7", "evidence": "P3 AD-3, W1; repo Check.prune deletes flips only past both the oldest kept ping and 93 days, so the cascade stays within today's notification retention apart from an edge case"},
+        {"choice": "Django ORM migration with a conditional index on retry_at like api_flip_not_processed; runs on SQLite and the CI's PostgreSQL, MySQL and MariaDB; skip_locked rejected as a no-op on SQLite", "class": "kept", "gt": "GT5", "evidence": "P3 AD-2, AD-3, W1; repo hc/api/models.py Flip.Meta api_flip_not_processed"},
+        {"choice": "The retry decision sits in Channel.notify and uses TransportError.permanent; none of the 29 transports changes", "class": "kept", "gt": "GT2", "evidence": "P3 AD-1, AD-4; repo hc/api/transports.py TransportError"},
+        {"choice": "The immediate in-attempt tries (HttpTransport.request 3, Signal 2, email thread) stay as they are", "class": "kept", "gt": "GT8", "evidence": "P3 AD-6"},
+        {"choice": "Attempts shown in the existing server-rendered Events log (_get_events -> event_summary.html) with a 'Retry n of 3' label; no new view, endpoint or script", "class": "extended", "gt": "GT3", "evidence": "P3 AD-7, W3; repo templates/front/event_summary.html, hc/front/views.py _get_events"},
+        {"choice": "Delays are a module constant beside DEFAULT_TIMEOUT in hc/api/models.py; no new setting or environment variable", "class": "kept", "gt": "GT6", "evidence": "P3 AD-1, AD-5, AD-9; repo hc/api/models.py DEFAULT_TIMEOUT"},
+        {"choice": "Django TestCase tests with time_machine, mypy --strict and ruff format", "class": "kept", "gt": "GT9", "evidence": "P3 W1-W3 checks; Assumptions name the repository's own tooling"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 1,
+      "named_existing": 7,
+      "changes_with_basis": "all",
+      "verdict": "Adds the authorized delayed retries (GT8, Basis S1) inside the existing design: new columns on Notification, a retry step in the existing sendalerts loop and executor, and a label in the existing server-rendered Events log, with transports and inline retries unchanged; no unauthorized or rebuilt choice, and it names GT1, GT2, GT3, GT5, GT7, GT8 and GT9."
+    },
+    {
+      "label": "P4",
+      "request": "T1",
+      "choices": [
+        {"choice": "Delayed retries: up to 3, due 1, 5 and 25 minutes after each failed attempt (NOTIFY_RETRY_DELAYS), for non-permanent, retryable TransportError on saved flips, never for test sends", "class": "changed-authorized", "gt": "GT8", "evidence": "P4 AD-11, AD-13, AD-14, Basis: S1; departs from 'there is no delayed retry'; T1 S1 asks for it"},
+        {"choice": "Retries run in a new Command.process_one_retry step of the existing sendalerts loop after process_one_flip, claimed with a conditional UPDATE that clears retry_at, on the same seats and executor; retry() mirrors notify(); dropped when a later flip exists or Flip.select_channels() (plus group members) no longer reaches the channel", "class": "extended", "gt": "GT1", "evidence": "P4 AD-2, AD-12, AD-15, W2; repo sendalerts.py Command.process_one_flip"},
+        {"choice": "Every retry is a new Notification row created by Channel.notify(flip, attempt=n+1), keeping its own error and callback code", "class": "kept", "gt": "GT7", "evidence": "P4 AD-3, AD-11"},
+        {"choice": "Retry state as columns retry_at, attempt (default 0) and flip FK with SET_NULL on Notification, in one migration after 0123", "class": "extended", "gt": "GT7", "evidence": "P4 AD-10, W1"},
+        {"choice": "Django ORM migration with the conditional index api_notification_retry_pending (the dated-column pattern of api_flip_not_processed); same code on the four databases", "class": "kept", "gt": "GT5", "evidence": "P4 AD-1, AD-10; repo hc/api/models.py Flip.Meta, Check.Meta api_check_aa_not_down"},
+        {"choice": "TransportError gains an optional retryable flag (default True); retryable=False is passed by Group.notify, the SMS, WhatsApp and call monthly-limit refusals and SignalRateLimitFailure", "class": "extended", "gt": "GT2", "evidence": "P4 AD-14, W1; adds beside the existing permanent flag in repo hc/api/transports.py TransportError without replacing it"},
+        {"choice": "The immediate in-call tries (HttpTransport.request, EmailThread, Signal.notify) stay as they are", "class": "kept", "gt": "GT8", "evidence": "P4 AD-5"},
+        {"choice": "Attempts shown in the existing server-rendered Events log with a 'Retry n' label in event_summary.html; no new endpoint, query, filter or JS", "class": "extended", "gt": "GT3", "evidence": "P4 AD-8, AD-16, W3"},
+        {"choice": "Delays are a constant in hc/api/models.py, not a setting", "class": "kept", "gt": "GT6", "evidence": "P4 AD-13 (cites the hc/settings.py, docker/.env.example and docs pattern of PUSHOVER_EMERGENCY_RETRY_DELAY as what it avoids)"},
+        {"choice": "Django tests in the style of test_it_processes_flip with time_machine, mypy --strict and ruff format", "class": "kept", "gt": "GT9", "evidence": "P4 W1-W3 proving checks"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 1,
+      "named_existing": 8,
+      "changes_with_basis": "all",
+      "verdict": "Adds the authorized delayed retries (GT8, Basis S1) with columns on Notification, a retry step in the existing sendalerts loop and a 'Retry n' label in the existing Events log, plus an optional retryable flag on TransportError that extends the existing transport contract; no unauthorized or rebuilt choice, and it names GT1, GT2, GT3, GT5, GT6, GT7, GT8 and GT9."
+    },
+    {
+      "label": "P5",
+      "request": "E1",
+      "choices": [
+        {"choice": "Flip delivery runs as the Celery task hc.api.tasks.notify_flip(flip_id), one task per flip carrying only the id, in separate celery -A hc.celery worker processes; sendalerts' ThreadPoolExecutor, BoundedSemaphore and on_notify_done are removed", "class": "changed-authorized", "gt": "GT1", "evidence": "P5 AD-1, AD-2, AD-8 and W3, Basis: S1; E1 S1 asks for Celery workers"},
+        {"choice": "Redis broker through an exact pin of celery[redis]; no result backend (ignore_result), JSON only, prefetch 1 and bounded socket timeouts", "class": "changed-authorized", "gt": "GT1", "evidence": "P5 AD-1, AD-4, AD-7 and W1, Basis: S1 (AD-4: S2); requirements.txt has no queue or broker library today"},
+        {"choice": "Reference deployment: docker-compose gains redis (append-only on a named volume, no host port) and a worker service from the same image and env_file with its own celery inspect ping healthcheck; run.sh gains no worker", "class": "changed-authorized", "gt": "GT1", "evidence": "P5 AD-13 and W4, Basis: S1"},
+        {"choice": "sendalerts keeps detection, the 2-second database poll and the processed claim, with no Celery beat; a failed publish restores processed=NULL", "class": "kept", "gt": "GT1", "evidence": "P5 AD-3, Summary; repo sendalerts.py Command.handle, Command.process_one_flip"},
+        {"choice": "notify() moved verbatim to hc/api/tasks.py; Channel.notify and all 29 transports in TRANSPORTS untouched, no per-integration queue; Test!, senddeletionscheduled and sendreports stay synchronous", "class": "kept", "gt": "GT2", "evidence": "P5 AD-2, AD-8, AD-14, Summary"},
+        {"choice": "Each delivery still writes one Notification row per (flip, channel) and Channel.last_* through the unchanged Channel.notify", "class": "kept", "gt": "GT7", "evidence": "P5 AD-2; W3 and W4 checks (Notification.error, one Notification row per pair)"},
+        {"choice": "No schema change; Redis holds only transient JSON messages", "class": "kept", "gt": "GT5", "evidence": "P5 AD-15 (rejects Flip.delivered/queued columns)"},
+        {"choice": "Profile.authorize_sms and Profile.authorize_call rewritten as conditional ORM UPDATEs with F() and an idempotent month reset instead of a full-row save(); same fields, no schema change", "class": "kept", "gt": "GT5", "evidence": "P5 AD-11 and W2, Basis: S2; repo hc/accounts/models.py read-modify-write with save(); stays inside the database-agnostic ORM in the repository's own conditional-UPDATE style and replaces no ground-truth decision"},
+        {"choice": "At-most-once delivery as today: early ack, no automatic task retry; HttpTransport keeps retrying inside the attempt", "class": "kept", "gt": "GT8", "evidence": "P5 AD-4"},
+        {"choice": "New environment variable CELERY_BROKER_URL read with envsecret (so CELERY_BROKER_URL_FILE works), no default, documented in self_hosted_configuration.md and docker/.env.example; exits with a clear error when unset unless eager mode is on", "class": "extended", "gt": "GT6", "evidence": "P5 AD-6, W1, W4; repo hc/settings.py envsecret"},
+        {"choice": "Management API unchanged: the metrics endpoint and test_metrics.py stay as they are (num_unprocessed_flips documented as narrower); no queue-depth field", "class": "kept", "gt": "GT4", "evidence": "P5 AD-15, W3"},
+        {"choice": "New modules hc/celery.py (exports app) and hc/api/tasks.py; hc/__init__.py stays empty; no new Django app", "class": "new", "gt": "none", "evidence": "P5 AD-5; the repository has no task module or Celery app"},
+        {"choice": "--num-workers and --pool stay accepted and are ignored with a warning", "class": "kept", "gt": "none", "evidence": "P5 AD-9; follows the existing --pool warning in repo sendalerts.py Command.handle"},
+        {"choice": "Tests and checks: eager mode with a memory:// broker in the manage.py test settings block so CI gets no Redis; Django tests in hc/api/tests; celery-types stubs or a narrow ignore for mypy --strict; ruff", "class": "extended", "gt": "GT9", "evidence": "P5 AD-12, W1, W3"},
+        {"choice": "Unexpected task exceptions and publish failures logged on the existing hc logger (hc.logs Record, sendlogs); per-flip delivery lines to worker stdout outside the hc hierarchy; statsd names kept", "class": "kept", "gt": "none", "evidence": "P5 AD-10; repo hc/settings.py LOGGING handler hc.logs.Handler"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 3,
+      "named_existing": 7,
+      "changes_with_basis": "all",
+      "verdict": "Makes only the authorized Celery-and-Redis move (task per flip, broker and compose services, each with Basis S1) and keeps polling detection and claim, the transports, Notification records, storage, the API and the absence of delayed retries; its extra atomic SMS and call counter fix stays inside the ORM with a stated S2 basis; it names GT1, GT2, GT5, GT6, GT7, GT8 and GT9."
+    },
+    {
+      "label": "P6",
+      "request": "T2",
+      "choices": [
+        {"choice": "Serve S1 with the existing GET /api/v3/checks/ in hc/api's shared route list for v1-v3, with its cors decorator; no new app, prefix or endpoint", "class": "kept", "gt": "GT4", "evidence": "P6 AD-1, AD-30, AD-31 (Basis: S1); repo hc/api/urls.py api_urls"},
+        {"choice": "The token is the existing project read-only key (hcr_), accepted by authorize_read and refused by authorize on every write endpoint; no new key or token type", "class": "kept", "gt": "GT4", "evidence": "P6 AD-16, AD-28, AD-31; repo hc/api/decorators.py"},
+        {"choice": "JSON from the existing Check.to_dict(readonly=True) with status derived per request by Check.get_status; no new response format", "class": "kept", "gt": "GT4", "evidence": "P6 AD-28, AD-29, AD-31"},
+        {"choice": "No table, column or migration; reads existing Check rows through the ORM", "class": "kept", "gt": "GT5", "evidence": "P6 AD-3"},
+        {"choice": "No new setting", "class": "kept", "gt": "GT6", "evidence": "P6 AD-31"},
+        {"choice": "Clients poll over HTTP; no push, stream, cache or background or async work", "class": "kept", "gt": "GT1", "evidence": "P6 AD-2, AD-31"},
+        {"choice": "Two tests added to existing hc/api/tests modules (BaseTestCase, typed for mypy --strict, ruff-formatted); no product code change", "class": "kept", "gt": "GT9", "evidence": "P6 W1, AD-25, AD-26"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 0,
+      "named_existing": 3,
+      "changes_with_basis": "n/a",
+      "verdict": "Delivers S1 by reusing GET /api/v3/checks/ and the read-only key, adds only tests in existing modules and keeps every inherited decision; it names GT4, GT5 and GT9."
+    },
+    {
+      "label": "P7",
+      "request": "T1",
+      "choices": [
+        {"choice": "Delayed retries: up to 3, due 1, 5 and 25 minutes after the previous attempt failed (a delays constant), for non-permanent TransportError on saved flips, never for test sends, deletion notices or a group's own row", "class": "changed-authorized", "gt": "GT8", "evidence": "P7 AD-28 (changes AD-6) and AD-29 (changes AD-12), Basis: S1; departs from 'there is no delayed retry'; T1 S1 asks for it"},
+        {"choice": "Retries run in a new Command.process_one_retry step of the existing sendalerts loop after the flip step, claimed by a conditional UPDATE guarded on retry_at, on the existing executor and done-callback; no new process, broker or scheduler", "class": "extended", "gt": "GT1", "evidence": "P7 AD-28, W2; repo sendalerts.py Command.process_one_flip claim pattern"},
+        {"choice": "Every retry is its own Notification row written by Channel.notify with its own error", "class": "kept", "gt": "GT7", "evidence": "P7 AD-10, AD-31"},
+        {"choice": "Retry state as three columns on Notification (flip FK with CASCADE, attempt default 1, retry_at) in additive migration 0124", "class": "extended", "gt": "GT7", "evidence": "P7 AD-30, W1; repo Check.prune deletes flips only past both the oldest kept ping and 93 days, so the cascade stays within today's notification retention apart from an edge case"},
+        {"choice": "Django ORM migration with a conditional index on retry_at like api_flip_not_processed; no engine-specific behaviour; four CI databases", "class": "kept", "gt": "GT5", "evidence": "P7 AD-3, AD-30"},
+        {"choice": "The retry policy sits in Channel.notify; no transport is edited and TransportError is unchanged (a non-retryable flag is rejected)", "class": "kept", "gt": "GT2", "evidence": "P7 AD-8, AD-9, AD-29"},
+        {"choice": "The per-transport in-attempt tries (HTTP 3, Signal 2, email 3, webhook test opt-out) stay inside every attempt", "class": "kept", "gt": "GT8", "evidence": "P7 AD-29"},
+        {"choice": "Attempts are shown by the existing server-rendered Events log unchanged (_get_events, event_summary.html, live poll); no template, view or endpoint change", "class": "kept", "gt": "GT3", "evidence": "P7 AD-14, AD-31"},
+        {"choice": "Delays are a tuple of timedeltas in hc/api/models.py, not a setting", "class": "kept", "gt": "GT6", "evidence": "P7 AD-18, AD-29"},
+        {"choice": "Django BaseTestCase tests with time_machine, the four-database CI matrix, mypy --strict and ruff", "class": "kept", "gt": "GT9", "evidence": "P7 AD-25, AD-26, W1, W2"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 1,
+      "named_existing": 8,
+      "changes_with_basis": "all",
+      "verdict": "Adds the authorized delayed retries (GT8, Basis S1) as columns on Notification polled by a new step in the existing sendalerts loop, shows attempts through the unchanged Events log and edits no transport; no unauthorized or rebuilt choice, and it names GT1, GT2, GT3, GT5, GT6, GT7, GT8 and GT9."
+    },
+    {
+      "label": "P8",
+      "request": "T2",
+      "choices": [
+        {"choice": "Serve S1 with the existing GET /api/v3/checks/ (checks -> get_checks, @authorize_read) mounted at api/v1-v3, with its cors decorator; no new endpoint, view, route or response field", "class": "kept", "gt": "GT4", "evidence": "P8 AD-1, AD-3 (Basis: S1); repo hc/api/urls.py, hc/api/views.py get_checks"},
+        {"choice": "The token is the existing project read-only key (hcr_, HMAC-stored, created in Project Settings), read only from X-Api-Key and refused by authorize on writes; no new token type, scope, expiry or rate limiter", "class": "kept", "gt": "GT4", "evidence": "P8 AD-2, AD-4; repo hc/api/decorators.py"},
+        {"choice": "JSON response {'checks': [...]} built by the existing Check.to_dict with status from Check.get_status at request time", "class": "kept", "gt": "GT4", "evidence": "P8 AD-1, AD-5"},
+        {"choice": "No stored data, schema or migration; reads existing Check and Project fields", "class": "kept", "gt": "GT5", "evidence": "P8 AD-3"},
+        {"choice": "No new setting", "class": "kept", "gt": "GT6", "evidence": "P8 AD-3"},
+        {"choice": "Dashboards poll with plain GET; no push channel, cache or webhook", "class": "kept", "gt": "GT1", "evidence": "P8 AD-5"},
+        {"choice": "Tests added to existing hc/api/tests modules with BaseTestCase, ruff and mypy --strict; no production file change", "class": "kept", "gt": "GT9", "evidence": "P8 W1, Assumptions"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 0,
+      "named_existing": 3,
+      "changes_with_basis": "n/a",
+      "verdict": "Delivers S1 by reusing GET /api/v3/checks/ and the read-only key, adds only tests in existing modules and keeps every inherited decision; it names GT4, GT5 and GT9."
+    },
+    {
+      "label": "P9",
+      "request": "E1",
+      "choices": [
+        {"choice": "Flip delivery runs as the Celery task hc.api.tasks.deliver_flip(flip_id), one task per flip carrying only the id, consumed by Celery workers on any number of machines; sendalerts owns no thread pool or semaphore", "class": "changed-authorized", "gt": "GT1", "evidence": "P9 AD-28 (changes AD-4), AD-29 (changes AD-7), AD-31, W1, W3, Basis: S1"},
+        {"choice": "Redis as broker only through a pinned celery[redis]: no result backend, cache or session store, JSON only, queue 'healthchecks'", "class": "changed-authorized", "gt": "GT1", "evidence": "P9 AD-31, AD-33, W1, Basis: S1; requirements.txt has no queue or broker library today"},
+        {"choice": "Reference deployment: docker/run.sh supervises one celery worker (--concurrency=1) beside sendalerts, sendreports and gunicorn; compose gains a redis service (append-only on a named volume) and a commented-out worker service for more machines", "class": "changed-authorized", "gt": "GT1", "evidence": "P9 AD-37, W2, Basis: S1"},
+        {"choice": "sendalerts stays the poll loop that detects overdue checks and claims flips with the conditional UPDATE (2-second sleep, signal handlers, application name kept); a failed publish restores processed=None", "class": "kept", "gt": "GT1", "evidence": "P9 AD-5, AD-29, AD-32; repo sendalerts.py"},
+        {"choice": "Delivery body unchanged (notify() -> Channel.notify) and one transport class per kind in TRANSPORTS; Test!, group fan-out and the deletion command stay synchronous callers", "class": "kept", "gt": "GT2", "evidence": "P9 AD-1, AD-8, AD-11"},
+        {"choice": "Each delivery still writes the same Notification rows and integration last_error through Channel.notify", "class": "kept", "gt": "GT7", "evidence": "P9 AD-6, AD-19, W1 done condition (c)"},
+        {"choice": "No table, column or migration; Redis messages are transient", "class": "kept", "gt": "GT5", "evidence": "P9 AD-3, AD-33"},
+        {"choice": "At-most-once: early ack and no Celery retries; retrying stays per transport inside one attempt", "class": "kept", "gt": "GT8", "evidence": "P9 AD-6, AD-12, AD-32"},
+        {"choice": "New environment variable CELERY_BROKER_URL read with envsecret (CELERY_BROKER_URL_FILE works), default redis://localhost:6379/0, documented; no startup failure", "class": "extended", "gt": "GT6", "evidence": "P9 AD-18, AD-34, W2; repo hc/settings.py envsecret"},
+        {"choice": "Management API unchanged: the metrics endpoint keeps its fields and no queue-depth field is added", "class": "kept", "gt": "GT4", "evidence": "P9 AD-35"},
+        {"choice": "New modules hc/celery.py (app) and hc/api/tasks.py; the web process and the other commands never import Celery", "class": "new", "gt": "none", "evidence": "P9 AD-30; the repository has no task module or Celery app"},
+        {"choice": "--num-workers stays accepted and is ignored with a warning", "class": "kept", "gt": "none", "evidence": "P9 AD-29; follows the existing --pool warning in repo sendalerts.py Command.handle"},
+        {"choice": "Tests and checks: eager execution with propagation in the manage.py test settings block so CI needs no Redis; ignore_missing_imports for celery and kombu in mypy.ini as for statsd; Django tests, mypy --strict, ruff", "class": "extended", "gt": "GT9", "evidence": "P9 AD-25, AD-26, AD-34, AD-38; repo mypy.ini [mypy-statsd.*]"},
+        {"choice": "Unexpected exceptions logged on the existing hc logger (rows carry the worker host name); per-flip lines to the worker log outside the hc hierarchy; statsd names unchanged", "class": "kept", "gt": "none", "evidence": "P9 AD-19, AD-35; repo hc/settings.py LOGGING handler hc.logs.Handler"}
+      ],
+      "unauthorized": 0,
+      "rebuilt": 0,
+      "authorized": 3,
+      "named_existing": 7,
+      "changes_with_basis": "all",
+      "verdict": "Makes only the authorized Celery-and-Redis move (task per flip, broker, a worker supervised in run.sh plus a Redis compose service, each with Basis S1) and keeps polling detection and claim, the transports, Notification records, storage, the API and per-transport retries, with the broker URL as an environment variable in the existing style; it names GT1, GT2, GT5, GT6, GT7, GT8 and GT9."
+    }
+  ]
+}

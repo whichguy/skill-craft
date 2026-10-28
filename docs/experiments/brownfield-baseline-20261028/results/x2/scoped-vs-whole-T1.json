@@ -1,0 +1,340 @@
+{
+  "facts": [
+    {
+      "fact": "Every delivery attempt is already one Notification row: Channel.notify saves it before calling the transport and writes the outcome after (empty error means success); the Events log renders each row with an 'Error: <text>' line when the error is not empty. Retry attempts recorded as new rows would be listed with their errors without a new display mechanism.",
+      "evidence": "hc/api/models.py Channel.notify; templates/front/event_summary.html event.error",
+      "in_B": "R-2, R-9, AD-10",
+      "in_A": "R-18, R-67",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap (GT7)."
+    },
+    {
+      "fact": "A Notification row has no reference to the Flip it was sent for (fields: code, owner check or null, check_status of at most 6 characters, channel, created, error of at most 200), yet Transport.notify(flip, notification) needs the Flip (its status, its created time for the last-ping lookup, its owner). A delayed retry must persist a flip reference (a new foreign key or a retry record) through a migration.",
+      "evidence": "hc/api/models.py Notification; hc/api/transports.py Transport.notify, Transport.last_ping",
+      "in_B": "R-18 (field list), AD-8 (notify(flip, notification) contract)",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Matters: a planner reading A could design 're-send the failed Notification rows' and find only at implementation that a row cannot be re-sent without its flip; the schema change and migration belong in the plan."
+    },
+    {
+      "fact": "The row is saved with the in-flight error text 'Sending' before the transport runs, and only TransportError is handled: any other exception (for example SMTP timeouts or refused recipients, which the email transport does not convert) escapes, leaves the row at 'Sending' with the integration's last-attempt fields unchanged, and in sendalerts aborts the remaining integrations of a flip that is already marked processed.",
+      "evidence": "hc/api/models.py Channel.notify (n.error = \"Sending\"; except transports.TransportError); hc/api/management/commands/sendalerts.py notify; hc/integrations/email/transport.py Email.notify",
+      "in_B": "R-2, R-9, R-15, AD-6, AD-10",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Matters: selecting failed attempts by a non-empty error would also pick rows another worker is still delivering (a double send), and failures that escape as exceptions would never be retried; the plan must define attempt states explicitly."
+    },
+    {
+      "fact": "The error column holds 200 characters and Channel.notify writes the transport's message untruncated (only the status-callback and bounce paths cut to 200; Opsgenie and Zulip append the remote service's text), so on PostgreSQL or MySQL an over-long message makes the update fail and strands the row at 'Sending'.",
+      "evidence": "hc/api/models.py Notification.error (max_length=200), Channel.notify; hc/api/views.py notification_status ([:200]); hc/integrations/opsgenie/transport.py Opsgenie.raise_for_response",
+      "in_B": "R-2, R-18",
+      "in_A": "R-19 (callback truncation only; partial)",
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Matters (moderate): per-attempt error text (for example with an attempt number) must be truncated to fit, and each retry of a long-message failure would otherwise hit the same database error."
+    },
+    {
+      "fact": "Channel.notify is the single delivery entry point and returns the outcome as text; four callers use it: sendalerts, the Test! button, the group transport (fan-out to members) and the account-deletion notice. The Test! and deletion callers pass unsaved dummy Check and Flip objects (is_test=True, no owner), which a later retry could not reload.",
+      "evidence": "hc/api/models.py Channel.notify; hc/front/views.py send_test_notification; hc/integrations/group/transport.py Group.notify; hc/accounts/management/commands/senddeletionscheduled.py send_channel_notifications",
+      "in_B": "AD-11, R-2, R-7",
+      "in_A": "R-17, R-48, R-74 (each caller described separately; no shared entry point; partial)",
+      "correct": "both",
+      "consequence_if_missing": "Counted as only in B. Matters: with A a planner can put retry scheduling inside Channel.notify without seeing that it would also fire for test sends, deletion notices and every group member; B names the four callers that decide where the hook goes."
+    },
+    {
+      "fact": "No delayed retry exists: a flip is claimed (processed is set) before any integration is contacted, a failed attempt is final for that flip and integration, and retries exist only inside one attempt.",
+      "evidence": "hc/api/management/commands/sendalerts.py process_one_flip; hc/api/models.py Channel.notify",
+      "in_B": "R-3, R-15, AD-6",
+      "in_A": "R-12, AD-4, AD-9 (implied: other errors only record the message)",
+      "correct": "both",
+      "consequence_if_missing": "In both (explicit in B, implied in A); no gap (GT8)."
+    },
+    {
+      "fact": "There is no task queue, broker or scheduler: background work is the long-running sendalerts poll loop (2-second idle sleep, a ThreadPoolExecutor of --num-workers, default 1); processes share only the database; on SIGTERM it finishes running deliveries and exits, and the Docker image restarts everything when any child exits. Pending retries must be durable database rows that the loop finds, not in-process timers.",
+      "evidence": "hc/api/management/commands/sendalerts.py Command.handle, Command.on_signal; docker/run.sh; requirements.txt",
+      "in_B": "AD-4, AD-7, R-15",
+      "in_A": "AD-2, AD-28, R-12, R-87, Architecture 'Process boundaries and shared state'",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap (GT1)."
+    },
+    {
+      "fact": "Work is claimed with conditional UPDATEs that must change exactly one row, so several sendalerts processes can run at once; claiming a due retry must follow the same pattern or concurrent workers will send it twice.",
+      "evidence": "hc/api/management/commands/sendalerts.py process_one_flip, handle_going_down; hc/api/management/commands/sendreports.py handle_one_report",
+      "in_B": "AD-5, R-15",
+      "in_A": "AD-6, R-12, Architecture 'Process boundaries and shared state'",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "In-attempt retries already exist and differ by transport: HttpTransport.request makes up to 3 immediate tries with a 30-second timeout each unless the error is permanent; webhook test sends make 1; Signal makes 2; email makes up to 3 SMTP tries a second apart; Telegram re-sends once after a group-to-supergroup migration; Shell and Apprise make 1. The request leaves open whether its 3 delayed retries replace these or stack on them (up to 12 HTTP requests per alert).",
+      "evidence": "hc/api/transports.py HttpTransport.request (tries_left); hc/integrations/webhook/transport.py Webhook.notify; hc/integrations/signal/transport.py Signal.notify; hc/lib/emails.py EmailThread.MAX_TRIES; hc/integrations/telegram/transport.py",
+      "in_B": "R-3, R-16, AD-12",
+      "in_A": "R-18, R-21, R-28, R-29, R-79, AD-9",
+      "correct": "both",
+      "consequence_if_missing": "In both (GT8). B omits the Telegram migration re-send (A R-28), which does not change the plan; A's AD-9 says HTTP integrations 'retry up to three times', one more than the code does (A's R-18 is right)."
+    },
+    {
+      "fact": "Failures are typed: TransportError(permanent=True) disables the integration and ends in-attempt retries, and which errors are permanent is decided per transport (Slack 404 and invalid_token, Discord and Splunk On-Call 404, GitHub 410, Pushover invalid user, Twilio 21211, a removed Telegram chat, an unregistered Signal recipient; Mattermost and Rocket.Chat 404 are not). Disabled and no-op integrations are skipped when a flip is processed, so a retry must skip permanent failures and re-check disabled, deleted and no-op state at retry time.",
+      "evidence": "hc/api/transports.py TransportError; hc/api/models.py Channel.notify, Flip.select_channels",
+      "in_B": "R-1, R-3, AD-9",
+      "in_A": "R-18, R-22 to R-45, AD-9, Architecture 'Invariants a change must not break'",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "Some non-permanent failures cannot be fixed by waiting: a kind switched off by a setting at send time ('SMS notifications are not enabled', 'Webhook notifications are not enabled.') and an unverified email address ('Email not verified'); a policy that retries every non-permanent error retries these too.",
+      "evidence": "hc/integrations/sms/transport.py Sms.notify; hc/integrations/webhook/transport.py Webhook.notify; hc/integrations/email/transport.py Email.notify",
+      "in_B": "R-16",
+      "in_A": "R-20, R-21, R-30",
+      "correct": "both",
+      "consequence_if_missing": "In both (B has the settings case, A also the unverified email); no plan-changing gap."
+    },
+    {
+      "fact": "Paid quotas are spent per attempt even when the provider call fails: SMS and WhatsApp share one monthly counter per account owner and calls have their own; authorize_sms and authorize_call increment it before the Twilio request and never refund it, and every call through Channel.notify (tests included) spends it.",
+      "evidence": "hc/accounts/models.py Profile.authorize_sms, Profile.authorize_call; hc/integrations/sms/transport.py Sms.notify; hc/integrations/call/transport.py Call.notify",
+      "in_B": "R-5, AD-13",
+      "in_A": "R-30, R-31, R-32 (limits and notices only; no per-attempt spend or refund; partial)",
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Matters: each delayed retry of a failing Twilio delivery burns another paid unit with nothing delivered; the plan should exclude, cap or refund quota-spending kinds, and A gives no reason to consider it."
+    },
+    {
+      "fact": "At the monthly limit each refused attempt fails non-permanently ('Monthly SMS limit exceeded', 'Monthly message limit exceeded', 'Monthly phone call limit exceeded') and emails a limit notice to the whole team with no de-duplication, so retrying it sends up to three more notices per alert.",
+      "evidence": "hc/api/models.py Channel.send_sms_limit_notice, Channel.send_call_limit_notice; hc/integrations/sms/transport.py; hc/integrations/whatsapp/transport.py; hc/integrations/call/transport.py",
+      "in_B": "R-5",
+      "in_A": "R-30, R-31, R-32, R-18 (non-permanent by exclusion)",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "Telegram, Signal, Pushover and ntfy allow 6 messages a minute per chat, recipient, user key or topic through database token buckets; every attempt spends a token and an empty bucket fails with the non-permanent 'Rate limit exceeded' (a retry a minute later will usually pass).",
+      "evidence": "hc/api/models.py TokenBucket.authorize_telegram, authorize_signal, authorize_pushover, authorize_ntfy",
+      "in_B": "R-5, AD-13",
+      "in_A": "R-28, R-29, R-33, R-35, R-65, AD-11",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "When signal-cli answers with a rate-limit CAPTCHA challenge, each attempt emails the site administrators (challenge token and instructions) and the project owner (a notice with the unsent message) and fails with the non-permanent 'CAPTCHA proof required'; each delayed retry repeats both emails.",
+      "evidence": "hc/integrations/signal/transport.py Signal.notify, SignalRateLimitFailure; hc/api/models.py Channel.send_signal_captcha_alert, Channel.send_signal_rate_limited_notice",
+      "in_B": null,
+      "in_A": "R-29",
+      "correct": "A",
+      "consequence_if_missing": "Only in A. Matters: a missed side-effect hazard; with B alone the plan would retry CAPTCHA failures and repeat the admin and owner emails up to three more times (B's SMS-notice fact R-5 might prompt a search, but Signal is not named)."
+    },
+    {
+      "fact": "Incident-style integrations pair a down alert with the later recovery by the check's stable key: PagerDuty and PagerTree send trigger then resolve with incident_key, Opsgenie creates an alert then closes it by alias, Splunk On-Call sends CRITICAL then RECOVERY for one entity_id, and Pushover emergency (priority 2) alerts are tagged with the check and cancelled when it recovers. A delayed down retry that lands after the recovery re-opens an incident or restarts an emergency alert that nothing will close.",
+      "evidence": "hc/integrations/pd/transport.py PagerDuty.notify (incident_key, event_type); hc/integrations/pagertree/transport.py PagerTree.notify; hc/integrations/opsgenie/transport.py Opsgenie.notify (close?identifierType=alias); hc/integrations/victorops/transport.py VictorOps.notify (entity_id); hc/integrations/po/transport.py Pushover.notify (CANCEL_TMPL)",
+      "in_B": null,
+      "in_A": "R-33, R-37, R-38, R-39, R-40",
+      "correct": "A",
+      "consequence_if_missing": "Only in A. Matters most of the one-sided facts: it turns 'should a late retry still be sent?' from a cosmetic question into a correctness hazard, so the plan must drop or cancel pending retries once a newer flip exists or the check's status no longer matches. B read these transports only for their error lines (B spec.md, 'Read only in part')."
+    },
+    {
+      "fact": "A group attempt calls Channel.notify for every member, each member records its own Notification row in the check's log, members are called even when disabled, and the group attempt fails with 'N out of M notifications failed' if any member fails. Retrying the group would re-send to members that succeeded, and retrying both levels would retry failed members twice.",
+      "evidence": "hc/integrations/group/transport.py Group.notify; hc/api/models.py Channel.group_channels",
+      "in_B": "R-6, AD-11",
+      "in_A": "R-48 (notifies every member, fails N out of M; no member rows or disabled-member note)",
+      "correct": "both",
+      "consequence_if_missing": "Core in both (the duplicate hazard is visible from A); B adds the member rows that an attempt display will show."
+    },
+    {
+      "fact": "Test-style sends are synchronous and outside a check's history: the Test! button (any member, read-only included) and the account-deletion notice build an unsaved dummy check and flip; the record has no check, is never listed in a check's log, and earlier test records of the integration are deleted on each test; webhook test sends never retry.",
+      "evidence": "hc/front/views.py send_test_notification; hc/accounts/management/commands/senddeletionscheduled.py send_channel_notifications; hc/integrations/webhook/transport.py Webhook.notify",
+      "in_B": "R-7",
+      "in_A": "R-17, R-21, R-74",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap (whether tests are retried is answerable from either)."
+    },
+    {
+      "fact": "Failures can be reported after the attempt: Twilio status callbacks (SMS, WhatsApp, calls) and email bounces update the same Notification row (never a new one) and copy the error to the integration's last error, possibly disabling it; status callbacks are ignored for rows older than 1 hour and bounces for rows older than 48 hours; a 'delivered' status changes nothing. Open: whether a late-reported failure starts retries. Each retry row gets its own callback code, and a late callback for an earlier attempt can overwrite last_error after a later success.",
+      "evidence": "hc/api/views.py notification_status, bounces; hc/integrations/sms/transport.py Sms.notify (StatusCallback); hc/integrations/email/transport.py Email.notify (X-Bounce-ID)",
+      "in_B": "R-4, AD-10, AD-17",
+      "in_A": "R-19, R-20, R-30",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "Channel.last_notify, last_notify_duration and last_error summarise the latest attempt and are overwritten by every attempt (a success clears the error); they drive the Integrations page ('Delivered' or 'Failed, <time ago>' with the error as tooltip), the project's warning mark, admin filters, and the order in which a flip's integrations are called (shortest last duration first).",
+      "evidence": "hc/api/models.py Channel.notify, Flip.select_channels; hc/accounts/models.py Project.have_channel_issues; templates/front/channels.html last_error",
+      "in_B": "R-1, R-2, R-13, AD-10",
+      "in_A": "R-17, R-18, R-80",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "Delivery capacity is small: integrations of one flip are called one after another, --num-workers (default 1) bounds how many flips are delivered at once, and one HTTP attempt can take about 90 seconds (3 tries x 30-second timeout) plus up to 5 seconds waiting for an un-uploaded ping body; retries that share these workers can delay first alerts of other checks.",
+      "evidence": "hc/api/management/commands/sendalerts.py notify, process_one_flip; hc/api/transports.py HttpTransport._request (timeout=30), get_ping_body_bytes",
+      "in_B": "R-15, R-16, AD-7, AD-20",
+      "in_A": "R-12, R-18, R-82",
+      "correct": "both",
+      "consequence_if_missing": "In both. A's R-12 says the option sets how many 'notifications' are sent concurrently (it is flips; a flip's integrations run in sequence), a wording slip that does not change the plan."
+    },
+    {
+      "fact": "Operators observe delivery per attempt: sendalerts prints '<code> goes <status>' and an 'OK in' or 'Error in' line per integration, counts statsd hc.notifications.<kind>.success and .fail, and times dwell (from flip.created) and send time; the metrics endpoint reports unprocessed flips and the newest notification id; unexpected exceptions go to the database-backed hc logger. Retries need their own lines and counters, would skew dwell time if routed through the same function, and are invisible to the metrics endpoint.",
+      "evidence": "hc/api/management/commands/sendalerts.py notify, on_notify_done; hc/api/views.py metrics; hc/logs/__init__.py Handler",
+      "in_B": "R-14, AD-19",
+      "in_A": "R-12, R-84, AD-27",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "A check's past notifications are listed today only on its Events page (/checks/<code>/log/, assembled per request by _get_events and rendered by log_row.html and event_summary.html); the details page's 30 recent events never include notifications, the Management API has no notification listing, and superusers can list all records in Django admin.",
+      "evidence": "hc/front/views.py _get_events, log, log_events, status_single; hc/api/urls.py api_urls; hc/api/admin.py NotificationsAdmin",
+      "in_B": "R-8, R-9, R-10, R-13, AD-14",
+      "in_A": "R-55, R-67, R-80",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "Only notifications about a 'down' alert are listed (check_status='down'); recovery ('up') attempts and their errors are never shown, so 'every delivery attempt' leaves open whether up attempts and their retries should now appear.",
+      "evidence": "hc/front/views.py _get_events (check_status=\"down\")",
+      "in_B": "R-8",
+      "in_A": "R-67 ('down-notifications')",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "Notifications are hidden by default: the server-rendered Events page calls _get_events without kinds, so its first rows are pings and status changes only, and notification rows appear only after the user ticks 'Downtime alert', which starts unticked.",
+      "evidence": "hc/front/views.py log (_get_events(check, 1000, ...) without kinds), _get_events (if kinds and \"notification\" in kinds); templates/front/log.html 'Downtime alert'",
+      "in_B": "R-8",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B; A's R-67 says the log merges 'pings, down-notifications and status changes', which overstates the default page. Matters: the place where past notifications are listed today is behind an unticked filter, so the plan must decide whether attempts stay there, and acceptance tests written from A that expect attempts on the first page would fail."
+    },
+    {
+      "fact": "Live updates fetch only rows created after the newest timestamp the page holds (u parameter, X-Last-Event-Timestamp header), every 3 seconds while the user is active and once a minute otherwise; a later change to an existing row (an error written by a retry or a callback) is never pushed, only new rows are.",
+      "evidence": "hc/front/views.py log_events; static/js/log.js fetchNewEvents; static/js/adaptive-setinterval.js adaptiveSetInterval",
+      "in_B": "R-10",
+      "in_A": "R-67 (u timestamp and header; partial)",
+      "correct": "both",
+      "consequence_if_missing": "Mechanism in both; the in-place caveat has to be inferred from either."
+    },
+    {
+      "fact": "Live updates are broken in the shipped script: fetchNewEvents calls formatPingDates(dateFormat, ...), but dateFormat is defined nowhere and the function takes one argument, so the handler throws after advancing lastUpdated and new rows (retry attempts arriving 1 to 25 minutes later included) never appear on an open Events page until a reload or a filter change; there are no JavaScript tests.",
+      "evidence": "static/js/log.js fetchNewEvents (formatPingDates(dateFormat, tbody.querySelectorAll(\"tr\")))",
+      "in_B": "R-10",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B (A did not inspect static assets). Matters, modestly: a plan that shows attempts as they happen, or a browser acceptance check, fails on this defect; the plan should fix it or verify on reload."
+    },
+    {
+      "fact": "The list shows at most 1000 entries from the oldest retained ping onward; notification rows older than the oldest retained ping are deleted on every 100th ping and by prunepingsslow; clearing a check's events and deleting a check or an integration delete its rows. Up to four rows per failing delivery use up the cap faster, and retry state kept on notification rows can be pruned or cascaded away.",
+      "evidence": "hc/api/models.py Check.prune, Check.ping (n_pings % 100), Notification (CASCADE); hc/front/views.py log, clear_events",
+      "in_B": "R-8, R-11, R-12, AD-15",
+      "in_A": "R-15, R-16, R-67, AD-24",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap."
+    },
+    {
+      "fact": "A notification row is described from the integration's current settings (the webhook row prints today's down URL), so earlier attempts read with today's configuration.",
+      "evidence": "templates/front/event_summary.html (event.channel.down_webhook_spec.url)",
+      "in_B": "R-9",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Minor: affects how attempt rows read after an edit, not the design."
+    },
+    {
+      "fact": "Error text (which can carry a remote service's text) and targets are auto-escaped in the log, and everyone who can open the check (owner, any member including read-only, superusers) sees them; anonymous fragment requests get 403.",
+      "evidence": "templates/front/event_summary.html; hc/front/views.py _get_check_for_user, log_events",
+      "in_B": "R-11, R-17",
+      "in_A": "R-67 (access only; partial)",
+      "correct": "both",
+      "consequence_if_missing": "Access in both; escaping only in B. Minor: Django escapes by default, so a new attempts view stays safe unless it opts out."
+    },
+    {
+      "fact": "The webhook set-up page promises that failed calls are retried 'up to 2 additional times' and lists 200, 201, 202 and 204 as success codes (the code also accepts 205); it is the only place the product states a delivery retry policy (added in commit 756257a4), so delayed retries make it false.",
+      "evidence": "hc/integrations/webhook/templates/webhook_form.html 'retries failed webhook calls up to 2 additional times'",
+      "in_B": "R-3, AD-12",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Matters: without it the plan leaves a user-facing promise that contradicts the new behaviour."
+    },
+    {
+      "fact": "Alert text is built when the transport runs: the status comes from the flip and the last ping is the one at or before flip.created, but the 'other down checks' list, the check's name and tags and webhook $NOW are taken at sending time, so a retry minutes later is not identical to the first attempt.",
+      "evidence": "hc/api/transports.py Transport.down_checks, Transport.last_ping; hc/integrations/webhook/transport.py Webhook.prepare",
+      "in_B": null,
+      "in_A": "R-18 (lists the other-down-checks content, not when it is computed; partial)",
+      "correct": "A",
+      "consequence_if_missing": "Only in A, partially. Minor: matters only if the plan promises identical retry content or chooses to store rendered messages."
+    },
+    {
+      "fact": "Storage is the Django ORM on SQLite by default or PostgreSQL, MySQL or MariaDB, all four exercised in CI; code must not depend on one engine; schema changes ship as numbered migrations (hc/api latest 0123); TIME_ZONE must be UTC and stored times are timezone-aware.",
+      "evidence": "hc/settings.py DATABASES; .github/workflows/tests.yml matrix; hc/api/migrations/0123_alter_channel_kind.py; hc/api/apps.py settings_check",
+      "in_B": "R-18, AD-3, AD-25",
+      "in_A": "R-3, R-83, AD-18, AD-35, Architecture 'Tests'",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap (GT5)."
+    },
+    {
+      "fact": "sendalerts' polls are served by partial indexes (api_check_aa_not_down on Check.alert_after, api_flip_not_processed on Flip.processed), while Notification declares no index besides its unique code and foreign keys; a due-retry query run every 2 seconds needs its own index.",
+      "evidence": "hc/api/models.py Check.Meta, Flip.Meta, Notification",
+      "in_B": "R-18, AD-3 (Notification has no explicit index; avoid slow plans; partial)",
+      "in_A": "Architecture 'Invariants a change must not break', AD-3 (polling served by the alert_after partial index; partial)",
+      "correct": "both",
+      "consequence_if_missing": "Partial in both, from opposite sides; neither names the Flip partial index."
+    },
+    {
+      "fact": "The web UI is server-rendered Django templates with small jQuery scripts bundled offline by django-compressor; there is no single-page framework or build step, and pages update by polling endpoints that return HTML fragments.",
+      "evidence": "templates/base.html; hc/settings.py COMPRESS_OFFLINE; static/js",
+      "in_B": "AD-2, Stack",
+      "in_A": "Stack 'Front end', AD-26",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap (GT3)."
+    },
+    {
+      "fact": "Settings are environment variables read in hc/settings.py (local_settings override, <NAME>_FILE secrets), each documented in the settings reference; no setting controls retries today (the 30-second timeout and 3 tries are code constants).",
+      "evidence": "hc/settings.py envbool, envint, envsecret; templates/docs/self_hosted_configuration.md; hc/api/transports.py HttpTransport.request",
+      "in_B": "R-16, AD-18",
+      "in_A": "R-77, AD-12",
+      "correct": "both",
+      "consequence_if_missing": "In both; B states the absence of a retry setting, A implies it."
+    },
+    {
+      "fact": "Code and contribution rules: mypy --strict with from __future__ import annotations, ruff, per-app Django tests on BaseTestCase with hc.api.transports.curl.request patched and time_machine for time, a test with every change, a CHANGELOG entry, 'prefer simplicity over cleverness'; CONTRIBUTING.md refuses AI-generated contributions and pull requests are disabled.",
+      "evidence": "CONTRIBUTING.md 'Code Style', 'AI Policy'; mypy.ini; hc/test.py BaseTestCase; CHANGELOG.md",
+      "in_B": "Conventions, AD-25, AD-26, AD-27",
+      "in_A": "R-88, Conventions 'Code', 'Tests', 'Documentation and release notes'",
+      "correct": "both",
+      "consequence_if_missing": "In both; no gap (GT9)."
+    },
+    {
+      "fact": "Existing tests do not protect the first-page notification behaviour: hc/front/tests/test_log.py test_it_does_not_show_too_old_notifications asserts the absence of 'Sent email to', text the template never renders.",
+      "evidence": "hc/front/tests/test_log.py test_it_does_not_show_too_old_notifications; templates/front/event_summary.html 'Sent an email to'",
+      "in_B": "R-8",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Minor: the plan should add real assertions for attempt rows; the design does not change."
+    },
+    {
+      "fact": "Precedent changes show the footprint of similar work: Twilio status callbacks (95d58d26: models, transports, urls, views, tests, changelog), statsd notification counters (924ad468: sendalerts and its tests), Flip.reason (9edae634: a field plus migration 0114) and per-integration retry tuning (8c210e15, 71f1a8d9, 9c8bb54f).",
+      "evidence": "git history: 95d58d26, 924ad468, 9edae634, 8c210e15, 71f1a8d9, 9c8bb54f",
+      "in_B": "Conventions ('Existing features most like the request')",
+      "in_A": null,
+      "correct": "B",
+      "consequence_if_missing": "Only in B. Minor: speeds scoping and file selection; does not change the design."
+    },
+    {
+      "fact": "Open question the request leaves: whether a pending retry is dropped when the check has since recovered, been paused or flipped again. Today alerts go out within seconds of the flip, so nothing checks whether an alert is still current, and a delayed down retry can arrive after the recovery alert.",
+      "evidence": "hc/api/management/commands/sendalerts.py process_one_flip, notify; hc/api/models.py Flip.select_channels, Check.create_flip",
+      "in_B": null,
+      "in_A": null,
+      "correct": "neither",
+      "consequence_if_missing": "In neither as a question; A's R-33 and R-37 to R-40 supply the stakes (the incident-pairing fact). The plan must decide it."
+    },
+    {
+      "fact": "Open question the request leaves: whether '1, 5 and 25 minutes after the failure' is measured from the first failure (attempts at +1, +5 and +25 minutes) or from each preceding failure (+1, +6 and +31).",
+      "evidence": "docs/experiments/brownfield-baseline-20261028/requests/hc-T1-retries.md",
+      "in_B": null,
+      "in_A": null,
+      "correct": "neither",
+      "consequence_if_missing": "In neither; a baseline describes what exists and cannot answer it, but the scheduling arithmetic and its tests depend on it."
+    }
+  ],
+  "only_in_A_that_matter": 2,
+  "only_in_B_that_matter": 8,
+  "in_neither": 2,
+  "sizes": {
+    "A_bytes": 272835,
+    "B_bytes": 61419
+  },
+  "verdict": "Scoping lost two hazards a planner of T1 needs, both in transports B read only for their error lines: incident-style integrations (PagerDuty, PagerTree, Opsgenie, Splunk On-Call, Pushover emergency) pair a down alert with the later recovery by the check's key, so a down retry that lands after recovery re-opens an incident nothing will close (A R-33, R-37 to R-40), and a Signal CAPTCHA failure emails the site admins and the project owner on every attempt (A R-29). The reverse gap is larger: B carries eight consequential facts A lacks (Notification has no link to its flip, the in-flight 'Sending' marker and escaped exceptions, the untruncated 200-character error column, Channel.notify's four callers, SMS and call quota spent even when the provider call fails, notifications hidden behind the unticked 'Downtime alert' filter, which A's R-67 overstates, the broken live-update script, and the webhook form's 'up to 2 additional times' promise), and every decision in play (GT1, GT2, GT3, GT5, GT7, GT8) is in both. At about 4.4 times B's size the whole baseline adds only the cross-integration down/up pairing and Signal's notice side effect for this request, and neither baseline raises whether pending retries are dropped when the check recovers or is paused, or what the 1, 5 and 25 minutes are measured from."
+}

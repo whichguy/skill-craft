@@ -1,0 +1,99 @@
+[
+ {
+  "name": "nb-B",
+  "spec_bytes": 16211,
+  "architecture_bytes": 10743,
+  "requirements": 10,
+  "bullets": 53,
+  "decisions": 12,
+  "inherited": 12,
+  "superseded": 0,
+  "linked_records": 0,
+  "source_classes": {
+   "documented": 4,
+   "observed": 10,
+   "tested": 5,
+   "inferred": 3,
+   "conflict": 1
+  },
+  "coverage_line": "Baseline coverage: deep: src/server.js, src/users.js, src/paginate.js, test, package.json; overview: src/strings.js, README.md, .gitignore; not inspected: none. As of cc92991f2e24.",
+  "c1": {
+   "entries": 22,
+   "locators": 123,
+   "resolved": 123,
+   "with_locator": 22
+  },
+  "c1_findings": 0,
+  "c1_examples": []
+ },
+ {
+  "name": "l4b-B",
+  "spec_bytes": 29215,
+  "architecture_bytes": 26307,
+  "requirements": 12,
+  "bullets": 77,
+  "decisions": 33,
+  "inherited": 32,
+  "superseded": 1,
+  "linked_records": 21,
+  "source_classes": {
+   "tested": 8,
+   "observed": 12,
+   "inferred": 3,
+   "documented": 6
+  },
+  "coverage_line": "Baseline coverage: deep: packages/cli, packages/cli-common, packages/global-cli, packages/core, packages/init, e2e-tests; overview: (root), packages, packages/web, docker, scripts, .github, .vscode, docs; not inspected: packages/web/nextjs/src/components, packages/web/nextjs/src/scenes, packages/web/nextjs/src/layouts, packages/web/nextjs/src/contexts, packages/web/nextjs/src/mui, packages/core/src/lib, packages/core/src/adr/application/command-handlers. As of 17e32021a8c5.",
+  "c1": {
+   "entries": 45,
+   "locators": 246,
+   "resolved": 246,
+   "with_locator": 44
+  },
+  "c1_findings": 4,
+  "c1_examples": [
+   {
+    "ident": "AD-4",
+    "problem": "starts 2 times: only the first is read as the entry"
+   },
+   {
+    "ident": "AD-4",
+    "problem": "no (inherited) or (accepted) status"
+   },
+   {
+    "ident": "AD-4",
+    "problem": "no Evidence"
+   },
+   {
+    "ident": "AD-4",
+    "problem": "no locator that resolves"
+   }
+  ]
+ },
+ {
+  "name": "hc-B1",
+  "spec_bytes": 37958,
+  "architecture_bytes": 23461,
+  "requirements": 18,
+  "bullets": 126,
+  "decisions": 27,
+  "inherited": 27,
+  "superseded": 0,
+  "linked_records": 0,
+  "source_classes": {
+   "documented": 6,
+   "tested": 17,
+   "observed": 18,
+   "conflict": 2,
+   "inferred": 1
+  },
+  "coverage_line": "Baseline coverage: deep: hc, hc/api, hc/integrations, hc/front, hc/accounts, hc/lib, templates/front, static; overview: hc/logs, hc/payments, templates, templates/docs, templates/emails, docker, (root), .github; not inspected: templates/accounts, templates/admin, stuff. As of f6c46b59.",
+  "c1": {
+   "entries": 45,
+   "locators": 260,
+   "resolved": 260,
+   "with_locator": 45
+  },
+  "c1_findings": 0,
+  "c1_examples": []
+ }
+]
