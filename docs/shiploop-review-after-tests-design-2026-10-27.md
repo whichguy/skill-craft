@@ -590,6 +590,21 @@ Nits, also taken:
 4. Exercise send-back, commit failure and retry, test-only steps, cross-step cases and tests a review adds.
 5. Update the packets and Run Review (v6, with older runs still read). Then run the two pilots, with stage-level
    defect and cost attribution.
+6. **Once the lifecycle is complete, update the README** (owner, 2026-10-28: "Once complete, we should update the
+   README with the updated detailed status"). Two parts go into `skills/shiploop/README.md`:
+   - **The lifecycle in detail.** Rewrite the "Navigator: producer, Improve child, then transition" section, which
+     today lists "the 8 inner stages in 5 phases" with `implement` once per step. It covers:
+     - the per-step iteration (build, test, document with its review, knowledge, commit);
+     - each stage's gates, the lint points and mocks before system tests;
+     - the skills block, and the commit stage in place of verify.
+   - **A status section in the owner's frame.**
+     - Plan: the build order.
+     - Accomplished: each step, with its evidence.
+     - In progress.
+     - Pending: what still waits on the owner (the F and G decisions), and the pilots' results.
+     - A small dependency picture of the steps.
+
+   It lands with the change that completes the lifecycle, so the README never describes a flow the code does not run.
 
 **Step 1 done (2026-10-28): the iteration contract.** `skills/shiploop/scripts/shiploop_iteration.py` specifies the four
 invariants as pure functions. `test/shiploop-iteration.test.py` pins them: 24 tests, written first and failing on the
