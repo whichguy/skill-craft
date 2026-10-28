@@ -596,9 +596,10 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
 
     A step learns what a requirement should say and records it where the next reader of the spec finds it (build plan
     S3.3): a new line inside an existing, current R-<n> entry, ending ``(<marker>)`` (``W1/S2``), so the line names the
-    step that added it and its commit.  Changing or removing a line of the committed spec changes the contract, which
-    is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are committed with their steps, so
-    HEAD is this step's baseline.
+    step that added it and its commit.  Existing means the committed spec holds the entry: an entry the edit adds is a
+    new requirement, not a line inside one.  Changing or removing a line of the committed spec, or adding a requirement,
+    changes the contract, which is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are
+    committed with their steps, so HEAD is this step's baseline.
     """
     path = Path(repo) / HOME / "spec.md"
     old = _committed(Path(repo), "spec.md")
@@ -606,7 +607,9 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     if old == new or not old.strip():
         return ""
     before, after = old.splitlines(), new.splitlines()
-    spans = [entry.text.splitlines() for entry in _entries(new, "R").values() if not entry.retired]
+    held = {ident for ident, entry in _entries(old, "R").items() if not entry.retired}
+    spans = [entry.text.splitlines() for ident, entry in _entries(new, "R").items()
+             if not entry.retired and ident in held]
     changed: List[str] = []
     unmarked: List[str] = []
     outside: List[str] = []
@@ -624,7 +627,8 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     if not (changed or unmarked or outside):
         return ""
     found = [label + ": " + "; ".join(lines) for label, lines in (
-        ("changed or removed", changed), ("without the step's mark", unmarked), ("outside a current R-<n> entry", outside))
+        ("changed or removed", changed), ("without the step's mark", unmarked),
+        ("outside an R-<n> entry the committed spec holds", outside))
         if lines]
     return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same callback "
             "again; to change a requirement, report send-back naming it.\n"

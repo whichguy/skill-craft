@@ -4552,6 +4552,23 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.accept(result(outcome="send-back", summary="R-1 must name the notes title; the step plan should say so."))
         self.assertEqual(navigator.current_stage(self.state()), "step-plan")
 
+    def test_a_requirement_a_step_adds_is_refused_and_send_back_is_the_exit(self) -> None:
+        """Astra's review of 2026-10-28, a probe: a marked line counted as inside an R-<n> entry when that entry was new in
+        the edited spec, so a step could add a requirement, a contract change that is the step plan's to decide.  Only
+        an entry the committed spec holds takes a step's lines."""
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        spec = self.spec_path()
+        spec.write_text(spec.read_text().replace(
+            "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\nR-2: notes.md lists every run. (W1/S1)\n"))
+        (self.repo / "notes.md").write_text("# Notes\n")
+        refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
+        self.assertNotEqual(refused.returncode, 0)
+        text = refused.stdout + refused.stderr
+        self.assertIn("outside an R-<n> entry the committed spec holds: R-2: notes.md lists every run. (W1/S1)", text)
+        self.assertIn("to change a requirement, report send-back naming it", text)
+
     def test_the_look_back_quotes_the_last_two_commits_that_are_not_shiploop_records(self) -> None:
         self.start()
         for name, subject in (("one.txt", "feat(W0/S1): first"), ("two.txt", "fix: second"),
