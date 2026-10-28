@@ -1,0 +1,66 @@
+{
+  "id": "legacy",
+  "eval_id": 20,
+  "route": "legacy",
+  "source": "Implement a response schema with string id and label fields, an independently checkable cache purge operation for expired entries, and an encoder that uses only the response schema. Cache purge and schema work use different implementation boundaries and have no data dependency. The schema and purge assertions are independent deliverables, not one combined artifact; the encoder consumes only the schema. There is no integration operation or combined-artifact verification requirement between schema and purge.  All plan steps and inputs are inherited from a compatibility-native seed draft. No source-aware caller packet is selected. The local repository, fixtures, and test runner are available. This is a planning assessment only. Expired means the existing cache expiry predicate, already available to purge tests. No new time or storage architecture is requested.",
+  "plan": {
+    "goal": "The response contract, cache purge, and encoder behavior are implemented.",
+    "initial_state": [
+      "The local repository, fixtures, and test runner are available."
+    ],
+    "goal_needs": [
+      "The response encoder emits id and label matching the response schema."
+    ],
+    "steps": [
+      {
+        "id": "S1",
+        "statement": "The response schema and cache purge are implemented.",
+        "produces": [
+          "The response schema lists id and label as strings. The cache purge operation removes expired entries."
+        ],
+        "inputs": [
+          {
+            "from": null,
+            "need": "The local repository, fixtures, and test runner are available."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The response schema lists id and label as strings. The cache purge operation removes expired entries.",
+            "by": "Run the schema inspection and cache-purge tests; pass when both stated results hold.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "statement": "The response encoder emits id and label matching the response schema.",
+        "produces": [
+          "The response encoder emits id and label matching the response schema."
+        ],
+        "inputs": [
+          {
+            "from": "S1",
+            "need": "The response schema lists id and label as strings. The cache purge operation removes expired entries."
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The response encoder emits id and label matching the response schema.",
+            "by": "Run encoder contract tests; pass when id and label are emitted as specified.",
+            "level": "execute"
+          }
+        ]
+      }
+    ],
+    "parallel_groups": [],
+    "unresolved": []
+  },
+  "edit_bounds": null,
+  "expected": {
+    "behavior": "blocked",
+    "runtime_status": "stopped"
+  }
+}

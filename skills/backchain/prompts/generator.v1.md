@@ -112,7 +112,9 @@ A single JSON object matching this exact shape:
   - Apply this split/merge check **once before finalizing seed ids**. Account for every requested
     obligation, including work with no downstream consumer; independent work is still required.
     Do not let a broad phrase such as "the feature works" hide several implementable deliverables.
-    Seed identities are preserved by later passes, so repair bundled work here.
+    Seed identities are preserved by later passes, so repair bundled work here. Later
+    convergence reviews recheck implementable chunks under `references/convergence.md`;
+    that recurring check does not waive inherited identity or edit-bound restrictions.
   - For each proposed dependency ask: **what output of the supplier must exist before this
     consumer can establish its state?** Add the edge only when highly confident and quote the
     supplier output exactly, following the input rules below. Shared topic, presentation order, and a shared file alone are not causal dependencies.

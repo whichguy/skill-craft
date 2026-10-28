@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 87)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 51)
-        self.assertEqual(len(suite_catalog.SUITES), 140)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 52)
+        self.assertEqual(len(suite_catalog.SUITES), 141)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -147,6 +147,9 @@ class TestGroupTests(unittest.TestCase):
                          "shiploop-navigator-v4"} <= baseline)
         self.assertLess(len(baseline), 17)
         cases = {
+            "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks"},
+            "test/backchain_chunks.py": {"backchain-chunks"},
+            "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks"},
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls"},
             "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
