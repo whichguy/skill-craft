@@ -92,7 +92,7 @@ each result is accepted on ShipLoop's own checks at `complete` (cited files exis
 plan's assumption list, the step plan's commands, criteria and paths, the knowledge
 home's checks), the graph advances, and no Improve review covers it in this run. The
 packets say so: the Improve line, the plan and step-plan duties and the shared handoff
-sentence name only the stages that hand off. The Improve stages after each item's last `implement` step,
+sentence name only the stages that hand off. The Improve stages after each step's `document` stage,
 `system-test-author`, `release-plan` and the last `carry-forward` start in both modes; the
 option does not cover the Backchain loop or the inner stages' Until Loops.
 

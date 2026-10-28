@@ -963,7 +963,7 @@ class ClearThroughMainTests(unittest.TestCase):
         """The fake claude answers the Anthropic route unless ``backend`` names another (a slice's default is Ollama)."""
         config = self.tmp / "config.json"
         config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
-                                      "run_dir": str(self.run_dir), "holds": holds, "improve_of": "implement"}))
+                                      "run_dir": str(self.run_dir), "holds": holds, "improve_of": "document"}))
         case = {**CASE, "fixture": "node-base"}
         with mock.patch.dict(os.environ, {"FAKE_SLICE_CONFIG": str(config),
                                           "SHIPLOOP_KEEPALIVE_HOME": str(self.tmp / "keepalive")}), \

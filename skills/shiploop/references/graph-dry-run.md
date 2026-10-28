@@ -32,7 +32,7 @@ same names; the Improve completions the trace pairs with those five producers ar
 
 `--list` prints the scenarios: delivery, two
 work items, blocked/resume, a repeat returned through Improve, pause/resume and
-halt. The planning stages the selected option reviews, each `implement` step and the last
+halt. The planning stages the selected option reviews, each step's `document` stage and the last
 carry-forward are followed by a synthetic Improve completion; other producers advance directly. An unknown scenario
 name is an input error (exit 2) that lists the available names. Expectations are authored independently of the routing tables. Each trace
 contains the effective packet before its synthetic declaration and the resulting
@@ -53,7 +53,7 @@ Improve child owns those under the normal parent binding.
 
 Custom JSON has only `steps` (any other top-level field is refused), each with an effective `at`, `expect`, optional
 `status` (default `active`), and either a generic `result` or
-`command: pause|resume|halt`. Each reviewed planning producer, each `implement` step and the
+`command: pause|resume|halt`. Each reviewed planning producer, each step's `document` stage and the
 last carry-forward (`command: produce`, optional `result`; the stages `--planning-review`
 reviews) is paired with `command: finish-improve`
 carrying a synthetic `receipt` and optional `final_result`. The last completion

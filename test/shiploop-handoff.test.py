@@ -1202,7 +1202,7 @@ EXPECTED_CONSUMES = {
     "plan": ("spec_diff",), "prepare": (), "step-plan": ("assumptions",),
     "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
     "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
-    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    "document": ("follows", "test_cases", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
     "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
     "system-test": ("system_commands", "assumptions"),
     "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
@@ -1870,6 +1870,10 @@ class SameBlockDuplicateTests(LongHomeCase):
 # walk's packet numbers after W1 shift; every block's hash, in order, is unchanged.
 # Renumbered 2026-10-26 by rule item: test-spec starts no Improve packet and implement starts one only after the item's
 # last step, so the walk's packet numbers after W1's step plan shift; every block's hash, in order, is unchanged.
+# Re-pinned 2026-10-28 by design T section 8 (each step is built, tested, documented and reviewed before the next):
+# W1's first step now has its own test block (16-test, the cases due by S1) and document block (19-document), and each
+# document block quotes the step's test cases as verify's does (CONSUMES), so 23-document and 32-document hash as their
+# item's verify block; every other block hashes as before, in order, renumbered by the per-step walk.
 SMALL_HOME_FINGERPRINTS: dict = {
     "01-intake": "20425423036e",
     "02-discovery": "e3b0c44298fc",
@@ -1882,28 +1886,30 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "13-test-spec": "603a3bd68476",
     "14-validate-existing": "fd56ae387ab8",
     "15-implement": "78542e80fa7e",
-    "16-implement": "84d5d7f4412f",
-    "18-test": "47512f89e19d",
-    "21-document": "626e1ebd33e2",
-    "22-verify": "1bd3e4515b2b",
-    "23-carry-forward": "644fb96deb86",
-    "24-step-plan": "6d1756f3cf4b",
-    "25-test-spec": "a6f458c2ef70",
-    "26-validate-existing": "fd56ae387ab8",
-    "27-implement": "7f5ec4c052ae",
-    "29-test": "3aa81f32adf2",
-    "30-document": "c945cd95cb8d",
-    "31-verify": "fc69229dd486",
-    "32-carry-forward": "50e264bc8291",
-    "34-system-test-author": "9c09062ca617",
-    "36-system-test": "5c1876049e88",
-    "37-product-acceptance": "d957aea6fbd1",
-    "38-release-plan": "d18a852bbe13",
-    "40-release-check": "283571c24c3a",
-    "41-release": "283571c24c3a",
-    "42-release-verify": "3bf63126c3e6",
-    "43-operations": "283571c24c3a",
-    "44-handoff": "7e50c8910839",
+    "16-test": "9ac7795d7ff5",
+    "19-document": "322fceaf7379",
+    "21-implement": "84d5d7f4412f",
+    "22-test": "47512f89e19d",
+    "23-document": "1bd3e4515b2b",
+    "25-verify": "1bd3e4515b2b",
+    "26-carry-forward": "644fb96deb86",
+    "27-step-plan": "6d1756f3cf4b",
+    "28-test-spec": "a6f458c2ef70",
+    "29-validate-existing": "fd56ae387ab8",
+    "30-implement": "7f5ec4c052ae",
+    "31-test": "3aa81f32adf2",
+    "32-document": "fc69229dd486",
+    "34-verify": "fc69229dd486",
+    "35-carry-forward": "50e264bc8291",
+    "37-system-test-author": "9c09062ca617",
+    "39-system-test": "5c1876049e88",
+    "40-product-acceptance": "d957aea6fbd1",
+    "41-release-plan": "d18a852bbe13",
+    "43-release-check": "283571c24c3a",
+    "44-release": "283571c24c3a",
+    "45-release-verify": "3bf63126c3e6",
+    "46-operations": "283571c24c3a",
+    "47-handoff": "7e50c8910839",
 }
 
 SMALL_HOME = {
@@ -2970,7 +2976,8 @@ class RequestAndReviewedInputTests(unittest.TestCase):
                 self.assertNotIn(navigator.HANDOFF_HEAD, handoff)
                 self.assertEqual("----- BEGIN ORIGINAL REQUEST " in handoff, child["stage"] in ("spec", "plan"))
                 self.assertNotIn("Revisit: ", handoff)                     # a first visit
-        self.assertTrue({"spec", "plan", "step-plan", "implement", "carry-forward"} <= set(seen), seen)
+        self.assertTrue({"spec", "plan", "step-plan", "document", "carry-forward"} <= set(seen), seen)
+        self.assertNotIn("implement", seen)                                # the step's review follows document (T §8)
         self.assertNotIn("test-spec", seen)                                # no Improve stage since 2026-10-26
 
     def test_a_revisited_stages_handoff_names_the_previous_accepted_result_and_the_send_back_result(self) -> None:

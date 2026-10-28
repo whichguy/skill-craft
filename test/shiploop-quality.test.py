@@ -103,12 +103,13 @@ class QualityLoopTests(fx.RunDriver):
         self.assertIn("2. Fail at the door.", packet)
         self.assertIn("4. Spend tokens on information.", packet)
 
-    def test_each_implement_step_improve_carries_the_step_focus_with_the_full_rubric(self):
-        """Owner decision 2026-10-10: an Improve child reviews every accepted implement step with the Code craft
-        rubric (IMPLEMENT_STEP_REVIEW_FOCUS carries it verbatim), even under --planning-review none."""
+    def test_each_steps_review_carries_the_step_focus_with_the_full_rubric(self):
+        """Owner decision 2026-10-10: an Improve child reviews every step with the Code craft rubric
+        (IMPLEMENT_STEP_REVIEW_FOCUS carries it verbatim), even under --planning-review none.  Design T section 8: it
+        starts once the step is built, tested and documented, after the step's document stage."""
         self.assertIn(prompts.CODE_CRAFT.strip(), prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
         self.start()
-        state = self.drive_to("implement", improve_stage="implement")
+        state = self.drive_to("document", improve_stage="document")
         self.assert_improve_stage_started(state)
         packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.strip().splitlines()[0], packet)

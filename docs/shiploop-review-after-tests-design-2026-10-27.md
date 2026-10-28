@@ -677,17 +677,55 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - It cannot be taken earlier, because `_transition` runs before those commits.
     - Bookkeeping only: the flow is unchanged. One fail-first CLI test covers it (a three-step walk), and the quick tier
       passed 33 suites.
-  - **2b-2.** Test and document run after each step:
+  - **2b-2, done 2026-10-28.** Test and document run after each step:
     - the test stage runs 2a's active commands, with RED on the new cases in a checkout of the iteration's base;
     - document's left-out rule reads the step's diff since the base;
     - rule `item` moves to document;
     - the next step's implement follows document.
 
-    Verify still closes the item, for now.
+    Verify still closes the item, for now. What landed:
+    - **Order.** `_next_step_follows` routes an inline document to the next step's implement while steps remain;
+      `step_view` names the step just built at test and document, and the step to build at implement.
+    - **Base per step.** `_iteration_base` recaptures `lint.capture_base` when document hands over to the next
+      implement, after `_step_commit` has committed the step. Lint, mutation, the RED base check, the left-out rule
+      and the review diff all read it, so the second step's lint gate sees only its own lines: a finding the first
+      step waived is in that step's commit (`GateTests.test_every_implement_step_is_gated`).
+    - **Review.** Rule `item` is on document. The review prints the Step block, implement's guides beside its own,
+      and the review base since the step began; it leaves its edits uncommitted
+      (`STEP_REVIEW_NO_COMMIT`), and its import reruns the step's focused command when it changed a file. A step
+      whose document stage records `changed: false` starts no review.
+    - **One commit per step.** `_step_commit` runs in `_transition` once the step's document row is accepted. The
+      knowledge close no longer splits a step's spec line out of it.
+    - **Reads.** Document quotes the step's due cases, so it reads the item's test-spec result (consumer contract:
+      a quoted key's producer is among the reads). The review receipt is document's product now, and verify reads
+      each step's document result, so its packet still lists the step reviews it builds on. Head budgets: document
+      +75 characters, verify +207 (`test/shiploop_e2e/head_table.json`).
+    - **Removed.** The wide-item rule (`step_path_groups`, `_wide_item`, `_item_steps`, `_review_steps`) and the
+      implement-stage review. The references (README, navigator.md, improve-stages.md, glossary) say so; the
+      replay harness's literal schedule parks document.
+    - **Left for 2b-5.** Lint's gate text still says "lines this item changed": under per-step bases those are the
+      step's lines since its base. The test and document packets do not print the Step block (F9). (Run Review's
+      stage catalog and card text follow the new schedule already.)
   - **2b-3. The knowledge stage.** Its row, its packet and its gates:
     - the spec only gains lines (`step_spec_refusal`);
     - unique AD IDs;
     - the skill decision, moved from carry-forward.
+
+    The cut (2026-10-28):
+    - **Row.** `knowledge` is an inner model stage after document, on both routes (once per item on the ask-agent
+      route until 2c). It writes the knowledge home (spec.md, environment.md, architecture.md) and the skill, and
+      nothing else.
+    - **Result.** `knowledge` names each of the three files with what changed or why nothing did; `skill` is
+      carry-forward's decision, unchanged in shape.
+    - **Gates at done.** Each file named with a non-empty line; the spec only gained lines inside an existing R-n,
+      each ending with the step's marker (`step_spec_refusal`, whose refusal names send-back); no AD ID is used twice in
+      architecture.md; the skill decision's shape and repeat evidence (`_check_skill_decision`, moved).
+    - **Routing.** The iteration's last model stage is knowledge: `_next_step_follows` keys on it, the step commit
+      fires when it is accepted (so the step's knowledge and any skill are in the step's one commit), and the base is
+      recaptured when it hands over.
+    - **Carry-forward** keeps the queue and the item's learnings; its skill decision goes.
+    - **Not in 2b-3.** Lint on the knowledge files and the test rerun before the commit are the commit stage's
+      (2b-4), which checks the tree the knowledge gate ran on.
   - **2b-4. The commit stage.**
     - It replaces the step commit, the review's commits (Improve without commit), the knowledge-record commits inside
       an iteration, and verify's item commit.
@@ -697,6 +735,34 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - The packets' text, Run Review v6 and the E2E audit harness.
     - The lifecycle's change note (`bump: minor`).
 - **2c. The ask-agent route** gets the same step boundaries (G1).
+- **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
+
+  > "One of the things that I want to make sure of in our test suite is that we're both running the tests for the new
+  > code and a sufficient amount of regression tests. Again, we got to be careful because we really need test suites.
+  > Some are going to be really long and time-consuming. We don't need to run full regressions on everything, so we
+  > kind of want gradations of test suites to be run: to make sure the new code didn't break existing things, as well
+  > as the fact that the new code is actually validated to some degree.
+  >
+  > We need some finesse in the test stage that has an appropriate prompt that determines whether this is a new test
+  > suite, whether it enhances the minimum test suite, or whether it can always add tests to all of the suites as
+  > needed. We want to make sure that the code didn't break anything basic, and then also that the code is implemented
+  > in detail and tested in detail in the testing phase for the code that was just added. That one we want to run in
+  > full mode, if you will. We definitely want to make sure that we don't do exhaustive regressions on every iteration
+  > because that would be extremely expensive. Again, we should really consider unit tests and mock tests as much as
+  > needed to validate a lot of the code and the logic that we needed. We should not be afraid to use MCP servers,
+  > skills, or anything of that nature if needed to test the newly added code in detail."
+
+  What it changes:
+  - **Each step runs three tiers.**
+    - **Full detail on the new code:** the step's focused cases, unit and mock tests first.
+    - **The earlier steps' focused tests:** they carry over, as 2a already projects them.
+    - **A minimum regression,** a fast suite that shows nothing basic broke.
+  - **The exhaustive regression** runs at the item's last step, never on every iteration.
+  - **The step plan marks the tier.** A regression command marked `minimum` runs at every step, and an unmarked one
+    only at the last. A plan of two or more steps records a minimum command, or a reason it has none.
+  - **The test packet asks where each new test belongs:** a new suite, the minimum suite, or the full suites.
+  - **It names the tools.** MCP servers and skills may be used to test the new code in detail, beside the unit and
+    mock tests.
 
 **9.2 New decisions:**
 - **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it

@@ -130,13 +130,13 @@ class ReviewScheduleSentenceTests(unittest.TestCase):
 
     def test_the_sentence_matches_the_children_a_run_of_that_mode_starts(self):
         """Paired with the behaviour it describes: a walk of a run starts a child after the listed planning results, after
-        each item's last implement step and after the last carry-forward, and after nothing else."""
+        each step's document stage (design T section 8) and after the last carry-forward, and after nothing else."""
         for mode in stage_spec.PLANNING_REVIEW_MODES:
             with self.subTest(mode=mode):
                 state = navigator.new_state("/simulation-only/repo", "Build a thing.", delegation="inline",
                                             planning_review=mode)
                 listed = set(self.listed(self.render(mode, "inline")))
-                self.assertEqual(_walk_reviewed(state), listed | {"implement", "carry-forward"})
+                self.assertEqual(_walk_reviewed(state), listed | {"document", "carry-forward"})
 
 
 if __name__ == "__main__":

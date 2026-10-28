@@ -168,12 +168,18 @@ def several_steps(scope: Optional[Mapping[str, Any]]) -> Optional[tuple[str, str
     return str(scope["id"]), _paths_text(scope.get("paths") or ())
 
 
+# The stages that judge what one implement action built: implement itself, and the step's test and document stages.
+BUILT_STAGES = ("implement", "test", "document")
+
+
 def worded_stage(stage: str, scope: Optional[Mapping[str, Any]] = None) -> stage_spec.Stage:
     """The stage row as the packet and the loop contract word it.  Implement on a route that builds several steps in one
     action names those steps and their paths; an inline step's first condition ends with the criteria assigned to it
     (T11 of the implement-step fix plan); every other case is the row itself."""
     row = stage_spec.stage(stage)
-    named = several_steps(scope) if stage == "implement" else None
+    # The ask-agent route's one implement action builds every step, so its test and document stages, and the step
+    # review that follows document, cover them all and are worded for them too (design T §8).
+    named = several_steps(scope) if stage in BUILT_STAGES else None
     if named:
         return stage_spec.for_steps(row, *named)
     criteria = [str(ident) for ident in (scope or {}).get("criteria") or ()] \
@@ -388,7 +394,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
            commands: Sequence[Mapping[str, Any]] = (), route: str = prompts.INLINE,
            one_step: bool = False, anchors: Optional[Mapping[str, str]] = None,
-           item_paths: Sequence[Any] = ()) -> dict[str, Any]:
+           item_paths: Sequence[Any] = (), built: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
     """One stage's contract from plain values; ``contract`` supplies them from state (``route``: the delegation the
     action was issued with, which decides which duty items its packet prints; ``one_step``: the run is ``one_step_run``,
     so carry-forward's Work is ``WORK_ONE_STEP``; ``anchors``: an inline step's ``step_anchors``; ``item_paths``: the
@@ -451,7 +457,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
     return loop_contract.contract(
         workspace=repo,
         work=work,
-        exit_condition=exit_condition(stage, step),
+        exit_condition=exit_condition(stage, step if step is not None else built),
         repeat_condition=repeat,
         required_trivial_reviews=TRIVIAL_REVIEWS[stage],
         request=(f"ShipLoop {stage} for work item {item} ({title}). The run's request is "
@@ -480,10 +486,11 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
 
         commands = test_loop.stage_commands(state, stage, item)[0]
     step = implement_scope(state, item, action_id) if stage == "implement" else None
+    built = implement_scope(state, item, action_id) if stage in BUILT_STAGES[1:] else None
     anchors = step_anchors(plan, step) if step is not None and not step.get("all_steps") else None
     return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=step, commands=commands, route=_route(state, action_id), one_step=one_step_run(state) is not None,
-                  anchors=anchors, item_paths=list(plan.get("paths") or ()))
+                  anchors=anchors, item_paths=list(plan.get("paths") or ()), built=built)
 
 
 def _route(state: Mapping[str, Any], action_id: str) -> str:
@@ -510,29 +517,6 @@ def implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Opti
     ids = [str(row.get("id")) for row in steps]
     return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True,
             "count": len(ids)}
-
-
-def step_path_groups(steps: Sequence[Mapping[str, Any]], item_paths: Sequence[str]) -> int:
-    """How many groups ``steps`` form when steps that share a path are joined, directly or through other steps; a step
-    that declares no paths works on the item's (``item_paths``), as in ``implement_scope``, and steps with no paths at all
-    share one group.  An item of more than one group is wide: its steps work on separate parts, and each keeps its own
-    Improve review (design 8e9d2d55, owner 2026-10-27: Sonnet makes one finding pass per review, so one review of a
-    three-part item missed what three step reviews found)."""
-    owner: dict[str | None, int] = {}
-    parent = list(range(len(steps)))
-
-    def root(index: int) -> int:
-        while parent[index] != index:
-            index = parent[index]
-        return index
-
-    for index, row in enumerate(steps):
-        for path in [str(path) for path in (row.get("paths") or ()) or item_paths] or [None]:
-            if path in owner:
-                parent[root(index)] = root(owner[path])
-            else:
-                owner[path] = index
-    return len({root(index) for index in range(len(steps))})
 
 
 def contract_writes(root: Path, state: Mapping[str, Any]) -> dict[str, str]:

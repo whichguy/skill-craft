@@ -50,6 +50,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple
 
+import shiploop_iteration as iteration
 import shiploop_lint as lint
 import shiploop_prompts as guidance
 import shiploop_stage_spec as stage_spec
@@ -348,9 +349,43 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
     if "test_commands" not in result:
         return [], ""
     commands = [dict(row) for row in result["test_commands"]]
+    number = step_number(state, work_item) if stage in STAGES else None
+    if commands and number is not None:
+        # One iteration per step (design T §8): the test stage runs what this step owes, due cases narrowed per command.
+        commands = iteration.active_commands(commands, _test_cases(state, work_item), _plan_steps(result), number)
     if commands:
         return commands, ""
     return [], str(result.get("test_commands_na") or "")
+
+
+def _plan_steps(plan: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    return [row for row in plan.get("steps") or () if isinstance(row, Mapping)]
+
+
+def _test_cases(state: Mapping[str, Any], work_item: str) -> List[Mapping[str, Any]]:
+    """The item's current test-spec cases: its latest accepted done test-spec result's ``test_cases``."""
+    actions = [row["action"] for row in state.get("history", ())
+               if row.get("stage") == "test-spec" and row.get("workitem") == work_item]
+    for action in reversed(actions):
+        result = state.get("accepted", {}).get(action)
+        if isinstance(result, Mapping) and result.get("outcome") == "done":
+            return [case for case in result.get("test_cases") or () if isinstance(case, Mapping)]
+    return []
+
+
+def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
+    """The step an inline item's iteration is on once it is built (its test stage, its document and its review): how
+    many steps of the latest step plan have an accepted implement done.  None on the ask-agent route (its one implement
+    action builds every step), for a plan without steps, or before the first step is built."""
+    if state.get("delegation") != guidance.INLINE:
+        return None
+    action, plan = _step_plan(state, work_item)
+    steps = _plan_steps(plan) if action else []
+    history = list(state.get("history", ()))
+    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
+    built = sum(1 for row in history[start + 1:]
+                if row.get("stage") == "implement" and row.get("workitem") == work_item and row.get("outcome") == "done")
+    return built if steps and 1 <= built <= len(steps) else None
 
 
 def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
@@ -376,12 +411,21 @@ def base_commands(state: Mapping[str, Any], work_item: str) -> List[Dict[str, An
 
 
 def new_ids(state: Mapping[str, Any], work_item: str) -> List[str]:
-    """Every test ID a focused command lists: the item's new tests, which must not pass on the base."""
+    """Every test ID a focused command lists that this step adds: the new tests, which must not pass on the base.  At an
+    inline step (design T §8) an earlier step's cases already pass on this step's base, so only the cases due at this
+    step are new (``iteration.new_cases``)."""
+    number = step_number(state, work_item)
+    cases = _test_cases(state, work_item)
+    earlier: set[str] = set()
+    if number is not None:
+        due = iteration.due_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number)
+        earlier = set(due) - set(iteration.new_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number))
     seen: Dict[str, None] = {}
     for row in base_commands(state, work_item):
         if row["suite"] == "focused":
             for test_id in row.get("ids") or ():
-                seen[test_id] = None
+                if test_id not in earlier:
+                    seen[test_id] = None
     return list(seen)
 
 

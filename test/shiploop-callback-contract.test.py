@@ -2163,7 +2163,7 @@ class InnerGateRouteTests(RealCliCase):
 
 # Stages whose accepted result starts an Improve child (the planning reviews, the item's last implement step and the
 # last item's carry-forward), declared here and not read from the navigator.  test-spec starts none (2026-10-26).
-CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "implement", "carry-forward",
+CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "document", "carry-forward",
                "system-test-author", "release-plan")
 # Stages ShipLoop records by script when its own checks leave nothing to do (every expectation matches; the item's diff
 # touches no code or test path); a walk sees their history row, not a packet.
@@ -2212,7 +2212,18 @@ class EveryStageRouteTests(RealCliCase):
         for stage in EXPECTED_STAGES:
             header = next(row for row in head.splitlines() if row.startswith("ShipLoop navigator | "))
             if stage in SCRIPT_RECORDED and not header.startswith(f"ShipLoop navigator | {stage} | "):
-                self.assertIn(stage, [row["stage"] for row in self.state(run)["history"]])
+                state = self.state(run)
+                self.assertIn(stage, [row["stage"] for row in state["history"]])
+                if stage in CHECKPOINTS:
+                    # A left-out document still owns its step's review (design T section 9 row 2): the recorded result
+                    # started it, and the previous stage's callback printed its packet.
+                    self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX, head)
+                    state = nav.finish_improve(state, state["active_improve"]["action_id"],
+                                               {"summary": "Synthetic receipt; no review claim."})
+                    nav.save(run, state)
+                    result = self.cli("next", "--run-dir", str(run))
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    head = result.stdout
                 continue
             self.assertTrue(header.startswith(f"ShipLoop navigator | {stage} | "), header)
             command, path, action = printed_callback(head)

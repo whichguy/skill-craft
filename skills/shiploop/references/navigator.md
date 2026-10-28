@@ -21,7 +21,7 @@ refused with an error naming it.
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
-  R -->|Reviewed planning stage, item's last implement step or last carry-forward| I[Improve stage: actual Improve skill]
+  R -->|Reviewed planning stage, a step's document stage or last carry-forward| I[Improve stage: actual Improve skill]
   R -->|Any other stage| F
   I --> U[Bound Until Loop cycle]
   U -->|Incomplete| U
@@ -119,7 +119,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each item's last `implement` step (one review of the item's whole change; each changed step of a wide item), last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each step's `document` stage (one review of the step's code, tests and docs before ShipLoop commits the step), last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
@@ -229,7 +229,7 @@ Every run also records its `planning_review` option (`stage` or `none`; `stage` 
 Improve stage: `stage` is every planning result, as before, and no packet changes with it;
 `none` is no Improve stage after `spec`, `test-strategy`, `plan` or `step-plan` (`test-spec` has none in either mode),
 so the Improve line of those packets says none starts and no reconcile route or plan-time
-experiment locator is printed. The Improve stages after each item's last `implement` step, `system-test-author`,
+experiment locator is printed. The Improve stages after each step's `document` stage, `system-test-author`,
 `release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
 [Planning review option](run-options.md#planning-review-option).
@@ -298,7 +298,7 @@ conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
 reprinted packet. ShipLoop issues one `implement` packet per step of the
 accepted step plan, in its order, in the execution checkout. Each packet, its
-printed head and, at the item's last step, the item's Improve hand-off carry the same Step block (task,
+printed head and the step's Improve hand-off, after its document stage, carry the same Step block (task,
 criteria, Proof, dependencies, later steps) and end with the step's Until Loop;
 ShipLoop runs the step's Proof, its step-plan `proof`, at done. It binds no chain
 and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
@@ -678,8 +678,9 @@ that the host included all prerequisites or actually prepared a remote target.
 
 ### Step commits
 
-On the inline route ShipLoop commits each accepted `implement` step before its
-Improve stage starts, as `feat(<item>/<step>): <headline>` with the step's
+On the inline route ShipLoop commits each step once its `document` stage and
+that stage's Improve review are accepted, as one commit of the step's code,
+tests and docs: `feat(<item>/<step>): <headline>` with the step's
 summary and its Key learnings, Key decisions, Evidence and Related commits
 sections, from the result's `learned`, `decisions`, `evidence_refs` and
 `learned_from`. Each inline implement packet's head quotes the last two commits
@@ -692,12 +693,12 @@ refused, and its refusal opens that action's send-back even though the step's
 Until Loop has completed.
 
 The inner path makes post-code quality visible: the expectations are checked
-before any change, each item's implemented change is reviewed by one Improve stage after its last step
-(each changed step of a wide item, whose steps work on separate paths),
-the tests are written from the test spec and must fail on the item's base and
-pass on the candidate, documentation follows observed behaviour, and `verify`
+before any change, each step is built, tested and documented and then reviewed
+by one Improve stage before the next step starts, the tests are written from
+the test spec and must fail on the step's base and pass on the candidate,
+documentation follows observed behaviour, and `verify`
 reruns every command and reviews the whole diff with justified fixes and
-rechecks. ShipLoop's step commits at `implement` and its item commit at
+rechecks. ShipLoop's step commits after each step's review and its item commit at
 `verify` are authorized Git work in the execution checkout; they do not assert
 a merge, push, or deployment. `carry-forward`
 reviews broad scope, dependencies, future system-test requirements, and the

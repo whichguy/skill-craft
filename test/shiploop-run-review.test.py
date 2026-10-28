@@ -5210,7 +5210,7 @@ class StageCatalogTests(unittest.TestCase):
         # Every inner stage has both (its Until Loop's terminal check and, for three of them, an Improve child): the rule
         # gives script-run, the stronger check.
         both = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs and self.spec.STAGE_SPEC[s].improve}
-        self.assertEqual(both, {"step-plan", "implement", "carry-forward"})
+        self.assertEqual(both, {"step-plan", "document", "carry-forward"})   # the step review follows document (T §8)
         self.assertEqual({self.by_name[s]["exitCheck"] for s in both}, {"script-run"})
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
@@ -10239,10 +10239,12 @@ class StageModelTests(unittest.TestCase):
         self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("test-spec", "validate-existing", "verify")],
                          ["Plan", "Build", "Verify"])
         self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the catalog is the engine's table
-        # N2: a script-run row that also has an Improve child says so
+        # N2: a script-run row that also has an Improve child says so (the step review follows document, design T section 8)
         self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate, step-proof "
-                         "before it accepts done, and one Improve child per work item reviews its whole change after its last step "
-                         "(each changed step of a wide item, whose steps work on separate paths)."})
+                         "before it accepts done."})
+        self.assertEqual(cards["document"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal before it accepts "
+                         "done, and one Improve child reviews each step's code, tests and docs after this stage, before ShipLoop "
+                         "commits the step."})
         self.assertIn("only the last work item's carry-forward", cards["carry-forward"]["check"]["why"])
         self.assertEqual(cards["verify"]["check"]["why"], "ShipLoop runs loop-terminal, lint-gate, test-rerun before it accepts done.")
         self.assertNotIn("meant to fail", view["tests"])

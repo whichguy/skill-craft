@@ -2011,7 +2011,9 @@ class TestLoopTests(unittest.TestCase):
         done = " ".join(stage_spec.stage("test").done_when)
         self.assertNotIn("nothing that passed at baseline fails now", done)
         self.assertIn("every recorded command", done)
-        self.assertIn("no new test ID passes on the item's base checkout, unless red_na names it", done)
+        # Design T section 8: RED applies to the cases new at this step, on the step's base (its iteration's start).
+        self.assertIn("no test ID new at this step passes on the step's base checkout, unless red_na names it", done)
+        self.assertIn("every case quoted for this step is a test the focused command runs", done)
 
     # -- the test stage prints what the gate judges -------------------------------------------------------------------
 
@@ -2429,7 +2431,8 @@ class TestLoopTests(unittest.TestCase):
         second = store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))
         self.assertTrue(second["passed"])
         self.assertIn(test_loop._tree(self.run_dir, self.repo), second["trees"])   # bound to the accepted candidate
-        self.assertEqual(self.state()["active_improve"]["action_id"], action)     # the step's Improve child started
+        self.assertIsNone(self.state()["active_improve"])         # the step's review follows its document stage
+        self.assertEqual(nav.current_stage(self.state()), "test")
 
     def test_a_proof_that_runs_no_test_is_refused(self):
         """T27 (skipped assertions): a Proof that exits 0 having run no test proves nothing and is refused."""
@@ -2461,21 +2464,20 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_only_path(action))
         self.assertIn("reused the passed check-only run", out)
 
-    def test_a_review_that_breaks_the_proof_is_refused_at_import_and_an_unchanged_candidate_reuses_its_record(self):
-        """T33: the step's Improve import reruns the Proof when the review changed the candidate and refuses a failure; an
-        unchanged candidate reuses the accepted record without running it again.  The transition also captured the step's
-        entry base in its action record, which the hand-off names."""
+    def test_a_review_that_breaks_the_steps_tests_is_refused_at_import_and_an_unchanged_candidate_runs_nothing(self):
+        """T33, per step (design T section 8.2): the step's review follows its document stage.  When the review changed
+        the candidate, its import reruns every command the step's test stage ran and refuses a failure; an unchanged
+        candidate runs nothing.  The review leaves its edits uncommitted (the step's one commit takes them), and its
+        hand-off names the step's change since the step began."""
         self.start()
-        self.drive_to("implement", step_plan=self.proof_plan("grep -q fixed a.py"))
-        action = self.action()
-        base = nav.current_action(self.state())["base"]
-        self.assertRegex(base, r"^[0-9a-f]{40,64}$")
-        (self.repo / "a.py").write_text("fixed = 1\n")
+        self.drive_to("document")
         self.complete(DONE)
         state = self.state()
         child = state["active_improve"]
-        handoff = nav.improve_handoff_text(CORE, self.run_dir, state)
-        self.assertIn("git -C " + str(self.repo) + " diff " + base + " ", handoff)
+        action = child["action_id"]
+        self.assertEqual(child["stage"], "document")
+        self.assertIn("Review base (the step's change since it began", nav.improve_handoff_text(CORE, self.run_dir, state))
+        receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT}
         calls = []
         real = test_loop._run_command
 
@@ -2484,21 +2486,15 @@ class TestLoopTests(unittest.TestCase):
             return real(*args, **kwargs)
 
         with mock.patch.object(test_loop, "_run_command", counting):
-            nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
         self.assertEqual(calls, [])                                       # unchanged: no extra run
-        self.assertFalse((self.run_dir / test_loop.step_proof_path(action, 2)).exists())
-        (self.repo / "a.py").write_text("x = 2\n")                       # the review breaks the step and commits it
-        git(self.repo, "commit", "-qam", "review edit")
+        (self.repo / "fixed.txt").unlink()                               # the review breaks the step's focused test
         with self.assertRaises(nav.NavigatorError) as caught:
-            nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
-        self.assertIn("the review changed step S1 and its Proof did not pass", str(caught.exception))
-        self.assertIn("grep -q fixed a.py -> exit 1", str(caught.exception))
-        self.assertIn("improve-commit", str(caught.exception))
-        self.assertFalse(store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))["passed"])
-        (self.repo / "a.py").write_text("fixed = 2\n")                   # the route: fix it, commit, complete again
-        git(self.repo, "commit", "-qam", "review fix")
-        nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
-        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_path(action, 3))["passed"])
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
+        self.assertIn("sh check.sh fixed.txt", str(caught.exception))
+        self.assertIn("Fix it within the review's scope", str(caught.exception))
+        (self.repo / "fixed.txt").write_text("fixed again\n")           # the route: fix it, complete again
+        nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
 
     def test_an_ask_agent_implement_action_runs_no_step_proof(self):
         """T31: the whole-plan action keeps its acceptance: no single-step Proof gate (a failing check is not run)."""
@@ -2511,7 +2507,8 @@ class TestLoopTests(unittest.TestCase):
         self.complete(DONE)
         self.assertEqual(sorted((self.run_dir / "tests").glob(action + "-step-proof*")) if (self.run_dir / "tests").is_dir()
                          else [], [])
-        self.assertEqual(self.state()["active_improve"]["action_id"], action)   # accepted: its Improve child started
+        self.assertIsNone(self.state()["active_improve"])         # accepted: the review follows document
+        self.assertEqual(nav.current_stage(self.state()), "test")
 
 
 class ItemScopePathClassTests(unittest.TestCase):

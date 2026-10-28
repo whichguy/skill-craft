@@ -166,6 +166,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_context_index as context_index  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -580,8 +581,8 @@ class GuidanceTests(unittest.TestCase):
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
         # Packet re-cut: test-strategy, plan and step-plan dropped the baseline guide label, so only the stages that still
-        # cite it and park an Improve child are observed.
-        self.assertEqual(tuple(observed), ("spec", "carry-forward"))
+        # cite it and park an Improve child are observed: document cites it and, since design T §8, parks the step review.
+        self.assertEqual(tuple(observed), ("spec", "document", "carry-forward"))
 
     def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
         """A compact requirement survives planning and due-stage reconciliation.
@@ -822,7 +823,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(
             tuple(improved),
             tuple(stage for stage in prompts.STAGES
-                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"implement", "carry-forward"}),
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"document", "carry-forward"}),
         )
 
     def test_the_procedure_condition_reaches_where_procedures_originate_and_every_planning_review(self) -> None:
@@ -888,6 +889,7 @@ class GuidanceTests(unittest.TestCase):
         sys.path.insert(0, str(ROOT / "test"))
         import shiploop_assumptions as assumptions
         import shiploop_head_plans as plans
+        import shiploop_test_loop as test_loop
         case_locator = "HOME/architecture.md ## Real-boundary checks RB-1"
         open_locator = "HOME/architecture.md ## Real-boundary checks RB-2"
         cases = [dict(plans.TEST_CASES[0], oracle="Procedure " + case_locator + ", through the public call"),
@@ -911,7 +913,12 @@ class GuidanceTests(unittest.TestCase):
                 recovered, packet = self.cold_packet(state)
                 with self.subTest(route=route, stage=stage):
                     open_ids = [found.row["id"] for found in assumptions.open_items(recovered)]
-                    if stage in quotes_case:
+                    # A step's test stage quotes the cases due by its step (design T §8): this plan's TC-1 serves C1,
+                    # which S2 lists too, so it is due at S2 and S1's test stage quotes no case.
+                    number = (test_loop.step_number(recovered, plans.CASE["work_item"]["id"])
+                              if stage == "test" else None)
+                    due = number is None or number >= 2
+                    if stage in quotes_case and due:
                         self.assertIn(case_locator, packet)
                         self.assertIn("A1", open_ids)
                         seen.append(stage)
@@ -927,17 +934,18 @@ class GuidanceTests(unittest.TestCase):
                     state = waiting
                     continue
                 pending, packet = self.cold_packet(waiting)
-                if stage == "implement":
-                    with self.subTest(route=route, stage="implement Improve"):
-                        # The step's review reads the case where the producer's packet quotes it (by file since U2).
+                if stage == "document":
+                    with self.subTest(route=route, stage="step review"):
+                        # The step's review (after its document stage, design T §8) reads the case where the reviewed
+                        # packet quotes it (by file since U2).
                         self.assertIn("its packet RUN/packets/" + producer + ".md", packet)
                         quoted = next(line for line in packet.splitlines()
                                       if line.startswith("- Hand-offs, quoted there by value: "))
                         self.assertIn("test_cases", quoted)
-                        seen.append("implement-improve")
+                        seen.append("step-review")
                 state = navigator.finish_improve(pending, action["id"], receipt(stage))
             with self.subTest(route=route, check="every consumer reached"):
-                self.assertEqual(set(seen), set(quotes_case) | set(voids) | {"implement-improve"})
+                self.assertEqual(set(seen), set(quotes_case) | set(voids) | {"step-review"})
 
     def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
         """Fresh producer and pending-child packets retain the local skill route.
@@ -2348,14 +2356,16 @@ class GuidanceTests(unittest.TestCase):
                 continue
             pending, pending_packet = self.cold_packet(waiting)
             self.assertEqual(navigator.current_stage(pending), stage)
-            assert_packet(stage, pending_packet)
-            if stage in SERVICE_DISCOVERY_ROUTES:
+            # The step review (after document, design T §8) names the guides of the step's implement, test and document.
+            reviewed = "implement" if stage in stage_spec.with_improve("item") else stage
+            assert_packet(reviewed, pending_packet)
+            if reviewed in SERVICE_DISCOVERY_ROUTES:
                 improved.append(stage)
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
         self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
-        # implement's Improve child reviews every accepted step (owner decision 2026-10-10).
-        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan", "implement"])
+        # Each step's review, after its document stage, reviews the step's code (design T §8).
+        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan", "document"])
 
 
     def test_service_discovery_guide_sections_and_links_survive_package_relocation(self) -> None:

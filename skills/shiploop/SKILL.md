@@ -35,7 +35,7 @@ and returns the prompt for the current step together with the one callback that
 completes it. The host is a library call: it performs that one step and runs the
 printed callback, then follows the packet the callback returns. It never chooses
 a successor itself. Navigator protocol 4 is the only protocol. At a planning
-stage the run's `planning_review` option reviews, after each item's last `implement` step, or at the last carry-forward, the script parks that
+stage the run's `planning_review` option reviews, after each step's `document` stage, or at the last carry-forward, the script parks that
 same parent action while the selected actual Improve skill runs its own bound Until Loop
 cycle. `state.md` owns SDLC traversal; the Improve child owns its iterations and runtime
 state. The host follows one current owner at a time. The initial plan child (a `stage` run;
@@ -257,7 +257,7 @@ absolute paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>
-<product>` (for example `W1 test base run`, `W1 implement S1 Improve review`)
+<product>` (for example `W1 test base run`, `W1 document S1 Improve review`)
 with the same label and path in every packet. Under its header every producer packet carries two
 pointer lines, then the callback and the **owner rule**: the `next` command to run when you lost
 context or are unsure of anything, and the packet file (`Full packet: <path>`), which holds the
@@ -364,7 +364,7 @@ question about the loop is not a stop: answer it and continue the packet.
    diagnostics, safe failure context,
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
-3. When this result is a planning result, an `implement` step or the last carry-forward (see
+3. When this result is a planning result, a step's `document` stage or the last carry-forward (see
    [When Improve runs](references/improve-stages.md#when-improve-runs)), the script moves to the `improve` stage: it enters
    `active_improve` for that same action and issues the Improve stage its own action id. Otherwise
    the result is accepted and the next producer packet follows. At an Improve stage, and before

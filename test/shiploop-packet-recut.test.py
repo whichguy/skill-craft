@@ -495,7 +495,8 @@ class TopBlockHelperTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         found = packets.offline_packets(CASES["node-fix-bug"])
-        cls.lines = found["07-test"].splitlines()  # 08-test until test-spec lost its Improve packet (2026-10-26)
+        # 08-test until test-spec lost its Improve packet (2026-10-26); 07-test until implement lost its (design T §8).
+        cls.lines = found["06-test"].splitlines()
 
     def fails(self, lines, expect: str, **kwargs):
         """The helper raises on ``lines`` and its message names ``expect``."""

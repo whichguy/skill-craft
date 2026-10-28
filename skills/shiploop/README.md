@@ -49,7 +49,7 @@ host session after an update so it loads the selected package's current card.
 
 New runs use navigator protocol 4: the script persists and traverses the SDLC
 graph and issues one producer prompt at a time. After a planning result the run's
-`planning_review` option reviews, an `implement` step, or the last carry-forward, it parks that parent action
+`planning_review` option reviews, a step's `document` stage, or the last carry-forward, it parks that parent action
 for the selected actual Improve skill; every other result advances directly. The script owns navigation; the
 model is a library call that performs the current step and runs the printed
 callback. Improve follows the Until Loop runtime bound by
@@ -188,16 +188,16 @@ script gates on a draft result without completing it.
   check matches, ShipLoop records the stage without a packet. A works
   expectation found broken with a known small fix is fixed there, and ShipLoop
   commits that fix on accept as its own preparatory commit.
-- `implement` runs once per step, gated by lint on every step, and one Improve
-  child reviews the item's whole change after its last step (in both planning review modes).
-  A wide item, whose steps work on separate paths, has each step that changed a
-  file reviewed instead.
-- `test` writes the specified tests after the build, each asserting its case's
-  oracle. ShipLoop then runs them on the item's base
-  (no new test ID may pass there unless `red_na` names it; `shiploop red-check`
-  runs this check on demand) and on the candidate, holding each command to its
-  floor (`retired_tests` declares a deliberate removal).
-- `document` is issued only when the item's diff touches a code or test path;
+- Each step runs `implement`, `test` and `document` before the next step's
+  `implement`. `implement` builds the step, gated by lint. One Improve child
+  then reviews the step's code, tests and docs after its `document` stage (in
+  both planning review modes), and ShipLoop commits the step.
+- `test` writes this step's part of the test spec, each test asserting its
+  case's oracle. ShipLoop then runs them on the step's base
+  (no test ID new at this step may pass there unless `red_na` names it;
+  `shiploop red-check` runs this check on demand) and on the candidate, holding
+  each command to its floor (`retired_tests` declares a deliberate removal).
+- `document` is issued only when the step's diff touches a code or test path;
   `verify` reruns every command and reviews the whole diff, and ShipLoop commits
   the item when it is accepted.
 - `carry-forward` records a skill decision (`none`, `reuse`, `update` or
@@ -238,7 +238,7 @@ route; unavailable remote checks remain unrun even when local tests pass.
 
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card (`--planning-review none` requires it: no planning child binds the card before the first
-`implement` step's Improve child). If omitted, `init` records the card installed beside ShipLoop when it
+step's Improve child, after its `document` stage). If omitted, `init` records the card installed beside ShipLoop when it
 validates, and ShipLoop binds that card to each Improve stage itself; only when the recorded card
 no longer resolves does the Improve packet print `improve-bind --action <improve id> --skill-card ...`
 with the path, and where none validates the stage stays pending on a marked blank. The
@@ -615,7 +615,7 @@ runtime own child iterations. ShipLoop has no second review counter.
 The navigator applies the actual-skill handoff to the planning stages (spec, test
 strategy, plan, step plan, test spec, system-test authoring and release plan; with
 `--planning-review none`, only system-test authoring and release plan), to each
-accepted implement step, and to the last carry-forward, whose review covers all
+step's accepted document stage, and to the last carry-forward, whose review covers all
 executed steps before OUTER work. See "When Improve runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs). The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual

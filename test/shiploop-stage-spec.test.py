@@ -67,8 +67,10 @@ class StageTableTest(unittest.TestCase):
         self.assertIn("ShipLoop derives this run's ID changes from the spec diff", spec.stage("spec").goal)
 
     def test_the_several_steps_wording_is_a_pair_of_the_goal_and_each_condition_of_one_row(self) -> None:
-        """Only implement words itself for the steps one ask-agent action builds; a condition keeps the row's rules."""
-        self.assertEqual([name for name, row in spec.STAGE_SPEC.items() if row.steps_goal is not None], ["implement"])
+        """implement, and the test and document stages that follow it, word themselves for the steps one ask-agent action
+        builds (design T section 8: each step is built, tested and documented); a condition keeps the row's rules."""
+        self.assertEqual([name for name, row in spec.STAGE_SPEC.items() if row.steps_goal is not None],
+                         ["implement", "test", "document"])
         row = spec.stage("implement")
         worded = spec.for_steps(row, "S1 to S2", "a.py, b.py")
         self.assertEqual(len(worded.done_when), len(row.done_when))
@@ -86,7 +88,8 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
         # Rule item (owner, 2026-10-26, design 560c396f P0): one implement review per work item; test-spec has none.
         self.assertEqual(spec.IMPROVE_RULES, ("always", "last-item", "item", "first-item"))
-        self.assertEqual(spec.with_improve("item"), frozenset({"implement"}))
+        # Design T §8 (owner 2026-10-27/28): each step's one review follows its document stage.
+        self.assertEqual(spec.with_improve("item"), frozenset({"document"}))
         self.assertIsNone(spec.stage("test-spec").improve)
 
     def test_planning_review_modes(self) -> None:

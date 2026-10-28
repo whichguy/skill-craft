@@ -209,11 +209,11 @@ class NavigatorDryRunTests(unittest.TestCase):
                 produces = [event for event in report['events'] if event['command'] == 'produce']
                 finishes = [event for event in report['events'] if event['command'] == 'finish-improve']
                 # An actual Improve child starts only for a planning/contract
-                # stage result, an accepted implement step or the end-of-work
-                # carry-forward; every other produce advances directly with no
-                # paired finish-improve.
+                # stage result, a step's document stage (the step's review, design T §8)
+                # or the end-of-work carry-forward; every other produce advances directly
+                # with no paired finish-improve.
                 # The finish is an event of the Improve stage; the stage it reviews is the producer before it.
-                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'implement', 'carry-forward'}
+                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'document', 'carry-forward'}
                 self.assertEqual({event['from'] for event in finishes} - {'improve'}, set())
                 reviewed = reviewed_stages(report['events'])
                 self.assertTrue(set(reviewed) <= checkpoint_stages)
@@ -237,15 +237,15 @@ class NavigatorDryRunTests(unittest.TestCase):
                          and event['command'] == 'produce']
         self.assertEqual([event['owner'] for event in produce_inner],
                          ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
-        # Each item's one implement step gets its step review. W1's carry-forward
+        # Each item's one step gets its step review after its document stage (design T §8). W1's carry-forward
         # leaves W2 pending, so only W2's end-of-work carry-forward gets a
         # review; W1's carry-forward advances straight to W2 without one.
         two_events = two_items['events']
         finish_inner = [(stage, event['owner'])
                         for stage, event in zip(reviewed_stages(two_events),
                                                 [e for e in two_events if e['command'] == 'finish-improve'])
-                        if stage in ('implement', 'carry-forward')]
-        self.assertEqual(finish_inner, [('implement', 'W1'), ('implement', 'W2'), ('carry-forward', 'W2')])
+                        if stage in ('document', 'carry-forward')]
+        self.assertEqual(finish_inner, [('document', 'W1'), ('document', 'W2'), ('carry-forward', 'W2')])
         w1_produce = next(event for event in two_items['events']
                           if event['owner'] == 'W1' and event['from'] == 'carry-forward'
                           and event['command'] == 'produce')
@@ -420,11 +420,11 @@ class NavigatorDryRunTests(unittest.TestCase):
 
     def test_the_dry_run_schedule_is_declared_per_planning_review_mode(self):
         """An independent oracle: the stages whose result starts an Improve child, declared here for each mode."""
-        # implement's per-item review runs in both modes (rule item, 2026-10-26; planning_review none does not skip it),
-        # and test-spec has none.
+        # Each step's review follows its document stage in both modes (rule item, design T §8; planning_review none does
+        # not skip it), and test-spec has none.
         reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan',
-                              'system-test-author', 'release-plan', 'implement'},
-                    'none': {'system-test-author', 'release-plan', 'implement'}}
+                              'system-test-author', 'release-plan', 'document'},
+                    'none': {'system-test-author', 'release-plan', 'document'}}
         events = {'stage': {'delivery': 32, 'two-work-items': 41, 'blocked-resume': 34, 'send-back': 37,
                             'pause-resume': 34, 'halted': 1},
                   # none drops one finish-improve row for each planning result the option covers

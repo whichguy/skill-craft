@@ -58,12 +58,11 @@ ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective item
                   '[{"id": "<new id>", "title": "...", "context": "..."}]}')
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
-# and "item" once per work item, after its last accepted implement step, over the item's whole change, whatever the
-# planning review option says (owner, 2026-10-26, design 560c396f P0; it was "step", one review per step, owner
-# 2026-10-10: a live three-item run on DeepSeek flash ran 12 step reviews in 28 minutes for 3 real code fixes).  A wide
-# item, one whose steps work on separate paths (``shiploop_loops.step_path_groups`` > 1), has each step that changed a
-# file reviewed instead (owner, 2026-10-27, design 8e9d2d55: Sonnet makes one finding pass per review, so one review of a
-# three-part item missed the three defects its step reviews had fixed).
+# and "item" once per step, after the step's document stage, over the step's code, tests and docs, whatever the planning
+# review option says (owner, 2026-10-27/28, design T §8: "build one step, then test, improve, and document, and then
+# build step number two", with Improve "after document"; each step is built, tested, documented, reviewed and committed
+# before the next).  It replaces one review per item after its last step (2026-10-26, design 560c396f P0), which on
+# Sonnet missed the three defects a per-step review fixed (design 8e9d2d55).
 # "first-item" starts one only for the first work item, and for an item that was sent back (its redone plan is
 # reviewed): later items follow the pattern the first item's review set (owner, 2026-10-19: in a live four-item run
 # the step plan's review took 5-14 min on every item, and Improve was 42% of the run).  The planning review option governs it as it
@@ -194,8 +193,9 @@ RETURN_LEFTOVERS = "plan-return commits files left uncommitted, so commit nothin
 # depends on the run: a worktree run's plan-return commits what is left, an in-place run has no return.
 ITEM_COMMIT_STAGES = ("document", "verify")
 ITEM_COMMITS = (
-    "When verify is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its "
-    "changed documentation files (for example README.md or files under docs/) and docs/shiploop/."
+    "When a step's document stage and its review are accepted, ShipLoop commits the step's changed files that the step "
+    "plan's paths declare, its changed documentation files (for example README.md or files under docs/) and "
+    "docs/shiploop/, as one commit; when verify is accepted it commits what is left."
 )
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
                     + " Delete generated output the product does not need.")
@@ -446,18 +446,26 @@ _ROWS = (
         entry_runs=("loop-contract",),
         # step-proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
         complete_runs=("loop-terminal", "lint-gate", "step-proof"),
-        improve="item",
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),
         outcomes=("done", "blocked"),
     ),
     Stage(
         "test", "inner",
-        goal='Write a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.',
-        short_goal="write and run this item's tests",
+        goal="Build out this step's part of the test spec: a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.",
+        short_goal="build out and run this step's tests",
         done_when=(
-            "every case in the test spec is a test the focused command runs, with its ID in the name",
-            "no new test ID passes on the item's base checkout, unless red_na names it",
+            "every case quoted for this step is a test the focused command runs, with its ID in the name",
+            "no test ID new at this step passes on the step's base checkout, unless red_na names it",
+            "one complete iteration after the last edit ran every recorded command, each exiting 0, running every "
+            "listed ID and at least the floor of tests",
+            "every test change made to pass a run has a recorded independent reason",
+        ),
+        # The ask-agent route's one implement action builds every step, so its test stage covers them all.
+        steps_goal="Build out the test spec for steps {steps}: a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.",
+        steps_done_when=(
+            "every case quoted for steps {steps} is a test the focused command runs, with its ID in the name",
+            "no test ID new at these steps passes on their base checkout, unless red_na names it",
             "one complete iteration after the last edit ran every recorded command, each exiting 0, running every "
             "listed ID and at least the floor of tests",
             "every test change made to pass a run has a recorded independent reason",
@@ -475,9 +483,14 @@ _ROWS = (
     ),
     Stage(
         "document", "inner",
-        goal='Update the docs this change affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.',
-        short_goal="document this item's change",
+        goal="Update the docs this step's change affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.",
+        short_goal="document this step's change",
         done_when=(
+            "each changed public behaviour is documented where users and maintainers look",
+            "each changed document was reread after the last edit",
+        ),
+        steps_goal="Update the docs the change of steps {steps} ({paths}) affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.",
+        steps_done_when=(
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
         ),
@@ -485,7 +498,9 @@ _ROWS = (
         edits=frozenset({"docs"}),
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal",),
-        reads=("spec", "plan", "item:step-plan", "item:implement", "item:test"),
+        improve="item",
+        # test-spec: the step's due cases its hand-off quotes (CONSUMES), which its review judges.
+        reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
         blocks=frozenset(),        outcomes=("done", "blocked"),
     ),
     Stage(
@@ -507,7 +522,9 @@ _ROWS = (
         edits=frozenset({"code", "tests"}),
         entry_runs=("change-inventory", "advisory-lint", "loop-contract"),
         complete_runs=("loop-terminal", "lint-gate", "test-rerun"),
-        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
+        # document: each step's result and its review's receipt, which the item review builds on.
+        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test",
+               "item:document"),
         blocks=frozenset({"reconciliation"}),
         outcomes=("done", "blocked"),
     ),

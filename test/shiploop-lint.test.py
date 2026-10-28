@@ -1061,15 +1061,17 @@ class HookTests(Fixture):
         self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})
 
     def enter_verify_with_a_fixable_edit(self) -> dict:
-        """Drive to document, add a fixable finding there (document is not gated) and enter verify."""
+        """Drive to document, add a fixable finding there (document is not gated) and enter verify: the last step's
+        document review finishes, ShipLoop commits the step, and verify's entry lints."""
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
             state = drive(self.run_dir, "document")
             self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
             self.edit_item()
-            self.entered = complete(self.run_dir, state)
-        state = store.read_record(self.run_dir / "state.md")
+            complete(self.run_dir, state)
+            state = settle(self.run_dir)
+            self.entered = nav.render(CORE, self.run_dir, state)
         self.assertEqual(nav.current_stage(state), "verify")
         return state
 
@@ -1115,7 +1117,7 @@ class HookTests(Fixture):
             state = drive(self.run_dir, "document")
             self.edit_item()
             complete(self.run_dir, state)
-            state = store.read_record(self.run_dir / "state.md")
+            state = settle(self.run_dir)
             first = nav.current_action(state)["id"]
             self.assertEqual(store.read_record(self.run_dir / "lint" / (first + ".md"))["applied"], ["a.py"])
             complete(self.run_dir, state, dict(DONE, outcome="send-back", summary="A finding needs a test-spec case."))
@@ -1190,15 +1192,19 @@ class HookTests(Fixture):
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_hook_exception_never_fails_complete(self):
+        """verify's entry lint runs in the transition that finishes the last step's document review."""
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
             state = drive(self.run_dir, "document")
             self.edit_item()
-            result = inner.prepare(self.run_dir, state, DONE)
-            expected = nav.apply(state, nav.current_action(state)["id"], result)
+            complete(self.run_dir, state)
+            state = store.read_record(self.run_dir / "state.md")
+            review = {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"], "check_refs": ["synthetic://c"]}
+            expected = nav.finish_improve(state, state["active_improve"]["action_id"], review)
             with mock.patch.object(lint, "lint_pass", side_effect=SystemExit(2)):
-                packet = complete(self.run_dir, state, result, loop=False)
+                finish_improve(self.run_dir)
+            packet = nav.render(CORE, self.run_dir, store.read_record(self.run_dir / "state.md"))
         saved = store.read_record(self.run_dir / "state.md")
         # Only the transition changed state: identical except the fresh action ID.
         issued = nav.current_action(saved)["id"]
@@ -1604,20 +1610,20 @@ class GateTests(Fixture):
                 complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": "x", "reason": "r"}]))
             complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "Kept on purpose."}]))
         saved = store.read_record(self.run_dir / "state.md")
-        self.assertEqual(saved["active_improve"]["stage"], "implement")  # accepted: the step's Improve review is next
+        # Accepted: the step's test stage is next; its review follows its document stage (design T section 8).
+        self.assertIsNone(saved["active_improve"])
+        self.assertEqual(nav.current_stage(saved), "test")
         # The malformed waiver was refused before any pass ran: two gate passes in all.
         self.assertFalse((self.run_dir / "lint" / (action + ".gate3.md")).exists())
         record = store.read_record(self.run_dir / "lint" / (action + ".gate2.md"))
         self.assertEqual(record["waived"], found)
-        # The step's Improve child carries the accepted result; finishing it records the waiver with the step.
-        self.assertEqual(saved["active_improve"]["seed_result"]["lint_waivers"],
-                         [{"id": found[0], "reason": "Kept on purpose."}])
-        self.assertEqual(settle(self.run_dir)["accepted"][action]["lint_waivers"],
-                         [{"id": found[0], "reason": "Kept on purpose."}])
+        self.assertEqual(saved["accepted"][action]["lint_waivers"], [{"id": found[0], "reason": "Kept on purpose."}])
 
     def test_every_implement_step_is_gated(self):
         """Owner decision 4 (2026-10-10): the lint gate runs on every implement step, not only the last; a finding a
-        later step resolves is waived at the earlier step (X5, e8_lint_steps.py, was the import a later step uses)."""
+        later step resolves is waived at the earlier step (X5, e8_lint_steps.py, was the import a later step uses).
+        Each step is gated on the lines it changed since its own base (design T section 8: a step's iteration starts
+        from the commit the step before it left), so S1's waived line, committed with S1, is not S2's finding."""
         self.commit({"a.py": "x = 1\n"})
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
                                              lint_option="fix"))
@@ -1641,11 +1647,14 @@ class GateTests(Fixture):
             self.assertNotIn("without auto-fix", block)
             found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
             complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "S2 resolves it."}]))
-            state = settle(self.run_dir)
-            self.assertEqual(nav.current_stage(state), "implement")  # S2
-            with self.assertRaisesRegex(nav.NavigatorError, "implement is not done while 1 new lint finding"):
-                complete(self.run_dir, state)  # S1's waiver does not carry over to S2
-            self.edit({"a.py": "x = 1\ny = 2\n"})
+            state = drive(self.run_dir, "implement")  # S1's test, document and review, then S2
+            self.assertEqual(nav.step_view(state, "W1").step["id"], "S2")
+            self.edit({"a.py": "x = 1\ny = 2  # lint\nz = 3  # lint\n"})
+            with self.assertRaises(nav.NavigatorError) as refused:
+                complete(self.run_dir, state)  # S2 is gated on its own line, and only on it
+            self.assertIn("implement is not done while 1 new lint finding", str(refused.exception))
+            self.assertRegex(str(refused.exception), r"(?m)^- L[0-9a-f]{10} a\.py:3: ")
+            self.edit({"a.py": "x = 1\ny = 2\nz = 3\n"})
             complete(self.run_dir, state)
         self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
     def test_auto_fix_refuses_once_then_accepts(self):
