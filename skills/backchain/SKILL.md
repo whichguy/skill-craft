@@ -4,10 +4,10 @@ description: >-
   Use when an implementation task needs a dependency-aware plan before coding:
   backward planner / backchain / precondition-first planning, dependency DAGs,
   elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language
-  coding request into a forward draft then backward-chaining enriched DAG with explicit
-  unresolved risks, then directly calls the selected Until Loop to repeat dependency
-  review, by default until two consecutive trivial/no-change reviews, or for one cycle
-  when the caller states `Backchain passes: one`.
+  coding request into a dependency-aware DAG with explicit unresolved risks, then binds it
+  to the selected Until Loop for repeated dependency review. Supplied drafts retain their
+  seed identities and use backward elaboration. The default gate requires two consecutive
+  trivial/no-change reviews; one cycle runs when the caller states `Backchain passes: one`.
 version: 0.6.3
 author: Backchain
 license: MIT
@@ -35,11 +35,12 @@ metadata:
 # Backchain
 
 Use Backchain when an implementation task needs an explicit dependency graph before work
-starts. It turns a raw coding description into a forward draft, then **backward-chains**
-that draft into an enriched dependency DAG with explicit unresolved risks. For a complete
-planning result, Backchain binds the selected actual **Until Loop** card and its package-relative
-ephemeral adapter to review and improve the scoped plan until Until Loop returns its exact
-terminal receipt. Backchain does not implement a second loop, counter, or recovery state.
+starts. For a fresh request, synthesize a compact DAG directly, check dependency questions,
+and elaborate only when evidence requires a graph repair. A supplied draft keeps its seed
+identities and is backward-chained into an enriched DAG. For a complete planning result,
+bind the candidate to the selected actual **Until Loop** card and its package-relative
+ephemeral adapter. Until Loop owns repeated review and its exact terminal receipt; Backchain
+does not implement a second loop, counter, or recovery state.
 
 ## Mode selection (prompt-first)
 
@@ -62,36 +63,66 @@ itself needs repository evidence.
 No ambient Until Loop installation, custom Backchain pass counter, pass ceiling,
 or substitute scheduler is allowed.
 
-### Compatibility-native plan
+### Fresh request (default)
 
-1. Load `prompts/generator.v1.md` (or package copy) with `{{RAW_PROMPT}}` → draft JSON.
-2. Load `prompts/dependency-review.prompt.md` with goal + draft → dependency-context JSON (`source: native`).
-3. Resolve only evidenced facts; unevidenced world-state is not `initial_state`.
-4. Load `prompts/elaborator.v1.md` with draft + rendered dependency context → enriched JSON.
-5. Freeze the enriched plan artifact and original request as the plan-only Until Loop child
-   candidate described in `references/convergence.md`. One Until Loop callback may use the
-   Backchain review primitive and dependency review/elaboration for an authorized repair,
-   while legacy seed/null edges and `goal_needs` remain preserved.
-6. Return `{plan, convergence}` only after the exact selected Until Loop terminal `complete`
-   receipt plus the final Backchain domain evidence. Otherwise return an honest incomplete
-   binding companion. Report `mode=native` and `structural_plan_status: unknown` outside
-   the plan unless a deterministic validator receipt exists for this exact plan. Keep
-   `parallel_groups: []` in the canonical plan until that receipt exists.
-7. Optional packaging in a Backchain development checkout: `bash harness/run-prompt.sh --package-only enriched.json`
-   proves only its structural result, never Until Loop completion.
+1. Load `prompts/direct.v1.md` with the unedited request as `{{RAW_PROMPT}}`. When
+   `backchain-caller/v1` is selected, include the same original request, source snapshots,
+   caller packet, and triggered lens findings as data. Direct synthesis is for fresh
+   requests only; never use it to replace an existing draft.
+2. Run the unchanged `prompts/dependency-review.prompt.md` against the candidate and the
+   same retained request/caller/source/lens data. Resolve questions only with user answers
+   or inspected evidence; an unanswered question is not a fact.
+3. If an answer or inspection changes a dependency, supplier, step claim, or unresolved
+   need, or an open material question must be recorded as a real unresolved dependency,
+   load `prompts/elaborator.v1.md` with the candidate and dependency context. Otherwise
+   carry the candidate forward without an unchanged rewrite.
+   Whenever invoked, the elaborator performs the complete five-lens pass, coverage audit,
+   and forward relationship check.
+4. Freeze the candidate and original request as the plan-only Until Loop child described
+   in `references/convergence.md`. Until Loop owns the full recurring review, technical-lens
+   applicability screen, repair/check cycle, and terminal receipt.
+
+### Supplied draft or legacy automated path
+
+For a supplied draft, go directly to the elaborator. Preserve its seed IDs, input edges,
+`goal_needs`, and existing `confirm` entries; fill missing confirmations without rewriting
+unaffected content. When the one-shot compatibility pipeline is explicitly selected for a
+raw request, use the generator/dependency-review/elaborator sequence below. Neither is the
+default fresh-request route.
+
+1. Load `prompts/generator.v1.md` (or package copy) with `{{RAW_PROMPT}}` → forward draft JSON.
+2. Load `prompts/dependency-review.prompt.md` with goal + draft → dependency-context JSON
+   (`source: native`); resolve only evidenced facts.
+3. Load `prompts/elaborator.v1.md` with the draft and rendered context → enriched JSON.
+4. Freeze the enriched plan and original request as the plan-only Until Loop child
+   candidate described in `references/convergence.md`. One callback may use Backchain's
+   review primitive and dependency review/elaboration for an authorized repair while
+   preserving legacy seed/null edges and `goal_needs`.
+5. Return `{plan, convergence}` only after the exact selected Until Loop terminal `complete`
+   receipt plus final Backchain domain evidence; otherwise return an honest incomplete
+   binding companion. Report `mode=native` and `structural_plan_status: unknown` outside the
+   plan unless a deterministic receipt exists for this exact candidate. Keep
+   `parallel_groups: []` until that receipt exists.
+6. Optional packaging in the development checkout,
+   `bash harness/run-prompt.sh --package-only enriched.json`, proves only its structural
+   result, never Until Loop completion.
 
 ### Source-aware native plan (explicit `backchain-caller/v1` selection)
 
 Use this for requests with supporting specifications or source verification when the host
 prepares the companion packet. Read `references/caller-contract.md` first. Original
 request, selected source snapshots, caller packet, and selected lens findings travel as
-the same data through generator, dependency review, elaborator, and the selected Until Loop
-child context; existing plan JSON/schema remain unchanged.
+the same data through direct synthesis (or the legacy generator), dependency review,
+optional elaboration, and the selected Until Loop child context; existing plan JSON/schema
+remain unchanged.
 
-1. **Plan/draft:** generate, dependency-review, and elaborate with the retained caller
-   data. Preserve action/stage/action ID/owner/workflow stage, observed locator bases,
-   source authority/provenance/currentness/revision/digests, resolved locators, and
-   distinct candidate identities in the companion.
+1. **Plan/draft:** for a fresh request, use direct synthesis and dependency review with
+   the retained caller data; elaborate only if evidence requires a graph repair. The
+   supplied existing candidates go straight to elaboration; the legacy generator/elaborator
+   path remains available for automated raw-request drafts.
+   Preserve action/stage/action ID/owner/workflow stage, observed locator bases, source
+   authority/provenance/currentness/revision/digests, resolved locators, and distinct
+   candidate identities in the companion.
 2. **Review/audit diagnostic:** `prompts/audit.prompt.md` returns review only. It does
    not start Until Loop or claim convergence. Applicable unavailable, stale, or ambiguous
    normative sources keep source review incomplete absent inspected supersession evidence.
@@ -115,7 +146,7 @@ Use `references/technical-lenses.md` to select applicable technical discovery qu
 `references/technical-lens-cards.md` for cards, and `references/technical-interactions.md` for
 cross-lens questions. These are triggers and aids, never requirements by themselves.
 
-**Question ≠ fact.** An unanswered question is not evidence and must not invent a `D*` by itself. An unevidenced world-state a step actually presupposes still needs a predecessor that would produce that evidence, or an honest `unresolved` — never a raw assumption.
+**Question ≠ fact.** An unanswered question is not evidence and must not invent a `D*` by itself. **EVIDENCE** in **RESOLVE**: unevidenced world-state is not `initial_state`; an actually required state needs a predecessor that produces inspectable evidence or an honest `unresolved` — never a raw assumption.
 
 Harness inventory, env, exit codes: `references/harness.md`. Dependency context shape: `references/dependency-context.md`.
 
@@ -204,40 +235,13 @@ merge safety, or runtime completion.
 empty — **not** that the goal sentence was separately proven covered. Optional `goal_needs` (when
 hand/harness-supplied) is the goal-closure check.
 
-**Manual multi-step (templates remain authoritative):**
-
-1. Put the unedited request into `prompts/generator.v1.md` at `{{RAW_PROMPT}}`; save its
-   JSON-only draft. Demo requests live under the development checkout's `samples/*.prompt.md`. The generator derives the
-   request's terminal observable conditions into `goal_needs` **before** drafting any step, then
-   runs **environment probes once against those conditions** — repo/worktree state, existing user
-   or data state needing transition, release gates, documentation, and systems that must be brought
-   into existence. Probes are conditional and **fail to nothing**: an unfired probe adds no step.
-   They run at spec level, never per step.
-2. Put that draft into `prompts/elaborator.v1.md`, set `{{TRACE_MODE}}` to `off`, and save
-   the JSON-only enriched plan. The elaborator runs a **five-lens back-check per step** (CLAIM /
-   NEEDS / SUPPLY / PULL / RESOLVE): deep interrogation of what that step needs to run, what it
-   claims when done, whole-graph supply scan up the chain, one-hop downstream pressure on its
-   produces, then wire / enrich / insert `D*` / unresolved — never a shallow edge-only pass. Three
-   disciplines live **inside** RESOLVE, not as extra lenses: **CARRIER** (a producer names the
-   concrete artifact when its `produces` could cover more than one thing, and the consuming edge's
-   existing optional `inputs[].artifact` names the same carrier); **HOIST** (a need shared by two
-   or more steps is supplied **once**, at the **lowest common ancestor** of its consumers and never
-   higher — hoisting to a shared root would serialize independent branches; prefer **widening an
-   existing step** over inserting a redundant `D*`, and re-check acyclicity before committing); and
-   **EVIDENCE** (a need is closed only by request/inspect evidence it already holds, or by a
-   predecessor whose execution would produce inspectable evidence of it — never a raw assumption;
-   unproducible evidence stays `unresolved`).
-   These duties are cumulative with the in-place rewrite duty, not alternatives to it. Trace
-   mode is for offline/manual debugging only: `harness/bench.sh` always renders it as `off` and
-   does not parse trace-mode output.
-3. Recompute `parallel_groups` with `computeParallelGroups` from the development checkout's `harness/lib.js` (or use
-   `packagePlan` / `run-prompt.sh --package-only`), then validate with `validateStructure`
-   before using the plan. Do not leave `parallel_groups` as `[]` if multi-member waves exist.
-4. For a complete Backchain planning invocation, run `references/convergence.md` over
-   the candidate and preserve its companion report. Repackage after any graph revision.
-   `prompts/rubric-judge.md` and `prompts/compare-judge.md` assess benchmark candidates;
-   neither substitutes for the planning reviews the gate requires (by default two
-   consecutive; one cycle with `Backchain passes: one`).
+**Template and validation notes:** `direct.v1.md` is for fresh requests. Supplied plans go
+straight to `elaborator.v1.md`; the legacy generator/elaborator pair remains for automated
+raw-request drafts. The elaborator's five lenses (CLAIM / NEEDS / SUPPLY / PULL / RESOLVE),
+goal closure, evidence rules, carrier naming, lowest-common-ancestor hoisting, and
+true-immediate-dependency test remain operative. Packaging recomputes `parallel_groups`;
+a structural receipt does not replace the selected Until Loop's review or terminal receipt.
+Repackage after any graph revision. Benchmark judges do not substitute for planning review.
 
 ## Plan document shape
 
@@ -245,7 +249,7 @@ A complete plan JSON object has these **required top-level keys** (the developme
 
 `goal`, `initial_state`, `steps`, `parallel_groups`, `unresolved`
 
-Optional top-level key: **`goal_needs`** — array of non-empty strings naming terminal needs that must appear in some step’s `produces` or in `initial_state` for `completionStatus` to report **complete**. Empty array is allowed and means no goal constraints (same as omitting the field). When present, the field is shape-strict (non-array, non-string, empty, or whitespace-only elements → schema / invariant 1 invalid). Division of labor: the **generator authors it** — deriving the request's terminal observable postconditions before drafting any step — and may legitimately emit `goal_needs: []` when the request implies no checkable terminal condition, but must never invent an entry to fill the field. The **elaborator preserves a supplied array verbatim** (never edits, reorders, extends, or drops entries) and is responsible for ensuring every entry is **covered** by some step's `produces` or `initial_state`, closing any gap by wiring, widening, inserting a `D*`, or recording it in `unresolved`. The elaborator still must not invent this field when a draft lacks it.
+Optional top-level key: **`goal_needs`** — array of non-empty strings naming terminal needs that must appear in some step’s `produces` or in `initial_state` for `completionStatus` to report **complete**. Empty array is allowed and means no goal constraints (same as omitting the field). When present, the field is shape-strict (non-array, non-string, empty, or whitespace-only elements → schema / invariant 1 invalid). Division of labor: fresh-request direct synthesis authors it before drafting any step; the legacy generator does so for its compatibility path. Either may emit `goal_needs: []` when the request implies no checkable terminal condition, but must never invent an entry. The **elaborator preserves a supplied array verbatim** (never edits, reorders, extends, or drops entries) and is responsible for ensuring every entry is **covered** by some step's `produces` or `initial_state`, closing any gap by wiring, widening, inserting a `D*`, or recording it in `unresolved`. The elaborator still must not invent this field when a draft lacks it.
 
 - **`goal`**: a single sentence describing the **end state** the plan achieves — not a task
   title or verb-first to-do ("User authentication works end-to-end," not "Add auth").
