@@ -726,6 +726,36 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - **Carry-forward** keeps the queue and the item's learnings; its skill decision goes.
     - **Not in 2b-3.** Lint on the knowledge files and the test rerun before the commit are the commit stage's
       (2b-4), which checks the tree the knowledge gate ran on.
+
+    **Reopened 2026-10-28, decision pending (the owner).** The owner asked: "Do we need to introduce a stage at all
+    during the sequence after we implement? To say, do we need to update the architecture environment or anything that
+    we've sort of more well understood about the specs? Just as a reflection to determine if the definitions need any
+    updating as well, do we need to introduce a consideration of whether there are any more tasks that should be
+    added?"
+    - **Option A** is the cut above: a `knowledge` model stage after each step's review.
+    - **Option C:** no new stage. Document becomes the step's one place to reflect and record knowledge. The step
+      review corrects that knowledge and writes back what it finds. The gates run on the final tree at the step
+      commit. A step may record follow-up work as open items for carry-forward. The skill decision stays per item at
+      carry-forward.
+    - **Astra (gpt-6-astra, max effort) recommends C with three additions:** the review writes its corrections back,
+      every step's open items are kept, and the gates check the final tree. Evidence:
+      `docs/experiments/knowledge-stage-review-20261028/astra-review.md`.
+    - **Its reasons:**
+      - C keeps the knowledge edits inside the change the review already examines. A adds a writing action after the
+        review (§9 rows 1 and 7).
+      - A costs one model action per step: 15 against 12 on a three-step item.
+      - All 20 recorded skill decisions were `none`.
+    - **What C loses:** a skill created after one step for use by the next.
+    - **Revisit A** when a pilot shows C missing knowledge, or a skill reused within one item.
+    - **Its findings:**
+      - **Verified and fixed** (`07585d1a`): the spec gate took its R-n spans from the edited text, so a step could
+        add a marked `R-2`.
+      - **Reported, not yet verified:**
+        - document is in neither `OPEN_ITEM_STAGES` nor `CARRY_FORWARD_PRODUCERS`;
+        - `current_actions` keeps one result per (item, stage), so S1's open items vanish once S2 submits;
+        - `_document_entry`'s N/A route would skip the reflection;
+        - the step commit message carries only implement's learnings;
+        - test is a third knowledge writer.
   - **2b-4. The commit stage.**
     - It replaces the step commit, the review's commits (Improve without commit), the knowledge-record commits inside
       an iteration, and verify's item commit.
