@@ -289,8 +289,13 @@ Removing it is the largest of T, C and this flow.
 
 ## 8. One iteration per step: build, test, document, Improve, commit (current proposal, 2026-10-27)
 
-**Revised the same day.** The first version ran Improve before document. The owner moved it after document, and asked
-that the test stage be defined as building out the test specification. 8.2 and 8.3 say what changed.
+**Revised the same day.** The first version ran Improve before document. The owner then:
+- moved Improve after document;
+- asked that the test stage be defined as building out the test specification;
+- asked that every linter run on the production code after build and on the test code after the tests are written;
+- asked that the test stage build mocks that simulate the expected behaviour before the system tests.
+
+8.2, 8.2a and 8.3 say what changed.
 
 The owner, in five messages:
 - "To be very clear, I want to build one step, then test, improve, and document, and then build step number two,
@@ -302,6 +307,11 @@ The owner, in five messages:
 - "I think the improve step should come after document, and we should clear that the tests should build out from the
   test specification. The test specification should actually build out the tests themselves, performing the tests,
   looping as needed."
+- "Do we need to be more detailed because I don't see the linters running, which they should run after the code has
+  been built?"
+- "Technically, we should run every linter after the test code is written as well, so linters should be done both in
+  production code and test code. We should also be clear, in the test areas, that we want to build mock objects
+  simulating the behavior we expect before going to system tests."
 - Earlier (memory `todo-step-series-order`, 2026-10-17): each planned step runs its own series, in plan order.
 
 **8.1 The shape.**
@@ -321,18 +331,25 @@ The owner, in five messages:
 
 | stage | the work | exit gates |
 |---|---|---|
-| build | write this step's code | lint gate; the step's Proof |
-| test: build out the test specification | turn each test-spec case assigned to this step into a test, titled with its ID and asserting the case's oracle (never the code's current behaviour); add a valid, a boundary and an invalid case for each entry point the step changed; perform them by running every recorded command; loop: fix the code, or a test for a recorded independent reason, until one run after the last edit passes every gate | the tests pass; IDs; floors; RED against the code before this step; mutation of this step's changed lines; lint; the entry-point map |
+| build | write this step's code | **lint the production code** (8.2a); the step's Proof |
+| test: build out the test specification | build mocks that simulate what the step's dependencies are expected to do; turn each test-spec case assigned to this step into a test against them, titled with its ID and asserting the case's oracle (never the code's current behaviour); add a valid, a boundary and an invalid case for each entry point the step changed; lint the test code; perform them by running every recorded command; loop: fix the code, or a test for a recorded independent reason, until one run after the last edit passes every gate | **lint the test code and any production code the loop changed** (8.2a); the tests pass; IDs; floors; RED against the code before this step; mutation of this step's changed lines; the entry-point map |
 | document | update the docs this step's change affects, from the behaviour the tests now show | lint on docs; the doc checks among the recorded commands |
 | Improve | review the whole step together (code, tests and docs), now green and documented. A behaviour fix adds a test for it and corrects the docs it affects; a doc that disagrees with the code is a finding. Rerun every command after each edit | its own rule (a pass that changes nothing material ends it); at import, the iteration's final gate: lint and a rerun of every recorded command, doc checks included |
 | commit | ShipLoop commits everything the iteration changed (code, tests, docs, review fixes) as one `feat(<item>/<step>)` commit. Its message carries the step's learnings and decisions, the review's lessons and the evidence. | none of its own: it checks that the tree is the one Improve's final gate ran on |
 
 **The test stage, defined.** The test specification is the source of every test. The test stage builds out this
 step's part of it into tests, performs them, and loops until they pass:
-1. **Build out:** one test per assigned case, titled with its ID, asserting the oracle the spec states.
-2. **Perform:** run every recorded command, which covers this step's focused tests, the earlier steps' tests and the
+1. **Mock the dependencies first.** For each thing the step's code calls, build a mock (a test double) that simulates
+   the behaviour the spec expects, including slow, failing and out-of-order answers. Examples are the network, the
+   clock, randomness, storage, a child process and browser APIs. The step's code is tested against the mocks. Real
+   boundaries are left to the system tests (the outer `system-test` stage), and each mock records what it stands in
+   for, because a mock proves the code only against the behaviour it simulates (`testing-and-documentation.md`).
+2. **Build out:** one test per assigned case, titled with its ID, asserting the oracle the spec states.
+3. **Lint the test code:** run `shiploop lint --action` over the tests just written. The stage's done runs the lint
+   gate on them (8.2a).
+4. **Perform:** run every recorded command, which covers this step's focused tests, the earlier steps' tests and the
    regression suite.
-3. **Loop:** for each failure, find its cause with one small observation and fix the product. Change a test only for
+5. **Loop:** for each failure, find its cause with one small observation and fix the product. Change a test only for
    an independent reason recorded in the notes. Never weaken, delete or skip one. Repeat until one complete run after
    the last edit passes every gate. There is no iteration limit.
 
@@ -354,6 +371,34 @@ The gates in the test row, in plain terms:
   every one of the five runs (`gate_counts.mutation_not_done`: 2, 1, 1, 3 and 4 times).
 - **Entry-point map** (new, §7.3): each entry point this step changed has its three cases, and they ran.
 
+**8.2a Where the linters run.** ShipLoop runs them itself (`shiploop_lint`). The model also runs
+`shiploop lint --action` after each edit, which only reports.
+
+| after | what is linted | what the gate does |
+|---|---|---|
+| build | the production code this step changed | applies safe auto-fixes to the lines the step changed, refuses once so the model sees them, then refuses while a new finding on a changed line has no waiver (`lint_waivers`, with a reason) |
+| test | the test code just written, and any production code the loop fixed | the same, before ShipLoop's own test runs |
+| document | the docs this step changed | the same, where the repository configures a docs linter |
+| Improve (import) | the review's edits, in code, tests or docs | the same, then a rerun of every recorded command |
+
+- **Which linters.** "Every linter" means every linter the catalog finds for each changed file's type:
+  - built in: ruff (Python) and shellcheck (shell);
+  - whichever of these the repository configures: eslint, prettier, tsc, mypy, black, markdownlint-cli2, yamllint,
+    gofmt, clang-format, terraform fmt, ktlint, phpcs, rubocop, plus actionlint whenever it is on PATH;
+  - `npm run lint` or `make lint`, when a changed file has no other linter.
+
+  ShipLoop never installs one.
+- **Per step, "a changed line" is this step's line.** Today the gate compares against the work item's base. In the
+  iteration it compares against the iteration's base, the previous step's commit.
+- **The gap the runs show: a project with no linter configured gets syntax checks only.** In 36036c every step's lint
+  gate passed. Its coverage lines read:
+  - `game.js` and `server.js`: "syntax checked by node --check (no catalogued linter)";
+  - `public/index.html`: "not in scope: no catalogued linter for this file type; git diff --check only"
+    (`RUN/lint/nav-ecd62913….gate1.md`).
+
+  A green lint there meant "it parses". So each stage's packet and the run's report print that coverage line beside
+  the lint result, and a reader never takes a syntax check for a lint.
+
 **8.3 What changes from today:**
 - **Tests per step, built out from the spec.** Today they are written once per item, after every step. The
   test-spec assigns each case to the step whose code it tests. A case that needs several steps goes to the last of
@@ -365,6 +410,15 @@ The gates in the test row, in plain terms:
   test/game.test.js TC-7,8,9,12,13,14 then game.js; (2) test/helpers.js + test/server.test.js … then server.js; (3)
   public/index.html with TC-4; (4) test/browser.test.js TC-15", and ShipLoop's stage order deferred every test to
   after S3.
+- **Mocks before system tests.** No battleship run built a mock of a dependency. They did inject one simple double, a
+  seeded or extreme random-number source (`createGame({ rng: mulberry32(7) })` in 36036c). In 01b9b3 an extreme
+  source caught the placement loop that never ended.
+  - The page's network was never mocked. Sonnet's stale fire reply, which shipped twice, needs exactly that: a mock
+    `fetch` that holds a reply until the test releases it, so the test can press New game while a shot is in flight.
+  - DeepSeek's 759a03 reached the same case only through a real headless Chrome with 600 ms of emulated latency
+    (`browser-check/page.js`).
+  - A mock makes the race a fast, deterministic component test, before any system test.
+- **Lint on both sides.** Production code is linted after build; test code after the test stage writes it (8.2a).
 - **Document, then Improve.**
   - The review sees the step whole: code, tests and the docs that describe them. A doc that disagrees with the code
     becomes a review finding, not something nobody checks.
@@ -409,6 +463,11 @@ The gates in the test row, in plain terms:
   (above). This matches the owner's order "author the code, do the tests, make the code fit the tests". The
   alternative is test-first: the test-spec stage writes each step's tests before its build, RED by design, and the
   build loops until they pass.
+- **F5. Mocks before system tests.** Recommended: the test spec names, per case, the mock it runs against (what it
+  simulates, and the slow, failing or out-of-order behaviour it plays). The test stage builds those mocks first. Start
+  as a stage duty plus that test-spec field, and add a gate only if the live run shows cases skipping their mock.
+- **F6. Lint coverage shown.** Recommended: every lint result prints its coverage line, so "syntax only" is never read
+  as linted.
 
 ## Not in this design
 
