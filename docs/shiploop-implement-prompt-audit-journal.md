@@ -352,3 +352,47 @@ needed:**
 - which Code craft head form, D13 or decision 18.
 
 Then reconcile the naming with the canonical plan.
+
+## Conflict check with the inner-loop session (2026-10-18, afternoon)
+
+Question: does this branch conflict with the inner-loop session's changes? The message sent to that session was held
+by the app (permission-mode mismatch) and not delivered, so this check reads its transcript and branches instead.
+
+- **The base question is settled.** The owner approved decision B. The inner-loop session merged origin/main into
+  `feat/shiploop-eff-int-c5f79b` (fe02651e), took main's Until Loop 0.10.0 runtime and stop rule (29407b46) and recorded
+  the consequences in its plan §8.2 (f7ea3028). At 16:20 it was waiting on the quick tier before release, push, plugin
+  refresh and a canonical fast-forward; nothing was pushed (origin/main still 17ddec36, the integration tip 150 commits
+  ahead). Its wave A then starts with A-1 (re-anchor on the new main) and A0 (port this branch). Status: firm.
+- **Text conflicts.** `git merge-tree --write-tree feat/shiploop-eff-int-c5f79b shiploop/implement-prompt-2d6ecc`
+  (in memory, no checkout touched): 55 conflict hunks in 14 files. Sources: navigator 13, prompts 10, stage_spec 5,
+  loops 4; tests: callback-contract 8, packet-recut 4, navigator-contract 3, delegation 2, six files with 1.
+  test_loop.py, guidance and chain_support merge cleanly. Status: firm.
+- **The same mechanisms are built twice.** The integration commit 12151c49 (2026-10-17 19:40, W2-A/B, "from the
+  implement-step fix plan" §2.1–5) already has the step `check`, the script-run `step-proof` gate, optional per-step
+  paths, one Step block (`step_view`/`step_block`/`_step_lines`, the same function name as this branch's), the
+  /until-loop block last and the owner's D4 words in the inline Work. It also has what this branch lacks: the Step
+  block word for word in the step's Improve hand-off with its review base, a Proof rerun before importing an Improve
+  review that changed the candidate, check-only reuse, `REPEAT_STEP`, state version 7 and the 19,500 required-text head
+  bound. A merge must keep its mechanism and extend it, never keep both. Status: firm.
+- **Only on this branch:** `references/implement-guidance.md`, `references/code-craft.md` (rules 10–14) and the
+  `shiploop_static.static_text` loader; the eight considerations; the `considerations` and `evidence` result fields and
+  the `implement-record` gate; step-plan `cards`/`cards_na` and the item `match`; the Anchored-in, Cards, Existing
+  example and Recent commits lines; the step Proof on every step of an ask-agent plan; the 104-row static-obligation
+  test. The integration plan's §8 A0 lists exactly these to port, with new fields going to state version 8. Status: firm.
+- **Design disagreements to settle before A0** (owner):
+  1. Code craft in the implement head: this branch's D13 prints it whole (the Battleship S1 printed head is 25,876
+     characters, `current-S1/1-printed-prompt.md`), against the integration plan's decision 18 (one clause per rule in
+     the head, the full rubric in the packet file and the step's Improve review) and its §8.1 (no budget raise). Grok
+     elides the middle of a print between 20,000 and 24,000 characters (probe-cut/RESULTS.md), so D13 risks a cut head
+     on Grok.
+  2. Ask-agent Proof: the integration branch runs `step-proof` on the inline route only (its stage_spec comment: the
+     ask-agent action keeps the item's checks); this branch runs every step's Proof.
+  3. Naming: this branch's result field `evidence` against `criterion_evidence` in the integration plan and its
+     templates (same item keys); its wave B (N1) turns `static_text` into the template engine.
+- **Document collision.** The canonical checkout's untracked fix plan (145,212 bytes, 07:53 today) is newer than this
+  branch's committed copy (53,558 bytes) at the same path; the journal and the packet mock also exist there untracked.
+  Merging this branch as is would either be refused in the canonical checkout or replace the newer plan. The port takes
+  the canonical copy. Status: firm.
+
+Recommendation: do not merge this branch. After the landing, port it once, by one writer, onto the new main (A0),
+extending the integration branch's Step block and Proof gate.
