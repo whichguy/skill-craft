@@ -73,6 +73,11 @@ jobs:
         env:
           TEST_GROUP: ${{ matrix.group }}
           BASE: ${{ needs.plan.outputs.base }}
+          # Stand-in host session markers. ShipLoop's keepalive and Until Loop key their state to the host session,
+          # so a suite that leaks that state trips run-all.sh's state-home guard only where those paths run: local
+          # runs inside an agent session have real markers, and these give CI the same paths.
+          CLAUDECODE: '1'
+          CLAUDE_CODE_SESSION_ID: ci-stand-in
         run: |
           set -- --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
           if [ "$TEST_GROUP" = quick ] && [ -n "$BASE" ]; then set -- "$@" --changed-from "$BASE"; fi

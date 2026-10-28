@@ -252,13 +252,54 @@ Evidence in `docs/experiments/local-validation-20261026/`:
   `full-catalog-state-guard.json`, the post-rebase run, and `direct-runs-after-fix.txt`.
 - F9 (firm): `run-all.sh` gives each suite a private state home, and a suite that leaves anything there fails. Proof:
   `StateHomeGuardTest`, which fails on origin/main's runner.
-- F10 (interim): the guard only fires where the leaking code path runs. Keepalive writes only under host session
-  markers, which CI lacks, so it catches keepalive leaks in local runs inside an agent session, not in CI. Until Loop
-  needs a session identity too, so CI would catch only a suite that sets its own `UNTIL_LOOP_SESSION_ID`.
+- F10 (superseded 2026-10-27 by F13): the guard only fires where the leaking code path runs. Keepalive writes only
+  under host session markers, which CI lacks, so it catches keepalive leaks in local runs inside an agent session, not
+  in CI. Until Loop needs a session identity too, so CI would catch only a suite that sets its own
+  `UNTIL_LOOP_SESSION_ID`. Round 3 gives CI stand-in markers.
 - F11 (firm, fixed on main): `experiments-shiploop-chain-native-pilot` failed its 20 s B hold in both loaded runs that
   day (load average 29 to 46) and passed alone; it is independent of this round. Main's 2dbb8c4b, the same day, raised
   the hold to 120 s and the call limit to 180 s, after the same failure under `--jobs 8` (its journal's F38). This
   round was rebased onto that commit.
-- F12 (open): the leaked records in the owner's state are not removed by this round. They are 2 Until Loop files and
-  32 keepalive records with their locks, and the owner moves them to Trash. Sessions that run these suites from a
-  checkout without this commit keep adding records until they update.
+- F12 (closed 2026-10-27): the leaked records in the owner's state were not removed by this round. They were 2 Until
+  Loop files and 32 keepalive records with their locks. On 2026-10-27, at the owner's word, all 66 went to Trash, and
+  no keepalive record names a temp directory since. Sessions that run these suites from a checkout without this commit
+  keep adding records until they update. The canonical checkout's uncommitted work went to
+  `archive/canonical-wip-2026-10-27`, verified blob for blob, and the checkout was fast-forwarded to main. On 2026-10-27,
+  18 of 28 worktrees still predated the fix; a separate session is archiving and removing the 15 stale ones.
+
+## Round 3 (2026-10-27): stand-in host markers on CI, and a timing that sleep broke
+
+**Why.** F10: the two stores that leaked write only under host session markers, and GitHub runners have none, so the
+round 2 guard could not fire on CI. Separately, `shiploop-e2e-environment` failed once on 2026-10-27 while the machine
+slept.
+
+**Changes** (one commit; its message cites this round):
+
+- `.github/workflows/ci.yml`: the "Hermetic group" step, which every tier runs, sets `CLAUDECODE: '1'` and
+  `CLAUDE_CODE_SESSION_ID: ci-stand-in`. CI suites now take the same keepalive and Until Loop session paths as local
+  runs inside an agent session, so a leak trips the round 2 guard there too. `test/ci-policy.test.py` pins both lines.
+- `test/test-groups.test.py` `test_ci_stand_in_markers_let_the_guard_see_a_keepalive_leak` reads the two values from
+  `ci.yml`, removes any real host markers, and runs the real `health_notice` through `run_suites.run_process`. Without
+  markers, as on CI until now, the leaking suite passes; with the workflow's markers it fails. Fail-first: origin/main's
+  `ci.yml` has no markers, so the test fails at its first assertion.
+- `shiploop-e2e-environment`'s `test_a_check_that_times_out_is_timed_out_and_not_a_product_failure` now measures with
+  `time.monotonic()` instead of `time.time()`. On 2026-10-27 the suite ran in 80.4 s of run time and 1086.5 s of wall
+  time (`pmset` logged sleep and wake), and the test measured 173.5 s against its 15 s bound; a rerun passed. Every
+  other duration in that file already used the monotonic clock, which does not advance while a Mac sleeps. A test cannot
+  stage the sleep, so this change has no fail-first.
+
+**Trial** (quick tier, `--changed-from origin/main`, in a CI-like environment: this session's real host markers removed,
+the two stand-ins set): PASS, 17 of 17 suites, in 101.9 s wall at
+`--jobs 8`. The 17 are quick's fixed baseline, which includes the ShipLoop boundary suites, plus the suites that this
+round's changed files select.
+
+**Findings**
+
+- F13 (interim until CI runs it): CI now exercises the host-session paths where keepalive and Until Loop write state,
+  so a suite that leaks that state fails on CI as well as locally. Proof:
+  `test_ci_stand_in_markers_let_the_guard_see_a_keepalive_leak` and the trial above. The full tier with the markers is
+  proven only on macOS so far; round 2's full catalog ran under a live session's real markers and showed no other
+  effect. It meets ubuntu at the next dispatched or release full tier.
+- F14 (firm): a duration bound measured with `time.time()` fails when the machine sleeps mid-test. Use
+  `time.monotonic()` for durations, and keep the wall clock for timestamps the product compares (the same file's
+  `launch_stamp` and overlap fixtures).

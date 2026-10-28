@@ -128,9 +128,9 @@ class ProductAtStopTest(QuietHarnessCase):
         with mock.patch.object(run, "PRODUCT_AT_STOP_TIMEOUT", 1):
             out = self.first_run("--prompt", "build it", "--check", "test -f product.txt && exec sleep 20")
             self.blocked_workspace(out, worktree_files={"product.txt": "x\n"})
-            start = time.time()
+            start = time.monotonic()  # not time.time(): a machine that sleeps mid-check read 173 s (2026-10-27)
             _, result, _ = self.grade_only(out)
-        self.assertLess(time.time() - start, 15, "the check was stopped at its timeout")
+        self.assertLess(time.monotonic() - start, 15, "the check was stopped at its timeout")
         stop = result["product_at_stop"]
         (check,) = stop["checks"]
         self.assertEqual((check["pass"], check["returncode"], check["timed_out"]), (False, None, True))

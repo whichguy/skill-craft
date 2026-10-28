@@ -565,6 +565,23 @@ class StateHomeGuardTest(unittest.TestCase):
         self.assertIn("CLAUDE_CODE_SESSION_ID", outcome.error or "")
         self.assert_the_developers_state_is_untouched()
 
+    def test_ci_stand_in_markers_let_the_guard_see_a_keepalive_leak(self) -> None:
+        """GitHub runners have no host session, so keepalive never wrote there and CI never saw its leaks (round 3)."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        markers = dict(re.findall(r"^\s+(CLAUDECODE|CLAUDE_CODE_SESSION_ID): '?([^'\n]+)'?$", workflow,
+                                  re.MULTILINE))
+        self.assertEqual(set(markers), {"CLAUDECODE", "CLAUDE_CODE_SESSION_ID"})
+        notice = ("import sys; sys.path.insert(0, sys.argv[1]); import shiploop_keepalive as keepalive; "
+                  "keepalive.health_notice('/run')")
+        argv = (sys.executable, "-B", "-c", notice, str(ROOT / "skills/shiploop/scripts"))
+        hosts = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID")
+        for given, leaks in (({}, False), (markers, True)):
+            environment = {key: value for key, value in os.environ.items() if key not in hosts}
+            with self.subTest(markers=sorted(given)), mock.patch.dict(os.environ, {**environment, **given}, clear=True):
+                outcome = run_suites.run_process(argv, cwd=self.root, timeout_seconds=60)
+                self.assertEqual(outcome.status, "failed" if leaks else "passed", outcome.error or outcome.stderr)
+        self.assert_the_developers_state_is_untouched()
+
     def test_a_suite_that_gives_the_runtime_its_own_state_root_passes(self) -> None:
         own = self.root / "fixture-state"
         outcome = self.run_program(str(own))

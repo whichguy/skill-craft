@@ -130,6 +130,9 @@ class CIPolicyTests(unittest.TestCase):
         self.assertNotIn("ubuntu-24.04", workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn('--output "$RUNNER_TEMP/hermetic-$TEST_GROUP"', workflow)
+        # Stand-in host markers, so the state-home guard sees keepalive and Until Loop leaks on CI too.
+        self.assertIn("CLAUDECODE: '1'", workflow)
+        self.assertIn("CLAUDE_CODE_SESSION_ID: ci-stand-in", workflow)
         self.assertIn("if-no-files-found: error", workflow)
         self.assertIn("uses: actions/upload-artifact@v7", workflow)
         self.assertIn("cancel-in-progress: ${{ github.event_name == 'pull_request' }}", workflow)
