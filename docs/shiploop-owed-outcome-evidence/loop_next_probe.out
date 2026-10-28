@@ -1,0 +1,7 @@
+# loop_next_probe.py at skill-craft 821db5c0, 2026-10-28T04:53Z
+after start   : status active | progress {'action_number': 1, 'trivial_streak': 0, 'required_trivial_reviews': 0} | receipt keys ['check_repairs', 'conditions', 'context', 'done_argv', 'exit_checks', 'instruction', 'last_check_results', 'last_report', 'next_argv', 'progress', 'receipt', 'report_schema', 'state_file', 'status', 'status_semantics', 'verify_script', 'work', 'workspace']
+after the work: status active | progress {'action_number': 1, 'trivial_streak': 0, 'required_trivial_reviews': 0}
+instruction identical before and after the work: True
+instruction opens: Begin a complete first iteration from the current artifacts. Execution condition (Work): 'Write hello.txt containing the
+status_semantics.active: Execute exactly one complete returned work iteration, then submit its exact done callback.
+exit=0

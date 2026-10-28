@@ -1,0 +1,15 @@
+# packet_position.py at skill-craft 821db5c0, 2026-10-28T04:53Z
+verify packet characters: 18317 (whole print limit 16,000; head limit 20,000)
+callback mentions: 7 at % of packet: [1, 5, 22, 23, 32, 39, 57]
+  callback line      starts at   5%
+  goal               starts at   8%
+  Until Loop block   starts at  16%
+  narrative          starts at  26%
+  stage guidance     starts at  30%
+  rules              starts at  56%
+  result template    starts at  67%
+  references         starts at  74%
+  recovery command   starts at  93%
+  last accepted      starts at  97%
+last line: No change inventory recorded for W1 (no record at RUN/lint/nav-2303c443073a4b9ba55727904951769b-inve
+exit=0

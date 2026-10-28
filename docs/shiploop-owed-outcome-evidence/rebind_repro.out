@@ -1,0 +1,11 @@
+# rebind_repro.py at skill-craft 821db5c0, 2026-10-28T04:53Z
+A stop 1, nothing between            : BLOCK {'last_block_progress': '0.0.0', 'turn_blocks': 1}
+A stop 2, nothing between            : ALLOW {'last_block_progress': '0.0.0', 'turn_blocks': 0}
+B stop 1                             : BLOCK {'last_block_progress': '0.0.0', 'turn_blocks': 1}
+B binding after `shiploop next`      : {}
+B stop 2                             : BLOCK {'last_block_progress': '0.0.0', 'turn_blocks': 1}
+B stop 3, nothing between            : ALLOW {'last_block_progress': '0.0.0', 'turn_blocks': 0}
+C stop 1                             : BLOCK {'last_block_progress': '0.0.0', 'turn_blocks': 1}
+C binding after a loop-runtime call  : {'last_block_progress': '0.0.0', 'turn_blocks': 1}
+C stop 2                             : ALLOW {'last_block_progress': '0.0.0', 'turn_blocks': 0}
+exit=0
