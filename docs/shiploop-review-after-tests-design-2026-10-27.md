@@ -669,6 +669,33 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
   - The test stage runs 2a's active commands, with RED on the new cases against the iteration base.
   - The omitted-document route is covered.
   - Every test that pins the old flow is updated in the same change, so there is one supported version.
+  2b runs in five increments, each a commit whose tests pass:
+  - **2b-1, done 2026-10-28.** Each inline step records its iteration in `RUN/iterations/<item>.json`, which
+    `current_iteration` reads, and the step commit records the step's commit beside it.
+    - The base is HEAD at the end of the call that entered the step, after that call's step, preparatory, skill and
+      knowledge commits.
+    - It cannot be taken earlier, because `_transition` runs before those commits.
+    - Bookkeeping only: the flow is unchanged. One fail-first CLI test covers it (a three-step walk), and the quick tier
+      passed 33 suites.
+  - **2b-2.** Test and document run after each step:
+    - the test stage runs 2a's active commands, with RED on the new cases in a checkout of the iteration's base;
+    - document's left-out rule reads the step's diff since the base;
+    - rule `item` moves to document;
+    - the next step's implement follows document.
+
+    Verify still closes the item, for now.
+  - **2b-3. The knowledge stage.** Its row, its packet and its gates:
+    - the spec only gains lines (`step_spec_refusal`);
+    - unique AD IDs;
+    - the skill decision, moved from carry-forward.
+  - **2b-4. The commit stage.**
+    - It replaces the step commit, the review's commits (Improve without commit), the knowledge-record commits inside
+      an iteration, and verify's item commit.
+    - It uses `pending_record` and `commit_decision`.
+    - Verify is retired, and carry-forward follows the last iteration.
+  - **2b-5. The rest of the switch.**
+    - The packets' text, Run Review v6 and the E2E audit harness.
+    - The lifecycle's change note (`bump: minor`).
 - **2c. The ask-agent route** gets the same step boundaries (G1).
 
 **9.2 New decisions:**
