@@ -206,6 +206,59 @@
         "The terminal evidence set is the exact opaque terminal complete receipt, the one review record with its observed identity and the backchain-check receipt on the final candidate; a copied verdict or a numeric count cannot replace them.",
         "Without the marker line the default applies: two consecutive distinct complete trivial/no-change reviews, and both original qualifying review records stay recoverable."
       ]
+    },
+    {
+      "id": 17,
+      "name": "recurring-chunk-review-mixed-dependencies",
+      "prompt": "Review and, within supplied source-aware bounds, revise an existing plan after enrichment. Its pending import step now contains the import record contract, the file reader, the preview renderer, and their integration. The reader and renderer each consume the record contract and can be implemented and checked separately; integration consumes both. The latest edit was to documentation elsewhere. All affected steps and edges are provisional and new steps/edges are allowed. The original confirmation exercises the integrated feature. Preserve the requested import outcome and its verification.",
+      "expected_output": "A fresh whole-plan review finds the previously enriched bundle and an authorized revision separates useful implementation increments, preserving a contract-to-independent-branches-to-integration graph and meaningful per-chunk and whole-feature confirmation.",
+      "files": [],
+      "expectations": [
+        "The review inspects the unchanged bundled step rather than only the latest documentation edit, and treats a necessary split as material.",
+        "The contract supplies independently implementable reader and renderer chunks; neither branch is falsely ordered after the other, and integration consumes both.",
+        "Each resulting chunk has a confirmation usable with its own suppliers; an early chunk does not depend on a later integration result to be confirmed.",
+        "The audit identifies any confirmation entry that must change before revision replaces its check, and the original whole-feature verification obligation remains downstream.",
+        "Requested outcomes, goal_needs, consumer coverage, and a source-linked old-to-new map are preserved; no oversized wrapper or dummy join remains.",
+        "The repaired chunks and consumers are rechecked, and any graph revision clears parallel_groups until a deterministic receipt validates that exact candidate."
+      ]
+    },
+    {
+      "id": 18,
+      "name": "chunk-review-cohesive-and-protected-controls",
+      "prompt": "Audit a plan with a pending change that renames one configuration key consistently across four files. Partial renames are unusable; the step has the same suppliers and one exact compatibility check. The dependency neighborhood also contains a large already completed migration and a protected running importer. Their outputs and evidence are sufficient for this task. No requested outcome or supplier is missing. Decide whether any chunk boundaries require repair.",
+      "expected_output": "The cohesive rename remains one implementation increment, and size-only observations about completed/protected work are advisory without reopening it.",
+      "files": [],
+      "expectations": [
+        "The pending rename is not split into one task per file or procedural edit when the fragments have no useful independently checkable result.",
+        "The reviewer does not impose a step-count, file-count, elapsed-time, or parallelism quota.",
+        "Completed, running, and protected work remains unchanged; size alone does not make those items planning gaps or authorize reopening them.",
+        "The review still checks outcome and supplier coverage rather than exempting protected work from all semantic inspection."
+      ]
+    },
+    {
+      "id": 19,
+      "name": "chunk-split-missing-consumer-authority",
+      "prompt": "Audit a pending bundled step whose independently checkable subdeliverables have different suppliers. A necessary split would rewire an existing pending consumer. Only the bundled step is provisional; the consumer and its edge are neither provisional nor explicitly protected. New steps and new edges are permitted. The caller supplied no permission to modify that consumer. Decide whether the split can proceed and whether planning can qualify.",
+      "expected_output": "The review identifies the necessary split and its exact missing consumer/edge authority, preserves the candidate, and leaves a planning gap rather than treating allow-new permissions as blanket rewrite authority.",
+      "files": [],
+      "expectations": [
+        "The necessary split is identified even though its repair is not currently authorized.",
+        "Allow-new permissions do not authorize modifying the existing consumer or edge; no replacement wrapper, duplicate coverage, or dummy join circumvents the restriction.",
+        "The candidate remains unchanged and the missing authority is a planning gap with a concrete recovery action, not an execution blocker or clean convergence."
+      ]
+    },
+    {
+      "id": 20,
+      "name": "chunk-review-legacy-inheritance-boundary",
+      "prompt": "Perform a convergence assessment of a compatibility-native plan after elaboration. An inherited seed bundles two independently implementable deliverables with different prerequisites. A downstream inherited seed edge consumes the combined produce. Splitting it into useful increments requires replacing that inherited edge and changing seed identity; no source-aware revise packet or replacement authority was supplied. The graph is structurally valid. Decide the planning disposition without mutating the candidate.",
+      "expected_output": "The recurring review detects the oversized inherited work but honors legacy preservation and reports the necessary bounded replan/authority gap; structural validity cannot certify implementable chunks.",
+      "files": [],
+      "expectations": [
+        "The assessment finds the necessary split after elaboration and does not treat the generator's earlier split/merge check as sufficient.",
+        "Legacy seed identities and inherited seed/null edges remain unchanged; no source-aware exception is invented.",
+        "The forbidden necessary repair remains a planning gap and planning is incomplete, even though structural validation succeeded.",
+        "The finding explains the required split and preserved obligations without adding arbitrary size limits or new plan-schema fields."
+      ]
     }
   ]
 }

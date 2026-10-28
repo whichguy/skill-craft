@@ -110,7 +110,8 @@ caller `edit_bounds` and that is not running, completed, or protected; with no c
 confirmation, a confirmation that checks only part of its produce, or an unjustified
 `unconfirmable` marker (on a produce an available check could confirm, or whose `by` does not
 name what would) is a material planning gap. On any other step it is advisory; it is not a
-planning gap or a forbidden necessary repair.
+planning gap or a forbidden necessary repair. Apply the implementable-chunk review below
+on every cycle, including after enrichment, insertion, or other repair.
 
 Before submitting each cycle's `done` report, retain its original review observations
 in a stable, host-readable record; do not overwrite an earlier qualifying record.
@@ -131,6 +132,38 @@ normative sources, forbidden necessary repairs, stale identity, or architecture-
 experiment outcomes are planning gaps. Known future external prerequisites may remain
 execution blockers. A graph revision clears `parallel_groups` and leaves structural status
 unknown until a deterministic receipt validates that exact output digest.
+
+### Implementable chunks
+
+Inspect every work step, not just the last edit. Each must describe a bounded deliverable
+that an implementer can establish and confirm using its declared suppliers. A broad feature
+name, one postcondition family, or a final end-to-end check does not make a bundle one chunk.
+Split when parts have different prerequisites, expose a useful intermediate artifact, or
+can be implemented and checked independently. Keep a small cohesive change together when
+its fragments have no useful independently checkable result. File count, step count,
+estimated duration, or desired parallelism alone do not justify a split.
+
+For each necessary split, identify the resulting deliverables, their confirmations, and
+which outputs each consumer needs. Preserve all requested outcomes, `goal_needs`, and
+verification coverage. Add serial edges only where one chunk consumes another's output;
+independent chunks can branch after a shared supplier, and real integration/verification
+work consumes all outputs it needs. A shared file or resource needs execution coordination,
+not an invented data dependency. Do not keep an oversized wrapper or add a dummy join merely
+to preserve the appearance of the old graph. Recheck the resulting chunks and affected
+consumers in the same review/fix/check cycle.
+
+A necessary split of pending in-scope work is a material planning gap until repaired.
+Use only the existing repair authority: legacy elaboration preserves inherited identities
+and seed/null edges; source-aware revise requires the exact provisional steps/edges,
+affected consumers, and new-step/new-edge permissions. If those limits prevent a necessary
+split, retain the candidate and report the specific missing authority as a planning gap;
+do not silently widen bounds or call it converged. A size-only observation about running,
+completed, or explicitly protected work is advisory and does not authorize reopening it;
+independent missing outcomes or suppliers still follow the existing gap rules.
+
+Record the inspected boundaries and split/keep rationale in the existing review evidence,
+with source-linked old-to-new mappings for repairs. No new plan fields, size score, or
+loop machinery is required. Structural validity alone does not prove chunk suitability.
 
 ## Terminal evidence and recovery
 
