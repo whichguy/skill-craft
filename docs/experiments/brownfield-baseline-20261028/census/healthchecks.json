@@ -1,0 +1,493 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/74ba2f0c-cb58-42fa-8c69-0f28a6a6cb7e/scratchpad/repos/healthchecks",
+ "head": "f6c46b594dec66c92bca7dd56db58fbd1e4ce9fe",
+ "commits": 3998,
+ "first_commit": "2015-06-11",
+ "last_commit": "2026-10-28",
+ "tracked_files": 1275,
+ "size_class": "large",
+ "classes": {
+  "code": {
+   "files": 990,
+   "lines": 61326
+  },
+  "config": {
+   "files": 6,
+   "lines": 177
+  },
+  "docs": {
+   "files": 42,
+   "lines": 11008
+  },
+  "test": {
+   "files": 237,
+   "lines": 23573
+  }
+ },
+ "code_extensions": [
+  [
+   ".py",
+   21668
+  ],
+  [
+   ".html",
+   12316
+  ],
+  [
+   ".css",
+   8565
+  ],
+  [
+   ".less",
+   8050
+  ],
+  [
+   ".html-fragment",
+   7521
+  ],
+  [
+   ".js",
+   2667
+  ],
+  [
+   ".example",
+   160
+  ],
+  [
+   ".txt",
+   134
+  ],
+  [
+   ".svg",
+   108
+  ],
+  [
+   "(none)",
+   56
+  ],
+  [
+   ".sh",
+   32
+  ],
+  [
+   ".yml",
+   29
+  ]
+ ],
+ "map": [
+  {
+   "path": "hc",
+   "code_files": 589,
+   "code_lines": 26052,
+   "test_files": 237,
+   "test_lines": 23573,
+   "commits_365d": 734
+  },
+  {
+   "path": "hc/integrations",
+   "code_files": 311,
+   "code_lines": 9274,
+   "test_files": 115,
+   "test_lines": 10597,
+   "commits_365d": 286
+  },
+  {
+   "path": "hc/api",
+   "code_files": 144,
+   "code_lines": 7499,
+   "test_files": 35,
+   "test_lines": 5089,
+   "commits_365d": 198
+  },
+  {
+   "path": "hc/accounts",
+   "code_files": 71,
+   "code_lines": 3924,
+   "test_files": 33,
+   "test_lines": 3262,
+   "commits_365d": 99
+  },
+  {
+   "path": "hc/front",
+   "code_files": 19,
+   "code_lines": 2474,
+   "test_files": 42,
+   "test_lines": 3978,
+   "commits_365d": 89
+  },
+  {
+   "path": "hc/lib",
+   "code_files": 14,
+   "code_lines": 1765,
+   "test_files": 10,
+   "test_lines": 615,
+   "commits_365d": 32
+  },
+  {
+   "path": "hc/logs",
+   "code_files": 9,
+   "code_lines": 210,
+   "test_files": 2,
+   "test_lines": 32,
+   "commits_365d": 13
+  },
+  {
+   "path": "hc/payments",
+   "code_files": 15,
+   "code_lines": 228,
+   "commits_365d": 1
+  },
+  {
+   "path": "templates",
+   "code_files": 182,
+   "code_lines": 15735,
+   "docs_files": 35,
+   "docs_lines": 8982,
+   "commits_365d": 199
+  },
+  {
+   "path": "templates/docs",
+   "code_files": 35,
+   "code_lines": 7521,
+   "docs_files": 35,
+   "docs_lines": 8982,
+   "commits_365d": 99
+  },
+  {
+   "path": "templates/front",
+   "code_files": 70,
+   "code_lines": 4497,
+   "commits_365d": 50
+  },
+  {
+   "path": "templates/accounts",
+   "code_files": 22,
+   "code_lines": 2138,
+   "commits_365d": 12
+  },
+  {
+   "path": "templates/emails",
+   "code_files": 43,
+   "code_lines": 1167,
+   "commits_365d": 35
+  },
+  {
+   "path": "templates/admin",
+   "code_files": 5,
+   "code_lines": 37
+  },
+  {
+   "path": "static",
+   "code_files": 134,
+   "code_lines": 11081,
+   "commits_365d": 82
+  },
+  {
+   "path": "stuff",
+   "code_files": 74,
+   "code_lines": 8125,
+   "commits_365d": 6
+  },
+  {
+   "path": "docker",
+   "code_files": 6,
+   "code_lines": 282,
+   "docs_files": 1,
+   "docs_lines": 189,
+   "commits_365d": 41
+  },
+  {
+   "path": "(root)",
+   "config_files": 1,
+   "config_lines": 9,
+   "docs_files": 5,
+   "docs_lines": 1829,
+   "code_files": 5,
+   "code_lines": 51,
+   "commits_365d": 170
+  },
+  {
+   "path": ".github",
+   "config_files": 5,
+   "config_lines": 168,
+   "docs_files": 1,
+   "docs_lines": 8,
+   "commits_365d": 28
+  }
+ ],
+ "inventory": [
+  {
+   "path": "(root)",
+   "config_files": 1,
+   "config_lines": 9,
+   "docs_files": 5,
+   "docs_lines": 1829,
+   "code_files": 5,
+   "code_lines": 51,
+   "commits_365d": 170
+  },
+  {
+   "path": ".github",
+   "config_files": 5,
+   "config_lines": 168,
+   "docs_files": 1,
+   "docs_lines": 8,
+   "commits_365d": 28
+  },
+  {
+   "path": ".github/workflows",
+   "config_files": 4,
+   "config_lines": 167,
+   "commits_365d": 27
+  },
+  {
+   "path": "docker",
+   "code_files": 6,
+   "code_lines": 282,
+   "docs_files": 1,
+   "docs_lines": 189,
+   "commits_365d": 41
+  },
+  {
+   "path": "hc",
+   "code_files": 589,
+   "code_lines": 26052,
+   "test_files": 237,
+   "test_lines": 23573,
+   "commits_365d": 734
+  },
+  {
+   "path": "hc/accounts",
+   "code_files": 71,
+   "code_lines": 3924,
+   "test_files": 33,
+   "test_lines": 3262,
+   "commits_365d": 99
+  },
+  {
+   "path": "hc/api",
+   "code_files": 144,
+   "code_lines": 7499,
+   "test_files": 35,
+   "test_lines": 5089,
+   "commits_365d": 198
+  },
+  {
+   "path": "hc/front",
+   "code_files": 19,
+   "code_lines": 2474,
+   "test_files": 42,
+   "test_lines": 3978,
+   "commits_365d": 89
+  },
+  {
+   "path": "hc/integrations",
+   "code_files": 311,
+   "code_lines": 9274,
+   "test_files": 115,
+   "test_lines": 10597,
+   "commits_365d": 286
+  },
+  {
+   "path": "hc/lib",
+   "code_files": 14,
+   "code_lines": 1765,
+   "test_files": 10,
+   "test_lines": 615,
+   "commits_365d": 32
+  },
+  {
+   "path": "hc/logs",
+   "code_files": 9,
+   "code_lines": 210,
+   "test_files": 2,
+   "test_lines": 32,
+   "commits_365d": 13
+  },
+  {
+   "path": "hc/payments",
+   "code_files": 15,
+   "code_lines": 228,
+   "commits_365d": 1
+  },
+  {
+   "path": "static",
+   "code_files": 134,
+   "code_lines": 11081,
+   "commits_365d": 82
+  },
+  {
+   "path": "static/css",
+   "code_files": 46,
+   "code_lines": 8565,
+   "commits_365d": 33
+  },
+  {
+   "path": "static/fonts",
+   "code_files": 1,
+   "code_lines": 0,
+   "commits_365d": 10
+  },
+  {
+   "path": "static/img",
+   "code_files": 52,
+   "code_lines": 12,
+   "commits_365d": 3
+  },
+  {
+   "path": "static/js",
+   "code_files": 35,
+   "code_lines": 2504,
+   "commits_365d": 36
+  },
+  {
+   "path": "stuff",
+   "code_files": 74,
+   "code_lines": 8125,
+   "commits_365d": 6
+  },
+  {
+   "path": "stuff/bootstrap",
+   "code_files": 71,
+   "code_lines": 8050,
+   "commits_365d": 1
+  },
+  {
+   "path": "stuff/selectize",
+   "commits_365d": 3
+  },
+  {
+   "path": "templates",
+   "code_files": 182,
+   "code_lines": 15735,
+   "docs_files": 35,
+   "docs_lines": 8982,
+   "commits_365d": 199
+  },
+  {
+   "path": "templates/accounts",
+   "code_files": 22,
+   "code_lines": 2138,
+   "commits_365d": 12
+  },
+  {
+   "path": "templates/admin",
+   "code_files": 5,
+   "code_lines": 37
+  },
+  {
+   "path": "templates/docs",
+   "code_files": 35,
+   "code_lines": 7521,
+   "docs_files": 35,
+   "docs_lines": 8982,
+   "commits_365d": 99
+  },
+  {
+   "path": "templates/emails",
+   "code_files": 43,
+   "code_lines": 1167,
+   "commits_365d": 35
+  },
+  {
+   "path": "templates/front",
+   "code_files": 70,
+   "code_lines": 4497,
+   "commits_365d": 50
+  }
+ ],
+ "root_files": [
+  ".gitignore",
+  "CHANGELOG.md",
+  "CONTRIBUTING.md",
+  "LICENSE",
+  "README.md",
+  "SECURITY.md",
+  "manage.py",
+  "mypy.ini",
+  "requirements-dev.txt",
+  "requirements.txt",
+  "search.db"
+ ],
+ "instruction_files": [
+  "CHANGELOG.md",
+  "CONTRIBUTING.md",
+  "README.md",
+  "SECURITY.md",
+  "docker/README.md"
+ ],
+ "readmes": [
+  [
+   "README.md",
+   606
+  ],
+  [
+   "docker/README.md",
+   189
+  ]
+ ],
+ "docs_files": 58,
+ "decision_sets": {},
+ "commits_365d": 443,
+ "hot_spots": [
+  [
+   "requirements.txt",
+   46
+  ],
+  [
+   "hc/api/models.py",
+   35
+  ],
+  [
+   "hc/front/views.py",
+   30
+  ],
+  [
+   "requirements-dev.txt",
+   25
+  ],
+  [
+   "hc/api/views.py",
+   23
+  ],
+  [
+   "hc/accounts/models.py",
+   22
+  ],
+  [
+   "docker/Dockerfile",
+   20
+  ],
+  [
+   "hc/settings.py",
+   13
+  ],
+  [
+   "hc/integrations/email/tests/test_notify.py",
+   10
+  ],
+  [
+   "hc/integrations/email/transport.py",
+   10
+  ],
+  [
+   "hc/lib/emails.py",
+   10
+  ],
+  [
+   "hc/accounts/admin.py",
+   9
+  ]
+ ],
+ "recent_subjects": [
+  "2026-10-28 Fix Management API validation logic to reject NUL characters",
+  "2026-10-28 Replace CR and LF in header lines in the webhook integration",
+  "2026-10-27 Fix heading in CHANGELOG",
+  "2026-10-27 Update Docker base image to python:3.14.10-slim-trixie",
+  "2026-10-27 Add \"Delete User\" action in Profile admin",
+  "2026-10-27 Remove the \"usage\" column in user admin list view",
+  "2026-10-26 Upgrade minismtpd to v0.5 to enable concurrent SMTP sessions",
+  "2026-10-22 Fix a race condition in Profile.for_user()"
+ ],
+ "seconds": 1.33
+}

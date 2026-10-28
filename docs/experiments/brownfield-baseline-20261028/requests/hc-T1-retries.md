@@ -1,0 +1,1 @@
+When delivering a notification to an integration fails, retry the delivery up to 3 times with exponential backoff (1, 5 and 25 minutes after the failure), and show every delivery attempt with its error where the check's past notifications are listed today.

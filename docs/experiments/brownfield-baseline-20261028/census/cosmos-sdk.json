@@ -1,0 +1,2157 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/74ba2f0c-cb58-42fa-8c69-0f28a6a6cb7e/scratchpad/repos/cosmos-sdk",
+ "head": "27246c287d98ad8691dd22dba012da783421b4bc",
+ "commits": 16057,
+ "first_commit": "2016-02-05",
+ "last_commit": "2026-10-28",
+ "tracked_files": 4275,
+ "size_class": "huge",
+ "classes": {
+  "code": {
+   "files": 2136,
+   "lines": 1160240
+  },
+  "config": {
+   "files": 40,
+   "lines": 2839
+  },
+  "docs": {
+   "files": 353,
+   "lines": 81116
+  },
+  "test": {
+   "files": 1746,
+   "lines": 189985
+  }
+ },
+ "code_extensions": [
+  [
+   ".go",
+   1046635
+  ],
+  [
+   ".yaml",
+   53148
+  ],
+  [
+   ".sum",
+   15191
+  ],
+  [
+   ".proto",
+   13699
+  ],
+  [
+   ".h",
+   10474
+  ],
+  [
+   ".c",
+   7020
+  ],
+  [
+   ".mod",
+   3680
+  ],
+  [
+   "(none)",
+   2097
+  ],
+  [
+   ".toml",
+   1278
+  ],
+  [
+   ".s",
+   919
+  ],
+  [
+   ".sage",
+   893
+  ],
+  [
+   ".sh",
+   821
+  ]
+ ],
+ "map": [
+  {
+   "path": "api",
+   "docs_files": 1,
+   "docs_lines": 58,
+   "code_files": 166,
+   "code_lines": 441602,
+   "commits_365d": 164
+  },
+  {
+   "path": "api/cosmos",
+   "code_files": 151,
+   "code_lines": 374315,
+   "commits_365d": 132
+  },
+  {
+   "path": "api/tendermint",
+   "code_files": 12,
+   "code_lines": 67002,
+   "commits_365d": 5
+  },
+  {
+   "path": "api/amino",
+   "code_files": 1,
+   "code_lines": 242
+  },
+  {
+   "path": "x",
+   "docs_files": 22,
+   "docs_lines": 13489,
+   "code_files": 598,
+   "code_lines": 238461,
+   "test_files": 259,
+   "test_lines": 59341,
+   "config_files": 1,
+   "config_lines": 1,
+   "commits_365d": 1038
+  },
+  {
+   "path": "x/tx",
+   "docs_files": 1,
+   "docs_lines": 113,
+   "code_files": 37,
+   "code_lines": 56518,
+   "test_files": 13,
+   "test_lines": 2802,
+   "config_files": 1,
+   "config_lines": 1,
+   "commits_365d": 129
+  },
+  {
+   "path": "x/staking",
+   "docs_files": 1,
+   "docs_lines": 3063,
+   "test_files": 32,
+   "test_lines": 9638,
+   "code_files": 61,
+   "code_lines": 36909,
+   "commits_365d": 182
+  },
+  {
+   "path": "x/gov",
+   "docs_files": 1,
+   "docs_lines": 2576,
+   "code_files": 65,
+   "code_lines": 33055,
+   "test_files": 29,
+   "test_lines": 8184,
+   "commits_365d": 103
+  },
+  {
+   "path": "x/auth",
+   "docs_files": 3,
+   "docs_lines": 1598,
+   "code_files": 95,
+   "code_lines": 21846,
+   "test_files": 47,
+   "test_lines": 10278,
+   "commits_365d": 139
+  },
+  {
+   "path": "x/distribution",
+   "docs_files": 1,
+   "docs_lines": 1087,
+   "code_files": 47,
+   "code_lines": 21828,
+   "test_files": 18,
+   "test_lines": 4151,
+   "commits_365d": 74
+  },
+  {
+   "path": "x/bank",
+   "docs_files": 1,
+   "docs_lines": 1048,
+   "test_files": 20,
+   "test_lines": 8105,
+   "code_files": 38,
+   "code_lines": 17610,
+   "commits_365d": 67
+  },
+  {
+   "path": "x/authz",
+   "docs_files": 1,
+   "docs_lines": 377,
+   "code_files": 37,
+   "code_lines": 8791,
+   "test_files": 15,
+   "test_lines": 3055,
+   "commits_365d": 20
+  },
+  {
+   "path": "x/feegrant",
+   "docs_files": 2,
+   "docs_lines": 454,
+   "code_files": 33,
+   "code_lines": 7645,
+   "test_files": 16,
+   "test_lines": 3196,
+   "commits_365d": 24
+  },
+  {
+   "path": "enterprise",
+   "code_files": 170,
+   "code_lines": 124503,
+   "docs_files": 9,
+   "docs_lines": 3295,
+   "test_files": 70,
+   "test_lines": 30677,
+   "config_files": 1,
+   "config_lines": 110,
+   "commits_365d": 2023
+  },
+  {
+   "path": "client",
+   "code_files": 149,
+   "code_lines": 89898,
+   "test_files": 42,
+   "test_lines": 6383,
+   "docs_files": 2,
+   "docs_lines": 399,
+   "commits_365d": 379
+  },
+  {
+   "path": "testutil",
+   "code_files": 83,
+   "code_lines": 65483,
+   "test_files": 13,
+   "test_lines": 1390,
+   "docs_files": 3,
+   "docs_lines": 60,
+   "commits_365d": 93
+  },
+  {
+   "path": "contrib",
+   "code_files": 99,
+   "code_lines": 45404,
+   "docs_files": 8,
+   "docs_lines": 617,
+   "test_files": 16,
+   "test_lines": 2955,
+   "commits_365d": 253
+  },
+  {
+   "path": "crypto",
+   "code_files": 166,
+   "code_lines": 33921,
+   "test_files": 31,
+   "test_lines": 6748,
+   "docs_files": 4,
+   "docs_lines": 132,
+   "config_files": 3,
+   "config_lines": 73,
+   "commits_365d": 70
+  },
+  {
+   "path": "types",
+   "code_files": 71,
+   "code_lines": 26907,
+   "docs_files": 2,
+   "docs_lines": 153,
+   "test_files": 47,
+   "test_lines": 9438,
+   "commits_365d": 99
+  },
+  {
+   "path": "tests",
+   "test_files": 1063,
+   "test_lines": 34895,
+   "commits_365d": 807
+  },
+  {
+   "path": "store",
+   "docs_files": 7,
+   "docs_lines": 822,
+   "test_files": 41,
+   "test_lines": 8392,
+   "code_files": 66,
+   "code_lines": 14031,
+   "config_files": 1,
+   "config_lines": 2,
+   "commits_365d": 371
+  },
+  {
+   "path": "tools",
+   "config_files": 2,
+   "config_lines": 3,
+   "code_files": 93,
+   "code_lines": 12567,
+   "docs_files": 9,
+   "docs_lines": 1203,
+   "test_files": 12,
+   "test_lines": 2876,
+   "commits_365d": 604
+  },
+  {
+   "path": "baseapp",
+   "code_files": 32,
+   "code_lines": 7685,
+   "test_files": 18,
+   "test_lines": 7114,
+   "commits_365d": 134
+  },
+  {
+   "path": "server",
+   "docs_files": 1,
+   "docs_lines": 90,
+   "code_files": 27,
+   "code_lines": 11258,
+   "test_files": 11,
+   "test_lines": 2231,
+   "commits_365d": 79
+  },
+  {
+   "path": "depinject",
+   "docs_files": 3,
+   "docs_lines": 478,
+   "code_files": 53,
+   "code_lines": 9327,
+   "test_files": 11,
+   "test_lines": 1957,
+   "commits_365d": 19
+  },
+  {
+   "path": "proto",
+   "docs_files": 2,
+   "docs_lines": 30,
+   "code_files": 129,
+   "code_lines": 10271,
+   "commits_365d": 40
+  },
+  {
+   "path": "collections",
+   "docs_files": 2,
+   "docs_lines": 1316,
+   "code_files": 43,
+   "code_lines": 5939,
+   "test_files": 29,
+   "test_lines": 2230,
+   "commits_365d": 49
+  },
+  {
+   "path": "internal",
+   "docs_files": 1,
+   "docs_lines": 43,
+   "test_files": 16,
+   "test_lines": 2726,
+   "code_files": 29,
+   "code_lines": 3711,
+   "commits_365d": 138
+  },
+  {
+   "path": "simapp",
+   "code_files": 19,
+   "code_lines": 4435,
+   "docs_files": 1,
+   "docs_lines": 53,
+   "test_files": 9,
+   "test_lines": 1498,
+   "commits_365d": 384
+  },
+  {
+   "path": "math",
+   "docs_files": 1,
+   "docs_lines": 187,
+   "code_files": 11,
+   "code_lines": 2174,
+   "test_files": 8,
+   "test_lines": 2936,
+   "commits_365d": 15
+  }
+ ],
+ "inventory": [
+  {
+   "path": "(root)",
+   "code_files": 15,
+   "code_lines": 2893,
+   "config_files": 2,
+   "config_lines": 75,
+   "docs_files": 6,
+   "docs_lines": 1663,
+   "commits_365d": 541
+  },
+  {
+   "path": ".github",
+   "config_files": 28,
+   "config_lines": 2552,
+   "docs_files": 1,
+   "docs_lines": 6,
+   "commits_365d": 232
+  },
+  {
+   "path": ".github/codeql",
+   "commits_365d": 1
+  },
+  {
+   "path": ".github/nightlies",
+   "config_files": 2,
+   "config_lines": 171,
+   "commits_365d": 4
+  },
+  {
+   "path": ".github/workflows",
+   "config_files": 23,
+   "config_lines": 2118,
+   "commits_365d": 221
+  },
+  {
+   "path": ".vscode",
+   "config_files": 2,
+   "config_lines": 23
+  },
+  {
+   "path": "api",
+   "docs_files": 1,
+   "docs_lines": 58,
+   "code_files": 166,
+   "code_lines": 441602,
+   "commits_365d": 164
+  },
+  {
+   "path": "api/amino",
+   "code_files": 1,
+   "code_lines": 242
+  },
+  {
+   "path": "api/cosmos",
+   "code_files": 151,
+   "code_lines": 374315,
+   "commits_365d": 132
+  },
+  {
+   "path": "api/tendermint",
+   "code_files": 12,
+   "code_lines": 67002,
+   "commits_365d": 5
+  },
+  {
+   "path": "baseapp",
+   "code_files": 32,
+   "code_lines": 7685,
+   "test_files": 18,
+   "test_lines": 7114,
+   "commits_365d": 134
+  },
+  {
+   "path": "baseapp/blockexec",
+   "code_files": 1,
+   "code_lines": 112,
+   "test_files": 1,
+   "test_lines": 60,
+   "commits_365d": 2
+  },
+  {
+   "path": "baseapp/config",
+   "code_files": 1,
+   "code_lines": 12
+  },
+  {
+   "path": "baseapp/internal",
+   "code_files": 1,
+   "code_lines": 232
+  },
+  {
+   "path": "baseapp/oe",
+   "code_files": 1,
+   "code_lines": 160,
+   "test_files": 1,
+   "test_lines": 34,
+   "commits_365d": 2
+  },
+  {
+   "path": "baseapp/state",
+   "code_files": 2,
+   "code_lines": 199,
+   "commits_365d": 9
+  },
+  {
+   "path": "baseapp/testutil",
+   "code_files": 7,
+   "code_lines": 1796,
+   "commits_365d": 2
+  },
+  {
+   "path": "baseapp/txnrunner",
+   "code_files": 2,
+   "code_lines": 81,
+   "test_files": 1,
+   "test_lines": 167,
+   "commits_365d": 6
+  },
+  {
+   "path": "blockstm",
+   "commits_365d": 60
+  },
+  {
+   "path": "blockstm/tree",
+   "commits_365d": 3
+  },
+  {
+   "path": "client",
+   "code_files": 149,
+   "code_lines": 89898,
+   "test_files": 42,
+   "test_lines": 6383,
+   "docs_files": 2,
+   "docs_lines": 399,
+   "commits_365d": 379
+  },
+  {
+   "path": "client/config",
+   "code_files": 2,
+   "code_lines": 187,
+   "test_files": 1,
+   "test_lines": 96
+  },
+  {
+   "path": "client/debug",
+   "code_files": 1,
+   "code_lines": 339,
+   "commits_365d": 2
+  },
+  {
+   "path": "client/docs",
+   "code_files": 13,
+   "code_lines": 52808,
+   "commits_365d": 10
+  },
+  {
+   "path": "client/flags",
+   "code_files": 1,
+   "code_lines": 208,
+   "test_files": 1,
+   "test_lines": 36,
+   "commits_365d": 2
+  },
+  {
+   "path": "client/grpc",
+   "code_files": 17,
+   "code_lines": 12394,
+   "test_files": 3,
+   "test_lines": 148,
+   "commits_365d": 15
+  },
+  {
+   "path": "client/input",
+   "code_files": 1,
+   "code_lines": 110,
+   "test_files": 1,
+   "test_lines": 56
+  },
+  {
+   "path": "client/keys",
+   "code_files": 21,
+   "code_lines": 2490,
+   "test_files": 14,
+   "test_lines": 1891,
+   "commits_365d": 5
+  },
+  {
+   "path": "client/pruning",
+   "code_files": 1,
+   "code_lines": 120,
+   "commits_365d": 5
+  },
+  {
+   "path": "client/rpc",
+   "code_files": 3,
+   "code_lines": 419,
+   "test_files": 2,
+   "test_lines": 186,
+   "commits_365d": 1
+  },
+  {
+   "path": "client/snapshot",
+   "code_files": 7,
+   "code_lines": 446,
+   "commits_365d": 9
+  },
+  {
+   "path": "client/testdata",
+   "code_files": 1,
+   "code_lines": 2
+  },
+  {
+   "path": "client/tx",
+   "code_files": 3,
+   "code_lines": 1288,
+   "test_files": 3,
+   "test_lines": 953,
+   "commits_365d": 7
+  },
+  {
+   "path": "client/v2",
+   "docs_files": 2,
+   "docs_lines": 399,
+   "code_files": 67,
+   "code_lines": 17214,
+   "test_files": 9,
+   "test_lines": 1985,
+   "commits_365d": 306
+  },
+  {
+   "path": "codec",
+   "code_files": 19,
+   "code_lines": 2253,
+   "test_files": 13,
+   "test_lines": 1813,
+   "commits_365d": 10
+  },
+  {
+   "path": "codec/address",
+   "code_files": 1,
+   "code_lines": 59
+  },
+  {
+   "path": "codec/legacy",
+   "code_files": 3,
+   "code_lines": 56,
+   "test_files": 1,
+   "test_lines": 39
+  },
+  {
+   "path": "codec/testutil",
+   "code_files": 1,
+   "code_lines": 46,
+   "commits_365d": 1
+  },
+  {
+   "path": "codec/types",
+   "code_files": 5,
+   "code_lines": 477,
+   "test_files": 1,
+   "test_lines": 74,
+   "commits_365d": 3
+  },
+  {
+   "path": "codec/unknownproto",
+   "test_files": 4,
+   "test_lines": 842,
+   "code_files": 2,
+   "code_lines": 549,
+   "commits_365d": 1
+  },
+  {
+   "path": "collections",
+   "docs_files": 2,
+   "docs_lines": 1316,
+   "code_files": 43,
+   "code_lines": 5939,
+   "test_files": 29,
+   "test_lines": 2230,
+   "commits_365d": 49
+  },
+  {
+   "path": "collections/codec",
+   "code_files": 11,
+   "code_lines": 972,
+   "test_files": 6,
+   "test_lines": 270,
+   "commits_365d": 6
+  },
+  {
+   "path": "collections/colltest",
+   "code_files": 2,
+   "code_lines": 224,
+   "test_files": 1,
+   "test_lines": 48
+  },
+  {
+   "path": "collections/corecompat",
+   "code_files": 4,
+   "code_lines": 112
+  },
+  {
+   "path": "collections/indexes",
+   "code_files": 5,
+   "code_lines": 645,
+   "test_files": 5,
+   "test_lines": 484,
+   "commits_365d": 8
+  },
+  {
+   "path": "collections/internal",
+   "code_files": 2,
+   "code_lines": 63
+  },
+  {
+   "path": "collections/protocodec",
+   "code_files": 1,
+   "code_lines": 137,
+   "test_files": 1,
+   "test_lines": 55
+  },
+  {
+   "path": "contrib",
+   "code_files": 99,
+   "code_lines": 45404,
+   "docs_files": 8,
+   "docs_lines": 617,
+   "test_files": 16,
+   "test_lines": 2955,
+   "commits_365d": 253
+  },
+  {
+   "path": "contrib/api",
+   "code_files": 18,
+   "code_lines": 28180,
+   "commits_365d": 46
+  },
+  {
+   "path": "contrib/devtools",
+   "code_files": 1,
+   "code_lines": 40,
+   "commits_365d": 8
+  },
+  {
+   "path": "contrib/githooks",
+   "docs_files": 1,
+   "docs_lines": 21,
+   "code_files": 1,
+   "code_lines": 50,
+   "commits_365d": 2
+  },
+  {
+   "path": "contrib/images",
+   "code_files": 5,
+   "code_lines": 126,
+   "docs_files": 1,
+   "docs_lines": 37,
+   "commits_365d": 12
+  },
+  {
+   "path": "contrib/proto",
+   "code_files": 13,
+   "code_lines": 618,
+   "commits_365d": 7
+  },
+  {
+   "path": "contrib/x",
+   "docs_files": 6,
+   "docs_lines": 559,
+   "code_files": 61,
+   "code_lines": 16390,
+   "test_files": 16,
+   "test_lines": 2955,
+   "commits_365d": 178
+  },
+  {
+   "path": "core",
+   "docs_files": 3,
+   "docs_lines": 376,
+   "code_files": 28,
+   "code_lines": 1461,
+   "test_files": 4,
+   "test_lines": 184,
+   "commits_365d": 53
+  },
+  {
+   "path": "core/address",
+   "code_files": 1,
+   "code_lines": 9
+  },
+  {
+   "path": "core/appconfig",
+   "code_files": 2,
+   "code_lines": 21
+  },
+  {
+   "path": "core/appmodule",
+   "docs_files": 1,
+   "docs_lines": 232,
+   "code_files": 6,
+   "code_lines": 210,
+   "test_files": 1,
+   "test_lines": 17,
+   "commits_365d": 1
+  },
+  {
+   "path": "core/coins",
+   "code_files": 3,
+   "code_lines": 537,
+   "test_files": 1,
+   "test_lines": 90,
+   "commits_365d": 4
+  },
+  {
+   "path": "core/comet",
+   "code_files": 2,
+   "code_lines": 88
+  },
+  {
+   "path": "core/event",
+   "code_files": 1,
+   "code_lines": 43
+  },
+  {
+   "path": "core/gas",
+   "code_files": 1,
+   "code_lines": 40
+  },
+  {
+   "path": "core/genesis",
+   "code_files": 3,
+   "code_lines": 81,
+   "test_files": 2,
+   "test_lines": 77
+  },
+  {
+   "path": "core/header",
+   "code_files": 2,
+   "code_lines": 27
+  },
+  {
+   "path": "core/intermodule",
+   "code_files": 1,
+   "code_lines": 32
+  },
+  {
+   "path": "core/store",
+   "code_files": 3,
+   "code_lines": 66
+  },
+  {
+   "path": "crypto",
+   "code_files": 166,
+   "code_lines": 33921,
+   "test_files": 31,
+   "test_lines": 6748,
+   "docs_files": 4,
+   "docs_lines": 132,
+   "config_files": 3,
+   "config_lines": 73,
+   "commits_365d": 70
+  },
+  {
+   "path": "crypto/codec",
+   "code_files": 3,
+   "code_lines": 201,
+   "commits_365d": 6
+  },
+  {
+   "path": "crypto/hd",
+   "code_files": 6,
+   "code_lines": 837,
+   "test_files": 4,
+   "test_lines": 475,
+   "commits_365d": 6
+  },
+  {
+   "path": "crypto/keyring",
+   "code_files": 19,
+   "code_lines": 3254,
+   "test_files": 7,
+   "test_lines": 2993,
+   "commits_365d": 10
+  },
+  {
+   "path": "crypto/keys",
+   "code_files": 126,
+   "code_lines": 27678,
+   "test_files": 15,
+   "test_lines": 2366,
+   "config_files": 3,
+   "config_lines": 73,
+   "docs_files": 3,
+   "docs_lines": 98,
+   "commits_365d": 33
+  },
+  {
+   "path": "crypto/ledger",
+   "code_files": 5,
+   "code_lines": 582,
+   "test_files": 2,
+   "test_lines": 306,
+   "commits_365d": 8
+  },
+  {
+   "path": "crypto/types",
+   "code_files": 5,
+   "code_lines": 1009,
+   "test_files": 1,
+   "test_lines": 305,
+   "commits_365d": 3
+  },
+  {
+   "path": "crypto/xsalsa20symmetric",
+   "code_files": 1,
+   "code_lines": 71,
+   "test_files": 1,
+   "test_lines": 42
+  },
+  {
+   "path": "depinject",
+   "docs_files": 3,
+   "docs_lines": 478,
+   "code_files": 53,
+   "code_lines": 9327,
+   "test_files": 11,
+   "test_lines": 1957,
+   "commits_365d": 19
+  },
+  {
+   "path": "depinject/appconfig",
+   "docs_files": 1,
+   "docs_lines": 232,
+   "code_files": 7,
+   "code_lines": 2737,
+   "test_files": 1,
+   "test_lines": 244,
+   "commits_365d": 1
+  },
+  {
+   "path": "depinject/internal",
+   "code_files": 23,
+   "code_lines": 3785,
+   "test_files": 4,
+   "test_lines": 264,
+   "commits_365d": 1
+  },
+  {
+   "path": "depinject/testdata",
+   "code_files": 4,
+   "code_lines": 458
+  },
+  {
+   "path": "docs",
+   "docs_files": 259,
+   "docs_lines": 56147,
+   "test_files": 12,
+   "test_lines": 1198,
+   "commits_365d": 90
+  },
+  {
+   "path": "docs/architecture",
+   "docs_files": 66,
+   "docs_lines": 14772,
+   "commits_365d": 19
+  },
+  {
+   "path": "docs/audits",
+   "docs_files": 2,
+   "docs_lines": 0,
+   "commits_365d": 1
+  },
+  {
+   "path": "docs/docs",
+   "docs_files": 89,
+   "docs_lines": 9029,
+   "commits_365d": 36
+  },
+  {
+   "path": "docs/internal",
+   "docs_files": 1,
+   "docs_lines": 187,
+   "commits_365d": 1
+  },
+  {
+   "path": "docs/rfc",
+   "docs_files": 5,
+   "docs_lines": 213,
+   "commits_365d": 1
+  },
+  {
+   "path": "docs/spec",
+   "test_files": 12,
+   "test_lines": 1198,
+   "commits_365d": 5
+  },
+  {
+   "path": "docs/src",
+   "docs_files": 3,
+   "docs_lines": 610
+  },
+  {
+   "path": "docs/static",
+   "docs_files": 80,
+   "docs_lines": 906
+  },
+  {
+   "path": "enterprise",
+   "code_files": 170,
+   "code_lines": 124503,
+   "docs_files": 9,
+   "docs_lines": 3295,
+   "test_files": 70,
+   "test_lines": 30677,
+   "config_files": 1,
+   "config_lines": 110,
+   "commits_365d": 2023
+  },
+  {
+   "path": "enterprise/group",
+   "code_files": 88,
+   "code_lines": 88894,
+   "docs_files": 4,
+   "docs_lines": 2538,
+   "test_files": 46,
+   "test_lines": 16395,
+   "commits_365d": 819
+  },
+  {
+   "path": "enterprise/make",
+   "code_files": 1,
+   "code_lines": 127,
+   "commits_365d": 2
+  },
+  {
+   "path": "enterprise/poa",
+   "config_files": 1,
+   "config_lines": 110,
+   "code_files": 78,
+   "code_lines": 35292,
+   "docs_files": 4,
+   "docs_lines": 653,
+   "test_files": 24,
+   "test_lines": 14282,
+   "commits_365d": 1196
+  },
+  {
+   "path": "enterprise/scripts",
+   "code_files": 2,
+   "code_lines": 169,
+   "commits_365d": 3
+  },
+  {
+   "path": "errors",
+   "docs_files": 2,
+   "docs_lines": 73,
+   "code_files": 7,
+   "code_lines": 655,
+   "test_files": 3,
+   "test_lines": 532,
+   "commits_365d": 36
+  },
+  {
+   "path": "iavl",
+   "code_files": 15,
+   "code_lines": 1436,
+   "test_files": 8,
+   "test_lines": 1353,
+   "commits_365d": 35
+  },
+  {
+   "path": "iavl/internal",
+   "code_files": 15,
+   "code_lines": 1436,
+   "test_files": 8,
+   "test_lines": 1353,
+   "commits_365d": 35
+  },
+  {
+   "path": "internal",
+   "docs_files": 1,
+   "docs_lines": 43,
+   "test_files": 16,
+   "test_lines": 2726,
+   "code_files": 29,
+   "code_lines": 3711,
+   "commits_365d": 138
+  },
+  {
+   "path": "internal/blockstm",
+   "docs_files": 1,
+   "docs_lines": 43,
+   "test_files": 14,
+   "test_lines": 2461,
+   "code_files": 24,
+   "code_lines": 3547,
+   "commits_365d": 138
+  },
+  {
+   "path": "internal/conv",
+   "code_files": 2,
+   "code_lines": 21,
+   "test_files": 1,
+   "test_lines": 58
+  },
+  {
+   "path": "internal/testutil",
+   "code_files": 2,
+   "code_lines": 127,
+   "test_files": 1,
+   "test_lines": 207
+  },
+  {
+   "path": "log",
+   "docs_files": 2,
+   "docs_lines": 287,
+   "test_files": 6,
+   "test_lines": 614,
+   "code_files": 9,
+   "code_lines": 790,
+   "commits_365d": 60
+  },
+  {
+   "path": "log/slog",
+   "code_files": 1,
+   "code_lines": 35,
+   "test_files": 1,
+   "test_lines": 99,
+   "commits_365d": 4
+  },
+  {
+   "path": "math",
+   "docs_files": 1,
+   "docs_lines": 187,
+   "code_files": 11,
+   "code_lines": 2174,
+   "test_files": 8,
+   "test_lines": 2936,
+   "commits_365d": 15
+  },
+  {
+   "path": "math/testdata",
+   "code_files": 2,
+   "code_lines": 66
+  },
+  {
+   "path": "math/unsafe",
+   "code_files": 1,
+   "code_lines": 147
+  },
+  {
+   "path": "proto",
+   "docs_files": 2,
+   "docs_lines": 30,
+   "code_files": 129,
+   "code_lines": 10271,
+   "commits_365d": 40
+  },
+  {
+   "path": "proto/amino",
+   "code_files": 1,
+   "code_lines": 84
+  },
+  {
+   "path": "proto/cosmos",
+   "code_files": 112,
+   "code_lines": 9139,
+   "commits_365d": 37
+  },
+  {
+   "path": "proto/tendermint",
+   "code_files": 11,
+   "code_lines": 969,
+   "commits_365d": 1
+  },
+  {
+   "path": "runtime",
+   "code_files": 11,
+   "code_lines": 1206,
+   "commits_365d": 11
+  },
+  {
+   "path": "runtime/services",
+   "code_files": 3,
+   "code_lines": 200
+  },
+  {
+   "path": "scripts",
+   "docs_files": 1,
+   "docs_lines": 27,
+   "code_files": 12,
+   "code_lines": 513,
+   "commits_365d": 25
+  },
+  {
+   "path": "server",
+   "docs_files": 1,
+   "docs_lines": 90,
+   "code_files": 27,
+   "code_lines": 11258,
+   "test_files": 11,
+   "test_lines": 2231,
+   "commits_365d": 79
+  },
+  {
+   "path": "server/api",
+   "code_files": 1,
+   "code_lines": 240,
+   "test_files": 1,
+   "test_lines": 327,
+   "commits_365d": 8
+  },
+  {
+   "path": "server/cmd",
+   "code_files": 1,
+   "code_lines": 46
+  },
+  {
+   "path": "server/config",
+   "code_files": 2,
+   "code_lines": 713,
+   "test_files": 1,
+   "test_lines": 541,
+   "commits_365d": 15
+  },
+  {
+   "path": "server/grpc",
+   "code_files": 7,
+   "code_lines": 7023,
+   "test_files": 2,
+   "test_lines": 296,
+   "commits_365d": 5
+  },
+  {
+   "path": "server/log",
+   "code_files": 1,
+   "code_lines": 23,
+   "commits_365d": 1
+  },
+  {
+   "path": "server/mock",
+   "code_files": 3,
+   "code_lines": 581,
+   "test_files": 2,
+   "test_lines": 134,
+   "commits_365d": 12
+  },
+  {
+   "path": "server/types",
+   "code_files": 2,
+   "code_lines": 136,
+   "commits_365d": 6
+  },
+  {
+   "path": "simapp",
+   "code_files": 19,
+   "code_lines": 4435,
+   "docs_files": 1,
+   "docs_lines": 53,
+   "test_files": 9,
+   "test_lines": 1498,
+   "commits_365d": 384
+  },
+  {
+   "path": "simapp/params",
+   "code_files": 4,
+   "code_lines": 87,
+   "commits_365d": 2
+  },
+  {
+   "path": "simapp/simd",
+   "code_files": 5,
+   "code_lines": 1082,
+   "test_files": 2,
+   "test_lines": 164,
+   "commits_365d": 20
+  },
+  {
+   "path": "std",
+   "code_files": 2,
+   "code_lines": 35
+  },
+  {
+   "path": "store",
+   "docs_files": 7,
+   "docs_lines": 822,
+   "test_files": 41,
+   "test_lines": 8392,
+   "code_files": 66,
+   "code_lines": 14031,
+   "config_files": 1,
+   "config_lines": 2,
+   "commits_365d": 371
+  },
+  {
+   "path": "store/cache",
+   "test_files": 2,
+   "test_lines": 151,
+   "code_files": 1,
+   "code_lines": 132,
+   "commits_365d": 10
+  },
+  {
+   "path": "store/cachekv",
+   "docs_files": 1,
+   "docs_lines": 140,
+   "test_files": 6,
+   "test_lines": 1215,
+   "code_files": 2,
+   "code_lines": 664,
+   "commits_365d": 22
+  },
+  {
+   "path": "store/cachemulti",
+   "code_files": 1,
+   "code_lines": 140,
+   "test_files": 1,
+   "test_lines": 24,
+   "commits_365d": 3
+  },
+  {
+   "path": "store/dbadapter",
+   "code_files": 1,
+   "code_lines": 82,
+   "test_files": 1,
+   "test_lines": 83,
+   "commits_365d": 8
+  },
+  {
+   "path": "store/gaskv",
+   "code_files": 1,
+   "code_lines": 200,
+   "test_files": 1,
+   "test_lines": 119,
+   "commits_365d": 4
+  },
+  {
+   "path": "store/iavl",
+   "code_files": 2,
+   "code_lines": 506,
+   "test_files": 2,
+   "test_lines": 751,
+   "commits_365d": 17
+  },
+  {
+   "path": "store/internal",
+   "code_files": 13,
+   "code_lines": 1481,
+   "test_files": 7,
+   "test_lines": 629,
+   "commits_365d": 15
+  },
+  {
+   "path": "store/legacy",
+   "commits_365d": 54
+  },
+  {
+   "path": "store/listenkv",
+   "code_files": 1,
+   "code_lines": 134,
+   "test_files": 1,
+   "test_lines": 276,
+   "commits_365d": 6
+  },
+  {
+   "path": "store/mem",
+   "test_files": 1,
+   "test_lines": 50,
+   "code_files": 1,
+   "code_lines": 54,
+   "commits_365d": 8
+  },
+  {
+   "path": "store/metrics",
+   "commits_365d": 1
+  },
+  {
+   "path": "store/mock",
+   "code_files": 1,
+   "code_lines": 227
+  },
+  {
+   "path": "store/prefix",
+   "code_files": 1,
+   "code_lines": 233,
+   "test_files": 1,
+   "test_lines": 522,
+   "commits_365d": 10
+  },
+  {
+   "path": "store/pruning",
+   "docs_files": 1,
+   "docs_lines": 30,
+   "code_files": 2,
+   "code_lines": 361,
+   "test_files": 2,
+   "test_lines": 691,
+   "commits_365d": 6
+  },
+  {
+   "path": "store/rootmulti",
+   "code_files": 3,
+   "code_lines": 1387,
+   "test_files": 3,
+   "test_lines": 1663,
+   "commits_365d": 35
+  },
+  {
+   "path": "store/snapshots",
+   "docs_files": 1,
+   "docs_lines": 284,
+   "code_files": 11,
+   "code_lines": 3436,
+   "test_files": 5,
+   "test_lines": 1354,
+   "commits_365d": 21
+  },
+  {
+   "path": "store/streaming",
+   "docs_files": 3,
+   "docs_lines": 245,
+   "config_files": 1,
+   "config_lines": 2,
+   "code_files": 5,
+   "code_lines": 1333,
+   "test_files": 1,
+   "test_lines": 178,
+   "commits_365d": 12
+  },
+  {
+   "path": "store/tracekv",
+   "commits_365d": 2
+  },
+  {
+   "path": "store/transient",
+   "code_files": 1,
+   "code_lines": 82,
+   "test_files": 1,
+   "test_lines": 34,
+   "commits_365d": 2
+  },
+  {
+   "path": "store/types",
+   "code_files": 14,
+   "code_lines": 3087,
+   "test_files": 6,
+   "test_lines": 652,
+   "commits_365d": 27
+  },
+  {
+   "path": "store/wrapper",
+   "code_files": 1,
+   "code_lines": 34
+  },
+  {
+   "path": "systemtests",
+   "commits_365d": 115
+  },
+  {
+   "path": "telemetry",
+   "docs_files": 1,
+   "docs_lines": 112,
+   "code_files": 12,
+   "code_lines": 1195,
+   "test_files": 3,
+   "test_lines": 324,
+   "commits_365d": 30
+  },
+  {
+   "path": "telemetry/registry",
+   "code_files": 1,
+   "code_lines": 28,
+   "commits_365d": 1
+  },
+  {
+   "path": "telemetry/util",
+   "code_files": 5,
+   "code_lines": 391,
+   "commits_365d": 5
+  },
+  {
+   "path": "tests",
+   "test_files": 1063,
+   "test_lines": 34895,
+   "commits_365d": 807
+  },
+  {
+   "path": "tests/e2e",
+   "test_files": 28,
+   "test_lines": 8615,
+   "commits_365d": 28
+  },
+  {
+   "path": "tests/fixtures",
+   "test_files": 1,
+   "test_lines": 215
+  },
+  {
+   "path": "tests/fuzz",
+   "test_files": 968,
+   "test_lines": 2191,
+   "commits_365d": 1
+  },
+  {
+   "path": "tests/integration",
+   "test_files": 50,
+   "test_lines": 19373,
+   "commits_365d": 107
+  },
+  {
+   "path": "tests/systemtests",
+   "test_files": 13,
+   "test_lines": 2781,
+   "commits_365d": 351
+  },
+  {
+   "path": "testutil",
+   "code_files": 83,
+   "code_lines": 65483,
+   "test_files": 13,
+   "test_lines": 1390,
+   "docs_files": 3,
+   "docs_lines": 60,
+   "commits_365d": 93
+  },
+  {
+   "path": "testutil/cli",
+   "code_files": 3,
+   "code_lines": 142
+  },
+  {
+   "path": "testutil/cmdtest",
+   "code_files": 1,
+   "code_lines": 120
+  },
+  {
+   "path": "testutil/configurator",
+   "code_files": 1,
+   "code_lines": 337,
+   "commits_365d": 8
+  },
+  {
+   "path": "testutil/integration",
+   "code_files": 3,
+   "code_lines": 242,
+   "test_files": 1,
+   "test_lines": 205,
+   "commits_365d": 10
+  },
+  {
+   "path": "testutil/mock",
+   "code_files": 8,
+   "code_lines": 2215,
+   "test_files": 1,
+   "test_lines": 31,
+   "commits_365d": 1
+  },
+  {
+   "path": "testutil/network",
+   "code_files": 3,
+   "code_lines": 1226,
+   "commits_365d": 10
+  },
+  {
+   "path": "testutil/sims",
+   "code_files": 6,
+   "code_lines": 1202,
+   "test_files": 1,
+   "test_lines": 115,
+   "commits_365d": 15
+  },
+  {
+   "path": "testutil/simsx",
+   "docs_files": 1,
+   "docs_lines": 47,
+   "test_files": 7,
+   "test_lines": 868,
+   "code_files": 9,
+   "code_lines": 1858,
+   "commits_365d": 8
+  },
+  {
+   "path": "testutil/systemtests",
+   "commits_365d": 26
+  },
+  {
+   "path": "testutil/testdata",
+   "docs_files": 1,
+   "docs_lines": 6,
+   "code_files": 27,
+   "code_lines": 55614,
+   "commits_365d": 4
+  },
+  {
+   "path": "testutil/x",
+   "docs_files": 1,
+   "docs_lines": 7,
+   "code_files": 13,
+   "code_lines": 2015,
+   "commits_365d": 2
+  },
+  {
+   "path": "tools",
+   "config_files": 2,
+   "config_lines": 3,
+   "code_files": 93,
+   "code_lines": 12567,
+   "docs_files": 9,
+   "docs_lines": 1203,
+   "test_files": 12,
+   "test_lines": 2876,
+   "commits_365d": 604
+  },
+  {
+   "path": "tools/benchmark",
+   "commits_365d": 21
+  },
+  {
+   "path": "tools/confix",
+   "config_files": 1,
+   "config_lines": 2,
+   "code_files": 31,
+   "code_lines": 3942,
+   "docs_files": 3,
+   "docs_lines": 253,
+   "test_files": 4,
+   "test_lines": 189,
+   "commits_365d": 227
+  },
+  {
+   "path": "tools/cosmovisor",
+   "config_files": 1,
+   "config_lines": 1,
+   "code_files": 50,
+   "code_lines": 4249,
+   "docs_files": 3,
+   "docs_lines": 601,
+   "test_files": 7,
+   "test_lines": 2632,
+   "commits_365d": 162
+  },
+  {
+   "path": "tools/speedtest",
+   "code_files": 1,
+   "code_lines": 180,
+   "commits_365d": 2
+  },
+  {
+   "path": "tools/systemtests",
+   "docs_files": 3,
+   "docs_lines": 349,
+   "code_files": 11,
+   "code_lines": 4196,
+   "test_files": 1,
+   "test_lines": 55,
+   "commits_365d": 192
+  },
+  {
+   "path": "types",
+   "code_files": 71,
+   "code_lines": 26907,
+   "docs_files": 2,
+   "docs_lines": 153,
+   "test_files": 47,
+   "test_lines": 9438,
+   "commits_365d": 99
+  },
+  {
+   "path": "types/address",
+   "docs_files": 1,
+   "docs_lines": 7,
+   "code_files": 2,
+   "code_lines": 132,
+   "test_files": 2,
+   "test_lines": 188,
+   "commits_365d": 2
+  },
+  {
+   "path": "types/bech32",
+   "code_files": 2,
+   "code_lines": 102,
+   "test_files": 3,
+   "test_lines": 134,
+   "commits_365d": 2
+  },
+  {
+   "path": "types/errors",
+   "code_files": 3,
+   "code_lines": 203
+  },
+  {
+   "path": "types/grpc",
+   "code_files": 1,
+   "code_lines": 6
+  },
+  {
+   "path": "types/kv",
+   "code_files": 2,
+   "code_lines": 27
+  },
+  {
+   "path": "types/mempool",
+   "code_files": 6,
+   "code_lines": 1070,
+   "test_files": 7,
+   "test_lines": 1932,
+   "docs_files": 1,
+   "docs_lines": 146,
+   "commits_365d": 29
+  },
+  {
+   "path": "types/module",
+   "code_files": 5,
+   "code_lines": 1551,
+   "test_files": 3,
+   "test_lines": 738,
+   "commits_365d": 9
+  },
+  {
+   "path": "types/msgservice",
+   "code_files": 3,
+   "code_lines": 200,
+   "test_files": 1,
+   "test_lines": 24,
+   "commits_365d": 1
+  },
+  {
+   "path": "types/query",
+   "code_files": 5,
+   "code_lines": 1502,
+   "test_files": 4,
+   "test_lines": 1053,
+   "commits_365d": 16
+  },
+  {
+   "path": "types/registry",
+   "code_files": 1,
+   "code_lines": 52,
+   "commits_365d": 1
+  },
+  {
+   "path": "types/simulation",
+   "code_files": 6,
+   "code_lines": 576,
+   "test_files": 3,
+   "test_lines": 210
+  },
+  {
+   "path": "types/tx",
+   "code_files": 11,
+   "code_lines": 12013,
+   "test_files": 1,
+   "test_lines": 86,
+   "commits_365d": 3
+  },
+  {
+   "path": "version",
+   "code_files": 2,
+   "code_lines": 226,
+   "test_files": 1,
+   "test_lines": 180,
+   "commits_365d": 2
+  },
+  {
+   "path": "x",
+   "docs_files": 22,
+   "docs_lines": 13489,
+   "code_files": 598,
+   "code_lines": 238461,
+   "test_files": 259,
+   "test_lines": 59341,
+   "config_files": 1,
+   "config_lines": 1,
+   "commits_365d": 1038
+  },
+  {
+   "path": "x/auth",
+   "docs_files": 3,
+   "docs_lines": 1598,
+   "code_files": 95,
+   "code_lines": 21846,
+   "test_files": 47,
+   "test_lines": 10278,
+   "commits_365d": 139
+  },
+  {
+   "path": "x/authz",
+   "docs_files": 1,
+   "docs_lines": 377,
+   "code_files": 37,
+   "code_lines": 8791,
+   "test_files": 15,
+   "test_lines": 3055,
+   "commits_365d": 20
+  },
+  {
+   "path": "x/bank",
+   "docs_files": 1,
+   "docs_lines": 1048,
+   "test_files": 20,
+   "test_lines": 8105,
+   "code_files": 38,
+   "code_lines": 17610,
+   "commits_365d": 67
+  },
+  {
+   "path": "x/consensus",
+   "docs_files": 1,
+   "docs_lines": 90,
+   "code_files": 12,
+   "code_lines": 2221,
+   "test_files": 1,
+   "test_lines": 377,
+   "commits_365d": 9
+  },
+  {
+   "path": "x/distribution",
+   "docs_files": 1,
+   "docs_lines": 1087,
+   "code_files": 47,
+   "code_lines": 21828,
+   "test_files": 18,
+   "test_lines": 4151,
+   "commits_365d": 74
+  },
+  {
+   "path": "x/epochs",
+   "docs_files": 1,
+   "docs_lines": 367,
+   "code_files": 17,
+   "code_lines": 3208,
+   "test_files": 8,
+   "test_lines": 888,
+   "commits_365d": 16
+  },
+  {
+   "path": "x/evidence",
+   "docs_files": 2,
+   "docs_lines": 493,
+   "code_files": 31,
+   "code_lines": 4658,
+   "test_files": 11,
+   "test_lines": 1120,
+   "commits_365d": 14
+  },
+  {
+   "path": "x/feegrant",
+   "docs_files": 2,
+   "docs_lines": 454,
+   "code_files": 33,
+   "code_lines": 7645,
+   "test_files": 16,
+   "test_lines": 3196,
+   "commits_365d": 24
+  },
+  {
+   "path": "x/genutil",
+   "docs_files": 1,
+   "docs_lines": 89,
+   "code_files": 24,
+   "code_lines": 2904,
+   "test_files": 10,
+   "test_lines": 1674,
+   "commits_365d": 25
+  },
+  {
+   "path": "x/gov",
+   "docs_files": 1,
+   "docs_lines": 2576,
+   "code_files": 65,
+   "code_lines": 33055,
+   "test_files": 29,
+   "test_lines": 8184,
+   "commits_365d": 103
+  },
+  {
+   "path": "x/mint",
+   "docs_files": 1,
+   "docs_lines": 470,
+   "code_files": 27,
+   "code_lines": 4791,
+   "test_files": 11,
+   "test_lines": 1337,
+   "commits_365d": 41
+  },
+  {
+   "path": "x/params",
+   "docs_files": 1,
+   "docs_lines": 79,
+   "commits_365d": 61
+  },
+  {
+   "path": "x/protocolpool",
+   "commits_365d": 46
+  },
+  {
+   "path": "x/simulation",
+   "code_files": 11,
+   "code_lines": 1693,
+   "test_files": 2,
+   "test_lines": 110,
+   "commits_365d": 8
+  },
+  {
+   "path": "x/slashing",
+   "docs_files": 1,
+   "docs_lines": 813,
+   "code_files": 36,
+   "code_lines": 7907,
+   "test_files": 14,
+   "test_lines": 1795,
+   "commits_365d": 46
+  },
+  {
+   "path": "x/staking",
+   "docs_files": 1,
+   "docs_lines": 3063,
+   "test_files": 32,
+   "test_lines": 9638,
+   "code_files": 61,
+   "code_lines": 36909,
+   "commits_365d": 182
+  },
+  {
+   "path": "x/tx",
+   "docs_files": 1,
+   "docs_lines": 113,
+   "code_files": 37,
+   "code_lines": 56518,
+   "test_files": 13,
+   "test_lines": 2802,
+   "config_files": 1,
+   "config_lines": 1,
+   "commits_365d": 129
+  },
+  {
+   "path": "x/upgrade",
+   "docs_files": 2,
+   "docs_lines": 698,
+   "code_files": 27,
+   "code_lines": 6877,
+   "test_files": 12,
+   "test_lines": 2631,
+   "commits_365d": 30
+  }
+ ],
+ "root_files": [
+  ".clang-format",
+  ".dockerignore",
+  ".gitattributes",
+  ".gitignore",
+  ".golangci.yml",
+  ".goreleaser.yml",
+  ".markdownlint.json",
+  ".markdownlintignore",
+  ".mergify.yml",
+  "AGENTS.md",
+  "CHANGELOG.md",
+  "Dockerfile",
+  "LICENSE",
+  "Makefile",
+  "NOTICE",
+  "README.md",
+  "RELEASE_NOTES.md",
+  "UPGRADING.md",
+  "buf.work.yaml",
+  "codecov.yml",
+  "docker-compose.yml",
+  "go.mod",
+  "go.sum"
+ ],
+ "instruction_files": [
+  ".github/PULL_REQUEST_TEMPLATE.md",
+  "AGENTS.md",
+  "CHANGELOG.md",
+  "README.md",
+  "RELEASE_NOTES.md",
+  "UPGRADING.md",
+  "api/CHANGELOG.md",
+  "collections/CHANGELOG.md",
+  "collections/README.md",
+  "core/CHANGELOG.md",
+  "core/README.md",
+  "depinject/CHANGELOG.md",
+  "depinject/README.md",
+  "docs/DOC_WRITING_GUIDELINES.md",
+  "docs/README.md",
+  "enterprise/README.md",
+  "errors/CHANGELOG.md",
+  "errors/README.md",
+  "log/CHANGELOG.md",
+  "log/README.md",
+  "math/CHANGELOG.md",
+  "proto/README.md",
+  "scripts/README.md",
+  "server/README.md",
+  "simapp/README.md",
+  "store/CHANGELOG.md",
+  "telemetry/README.md",
+  "x/README.md"
+ ],
+ "readmes": [
+  [
+   "README.md",
+   83
+  ],
+  [
+   "client/v2/README.md",
+   258
+  ],
+  [
+   "collections/README.md",
+   1207
+  ],
+  [
+   "contrib/githooks/README.md",
+   21
+  ],
+  [
+   "contrib/images/simd-dlv/README.md",
+   37
+  ],
+  [
+   "contrib/x/README.md",
+   5
+  ],
+  [
+   "contrib/x/circuit/README.md",
+   261
+  ],
+  [
+   "contrib/x/crisis/README.md",
+   112
+  ],
+  [
+   "contrib/x/nft/README.md",
+   91
+  ],
+  [
+   "core/README.md",
+   11
+  ],
+  [
+   "core/appmodule/README.md",
+   232
+  ],
+  [
+   "crypto/keys/secp256k1/internal/secp256k1/README.md",
+   5
+  ],
+  [
+   "crypto/keys/secp256k1/internal/secp256k1/libsecp256k1/README.md",
+   62
+  ],
+  [
+   "depinject/README.md",
+   205
+  ],
+  [
+   "depinject/appconfig/README.md",
+   232
+  ]
+ ],
+ "docs_files": 246,
+ "decision_sets": {
+  "docs/architecture": [
+   "adr-002-docs-structure.md",
+   "adr-004-split-denomination-keys.md",
+   "adr-006-secret-store-replacement.md",
+   "adr-007-specialization-groups.md",
+   "adr-008-dCERT-group.md",
+   "adr-009-evidence-module.md",
+   "adr-011-generalize-genesis-accounts.md",
+   "adr-012-state-accessors.md",
+   "adr-013-metrics.md",
+   "adr-014-proportional-slashing.md",
+   "adr-016-validator-consensus-key-rotation.md",
+   "adr-017-historical-header-module.md",
+   "adr-018-extendable-voting-period.md",
+   "adr-019-protobuf-state-encoding.md",
+   "adr-020-protobuf-transaction-encoding.md",
+   "adr-021-protobuf-query-encoding.md",
+   "adr-022-custom-panic-handling.md",
+   "adr-023-protobuf-naming.md",
+   "adr-024-coin-metadata.md",
+   "adr-027-deterministic-protobuf-serialization.md",
+   "adr-028-public-key-addresses.md",
+   "adr-029-fee-grant-module.md",
+   "adr-030-authz-module.md",
+   "adr-031-msg-service.md",
+   "adr-032-typed-events.md",
+   "adr-033-protobuf-inter-module-comm.md",
+   "adr-034-account-rekeying.md",
+   "adr-035-rosetta-api-support.md",
+   "adr-036-arbitrary-signature.md",
+   "adr-037-gov-split-vote.md",
+   "adr-038-state-listening.md",
+   "adr-039-epoched-staking.md",
+   "adr-040-storage-and-smt-state-commitments.md",
+   "adr-041-in-place-store-migrations.md",
+   "adr-042-group-module.md",
+   "adr-043-nft-module.md",
+   "adr-044-protobuf-updates-guidelines.md",
+   "adr-045-check-delivertx-middlewares.md",
+   "adr-046-module-params.md",
+   "adr-047-extend-upgrade-plan.md",
+   "adr-048-consensus-fees.md",
+   "adr-049-state-sync-hooks.md",
+   "adr-050-sign-mode-textual-annex2.md",
+   "adr-050-sign-mode-textual.md",
+   "adr-053-go-module-refactoring.md",
+   "adr-055-orm.md",
+   "adr-057-app-wiring.md",
+   "adr-058-auto-generated-cli.md",
+   "adr-059-test-scopes.md",
+   "adr-060-abci-1.0.md",
+   "adr-061-liquid-staking.md",
+   "adr-062-collections-state-layer.md",
+   "adr-063-core-module-api.md",
+   "adr-064-abci-2.0.md",
+   "adr-065-store-v2.md",
+   "adr-068-preblock.md",
+   "adr-070-unordered-account.md",
+   "adr-template.md"
+  ]
+ },
+ "commits_365d": 620,
+ "hot_spots": [
+  [
+   "go.mod",
+   167
+  ],
+  [
+   "tests/go.mod",
+   165
+  ],
+  [
+   "tests/systemtests/go.mod",
+   164
+  ],
+  [
+   "simapp/go.mod",
+   162
+  ],
+  [
+   "tests/systemtests/go.sum",
+   158
+  ],
+  [
+   "go.sum",
+   157
+  ],
+  [
+   "simapp/go.sum",
+   156
+  ],
+  [
+   "tests/go.sum",
+   155
+  ],
+  [
+   "client/v2/go.mod",
+   150
+  ],
+  [
+   "client/v2/go.sum",
+   148
+  ],
+  [
+   "enterprise/poa/simapp/go.mod",
+   131
+  ],
+  [
+   "enterprise/poa/tests/systemtests/go.mod",
+   126
+  ]
+ ],
+ "recent_subjects": [
+  "2026-10-28 ci: bump go to 1.27.3 (#26919)",
+  "2026-10-28 build(deps): Bump github.com/go-jose/go-jose/v4 from 4.1.4 to 4.1.6 in /tests in the go_modules group across 1 directory (#26921)",
+  "2026-10-28 build(deps): Bump go.opentelemetry.io/contrib/bridges/otelslog from 0.20.1 to 0.21.0 (#26903)",
+  "2026-10-28 perf(blockstm): batch MVData index updates (#26773)",
+  "2026-10-26 build(deps): Bump docker/login-action from 4.6.0 to 4.7.0 (#26917)",
+  "2026-10-22 fix(enterprise/poa): truncate fee shares so allocations never exceed the balance (#26875)",
+  "2026-10-21 chore: bump golangci-lint to v2.15.0 (#26897)",
+  "2026-10-21 chore(deps): fix open Dependabot alerts (#26896)"
+ ],
+ "seconds": 1.43
+}

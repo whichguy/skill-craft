@@ -1,0 +1,695 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/74ba2f0c-cb58-42fa-8c69-0f28a6a6cb7e/scratchpad/repos/uptime-kuma",
+ "head": "2e8bf7da56f7d14093f595a4b3ffce14caf11632",
+ "commits": 7433,
+ "first_commit": "2021-06-24",
+ "last_commit": "2026-10-28",
+ "tracked_files": 923,
+ "size_class": "large",
+ "classes": {
+  "code": {
+   "files": 750,
+   "lines": 163995
+  },
+  "config": {
+   "files": 35,
+   "lines": 2067
+  },
+  "docs": {
+   "files": 18,
+   "lines": 1904
+  },
+  "test": {
+   "files": 120,
+   "lines": 14901
+  }
+ },
+ "code_extensions": [
+  [
+   ".json",
+   86583
+  ],
+  [
+   ".js",
+   36777
+  ],
+  [
+   ".vue",
+   31671
+  ],
+  [
+   ".ts",
+   3690
+  ],
+  [
+   ".mjs",
+   2565
+  ],
+  [
+   ".sql",
+   974
+  ],
+  [
+   ".scss",
+   848
+  ],
+  [
+   "(none)",
+   274
+  ],
+  [
+   ".go",
+   154
+  ],
+  [
+   ".mts",
+   103
+  ],
+  [
+   ".dockerfile",
+   93
+  ],
+  [
+   ".conf",
+   90
+  ]
+ ],
+ "map": [
+  {
+   "path": "src",
+   "code_files": 290,
+   "code_lines": 104142,
+   "docs_files": 1,
+   "docs_lines": 20,
+   "commits_365d": 1200
+  },
+  {
+   "path": "src/lang",
+   "docs_files": 1,
+   "docs_lines": 20,
+   "code_files": 80,
+   "code_lines": 67940,
+   "commits_365d": 556
+  },
+  {
+   "path": "src/components",
+   "code_files": 166,
+   "code_lines": 20817,
+   "commits_365d": 379
+  },
+  {
+   "path": "src/pages",
+   "code_files": 15,
+   "code_lines": 10525,
+   "commits_365d": 165
+  },
+  {
+   "path": "src/mixins",
+   "code_files": 6,
+   "code_lines": 1209,
+   "commits_365d": 17
+  },
+  {
+   "path": "src/assets",
+   "code_files": 5,
+   "code_lines": 848,
+   "commits_365d": 4
+  },
+  {
+   "path": "src/layouts",
+   "code_files": 2,
+   "code_lines": 439,
+   "commits_365d": 3
+  },
+  {
+   "path": "src/modules",
+   "code_files": 3,
+   "code_lines": 249,
+   "commits_365d": 2
+  },
+  {
+   "path": "server",
+   "code_files": 248,
+   "code_lines": 33605,
+   "docs_files": 4,
+   "docs_lines": 239,
+   "commits_365d": 744
+  },
+  {
+   "path": "server/notification-providers",
+   "code_files": 111,
+   "code_lines": 8401,
+   "commits_365d": 175
+  },
+  {
+   "path": "server/model",
+   "code_files": 13,
+   "code_lines": 3996,
+   "commits_365d": 112
+  },
+  {
+   "path": "server/modules",
+   "code_files": 28,
+   "code_lines": 3896,
+   "docs_files": 4,
+   "docs_lines": 239,
+   "commits_365d": 39
+  },
+  {
+   "path": "server/monitor-types",
+   "code_files": 28,
+   "code_lines": 3605,
+   "commits_365d": 128
+  },
+  {
+   "path": "server/socket-handlers",
+   "code_files": 11,
+   "code_lines": 1581,
+   "commits_365d": 30
+  },
+  {
+   "path": "server/routers",
+   "code_files": 4,
+   "code_lines": 1497,
+   "commits_365d": 22
+  },
+  {
+   "path": "server/monitor-conditions",
+   "code_files": 4,
+   "code_lines": 543,
+   "commits_365d": 3
+  },
+  {
+   "path": "server/utils",
+   "code_files": 4,
+   "code_lines": 248,
+   "commits_365d": 3
+  },
+  {
+   "path": "(root)",
+   "code_files": 15,
+   "code_lines": 17795,
+   "config_files": 2,
+   "config_lines": 51,
+   "docs_files": 7,
+   "docs_lines": 1051,
+   "commits_365d": 272
+  },
+  {
+   "path": "test",
+   "test_files": 120,
+   "test_lines": 14901,
+   "commits_365d": 339
+  },
+  {
+   "path": "extra",
+   "code_files": 63,
+   "code_lines": 4840,
+   "config_files": 2,
+   "config_lines": 4,
+   "docs_files": 1,
+   "docs_lines": 19,
+   "commits_365d": 180
+  },
+  {
+   "path": "db",
+   "code_files": 120,
+   "code_lines": 3129,
+   "docs_files": 2,
+   "docs_lines": 54,
+   "commits_365d": 89
+  },
+  {
+   "path": "docker",
+   "code_files": 6,
+   "code_lines": 352,
+   "commits_365d": 14
+  },
+  {
+   "path": "public",
+   "code_files": 8,
+   "code_lines": 132,
+   "commits_365d": 8
+  },
+  {
+   "path": ".github",
+   "config_files": 31,
+   "config_lines": 2012,
+   "docs_files": 3,
+   "docs_lines": 521,
+   "commits_365d": 232
+  },
+  {
+   "path": "config",
+   "commits_365d": 13
+  }
+ ],
+ "inventory": [
+  {
+   "path": "(root)",
+   "code_files": 15,
+   "code_lines": 17795,
+   "config_files": 2,
+   "config_lines": 51,
+   "docs_files": 7,
+   "docs_lines": 1051,
+   "commits_365d": 272
+  },
+  {
+   "path": ".github",
+   "config_files": 31,
+   "config_lines": 2012,
+   "docs_files": 3,
+   "docs_lines": 521,
+   "commits_365d": 232
+  },
+  {
+   "path": ".github/ISSUE_TEMPLATE",
+   "config_files": 5,
+   "config_lines": 401,
+   "commits_365d": 8
+  },
+  {
+   "path": ".github/actions",
+   "config_files": 1,
+   "config_lines": 33,
+   "commits_365d": 1
+  },
+  {
+   "path": ".github/config",
+   "config_files": 1,
+   "config_lines": 1
+  },
+  {
+   "path": ".github/workflows",
+   "config_files": 21,
+   "config_lines": 1537,
+   "commits_365d": 195
+  },
+  {
+   "path": "config",
+   "commits_365d": 13
+  },
+  {
+   "path": "db",
+   "code_files": 120,
+   "code_lines": 3129,
+   "docs_files": 2,
+   "docs_lines": 54,
+   "commits_365d": 89
+  },
+  {
+   "path": "db/knex_migrations",
+   "code_files": 64,
+   "code_lines": 1544,
+   "docs_files": 1,
+   "docs_lines": 51,
+   "commits_365d": 85
+  },
+  {
+   "path": "db/old_migrations",
+   "docs_files": 1,
+   "docs_lines": 3,
+   "code_files": 54,
+   "code_lines": 974
+  },
+  {
+   "path": "docker",
+   "code_files": 6,
+   "code_lines": 352,
+   "commits_365d": 14
+  },
+  {
+   "path": "docker/etc",
+   "code_files": 2,
+   "code_lines": 120,
+   "commits_365d": 1
+  },
+  {
+   "path": "extra",
+   "code_files": 63,
+   "code_lines": 4840,
+   "config_files": 2,
+   "config_lines": 4,
+   "docs_files": 1,
+   "docs_lines": 19,
+   "commits_365d": 180
+  },
+  {
+   "path": "extra/beta",
+   "commits_365d": 6
+  },
+  {
+   "path": "extra/docker-latest-warning",
+   "code_files": 3,
+   "code_lines": 87,
+   "commits_365d": 3
+  },
+  {
+   "path": "extra/kuma-pr",
+   "code_files": 3,
+   "code_lines": 73,
+   "commits_365d": 2
+  },
+  {
+   "path": "extra/push-examples",
+   "config_files": 1,
+   "config_lines": 3,
+   "code_files": 12,
+   "code_lines": 159,
+   "docs_files": 1,
+   "docs_lines": 19,
+   "commits_365d": 5
+  },
+  {
+   "path": "extra/release",
+   "code_files": 15,
+   "code_lines": 1829,
+   "commits_365d": 88
+  },
+  {
+   "path": "extra/update-language-files",
+   "commits_365d": 6
+  },
+  {
+   "path": "extra/uptime-kuma-push",
+   "config_files": 1,
+   "config_lines": 1,
+   "code_files": 4,
+   "code_lines": 121,
+   "commits_365d": 4
+  },
+  {
+   "path": "public",
+   "code_files": 8,
+   "code_lines": 132,
+   "commits_365d": 8
+  },
+  {
+   "path": "server",
+   "code_files": 248,
+   "code_lines": 33605,
+   "docs_files": 4,
+   "docs_lines": 239,
+   "commits_365d": 744
+  },
+  {
+   "path": "server/analytics",
+   "code_files": 6,
+   "code_lines": 238,
+   "commits_365d": 5
+  },
+  {
+   "path": "server/jobs",
+   "code_files": 2,
+   "code_lines": 91,
+   "commits_365d": 1
+  },
+  {
+   "path": "server/model",
+   "code_files": 13,
+   "code_lines": 3996,
+   "commits_365d": 112
+  },
+  {
+   "path": "server/modules",
+   "code_files": 28,
+   "code_lines": 3896,
+   "docs_files": 4,
+   "docs_lines": 239,
+   "commits_365d": 39
+  },
+  {
+   "path": "server/monitor-conditions",
+   "code_files": 4,
+   "code_lines": 543,
+   "commits_365d": 3
+  },
+  {
+   "path": "server/monitor-types",
+   "code_files": 28,
+   "code_lines": 3605,
+   "commits_365d": 128
+  },
+  {
+   "path": "server/notification-providers",
+   "code_files": 111,
+   "code_lines": 8401,
+   "commits_365d": 175
+  },
+  {
+   "path": "server/routers",
+   "code_files": 4,
+   "code_lines": 1497,
+   "commits_365d": 22
+  },
+  {
+   "path": "server/socket-handlers",
+   "code_files": 11,
+   "code_lines": 1581,
+   "commits_365d": 30
+  },
+  {
+   "path": "server/util",
+   "code_files": 1,
+   "code_lines": 74,
+   "commits_365d": 1
+  },
+  {
+   "path": "server/utils",
+   "code_files": 4,
+   "code_lines": 248,
+   "commits_365d": 3
+  },
+  {
+   "path": "src",
+   "code_files": 290,
+   "code_lines": 104142,
+   "docs_files": 1,
+   "docs_lines": 20,
+   "commits_365d": 1200
+  },
+  {
+   "path": "src/assets",
+   "code_files": 5,
+   "code_lines": 848,
+   "commits_365d": 4
+  },
+  {
+   "path": "src/components",
+   "code_files": 166,
+   "code_lines": 20817,
+   "commits_365d": 379
+  },
+  {
+   "path": "src/lang",
+   "docs_files": 1,
+   "docs_lines": 20,
+   "code_files": 80,
+   "code_lines": 67940,
+   "commits_365d": 556
+  },
+  {
+   "path": "src/layouts",
+   "code_files": 2,
+   "code_lines": 439,
+   "commits_365d": 3
+  },
+  {
+   "path": "src/mixins",
+   "code_files": 6,
+   "code_lines": 1209,
+   "commits_365d": 17
+  },
+  {
+   "path": "src/modules",
+   "code_files": 3,
+   "code_lines": 249,
+   "commits_365d": 2
+  },
+  {
+   "path": "src/pages",
+   "code_files": 15,
+   "code_lines": 10525,
+   "commits_365d": 165
+  },
+  {
+   "path": "test",
+   "test_files": 120,
+   "test_lines": 14901,
+   "commits_365d": 339
+  },
+  {
+   "path": "test/backend-test",
+   "test_files": 84,
+   "test_lines": 12187,
+   "commits_365d": 268
+  },
+  {
+   "path": "test/e2e",
+   "test_files": 19,
+   "test_lines": 2025,
+   "commits_365d": 48
+  },
+  {
+   "path": "test/fixtures",
+   "test_files": 3,
+   "test_lines": 122,
+   "commits_365d": 3
+  },
+  {
+   "path": "test/frontend-test",
+   "test_files": 5,
+   "test_lines": 410,
+   "commits_365d": 8
+  },
+  {
+   "path": "test/manual-test-grpc",
+   "test_files": 2,
+   "test_lines": 29,
+   "commits_365d": 2
+  },
+  {
+   "path": "test/manual-test-radius",
+   "test_files": 1,
+   "test_lines": 8,
+   "commits_365d": 1
+  },
+  {
+   "path": "test/manual-test-radius-tls",
+   "test_files": 3,
+   "test_lines": 62,
+   "commits_365d": 3
+  }
+ ],
+ "root_files": [
+  ".dockerignore",
+  ".editorconfig",
+  ".eslintrc.js",
+  ".gitignore",
+  ".npmrc",
+  ".prettierignore",
+  ".prettierrc.js",
+  ".stylelintrc",
+  ".ws-context",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "LICENSE",
+  "README.md",
+  "SECURITY.md",
+  "compose.yaml",
+  "ecosystem.config.js",
+  "index.html",
+  "package-lock.json",
+  "package.json",
+  "playwright.config.js",
+  "tsconfig.json",
+  "vite.config.mjs"
+ ],
+ "instruction_files": [
+  ".github/PULL_REQUEST_TEMPLATE.md",
+  ".github/REVIEW_GUIDELINES.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "README.md",
+  "SECURITY.md"
+ ],
+ "readmes": [
+  [
+   "README.md",
+   215
+  ],
+  [
+   "db/knex_migrations/README.md",
+   51
+  ],
+  [
+   "db/old_migrations/README.md",
+   3
+  ],
+  [
+   "extra/push-examples/typescript-fetch/README.md",
+   19
+  ],
+  [
+   "server/modules/ping/README.md",
+   9
+  ],
+  [
+   "src/lang/README.md",
+   20
+  ],
+  [
+   "test/backend-test/README.md",
+   35
+  ]
+ ],
+ "docs_files": 16,
+ "decision_sets": {},
+ "commits_365d": 1362,
+ "hot_spots": [
+  [
+   "src/lang/en.json",
+   141
+  ],
+  [
+   "package-lock.json",
+   111
+  ],
+  [
+   "package.json",
+   95
+  ],
+  [
+   "src/pages/EditMonitor.vue",
+   93
+  ],
+  [
+   "server/model/monitor.js",
+   59
+  ],
+  [
+   "server/server.js",
+   47
+  ],
+  [
+   "src/lang/de-DE.json",
+   36
+  ],
+  [
+   "src/components/NotificationDialog.vue",
+   35
+  ],
+  [
+   "server/notification.js",
+   34
+  ],
+  [
+   "src/components/notifications/index.js",
+   33
+  ],
+  [
+   "src/lang/fr-FR.json",
+   31
+  ],
+  [
+   "src/lang/pt-BR.json",
+   30
+  ]
+ ],
+ "recent_subjects": [
+  "2026-10-28 feat: api & mcp skeleton (as alpha) (#8072)",
+  "2026-10-27 chore: avoid adding more columns in `monitor` table (#7474)",
+  "2026-10-27 chore: combine modifed node-ping and make monitor standalone (#8060)",
+  "2026-10-27 chore: bump setup pin to 2.5.8 (#8062)",
+  "2026-10-27 feat: add Microsoft Graph email notification provider (#7948)",
+  "2026-10-26 feat: create the initial admin user from environment variables (#8056)",
+  "2026-10-26 chore: Update dependencies (#8058)",
+  "2026-10-26 chore: workflow hardening (#8057)"
+ ],
+ "seconds": 0.46
+}

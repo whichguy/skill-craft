@@ -1,0 +1,144 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/74ba2f0c-cb58-42fa-8c69-0f28a6a6cb7e/scratchpad/repos/node-base",
+ "head": "cc92991f2e24e269b67fea9ff6410f84d4451836",
+ "commits": 1,
+ "first_commit": "2026-10-28",
+ "last_commit": "2026-10-28",
+ "tracked_files": 11,
+ "size_class": "small",
+ "classes": {
+  "code": {
+   "files": 5,
+   "lines": 94
+  },
+  "config": {
+   "files": 1,
+   "lines": 1
+  },
+  "docs": {
+   "files": 1,
+   "lines": 10
+  },
+  "test": {
+   "files": 4,
+   "lines": 69
+  }
+ },
+ "code_extensions": [
+  [
+   ".js",
+   80
+  ],
+  [
+   ".json",
+   14
+  ]
+ ],
+ "map": [
+  {
+   "path": "src",
+   "code_files": 4,
+   "code_lines": 80,
+   "commits_365d": 4
+  },
+  {
+   "path": "test",
+   "test_files": 4,
+   "test_lines": 69,
+   "commits_365d": 4
+  },
+  {
+   "path": "(root)",
+   "config_files": 1,
+   "config_lines": 1,
+   "docs_files": 1,
+   "docs_lines": 10,
+   "code_files": 1,
+   "code_lines": 14,
+   "commits_365d": 3
+  }
+ ],
+ "inventory": [
+  {
+   "path": "(root)",
+   "config_files": 1,
+   "config_lines": 1,
+   "docs_files": 1,
+   "docs_lines": 10,
+   "code_files": 1,
+   "code_lines": 14,
+   "commits_365d": 3
+  },
+  {
+   "path": "src",
+   "code_files": 4,
+   "code_lines": 80,
+   "commits_365d": 4
+  },
+  {
+   "path": "test",
+   "test_files": 4,
+   "test_lines": 69,
+   "commits_365d": 4
+  }
+ ],
+ "root_files": [
+  ".gitignore",
+  "README.md",
+  "package.json"
+ ],
+ "instruction_files": [
+  "README.md"
+ ],
+ "readmes": [
+  [
+   "README.md",
+   10
+  ]
+ ],
+ "docs_files": 1,
+ "decision_sets": {},
+ "commits_365d": 1,
+ "hot_spots": [
+  [
+   "package.json",
+   1
+  ],
+  [
+   "src/paginate.js",
+   1
+  ],
+  [
+   "src/server.js",
+   1
+  ],
+  [
+   "src/strings.js",
+   1
+  ],
+  [
+   "src/users.js",
+   1
+  ],
+  [
+   "test/paginate.test.js",
+   1
+  ],
+  [
+   "test/server.test.js",
+   1
+  ],
+  [
+   "test/strings.test.js",
+   1
+  ],
+  [
+   "test/users.test.js",
+   1
+  ]
+ ],
+ "recent_subjects": [
+  "2026-10-28 node-base fixture"
+ ],
+ "seconds": 0.14
+}

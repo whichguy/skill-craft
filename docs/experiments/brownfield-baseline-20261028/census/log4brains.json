@@ -1,0 +1,456 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/74ba2f0c-cb58-42fa-8c69-0f28a6a6cb7e/scratchpad/repos/log4brains",
+ "head": "17e32021a8c5130386f17e921d4efa6da7709a66",
+ "commits": 149,
+ "first_commit": "2020-09-15",
+ "last_commit": "2024-12-17",
+ "tracked_files": 368,
+ "size_class": "medium",
+ "classes": {
+  "code": {
+   "files": 244,
+   "lines": 29472
+  },
+  "config": {
+   "files": 26,
+   "lines": 765
+  },
+  "docs": {
+   "files": 73,
+   "lines": 4116
+  },
+  "test": {
+   "files": 25,
+   "lines": 4787
+  }
+ },
+ "code_extensions": [
+  [
+   ".lock",
+   19482
+  ],
+  [
+   ".ts",
+   5434
+  ],
+  [
+   ".tsx",
+   3109
+  ],
+  [
+   ".json",
+   650
+  ],
+  [
+   ".js",
+   349
+  ],
+  [
+   "(none)",
+   283
+  ],
+  [
+   ".sh",
+   96
+  ],
+  [
+   ".yml",
+   47
+  ],
+  [
+   ".conf",
+   10
+  ],
+  [
+   ".html",
+   9
+  ],
+  [
+   ".css",
+   3
+  ]
+ ],
+ "map": [
+  {
+   "path": "(root)",
+   "config_files": 2,
+   "config_lines": 119,
+   "code_files": 9,
+   "code_lines": 19406,
+   "docs_files": 5,
+   "docs_lines": 1265,
+   "test_files": 1,
+   "test_lines": 4
+  },
+  {
+   "path": "packages",
+   "code_files": 227,
+   "code_lines": 9353,
+   "config_files": 8,
+   "config_lines": 39,
+   "docs_files": 48,
+   "docs_lines": 2215,
+   "test_files": 24,
+   "test_lines": 4783
+  },
+  {
+   "path": "packages/web",
+   "code_files": 107,
+   "code_lines": 4650,
+   "config_files": 2,
+   "config_lines": 34,
+   "docs_files": 7,
+   "docs_lines": 503,
+   "test_files": 6,
+   "test_lines": 2171
+  },
+  {
+   "path": "packages/core",
+   "code_files": 83,
+   "code_lines": 3000,
+   "docs_files": 29,
+   "docs_lines": 612,
+   "config_files": 4,
+   "config_lines": 3,
+   "test_files": 16,
+   "test_lines": 2436
+  },
+  {
+   "path": "packages/init",
+   "code_files": 10,
+   "code_lines": 545,
+   "docs_files": 7,
+   "docs_lines": 445,
+   "test_files": 2,
+   "test_lines": 176
+  },
+  {
+   "path": "packages/cli-common",
+   "code_files": 10,
+   "code_lines": 555,
+   "config_files": 1,
+   "config_lines": 1,
+   "docs_files": 2,
+   "docs_lines": 233
+  },
+  {
+   "path": "packages/cli",
+   "code_files": 10,
+   "code_lines": 413,
+   "docs_files": 2,
+   "docs_lines": 227
+  },
+  {
+   "path": "packages/global-cli",
+   "code_files": 7,
+   "code_lines": 190,
+   "config_files": 1,
+   "config_lines": 1,
+   "docs_files": 1,
+   "docs_lines": 195
+  },
+  {
+   "path": "e2e-tests",
+   "code_files": 3,
+   "code_lines": 374
+  },
+  {
+   "path": "docker",
+   "config_files": 1,
+   "config_lines": 4,
+   "code_files": 3,
+   "code_lines": 243,
+   "docs_files": 1,
+   "docs_lines": 11
+  },
+  {
+   "path": "scripts",
+   "config_files": 1,
+   "config_lines": 1,
+   "code_files": 2,
+   "code_lines": 96
+  },
+  {
+   "path": ".github",
+   "docs_files": 3,
+   "docs_lines": 81,
+   "config_files": 13,
+   "config_lines": 555
+  },
+  {
+   "path": ".vscode",
+   "config_files": 1,
+   "config_lines": 47
+  },
+  {
+   "path": "docs",
+   "docs_files": 16,
+   "docs_lines": 544
+  }
+ ],
+ "inventory": [
+  {
+   "path": "(root)",
+   "config_files": 2,
+   "config_lines": 119,
+   "code_files": 9,
+   "code_lines": 19406,
+   "docs_files": 5,
+   "docs_lines": 1265,
+   "test_files": 1,
+   "test_lines": 4
+  },
+  {
+   "path": ".github",
+   "docs_files": 3,
+   "docs_lines": 81,
+   "config_files": 13,
+   "config_lines": 555
+  },
+  {
+   "path": ".github/ISSUE_TEMPLATE",
+   "docs_files": 2,
+   "docs_lines": 65,
+   "config_files": 1,
+   "config_lines": 7
+  },
+  {
+   "path": ".github/auto-issue-templates",
+   "docs_files": 1,
+   "docs_lines": 16
+  },
+  {
+   "path": ".github/workflows",
+   "config_files": 11,
+   "config_lines": 545
+  },
+  {
+   "path": ".vscode",
+   "config_files": 1,
+   "config_lines": 47
+  },
+  {
+   "path": "docker",
+   "config_files": 1,
+   "config_lines": 4,
+   "code_files": 3,
+   "code_lines": 243,
+   "docs_files": 1,
+   "docs_lines": 11
+  },
+  {
+   "path": "docs",
+   "docs_files": 16,
+   "docs_lines": 544
+  },
+  {
+   "path": "docs/adr",
+   "docs_files": 14,
+   "docs_lines": 544
+  },
+  {
+   "path": "e2e-tests",
+   "code_files": 3,
+   "code_lines": 374
+  },
+  {
+   "path": "packages",
+   "code_files": 227,
+   "code_lines": 9353,
+   "config_files": 8,
+   "config_lines": 39,
+   "docs_files": 48,
+   "docs_lines": 2215,
+   "test_files": 24,
+   "test_lines": 4783
+  },
+  {
+   "path": "packages/cli",
+   "code_files": 10,
+   "code_lines": 413,
+   "docs_files": 2,
+   "docs_lines": 227
+  },
+  {
+   "path": "packages/cli-common",
+   "code_files": 10,
+   "code_lines": 555,
+   "config_files": 1,
+   "config_lines": 1,
+   "docs_files": 2,
+   "docs_lines": 233
+  },
+  {
+   "path": "packages/core",
+   "code_files": 83,
+   "code_lines": 3000,
+   "docs_files": 29,
+   "docs_lines": 612,
+   "config_files": 4,
+   "config_lines": 3,
+   "test_files": 16,
+   "test_lines": 2436
+  },
+  {
+   "path": "packages/global-cli",
+   "code_files": 7,
+   "code_lines": 190,
+   "config_files": 1,
+   "config_lines": 1,
+   "docs_files": 1,
+   "docs_lines": 195
+  },
+  {
+   "path": "packages/init",
+   "code_files": 10,
+   "code_lines": 545,
+   "docs_files": 7,
+   "docs_lines": 445,
+   "test_files": 2,
+   "test_lines": 176
+  },
+  {
+   "path": "packages/web",
+   "code_files": 107,
+   "code_lines": 4650,
+   "config_files": 2,
+   "config_lines": 34,
+   "docs_files": 7,
+   "docs_lines": 503,
+   "test_files": 6,
+   "test_lines": 2171
+  },
+  {
+   "path": "scripts",
+   "config_files": 1,
+   "config_lines": 1,
+   "code_files": 2,
+   "code_lines": 96
+  }
+ ],
+ "root_files": [
+  ".editorconfig",
+  ".eslintrc.js",
+  ".gitignore",
+  ".log4brains.yml",
+  ".nvmrc",
+  ".prettierignore",
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "LICENSE",
+  "README.md",
+  "commitlint.config.js",
+  "jest.config.base.js",
+  "lerna.json",
+  "package.json",
+  "tsconfig.json",
+  "yarn.lock"
+ ],
+ "instruction_files": [
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "README.md",
+  "docker/README.md"
+ ],
+ "readmes": [
+  [
+   "README.md",
+   490
+  ],
+  [
+   "docker/README.md",
+   11
+  ],
+  [
+   "docs/adr/README.md",
+   35
+  ],
+  [
+   "packages/cli-common/README.md",
+   20
+  ],
+  [
+   "packages/cli/README.md",
+   14
+  ],
+  [
+   "packages/core/README.md",
+   42
+  ],
+  [
+   "packages/init/README.md",
+   14
+  ],
+  [
+   "packages/init/assets/README.md",
+   35
+  ],
+  [
+   "packages/web/README.md",
+   14
+  ]
+ ],
+ "docs_files": 70,
+ "decision_sets": {
+  "docs/adr": [
+   "20200924-use-markdown-architectural-decision-records.md",
+   "20200925-multi-packages-architecture-in-a-monorepo-with-yarn-and-lerna.md",
+   "20200925-use-prettier-eslint-airbnb-for-the-code-style.md",
+   "20200926-use-the-adr-number-as-its-unique-id.md",
+   "20201016-use-the-adr-slug-as-its-unique-id.md",
+   "20201026-the-core-api-is-responsible-for-enhancing-the-adr-markdown-body-with-mdx.md",
+   "20201103-use-lunr-for-search.md",
+   "20210113-distribute-log4brains-as-a-global-npm-package.md",
+   "20240926-transition-to-simplified-git-flow.md",
+   "20241217-switch-back-to-github-flow.md",
+   "template.md"
+  ],
+  "packages/core/docs/adr": [
+   "20201003-markdown-parsing-is-part-of-the-domain.md",
+   "20201027-adr-link-resolver-in-the-domain.md"
+  ],
+  "packages/core/integration-tests/ro-project/docs/adr": [
+   "20200101-first-adr.md",
+   "20200102-adr-with-intro.md",
+   "20201028-adr-without-date.md",
+   "20201028-superseded-adr.md",
+   "20201029-proposed-adr.md",
+   "20201029-rejected-adr.md",
+   "20201029-superseder.md",
+   "20201030-draft-adr.md",
+   "adr_with_a_WeIrd-filename.md"
+  ],
+  "packages/core/integration-tests/ro-project/packages/package1/adr": [
+   "20200101-first-adr.md",
+   "20201028-adr-without-date.md"
+  ],
+  "packages/core/integration-tests/rw-project/docs/adr": [
+   "template.md"
+  ],
+  "packages/init/assets": [
+   "template.md",
+   "use-log4brains-to-manage-the-adrs.md",
+   "use-markdown-architectural-decision-records.md"
+  ],
+  "packages/web/docs/adr": [
+   "20200925-use-nextjs-for-static-site-generation.md",
+   "20200927-avoid-react-fc-type.md",
+   "20201007-next-js-persistent-layout-pattern.md"
+  ]
+ },
+ "commits_365d": 0,
+ "hot_spots": [],
+ "recent_subjects": [
+  "2024-12-17 docs: changelog",
+  "2024-12-17 ci: automate stable docker release",
+  "2024-12-17 chore: fix release script",
+  "2024-12-17 chore(release): publish v1.1.0",
+  "2024-12-17 chore: switch back to Github Flow because of Lerna limitations",
+  "2024-12-17 ci: fix publish-adr job",
+  "2024-12-17 chore(release): publish v1.1.0-alpha.4",
+  "2024-12-17 ci: publish ADRs after e2e tests"
+ ],
+ "seconds": 0.29
+}
