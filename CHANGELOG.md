@@ -2,6 +2,43 @@
 
 Written by scripts/release.py.
 
+## 2026-10-28
+
+### skill-craft 2.19.0
+
+- Skills: shiploop 1.18.0
+
+### shiploop 1.18.0
+
+- `shiploop-drive` has no ceiling by default: it runs host sessions until the run is done, paused, blocked or halted, a
+  host fails without advancing it, or two sessions in a row make no progress.
+  - `--max-sessions` (default 20) is gone. Pass `--max-minutes N` for an optional wall-clock ceiling for the whole drive
+    (exit 5 when reached); the last session's timeout is cut to the time left.
+  - Owner, 2026-10-28: runs are meant to go on for a very long time, and a limit is added only when the owner asks.
+- The keepalive stop hook now asks for the report the run is owed, and its "no progress" release works as documented.
+  - While the step's Until Loop is active, a refused stop names its next iteration report (the receipt's read-only
+    `next_argv`) and says to report finished work, or report it unresolved with the gap. Once a stage's loop has ended,
+    it names the step's exact `complete` callback. Otherwise, and always under `delegation: ask-agent`, it keeps
+    "run `next`". Every reason also names `next` for a model that lost context.
+  - Each reported iteration of a stage's Until Loop now counts as progress, as an Improve review's pass already did, so a
+    model that reports iterations is never released as idle.
+  - Running `next` re-binds the run but no longer wipes the stop's memory. Before, the refusal's own advice reset the
+    release, so a model that only ran `next` between stops was never let go (docs/shiploop-owed-outcome-evidence/
+    rebind_repro.out).
+  - `hook-status` adds `loop`, `callback` and `delegation`; its `progress` is `<revision>.<callback attempts>.<loop
+    iteration>`. The unused binding key `last_block_rev` is gone.
+  - No limit changed: background-task waits, the Grok continuation cap and `shiploop-drive` behave as before.
+- The step exit criteria's stopping rule is a criterion, not a count: a step reports send-back when the same check
+  still fails in the same way after a genuine fix, and the fix taught nothing new about why. It replaces "the same check
+  still fails after 7 genuine fix attempts".
+  - The implement duty, implement's and each step's Until Loop Repeat condition, the chain step contract, the skill
+    card, test-loop.md, parallel-chain.md and execution-planning.md say so; `shiploop_stage_spec.STUCK_FIX` holds the
+    wording and `GENUINE_FIX_ATTEMPTS` is gone.
+  - The E2E SPEC's S-10 carve-out is amended: no count remains. Owner, 2026-10-28, in line with their 2026-10-11 rule
+    "I want the thing achieved, I don't care how many loops".
+  - New end-to-end tests check what the model receives: the rule in the rendered implement packet and in the Until
+    Loop's own instruction, and the stop hook naming a real loop's commands and the step's own callback.
+
 ## 2026-10-27
 
 ### skill-craft 2.18.0

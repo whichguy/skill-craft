@@ -133,11 +133,31 @@ Evidence in `docs/experiments/local-validation-20261025/`:
   would no longer shorten quick. See F17.
 - F5 (firm): the `prompt` group needs the obligation ledger. On 5d3628b0 the four packet-size suites pass while the
   ledger fails, which is the 2.11.0 CI failure. Proof: `prompt-jobs8-5d3628b0-ledger-red.receipt.json`.
-- F6 (exploratory, unrelated to the runner): `shiploop-actual-improve-cli`'s
+- F6 (fixed 2026-10-28; exploratory when written, unrelated to the runner): `shiploop-actual-improve-cli`'s
   `test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output` depends on the checkout path's length. On
   5d3628b0 it writes 1,536 characters and fails at a checkout path of about 130 characters (a scratch worktree), and
   passes at this worktree's 59-character path. CI's path is shorter still. Update 2026-10-28: it still reproduces on
   337b09c5, writing 1,538 characters at a 150-character checkout path and passing at 59.
+  Fixed 2026-10-28 (test only, on 89a30e03): the cause was that the count included text the checkout decides. The
+  command and the runtime's done line carry the interpreter, the checkout and the temp directory, about 400 of the
+  1,380 characters at this worktree's 71-character path (review 578, command 283, done 519). Measured with those
+  three paths replaced by fixed placeholders (a scratch run, not committed), a pass is 985 characters (review 578,
+  command 143, done 264) at 71 and at 150 characters. The owner was offered keeping 1,500 for that path-free text
+  (515 characters, 52%, of headroom; the original 1,437 against 1,500 left 4%, ad794e11), a bound of 1,200 or 2,000,
+  or no number, and chose no number (2026-10-28; earlier the same day: "I'm also sensitive to fixing lengths with
+  numeric values. I don't think we should be doing something that's so tight.").
+  So the size test is removed. Its shape claim was already asserted by
+  `test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage` (ShipLoop writes
+  checks.md and the report JSON, and the commands are literal: no `$`, the receipt's own `done_argv`, the report by
+  its absolute path) and by the IMP-8 test (every printed command drives the run for the hooks). The first now carries
+  the reason in its docstring. What is no longer checked: a longer review, or longer but literal commands, are not
+  failed; the review is the model's own text, and what regressed the live tails (IMP-8: 35-39% of 2.0-2.4 KB per
+  tail typed through shell variables) is the shape.
+  Proof: the old test at a 150-character detached worktree still failed with 1,538 (578, 362, 598). The whole
+  `shiploop-actual-improve-cli` suite passes at 71 and at 150 characters. A done line typed through a shell variable
+  (`REPORT=...; ... < "$REPORT"`, patched into a scratch worktree's `shiploop_navigator.py`) fails the shape test at
+  its `assertNotIn("$", ...)`. `test_a_live_shaped_pass_needs_at_most_1500_characters_of_model_output` no longer
+  exists; the older evidence files that name it are history.
 - F4 (firm since 2026-10-28; interim when written on 2026-10-25): GitHub CI now runs each group with 4 jobs, the
   runner's CPU count. Quick ran in parallel there and passed: run 40237477513 took 1 min 23 s against 3 min 26 s serial.
   The full shards (`shiploop-1|2|3`, `core`) have not yet run in parallel anywhere, and the first release commit will be
@@ -375,3 +395,47 @@ remains.
   tests, and from about 101 s to 156.5 s locally, partly the higher load. It is now the quick tier's floor in both
   places, so shortening that one suite is the next gain for quick. In the full tier, the apparatus (848 s) and one
   heavy suite per shard set the wall.
+
+## Round 1 follow-up (2026-10-28): assumptions written into the code, tight checks removed
+
+**Why.** The owner, 2026-10-28: "make sure to insert our assumptions into the existing code so that we don't undo
+something. I'm also sensitive to fixing lengths with numeric values. I don't think we should be doing something
+that's so tight."
+
+**Changes** (one commit; test infrastructure only; rounds 2 and 3's code is unchanged):
+
+- `test/run_suites.py`: an assumptions block above `MAX_DEFAULT_JOBS`. It states that every suite is hermetic and a
+  suite that fails only beside others has a test defect, that no verdict may depend on a loaded machine's speed, that a
+  parallel run reports what a serial one does, that `--jobs 1` keeps the incremental receipt, and that an interrupt
+  stops the suites already started. Each names the test that guards it. The cap of 8 is marked as a default, not a
+  correctness bound.
+- `test/suite_catalog.py`: assumptions above `_SHIPLOOP_PACKET_SOURCES`. Every module that writes packet text belongs
+  there, the hub rule would otherwise swallow the packet suites, the ledger travels with them, and the rules only add
+  suites. `prompt()` gains its own: it is never a gate, and it runs light suites only.
+- `test/test-groups.test.py`:
+  - `test_a_hub_file_selects_a_bounded_consumer_set` asserted `len(extra) <= len(_HUB_SUITE_IDS) +
+    len(PACKET_SIZE_IDS) + 2`, and the navigator sat exactly at that ceiling (15 of 15). It is replaced by
+    `test_a_hub_file_selects_its_fixed_set_however_many_suites_reference_it`, which adds twice
+    `HUB_REFERENCE_LIMIT` fake consumers and requires the selection not to change. A mutant with the hub rule off fails
+    it for the navigator and the store.
+  - The barrier and interrupt tests wait up to `PATIENCE_SECONDS` (60 s), against 10 s, 20 s and 5 s before. On
+    success each returns as soon as its condition holds, so the headroom costs nothing. The interrupt test's fake suites
+    now sleep 600 s, so a runner that waited for them still fails, and a failing run kills its leftover fake suites. A
+    mutant runner without the interrupt cleanup fails it ("still waiting for its suites after 60 s") and leaves no fake
+    suite behind. The serial control keeps its 0.5 s wait, because one job never overlaps and a longer wait would only
+    slow it.
+  - The prompt-group test drops a count of 5. Its ids are pinned by name, and `validate_catalog()` refuses an unknown
+    one.
+
+**Not changed:** the counts pinned on purpose by other rounds and authors. These are the catalog audit counts in
+`test_audited_catalog_counts_and_fixed_commands`, the quick baseline's `assertLess(len(baseline), 17)`, and the
+1,500-character bound behind F6. They are left alone so this round undoes nothing it did not write. The F6 task card
+now asks for a path-independent measurement with headroom, and asks the owner before any number changes. Update
+2026-10-28: the 1,500-character test is removed and its shape is asserted instead (see F6).
+
+**Findings**
+
+- F18 (firm): round 1's assumptions are now stated where the code is, each beside the test that guards it. Proof:
+  the comments above `MAX_DEFAULT_JOBS` and `_SHIPLOOP_PACKET_SOURCES`, and `test/test-groups.test.py` passing.
+- F19 (firm): the hub check no longer depends on a count. Adding consumers leaves a hub's selection unchanged, and
+  turning the hub rule off fails it. Proof: the mutant above.

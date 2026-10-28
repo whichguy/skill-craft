@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import hashlib
 import json
 import subprocess
 import sys
@@ -321,6 +322,44 @@ class Builders(unittest.TestCase):
         self.assertEqual([(i["id"], i["stage"], i["material"], i["refusals"]) for i in index],
                          [("nav-spec", "spec", 1, 2), ("nav-review", "spec review", 1, 0)])
 
+    def test_the_trace_checks_are_tiles_with_a_tone_only_for_a_verdict_and_none_without_a_trace(self):
+        model, _meta = status_card.build_e2e(self.traced_folder(), NOW)
+        checks = [tile for tile in model["tiles"] if tile.get("check")]
+        self.assertEqual([(t["label"], t["value"], t["tone"]) for t in checks],
+                         [("Keepalive text", "not exercised", ""), ("Packet reprint", "not exercised", ""),
+                          ("Owner note", "not exercised", "")])
+        self.assertEqual(checks[0]["sub"], "no stop decision continued a turn")
+        self.assertEqual(model["tiles"][:4], [t for t in model["tiles"] if not t.get("check")])  # headline tiles first
+        # The same run once a stop is continued, a packet is printed twice and the owner writes a note.
+        folder = self.base / "battleship-traced"
+        run = folder / ".shiploop-runs" / "work-1" / "run"
+        text = "the step-plan packet\n"
+        sha = hashlib.sha256(text.encode()).hexdigest()[:16]
+        (run / "packets" / "sent").mkdir(parents=True)
+        (run / "packets" / "sent" / f"{sha}.md").write_text(text, encoding="utf-8")
+        sent = {"kind": "packet", "action": "a4", "stage": "test-spec", "item": "W1", "sha": sha, "file": f"packets/sent/{sha}.md"}
+        rows = [dict(sent, ts=1401.0), dict(sent, ts=1402.0),
+                {"kind": "hook", "decision": "continue", "text": "ShipLoop run is active: continue.", "ts": 1403.0}]
+        with (run / "trace.jsonl").open("a", encoding="utf-8") as trace:
+            trace.write("".join(json.dumps(row) + "\n" for row in rows))
+        notes = run / "owner-notes"
+        notes.mkdir()
+        (notes / "N1.md").write_text("# ShipLoop owner note\n\n```shiploop-state\n" + json.dumps(
+            {"id": "N1", "written_at": "2026-10-28T18:00:00Z", "text": "cite me"}) + "\n```\n", encoding="utf-8")
+        model, _meta = status_card.build_e2e(folder, NOW)
+        checks = {tile["check"]: tile for tile in model["tiles"] if tile.get("check")}
+        self.assertEqual({name: (t["value"], t["tone"]) for name, t in checks.items()},
+                         {"keepalive_text": ("pass", "ok"), "packet_reprint": ("pass", "ok"), "owner_note": ("open", "warn")})
+        self.assertEqual(checks["owner_note"]["sub"], "N1 waiting")
+        # A changed kept copy fails the reprint check, drawn as a failure.
+        (run / "packets" / "sent" / f"{sha}.md").write_text("not what was sent\n", encoding="utf-8")
+        model, _meta = status_card.build_e2e(folder, NOW)
+        failed = next(t for t in model["tiles"] if t.get("check") == "packet_reprint")
+        self.assertEqual((failed["value"], failed["tone"]), ("fail", "bad"))
+        # A run before the trace has no check tiles.
+        untraced, _meta = status_card.build_e2e(self.e2e_folder(), NOW)
+        self.assertFalse([t for t in untraced.get("tiles") or () if t.get("check")])
+
     def test_the_job_document_passes_tiles_comparison_and_bands_through(self):
         model, meta = status_card.build_e2e(self.traced_folder(), NOW)
         job = {"tiles": [{"label": "Improve windows", "value": "11 → 8", "tone": "ok"}],
@@ -328,7 +367,9 @@ class Builders(unittest.TestCase):
                               "rows": [{"label": "Verdict", "values": ["PASS", "PASS"], "verdict": {"text": "met", "tone": "ok"}}]},
                "bands": [{"start": 1100.0, "end": 1250.0, "label": "Mac asleep"}]}
         document = status_card.job_document(model, meta, job, NOW)
-        self.assertEqual(document["tiles"], job["tiles"])            # the job's own tiles replace the builder's
+        # The job's own tiles replace the builder's headline numbers; the run's trace checks follow them.
+        self.assertEqual(document["tiles"][:1], job["tiles"])
+        self.assertEqual([tile["check"] for tile in document["tiles"][1:]], ["keepalive_text", "packet_reprint", "owner_note"])
         self.assertEqual(document["comparison"], job["comparison"])
         self.assertEqual(document["timeline"]["bands"], job["bands"])
         self.assertEqual(document["timeline"]["spans"], model["timeline"]["spans"])

@@ -418,3 +418,47 @@ deliver better than the same ShipLoop without it?
 
 R3 on Grok (`E6D-K2`) stays as recorded in entries 8 to 10, and its comparison is not resumed here. The two rounds
 differ in subject and in ShipLoop version, so no sample from one is read with the other.
+
+## 12. 2026-10-28: R3 on DeepSeek flash (E6D2): 12 of 12 delivered; the shipped bound was faster and more predictable
+
+**Question.** Does the step bound shipped in 2.11.0 deliver a full item better than the same ShipLoop without it?
+The design is in entry 11.
+
+**Conditions.** `experiment.py queue E6D2-K2 E6D2-K4 --arms T,Cg --samples 3 --jobs 4 --timeout=14400`. It ran from
+10:36 to about 16:30 from the harness at `7c89dd4f` (worktree locked while it ran), with both arms pinned to
+`337b09c5`, into `/Users/dadleet/e2e-runs/e6d2-deepseek-20261028`. Each slice was Claude Code through the local Ollama
+server on `deepseek-v4.1-flash:1017-cloud`, confirmed in every slice's `invocation.json` (host claude, backend ollama,
+that model). An E2E battleship run on the same model shared the server. No host refusal and no rate limit occurred:
+the "429" strings in the event logs are token counts and timestamps.
+
+**Results.** Every slice passed its process, inner-loop, overshoot, assembly and checks verdicts, so `decide` reads
+both experiments as **ceiling** (delivery cannot separate the arms). The cost fields carry the comparison
+(`r3_report.py`, exported as `docs/experiments/shiploop-plan-sizing-20261024/e6d2-report.json`):
+
+| Case | Arm | Item minutes (median) | Steps planned | Implement s/step (median) | Turns (median) | Improve passes (median) | Send-backs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| K2 | T (no bound) | 72.7, 124.3, 145.5 (124.3) | 4, 7, 10 | 231 | 919 | 8 | 1, 0, 0 |
+| K2 | Cg (shipped) | 78.3, 51.9, 63.4 (63.4) | 5, 6, 5 | 158 | 665 | 5 | 1, 0, 0 |
+| K4 | T (no bound) | 123.9, 127.0, 82.9 (123.9) | 6, 3, 6 | 262 | 1,044 | 9 | 0, 0, 0 |
+| K4 | Cg (shipped) | 96.1, 153.2, 55.9 (96.1) | 4, 5, 5 | 283 | 1,105 | 8 | 0, 0, 1 |
+
+Totals across the three items: K2 193.6 minutes with the bound against 342.5 without it (−43%) and 2,236 turns against
+2,785 (−20%). K4: 305.2 minutes against 333.8 (−9%) and 3,224 turns against 3,116 (+3%). Peak input was 144k to 155k
+tokens in every slice.
+
+| ID | Finding | Status | Evidence |
+| --- | --- | --- | --- |
+| F43 | With the shipped bound, delivery is unchanged (12 of 12) and the median item finished sooner on both cases: 63 against 124 minutes (chess engine), 96 against 124 (battleship server). | interim (3 per arm per case, DeepSeek flash only; descriptive, no A/A spread) | e6d2-report.json; decision-T-Cg.json (ceiling) |
+| F44 | The bound narrows plan size rather than inflating it: 5 to 6 steps against 4 to 10 (K2), 4 to 5 against 3 to 6 (K4). The largest unbounded plan (K2 T 3, 10 steps) was the slowest K2 item (145.5 minutes). | interim | step-plan results; e6d2-report.json |
+| F45 | Tokens: turns fell 20% with the bound on K2 and rose 3% on K4 (no difference); peak input was the same in both arms. | interim | e6d2-report.json |
+| F46 | DeepSeek flash plans the chess engine as 4 or more steps even without the bound, where Grok planned 1 to 2, so the bound's effect here is a narrower range, not more steps. | exploratory (compares two subjects across rounds) | E6D2 against R1 and R3 on Grok |
+
+**Decision.** Keep the step bound as shipped. Under the decision priority (quality, then tokens, then time), quality
+ties at 12 of 12. Tokens tie or favour the bound, and time favours it on both cases. The plan's "relax if slower with
+no gain" branch does not apply. A firm claim would need 4 samples per arm, to measure the A/A spread. It would also
+need a second subject (Grok 4.7 after its reset) to show the effect is not DeepSeek's alone.
+
+**Harness.** `r3_report.py` reads `E6D*-*` folders (it read only `E6D-*`, so it skipped E6D2).
+
+**Owner decision, 2026-10-28:** "No, keep as is." No firming round: the step bound stays as shipped on this
+evidence, and E-SIZE1 (E6) is closed. F43 to F45 stay interim; a later round on another subject would reopen them.

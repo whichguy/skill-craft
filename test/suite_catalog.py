@@ -389,7 +389,7 @@ _DURATION_SECONDS = {
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
     "test/shiploop-callback-contract.test.py": 69.1,
     "test/shiploop-loophole-gates.test.py": 15.0,  # measured locally 2026-10-24: 12 dodge rows, one real-CLI run each
-    "test/shiploop-e2e-status-card.test.py": 0.5,  # measured locally 2026-10-26: 10 tests, 0.46 s wall
+    "test/shiploop-e2e-status-card.test.py": 0.6,  # measured locally 2026-10-28: 17 tests, 0.56 s wall
     "test/shiploop-trace.test.py": 16.0,  # measured locally 2026-10-25: 14 tests, 16.0 s wall; real-CLI runs to discovery
     # measured locally 2026-10-26: 13 tests, 31.4 s wall; real-CLI runs to discovery and the head-order fixture's renders
     "test/shiploop-owner-notes.test.py": 32.0,
@@ -764,6 +764,15 @@ PACKET_SIZE_IDS = (
 # The code that writes packet text: the prompt catalog, the navigator that assembles each packet, the stage spec
 # that orders the stages, and the loop and narrative text the packet obligation ledger anchors in.  Each selects the
 # packet-size suites and the ledger beside whatever its name or the hub rule selects.
+#
+# Assumptions (guarded by PacketSourceSelectionTest in test/test-groups.test.py; change one only with its guard):
+# - Every module that writes packet text is listed here.  A new one that is not stays unguarded on a quick run.
+# - The hub rule replaces a hub's consumers with _HUB_SUITE_IDS, so the packet suites reach a packet edit only through
+#   this explicit list.  Folding this rule into the hub rule, or dropping a module from it, brings back the
+#   2026-10-25 miss.
+# - The ledger travels with the packet-size suites: its anchors are literal phrases of the prompt text, which a
+#   rewrap can split (2.11.0), while the packet-size suites check only sizes and order.
+# - Rules only add suites.  targeted() is a union, so this rule never removes a suite another rule selected.
 _SHIPLOOP_PACKET_SOURCES = frozenset({
     "skills/shiploop/scripts/shiploop_prompts.py",
     "skills/shiploop/scripts/shiploop_navigator.py",
@@ -918,6 +927,10 @@ def prompt(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
     there after a rewrap split one across two source lines, while the four
     packet-size suites passed locally.  It is the local loop for a prompt or
     packet edit, about 25 s; quick stays the gate before a push.
+
+    Assumptions: it is never a gate (it leaves out the hub consumers that quick
+    adds), and like quick it runs only light suites, so a changed heavy suite
+    waits for the full tier.
     """
 
     paths = set(changed)
