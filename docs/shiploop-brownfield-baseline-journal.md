@@ -287,3 +287,50 @@ repository). Evidence: [results/x3b/](experiments/brownfield-baseline-20261028/r
 
 Design revisions: revision 1 (a separate, script-gated baseline stage) → revision 2 (discovery's close writes a
 progressive, flow-scoped account; plan inherits; C1-C3 as traceability and notice), after F4, F6, F9 and Astra.
+
+F11 is fixed (D8, below), so its status is now superseded by the fix, 2026-10-28.
+
+## Owner decisions and their execution (2026-10-28)
+
+The owner accepted D1–D9 as recommended ("Accept D1–D9"). D7 orders the work: the E2E evidence on today's ShipLoop
+comes first, because the experiments showed no single-run gain on Sonnet and left three questions open (a weaker
+subject, reuse across a real run's stages, a second run that inherits a committed home). The build of design section 10
+follows that evidence and is measured against it.
+
+### D8: an entry starts at its heading or list item — firm (built, tested)
+
+- **Question.** Which line stands for an `R-<n>` or `AD-<n>` entry when the ID starts more than one line?
+  `shiploop_knowledge_home._entries` took the first start of any form (F11).
+- **Corpus.** Every living `docs/shiploop/spec.md` and `architecture.md` under `~/e2e-runs`, `~/e2e-runs-owner-note`
+  and the default E2E output folder: runs from 2026-10-04 to 2026-10-28 on Grok, Sonnet, Opus, Haiku, DeepSeek and
+  Codex hosts. At the snapshot that is 1,204 files and 5,369 entries; 56 files have an ID that starts more than once.
+  Live runs keep adding files, so a rerun counts a few more.
+- **Patterns, first start → later starts** ([entry_starts.py](experiments/brownfield-baseline-20261028/entry_starts.py),
+  output in [d8-entry-starts.txt](experiments/brownfield-baseline-20261028/results/d8-entry-starts.txt)).
+
+  | Pattern | IDs | Real entry |
+  |---|---|---|
+  | heading → table | 56 | the heading; the table is a traceability row |
+  | heading → list | 29 | the heading; the list items are its acceptance lines (`- **R-1.1 …**`) |
+  | table → heading | 18 | the heading; the table is a summary above it (a Haiku 5.5 max run) |
+  | list → plain line | 15 | the list item |
+  | heading → heading, plain line | 9 | the first heading |
+  | heading → list, plain line | 5 | the heading |
+  | plain line → heading | 5 | the heading (`AD-5's HTTP step 5 relies on this order, …`) |
+  | plain line → heading, list | 4 | the heading (`R-3–R-9 and the API half of R-10 therefore carry …`) |
+
+- **Rule.** The ID's first heading or list-item start is its entry. When it has none, the first start of any form
+  (a table row, or a plain line that begins with the ID) still counts, so table-only and paragraph-only formats keep
+  working. `outline` uses the same start.
+- **Effect on the corpus.** The script compares the parser at the commit before the fix with the fixed one on every file:
+  27 entries move, 18 from a table row and 9 from a plain line, each to its heading. The key sets are identical (asserted),
+  no retired flag changes (asserted), and 8 files' outlines change.
+- **Test.** `EntryTests.test_a_heading_or_list_start_outranks_an_earlier_table_row_or_plain_line_of_the_id` in
+  `test/shiploop-handoff.test.py`. On the old parser it fails: the summary row `| AD-1 | Plain modules |` came back as
+  AD-1. The handoff, knowledge and callback-contract suites pass (124, 135 and 87 tests).
+- **Change note.** `changes/shiploop/entry-start-prefers-heading.md` (patch).
+
+### D7: E2E evidence on today's ShipLoop — in progress
+
+Recorded below as the runs finish: the `user-listing` live run, and the medium brownfield case with its follow-on, both
+on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN_DEFAULT_BACKEND`).

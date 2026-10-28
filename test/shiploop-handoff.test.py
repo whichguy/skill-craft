@@ -244,6 +244,22 @@ class EntryTests(RepoCase):
             with self.assertRaises(ValueError):
                 knowledge.entry_text(self.repo, bad)
 
+    def test_a_heading_or_list_start_outranks_an_earlier_table_row_or_plain_line_of_the_id(self) -> None:
+        # Owner decision D8, 2026-10-28: the first start counted, so an overview sentence or a summary row stood for the
+        # entry below it, and the superseded AD-4 read as current.  Over past E2E runs' knowledge files this rule moved 27
+        # entries, every one from such a line to its heading (docs/experiments/brownfield-baseline-20261028/entry_starts.py).
+        self.home("architecture.md", "# Architecture\n\n## Overview\n\nAD-4 and AD-10 appear under Superseded.\n\n"
+                  "| ID | Decision |\n|---|---|\n| AD-1 | Plain modules |\n\n## Decisions\n\n### AD-1 Plain modules\n\n"
+                  "Why: no build step.\n\n## Superseded\n\n### AD-4 The number is the ID\n\nSuperseded by AD-1.\n")
+        found = knowledge.entries(self.repo, "architecture.md")
+        self.assertEqual(found["AD-1"], knowledge.Entry("### AD-1 Plain modules\n\nWhy: no build step.", False))
+        self.assertEqual(found["AD-4"], knowledge.Entry("### AD-4 The number is the ID\n\nSuperseded by AD-1.", True))
+        self.assertNotIn("AD-10", found)                                  # a mention inside a line
+        self.assertEqual(knowledge.outline((self.repo / knowledge.HOME / "architecture.md").read_text(), "architecture.md"), [
+            knowledge.Section(1, "Architecture", ()), knowledge.Section(2, "Overview", ()),
+            knowledge.Section(2, "Decisions", (("AD-1", "AD-1 Plain modules"),)),
+            knowledge.Section(2, "Superseded", (("AD-4", "AD-4 The number is the ID"),))])
+
 
 # ------------------------------------------------------------------------------------------ run baseline and diff (D3)
 

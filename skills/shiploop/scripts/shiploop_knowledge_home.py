@@ -467,6 +467,9 @@ _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
 # An entry start: optional indentation, then a heading mark, a list marker, an ordered marker or a table pipe, then one
 # emphasis, code or bracket opener, then the ID not followed by a digit (R-1 is not R-10).  A mention inside a line is no start.
 _ENTRY_START = re.compile(r"^\s*(?:#{1,4}\s+|[-*+]\s+|\d+[.)]\s+|\|\s*)?(?:\*\*|__|\*|_|`|\[)?((?:R|AD)-\d+)(?!\d)")
+# A heading or list-item start outranks a table row or a plain line that begins with the same ID (owner decision D8,
+# 2026-10-28): "AD-4 and AD-10 appear under Superseded." or a summary row "| R-1 | ... |" above "### R-1 ..." is no entry.
+_MARKED_START = re.compile(r"^\s*(?:#{1,4}\s+|[-*+]\s+|\d+[.)]\s+)")
 _LIST_ITEM = re.compile(r"^(\s*)(?:[-*+]|\d+[.)])\s+")
 # Where each prefix lives, and the heading an entry moves under when it no longer holds.
 _ENTRY_FILES = {"R": ("spec.md", "retired"), "AD": (ARCHITECTURE, "superseded")}
@@ -504,8 +507,23 @@ def _fenced(lines: Sequence[str]) -> List[bool]:
     return inside
 
 
+def _starts(lines: Sequence[str], fenced: Sequence[bool], prefix: str) -> Dict[str, int]:
+    """The line each ``<prefix>-<n>`` entry starts on, outside fenced code, in file order: the ID's first heading or
+    list-item start (``_MARKED_START``), else its first start of any form."""
+    first: Dict[str, int] = {}
+    marked: Dict[str, int] = {}
+    for index, line in enumerate(lines):
+        match = _ENTRY_START.match(line)
+        if not match or fenced[index] or not match.group(1).startswith(prefix + "-"):
+            continue
+        first.setdefault(match.group(1), index)
+        if _MARKED_START.match(line):
+            marked.setdefault(match.group(1), index)
+    return dict(sorted(((ident, marked.get(ident, index)) for ident, index in first.items()), key=lambda item: item[1]))
+
+
 def _entries(text: str, prefix: str) -> Dict[str, Entry]:
-    """Every ``<prefix>-<n>`` entry of a living file by ID: the first start of each ID, outside fenced code."""
+    """Every ``<prefix>-<n>`` entry of a living file by ID, at its start (``_starts``), outside fenced code."""
     lines = text.splitlines()
     fenced = _fenced(lines)
     outline = _outline(lines)
@@ -517,11 +535,8 @@ def _entries(text: str, prefix: str) -> Dict[str, Entry]:
         match = _ENTRY_START.match(lines[index])
         return bool(match) and not fenced[index] and match.group(1).split("-")[0] == prefix
 
-    for index, line in enumerate(lines):
-        match = _ENTRY_START.match(line)
-        if not match or fenced[index] or not match.group(1).startswith(prefix + "-") or match.group(1) in found:
-            continue
-        ident = match.group(1)
+    for ident, index in _starts(lines, fenced, prefix).items():
+        line = lines[index]
         heading = _HEADING.match(line)
         end = index + 1
         if heading:
@@ -655,17 +670,18 @@ def outline(text: str, name: str) -> List[Section]:
     """The table of contents of living file ``name`` (owner decision D1, 2026-10-17): each heading outside fenced code that
     is not an entry, in order, with the entries that start under it.
 
-    The entries are spec.md's R-<n> or architecture.md's AD-<n> (``_ENTRY_FILES``), each at its first start (the
-    ``_entries`` rule).  An entry that is a heading (``### R-3 Export format``) belongs to the section above it, with its heading
+    The entries are spec.md's R-<n> or architecture.md's AD-<n> (``_ENTRY_FILES``), each at its start (the ``_entries``
+    rule).  An entry that is a heading (``### R-3 Export format``) belongs to the section above it, with its heading
     text, and a heading inside its span (``#### Acceptance``) is part of the entry, not a section.  Entries before the
     first heading form a level-0 section; a file with neither gives [].  Text only: no file, no Git.
     """
     prefix = next((key for key, (file, _) in _ENTRY_FILES.items() if file == name), None)
     lines = text.splitlines()
     fenced = _fenced(lines)
+    starts = _starts(lines, fenced, prefix) if prefix else {}
     headings = {index: (level, title) for index, level, title in _outline(lines)}
     sections: List[Section] = []
-    level, title, entries, seen = 0, "", [], set()
+    level, title, entries = 0, "", []
     inside = 0  # the level of the entry heading whose span this line is in; 0 outside one
     for index, line in enumerate(lines):
         found = _ENTRY_START.match(line) if prefix and not fenced[index] else None
@@ -677,16 +693,14 @@ def outline(text: str, name: str) -> List[Section]:
             inside = 0
             if ident is not None:                            # an entry that is a heading
                 inside = mark
-                if ident not in seen:
-                    seen.add(ident)
+                if starts.get(ident) == index:
                     entries.append((ident, headings[index][1]))
                 continue
             if level or entries:
                 sections.append(Section(level, title, tuple(entries)))
             (level, title), entries = headings[index], []
             continue
-        if ident is not None and ident not in seen:
-            seen.add(ident)
+        if ident is not None and starts.get(ident) == index:
             entries.append((ident, ""))
     if level or entries:
         sections.append(Section(level, title, tuple(entries)))
