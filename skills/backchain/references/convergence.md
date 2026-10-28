@@ -110,7 +110,8 @@ caller `edit_bounds` and that is not running, completed, or protected; with no c
 confirmation, a confirmation that checks only part of its produce, or an unjustified
 `unconfirmable` marker (on a produce an available check could confirm, or whose `by` does not
 name what would) is a material planning gap. On any other step it is advisory; it is not a
-planning gap or a forbidden necessary repair.
+planning gap or a forbidden necessary repair. Apply the implementable-chunk review below
+on every cycle, including after enrichment, insertion, or other repair.
 
 Before submitting each cycle's `done` report, retain its original review observations
 in a stable, host-readable record; do not overwrite an earlier qualifying record.
@@ -131,6 +132,51 @@ normative sources, forbidden necessary repairs, stale identity, or architecture-
 experiment outcomes are planning gaps. Known future external prerequisites may remain
 execution blockers. A graph revision clears `parallel_groups` and leaves structural status
 unknown until a deterministic receipt validates that exact output digest.
+
+### Implementable chunks
+
+Inspect every scoped work step, not just the last edit. Each must describe a deliverable
+that an implementer can establish and confirm using its declared suppliers. A shared feature
+name or final end-to-end check does not justify bundling separately useful deliverables.
+Split when parts have different prerequisites, expose a useful intermediate artifact, or
+can be implemented and checked independently as useful deliverables. A separately checkable
+assertion or file edit alone is not a useful delivery boundary. Keep fragments together when
+they share prerequisites, implementation boundary, and postcondition family and have no
+useful independent result; merely finer decomposition is advisory. File count, step count,
+estimated duration, or desired parallelism alone do not justify a split.
+
+For each necessary split, identify the resulting deliverables, their confirmations, and
+which outputs each consumer needs. Preserve all requested outcomes, `goal_needs`, and
+verification coverage. Add serial edges only where one chunk consumes another's output;
+independent chunks can branch after a shared supplier, and real integration/verification
+work consumes all outputs it needs. Record shared-file/resource coordination needs in review
+evidence rather than inventing data dependencies. Each moved part has one implementation
+owner. A retained or new join must establish a distinct integration condition or preserve
+whole-feature verification beyond its inputs' confirmations; it cannot duplicate the moved
+work or merely restate that its suppliers finished. After repair, the active callback checks
+the resulting chunks, confirmations, and affected consumers against the request and input
+plan before submitting the cycle. This is the cycle's check, not another review cycle or an
+independent-review claim.
+
+A necessary split on a step this cycle may change, as defined above, is a material planning
+gap until repaired. Size-only observations elsewhere are advisory for that work's owner,
+including unrelated non-provisional pending work; independent missing outcomes or suppliers
+still follow the existing gap rules. This review scope does not grant edit authority.
+Legacy elaboration preserves inherited identities, seed/null edges, and existing confirmation
+entries: it cannot narrow a seed's work or move its confirmations off that seed, even with
+no inherited edges. Source-aware revise still requires explicit exact provisional step/edge
+and affected-consumer bounds plus new-step/new-edge permissions; absent `edit_bounds` does
+not authorize that revise. If a necessary split cannot be completed within the selected
+route's limits, retain the candidate and report a planning gap with the concrete recovery:
+obtain the required source-aware bounds, or return to the caller to regenerate the draft.
+A replacement draft requires a new Until Loop binding; do not substitute it inside the
+frozen run, make a partial split that leaves invalid consumers, or retry an unavailable
+repair as though authority will appear. Until Loop owns the blocked/incomplete disposition.
+
+Record the inspected boundaries and split/keep rationale in the existing review evidence,
+with old-to-new mappings linked to the original request or applicable sources for repairs.
+No new plan fields, size score, or
+loop machinery is required. Structural validity alone does not prove chunk suitability.
 
 ## Terminal evidence and recovery
 
