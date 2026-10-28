@@ -607,7 +607,8 @@ class RemovalTests(HomeFixture):
         self.assertEqual(knowledge.CLOSES, {"prepare": (S, E, A), "release-plan": (E,), "release-verify": (E,)})
         self.assertEqual(knowledge.STAGE_FILES, {
             "discovery": (E,), "research": (E,), "spec": (S,), "test-strategy": (E, A), "plan": (A,), "prepare": (E,),
-            "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E,), "carry-forward": (A, E),
+            "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E,), "document": (S, A, E),
+            "carry-forward": (A, E),
             "system-test-author": (E,), "release-plan": (E,), "release-check": (E,), "release-verify": (E,)})
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
             for names in table.values():
@@ -773,6 +774,8 @@ class SectionsTests(HomeFixture):
                "validate-existing": ("environment.md",),
                "implement": ("environment.md", "architecture.md"),
                "test": ("environment.md",),
+               # Design T §9.1 2b-3, option C (owner 2026-10-28): each step's document reflects on what it showed.
+               "document": ("spec.md", "architecture.md", "environment.md"),
                "carry-forward": ("architecture.md", "environment.md")}
 
     def test_the_stages_that_discover_commands_facts_and_decisions_keep_the_files_up_to_date(self) -> None:

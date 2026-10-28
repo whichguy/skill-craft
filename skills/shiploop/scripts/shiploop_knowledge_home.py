@@ -74,7 +74,8 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # A stage that finds a command, a platform fact or a decision keeps the file it belongs in: research, step-plan,
 # validate-existing, implement and test find commands and facts (environment.md); test-strategy records the harnesses, suites,
 # ID convention (environment.md) and real-boundary checks (architecture.md); plan, step-plan and implement may add a decision
-# (an AD-<n>); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
+# (an AD-<n>); each step's document reflects on what the step showed in all three (design T §9.1 2b-3, option C:
+# requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
 # differs (D2).  verify reads the architecture and writes nothing, so it has no entry.  A key that is no stage of the graph is
 # a stale entry: a test pins every key to ``stage_spec.STAGES``.
@@ -89,6 +90,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "validate-existing": ("environment.md",),
     "implement": ("environment.md", ARCHITECTURE),
     "test": ("environment.md",),
+    "document": ("spec.md", ARCHITECTURE, "environment.md"),
     "carry-forward": (ARCHITECTURE, "environment.md"),
     "system-test-author": ("environment.md",),
     "release-plan": ("environment.md",),
@@ -104,7 +106,7 @@ _S, _E, _A = "spec.md", "environment.md", ARCHITECTURE
 READS: Dict[str, Tuple[str, ...]] = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
-    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_E, _A), "verify": (_E, _A),
+    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A), "verify": (_E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
@@ -591,8 +593,9 @@ def entries(repo: Path, name: str) -> Dict[str, Entry]:
 
 
 def step_spec_refusal(repo: Path, marker: str) -> str:
-    """Refusal text when an implement step's uncommitted spec.md edit does more than add acceptance lines ('' when it
-    adds only those, or leaves spec.md as HEAD holds it).
+    """Refusal text when an inline step's uncommitted spec.md edit does more than add requirement lines ('' when it
+    adds only those, or leaves spec.md as HEAD holds it).  Implement and document check it at their complete, and the
+    step's review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3).
 
     A step learns what a requirement should say and records it where the next reader of the spec finds it (build plan
     S3.3): a new line inside an existing, current R-<n> entry, ending ``(<marker>)`` (``W1/S2``), so the line names the
@@ -630,10 +633,10 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
         ("changed or removed", changed), ("without the step's mark", unmarked),
         ("outside an R-<n> entry the committed spec holds", outside))
         if lines]
-    return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same callback "
-            "again; to change a requirement, report send-back naming it.\n"
-            "At implement, spec.md takes only new acceptance lines inside an existing R-<n> entry, each ending (" + marker
-            + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
+    return ("Restore " + str(path) + " to what HEAD holds plus this step's requirement lines, then run the same "
+            "callback again; to change a requirement, report send-back naming it.\n"
+            "In a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending ("
+            + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 
 
 def entry_text(repo: Path, ident: str) -> Optional[str]:

@@ -1481,8 +1481,20 @@ preparatory commit); a mismatch there is a send-back.
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
    authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
    working. Durable facts go in the repository's docs, never only in run notes.
-3. **Decisions.** A design or service decision implement did not record: an AD-<n> under KNOWLEDGE/architecture.md
-   ## Decisions (a service choice with contract, owner and revalidation trigger).
+3. **Reflect.** With the step built, tested and documented, record what it showed in the knowledge home, where the
+   next steps' packets read it:
+   - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
+     vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
+     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
+   - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
+     an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
+     to ## Superseded.
+   - KNOWLEDGE/environment.md: a command that worked under ## Commands; a harness or platform fact not yet recorded.
+   - Work the step showed: a defect in its change, fix now; work this item's step plan lacks, report send-back; work a
+     later step already holds: leave it to that step; work outside this item: an open item in `assumptions` due at
+     carry-forward.
+   In `knowledge` give `spec`, `architecture` and `environment`: for each of those living files, what you changed in
+   it or why it needed no change.
 4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
    as-of baseline (Current-system baseline guide).
 5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
@@ -2548,9 +2560,10 @@ END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 IMPLEMENT_STEP_REVIEW_FOCUS_HEAD = """\
 Implementation step review focus. This result is one step of the item's step
 plan, built, tested and documented: its test stage built out the step's test-spec
-cases and every recorded command passed, and its document stage updated the docs.
-Review the step's change since its Review base (below), its code, its tests and
-its docs together, and fix, within the item's paths, any of these:
+cases and every recorded command passed, and its document stage updated the docs
+and the knowledge home. Review the step's change since its Review base (below),
+its code, tests, docs and knowledge together, and fix, within the item's paths
+and KNOWLEDGE, any of these:
 - the change does not do the step's task, misses a criterion as the spec's R-<n>
   states it, or does work no criterion asks for (a later step's work, a feature
   the item does not request);
@@ -2575,6 +2588,10 @@ its docs together, and fix, within the item's paths, any of these:
 - a step skill the packet lists, unused or misused with no reason in the result;
 - a test that asserts the code's current behaviour instead of its case's oracle,
   a behaviour of the step no test checks, or a doc that disagrees with the code;
+- a KNOWLEDGE line the code or tests contradict, or something the step showed
+  that KNOWLEDGE does not record (a clarified requirement, a decision, a
+  command): fix it in place; spec.md takes only new lines ending with the step's
+  mark inside an R-<n> the committed spec holds;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.
@@ -2598,9 +2615,10 @@ IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRA
 _STEPS_WORDING = (
     ("Implementation step review focus. This result is one step of the item's step\n"
      "plan, built, tested and documented: its test stage built out the step's test-spec\n"
-     "cases and every recorded command passed, and its document stage updated the docs.\n"
-     "Review the step's change since its Review base (below), its code, its tests and\n"
-     "its docs together, and fix, within the item's paths, any of these:\n"
+     "cases and every recorded command passed, and its document stage updated the docs\n"
+     "and the knowledge home. Review the step's change since its Review base (below),\n"
+     "its code, tests, docs and knowledge together, and fix, within the item's paths\n"
+     "and KNOWLEDGE, any of these:\n"
      "- the change does not do the step's task, misses a criterion as the spec's R-<n>\n"
      "  states it, or does work no criterion asks for (a later step's work, a feature\n"
      "  the item does not request);\n"
@@ -2608,9 +2626,10 @@ _STEPS_WORDING = (
      "  reformatted;\n",
      "Implementation step review focus. This result is steps {steps} of the item's step\n"
      "plan, built, tested and documented: its test stage built out their test-spec\n"
-     "cases and every recorded command passed, and its document stage updated the docs.\n"
-     "Review the diff of the paths of these steps ({paths}) since the first step began,\n"
-     "their code, tests and docs together, and fix, within those paths, any of these:\n"
+     "cases and every recorded command passed, and its document stage updated the docs\n"
+     "and the knowledge home. Review the diff of the paths of these steps ({paths}) and\n"
+     "KNOWLEDGE since the first step began, their code, tests, docs and knowledge\n"
+     "together, and fix, within those paths and KNOWLEDGE, any of these:\n"
      "- the change does not do a step's task, misses a criterion as the spec's R-<n>\n"
      "  states it, or does work no criterion asks for (another item's work, a feature\n"
      "  the item does not request);\n"

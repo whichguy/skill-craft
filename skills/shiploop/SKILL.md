@@ -200,9 +200,9 @@ Run options are recorded at `workspace start` or `init` and refused on a saved r
 
 ## Inner stages
 
-Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement` (one action per step), `test`,
-`document`, `verify` and `carry-forward`, each inside one Until Loop started with the packet's literal
-command; the packet prints its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
+Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement`, `test` and `document` (once per step),
+`verify` and `carry-forward`, each inside one Until Loop started with the packet's literal command; the packet prints
+its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
 [test loop and confirmation](references/test-loop.md).
 
 ## Durable handoff

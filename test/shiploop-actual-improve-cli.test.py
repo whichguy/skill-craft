@@ -166,9 +166,11 @@ class ImproveCliFixture(unittest.TestCase):
         """
         if self.producer.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
-            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+            if stage in ("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
                          "release-plan", "release-verify"):
                 self.producer.setdefault("assumptions", [])
+            if stage == "document":
+                self.producer.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
             if stage == "spec":
@@ -211,12 +213,13 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
-    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None, bind=True):
+    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None, bind=True, predecessors=None):
         """Create a real CLI parent at a target stage after synthetic setup only.
 
         The pure navigator transitions below deliberately do not claim preceding
         Improve execution.  The test's target-stage bind, child runtime and
-        parent import still use the actual command-line interfaces.
+        parent import still use the actual command-line interfaces.  ``predecessors``
+        maps a stage the walk passes to the fields its synthetic result adds.
         """
         run = self.base / ("parent-" + stage)
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
@@ -235,6 +238,7 @@ class ImproveCliFixture(unittest.TestCase):
             }
             if predecessor == "plan":
                 setup["work_items"] = [{"id": "W1", "title": "Synthetic local-skill item"}]
+            setup.update((predecessors or {}).get(predecessor, {}))
             state = navigator.apply(state, action, setup)
             if state.get("active_improve") is not None:
                 state = navigator.finish_improve(state, action, {
@@ -1452,6 +1456,34 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
         self.assertIn("AD-2: split by layer instead.", self.home_git("show", "HEAD:docs/shiploop/architecture.md"))
 
+    def test_a_step_reviews_unmarked_spec_line_is_refused_at_its_import_and_a_marked_one_is_imported(self):
+        """Design T §9.1 2b-3, option C (owner 2026-10-28): a step's review may correct what its document stage recorded in
+        the knowledge home, and ShipLoop commits the review's edits with the step, so the spec gate runs again when the
+        review is imported: the step's commit holds the tree a gate ran on (Astra's review, 2026-10-28)."""
+        if not self.inline():
+            self.skipTest("an inline step's review")
+        self.commit_architecture()                     # a checkout whose HEAD holds the knowledge home
+        spec = self.repo / "docs/shiploop/spec.md"
+        committed = spec.read_text(encoding="utf-8")
+        requirement = next(line for line in committed.splitlines() if line.startswith("R-1"))
+        steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
+                  "skills": []}]
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self._start_parent_at_stage("document", [str(self.product_contract)],
+                                    producer_extra={"knowledge": record, "assumptions": []},
+                                    predecessors={"step-plan": {"paths": ["src/**"], "steps": steps}})
+        self.assertEqual(self.bound["stage"], "document")
+        self.finish_ephemeral()
+        spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: unmarked."), encoding="utf-8")
+        lines = self.refused_import()
+        self.assertIn("without the step's mark: Clarified: unmarked.", "\n".join(lines))
+        self.assertIn("each ending (W1/S1)", "\n".join(lines))
+        spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: the change is planned. (W1/S1)"),
+                        encoding="utf-8")
+        self.import_the_review()
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
     def test_test_spec_accepted_at_its_complete_with_validate_existing_after_it_is_no_close_and_prints_no_notice(self):
         """The complete that accepts test-spec also records validate-existing (test-spec has no Improve review,
         2026-10-26).  test-spec is no close since consumer contract 4b (its cases are in state): a home whose living
@@ -1832,9 +1864,11 @@ class ImproveCommitContractTests(ImproveCliFixture):
         """
         if self.producer.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
-            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+            if stage in ("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
                          "release-plan", "release-verify"):
                 self.producer.setdefault("assumptions", [])
+            if stage == "document":
+                self.producer.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
             if stage == "spec":

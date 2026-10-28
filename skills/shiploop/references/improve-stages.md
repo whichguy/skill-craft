@@ -32,13 +32,14 @@ Three kinds of result start an Improve stage:
   does not replay facts already on record.
 - Each step's accepted `document` stage, under either planning review option
   (rule `item`; design T section 8, 2026-10-27). The step is built, tested and
-  documented first, so one review covers its code, its tests and its docs
-  together. Its handoff carries the step review focus
+  documented first, so one review covers its code, its tests, its docs and what
+  its document stage recorded in the knowledge home together, and corrects that
+  record in place. Its handoff carries the step review focus
   (`IMPLEMENT_STEP_REVIEW_FOCUS` in `scripts/shiploop_prompts.py`, with the
   *Code craft* rubric) and its review base is the tree the step began from. The
   review leaves its edits uncommitted: when it changed a file, ShipLoop reruns
-  the step's focused command at import, and once the review is accepted ShipLoop
-  commits the step. A step that changed no file starts no review. (2026-10-27:
+  the step's focused command at import, and checks its spec edit as at
+  document's complete; once the review is accepted ShipLoop commits the step. A step that changed no file starts no review. (2026-10-27:
   Sonnet makes one finding pass per review, so one review of a three-part item
   missed the defects three step reviews had fixed.)
 - The successful `carry-forward` that leaves no work item pending. This

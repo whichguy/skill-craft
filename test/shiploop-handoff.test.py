@@ -95,7 +95,7 @@ _S, _E, _A = "spec.md", "environment.md", "architecture.md"
 EXPECTED_READS = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
-    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_E, _A), "verify": (_E, _A),
+    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A), "verify": (_E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
@@ -410,8 +410,12 @@ CASE = {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "GET /a
         "red": "fails on the base: the route does not exist", "green": "200 with a game id"}
 AWAITING = {"kind": "answer", "question": "Which of the two designs should the product keep?",
             "no_default": "Either choice changes the product and the request does not say which."}
+# A step's reflection record (design T §9.1 2b-3, option C): each living file with what the step changed in it, or why
+# nothing.
+KNOWLEDGE = {"spec": "R-2 gains the empty-board rejection (W1/S1).", "architecture": "none: no new decision",
+             "environment": "Commands: `node --test` runs the board suite."}
 GOOD = {"follows": ("step-plan", ["R-1", "AD-2"]), "test_cases": ("test-spec", [CASE]),
-        "lessons": ("release-verify", LESSONS),
+        "lessons": ("release-verify", LESSONS), "knowledge": ("document", KNOWLEDGE),
         "not_covered": ("implement", [{"behaviour": "the helper rejects an empty board", "reason": "internal only"}])}
 
 
@@ -467,6 +471,10 @@ class HandoffShapeTests(unittest.TestCase):
             ("not_covered", "implement", {"behaviour": "b", "reason": "r"}),
             ("not_covered", "implement", [{"behaviour": "b"}]),
             ("not_covered", "implement", [{"behaviour": "b", "reason": ""}]),
+            ("knowledge", "document", "nothing changed"),
+            ("knowledge", "document", {"spec": "x", "architecture": "y"}),
+            ("knowledge", "document", dict(KNOWLEDGE, spec=" ")),
+            ("knowledge", "document", dict(KNOWLEDGE, notes="z")),
         ]
         for key, stage, value in bad:
             with self.subTest(key=key, value=value):
@@ -480,7 +488,7 @@ class HandoffShapeTests(unittest.TestCase):
                          [])
 
     def test_open_items_are_allowed_at_the_new_stages_and_an_owner_only_there(self) -> None:
-        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-spec", "verify", "carry-forward",
+        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-spec", "document", "verify", "carry-forward",
                                                         "system-test-author", "system-test", "release-plan",
                                                         "release-verify")))
         row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "settle": "open it",
@@ -1145,7 +1153,8 @@ class HandoffGateTests(GateCase):
         row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "settle": "open it",
                "reason": "no browser", "due_stage": "release-verify"}
         done = {"outcome": "done", "summary": "s"}
-        cases = {"test-spec": dict(done, test_cases=[dict(CASE, id="TC-3", criterion="C3")])}
+        cases = {"test-spec": dict(done, test_cases=[dict(CASE, id="TC-3", criterion="C3")]),
+                 "document": dict(done, knowledge=KNOWLEDGE)}
         for stage in sorted(assumptions.STAGES - {"plan"}):
             with self.subTest(stage):
                 state = two_items(self.repo, stage)
@@ -1153,7 +1162,7 @@ class HandoffGateTests(GateCase):
                 message = self.refusal(state, stage, result)
                 self.assertTrue(message.startswith("Add assumptions to "), message)
                 later = [name for name in stage_spec.OUTER if stage_spec.STAGES.index(name) > stage_spec.STAGES.index(stage)]
-                allowed = later + (["carry-forward"] if stage in ("test-spec", "verify") else [])
+                allowed = later + (["carry-forward"] if stage in ("test-spec", "document", "verify") else [])
                 for due_stage in allowed:
                     self.accepts(state, stage, dict(result, assumptions=[dict(row, due_stage=due_stage)]))
                 for due_stage in ("W1", stage, "carry-forward", "intake"):
@@ -1522,6 +1531,33 @@ class ConsumesTests(RepoCase):
                      accepted=dict(state["accepted"], ts9=product[1], pa1=accepted[1]))
         self.assertNotIn("D1", [i.row["id"] for i in assumptions.open_items(later)])
 
+    def test_each_steps_document_keeps_its_open_items_until_its_items_carry_forward(self) -> None:
+        # Design T §9.1 2b-3 (option C, owner 2026-10-28): a step's document records the follow-up work it found outside
+        # the item as an open item due at the item's carry-forward.  An item runs document once per step, and the latest
+        # result per (item, stage) is the current one, so the earlier steps' rows must not drop out when a later step's
+        # document is accepted (Astra's review, 2026-10-28).
+        self.assertEqual(assumptions.allowed_due_stages("document")[0], "carry-forward")
+        rows = [row("sp1", "step-plan", "W1", {"follows": []}),
+                row("dc1", "document", "W1", {"assumptions": [open_row("S1-F1", "carry-forward")]}),
+                row("dc2", "document", "W1", {"assumptions": [open_row("S2-F1", "carry-forward")]})]
+        state = {"history": [entry for entry, _ in rows], "accepted": {entry["action"]: result for entry, result in rows}}
+        found = lambda state: [(i.stage, i.action, i.row["id"]) for i in assumptions.open_items(state)]  # noqa: E731
+        self.assertEqual(found(state), [("document", "dc1", "S1-F1"), ("document", "dc2", "S2-F1")])
+        # The item's carry-forward settles both.
+        cf = row("cf1", "carry-forward", "W1", {"assumptions": []})
+        settled = dict(state, history=state["history"] + [cf[0]], accepted=dict(state["accepted"], cf1=cf[1]))
+        self.assertEqual(found(settled), [])
+        # A send-back replans the item: the steps documented before it are gone, and a later document is the only one.
+        back = row("im3", "implement", "W1", {}, outcome="send-back")
+        again = row("dc3", "document", "W1", {"assumptions": [open_row("S1-F2", "carry-forward")]})
+        replanned = dict(state, history=state["history"] + [back[0], again[0]],
+                         accepted=dict(state["accepted"], im3=back[1], dc3=again[1]))
+        self.assertEqual(found(replanned), [("document", "dc3", "S1-F2")])
+        # Another item's document rows are its own.
+        other = row("dc9", "document", "W2", {"assumptions": [open_row("W2-F1", "carry-forward")]})
+        both = dict(state, history=state["history"] + [other[0]], accepted=dict(state["accepted"], dc9=other[1]))
+        self.assertEqual([entry[2] for entry in found(both)], ["S1-F1", "S2-F1", "W2-F1"])
+
     def test_not_covered_comes_only_from_implement_steps_after_the_items_latest_step_plan(self) -> None:
         rows = [row("sp1", "step-plan", "W1", {"follows": [], "criteria": [{"id": "C1", "text": "one"}],
                                                "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
@@ -1682,7 +1718,12 @@ class ContentsTests(LongHomeCase):
         self.assertEqual(navigator._cut_title("x" * 150), "x" * 97 + "...")
 
     def test_the_diff_of_a_new_file_is_a_pointer_that_lists_its_contents_once(self) -> None:
-        lines = self.block("plan")  # plan lists spec.md, environment.md and architecture.md
+        for stage in ("plan", "document"):  # each lists spec.md, environment.md and architecture.md (document: 2b-3)
+            with self.subTest(stage=stage):
+                self._diff_of_a_new_file_lists_its_contents_once(stage)
+
+    def _diff_of_a_new_file_lists_its_contents_once(self, stage: str) -> None:
+        lines = self.block(stage)
         part = self.diff_part(lines)
         self.assertEqual(part[0], "Spec and architecture changes since the run began (baseline " + self.head_of_base()
                          + "), a file new since then is named with its contents, any other change printed uncut:")
@@ -1695,7 +1736,7 @@ class ContentsTests(LongHomeCase):
         self.assertEqual(sum(line.startswith("  | +") for line in lines), 0)
 
     def test_a_new_file_the_packet_does_not_list_is_a_pointer_with_its_contents(self) -> None:
-        for stage in ("document", "carry-forward", "release-verify"):  # document lists no spec; the others list nothing
+        for stage in ("verify", "carry-forward", "release-verify"):  # verify lists no spec; the others list nothing
             with self.subTest(stage=stage):
                 part = self.diff_part(self.block(stage))
                 spec = next(i for i, line in enumerate(part) if line.startswith("KNOWLEDGE/spec.md: new since"))
@@ -1873,7 +1914,10 @@ class SameBlockDuplicateTests(LongHomeCase):
 # Re-pinned 2026-10-28 by design T section 8 (each step is built, tested, documented and reviewed before the next):
 # W1's first step now has its own test block (16-test, the cases due by S1) and document block (19-document), and each
 # document block quotes the step's test cases as verify's does (CONSUMES), so 23-document and 32-document hash as their
-# item's verify block; every other block hashes as before, in order, renumbered by the per-step walk.
+# item's verify block; every other block hashes as before, in order, renumbered by the per-step walk.  Re-pinned
+# 2026-10-28 by design T section 9.1 2b-3 (each step's document reflects): document reads spec.md too, so its three
+# blocks (19-, 23- and 32-document) list it by contents and no longer hash as their item's verify block; every other
+# block hashes as before.
 SMALL_HOME_FINGERPRINTS: dict = {
     "01-intake": "20425423036e",
     "02-discovery": "e3b0c44298fc",
@@ -1887,10 +1931,10 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "14-validate-existing": "fd56ae387ab8",
     "15-implement": "78542e80fa7e",
     "16-test": "9ac7795d7ff5",
-    "19-document": "322fceaf7379",
+    "19-document": "1dac24adc67e",
     "21-implement": "84d5d7f4412f",
     "22-test": "47512f89e19d",
-    "23-document": "1bd3e4515b2b",
+    "23-document": "68da442e2a67",
     "25-verify": "1bd3e4515b2b",
     "26-carry-forward": "644fb96deb86",
     "27-step-plan": "6d1756f3cf4b",
@@ -1898,7 +1942,7 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "29-validate-existing": "fd56ae387ab8",
     "30-implement": "7f5ec4c052ae",
     "31-test": "3aa81f32adf2",
-    "32-document": "fc69229dd486",
+    "32-document": "b9bf90857943",
     "34-verify": "fc69229dd486",
     "35-carry-forward": "50e264bc8291",
     "37-system-test-author": "9c09062ca617",

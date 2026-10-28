@@ -164,6 +164,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                      r"Fix the case IDs in \S|Fix the case criteria in \S|Fix case requirements in \S"),
     "handoff_step_notes": re.compile(r"Add (?:learned and decisions|learned|decisions) to \S|Fix learned_from in \S"),
     "handoff_lessons": re.compile(r"Add lessons to \S"),
+    # A step's document result without its knowledge record (design T §9.1 2b-3).
+    "handoff_knowledge": re.compile(r"Add knowledge to \S"),
     # The step plan's or run's written spec diverged from HEAD plus this step's acceptance lines (shiploop_navigator.py).
     "spec_writeback": re.compile(r"Restore \S*spec\.md to what HEAD holds"),
     # A living-file entry (R-<n>/AD-<n>) went missing from docs/shiploop (shiploop_knowledge_home.py:317).

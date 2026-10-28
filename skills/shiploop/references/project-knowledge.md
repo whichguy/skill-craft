@@ -531,7 +531,9 @@ ID (the base is the last commit, so a drop a review already committed through
 (`docs(shiploop): record <run> knowledge at <stage>`). After any other accepted
 stage that changed `docs/shiploop/`, ShipLoop applies the same ID check
 (refusing that stage's `done` on a failure) and commits it
-(`... knowledge after <stage>`); the model never commits the home itself. The last close is at
+(`... knowledge after <stage>`); the model never commits the home itself. On the inline route a step's
+edits to the home go into that step's one commit instead, after its `document` stage, which reflects on what the step
+showed in all three files, and its review ([navigator.md](navigator.md#step-commits)). The last close is at
 `release-verify` so the commit returns with the workspace. The return plan keeps
 `docs/shiploop/**`. Files an earlier run wrote in older homes
 (`docs/requirements.md`, `docs/current-system.md`, ShipLoop-authored only) move

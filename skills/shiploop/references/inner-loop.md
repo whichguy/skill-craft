@@ -9,7 +9,7 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 |---|---|
 | Plan | `step-plan`, `test-spec` |
 | Validate existing | `validate-existing` |
-| Build | `implement` (one action per step), `test`, `document` |
+| Build | `implement`, `test`, `document`, once per step |
 | Verify | `verify` |
 | Carry forward | `carry-forward` |
 
@@ -23,12 +23,12 @@ Each work item runs 8 stages in 5 phases (`INNER` in
   by verify and `system-test-author`); criteria confirmed `searched` or `inspected`
   go under `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
-- `implement` makes one step per action. The lint gate runs on every step and an
-  Improve stage reviews every accepted step. Tests are written later, at `test`.
-- `test` writes the specified tests and makes every recorded command pass;
-  ShipLoop then runs its own base and candidate runs.
-- `document` is issued only when the item's real diff touches a code or test
-  path (`item_scope.behavioural`); otherwise ShipLoop records it as not applicable.
+- `implement` builds one step per action; the lint gate runs on every step.
+- `test` writes the step's tests and makes every recorded command pass, then
+  ShipLoop runs its base and candidate runs.
+- `document` is issued only when the step's diff touches a code or test path
+  (`item_scope.behavioural`), else recorded not applicable. It updates the docs
+  and records what the step showed in KNOWLEDGE; then Improve reviews the step.
 - `verify` reruns every recorded command, traces each changed entry point and
   reviews the whole diff. When `verify` is accepted ShipLoop commits the rest
   of the item ([step commits](navigator.md#step-commits) came first).

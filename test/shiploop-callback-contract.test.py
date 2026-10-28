@@ -94,6 +94,9 @@ RESULTS = {
     "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
     # An inline step's notes (build plan S3.2): ShipLoop writes them into the step's commit.
     "implement": {"learned": ["none"], "decisions": ["none"]},
+    # A step's reflection (design T §9.1 2b-3): what it changed in each living file, and the open items it found.
+    "document": {"knowledge": {"spec": "none: no clause changed", "architecture": "none: no decision",
+                               "environment": "none: no new command"}, "assumptions": []},
     "verify": {"assumptions": []},
     "carry-forward": {"skill": SKILL_NONE, "assumptions": []},
     "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}], "assumptions": []},

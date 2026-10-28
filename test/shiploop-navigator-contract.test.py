@@ -39,6 +39,7 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 sys.path.insert(0, str(ROOT / "test"))
+import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
@@ -4172,9 +4173,10 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 result = {**inner_fixture.fixture_primary(state), **result}    # run-5 batch F6
             if stage == "test-strategy":
                 result = {**inner_fixture.fixture_test_layers(), **result}     # run-5 batch F1, F3
-            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
-                         "release-verify"):
+            if stage in assumptions.OPEN_ITEM_STAGES:
                 result.setdefault("assumptions", [])
+            if stage == "document":
+                result.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))
@@ -4689,6 +4691,101 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                     self.finish_improve()
                     self.assertIn(document, self.state()["improve_results"])
                 self.assertEqual(self.settle(), "verify")
+
+class StepReflectionCliTests(inner_fixture.RunDriver):
+    """Design T §9.1 2b-3, option C (owner 2026-10-28, "Go with C"): no knowledge stage.  Each step's document stage is
+    its one place to reflect: it records in the knowledge home what the step showed, names each living file with what it
+    changed or why nothing, and records work found outside the item as an open item due at the item's carry-forward.
+    Its spec gate runs at its complete and again at its review's import, so the step's commit holds the tree a gate ran
+    on (Astra's review, 2026-10-28: the review's edits are part of that tree)."""
+
+    SPEC_LINE = "R-1: Synthetic requirement.\n"
+    RECORD = {"spec": "R-1 gains how entry() treats its argument (W1/S1).",
+              "architecture": "none: entry() follows the existing module layout",
+              "environment": "none: the step ran no new command"}
+
+    def spec(self) -> Path:
+        return self.repo / "docs" / "shiploop" / "spec.md"
+
+    def refused(self, result: dict) -> str:
+        """The refusal of ``result`` at the current inner stage, its loop run first and no fixture field added."""
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            self.complete(inner_fixture.loop(self.run_dir, self.state(), result), prepare_inner=False)
+        return str(caught.exception)
+
+    def step_commit_sha(self) -> str:
+        """The commit ShipLoop made for step W1/S1, found by its subject."""
+        subjects = inner_fixture.git(self.repo, "log", "--format=%H%x00%s").splitlines()
+        return next(line.split("\0")[0] for line in subjects if line.split("\0")[1].startswith("feat(W1/S1): "))
+
+    def test_a_document_without_its_knowledge_record_is_refused_and_the_record_reaches_the_step_commit(self) -> None:
+        self.start()
+        self.drive_to("document")
+        done = dict(inner_fixture.DONE, summary="Documented entry().")
+        refusal = self.refused(done)
+        self.assertIn("Add knowledge to", refusal.splitlines()[0])
+        self.assertIn('"spec"', refusal)
+        self.assertIn("why it needed no change", refusal)
+        # Work found outside the item is an open item due at the item's carry-forward; an inner stage is not a due stage.
+        stray = self.refused(dict(done, knowledge=dict(self.RECORD), assumptions=[{
+            "id": "F1", "assumption": "entry() needs a caller-side check.", "disposition": "open",
+            "settle": "add the check where entry() is called", "reason": "outside this item", "due_stage": "implement"}]))
+        self.assertIn("F1 names 'implement'", stray)
+        self.assertIn("carry-forward", stray)
+        follow_up = {"id": "F1", "assumption": "entry() needs a caller-side check.", "disposition": "open",
+                     "settle": "add the check where entry() is called", "reason": "outside this item",
+                     "due_stage": "carry-forward"}
+        self.complete(inner_fixture.loop(self.run_dir, self.state(),
+                                         dict(done, knowledge=dict(self.RECORD), assumptions=[follow_up])),
+                      prepare_inner=False)
+        self.assertEqual(self.state()["active_improve"]["stage"], "document")
+        self.finish_improve()
+        found = [(item.stage, item.row["id"], item.row["due_stage"]) for item in assumptions.open_items(self.state())]
+        self.assertIn(("document", "F1", "carry-forward"), found)
+        body = inner_fixture.git(self.repo, "log", "-1", "--format=%b", self.step_commit_sha())
+        self.assertIn("Knowledge home:\n- spec: R-1 gains how entry() treats its argument (W1/S1).\n"
+                      "- architecture: none: entry() follows the existing module layout\n"
+                      "- environment: none: the step ran no new command", body)
+
+    def test_a_spec_line_document_adds_is_held_to_the_steps_mark_and_committed_with_the_step(self) -> None:
+        self.start()
+        self.drive_to("document")
+        spec = self.spec()
+        committed = spec.read_text()
+        self.assertIn(self.SPEC_LINE, committed)
+        spec.write_text(committed.replace(self.SPEC_LINE, self.SPEC_LINE + "  Clarified: unmarked.\n"))
+        refusal = self.refused(dict(inner_fixture.DONE, knowledge=dict(self.RECORD), assumptions=[]))
+        self.assertIn("without the step's mark: Clarified: unmarked.", refusal)
+        self.assertIn("each ending (W1/S1)", refusal)
+        self.assertIn("to change a requirement, report send-back naming it", refusal)
+        marked = "  Clarified: entry() returns its argument unchanged. (W1/S1)\n"
+        spec.write_text(committed.replace(self.SPEC_LINE, self.SPEC_LINE + marked))
+        self.complete(inner_fixture.loop(self.run_dir, self.state(),
+                                         dict(inner_fixture.DONE, knowledge=dict(self.RECORD), assumptions=[])),
+                      prepare_inner=False)
+        self.finish_improve()
+        sha = self.step_commit_sha()
+        self.assertIn("docs/shiploop/spec.md", inner_fixture.git(self.repo, "show", "--name-only", "--format=", sha).split())
+        self.assertIn(marked, inner_fixture.git(self.repo, "show", sha + ":docs/shiploop/spec.md"))
+
+    def test_the_document_packet_names_the_step_its_mark_and_the_reflection(self) -> None:
+        self.start()
+        state = self.drive_to("document")
+        packet = navigator.render(inner_fixture.CORE, self.run_dir, state)
+        self.assertIn("Step S1 (1 of 1), built and tested: Make the planned change. A line this step adds to "
+                      "KNOWLEDGE/spec.md ends (W1/S1).", packet)
+        duties = " ".join(prompts.DUTIES["document"].split())
+        for phrase in ("**Reflect.**", "a vague clause this step made precise", "the files and test file that now meet it",
+                       "a new AD-<n>", "## Commands", "report send-back naming the R-<n>",
+                       "work a later step already holds: leave it to that step",
+                       "work outside this item: an open item in `assumptions` due at carry-forward",
+                       "In `knowledge` give `spec`, `architecture` and `environment`"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, duties)
+        row = stage_spec.stage("document")
+        self.assertIn("the knowledge home records what this step showed, and `knowledge` names each living file with "
+                      "what changed in it or why nothing did", row.done_when)
+
 
 class ProducerBoundTests(unittest.TestCase):
     """Build plan S2.1 (run-insights T-D2): the plan's work-item context and an item's open assumptions are printed whole

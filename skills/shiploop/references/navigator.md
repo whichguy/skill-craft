@@ -680,17 +680,36 @@ that the host included all prerequisites or actually prepared a remote target.
 
 On the inline route ShipLoop commits each step once its `document` stage and
 that stage's Improve review are accepted, as one commit of the step's code,
-tests and docs: `feat(<item>/<step>): <headline>` with the step's
+tests, docs and knowledge: `feat(<item>/<step>): <headline>` with the step's
 summary and its Key learnings, Key decisions, Evidence and Related commits
-sections, from the result's `learned`, `decisions`, `evidence_refs` and
-`learned_from`. Each inline implement packet's head quotes the last two commits
+sections, from the implement result's `learned`, `decisions`, `evidence_refs` and
+`learned_from`, then a Knowledge home section from the document result's
+`knowledge`. Each inline implement packet's head quotes the last two commits
 that are not ShipLoop records (knowledge or leftover commits) as its look-back,
 one line each: the subject and its Key learnings. A
 redone step after a send-back names its own previous result and commit. A step
 may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
-`(<item>/<step>)`, which its commit carries; any other spec change at implement is
-refused, and its refusal opens that action's send-back even though the step's
-Until Loop has completed.
+`(<item>/<step>)`, which its commit carries; any other spec change is refused, at
+implement's and document's complete and at the import of the step's review, and a
+refusal at a complete opens that action's send-back even though the step's Until
+Loop has completed.
+
+**Each step's reflection** (design T §9.1 2b-3, option C, owner 2026-10-28). There
+is no knowledge stage: a step's `document` stage is its one place to reflect. With
+the step built and tested, it records what the step showed in the knowledge home,
+where the next steps' packets read it: a clarified requirement or the files that now
+meet it (a marked line in `spec.md`), a decision implement did not record (an
+`AD-<n>`), a command, harness or platform fact (`environment.md`). Its result's
+`knowledge` names each of the three files with what changed in it or why nothing
+did. New work the step showed goes where it belongs: a defect in the step's change
+is fixed now, work the step plan lacks is a send-back, work a later step holds is
+left to it, and work outside the item is an open item due at the item's
+`carry-forward`; every step's open items stay listed until then. The step's review
+reads the knowledge edits with the code, tests and docs and corrects them in place.
+A step whose change touches no code or test path records `document` as not
+applicable: implement's and test's own write-backs stand, and `carry-forward`
+reconciles the knowledge home at the item's end. The skill decision stays once per
+item, at `carry-forward`.
 
 The inner path makes post-code quality visible: the expectations are checked
 before any change, each step is built, tested and documented and then reviewed

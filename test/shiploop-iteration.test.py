@@ -2,8 +2,9 @@
 """Hermetic tests for ``shiploop_iteration``: the contract of the per-step iteration (design T §8 and §9, build order
 step 1, owner 2026-10-28: "Start step 1").
 
-Each planned step runs implement, test, document (which owns the step's Improve review), knowledge and commit before
-the next step starts. These tests pin the four invariants step 1 specifies, before the navigator uses them:
+Each planned step runs implement, test, document (which reflects on the step in the knowledge home and owns the step's
+Improve review) and commit before the next step starts; 2b-3 (option C, owner 2026-10-28) folds the knowledge stage
+into document. These tests pin the four invariants step 1 specifies, before the navigator uses them:
 - the iteration identity (item, plan revision, step, base commit), and that a base is always a commit;
 - producer ownership (document owns the Improve review; commit is ShipLoop's alone);
 - retry invalidation (what a send-back keeps, what it voids, and when it ends the iteration);
@@ -36,8 +37,9 @@ def first() -> iteration.Iteration:
 
 
 class StageOrderTests(unittest.TestCase):
-    def test_each_step_runs_implement_test_document_knowledge_commit_in_that_order(self):
-        self.assertEqual(iteration.STAGES, ("implement", "test", "document", "knowledge", "commit"))
+    def test_each_step_runs_implement_test_document_commit_in_that_order(self):
+        # Option C (owner 2026-10-28, "Go with C"): no knowledge stage; document records the step's knowledge.
+        self.assertEqual(iteration.STAGES, ("implement", "test", "document", "commit"))
         walked, stage = [], "implement"
         while stage is not None:
             walked.append(stage)
@@ -52,7 +54,7 @@ class StageOrderTests(unittest.TestCase):
         self.assertEqual([stage for stage in iteration.STAGES if iteration.owns_improve(stage)], ["document"])
 
     def test_commit_is_shiploops_alone_and_every_other_stage_is_the_models(self):
-        self.assertEqual(iteration.MODEL_STAGES, ("implement", "test", "document", "knowledge"))
+        self.assertEqual(iteration.MODEL_STAGES, ("implement", "test", "document"))
         self.assertNotIn("commit", iteration.MODEL_STAGES)
 
 
@@ -100,8 +102,8 @@ class SendBackTests(unittest.TestCase):
         self.assertEqual(iteration.invalidated(["implement", "test", "document"], "test"), ["test", "document"])
 
     def test_a_send_back_to_implement_voids_every_stage_done(self):
-        self.assertEqual(iteration.invalidated(["implement", "test", "document", "knowledge"], "implement"),
-                         ["implement", "test", "document", "knowledge"])
+        self.assertEqual(iteration.invalidated(["implement", "test", "document"], "implement"),
+                         ["implement", "test", "document"])
 
     def test_a_send_back_to_planning_voids_everything_and_ends_the_iteration(self):
         self.assertEqual(iteration.invalidated(["implement", "test"], "step-plan"), ["implement", "test"])
@@ -138,10 +140,11 @@ class CommitTests(unittest.TestCase):
         decision = self.decide(first())
         self.assertEqual((decision.action, decision.reopen), ("commit", None))
 
-    def test_a_tree_that_changed_after_the_knowledge_gate_is_refused_and_reopens_knowledge(self):
+    def test_a_tree_that_changed_after_the_last_gate_is_refused_and_reopens_document(self):
+        # The step's last gate runs when its document is accepted (at document's complete, or its review's import).
         decision = self.decide(first(), current_tree=self.CHANGED)
-        self.assertEqual((decision.action, decision.reopen), ("refuse", "knowledge"))
-        self.assertIn("knowledge", decision.reason)
+        self.assertEqual((decision.action, decision.reopen), ("refuse", "document"))
+        self.assertIn("document", decision.reason)
 
     def test_a_commit_that_already_happened_is_recognised_not_repeated(self):
         current = first()

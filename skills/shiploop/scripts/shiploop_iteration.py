@@ -1,5 +1,5 @@
-"""The per-step iteration's contract: each planned step is built, tested, documented, reviewed, recorded and committed
-before the next step starts (design T §8, amended by Astra's review in §9; owner 2026-10-27: "I want to build one step,
+"""The per-step iteration's contract: each planned step is built, tested, documented, reviewed and committed before the
+next step starts (design T §8, amended by Astra's review in §9; owner 2026-10-27: "I want to build one step,
 then test, improve, and document, and then build step number two ... not just do one monolithic build of all the steps").
 
 Build order step 1 (§9.1) specifies four invariants here, as pure functions, before the navigator uses them (step 2):
@@ -11,16 +11,18 @@ Build order step 1 (§9.1) specifies four invariants here, as pure functions, be
   an omitted document still records a not-applicable result that owns it (§9 row 2). Commit is ShipLoop's alone.
 - **Retry invalidation.** A send-back to a stage of the iteration voids that stage's receipt and every later one and
   keeps the base; a send-back to planning voids them all and ends the iteration (§9 row 5).
-- **The final-tree commit invariant.** The commit stage commits only the tree the knowledge stage's gate ran on, as the
-  one commit on top of the iteration's base. A pending record written before the commit lets a retry recognise a
+- **The final-tree commit invariant.** The commit stage commits only the tree the step's last gate ran on (document's
+  complete, or its review's import), as the one commit on top of the iteration's base. A pending record written before the commit lets a retry recognise a
   commit that already happened, and any other commit is refused: only the commit stage commits (§9 row 3).
 
 Build order step 2a adds what each step owes its test stage (``case_step``, ``due_cases``, ``new_cases``,
 ``active_commands``), derived from data ShipLoop already validates: each test-spec case names its step-plan
 ``criterion`` and each step lists the ``criteria`` it satisfies, so the test spec needs no field of its own (F1).
 
-Stage IDs keep today's names (``implement`` is the design's "build"); ``knowledge`` and ``commit`` are new, and
-``verify`` has no place in an iteration (§7, §8.1).
+Stage IDs keep today's names (``implement`` is the design's "build"); ``commit`` is new, and ``verify`` has no place in
+an iteration (§7, §8.1).  There is no knowledge stage (2b-3, option C; owner 2026-10-28, "Go with C"): document is the
+step's one place to reflect, recording in the knowledge home what the step showed, so its review sees and corrects
+that record with the code, tests and docs.
 """
 from __future__ import annotations
 
@@ -29,7 +31,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any, NamedTuple
 
-STAGES = ("implement", "test", "document", "knowledge", "commit")
+STAGES = ("implement", "test", "document", "commit")
 MODEL_STAGES = STAGES[:-1]
 IMPROVE_OWNER = "document"
 _COMMIT_ID = re.compile(r"[0-9a-f]{40}")
@@ -133,13 +135,13 @@ def pending_record(current: Iteration, tree: str) -> dict[str, Any]:
 def commit_decision(current: Iteration, *, head: str, head_parent: str | None, head_tree: str | None,
                     current_tree: str, gated_tree: str, pending: Mapping[str, Any] | None) -> Decision:
     """What the commit stage does, from the checkout's ``head`` (its parent and tree), the working tree's snapshot now
-    (``current_tree``), the snapshot the knowledge stage's gate ran on (``gated_tree``) and a pending record, if any."""
+    (``current_tree``), the snapshot the step's last gate ran on (``gated_tree``) and a pending record, if any."""
     if pending is not None and stale(pending.get("iteration"), current):
         return Decision("refuse", "the pending commit record belongs to another iteration: " + repr(pending.get("iteration")))
     if head == current.base:
         if current_tree != gated_tree:
-            return Decision("refuse", "the tree changed after the knowledge stage's gate ran; rerun the knowledge stage so its "
-                            "gate runs on the tree to commit", "knowledge")
+            return Decision("refuse", "the tree changed after the document stage's gate ran; rerun the document stage so its "
+                            "gate runs on the tree to commit", "document")
         return Decision("commit")
     if (pending is not None and head_parent == current.base and pending.get("parent") == current.base
             and head_tree == pending.get("tree")):

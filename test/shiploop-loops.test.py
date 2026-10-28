@@ -967,7 +967,8 @@ class MissingContractTests(unittest.TestCase):
             result = run / "inbox" / (action + ".md")
             result.parent.mkdir(parents=True, exist_ok=True)
             result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
-                              "headline": "Docs updated.", "evidence_refs": [str(receipt)]}) + "\n```\n")
+                              "headline": "Docs updated.", "evidence_refs": [str(receipt)],
+                              "assumptions": [], "knowledge": fx.KNOWLEDGE_NONE}) + "\n```\n")
             cli = [sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "complete", "--run-dir", str(run),
                    "--action", action, "--result", str(result)]
             env = {**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"}
@@ -1094,7 +1095,8 @@ class WorkTextTests(Synthetic):
             result = callback_result_path(printed.stdout)  # the label names it; the command has no --result flag
             result.parent.mkdir(parents=True, exist_ok=True)
             result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
-                              "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))]})
+                              "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))],
+                              "assumptions": [], "knowledge": fx.KNOWLEDGE_NONE})
                               + "\n```\n")
             checked = subprocess.run([*command, "--check-only"], capture_output=True, text=True,
                                      env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})

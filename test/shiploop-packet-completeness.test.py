@@ -276,7 +276,8 @@ class PacketCompletenessTests(unittest.TestCase):
         # review 2026-10-10, P-rv-1).
         # test-spec's close requires the item's test-spec.md under docs/shiploop, and its row now runs the loop
         # receipt check too, so its line belongs to this group (8-stage inner loop, 2026-10-10).
-        closes = {"release-verify", "test-spec", "step-plan"}  # step-plan: the ID-retention line (L4)
+        # document: its spec write-back gate on KNOWLEDGE/spec.md (design T §9.1 2b-3).
+        closes = {"release-verify", "test-spec", "step-plan", "document"}  # step-plan: the ID-retention line (L4)
         for (stage, kind), packet in sorted(self.found.items()):
             row = stage_spec.stage(stage)
             if kind != "producer" or not row.complete_runs:

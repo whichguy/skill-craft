@@ -76,6 +76,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions", "suite_requirements",
+    "knowledge",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -123,7 +124,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "suite_requirements",
+    "mutant_dispositions", "suite_requirements", "knowledge",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1252,7 +1253,11 @@ def _canonical_result(
 # Each new key's one producing stage (a done result only: _DONE_ONLY_FIELDS).
 HANDOFF_FIELDS = {"follows": "step-plan", "test_cases": "test-spec", "not_covered": "implement",
                   "lessons": "release-verify", "learned": "implement", "decisions": "implement",
-                  "learned_from": "implement"}
+                  "learned_from": "implement", "knowledge": "document"}
+# Document's reflection record (design T §9.1 2b-3, option C, owner 2026-10-28): one key per living file it may write
+# (spec.md, architecture.md, environment.md), with what the step changed in it or why nothing, in the order the step
+# commit's "Knowledge home" section prints them.
+KNOWLEDGE_RECORD = ("spec", "architecture", "environment")
 # Implement's hand-off fields that are optional at done: the template leaves them out (``_handoff_shape_lines``).
 _OPTIONAL_HANDOFF = ("not_covered", "learned_from")
 # The step commit's own sections (build plan S3.2): each a list of nonblank lines, ["none"] when there is nothing to say,
@@ -1294,6 +1299,16 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
             _need(isinstance(lessons[key], str) and bool(lessons[key].strip()),
                   "lessons." + key + " must be nonblank text (\"none\" only when true)" + _SHAPE_TAIL)
         result["lessons"] = {key: lessons[key] for key in names}
+    if "knowledge" in value:
+        record = value["knowledge"]
+        _need(isinstance(record, Mapping) and set(record) == set(KNOWLEDGE_RECORD),
+              "knowledge has exactly " + ", ".join(KNOWLEDGE_RECORD) + ': {"spec": "...", "architecture": "...", '
+              '"environment": "..."}, one per living file' + _SHAPE_TAIL)
+        for key in KNOWLEDGE_RECORD:
+            _need(isinstance(record[key], str) and bool(record[key].strip()),
+                  "knowledge." + key + " must be nonblank text: what this step changed in it, or why nothing"
+                  + _SHAPE_TAIL)
+        result["knowledge"] = {key: " ".join(record[key].split()) for key in KNOWLEDGE_RECORD}
     if "not_covered" in value:
         rows = value["not_covered"]
         _need(isinstance(rows, list) and all(
@@ -2302,8 +2317,12 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     step = _step_lines(state, stage, workitem)
     if step:
         blocks.append(_Block("step", P1, [*step, ""]))
-    elif loop:
-        blocks.append(_Block("loop", P0, [*loop, ""]))
+    else:
+        mark = _document_step_lines(state, stage, workitem)
+        if mark:
+            blocks.append(_Block("step", P0, [*mark, ""]))
+        if loop:
+            blocks.append(_Block("loop", P0, [*loop, ""]))
     blocks.append(_Block("status", P0, [
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
@@ -2881,6 +2900,16 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
           + ". Create the entry's source files before the release plan, or correct the paths.")
 
 
+def _step_spec_refusal(state: Mapping[str, Any], item: str | None) -> str:
+    """The spec write-back refusal of the inline step ``item`` is on ('' outside one): what its spec.md edit may add
+    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement and document check it at their complete and the step's
+    review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
+    view = step_view(state, item) if item else None
+    if view is None:
+        return ""
+    return knowledge.step_spec_refusal(Path(str(state["repo"])), str(item) + "/" + str(view.step.get("id")))
+
+
 def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any, command: str = "complete") -> None:
     """Refuse a close stage's done while the repository knowledge home is incomplete or drops an ID."""
     if isinstance(result, Mapping) and result.get("outcome") == "done":
@@ -2983,9 +3012,11 @@ LOOK_BACK_SUBJECT = 100
 _LEARNINGS_HEAD = "Key learnings:"
 
 
-def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping[str, Any]) -> str:
-    """The commit message of one accepted inline implement step (build plan S3.2): a ``feat(<item>/<step>)`` subject and
-    the Key learnings, Key decisions, Evidence and Related commits sections, from the step's result."""
+def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping[str, Any],
+                        record: Mapping[str, Any] | None = None) -> str:
+    """The commit message of one accepted inline step (build plan S3.2): a ``feat(<item>/<step>)`` subject and the Key
+    learnings, Key decisions, Evidence and Related commits sections, from the step's implement result, then the Knowledge
+    home section: ``record``, its document stage's reflection (``KNOWLEDGE_RECORD``), when it ran (design T §9.1 2b-3)."""
     headline = str(result.get("headline") or "").strip() or re.split(r"(?<=[.;:])\s", str(step.get("task") or ""))[0]
     subject = "feat(" + work_item + "/" + str(step.get("id")) + "): " + " ".join(headline.split()).rstrip(".")
     def section(title: str, rows: Any) -> list[str]:
@@ -2993,6 +3024,8 @@ def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping
     body = [str(result.get("summary") or "").strip(), "",
             *section("Key learnings", result.get("learned")), *section("Key decisions", result.get("decisions")),
             *section("Evidence", result.get("evidence_refs")), *section("Related commits", result.get("learned_from"))]
+    if isinstance(record, Mapping) and record:
+        body += section("Knowledge home", [name + ": " + str(record[name]) for name in KNOWLEDGE_RECORD if name in record])
     return _status_text(subject, HEADLINE_LIMIT) + "\n\n" + "\n".join(body).strip()
 
 
@@ -3022,8 +3055,11 @@ def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
                  if row["stage"] == "implement" and row["workitem"] == item and row["outcome"] == "done"]
     action_id = implement[-1] if implement else None
     result = before["accepted"].get(action_id, {}) if action_id else {}
+    document = next(row["action"] for row in rows
+                    if row["stage"] == "document" and row["outcome"] == "done" and row["workitem"] == item)
+    record = (after["accepted"].get(document) or {}).get("knowledge")
     try:
-        commit, _left = item_scope.commit_item(root, after, item, step_commit_message(item, view.step, result))
+        commit, _left = item_scope.commit_item(root, after, item, step_commit_message(item, view.step, result, record))
     except item_scope.ItemScopeError as exc:
         print("ShipLoop document: step " + str(view.step.get("id")) + " was not committed (" + str(exc) + "); its "
               "change stays in the checkout and verify's item commit includes it.", file=sys.stderr)
@@ -3552,7 +3588,7 @@ def _placeholders(result: Mapping[str, Any]) -> list[str]:
             for index, item in enumerate(value):
                 walk(item, where + "[" + str(index) + "]")
 
-    for key in ("follows", "test_cases", "not_covered", "lessons", *STEP_NOTES):
+    for key in ("follows", "test_cases", "not_covered", "lessons", "knowledge", *STEP_NOTES):
         if key in result:
             walk(result[key], key)
     return found
@@ -3595,8 +3631,8 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         wrong = assumptions.wrong_due_stages(result["assumptions"], stage)
         if wrong:
             return _Fault("Fix the due stages in {result}", "fixes due stages",
-                          ["Name a later outer stage (or carry-forward, from test-spec or verify) as each open item's "
-                           "due_stage; work for a later item goes in carry-forward's work_items.",
+                          ["Name a later outer stage (or carry-forward, from " + _carry_forward_producers() + ") as each "
+                           "open item's due_stage; work for a later item goes in carry-forward's work_items.",
                            "; ".join(ident + " names '" + due_stage + "'" for ident, due_stage in wrong)
                            + "; the allowed due stages are " + ", ".join(assumptions.allowed_due_stages(stage)) + "."])
         try:
@@ -3621,12 +3657,23 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
             return _Fault("Fix learned_from in {result}", "fixes learned_from",
                           ["Name only commits reachable from HEAD in " + str(repo) + " (the look-back lists the latest): "
                            "drop each other ID.", "Not reachable from HEAD: " + ", ".join(unreachable) + "."])
+    if stage == "document" and "knowledge" not in result:
+        return _Fault("Add knowledge to {result}", "adds knowledge",
+                      ['Shape: {"spec": "...", "architecture": "...", "environment": "..."}: for each living file '
+                       "(KNOWLEDGE/spec.md, architecture.md, environment.md), what this step changed in it or why it "
+                       "needed no change. ShipLoop writes it into this step's commit."])
     if stage == "release-verify" and "lessons" not in result:
         return _Fault("Add lessons to {result}", "adds lessons",
                       ['Shape: {"learned": "...", "considerations": "...", "open_next": "..."}, each written in detail '
                        '("none" only when true). ShipLoop writes them into this run\'s release-verify knowledge commit, '
                        "which the next run's intake quotes."])
     return None
+
+
+def _carry_forward_producers() -> str:
+    """The stages whose open item may be due at its own item's carry-forward, as prose: "test-spec, document or verify"."""
+    names = list(assumptions.CARRY_FORWARD_PRODUCERS)
+    return ", ".join(names[:-1]) + " or " + names[-1]
 
 
 def _ask_agent(state: Mapping[str, Any] | None) -> bool:
@@ -4829,11 +4876,16 @@ _REASON_PLACEHOLDER = "<why no test case covers it>"
 _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
-_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec, document or verify>"
+# Document's reflection record, one line per living file (``KNOWLEDGE_RECORD``).
+_KNOWLEDGE_PLACEHOLDERS = {"spec": "<the lines this step added inside its R-<n> entries, or why none>",
+                           "architecture": "<the AD-<n> this step added or refined, or why none>",
+                           "environment": "<the commands, harnesses and facts this step proved, or why none>"}
 _STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
                            "decisions": "<choice made and why, or none>"}
 HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
-                        *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
+                        *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values(),
+                        *_KNOWLEDGE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
@@ -4845,6 +4897,7 @@ HANDOFF_SHAPES: dict[str, Any] = {
     "learned": [_STEP_NOTE_PLACEHOLDERS["learned"]],
     "decisions": [_STEP_NOTE_PLACEHOLDERS["decisions"]],
     "learned_from": ["<commit ID whose learnings this step used>"],
+    "knowledge": dict(_KNOWLEDGE_PLACEHOLDERS),
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "settle": "...", "reason": "...",
                      "due_stage": _DUE_STAGE_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
@@ -6135,6 +6188,9 @@ _INNER_GATES = {
                   "or test path or to a path the step plan did not declare",),
     "validate-existing": ("a send-back without failed_expectations naming each expectation and what is actually true",),
     "test": ("a red_na or retired_tests entry without an ID and a reason",),
+    "document": ("a missing knowledge record (spec, architecture and environment, each with what this step changed in "
+                 "that living file or why nothing), or a KNOWLEDGE/spec.md edit that changes a committed line or adds one "
+                 "without this step's mark or outside an R-<n> the committed spec holds",),
     "carry-forward": ("a missing skill decision (none, reuse, update or create), or a created or updated skill whose "
                       "SKILL.md is missing or lacks name and description",),
 }
@@ -7162,6 +7218,19 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
         return []
     block = step_block(state, work_item)
     return [STEP_LOOP_LINE, *block] if block else []
+
+
+def _document_step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """An inline step's document packet names the step it documents and the mark that ends a spec.md line it adds (design
+    T §9.1 2b-3, option C: document records what the step showed in the knowledge home); [] elsewhere."""
+    if stage != "document" or state["status"] != "active" or state.get("active_improve"):
+        return []
+    view = step_view(state, work_item)
+    if view is None:
+        return []
+    return [f"Step {view.step['id']} ({view.number} of {len(view.steps)}), built and tested: "
+            + _first_sentence(view.step.get("task"), 200) + " A line this step adds to KNOWLEDGE/spec.md ends ("
+            + str(work_item) + "/" + str(view.step["id"]) + ")."]
 
 
 def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
@@ -9254,6 +9323,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
                                     child["seed_result"] if final_result is None else final_result, "improve")
+                    if child["stage"] == "document":    # the review's edits are part of the step's commit
+                        refusal = _step_spec_refusal(state, _current_work_item(state))
+                        _need(not refusal, refusal)
                     _handoff_gate(root, state, child["stage"],
                                   child["seed_result"] if final_result is None else final_result, "improve",
                                   next_step=_next_step(root, action_id, "improve",
@@ -9384,13 +9456,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             if cursor_stage in test_loop.STEP_PROOF_STAGES:
                 gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, cursor_item, submitted,
                                                            check_only=check_only)
-            if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
+            if (cursor_stage in ("implement", "document") and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
-                refusal = item_scope.scope_refusal(root, state, cursor_item)
-                view = step_view(state, cursor_item)
-                if not refusal and view is not None:  # an inline step's spec write-back (build plan S3.3)
-                    refusal = knowledge.step_spec_refusal(Path(str(state["repo"])),
-                                                          cursor_item + "/" + str(view.step.get("id")))
+                refusal = item_scope.scope_refusal(root, state, cursor_item) if cursor_stage == "implement" else ""
+                refusal = refusal or _step_spec_refusal(state, cursor_item)
                 if refusal and not check_only:
                     # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
                     loops.open_send_back(root, action_id, refusal)

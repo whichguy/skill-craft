@@ -100,7 +100,8 @@ class ShapeTests(unittest.TestCase):
         # A done result at another stage keeps the stage sentence; a blocked result at plan is refused for carrying a
         # done-only field (the refusal names the field and says to delete it).
         # Since the consumer contract (X10) the open-item stages after plan carry the list too; the sentence names them all.
-        allowed = "only on a done carry-forward, plan, release-plan, release-verify, system-test, system-test-author, "
+        allowed = ("only on a done carry-forward, document, plan, release-plan, release-verify, system-test, "
+                   "system-test-author, ")
         for stage, outcome, message in (("research", "done", allowed), ("spec", "done", allowed), ("test", "done", allowed),
                                         ("plan", "blocked", "a blocked result does not carry assumptions")):
             extra = {"awaiting": AWAITING} if outcome == "blocked" else {}

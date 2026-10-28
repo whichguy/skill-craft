@@ -24,12 +24,16 @@ from typing import Any, List, Mapping, NamedTuple, Tuple
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 
-# The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).
-OPEN_ITEM_STAGES = frozenset(("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+# The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).  Document
+# records the work a step found outside its item (design T §9.1 2b-3, option C, owner 2026-10-28).
+OPEN_ITEM_STAGES = frozenset(("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
                               "release-plan", "release-verify"))
 STAGES = frozenset(("plan",)) | OPEN_ITEM_STAGES
 # The producers whose open item may name their own item's carry-forward as its due stage.
-CARRY_FORWARD_PRODUCERS = ("test-spec", "verify")
+CARRY_FORWARD_PRODUCERS = ("test-spec", "document", "verify")
+# The open-item stages an inline item runs once per step (design T §8): every step's result keeps its open rows, where
+# ``planning_revision.current_actions`` keeps only the latest result per (work item, stage).
+PER_STEP_STAGES = frozenset(("document",))
 DISPOSITIONS = ("evidenced", "probed", "open")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _URL = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
@@ -152,8 +156,8 @@ def check_files(rows: list[Mapping[str, Any]]) -> None:
 def allowed_due_stages(stage: str) -> Tuple[str, ...]:
     """The due stages an open item at an open-item ``stage`` may name, in graph order.
 
-    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec or verify.  Work for a
-    later work item goes through carry-forward's work_items, as before (K12).
+    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec, document or verify.  Work
+    for a later work item goes through carry-forward's work_items, as before (K12).
     """
     order = stage_spec.STAGES
     later = [name for name in stage_spec.OUTER if order.index(name) > order.index(stage)]
@@ -183,7 +187,8 @@ class OpenItem(NamedTuple):
 def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
     """Every open row still open, from each current result at ``STAGES``, in the order the results were accepted.
 
-    Current means ``planning_revision.current_actions``.  The plan's rows (due_item: a work item) stay open, as the
+    Current means ``planning_revision.current_actions``, and for a ``PER_STEP_STAGES`` stage every step's result since
+    the item's latest send-back (``_step_actions``).  The plan's rows (due_item: a work item) stay open, as the
     ledger never updates a disposition.  A later stage's row is settled once a done result of its due stage (for
     carry-forward, the same item's) is current and was accepted after the row's result; a row that result carries
     forward (the same ID, open again) is its own row from then on.  A due stage with no assumptions field settles by its
@@ -196,19 +201,35 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
         if isinstance(entry, Mapping) and isinstance(entry.get("action"), str):
             order[entry["action"]] = index
     found: List[Tuple[int, int, OpenItem]] = []
-    for (workitem, stage), action in current.items():
+    for (workitem, stage), latest in current.items():
         if stage not in STAGES:
             continue
-        result = accepted.get(action)
-        if not isinstance(result, Mapping):
-            continue
-        for position, row in enumerate(result.get("assumptions") or ()):
-            if not isinstance(row, Mapping) or row.get("disposition") != "open":
+        for action in (_step_actions(state, workitem, stage) if stage in PER_STEP_STAGES else (latest,)):
+            result = accepted.get(action)
+            if not isinstance(result, Mapping):
                 continue
-            if stage != "plan" and _settled(row, order.get(action, -1), workitem, current, accepted, order):
-                continue
-            found.append((order.get(action, -1), position, OpenItem(stage, workitem, action, row)))
+            for position, row in enumerate(result.get("assumptions") or ()):
+                if not isinstance(row, Mapping) or row.get("disposition") != "open":
+                    continue
+                if stage != "plan" and _settled(row, order.get(action, -1), workitem, current, accepted, order):
+                    continue
+                found.append((order.get(action, -1), position, OpenItem(stage, workitem, action, row)))
     return [item for _, _, item in sorted(found, key=lambda entry: (entry[0], entry[1]))]
+
+
+def _step_actions(state: Mapping[str, Any], workitem: Any, stage: str) -> List[str]:
+    """Every accepted done ``stage`` action of ``workitem`` since its latest send-back, in history order: the steps of the
+    item's current step plan (a send-back replans the item, and ``current_actions`` drops its results the same way)."""
+    accepted = state.get("accepted") or {}
+    found: List[str] = []
+    for entry in state.get("history") or ():
+        if not isinstance(entry, Mapping) or entry.get("workitem") != workitem:
+            continue
+        if entry.get("outcome") == "send-back":
+            found = []
+        elif entry.get("stage") == stage and entry.get("outcome") == "done" and entry.get("action") in accepted:
+            found.append(str(entry["action"]))
+    return found
 
 
 def _settled(row: Mapping[str, Any], produced: int, workitem: Any, current: Mapping[Tuple[Any, str], str],

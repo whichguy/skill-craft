@@ -706,12 +706,52 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - **Left for 2b-5.** Lint's gate text still says "lines this item changed": under per-step bases those are the
       step's lines since its base. The test and document packets do not print the Step block (F9). (Run Review's
       stage catalog and card text follow the new schedule already.)
-  - **2b-3. The knowledge stage.** Its row, its packet and its gates:
-    - the spec only gains lines (`step_spec_refusal`);
-    - unique AD IDs;
-    - the skill decision, moved from carry-forward.
+  - **2b-3. The step's reflection, done 2026-10-28 (option C).** The owner chose C ("Go with C", 2026-10-28): no
+    knowledge stage. What landed:
+    - **Document reflects.** Its duty 3 is now *Reflect*: with the step built, tested and documented, it records what
+      the step showed in the knowledge home. That means a marked line in the R-<n> entry it concerns (a clarified
+      clause, or the files and test file that now meet it), a decision implement did not record (a new AD-<n>), and a
+      command, harness or platform fact. It routes new work: a defect in the step is fixed now, work the step plan
+      lacks is a send-back, work a later step holds is left to it, and work outside the item is an open item due at
+      carry-forward. Document's packet names the step and its mark (`_document_step_lines`) and lists all three
+      living files (`knowledge.READS`, `STAGE_FILES`). Its done-when gains "the knowledge home records what this step
+      showed, and `knowledge` names each living file with what changed in it or why nothing did".
+    - **The knowledge record.** A done document result carries `knowledge`: exactly `spec`, `architecture` and
+      `environment`, one per living file, each nonblank (`KNOWLEDGE_RECORD`, `_canonical_handoff`). The keys are not
+      file names, because a result template must print no product-like file name (packet-completeness). A missing one is refused ("Add
+      knowledge to …"). The step commit prints it as its Knowledge home section (`step_commit_message`).
+    - **Open items.** Document joins `OPEN_ITEM_STAGES` and `CARRY_FORWARD_PRODUCERS`. `open_items` lists every step's
+      document result since the item's latest send-back (`PER_STEP_STAGES`, `_step_actions`). Astra's finding was
+      verified: `current_actions` keeps one result per (item, stage), so S1's rows would have dropped out at S2.
+    - **Gates on the final tree.** `_step_spec_refusal` runs at implement's and document's complete and at the step
+      review's import. Its refusal now says "In a step, spec.md takes only new lines inside an R-<n> entry the committed
+      spec holds". The review's focus covers the knowledge edits and its import checks them, so the step commit holds a
+      tree a gate ran on.
+    - **Contract.** `iteration.STAGES` is `implement, test, document, commit`. The commit decision reopens document
+      when the tree changed after the last gate.
+    - **Packet size** (`test/shiploop_e2e/head_table.json`). Inline document grows 13,594 -> 15,976 characters and is
+      still printed whole. Ask-agent document's whole grows 15,162 -> 17,544, so it now prints as a 13,626-character
+      head that keeps the duties and gates and leaves out the optional lookups, as the other heads do. The due-stage
+      placeholder adds 10 characters at test-spec, verify and carry-forward.
+    - **Kept as reported, by decision.**
+      - *The not-applicable document skips the reflection.* A step whose change touches no code or test path has no
+        observed behaviour to reflect on. Implement's and test's own write-backs stand, and carry-forward reconciles
+        the knowledge home at the item's end.
+      - *Test writes the knowledge home too.* Test records the harnesses it builds, at the time it builds them.
+        Document reflects on what remains.
+      - *The skill decision* stays once per item, at carry-forward.
+    - **Not done.** No unique-AD-ID gate. It waits for a run that shows a reused AD ID; `knowledge.check` already
+      refuses a dropped one. Lint on the knowledge files stays with the commit stage (2b-4).
+    - **Evidence.** Fail-first tests, each seen failing before the code:
+      - shiploop-handoff `test_each_steps_document_keeps_its_open_items_until_its_items_carry_forward` and the
+        `knowledge` shape rows;
+      - shiploop-navigator-contract `StepReflectionCliTests` (three CLI tests);
+      - shiploop-actual-improve-cli `test_a_step_reviews_unmarked_spec_line_is_refused_at_its_import_and_a_marked_one_is_imported`,
+        which fails with the import gate disabled;
+      - shiploop-iteration's stage order and commit decision;
+      - shiploop-knowledge's writer pins.
 
-    The cut (2026-10-28):
+    Option A's cut, superseded 2026-10-28 by the owner's choice of C (kept for the record):
     - **Row.** `knowledge` is an inner model stage after document, on both routes (once per item on the ask-agent
       route until 2c). It writes the knowledge home (spec.md, environment.md, architecture.md) and the skill, and
       nothing else.
@@ -727,7 +767,7 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - **Not in 2b-3.** Lint on the knowledge files and the test rerun before the commit are the commit stage's
       (2b-4), which checks the tree the knowledge gate ran on.
 
-    **Reopened 2026-10-28, decision pending (the owner).** The owner asked: "Do we need to introduce a stage at all
+    **Reopened 2026-10-28, decided C the same day (the owner).** The owner asked: "Do we need to introduce a stage at all
     during the sequence after we implement? To say, do we need to update the architecture environment or anything that
     we've sort of more well understood about the specs? Just as a reflection to determine if the definitions need any
     updating as well, do we need to introduce a consideration of whether there are any more tasks that should be
@@ -750,12 +790,12 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - **Its findings:**
       - **Verified and fixed** (`07585d1a`): the spec gate took its R-n spans from the edited text, so a step could
         add a marked `R-2`.
-      - **Reported, not yet verified:**
-        - document is in neither `OPEN_ITEM_STAGES` nor `CARRY_FORWARD_PRODUCERS`;
-        - `current_actions` keeps one result per (item, stage), so S1's open items vanish once S2 submits;
-        - `_document_entry`'s N/A route would skip the reflection;
-        - the step commit message carries only implement's learnings;
-        - test is a third knowledge writer.
+      - **Reported, then checked in 2b-3:**
+        - document is in neither `OPEN_ITEM_STAGES` nor `CARRY_FORWARD_PRODUCERS`: true, fixed;
+        - `current_actions` keeps one result per (item, stage), so S1's open items vanish once S2 submits: true, fixed;
+        - `_document_entry`'s N/A route would skip the reflection: true, kept by decision (above);
+        - the step commit message carries only implement's learnings: true, fixed (Knowledge home section);
+        - test is a third knowledge writer: true, kept by decision (above).
   - **2b-4. The commit stage.**
     - It replaces the step commit, the review's commits (Improve without commit), the knowledge-record commits inside
       an iteration, and verify's item commit.

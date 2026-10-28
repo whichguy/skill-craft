@@ -41,6 +41,9 @@ CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
 
 SKILL_NONE = {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}
+# A done document result's reflection record (design T §9.1 2b-3): nothing to record in a fixture.
+KNOWLEDGE_NONE = {"spec": "none: synthetic fixture", "architecture": "none: synthetic fixture",
+                  "environment": "none: synthetic fixture"}
 # A done release-verify result's lessons (consumer contract 3.4).
 LESSONS = {"learned": "Synthetic fixture: nothing learned.", "considerations": "none",
            "open_next": "none"}
@@ -178,6 +181,8 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
         _action, plan = test_loop._step_plan(state, _current_item(state))
         result.setdefault("test_cases", test_cases_for(plan))
         result = fixture_suite(state, result)
+    elif stage == "document":
+        result.setdefault("knowledge", dict(KNOWLEDGE_NONE))
     elif stage == "carry-forward":
         result.setdefault("skill", dict(SKILL_NONE))
     if stage in assumptions.OPEN_ITEM_STAGES:
@@ -320,5 +325,5 @@ class RunDriver(unittest.TestCase):
         raise AssertionError("did not reach " + stage)
 
 
-__all__ = ("CORE", "DONE", "IMPROVE_CARD", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
+__all__ = ("CORE", "DONE", "IMPROVE_CARD", "KNOWLEDGE_NONE", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
            "fixture_intake", "fixture_primary", "no_concerns_map", "prepare")

@@ -488,11 +488,16 @@ _ROWS = (
         done_when=(
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
+            # Design T §9.1 2b-3, option C (owner 2026-10-28): document is the step's one place to reflect.
+            "the knowledge home records what this step showed, and `knowledge` names each living file with what "
+            "changed in it or why nothing did",
         ),
         steps_goal="Update the docs the change of steps {steps} ({paths}) affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.",
         steps_done_when=(
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
+            "the knowledge home records what these steps showed, and `knowledge` names each living file with what "
+            "changed in it or why nothing did",
         ),
         develop="Update code, API, user and operator documentation from observed behaviour.",
         edits=frozenset({"docs"}),
