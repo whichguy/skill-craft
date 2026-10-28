@@ -1,0 +1,8 @@
+# Improve awake minutes by kind of review (planning / implement / end of work), and Improve's share of the run.
+run                                   run min  Improve  share  planning  implement    end
+live-sonnet-battleship-01b9b3            36.9      9.4    25%       4.9    2.7 ( 3)    1.8  implement share 29%
+v2170-sonnet-battleship-491d9a           31.7      8.8    28%       4.0    1.6 ( 1)    3.2  implement share 18%
+ds-flash-978478-battleship              222.4     86.3    39%      42.1   28.1 (12)   16.1  implement share 33%
+v2170-ds-battleship-759a03              165.9     62.7    38%      24.8   10.4 ( 3)   27.5  implement share 17%
+v2180-sonnet-battleship-36036c           32.7     10.2    31%       5.9    1.8 ( 1)    2.5  implement share 18%
+# From: python3 improve_cost.py docs/experiments/e2e-v2170-validation-20261027/improve-windows.txt v2180-sonnet-battleship-36036c:docs/experiments/e2e-v2180-sonnet-validation-20261027/improve-windows.txt (a run's rows can differ by 0.1 from the windows file's own rounded total)

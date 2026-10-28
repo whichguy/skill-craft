@@ -1,0 +1,30 @@
+# Product code changed after each item's Improve review (in the item commit, which holds the test, document and verify stages' changes),
+# and what each test stage's result says it fixed. From the delivered history (delivery/work.bundle) and RUN/results/<test action>.md.
+== live-sonnet-battleship-01b9b3
+  0a24f05 feat: W1 Build Battleship game, server, page and tests
+    code: game.js +13 -10
+    code: server.js +1 -1
+== v2170-sonnet-battleship-491d9a
+  9d1f104 feat: W1 Battleship game: rules module, HTTP server, page and node:test tests
+== v2180-sonnet-battleship-36036c
+  a47cb9a feat: W1 Build Battleship: game rules module, HTTP server, page and tests
+    code: server.js +2 -1
+== v2170-ds-battleship-759a03
+  60fa0e3 feat: W1 Rules module battleship.js and its unit suite
+  c896175 feat: W2 HTTP service server.js, server-rendered page and component suite
+    code: public/index.html +32 -7
+    code: server.js +11 -1
+  693682c feat: W3 Browser facility browser-check/cdp.js and page suite browser-check/page
+== ds-flash-978478-battleship
+  59b329c feat: W1 Rules module: fleet placement, shot resolution and game status
+    code: lib/game.js +12 -7
+  7accb97 feat: W2 HTTP server: PORT, JSON API, validation order and the component test ha
+    code: server.js +14 -0
+    code: test-support/server.js +19 -6
+  6c0bda3 feat: W3 Playable page: grid, marks, status line, new game and the browser check
+
+# Test-stage results that name a product fix:
+01b9b3 W1: "One product fix, no test weakened: randomPlacement now enumerates legal positions (previously infinite loop for a constant rng)."
+978478 W2: "One product defect surfaced and was fixed per duty 4: a signal-killed child reports no exitCode, so server.js now closes its socket and exits 0 on SIGTERM/SIGINT"
+36036c W1: "Sub-cases cover the implement stage's not_covered items and the review's crash/500 fixes." (tests written for the review's fixes)
+759a03 W2: the in-flight lock in public/index.html and the 500 for a fleet createGame cannot place landed in the item commit; no stage result names which stage made them.
