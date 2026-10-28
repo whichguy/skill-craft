@@ -11,9 +11,11 @@ Build order step 1 (§9.1) specifies four invariants here, as pure functions, be
   an omitted document still records a not-applicable result that owns it (§9 row 2). Commit is ShipLoop's alone.
 - **Retry invalidation.** A send-back to a stage of the iteration voids that stage's receipt and every later one and
   keeps the base; a send-back to planning voids them all and ends the iteration (§9 row 5).
-- **The final-tree commit invariant.** The commit stage commits only the tree the step's last gate ran on (document's
-  complete, or its review's import), as the one commit on top of the iteration's base. A pending record written before the commit lets a retry recognise a
-  commit that already happened, and any other commit is refused: only the commit stage commits (§9 row 3).
+- **The final-tree commit invariant.** The commit stage commits only the tree the step's last gate ran on, as the one
+  commit on top of the iteration's base. It runs in the call whose gates accepted the step's last stage (document's
+  complete, or its review's import), and nothing writes the checkout between them, so the tree is the gated one by
+  construction (2b-4). A pending record written before the commit lets a retry recognise a commit that already
+  happened, and any other commit is refused: only the commit stage commits (§9 row 3).
 
 Build order step 2a adds what each step owes its test stage (``case_step``, ``due_cases``, ``new_cases``,
 ``active_commands``), derived from data ShipLoop already validates: each test-spec case names its step-plan
@@ -50,7 +52,6 @@ class Decision(NamedTuple):
     """What the commit stage does: ``commit``, ``done`` (the commit already happened) or ``refuse``."""
     action: str
     reason: str = ""
-    reopen: str | None = None    # the stage a refusal sends the work back to, when one can fix it
 
 
 def commit_id(value: Any) -> str:
@@ -132,16 +133,12 @@ def pending_record(current: Iteration, tree: str) -> dict[str, Any]:
     return {"iteration": identity(current), "parent": current.base, "tree": tree}
 
 
-def commit_decision(current: Iteration, *, head: str, head_parent: str | None, head_tree: str | None,
-                    current_tree: str, gated_tree: str, pending: Mapping[str, Any] | None) -> Decision:
-    """What the commit stage does, from the checkout's ``head`` (its parent and tree), the working tree's snapshot now
-    (``current_tree``), the snapshot the step's last gate ran on (``gated_tree``) and a pending record, if any."""
+def commit_decision(current: Iteration, *, head: str | None, head_parent: str | None, head_tree: str | None,
+                    pending: Mapping[str, Any] | None) -> Decision:
+    """What the commit stage does, from the checkout's ``head`` (its parent and tree) and a pending record, if any."""
     if pending is not None and stale(pending.get("iteration"), current):
         return Decision("refuse", "the pending commit record belongs to another iteration: " + repr(pending.get("iteration")))
     if head == current.base:
-        if current_tree != gated_tree:
-            return Decision("refuse", "the tree changed after the document stage's gate ran; rerun the document stage so its "
-                            "gate runs on the tree to commit", "document")
         return Decision("commit")
     if (pending is not None and head_parent == current.base and pending.get("parent") == current.base
             and head_tree == pending.get("tree")):

@@ -1484,6 +1484,43 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.import_the_review()
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
+    def test_a_step_review_whose_commit_git_refuses_is_refused_at_its_import_and_the_same_import_commits_it(self):
+        """Design T §9 row 3 (2b-4): the step's commit stage runs in the review's import, after its gates, and the step
+        advances only once the commit lands.  Git refusing it (a held index lock) refuses the import with nothing saved,
+        and the same import, made again, commits the step."""
+        if not self.inline():
+            self.skipTest("an inline step's review")
+        import shiploop_lint as lint
+        import shiploop_test_loop as test_loop
+        self.commit_architecture()
+        steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
+                  "skills": []}]
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self._start_parent_at_stage("document", [str(self.product_contract)],
+                                    producer_extra={"knowledge": record, "assumptions": []},
+                                    predecessors={"step-plan": {"paths": ["src/**"], "steps": steps}})
+        state = store.read_record(self.run / "state.md")
+        base = self.home_git("rev-parse", "HEAD").strip()
+        navigator._iteration_record(self.run, "W1", test_loop._step_plan(state, "W1")[0], "S1", number=1, base=base,
+                                    commit=None)
+        for relative, text in lint.capture_base(self.run, self.repo, "W1").items():
+            store.atomic_write_text(self.run / relative, text)
+        (self.repo / "src").mkdir(exist_ok=True)
+        (self.repo / "src" / "change.py").write_text("CHANGED = True\n", encoding="utf-8")   # the step's change
+        self.finish_ephemeral()
+        lock = self.repo / ".git" / "index.lock"
+        lock.write_text("")
+        lines = "\n".join(self.refused_import())
+        self.assertIn("index.lock", lines)
+        self.assertIn("run the same callback again", lines)
+        lock.unlink()
+        self.import_the_review()
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+        self.assertEqual(self.home_git("log", "-1", "--format=%P").strip(), base, "one commit, on the step's base")
+        self.assertTrue(self.home_git("log", "-1", "--format=%s").startswith("feat(W1/S1): "))
+        self.assertIn("src/change.py", self.home_git("show", "--name-only", "--format=", "HEAD").split())
+
     def test_test_spec_accepted_at_its_complete_with_validate_existing_after_it_is_no_close_and_prints_no_notice(self):
         """The complete that accepts test-spec also records validate-existing (test-spec has no Improve review,
         2026-10-26).  test-spec is no close since consumer contract 4b (its cases are in state): a home whose living

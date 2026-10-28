@@ -801,6 +801,43 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
       an iteration, and verify's item commit.
     - It uses `pending_record` and `commit_decision`.
     - Verify is retired, and carry-forward follows the last iteration.
+
+    It lands as two commits whose tests pass: 2b-4a, the commit stage; then 2b-4b, verify retired.
+    - **2b-4a, done 2026-10-28.** The step's commit is the iteration's commit stage (`_commit_stage`, which replaces
+      `_step_commit`).
+      - **When it runs.** It runs in the call that accepts the step's last stage: document's complete, or the import
+        of its review. Nothing writes the checkout between those gates and the commit, so it commits the tree the
+        gates ran on, by construction.
+        - So `commit_decision` lost its two tree arguments and `Decision.reopen`. They could never differ in that
+          call, and a test run that writes output would have made a later comparison refuse every retry.
+      - **Fail-closed.** Before, a commit Git refused printed a note and the step moved on uncommitted, left for
+        verify's item commit. Now the call is refused and nothing is saved, so the step advances only once its commit
+        lands. The same callback, run again, retries it; at an import that reruns the review's gates as well.
+        A step whose changes cannot be read (no base was captured, as a harness seed can leave it) is skipped with a
+        note, as the base run and the mutation check are, because no retry could read them
+        (`shiploop-e2e-slice`'s seeded-without-base drive caught the first cut, which refused it).
+      - **Pending record.**
+        - The step's ledger row (`RUN/iterations/<item>.json`) holds `pending`: the iteration, its parent and the
+          planned tree (`shiploop_git.planned_tree`, HEAD plus the scope paths, built in a temporary index). It is
+          written before the commit and dropped once the commit is recorded, or when the step is entered again.
+        - A call that stopped after Git committed is recognised on retry (`done`), not committed twice.
+        - A HEAD that anything else moved inside the step is refused. The refusal names `git reset --soft <base>`,
+          which keeps the changes, or blocked when the commit is not the step's work.
+      - **Already true before 2b-4a.** Inside an iteration the review leaves its edits uncommitted
+        (`STEP_REVIEW_NO_COMMIT`), and the knowledge close skips implement and test. Git runs without hooks
+        (`shiploop_git.git`), so a refused commit means a lock, a permission or a disk failure, never a product hook.
+      - **Not in 2b-4a.** Verify's item commit still runs on the ask-agent route, and on the inline route after the
+        last step, where it finds nothing left to commit.
+      - **Evidence.** Fail-first tests, each seen failing before the code:
+        - shiploop-navigator-contract: a held index lock refuses the review's import, with nothing saved, and the
+          same import then commits once; a commit that landed before ShipLoop recorded it is recognised; a
+          hand-made commit inside the step is refused, and committed once reset;
+        - shiploop-actual-improve-cli: the same refusal and retry through the real `complete` CLI on an Improve
+          stage. With HEAD's navigator it was accepted and moved to verify.
+        - shiploop-iteration's commit tests were updated for the new signature.
+        - The quick tier (`run-all.sh --group quick --changed-from 1e192981`, 71 suites, 612 s) failed only that
+          slice test; after the fix, shiploop-e2e-slice (60) and the navigator's EightStageInnerLoopCliTests (22)
+          pass.
   - **2b-5. The rest of the switch.**
     - The packets' text, Run Review v6 and the E2E audit harness.
     - The lifecycle's change note (`bump: minor`).

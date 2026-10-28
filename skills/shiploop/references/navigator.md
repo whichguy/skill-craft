@@ -694,6 +694,21 @@ implement's and document's complete and at the import of the step's review, and 
 refusal at a complete opens that action's send-back even though the step's Until
 Loop has completed.
 
+**The commit stage** (design T §9 row 3, 2b-4). The step's commit is ShipLoop's
+stage, the last of its iteration, and inside an iteration nothing else commits:
+the review leaves its edits uncommitted and the knowledge home waits for it. It
+runs in the call whose gates accepted the step's last stage (document's complete,
+or its review's import), so it commits the tree those gates ran on, as one commit
+on the iteration's base. It writes a pending record (the iteration, its parent and
+the tree to commit) in `RUN/iterations/<item>.json` before it commits. A call that
+stopped after Git committed is retried without a second commit, and a HEAD that
+anything else moved inside the step is refused, with the way back
+(`git reset --soft <base>`, which keeps the changes). When the commit cannot land,
+the call is refused and nothing is saved: the step does not advance with its
+change uncommitted, and the same callback, run again once the cause is fixed,
+commits it. A step whose changes cannot be read (no base was captured) is not
+committed, with a note, as the gates that need the base are skipped.
+
 **Each step's reflection** (design T §9.1 2b-3, option C, owner 2026-10-28). There
 is no knowledge stage: a step's `document` stage is its one place to reflect. With
 the step built and tested, it records what the step showed in the knowledge home,

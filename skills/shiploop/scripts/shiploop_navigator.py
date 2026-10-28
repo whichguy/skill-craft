@@ -2940,11 +2940,12 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
                   + ", ".join(undeclared) + ". " + stage_spec.item_left(mode))
 
 
-# Run-relative file holding an inline implement step's commit (``_step_commit``): a revisit of the step names it.
+# Run-relative file holding an inline implement step's commit (``_commit_stage``): a revisit of the step names it.
 STEP_COMMIT = "commits/{action}.txt"
 # Run-relative file holding a work item's per-step iterations (design T §9.1 step 2b-1): {"plans": {<step plan action>:
 # {<step>: {"number", "base", "commit"}}}}.  ``base`` is the commit the step's entry left (``_iteration_entry``),
-# ``commit`` the step's own commit (``_step_commit``); ``current_iteration`` reads it.
+# ``commit`` the step's own commit (``_commit_stage``); ``current_iteration`` reads it.  While the commit stage is
+# committing, the step's row also holds ``pending`` (``iteration.pending_record``), which a retry reads.
 ITERATION_LEDGER = "iterations/{item}.json"
 
 
@@ -2957,9 +2958,12 @@ def _iteration_ledger(root: Path, item: str) -> dict[str, Any]:
     return ledger if isinstance(ledger, dict) and isinstance(ledger.get("plans"), dict) else {"plans": {}}
 
 
-def _iteration_record(root: Path, item: str, plan: str, step: str, **fields: Any) -> None:
+def _iteration_record(root: Path, item: str, plan: str, step: str, *, drop: tuple[str, ...] = (), **fields: Any) -> None:
     ledger = _iteration_ledger(root, item)
-    ledger["plans"].setdefault(plan, {}).setdefault(step, {}).update(fields)
+    row = ledger["plans"].setdefault(plan, {}).setdefault(step, {})
+    row.update(fields)
+    for name in drop:
+        row.pop(name, None)
     store.atomic_write_text(Path(root) / ITERATION_LEDGER.format(item=item),
                             json.dumps(ledger, indent=2, sort_keys=True) + "\n")
 
@@ -2987,7 +2991,7 @@ def _iteration_entry(root: Path, before: Mapping[str, Any], after: Mapping[str, 
     head = _head(Path(after["repo"]))
     if head is not None:
         _iteration_record(root, str(item), view.plan_action, str(view.step.get("id")),
-                          number=view.number, base=head, commit=None)
+                          number=view.number, base=head, commit=None, drop=("pending",))
 
 
 def current_iteration(root: Path, state: Mapping[str, Any]) -> iteration.Iteration | None:
@@ -3032,15 +3036,23 @@ def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping
 # What the step review is told about committing, and what its receipt records in place of the commit it does not make.
 STEP_REVIEW_NO_COMMIT = ("design T §8: the step's iteration commit, made once this review is accepted, commits the "
                          "review's edits with the step's code, tests and docs")
+_RETRY = "run the same callback again"
 
 
-def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
-    """Commit an inline step's iteration when its document stage is accepted, after its review (design T §8, owner
-    2026-10-27: "We should commit on every iteration right after the documentation"): the step's code, tests, docs and
-    the review's edits are one commit, so the next step starts from it and its look-back names one step's change.  The
-    paths are the item's commit scope (``item_scope.commit_item``) since the step's base (``_iteration_base``); verify's
-    item commit takes what remains.  A failure leaves the change in the checkout for that commit, as the preparatory
-    fix does."""
+def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+    """The iteration's commit stage (design T §8, §9 row 3; owner 2026-10-27: "We should commit on every iteration right
+    after the documentation"), run when an inline step's document stage is accepted, after its review: ShipLoop commits
+    the step's code, tests, docs, knowledge home and the review's edits as one commit on the iteration's base, so the
+    next step starts from it and its look-back names one step's change.  The paths are the item's commit scope
+    (``item_scope.commit_scope``) since the step's base (``_iteration_base``).
+
+    It runs in the call whose gates accepted that last stage (document's complete, or its review's import), and nothing
+    writes the checkout between them, so the commit holds the tree those gates ran on.  It writes a pending record
+    before it commits, and ``iteration.commit_decision`` decides: commit on the base, recognise the commit a call that
+    stopped before recording it made, or refuse a HEAD something else moved.  A refusal, or a commit Git refuses,
+    refuses the call: nothing is saved, the step does not advance with its change uncommitted, and the same callback
+    retries it.  A step whose changes cannot be read (no base was captured) is not committed and not held, as the gates
+    that need the base are skipped."""
     if before.get("status") != "active":
         return
     item = _current_work_item(before)
@@ -3051,29 +3063,62 @@ def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
     view = step_view(before, item)
     if view is None:
         return
-    implement = [row["action"] for row in before["history"]
-                 if row["stage"] == "implement" and row["workitem"] == item and row["outcome"] == "done"]
-    action_id = implement[-1] if implement else None
-    result = before["accepted"].get(action_id, {}) if action_id else {}
-    document = next(row["action"] for row in rows
-                    if row["stage"] == "document" and row["outcome"] == "done" and row["workitem"] == item)
-    record = (after["accepted"].get(document) or {}).get("knowledge")
-    try:
-        commit, _left = item_scope.commit_item(root, after, item, step_commit_message(item, view.step, result, record))
-    except item_scope.ItemScopeError as exc:
-        print("ShipLoop document: step " + str(view.step.get("id")) + " was not committed (" + str(exc) + "); its "
-              "change stays in the checkout and verify's item commit includes it.", file=sys.stderr)
+    step = str(view.step.get("id"))
+    current = current_iteration(root, before)
+    if current is None:
+        print("ShipLoop document: step " + item + "/" + step + " has no iteration record (its run has no commit to start "
+              "from), so ShipLoop does not commit it.", file=sys.stderr)
         return
-    if commit:
-        if action_id:
-            store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
-        _iteration_record(root, item, view.plan_action, str(view.step.get("id")), commit=commit)
-        print("ShipLoop committed step " + item + "/" + str(view.step.get("id")) + " as " + commit[:12] + ".",
-              file=sys.stderr)
+    repo = Path(after["repo"])
+    row = _iteration_ledger(root, item)["plans"].get(view.plan_action, {}).get(step) or {}
+    head = _head(repo)
+    found = {name: shiploop_git.git(repo, "rev-parse", "--verify", "-q", "HEAD" + suffix).stdout.strip() or None
+             for name, suffix in (("parent", "^"), ("tree", "^{tree}"))} if head else {"parent": None, "tree": None}
+    decision = iteration.commit_decision(current, head=head, head_parent=found["parent"], head_tree=found["tree"],
+                                         pending=row.get("pending"))
+    if decision.action == "refuse":
+        raise NavigatorError("ShipLoop could not commit step " + item + "/" + step + ": " + decision.reason + ". "
+                             + ("If that commit holds this step's work, undo it and keep its changes (git reset --soft "
+                                + current.base + "), then " + _RETRY + "; otherwise report blocked and say what "
+                                "committed." if head != current.base else "Report blocked and quote this refusal."))
+    implement = [entry["action"] for entry in before["history"]
+                 if entry["stage"] == "implement" and entry["workitem"] == item and entry["outcome"] == "done"]
+    action_id = implement[-1] if implement else None
+    commit = head if decision.action == "done" else ""
+    if decision.action == "commit":
+        changed, why = item_scope.changed_paths_or_reason(root, item)
+        if changed is None:
+            # No retry can read them (the base was never captured), so the step is not held: like the base run and
+            # the mutation check, the commit is skipped and says why.
+            print("ShipLoop document: step " + item + "/" + step + " is not committed: its changes cannot be read ("
+                  + why + ").", file=sys.stderr)
+            return
+        chosen, _left = item_scope.commit_scope(changed, item_scope.declared(after, item),
+                                                item_scope.withheld(root, after))
+        if chosen:
+            document = next(entry["action"] for entry in rows
+                            if entry["stage"] == "document" and entry["outcome"] == "done" and entry["workitem"] == item)
+            message = step_commit_message(item, view.step, before["accepted"].get(action_id, {}) if action_id else {},
+                                          (after["accepted"].get(document) or {}).get("knowledge"))
+            _iteration_record(root, item, view.plan_action, step,
+                              pending=iteration.pending_record(current, shiploop_git.planned_tree(repo, chosen)))
+            try:
+                commit = shiploop_git.commit_paths(repo, chosen, message).commit
+            except shiploop_git.CommitError as exc:
+                raise NavigatorError("ShipLoop could not commit step " + item + "/" + step + " (" + str(exc) + "). Its "
+                                     "change stays in the checkout, and the step advances only once its commit lands: "
+                                     "fix the cause, then " + _RETRY + ".") from exc
+    if not commit:
+        _iteration_record(root, item, view.plan_action, step, drop=("pending",))
+        return
+    _iteration_record(root, item, view.plan_action, step, commit=commit, drop=("pending",))
+    if action_id:
+        store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
+    print("ShipLoop committed step " + item + "/" + step + " as " + commit[:12] + ".", file=sys.stderr)
 
 
 def step_commit(root: Path, action_id: str) -> str | None:
-    """The commit ``_step_commit`` recorded for ``action_id``, or None."""
+    """The commit ``_commit_stage`` recorded for ``action_id``, or None."""
     path = Path(root) / STEP_COMMIT.format(action=action_id)
     return path.read_text(encoding="utf-8").strip() or None if path.is_file() else None
 
@@ -4292,8 +4337,8 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     after, writes = _validate_existing_entry(root, before, after)
     after = _document_entry(root, after)
     after = _step_entry(root, before, after)
-    # The step's commit runs against its own base, before the next step's base replaces it.
-    _step_commit(root, before, after)
+    # The step's commit stage runs against its own base, before the next step's base replaces it.
+    _commit_stage(root, before, after)
     writes = {**writes, **_iteration_base(root, before, after)}
     after, bind_writes = _improve_entry(root, after)
     writes = {**writes, **bind_writes}
@@ -5020,7 +5065,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
 
 def _required_handoff_keys(stage: str, state: Mapping[str, Any] | None = None) -> list[str]:
     """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3).  The step notes only on
-    the inline route, whose steps ShipLoop commits one by one (``_step_commit``); ``state`` None reads as inline."""
+    the inline route, whose steps ShipLoop commits one by one (``_commit_stage``); ``state`` None reads as inline."""
     keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key not in _OPTIONAL_HANDOFF
             and (key not in STEP_NOTES or not _ask_agent(state))]
     if stage in assumptions.OPEN_ITEM_STAGES and stage != "plan":

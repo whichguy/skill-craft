@@ -4466,6 +4466,87 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             self.assertTrue(commit, path)
             self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), [path])
 
+    def to_first_step_review(self) -> tuple[str, str]:
+        """Build S1 of the three-step plan (it writes notes.md) up to its review; returns (the iteration's base, S1's
+        implement action)."""
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        base = self.git("rev-parse", "HEAD").strip()
+        action = navigator.current_action(self.state())["id"]
+        (self.repo / "notes.md").write_text("# notes.md\n")
+        self.accept(result(summary="Wrote notes.md."))
+        self.assertEqual(self.state()["active_improve"]["stage"], "document")
+        return base, action
+
+    def assert_step_one_committed_once_on(self, base: str, action: str) -> None:
+        commit = navigator.step_commit(self.run_dir, action)
+        self.assertEqual(self.git("rev-list", base + "..HEAD").split(), [commit], "one commit, the step's")
+        self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), ["notes.md"])
+        plans = json.loads((self.run_dir / "iterations" / "W1.json").read_text(encoding="utf-8"))["plans"]
+        self.assertEqual(next(iter(plans.values()))["S1"], {"number": 1, "base": base, "commit": commit})
+        self.assertEqual(navigator.current_stage(self.state()), "implement", "S2 is next")
+
+    def test_a_step_whose_commit_cannot_land_does_not_advance_and_the_same_call_commits_it_once_fixed(self) -> None:
+        # Design T §9 row 3 (Astra, 2026-10-27): the commit is a recoverable gate, and the step advances only on its
+        # success. Git refusing the commit (here a held index lock) refuses the call that would close the step, so
+        # nothing is saved and the change stays in the checkout; the same call, made again, commits it.
+        base, action = self.to_first_step_review()
+        before = self.state()
+        lock = self.repo / ".git" / "index.lock"
+        lock.write_text("")
+        with self.assertRaises(navigator.NavigatorError) as refused:
+            self.finish_improve()
+        self.assertIn("index.lock", str(refused.exception))
+        self.assertIn("run the same callback again", str(refused.exception))
+        self.assertEqual(self.state(), before, "the step stays at its review")
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), base)
+        lock.unlink()
+        self.settle()
+        self.assert_step_one_committed_once_on(base, action)
+
+    def test_a_step_commit_that_landed_before_shiploop_recorded_it_is_recognised_on_retry_not_made_again(self) -> None:
+        # Design T §9 row 3: the commit stage writes a pending record (the iteration, its parent, the tree to commit)
+        # before it commits, so a call that stops after Git's commit and before ShipLoop records it is retried without a
+        # second commit (``iteration.commit_decision``'s "done").
+        base, action = self.to_first_step_review()
+        record = navigator._iteration_record
+
+        def stops_once_committed(*args: Any, **fields: Any) -> None:
+            if fields.get("commit"):
+                raise OSError("the call stopped after Git committed")
+            record(*args, **fields)
+
+        with patch.object(navigator, "_iteration_record", stops_once_committed), self.assertRaises(OSError):
+            self.finish_improve()
+        self.assertEqual(self.git("rev-parse", "HEAD^").strip(), base, "Git committed the step")
+        self.settle()
+        self.assert_step_one_committed_once_on(base, action)
+
+    def test_a_commit_made_inside_a_step_by_anything_but_the_commit_stage_is_refused(self) -> None:
+        # Design T §9 row 3: inside an iteration only the commit stage commits. A commit made during the step (here by
+        # hand) leaves HEAD off the iteration's base, so the step's commit is refused, with the way back named.
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        base = self.git("rev-parse", "HEAD").strip()
+        action = navigator.current_action(self.state())["id"]
+        (self.repo / "notes.md").write_text("# notes.md\n")
+        self.git("add", "notes.md")
+        self.git("commit", "-qm", "notes, by hand")
+        self.accept(result(summary="Wrote notes.md."))
+        with self.assertRaises(navigator.NavigatorError) as refused:
+            self.finish_improve()
+        self.assertIn("only the commit stage commits inside an iteration", str(refused.exception))
+        self.assertIn("git reset --soft " + base, str(refused.exception))
+        self.git("reset", "-q", "--soft", base)
+        self.settle()
+        self.assert_step_one_committed_once_on(base, action)
+
     def test_a_step_that_changed_no_file_starts_no_review(self) -> None:
         # Panel P4 (2026-10-25), per step: a step whose change is empty gets no review (DeepSeek battleship 759a03 W3:
         # its S2 and S3 changed nothing). Its document entry records the step's change as empty (``_document_entry``).

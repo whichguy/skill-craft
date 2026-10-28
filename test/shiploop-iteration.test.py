@@ -128,23 +128,16 @@ class SendBackTests(unittest.TestCase):
 
 class CommitTests(unittest.TestCase):
     TREE = "d" * 40
-    CHANGED = "e" * 40
 
     def decide(self, current, **overrides):
-        values = {"head": current.base, "head_parent": None, "head_tree": None, "current_tree": self.TREE,
-                  "gated_tree": self.TREE, "pending": None}
+        values = {"head": current.base, "head_parent": None, "head_tree": None, "pending": None}
         values.update(overrides)
         return iteration.commit_decision(current, **values)
 
-    def test_the_gated_tree_on_the_iteration_base_is_committed(self):
-        decision = self.decide(first())
-        self.assertEqual((decision.action, decision.reopen), ("commit", None))
-
-    def test_a_tree_that_changed_after_the_last_gate_is_refused_and_reopens_document(self):
-        # The step's last gate runs when its document is accepted (at document's complete, or its review's import).
-        decision = self.decide(first(), current_tree=self.CHANGED)
-        self.assertEqual((decision.action, decision.reopen), ("refuse", "document"))
-        self.assertIn("document", decision.reason)
+    def test_a_checkout_on_the_iteration_base_is_committed(self):
+        # The commit stage runs in the call whose gates accepted the step's last stage (document's complete, or its
+        # review's import), so the tree it commits is the gated one: there is no later tree to compare (2b-4).
+        self.assertEqual(self.decide(first()), iteration.Decision("commit"))
 
     def test_a_commit_that_already_happened_is_recognised_not_repeated(self):
         current = first()
