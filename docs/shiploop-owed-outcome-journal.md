@@ -12,8 +12,10 @@ the edge state in a graph. It's like path A, B, or C: `done` would sort of defau
 
 ## Experiments
 
-Each line: question, conditions, result, evidence. All ran at skill-craft `b0d29284` (shiploop code identical to
-`0ed6ce38`, where the session began).
+Each line: question, conditions, result, evidence. E3-E5 first ran at skill-craft `b0d29284` and were rerun at
+`821db5c0` just before the journal was committed, with the same results; the `.out` files hold the rerun. The
+ShipLoop scripts, the Until Loop runtime and the keepalive fixtures are unchanged from `0ed6ce38`, where the session
+began, through `c59c4809`.
 
 | ID | Question | Conditions | Result | Status |
 |---|---|---|---|---|
@@ -453,3 +455,5 @@ tree hash excludes.
 - 2026-10-27: owner adopted `shiploop check` and "the check says yes"; design sections and phases B and C reworded.
   Findings about today's code keep the current name, `complete --check-only`, until phase B renames it in code,
   references and glossary in one commit.
+- 2026-10-28: corrected the experiments' provenance: E3-E5 were rerun at `821db5c0` before the commit, not only run
+  at `b0d29284`; four commits from other sessions had landed on main in between, none touching the traced code.
