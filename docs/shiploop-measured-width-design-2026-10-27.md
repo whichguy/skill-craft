@@ -1,6 +1,6 @@
 # Item width from measured step changes (design C), 2026-10-27
 
-Status: **design only; nothing built.** [Design T](shiploop-review-after-tests-design-2026-10-27.md) (2026-10-27) moves these reviews after the item's test stage; with T, they wait at the test stage's done instead of the last step (T §4, point 7). The owner's request: "Design the wide-item rule on measured step changes:
+Status: **superseded before build (2026-10-27)** by the per-step iteration of [design T §8](shiploop-review-after-tests-design-2026-10-27.md): every step is tested, reviewed, documented and committed on its own, so no item-end grouping is needed. Kept for its measurements (§2). Earlier status: design only; nothing built. [Design T](shiploop-review-after-tests-design-2026-10-27.md) (2026-10-27) moves these reviews after the item's test stage; with T, they wait at the test stage's done instead of the last step (T §4, point 7). The owner's request: "Design the wide-item rule on measured step changes:
 ShipLoop carries each step's changed files forward and the item's end decides one review or one per group. Ground it
 in the runs, build nothing yet."
 
