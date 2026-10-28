@@ -812,12 +812,70 @@ class ResumePromptTests(unittest.TestCase):
         for named in ("next", "/r/run", str(self.CLI), "--run-dir", "complete"):
             self.assertNotIn(named, prompt)
 
+    @staticmethod
+    def status() -> dict:
+        """A run's hook-status with an active stage loop, as the plugin reports it (owed-outcome phase A)."""
+        return {"run_dir": "/r/run", "stage": "inner-loop", "revision": 12, "status": "active",
+                "next": "python3 /p/skills/shiploop/scripts/shiploop next --run-dir /r/run",
+                "callback": "python3 /p/skills/shiploop/scripts/shiploop complete --run-dir=/r/run --action=nav-9",
+                "delegation": "inline", "loop": {"kind": "stage", "status": "active", "iteration": 2,
+                                                  "next": "python3 /u/until_loop_ephemeral.py next --state /s.json"}}
+    CHECKOUT_CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
+
+    def test_hook_generic_is_the_sentence_the_stop_hook_said_before_phase_a(self):
+        with mock.patch.object(step_slice, "hook_status", return_value=self.status()):
+            prompt, told = step_slice.continue_prompt("hook-generic", "/r/run", self.CLI)
+        self.assertEqual(prompt, "ShipLoop run /r/run is still active at stage inner-loop (revision 12). Do not end the "
+                                 "turn: run `python3 /p/skills/shiploop/scripts/shiploop next --run-dir /r/run` and follow "
+                                 "the packet it prints. Only an explicit user stop or pause ends the run; then run the "
+                                 "packet's pause command.")
+        self.assertEqual(told["hook"], {"condition": "hook-generic", "loop": self.status()["loop"],
+                                        "callback": self.status()["callback"]})
+        self.assertEqual((told["cli"], told["run_dir"]), (str(self.CLI), "/r/run"))
+
+    def test_hook_owed_is_the_text_the_plugin_under_test_writes(self):
+        # Built by the plugin's own shiploop_keepalive (here this checkout's scripts), not by a harness copy.
+        import shiploop_keepalive as keepalive
+        with mock.patch.object(step_slice, "hook_status", return_value=self.status()):
+            prompt, told = step_slice.continue_prompt("hook-owed", "/r/run", self.CHECKOUT_CLI)
+        self.assertEqual(prompt, keepalive._continue_reason(self.status()))
+        self.assertIn("iteration 2 is unreported: run `python3 /u/until_loop_ephemeral.py next --state /s.json`", prompt)
+        self.assertNotEqual(prompt, step_slice.HOOK_GENERIC.format(**self.status()))
+        self.assertEqual(told["hook"]["condition"], "hook-owed")
+
+    def test_a_hook_condition_never_falls_back_when_the_run_cannot_be_read(self):
+        with tempfile.TemporaryDirectory() as missing, self.assertRaises(SystemExit) as raised:
+            step_slice.continue_prompt("hook-owed", str(Path(missing) / "no-run"), self.CHECKOUT_CLI)
+        self.assertIn("hook-status failed", str(raised.exception))
+        with mock.patch.object(step_slice, "hook_status", return_value=self.status()), \
+                self.assertRaises(SystemExit) as raised:
+            step_slice.continue_prompt("hook-owed", "/r/run", Path("/no/such/plugin/scripts/shiploop"))
+        self.assertIn("could not write its stop-hook text", str(raised.exception))
+
+    def test_both_hook_conditions_read_a_real_run(self):
+        # A run at intake has no loop yet, so phase A's text is the generic ask and both conditions name its `next`.
+        with tempfile.TemporaryDirectory() as temp:
+            repo, run_dir = Path(temp).resolve() / "repo", Path(temp).resolve() / "run"  # hook-status reports it resolved
+            repo.mkdir()
+            started = subprocess.run([sys.executable, str(self.CHECKOUT_CLI), "init", "--run-dir", str(run_dir),
+                                      "--repo", str(repo), "--prompt", "Add a greeting script."],
+                                     capture_output=True, text=True, check=False)
+            self.assertEqual(started.returncode, 0, started.stderr)
+            for condition in ("hook-owed", "hook-generic"):
+                with self.subTest(condition=condition):
+                    prompt, told = step_slice.continue_prompt(condition, str(run_dir), self.CHECKOUT_CLI)
+                    self.assertIn(f"next --run-dir {run_dir}", prompt)
+                    self.assertIn("follow the packet it prints", prompt)
+                    self.assertEqual(told["hook"]["loop"], {})
+
     def test_the_command_line_collects_every_position_and_offers_the_two_conditions(self):
         args = step_slice.parser().parse_args(["--case", "x", "--clear-at", "implement:inside", "--clear-at", "test",
                                                "--clear-at", "improve"])
         self.assertEqual(args.clear_at, ["implement:inside", "test", "improve"])
         self.assertEqual(args.resume_prompt, "names-next", "the default is today's prompt")
         self.assertEqual(step_slice.parser().parse_args(["--resume-prompt", "withheld"]).resume_prompt, "withheld")
+        for condition in ("hook-owed", "hook-generic"):
+            self.assertEqual(step_slice.parser().parse_args(["--resume-prompt", condition]).resume_prompt, condition)
         self.assertIsNone(step_slice.parser().parse_args([]).clear_at)
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             step_slice.parser().parse_args(["--resume-prompt", "hint"])

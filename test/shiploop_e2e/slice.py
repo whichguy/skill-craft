@@ -233,14 +233,53 @@ def checks_on_candidate(worktree: Path | None, out: Path, checks: list[str]) -> 
 CLEAR_RECORD = "clear.json"  # a list: one record per clear, in the order they fired
 # What continues the run in a session that holds none of it (--resume-prompt): `names-next` is the prompt a resume
 # always had (run.resume_prompt); `withheld` names no command, path or stage (condition R0 of the S-6 battery).
-RESUME_PROMPTS = ("names-next", "withheld")
+RESUME_PROMPTS = ("names-next", "withheld", "hook-owed", "hook-generic")
 WITHHELD_PROMPT = "Continue the ShipLoop work for the repository in this directory."
+# The stop hook's sentence before owed-outcome phase A (shiploop_keepalive._continue_reason at 04c45dce): the control
+# for hook-owed, filled from the same hook-status fields.
+HOOK_GENERIC = ("ShipLoop run {run_dir} is still active at stage {stage} (revision {revision}). Do not end the turn: "
+                "run `{next}` and follow the packet it prints. Only an explicit user stop or pause ends the run; then "
+                "run the packet's pause command.")
+
+
+def hook_status(cli: Path, run_dir: str) -> dict:
+    """The run's `hook-status` from the CLI under test.  A failure ends the slice: a hook condition never falls back."""
+    result = subprocess.run([sys.executable, str(cli), "hook-status", "--run-dir", run_dir],
+                            capture_output=True, text=True, check=False, timeout=60)
+    try:
+        status = json.loads(result.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        status = {"error": result.stderr.strip()[-300:] or "no output"}
+    if result.returncode != 0 or not isinstance(status, dict) or status.get("error"):
+        raise SystemExit(f"hook-status failed for {run_dir}: {status.get('error') if isinstance(status, dict) else status}")
+    return status
+
+
+def hook_owed_text(cli: Path, status: dict) -> str:
+    """The stop hook's reason as the plugin under test writes it: that build's own `_continue_reason`, never the harness
+    checkout's import.  A text the build cannot make ends the slice."""
+    code = ("import json, sys; sys.path.insert(0, sys.argv[1]); import shiploop_keepalive as keepalive; "
+            "sys.stdout.write(keepalive._continue_reason(json.load(sys.stdin)))")
+    result = subprocess.run([sys.executable, "-c", code, str(Path(cli).parent)], input=json.dumps(status),
+                            capture_output=True, text=True, check=False, timeout=60)
+    if result.returncode != 0 or not result.stdout:
+        raise SystemExit("the plugin under test could not write its stop-hook text: " + result.stderr.strip()[-300:])
+    return result.stdout
 
 
 def continue_prompt(condition: str, run_dir: str, cli: Path) -> tuple[str, dict | None]:
-    """(the prompt that continues the run in a fresh session, what it told: sessions.jsonl `told`, None for nothing)."""
+    """(the prompt that continues the run in a fresh session, what it told: sessions.jsonl `told`, None for nothing).
+
+    hook-owed and hook-generic give the stop hook's text (phase A's, then the sentence before it) as the prompt, and
+    `told` keeps the loop state and callback the run owed at that moment."""
     if condition == "withheld":
         return WITHHELD_PROMPT, None
+    if condition in ("hook-owed", "hook-generic"):
+        status = hook_status(cli, run_dir)
+        prompt = hook_owed_text(cli, status) if condition == "hook-owed" else HOOK_GENERIC.format(**status)
+        return prompt, {**run.resume_told(run_dir, cli),
+                        "hook": {"condition": condition, "loop": status.get("loop") or {},
+                                 "callback": status.get("callback", "")}}
     return run.resume_prompt(run_dir, cli), run.resume_told(run_dir, cli)
 
 
@@ -403,7 +442,9 @@ def parser() -> argparse.ArgumentParser:
                         "`improve` is an Improve stage. The positions fire in the order given, one per session")
     p.add_argument("--resume-prompt", choices=RESUME_PROMPTS, default="names-next",
                    help="what continues the run in a session after a clear: names-next (default) is the resume prompt, "
-                        "which names the next command and the run directory; withheld names none of them (condition R0)")
+                        "which names the next command and the run directory; withheld names none of them (condition R0); "
+                        "hook-owed is the stop hook's text as the plugin under test writes it (owed-outcome phase A), "
+                        "hook-generic the sentence it replaced")
     p.add_argument("--seed-at", choices=SEED_POINTS, default=SEED_AT,
                    help="the stage the host starts at (default step-plan); the earlier stages are recorded from the case")
     p.add_argument("--stop-after", choices=stage_spec.STAGES, metavar="STAGE",
