@@ -5,7 +5,9 @@ Three measures, each optional, each `{observed: false, reason}` when it could no
 * ``mutation``: small text mutations of the delivered source, run against the delivered tests on a copy. The ratio is the share
   of confirmed mutants the tests catch. It belongs to one operator catalog (``operator_id``) and is compared only within that id.
 * ``acceptance``: held-out checks, written by hand from the case's prompt and never shown to the model, run against the
-  delivered product's server. They run inside the harness process, so no check text or id reaches an argv.
+  delivered product's server. They run inside the harness process, so no check text or id reaches an argv. A check that
+  needs more than the running server (another server with an environment of its own, a restart, the product's own command
+  line) gets the delivered copy too, as a ``Product``.
 * ``memory_writes`` and ``held_out_seen``: facts read from the run's own event stream.
 
 The delivered ``work/`` is only read. Everything this module starts runs in a process group of its own, registered with the
@@ -20,7 +22,9 @@ test-runner summaries) and this folder, as ``run.py`` and ``progress.py`` arrang
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import inspect
 import json
 import os
 from pathlib import Path
@@ -29,6 +33,7 @@ import shlex
 import shutil
 import socket
 import subprocess
+import threading
 import time
 from typing import Callable
 import urllib.parse
@@ -535,14 +540,32 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
 # --------------------------------------------------------------------------------------------------------------------
 # Held-out acceptance
 
+# The ports free_port handed out lately. A port is free when it is handed out and taken only when the product binds it, so two
+# servers started side by side (the calibration tests grade deliveries in parallel) could be handed the same one; one process
+# never hands out a port twice within the last RECENT_PORTS.
+RECENT_PORTS = 4096
+_handed_out: dict[int, None] = {}
+_handing_out = threading.Lock()
+
+
 def free_port() -> int:
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        return sock.getsockname()[1]
+    """A port nothing listens on now, and one this process has not handed out lately."""
+    with _handing_out:
+        for _ in range(100):
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0))
+                port = sock.getsockname()[1]
+            if port not in _handed_out:
+                break
+        _handed_out[port] = None
+        while len(_handed_out) > RECENT_PORTS:
+            del _handed_out[next(iter(_handed_out))]
+        return port
 
 
 def load_checks(module: str, checks_dir: Path):
-    """The module of held-out checks `<checks_dir>/<module>.py`: ``CHECKS`` maps a check id to ``fn(base_url) -> (ok, note)``."""
+    """The module of held-out checks `<checks_dir>/<module>.py`: ``CHECKS`` maps a check id to ``fn(base_url) -> (ok, note)``,
+    or to ``fn(base_url, product) -> (ok, note)`` for a check that also needs the delivered copy (``Product``)."""
     path = checks_dir / f"{module}.py"
     spec = importlib.util.spec_from_file_location(f"shiploop_e2e_held_out_{module}", path)
     loaded = importlib.util.module_from_spec(spec)
@@ -550,14 +573,128 @@ def load_checks(module: str, checks_dir: Path):
     return loaded
 
 
+def listening(proc: subprocess.Popen, port: int, start_text: str, refusals_log: Path, ports: list[int] | tuple) -> str | None:
+    """Wait until the product's server `proc` listens on `port`: None once it does, else why not (it exited, or the listen
+    ceiling passed)."""
+    end = time.monotonic() + LISTEN_CEILING_SECONDS
+    while True:
+        if proc.poll() is not None:
+            refused = count_refusals(refusals_log)
+            return (f"the product's server ({start_text}) exited {proc.returncode} before it listened on PORT={port}"
+                    + (f"; it touched a declared port ({', '.join(map(str, ports))}) {refused} "
+                       f"time{'s' if refused != 1 else ''}, so it may ignore PORT" if refused else ""))
+        try:
+            socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
+            return None
+        except OSError:
+            pass
+        if time.monotonic() >= end:
+            return f"the product's server ({start_text}) did not listen on PORT={port} within {LISTEN_CEILING_SECONDS} s"
+        time.sleep(POLL_SECONDS)
+
+
+# A port handed out free can be taken by another socket before the product binds it: a server that exits on EADDRINUSE naming
+# its own port is started again on another, at most this many times in all.
+LISTEN_TRIES = 3
+
+
+def port_taken(log: Path, port: int) -> bool:
+    """Whether the server's log says its own port was taken (EADDRINUSE naming that port, not a declared port the guard
+    refused)."""
+    try:
+        text = log.read_text(errors="replace")
+    except OSError:
+        return False
+    return "EADDRINUSE" in text and re.search(rf"[:\s]{port}\b", text) is not None
+
+
+def serve_on_free_port(argv: list[str], folder: Path, env: dict, log: Path, groups: set, start_text: str, refusals_log: Path,
+                       ports: list[int] | tuple) -> tuple[subprocess.Popen | None, int, str | None]:
+    """Start the product's server with PORT set to a free port and wait until it listens: ``(proc, port, None)``, or
+    ``(None, port, why not)`` with nothing of it left running. Raises OSError when the command cannot be started."""
+    for _ in range(LISTEN_TRIES):
+        port = free_port()
+        proc = start(argv, folder, {**env, "PORT": str(port)}, log, groups)
+        why_not = listening(proc, port, start_text, refusals_log, ports)
+        if why_not is None:
+            return proc, port, None
+        finish(proc, groups)
+        if not port_taken(log, port):
+            break
+    return None, port, why_not
+
+
+def takes_product(check: Callable) -> bool:
+    """Whether a held-out check takes the delivered copy as its second parameter."""
+    return len(inspect.signature(check).parameters) > 1
+
+
+class Product:
+    """The delivered copy, for a held-out check that needs more than the server ``acceptance`` started: more servers of the
+    product, each with an environment of the check's own (a data file, a notification file, a setting the request names),
+    which the check may stop and start again, and the product's own command lines.
+
+    Everything it starts is a child of this process in a group of its own, registered in the harness's live groups and ended
+    when the check's ``serve`` block or ``run`` call ends, under the same port guard as the first server. Everything it writes
+    (logs, and the scratch folders a check points the product's files at) lives under `logs`, never in the copy, which a check
+    only reads. An environment value of None removes that variable from what the product inherits."""
+
+    def __init__(self, folder: Path, start_text: str, *, groups: set, logs: Path, guard: dict, refusals_log: Path,
+                 ports: list[int] | tuple = ()):
+        self.folder = folder
+        self._start_text, self._argv = start_text, shlex.split(start_text)
+        self._groups, self._logs, self._guard = groups, logs, guard
+        self._refusals_log, self._ports = refusals_log, ports
+        self._made = 0
+
+    def _next(self, kind: str) -> Path:
+        self._made += 1
+        self._logs.mkdir(parents=True, exist_ok=True)
+        return self._logs / f"{kind}-{self._made}"
+
+    def _env(self, extra: dict | None) -> dict:
+        env = child_env()
+        for key, value in (extra or {}).items():
+            if value is None:
+                env.pop(key, None)
+            else:
+                env[key] = str(value)
+        return {**env, **self._guard}
+
+    def scratch(self) -> Path:
+        """A new empty folder for files the product reads or writes on a check's behalf."""
+        folder = self._next("scratch")
+        folder.mkdir()
+        return folder
+
+    @contextlib.contextmanager
+    def serve(self, env: dict | None = None):
+        """Another server of the product, started as the block's ``start`` in the copy with PORT free and `env` added; yields
+        its base URL and ends its group when the block ends. Raises RuntimeError when it exits or does not listen in time."""
+        proc, port, why_not = serve_on_free_port(self._argv, self.folder, self._env(env), self._next("server").with_suffix(".log"),
+                                                 self._groups, self._start_text, self._refusals_log, self._ports)
+        if why_not:
+            raise RuntimeError(why_not)
+        try:
+            yield f"http://127.0.0.1:{port}"
+        finally:
+            finish(proc, self._groups)
+
+    def run(self, argv: list[str], env: dict | None = None, ceiling: float = RUN_CEILING_SECONDS) -> dict:
+        """One of the product's own commands, run in the copy with `env` added, to its end or `ceiling` seconds: ``run_once``'s
+        ``{returncode, timeout, seconds, output}``, the output being its standard output and error together."""
+        return run_once(argv, self.folder, self._env(env), self._next("command").with_suffix(".log"), ceiling, self._groups)
+
+
 def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str | None], logs: Path,
                checks_dir: Path = HERE / "checks", ports: list[int] | tuple = ()) -> dict:
     """One block of held-out checks run against the copy's server: ``{observed, source, checks: [{id, source, pass, note}]}``.
 
     The server is started as ``block['start']`` with PORT set to a free port, in the copy, in a group of its own; each check
-    gets its base URL. A check that raises fails with the exception as its note; a server that never listens leaves every check
-    unrun and the block unobserved. The checks run in this process: nothing but the server's own command line reaches an argv.
-    The server runs under the same port guard as the mutation runs (`ports`): a product that ignores PORT and meets it says so.
+    gets its base URL, and a check that takes a second parameter gets the copy as a ``Product`` too. A check that raises fails
+    with the exception as its note; a server that never listens leaves every check unrun and the block unobserved. The checks
+    run in this process: nothing but the product's own command lines reaches an argv. Every server and command runs under the
+    same port guard as the mutation runs (`ports`): a product that ignores PORT and meets it says so.
     """
     declared = [item["id"] for item in block["checks"]]
     try:
@@ -568,38 +705,27 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
     if missing:
         return {"observed": False, "reason": f"the held-out module {block['module']!r} has no check for: {', '.join(missing)}"}
     logs.mkdir(parents=True, exist_ok=True)
-    port = free_port()
     refusals_log = logs / f"refusals-{block['module']}.log"
     guard = JS.guard_env(list(ports), refusals_log) if ports else {}
     try:
-        proc = start(shlex.split(block["start"]), copy, child_env({"PORT": str(port), **guard}), logs / f"server-{block['module']}.log",
-                     groups)
+        proc, port, why_not = serve_on_free_port(shlex.split(block["start"]), copy, child_env(guard), logs / f"server-{block['module']}.log",
+                                                 groups, block["start"], refusals_log, ports)
     except OSError as exc:
         return {"observed": False, "reason": f"the product's server ({block['start']}) could not be started: {exc}"}
+    if why_not:
+        return {"observed": False, "reason": why_not}
     try:
-        end = time.monotonic() + LISTEN_CEILING_SECONDS
-        while True:
-            if proc.poll() is not None:
-                refused = count_refusals(refusals_log)
-                return {"observed": False, "reason": f"the product's server ({block['start']}) exited {proc.returncode} before it "
-                        f"listened on PORT={port}" + (f"; it touched a declared port ({', '.join(map(str, ports))}) {refused} "
-                                                      f"time{'s' if refused != 1 else ''}, so it may ignore PORT" if refused else "")}
-            try:
-                socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
-                break
-            except OSError:
-                pass
-            if time.monotonic() >= end:
-                return {"observed": False, "reason": f"the product's server ({block['start']}) did not listen on PORT={port} "
-                        f"within {LISTEN_CEILING_SECONDS} s"}
-            time.sleep(POLL_SECONDS)
+        product = Product(copy, block["start"], groups=groups, logs=logs / f"product-{block['module']}", guard=guard,
+                          refusals_log=refusals_log, ports=ports)
         results = []
         for item in block["checks"]:
             why = stop()
             if why:
                 return {"observed": False, "reason": f"{why}: the held-out checks ended after {len(results)} of {len(declared)}"}
             try:
-                ok, note = implemented[item["id"]](f"http://127.0.0.1:{port}")
+                check = implemented[item["id"]]
+                base = f"http://127.0.0.1:{port}"
+                ok, note = check(base, product) if takes_product(check) else check(base)
                 results.append({"id": item["id"], "source": item.get("source"), "pass": bool(ok), "note": str(note)[:NOTE_CHARS]})
             except Exception as exc:
                 results.append({"id": item["id"], "source": item.get("source"), "pass": False, "note": f"raised {exc!r}"[:NOTE_CHARS]})
