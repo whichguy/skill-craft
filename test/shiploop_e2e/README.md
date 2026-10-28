@@ -336,7 +336,9 @@ Three behaviours the fixtures prove had not been seen on a real run by 2026-10-2
   evidence names the step, the action whose `complete` was held to show it, and whether the step's summary cites it.
 
 Each verdict is `pass`, `fail`, `not exercised` (the run never did it, which is not a pass) or, for a note the run had not
-delivered when it stopped short of done, `open`. A model rarely writes a note to its own run, so `--owner-note-at STAGE`
+delivered when it stopped short of done, `open`. The Live Run Card shows them while the run is going: `status_card.py build
+e2e` adds one tile per check after the headline tiles, with its verdict and evidence, a green stripe for pass, red for fail,
+amber for open and none for not exercised. A job's own `tiles` replace only the headline tiles. A model rarely writes a note to its own run, so `--owner-note-at STAGE`
 writes one as the owner would (`owner_note.py`). A watcher thread polls the run every second. The first time a STAGE
 step is current and its packet has printed, it runs `shiploop note` with the run's own CLI. The note asks only that the
 step's summary cite it. The watcher records what happened in `owner-note.json` and writes one note per output folder; a

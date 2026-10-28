@@ -389,7 +389,7 @@ _DURATION_SECONDS = {
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
     "test/shiploop-callback-contract.test.py": 69.1,
     "test/shiploop-loophole-gates.test.py": 15.0,  # measured locally 2026-10-24: 12 dodge rows, one real-CLI run each
-    "test/shiploop-e2e-status-card.test.py": 0.5,  # measured locally 2026-10-26: 10 tests, 0.46 s wall
+    "test/shiploop-e2e-status-card.test.py": 0.6,  # measured locally 2026-10-28: 17 tests, 0.56 s wall
     "test/shiploop-trace.test.py": 16.0,  # measured locally 2026-10-25: 14 tests, 16.0 s wall; real-CLI runs to discovery
     # measured locally 2026-10-26: 13 tests, 31.4 s wall; real-CLI runs to discovery and the head-order fixture's renders
     "test/shiploop-owner-notes.test.py": 32.0,

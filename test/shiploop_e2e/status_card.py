@@ -35,8 +35,9 @@ first, 12 at most) and `findings`, with `progress.updatedAt` and `progress.etaAt
 events, findings, tiles, comparison, bands}`, every key optional; its events come before the builder's.
 
 An e2e run with a run trace also gets `timeline` (`start`, `end`, `lanes`, `spans` of each stage and Improve review,
-`marks` of each refused callback, epoch seconds) and `tiles` (elapsed, stages, Improve reviews, refusals). In the job
-document, JOB's `tiles` replace the builder's, `comparison` (`{title, note, columns, rows: [{label, values, verdict:
+`marks` of each refused callback, epoch seconds) and `tiles` (elapsed, stages, Improve reviews, refusals, then one tile per
+live trace check of run_trace.checks: keepalive text, packet reprint, owner note). In the job document, JOB's `tiles`
+replace the builder's headline tiles and the trace-check tiles follow them, `comparison` (`{title, note, columns, rows: [{label, values, verdict:
 {text, tone: ok|warn|bad}}], caption}`) is passed through, and `bands` (`[{start, end, label}]`, such as the periods the
 machine slept) joins the timeline. A finding may carry `example`, `before`, `after` and `evidence` beside its `tag`,
 `status` (firm, interim, early, superseded, missed), `title` and `text`. The Live Run Card page that draws all of this is
@@ -387,7 +388,9 @@ def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
     line = _timeline(states[0].parent / "trace.jsonl", current[0], stage_spec) if states else None
     if line:
         model["timeline"] = line
-        model["tiles"] = _e2e_tiles(line, progress)
+    checks = _check_tiles(states[0].parent) if states else []
+    if line or checks:
+        model["tiles"] = (_e2e_tiles(line, progress) if line else []) + checks
     return model, {"title": "E2E " + folder.name, "subtitle": str(round(minutes)) + " min · "
                    + ("refusals not read" if refusals is None else str(refusals) + " refusals") + " · "
                    + str(restarts) + " host restarts", "status": status, "events": events, "eta_at": eta}
@@ -476,6 +479,24 @@ def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
             {"label": "Improve reviews", "value": str(len(reviews)), "sub": f"{minutes:.1f} min"},
             {"label": "Refusals", "value": str(len(line["marks"])),
              "sub": f'{checks} a --check-only check' if checks == 1 else f"{checks} --check-only checks"}]
+
+
+CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_reprint": "Packet reprint", "owner_note": "Owner note"}
+CHECK_TONES = {"pass": "ok", "fail": "bad", "open": "warn"}
+CHECK_SUB = 90  # characters of a check's evidence a tile shows; metrics.json keeps it whole
+
+
+def _check_tiles(run_dir: Path) -> list[dict]:
+    """The run trace's live checks (run_trace.checks) as tiles: the verdict, its evidence and a tone. A check the run has
+    not exercised stays neutral, never a pass; a run without a trace has none."""
+    import run_trace  # the harness's reader of RUN/trace.jsonl, as metrics.json's run_trace.checks uses it
+    found = run_trace.checks(run_trace.read(run_dir)) or {}
+    tiles = []
+    for name, row in found.items():
+        evidence = row["evidence"]
+        tiles.append({"label": CHECK_LABELS.get(name, name), "value": row["verdict"], "tone": CHECK_TONES.get(row["verdict"], ""),
+                      "sub": evidence if len(evidence) <= CHECK_SUB else evidence[:CHECK_SUB - 1] + "…", "check": name})
+    return tiles
 
 
 # --- action documents: what the Live Run Card's inspector opens for one action -----------------------------------------
@@ -632,7 +653,8 @@ def job_document(model: dict, meta: dict, job: dict | None = None, now: datetime
                 "updatedAt": _iso(now), "events": (list(job.get("events") or ()) + list(meta["events"]))[:EVENTS],
                 "findings": list(job.get("findings") or ())}
     if job.get("tiles"):
-        document["tiles"] = list(job["tiles"])
+        # The job's tiles replace the builder's headline numbers; the trace checks are the run's, so they stay.
+        document["tiles"] = list(job["tiles"]) + [tile for tile in model.get("tiles") or () if tile.get("check")]
     if job.get("comparison"):
         document["comparison"] = job["comparison"]
     if job.get("bands") and document.get("timeline"):

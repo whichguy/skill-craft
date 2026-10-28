@@ -536,6 +536,32 @@ Earlier, 2026-10-27, another session fixed `a7bda6a2`, the fixture race that fai
 to the millisecond and the fixture's stream does not, so a keepalive recorded within 0.5 ms of a result sorted before it.
 The full tier dispatched on `a7bda6a2` passed.
 
+## 2026-10-28: the Live Run Card shows the three checks while a run is going (firm for the builder)
+
+**Question.** The checks reached `metrics.json` only when a run ended or was regraded, and the Live Run Card's e2e builder
+read the trace for its timeline but not for the checks. The owner asked for them on the card ("Add the tiles").
+
+**Change.** `status_card.py build e2e` now adds one tile per check after the headline tiles. Each tile shows the verdict,
+up to 90 characters of evidence and a tone: green for pass, red for fail, amber for open, none for not exercised. A run
+without a trace gets no check tiles. In the job document, a job's own `tiles` still replace the builder's headline tiles,
+but the check tiles stay, because they belong to the run and not to the job. The page is unchanged: it already draws
+`tiles` with these tones.
+
+**Evidence.**
+- `test/shiploop-e2e-status-card.test.py`, 17 tests. On the traced fixture all three tiles read not exercised. The same
+  run, after a continued stop, a printed-twice packet and a written note, reads pass, pass and open. A changed kept copy
+  reads fail. A run without a trace has no check tiles. Three mutations each fail a test: every check toned ok, job
+  tiles dropping the checks, the builder skipping them.
+- A real run: `build e2e` on the owed-outcome round's live battleship run (`pa-ds-battleship-4ed4e3`, 30 min in) gave
+  the 4 headline tiles and 3 checks, all not exercised. Rendered in `live_run_card.html` with a stub database:
+  7 tiles in two rows. "not exercised" wraps to two lines at the tile's 22 px value size and stays legible. A variant
+  with pass, fail and open drew green, red and amber stripes.
+
+Quick tier (`--changed-from 89a30e03 --jobs 8`): PASS, 40 suites, 253.8 s wall.
+
+**Open.** The card shows a job only when the session running it writes the job document each tick. The owed-outcome
+round's arms were not on the card on 2026-10-28.
+
 ## Open (exploratory)
 
 - **Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case
