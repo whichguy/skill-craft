@@ -447,6 +447,25 @@ divergence) and a new probe, [retry_carry_probe.py](shiploop-owed-outcome-eviden
 | I12 | Each packet works after a reset and stays concise (owner, 2026-09-26 and 2026-10-18) | packet renderer; `PRINT_LIMIT` | F12 (all inner packets over 16,000 characters), F7 (no action line in the last 43%) | Partly. Phase C (S4) |
 | I13 | Simplify without losing a feature (owner, 2026-10-27) | — | — | Not yet. Phases A-C |
 
+## Phase A, part 1: the stop hook names the owed report (2026-10-28)
+
+Built on branch `feat/owed-phase-a-573963`. Status: firm for what the tests cover; not yet exercised in a live run.
+
+- `hook_status` reads the innermost Until Loop (`shiploop_protocol._loop_receipt`: an active Improve review's receipt,
+  else the current inner stage's) and adds `loop`, `callback` (`shiploop_navigator.complete_command`, the packet's
+  own callback text) and `delegation`; `progress` becomes `<revision>.<callback attempts>.<loop iteration>` (F4).
+- `shiploop_keepalive._owed_report` gives the refusal its ask: an active loop's next iteration report, or a finished
+  stage loop's step callback; otherwise, and under ask-agent, "run `next`" as before (F3).
+- `observe` keeps `last_block_progress` and `turn_blocks` when it binds the same run again, and drops the unused
+  `last_block_rev` (F5). The release now fires after two refusals with no progress, whether or not the model ran
+  `next` between them.
+- Tests: `test/shiploop-keepalive.test.py` 65 OK (new: `test_running_next_between_two_stops_is_not_progress`,
+  `test_each_reported_loop_iteration_is_progress`, three `OwedReportTests`); package-integrity 11, navigator-contract
+  134, loops 58 and stage-spec 12 OK.
+- **Held back on the owner's instruction (2026-10-28: "before you put any limits, check with me").** Replacing the
+  driver's `--max-sessions` (default 20) with a wall-clock ceiling, and releasing a turn whose model does nothing
+  twice while the same background task runs (F10, F11), were drafted, then reverted. Both await the owner's call.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in

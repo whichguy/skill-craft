@@ -104,6 +104,10 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
         self.assertEqual(status["repo"], str(self.repo))
         self.assertEqual(status["revision"], 0)
         self.assertIn("next --run-dir", status["next"])
+        # What the stop hook asks for: no Until Loop yet at intake, so the step's own callback.
+        self.assertEqual(status["loop"], {})
+        self.assertIn(f"complete --run-dir={self.run_dir} --action={status['action']}", status["callback"])
+        self.assertEqual(status["delegation"], "inline")
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_hook_status_for_a_missing_run_is_an_error_answer(self) -> None:
@@ -339,6 +343,19 @@ class HookDecisionTests(KeepaliveTestCase):
             self.advance()
             self.assertEqual(self.hook("stop", "claude", self.payload("claude", "stop"))["decision"], "block")
 
+    def test_running_next_between_two_stops_is_not_progress(self) -> None:
+        # The refusal says to run `next`; doing only that re-binds the run, which must not reset the stop's memory
+        # (docs/shiploop-owed-outcome-evidence/rebind_repro.out showed it did: the turn was never released).
+        self.hook("observe", "claude", self.payload("claude", "observe"))
+        with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
+            self.assertEqual(self.hook("stop", "claude", self.payload("claude", "stop"))["decision"], "block")
+            reread = self.payload("claude", "observe")
+            reread["tool_input"]["command"] = f"python3 {SCRIPTS / 'shiploop'} next --run-dir {self.run_dir}"
+            self.hook("observe", "claude", reread)
+            self.assertIn("last_block_progress", keepalive.load_binding("claude", "session-1"))
+            reply = self.hook("stop", "claude", self.payload("claude", "stop"))
+        self.assertIn("no progress", reply["systemMessage"])
+
     def test_each_stop_decision_is_logged_with_its_reason(self) -> None:
         self.hook("observe", "claude", self.payload("claude", "observe"))
         self.hook("stop", "claude", self.payload("claude", "stop"))
@@ -540,16 +557,64 @@ class ProgressAndTurnTests(KeepaliveTestCase):
         self.assertEqual(decision["decision"], "allow")
         self.assertIn("another session owns this run", decision["notice"])
 
-    def test_an_improve_review_pass_is_part_of_progress(self) -> None:
+    def test_each_reported_loop_iteration_is_progress(self) -> None:
+        # The innermost Until Loop's iteration number is part of progress: an Improve review's, else the current inner
+        # stage's (before 2026-10-28 only Improve passes counted, so a stage loop's reports looked like no progress).
         sys.path.insert(0, str(SCRIPTS))
+        import shiploop_loops as loops
         import shiploop_protocol as protocol
-        receipt = self.temp / "packet.json"
-        receipt.write_text(json.dumps({"progress": {"action_number": 3}}))
         import shiploop_standalone_improve as standalone
+        receipt = self.temp / "packet.json"
+        receipt.write_text(json.dumps({"status": "active", "progress": {"action_number": 3},
+                                       "next_argv": ["python3", "runtime.py", "next", "--state", "s.json"]}))
         with mock.patch.object(standalone, "receipt_path", return_value=receipt):
-            self.assertEqual(protocol._improve_pass({"active_improve": {"skill": "card"}}), 3)
-        self.assertEqual(protocol._improve_pass({"active_improve": None}), 0)
-        self.assertIn(".", self.status()["progress"])
+            self.assertEqual(protocol._loop_receipt(self.run_dir, {"active_improve": {"skill": "card"}}),
+                             {"kind": "improve", "status": "active", "iteration": 3,
+                              "next": "python3 runtime.py next --state s.json"})
+        stage_receipt = loops.receipt_path(self.run_dir, "nav-stage")
+        stage_receipt.parent.mkdir(parents=True, exist_ok=True)
+        stage_receipt.write_text(json.dumps({"status": "complete", "progress": {"action_number": 4}, "next_argv": None}))
+        with mock.patch.object(loops, "cursor", return_value=("verify", "nav-stage", "W1")):
+            self.assertEqual(protocol._loop_receipt(self.run_dir, {"active_improve": None}),
+                             {"kind": "stage", "status": "complete", "iteration": 4, "next": ""})
+        self.assertEqual(protocol._loop_receipt(self.run_dir, {"active_improve": None}), {})  # intake: no loop
+        self.assertEqual(self.status()["progress"], "0.0.0")
+
+
+class OwedReportTests(unittest.TestCase):
+    """The stop's reason names the report the run is owed, with its exact command (owner, 2026-10-27)."""
+
+    @staticmethod
+    def reason(**changes) -> str:
+        status = {"run_dir": "/runs/r", "stage": "inner-loop", "revision": 7,
+                  "next": "python3 /p/shiploop next --run-dir /runs/r",
+                  "callback": "python3 /p/shiploop complete --run-dir=/runs/r --action=nav-1", "delegation": "inline"}
+        return keepalive._continue_reason({**status, **changes})
+
+    def test_an_active_loop_is_asked_for_its_iteration_report(self) -> None:
+        text = self.reason(loop={"kind": "stage", "status": "active", "iteration": 3,
+                                 "next": "python3 /r/until_loop_ephemeral.py next --state /s.json"})
+        self.assertIn("iteration 3 is unreported: run `python3 /r/until_loop_ephemeral.py next --state /s.json`", text)
+        self.assertIn("report it unresolved and name the gap", text)
+        self.assertIn("Lost context? Run `python3 /p/shiploop next --run-dir /runs/r`.", text)
+        self.assertNotIn("complete --run-dir", text)
+
+    def test_a_finished_loop_is_asked_for_the_step_callback(self) -> None:
+        done = self.reason(loop={"kind": "stage", "status": "complete", "iteration": 4, "next": ""})
+        self.assertIn("has finished, but the step is not submitted: write its result, then run "
+                      "`python3 /p/shiploop complete --run-dir=/runs/r --action=nav-1`.", done)
+        stopped = self.reason(loop={"kind": "stage", "status": "stopped", "iteration": 2, "next": ""})
+        self.assertIn("has stopped, but the step is not submitted: write its result with outcome blocked or "
+                      "send-back", stopped)
+
+    def test_the_generic_ask_stays_where_no_owed_command_fits(self) -> None:
+        generic = "run `python3 /p/shiploop next --run-dir /runs/r` and follow the packet it prints."
+        active = {"kind": "stage", "status": "active", "iteration": 1, "next": "python3 /r/u.py next --state /s"}
+        for changes in ({"loop": {}},  # no loop yet: the packet is what to read
+                        {"loop": active, "delegation": "ask-agent"},  # a worker owns the loop, not this session
+                        {"loop": {"kind": "improve", "status": "complete", "iteration": 2, "next": ""}}):
+            with self.subTest(changes=changes):
+                self.assertIn(generic, self.reason(**changes))
 
 
 class HealthNoticeTests(KeepaliveTestCase):

@@ -10,7 +10,8 @@ Hook events per host:
   run prints the packet's ``SHIPLOOP-RUN`` marker, bind this host session to
   that run (a marker another command merely displays never binds).
 * stop    -- when the host is about to end the turn.  Continue while the bound
-  run is active and its revision moved since the last refusal; otherwise allow.
+  run is active and its progress moved since the last refusal, naming the report
+  the run is owed; otherwise allow.
 * skill   -- after a Skill-tool call (Claude Code only).  Append the call to the
   bound run's ``skill-calls.jsonl`` (shiploop_skill_calls), which the Improve
   stage's ``complete`` reads; it never blocks the call.
@@ -336,11 +337,13 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             "run_dir": status["run_dir"],
             "run_id": status["run_id"],
             "bound_at": time.time(),
-            "last_block_rev": (previous.get("last_block_rev")
-                               if previous.get("run_id") == status["run_id"] else None),
             # Whether the hooks that bound this session also record its Skill calls (see skill_gate).
             "skill_hook": host == "claude" and skill_hook_registered(),
         }
+        if previous.get("run_id") == status["run_id"]:
+            # Binding the same run again keeps the stop memory: running `next` is not progress, and a turn's
+            # continuation count is the host's, not this command's.
+            binding.update({key: previous[key] for key in STOP_MEMORY if key in previous})
         _write_json(path, binding)
     claim_owner(status["run_dir"], host, session)
     return binding
@@ -415,6 +418,8 @@ def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool
 
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
+# What a stop remembers about the last refusal; a re-bind of the same run keeps it (``observe``).
+STOP_MEMORY = ("last_block_progress", "turn_blocks")
 # A refused callback counts as progress so the host fixes and resubmits it.  No
 # count of continuations without an accepted result releases the turn (owner
 # 2026-10-24: no run caps); only a host's own cap above ends one.
@@ -422,12 +427,35 @@ CONTINUATION_CAPS = {"grok": 8}
 CAP_WARNING_MARGIN = 2
 
 
+def _owed_report(status: Mapping[str, Any]) -> str:
+    """The report the run is owed, named with its exact command, or "" when the generic `next` sentence fits.
+
+    The innermost owed report comes first: an Until Loop iteration not yet reported while its receipt is active, else
+    the step's callback once the step's loop has ended.  Under ask-agent delegation a worker owns the loop, so the parent
+    is never handed the worker's command; an Improve review that has ended keeps its packet's final steps (`next`).
+    """
+    loop = status.get("loop")
+    if status.get("delegation") == "ask-agent" or not isinstance(loop, Mapping):
+        return ""
+    if loop.get("status") == "active" and loop.get("next"):
+        return (f"This step's Until Loop iteration {loop.get('iteration')} is unreported: run `{loop['next']}` and "
+                "report the iteration with the done command it prints. If its work is already done, recheck the "
+                "artifacts and report it; if any of it is incomplete, report it unresolved and name the gap.")
+    if loop.get("kind") == "stage" and loop.get("status") in ("complete", "stopped") and status.get("callback"):
+        outcome = "" if loop["status"] == "complete" else " with outcome blocked or send-back"
+        return (f"This step's Until Loop has {'finished' if not outcome else 'stopped'}, but the step is not "
+                f"submitted: write its result{outcome}, then run `{status['callback']}`.")
+    return ""
+
+
 def _continue_reason(status: Mapping[str, Any], host: str = "", turn_blocks: int = 0,
                      waiting: bool = False) -> str:
+    owed = _owed_report(status)
+    ask = (f"{owed} Lost context? Run `{status['next']}`." if owed
+           else f"run `{status['next']}` and follow the packet it prints.")
     text = (f"ShipLoop run {status['run_dir']} is still active at stage {status['stage']} "
-            f"(revision {status['revision']}). Do not end the turn: run `{status['next']}` "
-            "and follow the packet it prints. Only an explicit user stop or pause ends the run; "
-            "then run the packet's pause command.")
+            f"(revision {status['revision']}). Do not end the turn: {ask} Only an explicit user stop or pause "
+            "ends the run; then run the packet's pause command.")
     if waiting:
         text += (" A background task is still running: wait for it in this turn (poll its "
                  "output), then continue the packet; do not end the turn to wait.")
@@ -500,7 +528,7 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                 "notice": ("ShipLoop keepalive: another session owns this run, so this one is not "
                            "kept going. Continue the run from that session, or close it and run: "
                            + status["next"])}
-    # Revision, callback attempts and Improve review passes all count as progress.
+    # Revision, callback attempts and reported loop iterations all count as progress.
     progress = status.get("progress", str(status["revision"]))
     if binding.get("last_block_progress") == progress and not waiting:
         return {"decision": "allow", "why": "no progress",

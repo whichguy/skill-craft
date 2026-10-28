@@ -426,17 +426,31 @@ def _count_callback_attempt(root: Path) -> None:
         pass
 
 
-def _improve_pass(state: Mapping[str, Any]) -> int:
-    """The active Improve review's pass number from its runtime receipt; 0 when unknown."""
-    child = state.get("active_improve")
-    if not isinstance(child, dict) or not child.get("skill"):
-        return 0
+def _loop_receipt(root: Path, state: Mapping[str, Any]) -> dict[str, Any]:
+    """The innermost Until Loop that owes a report: the active Improve review's, else the current inner stage's.
+
+    Read-only, and never raising (it is a status hint): ``{}`` when there is no such loop or its receipt cannot be read,
+    else ``kind`` (improve or stage), ``status`` (active, complete or stopped), ``iteration`` (the runtime's action
+    number) and ``next`` (the receipt's read-only ``next_argv`` as one command; empty once the loop has ended).
+    """
     try:
-        import shiploop_standalone_improve as standalone
-        packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
-        return int((packet.get("progress") or {}).get("action_number") or 0)
+        child = state.get("active_improve")
+        if isinstance(child, dict) and child.get("skill"):
+            import shiploop_standalone_improve as standalone
+            kind, path = "improve", standalone.receipt_path(child)
+        else:
+            import shiploop_loops as loops
+            found = loops.cursor(state)
+            if found is None:
+                return {}
+            kind, path = "stage", loops.receipt_path(root, found[1])
+        packet = json.loads(Path(path).read_text(encoding="utf-8"))
+        argv = packet.get("next_argv")
+        return {"kind": kind, "status": str(packet.get("status") or ""),
+                "iteration": int((packet.get("progress") or {}).get("action_number") or 0),
+                "next": shlex.join(argv) if isinstance(argv, list) and argv else ""}
     except Exception:  # noqa: BLE001 - a read-only status hint must never fail
-        return 0
+        return {}
 
 
 def hook_status(core: Any, argv: Sequence[str]) -> int:
@@ -457,6 +471,9 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         navigator.validate(state)
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)
+        loop = _loop_receipt(root, state)
+        owed_action = (navigator.improve_id(state) if loop.get("kind") == "improve"
+                       else (action or {}).get("id"))
     except SystemExit:
         # core.load_state already printed its reason on stderr.
         print(json.dumps({"run_dir": str(root), "error": "run state cannot be read"}))
@@ -477,10 +494,14 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         "action": (action or {}).get("id"),
         "revision": state["revision"],
         # Keepalive progress: the revision, callback attempts (a refused callback is
-        # still work) and the active Improve review's pass count.
-        "progress": f"{state['revision']}.{_callback_attempts(root)}.{_improve_pass(state)}",
+        # still work) and the reported iterations of the innermost Until Loop.
+        "progress": f"{state['revision']}.{_callback_attempts(root)}.{loop.get('iteration', 0)}",
         "next": shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                             "next", "--run-dir", str(root)]),
+        # What the stop hook asks for: the loop's next report, or the step's callback once the loop has ended.
+        "loop": loop,
+        "callback": navigator.complete_command(core, root, owed_action) if owed_action else "",
+        "delegation": state.get("delegation", ""),
     }))
     return 0
 
