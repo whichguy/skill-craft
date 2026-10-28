@@ -293,9 +293,12 @@ Removing it is the largest of T, C and this flow.
 - moved Improve after document;
 - asked that the test stage be defined as building out the test specification;
 - asked that every linter run on the production code after build and on the test code after the tests are written;
-- asked that the test stage build mocks that simulate the expected behaviour before the system tests.
+- asked that the test stage build mocks that simulate the expected behaviour before the system tests;
+- added a knowledge stage after Improve, which updates the environment, the architecture decisions and the spec
+  clarifications, and decides whether a reusable skill should be written;
+- asked that the stage prompts name the existing skills that can help build or test.
 
-8.2, 8.2a and 8.3 say what changed.
+8.2, 8.2a, 8.2b, 8.2c and 8.3 say what changed.
 
 The owner, in five messages:
 - "To be very clear, I want to build one step, then test, improve, and document, and then build step number two,
@@ -312,6 +315,13 @@ The owner, in five messages:
 - "Technically, we should run every linter after the test code is written as well, so linters should be done both in
   production code and test code. We should also be clear, in the test areas, that we want to build mock objects
   simulating the behavior we expect before going to system tests."
+- "We probably need a step also at the end: do we need to update the environment or architecture decisions, or
+  identify that we've actually clarified some of the spec requirements (which may have been vague), as a step after
+  the improve stage"
+- "I think we also wanted to determine if, after the improve stage, there are any skills that should be written so
+  that they could be reused for repeated stages later. Likewise, we wanted to make sure that we had the prompt
+  template reference any skills that might exist that could help us execute in the build stage or test stage, if
+  needed. I don't know if those are just in the prompt templates or somewhere else."
 - Earlier (memory `todo-step-series-order`, 2026-10-17): each planned step runs its own series, in plan order.
 
 **8.1 The shape.**
@@ -319,23 +329,25 @@ The owner, in five messages:
 | when | stages | who works |
 |---|---|---|
 | once per item, before the steps | step-plan; test-spec, which specifies every case (its ID, oracle, RED and GREEN) and assigns each to a step; validate-existing | model |
-| **for each step, in plan order** | **build → test → document → Improve → commit** | model, except commit: ShipLoop only |
-| once per item, after the last step | carry-forward | model |
+| **for each step, in plan order** | **build → test → document → Improve → knowledge → commit** | model, except commit: ShipLoop only |
+| once per item, after the last step | carry-forward: the future queue and the item's learnings | model |
 
 - Verify is retired. The commit stage replaces it and is named for what it does.
-- The commit stage follows Improve, the iteration's last edit. It is still the commit "on every iteration right after
-  the documentation": the documented and reviewed step goes into one commit.
+- The knowledge stage follows Improve, so it records what the review taught as well as what the step decided.
+- The commit stage comes last. It is still the commit "on every iteration right after the documentation": the
+  documented, reviewed and recorded step goes into one commit.
 - The next step's build starts from that commit.
 
 **8.2 Each stage and its exit gates** (all run by ShipLoop; a refusal returns to the same stage):
 
 | stage | the work | exit gates |
 |---|---|---|
-| build | write this step's code | **lint the production code** (8.2a); the step's Proof |
-| test: build out the test specification | build mocks that simulate what the step's dependencies are expected to do; turn each test-spec case assigned to this step into a test against them, titled with its ID and asserting the case's oracle (never the code's current behaviour); add a valid, a boundary and an invalid case for each entry point the step changed; lint the test code; perform them by running every recorded command; loop: fix the code, or a test for a recorded independent reason, until one run after the last edit passes every gate | **lint the test code and any production code the loop changed** (8.2a); the tests pass; IDs; floors; RED against the code before this step; mutation of this step's changed lines; the entry-point map |
+| build | write this step's code, using the skills the packet lists for it (8.2c) | **lint the production code** (8.2a); the step's Proof |
+| test: build out the test specification | using the skills the packet lists for testing (8.2c), build mocks that simulate what the step's dependencies are expected to do; turn each test-spec case assigned to this step into a test against them, titled with its ID and asserting the case's oracle (never the code's current behaviour); add a valid, a boundary and an invalid case for each entry point the step changed; lint the test code; perform them by running every recorded command; loop: fix the code, or a test for a recorded independent reason, until one run after the last edit passes every gate | **lint the test code and any production code the loop changed** (8.2a); the tests pass; IDs; floors; RED against the code before this step; mutation of this step's changed lines; the entry-point map |
 | document | update the docs this step's change affects, from the behaviour the tests now show | lint on docs; the doc checks among the recorded commands |
-| Improve | review the whole step together (code, tests and docs), now green and documented. A behaviour fix adds a test for it and corrects the docs it affects; a doc that disagrees with the code is a finding. Rerun every command after each edit | its own rule (a pass that changes nothing material ends it); at import, the iteration's final gate: lint and a rerun of every recorded command, doc checks included |
-| commit | ShipLoop commits everything the iteration changed (code, tests, docs, review fixes) as one `feat(<item>/<step>)` commit. Its message carries the step's learnings and decisions, the review's lessons and the evidence. | none of its own: it checks that the tree is the one Improve's final gate ran on |
+| Improve | review the whole step together (code, tests and docs), now green and documented. A behaviour fix adds a test for it and corrects the docs it affects; a doc that disagrees with the code is a finding. Rerun every command after each edit | its own rule (a pass that changes nothing material ends it); at import: lint and a rerun of every recorded command, doc checks included |
+| knowledge | update the knowledge home from what this step decided and the review taught (spec clarifications, satisfied-by lines, architecture decisions, environment facts), and make the step's skill decision (8.2b) | each knowledge file is changed or carries a no-change reason; each spec edit names its requirement and its source; a change of intent carries an open item; new AD IDs are unique; the skill decision's shape and repeat evidence; lint on the knowledge files |
+| commit | ShipLoop commits everything the iteration changed (code, tests, docs, review fixes, knowledge, any skill) as one `feat(<item>/<step>)` commit. Its message carries the step's learnings and decisions, the review's lessons and the evidence. | none of its own: it checks that the tree is the one the knowledge stage's gate ran on |
 
 **The test stage, defined.** The test specification is the source of every test. The test stage builds out this
 step's part of it into tests, performs them, and loops until they pass:
@@ -399,6 +411,71 @@ The gates in the test row, in plain terms:
   A green lint there meant "it parses". So each stage's packet and the run's report print that coverage line beside
   the lint result, and a reader never takes a syntax check for a lint.
 
+**8.2b The knowledge stage, defined.** It keeps the knowledge home true after each step, so the next step's
+packets read what this one learned.
+- **Spec (`KNOWLEDGE/spec.md`).** Each edit names the requirement ID and its source: a test case ID, an AD or a review
+  finding. It is one of three kinds:
+  - **clarified:** a vague requirement made precise by what the step decided, stated as observable behaviour;
+  - **satisfied by:** the requirement, the files and step that meet it, and the tests that show it. 36036c wrote these
+    for every requirement, but only at carry-forward;
+  - **changed:** the requirement's intent itself moved. That is never silent: it carries an open item, recorded as an
+    assumption in an unattended run.
+
+  Stack choices stay out of the spec and go to architecture, because the two are orthogonal.
+- **Architecture (`KNOWLEDGE/architecture.md`).** A decision the step made or changed becomes a new `AD-<n>`, or
+  refines or supersedes one. A superseded AD keeps its text and gains a status, and is never deleted.
+- **Environment (`KNOWLEDGE/environment.md`).** What the step learned about running and testing:
+  - commands;
+  - the harnesses and mocks the test stage built, with what each simulates;
+  - platform facts;
+  - the lint coverage line (F6).
+
+  The test stage's duty 2, recording harness decisions, moves here.
+- **The skill decision.** It is today's carry-forward rule, made after every step instead of once per item:
+  - Inspect the repository's skill index and the host's skills.
+  - Decide, smallest first: `none`, `reuse`, `update` or `create`.
+  - `update` or `create` only when the same procedure ran in two or more steps or items, or a pending item or R-n says
+    it will recur, citing those IDs.
+  - The skill goes in the repository's skill directory and is listed under `## Skills`.
+
+  Made per step, a skill written after S2 is in the packets of S3 onwards (8.2c). Made per item, it reaches only
+  later items.
+- **What the runs show.**
+  - The knowledge home already changes during the build, at scattered points:
+    - at carry-forward: spec and architecture in 36036c, spec in 491d9a;
+    - after document in 978478;
+    - inside W2's item commit and the end-of-work review in 759a03.
+
+    The stage gathers these into one place per step.
+  - Across 13 recorded runs, all 20 carry-forward skill decisions were `none`. The only repeat any noted was 978478
+    W3's: "The only procedure that ran twice (driving Chrome over CDP …) is a host capability". So the forecast is
+    mostly `none` per step, with the gain in projects whose steps do repeat a procedure.
+
+**8.2c Skills in the stage prompts: where they are today, and the proposal.**
+
+| where | today |
+|---|---|
+| prepare (discovery) | checks the repository's index, README and AGENTS for skill links, and records fit or no fit under `## Skills` in environment.md |
+| step-plan | each step lists `skills: [{"name", "why", "locator"}]`, after rereading the host's skills and the repository's index ("an earlier item may have added one") |
+| implement (build) packet | prints them in the Step block: "Skills (use each; the summary says whether you did): …", and duty 2 says "Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow it)" |
+| test, document and Improve packets | **name no skill.** The test packet says only "never assume a named skill or MCP is available" |
+| carry-forward | the reuse or write decision, once per item |
+
+So skills are in the prompt templates for build only, by way of the step plan. Every one of the 51 steps planned
+across the 13 runs listed none.
+
+**Proposal:**
+- Every model stage of an iteration (build, test, document, Improve) prints one **Skills for this step** block. It
+  holds:
+  - the skills the step plan listed for the step;
+  - any skill a knowledge stage created or updated earlier in the run;
+  - the `## Skills` entries of environment.md that fit.
+
+  Each entry gives its name, why and locator, and the packet points at the SKILL.md rather than copying it.
+- A step plan row's `skills` entry gains an optional `stages` field (build, test, document, Improve; default build).
+  A test-facility skill then shows in the test packet, where it is used.
+- "Never assume a named skill or MCP is available" stays: it forbids unlisted ones, not listed ones.
+
 **8.3 What changes from today:**
 - **Tests per step, built out from the spec.** Today they are written once per item, after every step. The
   test-spec assigns each case to the step whose code it tests. A case that needs several steps goes to the last of
@@ -419,6 +496,9 @@ The gates in the test row, in plain terms:
     (`browser-check/page.js`).
   - A mock makes the race a fast, deterministic component test, before any system test.
 - **Lint on both sides.** Production code is linted after build; test code after the test stage writes it (8.2a).
+- **A knowledge stage per step.** It updates spec, architecture and environment and decides the skill, every step.
+  Carry-forward keeps only the future queue and the item's learnings, and its skill decision moves to the knowledge
+  stage, so the decision is made in one place.
 - **Document, then Improve.**
   - The review sees the step whole: code, tests and the docs that describe them. A doc that disagrees with the code
     becomes a review finding, not something nobody checks.
@@ -468,6 +548,11 @@ The gates in the test row, in plain terms:
   as a stage duty plus that test-spec field, and add a gate only if the live run shows cases skipping their mock.
 - **F6. Lint coverage shown.** Recommended: every lint result prints its coverage line, so "syntax only" is never read
   as linted.
+- **F7. A knowledge stage per step.** Recommended: yes, with the gates in 8.2. A spec change of intent always carries
+  an open item.
+- **F8. The skill decision per step,** moved from carry-forward. Recommended: yes, keeping today's repeat-evidence
+  rule.
+- **F9. Skills in every iteration packet,** with the optional `stages` field. Recommended: yes.
 
 ## Not in this design
 
