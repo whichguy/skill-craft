@@ -590,6 +590,28 @@ class RoundSpeedups(unittest.TestCase):
         shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "grok", None)
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
+    def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
+        """Owner, 2026-10-28: "I want to use DeepSeek Flash for the test runs". R3 moves to today's ShipLoop (the bound
+        shipped in 2.11.0): Cg is it as shipped, T the same commit with the sizing bullet before the bound."""
+        source = overlay.SCRIPTS / "shiploop_prompts.py"
+        for exp_id, case in (("E6D2-K2", "node-chess-engine"), ("E6D2-K4", "node-battleship-server")):
+            exp = experiment.load(exp_id)
+            with self.subTest(exp=exp_id):
+                self.assertEqual((exp["case"], exp["samples"], exp.get("descriptive")), (case, 3, True))
+                self.assertNotIn("stop_after", exp)
+                self.assertEqual(exp["arms"]["T"]["ref"], exp["arms"]["Cg"]["ref"])
+                self.assertNotIn("overlay", exp["arms"]["Cg"])
+                self.assertEqual(exp["arms"]["T"]["overlay"], "overlays/e6-no-size-bound.json")
+        edits = json.loads((E2E / "overlays" / "e6-no-size-bound.json").read_text())["edits"]
+        self.assertEqual(len(edits), 1)
+        self.assertIn("at most 4 criteria and 3 product files", edits[0]["old"])
+        self.assertNotIn("at most 4 criteria", edits[0]["new"])
+        self.assertIn(edits[0]["old"], source.read_text())  # a later edit of the bullet makes this round's arms stale
+        launched = []
+        with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
+            experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
+        self.assertEqual(launched[0][4], "claude")  # slice.py runs the Claude host on DeepSeek flash by default
+
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""
         for argv in (["queue", "E6D-K2", "--arms", "T,Cg", "--timeout", "10800"],

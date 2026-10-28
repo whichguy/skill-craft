@@ -1,0 +1,12 @@
+{
+  "about": "E6D2 control arm T: today's ShipLoop with the shipped step bound taken out. The step-plan duty's sizing bullet returns to its wording before 2.11.0 (9ed4ec24's, with today's 'proof' for 'check'): no cap of 4 criteria and 3 product files. Everything else is the shipped text, so arm Cg (no overlay) differs from T only in the bound. Written against 337b09c5.",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "   - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that\n     only describes another changed file counts with it; tests, docs and its proof script do not). A second module\n     or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with\n     \"and\" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the\n     first step that uses it. A single bug fix or mechanical rename is one step.\n",
+      "new": "   - Size each as one behaviour-level change its proof shows. Split a step with two separately confirmable\n     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with\n     \"and\", or too large for one review. Fold a step no proof confirms alone (half a rename, scaffolding) into the\n     first step that uses it. A single bug fix or mechanical rename is one step.\n"
+    }
+  ]
+}

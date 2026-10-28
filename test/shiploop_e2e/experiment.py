@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Template-field experiments: run arms as step slices, score them with a script, decide between two arms.
 
-    python3 test/shiploop_e2e/experiment.py run E1 --arm A [--samples 4 | --sample N] [--host grok] [--out DIR]
+    python3 test/shiploop_e2e/experiment.py run E1 --arm A [--samples 4 | --sample N] [--host claude] [--out DIR]
     python3 test/shiploop_e2e/experiment.py queue E6-K2 E6-K4 --arms T,Cg [--jobs 4] [--samples 4] [--no-early-stop]
     python3 test/shiploop_e2e/experiment.py score E1 [--out DIR]
     python3 test/shiploop_e2e/experiment.py verify E1                 # the evaluator (and the case) tell bad from good
@@ -546,7 +546,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-early-stop", action="store_true", help="queue: run every sample even once a verdict is settled")
     p.add_argument("--samples", type=int, default=None, help="run: samples 1..N (default: the experiment's samples)")
     p.add_argument("--sample", type=int, default=None, help="run: exactly this one sample (its own background task)")
-    p.add_argument("--host", default="grok")
+    # The Claude host, which slice.py runs on its default backend: DeepSeek flash on Ollama (owner, 2026-10-28: "I want
+    # to use DeepSeek Flash for the test runs"); --host grok for Grok, --backend=anthropic for Claude's own models.
+    p.add_argument("--host", default="claude", help="slice host (default claude: DeepSeek flash on Ollama)")
     p.add_argument("--out", type=Path, default=None)
     args, extra = p.parse_known_args(argv)
     out = (args.out or default_out()).expanduser().resolve()

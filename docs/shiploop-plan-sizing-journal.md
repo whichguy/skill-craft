@@ -394,3 +394,27 @@ children. Main's reader reads both layouts (fixed 2026-10-25), so R3's Improve p
 
 **Next.** R3 needs another top-up for its 5 open samples. A refused slice cannot be resumed (`slice.py`: that stop is
 final), so each restarts from its seed.
+
+## 11. 2026-10-28: R3 moves to today's ShipLoop on DeepSeek flash (E6D2)
+
+**Question.** Owner, 2026-10-28: "I want to use DeepSeek Flash for the test runs", and "we should be able to use
+Claude with DeepSeek as the harness and model". Grok is out of credits until its weekly reset, and R3 on Grok has one
+delivered sample (entry 10).
+
+**Design.** The R3 round on Grok cannot simply switch hosts. Its arms are pinned to 9ed4ec24, whose seed records only
+the frozen harness at `da86f8a0` can still write, and that harness predates the Claude host on Ollama. R3 therefore
+moves to today's ShipLoop. The bound has shipped since 2.11.0, so the question becomes sharper: does the shipped bound
+deliver better than the same ShipLoop without it?
+- Experiments `E6D2-K2` (node-chess-engine) and `E6D2-K4` (node-battleship-server), the original R3 request's two
+  cases. Full items from step-plan to carry-forward, 3 samples per arm, descriptive, evaluator `e6_downstream.py`.
+- Both arms are pinned to `337b09c5`. Cg is ShipLoop as shipped (no overlay). T is the same commit with the
+  `e6-no-size-bound` overlay: one edit, the step-plan duty's sizing bullet back to its wording before the bound (no
+  cap of 4 criteria and 3 product files; today's "proof" for "check"). The arms differ in the bound only.
+- Subject: the Claude host (Claude Code) on `deepseek-v4.1-flash:1017-cloud` through the local Ollama server, the E2E
+  default since 2026-10-26 (`hosts.RUN_DEFAULT_BACKEND`). `experiment.py --host` now defaults to `claude`, the last
+  driver that still defaulted to Grok. `--host grok` and `--backend=anthropic` remain.
+- Planning review: the default (stage). Timeout `--timeout=14400`: a full battleship run takes about 222 minutes on
+  DeepSeek flash.
+
+R3 on Grok (`E6D-K2`) stays as recorded in entries 8 to 10, and its comparison is not resumed here. The two rounds
+differ in subject and in ShipLoop version, so no sample from one is read with the other.
