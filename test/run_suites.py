@@ -31,9 +31,21 @@ import suite_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
-# Each suite is its own hermetic process, so they can run side by side.  Eight
-# kept seven ShipLoop suites at 5.4 minutes against about 14 serially
-# (2026-10-25); more mostly adds contention on a shared machine.
+# Assumptions behind running suites side by side (docs/local-validation-journal.md, round 1).  Each is guarded by the
+# test named after it in test/test-groups.test.py; change one only together with its guard.
+# - Every catalog suite is hermetic: its own process group, its own temporary directories, a private state home
+#   (run_process), and no fixed port, shared path or global Git setting.  A suite that fails only beside others has a
+#   test defect, which is fixed in that suite (journal F11, F16), not by running everything serially; `--jobs 1` is for
+#   diagnosis.
+# - No verdict depends on how fast a loaded machine runs.  Under --jobs every suite shares the CPU, so a time bound
+#   inside a test needs generous headroom; a tight one fails under load (F11's 20 s hold) or when a Mac sleeps (F14).
+# - A parallel run reports what a serial one reports: output, OK/FAIL lines and receipt records in catalog order, and
+#   exit 1 if any suite failed (test_parallel_jobs_report_what_one_job_reports).
+# - `--jobs 1` starts a suite only after the previous one is in the receipt
+#   (test_execution_continues_after_failure_and_persists_incremental_receipt).
+# - An interrupted parallel run stops the suites it started (test_an_interrupted_parallel_run_stops_the_suites_it_started).
+# The cap below is a default for a shared machine, not a correctness bound: any N works.  Eight kept seven ShipLoop
+# suites at 5.4 minutes against about 14 serially (2026-10-25); more mostly adds contention.
 MAX_DEFAULT_JOBS = 8
 DEFAULT_JOBS = min(os.cpu_count() or 1, MAX_DEFAULT_JOBS)
 TOP_LEVEL_TEST_ALLOWLIST = frozenset({

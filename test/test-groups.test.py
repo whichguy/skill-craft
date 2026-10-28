@@ -27,10 +27,11 @@ import suite_catalog  # noqa: E402
 
 
 class TestGroupTests(unittest.TestCase):
-    def invoke_root(self, root: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    def invoke_root(self, root: Path, *args: str, env: dict[str, str] | None = None,
+                    timeout: float = 30) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["bash", str(root / "test" / "run-all.sh"), *args],
-            cwd=root, env=env, capture_output=True, text=True, timeout=30,
+            cwd=root, env=env, capture_output=True, text=True, timeout=timeout,
         )
 
     def _copy_runner(self, root: Path) -> None:
@@ -89,11 +90,12 @@ class TestGroupTests(unittest.TestCase):
                     "    if receipt['completed']:\n"
                     "        log = Path(os.environ['CHECK_RECEIPT_ROOT']) / receipt['completed'][-1]['stdout_log']\n"
                     "        assert log.is_file()\n"
-                    # PID_DIR: record the pid and hang, for the interrupt test.
+                    # PID_DIR: record the pid and hang far longer than the interrupt test waits, so a runner that
+                    # waited for its suites instead of stopping them cannot pass by their ending on their own.
                     "if os.environ.get('PID_DIR'):\n"
                     "    import time\n"
                     f"    (Path(os.environ['PID_DIR']) / '{suite.id}').write_text(str(os.getpid()))\n"
-                    "    time.sleep(60)\n"
+                    "    time.sleep(600)\n"
                     # BARRIER_DIR: pass only once BARRIER_COUNT suites have arrived, so passing proves they overlapped.
                     "if os.environ.get('BARRIER_DIR'):\n"
                     "    import time\n"
@@ -224,15 +226,22 @@ class TestGroupTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertLessEqual(expected, {suite.id for suite in suite_catalog.quick((path,))})
 
-    def test_a_hub_file_selects_a_bounded_consumer_set(self) -> None:
-        baseline = {suite.id for suite in suite_catalog.quick()}
-        for path in ("skills/shiploop/scripts/shiploop_navigator.py",
-                     "skills/shiploop/scripts/shiploop_store.py",
-                     "skills/shiploop/scripts/shiploop"):
+    def test_a_hub_file_selects_its_fixed_set_however_many_suites_reference_it(self) -> None:
+        # Assumption: a file most suites reference selects _HUB_SUITE_IDS in place of its consumers, so its selection
+        # does not grow with them.  Checked by adding consumers, not by a count ceiling: a ceiling sat exactly at its
+        # limit once the packet-source rule joined the hub's selection, and any new rule or suite would trip it with
+        # nothing wrong.
+        real = suite_catalog._suite_sources()
+        for path, token in (("skills/shiploop/scripts/shiploop_navigator.py", "shiploop_navigator"),
+                            ("skills/shiploop/scripts/shiploop_store.py", "shiploop_store"),
+                            ("skills/shiploop/scripts/shiploop", "scripts/shiploop")):
             with self.subTest(path=path):
-                extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
-                # The navigator is also a packet source, which adds the packet-size suites.
-                self.assertLessEqual(len(extra), len(suite_catalog._HUB_SUITE_IDS) + len(suite_catalog.PACKET_SIZE_IDS) + 2)
+                before = suite_catalog.targeted([path])
+                more = {f"fake-consumer-{n}": f"import {token}\n" for n in range(2 * suite_catalog.HUB_REFERENCE_LIMIT)}
+                with mock.patch.object(suite_catalog, "_suite_sources", return_value={**real, **more}):
+                    after = suite_catalog.targeted([path])
+                self.assertEqual(after, before)
+                self.assertGreaterEqual(after, set(suite_catalog._HUB_SUITE_IDS))
 
     def test_quick_never_runs_heavy_suites_or_the_apparatus(self) -> None:
         everything = tuple(suite.path for suite in suite_catalog.SUITES)
@@ -406,14 +415,21 @@ class TestGroupTests(unittest.TestCase):
                 self.assertEqual([record[0] for record in runs["1"][3] if record[1] == "failed"],
                                  [failing] if failing else [])
 
+    # Waits in the parallel-runner tests are generous on purpose: on success each returns as soon as its condition holds,
+    # so the headroom costs nothing, and a loaded machine (load average 29 to 46 on 2026-10-26, journal F11) must not
+    # turn a correct runner red.  Each test stays discriminating through what it waits for, not through a short limit.
+    PATIENCE_SECONDS = 60
+
     def test_jobs_run_suites_side_by_side_and_one_job_never_overlaps(self) -> None:
         # Each fake suite passes only once BARRIER_COUNT suites have arrived, so a pass proves they overlapped.
         root, env, parent = self.execution_fixture()
         (parent / "barrier").mkdir()
-        env.update(BARRIER_DIR=str(parent / "barrier"), BARRIER_COUNT="4", BARRIER_SECONDS="10")
-        result = self.invoke_root(root, "--group", "ask-agent", "--jobs", "4", env=env)
+        env.update(BARRIER_DIR=str(parent / "barrier"), BARRIER_COUNT="4", BARRIER_SECONDS=str(self.PATIENCE_SECONDS))
+        result = self.invoke_root(root, "--group", "ask-agent", "--jobs", "4", env=env,
+                                  timeout=2 * self.PATIENCE_SECONDS)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         # The control: one job at a time, the first suite waits alone and fails; every later one finds two arrivals.
+        # Its short wait cannot flake: one job never overlaps, so a longer wait would only make the control slower.
         root, env, parent = self.execution_fixture()
         (parent / "barrier").mkdir()
         env.update(BARRIER_DIR=str(parent / "barrier"), BARRIER_COUNT="2", BARRIER_SECONDS="0.5")
@@ -422,37 +438,54 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(re.findall(r"^FAIL (\S+)$", result.stderr, re.M), [suite_catalog.select(("ask-agent",))[0].id])
 
     def test_an_interrupted_parallel_run_stops_the_suites_it_started(self) -> None:
-        # Each suite leads its own session, so Ctrl-C reaches only the runner; it must stop them, not wait 60 s for them.
+        # Each suite leads its own session, so Ctrl-C reaches only the runner; it must stop them. The fake suites sleep
+        # ten times PATIENCE_SECONDS, so a runner that waited for them instead fails the wait below.
+        jobs = 3
         root, env, parent = self.execution_fixture()
         pids = parent / "pids"
         pids.mkdir()
         env["PID_DIR"] = str(pids)
         runner = subprocess.Popen(
-            ["bash", str(root / "test" / "run-all.sh"), "--group", "ask-agent", "--jobs", "3"],
+            ["bash", str(root / "test" / "run-all.sh"), "--group", "ask-agent", "--jobs", str(jobs)],
             cwd=root, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
             # Python installs its Ctrl-C handler only when SIGINT is not ignored, and a background shell ignores it.
             preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL),
         )
         self.addCleanup(lambda: runner.poll() is None and runner.kill())
-        deadline = time.monotonic() + 20
-        while len(list(pids.iterdir())) < 3:
-            self.assertLess(time.monotonic(), deadline, "three suites did not start")
+
+        def kill_if_alive(pid: int) -> bool:
+            """Kill a fake suite that is still running, so a failure here leaves no sleeper behind."""
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                return False
+            return True
+
+        deadline = time.monotonic() + self.PATIENCE_SECONDS
+        while len(list(pids.iterdir())) < jobs:
+            self.assertLess(time.monotonic(), deadline, f"{jobs} suites did not start")
             time.sleep(0.05)
-        interrupted = time.monotonic()
         runner.send_signal(signal.SIGINT)
-        runner.communicate(timeout=10)
-        self.assertLess(time.monotonic() - interrupted, 10)
+        try:
+            runner.communicate(timeout=self.PATIENCE_SECONDS)
+        except subprocess.TimeoutExpired:
+            runner.kill()
+            for path in pids.iterdir():
+                kill_if_alive(int(path.read_text(encoding="utf-8")))
+            self.fail(f"the interrupted runner was still waiting for its suites after {self.PATIENCE_SECONDS} s")
         self.assertNotEqual(runner.returncode, 0)
         started = [int(path.read_text(encoding="utf-8")) for path in pids.iterdir()]
-        self.assertEqual(len(started), 3, "a suite started after the interrupt")
-        deadline = time.monotonic() + 5
+        self.assertEqual(len(started), jobs, "a suite started after the interrupt")
+        deadline = time.monotonic() + self.PATIENCE_SECONDS
         for pid in started:
             while True:
                 try:
                     os.kill(pid, 0)
                 except ProcessLookupError:
                     break
-                self.assertLess(time.monotonic(), deadline, f"suite process {pid} outlived the runner")
+                if time.monotonic() > deadline:
+                    kill_if_alive(pid)
+                    self.fail(f"suite process {pid} outlived the runner")
                 time.sleep(0.05)
 
     def test_output_must_be_new_and_external_and_coverage_fails_before_execution(self) -> None:
@@ -631,9 +664,9 @@ class PacketSourceSelectionTest(unittest.TestCase):
     def test_the_prompt_group_is_the_packet_suites_plus_the_changed_suites(self) -> None:
         # The four packet-size suites and the obligation ledger: 2.11.0 failed CI on the ledger (a rewrap split an
         # anchored phrase of shiploop_prompts.py across two lines) while the four passed locally.
+        # The ids are pinned by name; validate_catalog() refuses one the catalog lacks, so no count is needed here.
         packet = [suite.id for suite in suite_catalog.SUITES
                   if suite.id in {*suite_catalog.PACKET_SIZE_IDS, "shiploop-packet-obligations"}]
-        self.assertEqual(len(packet), 5)
         self.assertEqual([suite.id for suite in suite_catalog.select(("prompt",))], packet)
         # A changed suite runs itself; a changed source adds nothing beyond the packet suites, and a suite above
         # QUICK_MAX_SECONDS (shiploop-workspace) stays in the full tier, as in quick.
