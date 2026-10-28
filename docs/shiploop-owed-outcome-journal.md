@@ -423,6 +423,30 @@ New findings from checking it:
 - **F11, firm (code).** `shiploop-drive` stops at `--max-sessions` (`drive` requires at least 1), a session count;
   the owner accepts only dollar or wall-clock ceilings.
 
+## Intent audit: what the code does today (2026-10-28)
+
+Each intention from this work and the owner rules it rests on, anchored in code at `04c45dce`. Evidence that ran:
+`test/shiploop-loops.test.py` (58 tests OK), `test/shiploop-keepalive.test.py` (61 OK),
+`test_wrong_action_is_named_before_path_or_format_checks` (OK), the floor test named in F15 (OK, pinning today's
+divergence) and a new probe, [retry_carry_probe.py](shiploop-owed-outcome-evidence/retry_carry_probe.py)
+([output](shiploop-owed-outcome-evidence/retry_carry_probe.out)).
+
+| # | Intention (source) | Anchor | Evidence | Status |
+|---|---|---|---|---|
+| I1 | A skipped loop report never gets past the step (owner, 2026-10-27) | `shiploop_loops.check_terminal`, `check_loop_packet` | loops suite: missing receipt, active receipt, mismatched receipt, complete supports done only | Holds |
+| I2 | A skipped callback is noticed and the model asked for it (owner, 2026-10-27) | `shiploop_keepalive.stop`, `_decide`, `_continue_reason`, `observe` | keepalive suite; E4 (memory wiped by `next`); F3, F4, F10 | Partly: noticed, but the ask is generic and the release is inconsistent. Phase A |
+| I3 | The model needs no knowledge of its step or stage (owner, 2026-10-27; 2026-10-11 TODO) | packets per action; `hook_status` returns the `next` command | `SKILL.md` still asks the model to keep the run directory and `next` command in its summaries | Partly; the 2026-10-11 stateless audit has not started |
+| I4 | The model names what happened; the script picks one next node (owner, 2026-10-27; ShipLoop purpose) | `_canonical_result`, `_apply_result`, `shiploop_stage_spec.send_back_target` | wrong-action test; navigator suites in the quick tier | Holds |
+| I5 | Each step is one Until Loop with the step's prompt and exit conditions (v3; owner 2026-10-10) | `shiploop_loops.WORK`, `REPEAT`, `contract_writes`; `shiploop_loop_contract.contract` | loops suite | Holds |
+| I6 | Criteria not met: plan, then loop back to the same step (owner, 2026-10-27) | runtime `_transition`, `next_packet` | probe: the next instruction opens "Resolve the evidence gap in the latest report"; the gap is quoted in it, the plan travels in `last_report.handoff` but is not quoted | Holds; the plan is carried, not restated |
+| I7 | A supervisor or person can intervene, and only their reply resumes (owner, 2026-10-27) | `AWAITING_KINDS` (answer, present, service); `resume --answer`/`--observed` | keepalive suite (the quiet stop, the person's reply, service waits) | Holds |
+| I8 | The loop ends only when the check says yes (iterate until a check confirms; owner 2026-09-24/26) | contract has no exit checks (F8, F16); check-only is advice | F15's floor test passes, pinning today's disagreement | Not yet. Phases B, C |
+| I9 | `shiploop check` and "the check says yes" (owner, 2026-10-27) | none in code | journal only | Not yet. Phase B |
+| I10 | No iteration counts (owner, 2026-10-11) | `GENUINE_FIX_ATTEMPTS` in prompt text; `shiploop-drive --max-sessions` | F14, F17, F11 | Partly. Phase A |
+| I11 | Every command a model triggers is visible to host hooks (owner, 2026-10-11) | loop `start`/`done`/`record` run in the host shell; ShipLoop runs each recorded test command itself, `/bin/sh -c` in `shiploop_test_loop._run_command`, inside `complete` | code read | Partly: hooks see `shiploop complete`, not the test commands. ShipLoop's own test runs are also an owner decision (2026-10-10), so the owner must say which rule governs; phases A-C do not change it |
+| I12 | Each packet works after a reset and stays concise (owner, 2026-09-26 and 2026-10-18) | packet renderer; `PRINT_LIMIT` | F12 (all inner packets over 16,000 characters), F7 (no action line in the last 43%) | Partly. Phase C (S4) |
+| I13 | Simplify without losing a feature (owner, 2026-10-27) | — | — | Not yet. Phases A-C |
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in
@@ -455,5 +479,6 @@ tree hash excludes.
 - 2026-10-27: owner adopted `shiploop check` and "the check says yes"; design sections and phases B and C reworded.
   Findings about today's code keep the current name, `complete --check-only`, until phase B renames it in code,
   references and glossary in one commit.
+- 2026-10-28: intent audit I1-I13 added, anchored in code with four test files and the new retry-carry probe.
 - 2026-10-28: corrected the experiments' provenance: E3-E5 were rerun at `821db5c0` before the commit, not only run
   at `b0d29284`; four commits from other sessions had landed on main in between, none touching the traced code.

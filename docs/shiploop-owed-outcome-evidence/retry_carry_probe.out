@@ -1,0 +1,8 @@
+# retry_carry_probe.py at skill-craft 04c45dce, 2026-10-28T15:35Z
+done exit: 0 | stderr: none
+after the report: status active | progress {'action_number': 2, 'trivial_streak': 0, 'required_trivial_reviews': 0}
+gap carried into the next packet : True | in its instruction text: True
+plan carried into the next packet: True | in its instruction text: False
+last_report kept: ['classification', 'continuation_assessment', 'evidence', 'exit_assessment', 'handoff']
+next instruction opens: Resolve the evidence gap in the latest report, then recheck the conditions. Execution condition (Work): 'Write hello.txt containing the word hello.'. Exit condi
+exit=0
