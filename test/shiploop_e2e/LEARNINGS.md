@@ -3930,3 +3930,65 @@ defects sat at an edge.
 
 **Built 2026-10-27 (B, no X1, at the owner's choice).** Not released, and no live run yet. Its check is the next Sonnet
 battleship run with a wide item: two or more of the three defect classes fixed by its step reviews (design §5).
+
+## Wide-item rule (B) live check: battleship on Sonnet 5.5, 2.18.0 / ShipLoop 1.17.0 (2026-10-27) — status: firm for the verdict, the step plan's paths and the probes; interim for review depth (n=3 Sonnet runs)
+
+**Question.** With B released, does a Sonnet battleship run that plans one item for the app get a review per changed
+step? Do those reviews fix 2 or more of the 3 defect classes (`GET //`, unchecked options, stale fire reply), as
+01b9b3's per-step reviews did and 491d9a's one item review did not?
+
+Setup:
+- release 292a2a36, its push CI green and its release full tier running;
+- one run, `--backend anthropic --source marketplace`, Mac awake on AC with keep-awake on (no pmset sleep during the
+  run).
+
+**Result** (`docs/experiments/e2e-v2180-sonnet-validation-20261027/`: `summary.json`, `probes.md`,
+`improve-windows.txt`, `review-passes.txt`, `step-plan-paths.txt`; the baseline row is in this commit).
+
+| | 01b9b3 per step (2.16.0) | 491d9a item (2.17.0) | 36036c (2.18.0) |
+|---|---|---|---|
+| verdict, send-backs | PASS, 0 | PASS, 0 | PASS, 0 |
+| work items / path groups | 1 / 3 | 1 / 2 | 1 / 1: no step declared paths |
+| implement reviews (awake min) | 3 (2.7) | 1 (1.6) | 1 (1.8) |
+| Improve windows / awake min | 11 / 9.4 | 8 / 8.7 | 8 / 10.3 |
+| run awake min | 36.9 | 31.7 | 32.7 |
+| `GET //` | fixed (S3 review) | shipped | fixed (item review, pass 1) |
+| unchecked options | fixed (S1 review) | shipped | absent by design; `store.add(42)` accepted |
+| stale fire reply | fixed (S2 review) | shipped | shipped |
+| stages with 2+ finding passes | 0 of 11 | 0 of 8 | 5 of 8 |
+
+**What it shows.**
+- **B was not exercised.**
+  - Sonnet planned one item (rules, server, page, tests) in three steps, one per file, but this time no step declared
+    `paths`.
+  - Each step took the item's seven paths, so `step_path_groups` = 1 and the item got P0's single review after S3.
+  - The width check depends on a field the step plan may omit: 491d9a supplied it, this run did not. So B needs its
+    input made reliable before it can be measured (next).
+- **The single item review did better than 491d9a's, and still missed the page.**
+  - Pass 1 probed and fixed the `GET //` crash. Pass 2 made 500s diagnosable under DEBUG. Pass 3 was trivial.
+  - The options class was absent: `createStore` checked `cap` from S1 on.
+  - The stale fire reply shipped, though pass 2 says it re-read "page behaviour".
+  - Of the 3 classes: 1 fixed, 1 absent, 1 shipped. That compares with 01b9b3's 3 fixed and 491d9a's 0 of 3.
+- **"Sonnet makes one finding pass per review" is superseded as a stable property.** It held for 19 of 19 stages in
+  01b9b3 and 491d9a. In this run 5 of 8 stages made two finding passes, including the implement review. Nothing in
+  2.18.0 changed Improve's loop or prompts; Claude Code moved from build 2.1.310 to 2.1.311. Over three Sonnet runs,
+  review depth varies by run, so the claim is now: depth per review is not stable on Sonnet. The page defect that
+  only a per-step review has caught (01b9b3 S2) is still the class to measure.
+- **Other gates.**
+  - Mutation refused the test stage once (2 of 8 survivors), and the model fixed it.
+  - Minor refusals: 3 criteria length caps at step-plan, one improve-pass with an invented action id, the
+    carry-forward `skill` field (check-only, then the real submit), one missing evidence file, and one unverified
+    restatement at handoff.
+  - TS1 and IN1 refused nothing. Mutation caught 48 of 58.
+
+**Validity.** n=1 for this run. The comparison is across three runs on three Claude Code builds. The stale-reply defect
+is shown by reading the page, as in 491d9a. Cost $9.32 and 365 turns, against 01b9b3's $8.47 and 339.
+
+**Next.**
+- **F1:** make B's input reliable.
+  - Recommended: step-plan refuses a plan of two or more steps that does not name each step's paths.
+  - Alternative: a step with no paths counts as its own group.
+  - Then rerun Sonnet battleship.
+- The design's premise is weaker than written (depth varies by run, not one pass always). The measured case for
+  per-step review rests on the page defect: per-step reviews caught it in 1 of 1 run; item reviews caught it in 0 of
+  2 runs that had it.

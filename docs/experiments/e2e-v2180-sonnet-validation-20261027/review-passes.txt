@@ -1,0 +1,29 @@
+# Review passes per Improve stage of v2180-sonnet-battleship-36036c: n = non-trivial (found and changed something), t = trivial.
+  carry-forward-1fdefda1             passes=2  nt
+  implement-3985d93a                 passes=3  nnt
+  plan-2eed2887                      passes=3  nnt
+  release-plan-e0b16ff4              passes=2  nt
+  spec-1124a2e8                      passes=3  nnt
+  step-plan-3fc215c0                 passes=3  nnt
+  system-test-author-84bae56b        passes=2  nt
+  test-strategy-fb638172             passes=3  nnt
+
+# The implement item review's passes (implement-3985d93a)
+## review-1.md
+classification: non-trivial
+Read: game.js, server.js, public/index.html, the step-plan criteria and test cases, spec R-1..R-5, step commits 41ace8a f6a5935 ebd0929.
+Found: server.js built the pathname with `new URL(req.url, ...)` outside any try block, and the DEBUG logger repeated it. A request target such as `GET //` throws Invalid URL inside the request handler, which is an uncaught exception: one anonymous request kills the whole server (confirmed by probe, exit 1). That breaks the single-process server's availability and the 'validation and abuse limits on anonymous input' decision AD-5.
+Changed: server.js now takes the path with a small non-throwing helper (`pathOf`); environment.md TC-5 gains the `//` case so the test stage keeps a regression test for it.
+Checked: before/after probe, the three proofs, check-docs, lint (checks.md).
+## review-2.md
+classification: non-trivial
+Read: server.js after pass 1 (54d88a3ba47a), game.js, public/index.html, AD-5 (opt-in debug diagnostics, no stack traces to clients).
+Found: an unexpected exception in a handler answered 500 with no trace anywhere, so under DEBUG=battleship a defect behind a 500 left no diagnostic; AD-5 promises opt-in debug diagnostics. (No other defects: validation order, body cap, eviction and page behaviour re-read against R-1..R-5.)
+Changed: server.js writes the error stack to stderr only when DEBUG=battleship; the client body stays `internal error`.
+Checked: forced-error probe in both modes, proofs, check-docs, lint (checks.md).
+## review-3.md
+classification: trivial
+Read: game.js, server.js, public/index.html at HEAD 602cfc0a475b against C1-C10, spec R-1..R-5 and AD-1..AD-6; history of passes 1-2.
+Found: nothing material; every criterion's proof still exits 0, odd request targets and internal errors behave as probed.
+Changed: nothing.
+Checked: the four proof commands (checks.md).

@@ -1,0 +1,6 @@
+# The accepted W1 step plan of v2180-sonnet-battleship-36036c: each step's declared paths and the path groups (shiploop 1.17.0)
+item paths: ['game.js', 'server.js', 'public/index.html', 'test/game.test.js', 'test/server.test.js', 'test/browser.test.js', 'test/helpers.js']
+S1: paths=None | Create game.js (CommonJS; imports only node:crypto). FLEET: carrier 5, battleship 4, cruiser 3, submarine 3, destroyer 2
+S2: paths=None | Create server.js (CommonJS; node:http, node:fs, node:path, ./game). createServer() returns an http.Server (not listening
+S3: paths=None | Create public/index.html: one file, inline CSS and JS, no libraries. On load GET /api/new, build a 10x10 grid of <button
+path groups: 1

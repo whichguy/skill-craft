@@ -1,0 +1,10 @@
+run span 32.7 min, asleep 0.0, awake 32.7
+  improve after spec                 raw   1.8  awake   1.8
+  improve after test-strategy        raw   1.6  awake   1.6
+  improve after plan                 raw   1.0  awake   1.0
+  improve after step-plan            raw   1.5  awake   1.5
+  improve after implement            raw   1.8  awake   1.8
+  improve after carry-forward        raw   0.9  awake   0.9
+  improve after system-test-author   raw   0.8  awake   0.8
+  improve after release-plan         raw   0.8  awake   0.8
+improve total raw 10.3 min, awake 10.3 min over 8 windows

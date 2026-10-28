@@ -1,6 +1,8 @@
 # Wide work items keep per-step Improve reviews — design, 2026-10-27
 
-Status: **B built, not released** (2026-10-27). The owner chose B without the replay ("Skip X1 and build design B
+Status: **B released in 2.18.0 (292a2a36); its first live run did not exercise it** (2026-10-27, v2180-sonnet-battleship-36036c:
+no step declared paths, so the item formed one group; see `test/shiploop_e2e/LEARNINGS.md`, "Wide-item rule (B) live check").
+B needs reliable per-step paths first (F1, the owner's call). Earlier status: B built, not released (2026-10-27). The owner chose B without the replay ("Skip X1 and build design B
 (per-step reviews for wide items) with its fail-first tests and change note"). It is described under "Built" at the end of
 §3. The design itself came first, with nothing built ("Design the wide-item review fix here … build nothing yet").
 
@@ -75,6 +77,8 @@ From `review-passes.txt`. A finding pass is a non-trivial pass: it found somethi
 | DeepSeek 978478 | 22 | 5 | 4 |
 | DeepSeek 759a03 | 10 | 12 | 11 |
 
+- **Superseded 2026-10-27 by the 2.18.0 run, in which 5 of 8 Sonnet stages made two finding passes: depth per review varies by run.**
+  The original reading follows.
 - **Sonnet never made a second finding pass, in all 19 of its stages.** Each stage's second pass checked the first
   pass's own edits and ended the loop.
 - **On Sonnet, then, the number of reviews sets how many finding passes the code gets.**
