@@ -4124,3 +4124,47 @@ no slice was rerun.
 **Next.** Release the phase B change. Do not start phase C until a larger sample, or a look at the extra commands,
 explains the count; its own pilot (no live run has ever executed an Until Loop `verify_script`) is still owed. Rerun B3
 once the Ollama limit is lifted.
+
+## Session-end hook and takeover: live round on Claude Sonnet 5.5 (2026-10-29) — status: firm for the hook's release and the takeover (n = 1 each); the `session_end` check read not exercised in all three slices
+
+**Question.** Does the host's SessionEnd hook (`1961f4c5`, with the trace row of `1f0bc835`) free a run that its session
+owned, and does the next session take it at once? And does the takeover (`f82da379`, with the unreadable-process-table fix
+`2e62367a`) hand a run over when the owner's process was killed and no hook ran?
+
+**Setup.**
+- One-off on the Claude host with `--backend anthropic` (Sonnet 5.5, the CLI's own effort), because Ollama's monthly usage
+  limit (HTTP 429, 08:11 PDT) ended DeepSeek runs. The owner chose it on 2026-10-29. The E2E default and its baselines are
+  unchanged and no baseline row was written.
+- `slice.py --case node-fix-bug --seed-at step-plan --clear-at implement --clear-signal SIGTERM` and `SIGKILL`, from
+  `2fa82212` (release 2.22.0 / shiploop 1.21.0, `1f0bc835`, `2e62367a`); `--max-budget-usd 5`, `--timeout 2400`.
+  `owner_watch.py` logged the run's claim file every 0.25 s beside each slice.
+- Every ShipLoop commit since the release is in that build (`1f0bc835`, `2e62367a`). Later commits on main: one test
+  commit (`7ec4651d`).
+
+**Not covered.** Grok, Codex and Cursor session ends. A model that ends a turn after a release, so `keepalive_text` and a
+`session_end` pass stayed not exercised. The takeover fix's own case (an unreadable process table) is unit-tested only. n = 1
+per mechanism.
+
+**Result** (evidence: `docs/shiploop-owed-outcome-evidence/live-round-2026-10-29.json`, the two claim logs beside it).
+
+| slice | signal at `implement` | trace row | claim after | next session's claim | verdicts |
+|---|---|---|---|---|---|
+| `round-se-sigterm-1-e35e7d` | none: `implement:inside` never fired | none | none | none | all pass, no evidence |
+| `round-se-sigterm-2-b14d8c` | SIGTERM, exit 143 after 120.4 s | `session-end` release, `released: true` | removed 0.46 s before the end was recorded | +10.8 s | all pass, `no_redo` too |
+| `round-se-sigkill-1-708d75` | SIGKILL, exit -9 after 132.0 s | none | stayed, owner pid dead | +5.2 s, replacing it | all pass, `no_redo` too |
+
+**What it shows.**
+- **The hook frees the run.** The harness releases nothing when `--clear-signal` is set, and the claim went before the
+  harness recorded the session's end, so the host's hook freed it. The next session claimed it 10.8 s later.
+- **The takeover takes a dead owner's run at once.** The next session replaced the dead claim 5.2 s after the kill. The
+  dead claim's last refresh was 6.2 s old, so the process check freed it, not the 1,800 s window.
+- **The `session_end` check cannot pass on a slice yet.** It needs another session's stop decision after the release, and
+  the fresh sessions never end a turn. It read not exercised in all three, as designed. A claim row in the trace is the fix.
+- **`implement:inside` depends on the model.** Sonnet made four Bash calls and no Edit or Write in `implement`, and the
+  harness counts all four as ShipLoop calls, so the position never fired and the first slice, 256.8 s and 61 turns, gave
+  no evidence. Use a stage-boundary position for
+  host-mechanism rounds.
+
+**Next.** The SessionEnd hook and the takeover now have live evidence on Claude; the release may proceed. Ollama's
+limit still blocks DeepSeek rounds; the brownfield and phase B reruns need credits or the monthly reset. Build the claim row
+when a round needs the check to pass.
