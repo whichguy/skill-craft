@@ -1,0 +1,7 @@
+{"t": 1793291143.755, "at": "2026-10-29T16:25:43.755+00:00", "event": "watching", "run_dir": "/Users/dadleet/e2e-runs/20261029/round-se-sigkill-1-708d75/.shiploop-runs/seed/run", "claim_file": "/Users/dadleet/.local/state/shiploop/keepalive/runs/0d253460af2859a879a45b59efaf5ae9.json", "interval": 0.25}
+{"t": 1793291143.756, "at": "2026-10-29T16:25:43.755+00:00", "event": "claim", "claim": null, "pid_alive": null}
+{"t": 1793291149.377, "at": "2026-10-29T16:25:49.376+00:00", "event": "claim", "claim": {"owner": "claude:b243560f-8ee9-482e-8696-f058678df073", "seen": 1793291149.297034, "pid": 30560, "start": "Thu Oct 29 09:25:43 2026"}, "pid_alive": true}
+{"t": 1793291275.833, "at": "2026-10-29T16:27:55.832+00:00", "event": "claim", "claim": {"owner": "claude:b243560f-8ee9-482e-8696-f058678df073", "seen": 1793291274.996195, "pid": 30560, "start": "Thu Oct 29 09:25:43 2026"}, "pid_alive": false}
+{"t": 1793291281.214, "at": "2026-10-29T16:28:01.213+00:00", "event": "claim", "claim": {"owner": "claude:2a37aba7-fe8e-4d76-bd0f-99096c91a223", "seen": 1793291280.937674, "pid": 64210, "start": "Thu Oct 29 09:27:55 2026"}, "pid_alive": true}
+{"t": 1793291546.704, "at": "2026-10-29T16:32:26.703+00:00", "event": "claim", "claim": {"owner": "claude:2a37aba7-fe8e-4d76-bd0f-99096c91a223", "seen": 1793291545.5001101, "pid": 64210, "start": "Thu Oct 29 09:27:55 2026"}, "pid_alive": false}
+{"t": 1793291580.296, "at": "2026-10-29T16:33:00.295+00:00", "event": "stopped", "why": "slice finished"}
