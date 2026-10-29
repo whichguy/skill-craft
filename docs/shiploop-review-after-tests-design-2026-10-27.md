@@ -1037,9 +1037,14 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
   - **Landing on main, the owner's call (relayed 2026-10-29 by the E2E session):** phase B (`shiploop check`) lands first;
     design T merges main once afterwards and is not pushed to main before 2c-0, the pilots, the README and the owner's
     release go. Six files conflict between B and this stack: `shiploop_navigator.py`, `shiploop_prompts.py`,
-    `state-files.md`, and the callback-contract, loops and test-loop tests. **Head budget:** B adds roughly 150 to 250
-    characters to each inner-stage head, and the inline step-plan head has 3 characters of room, so whichever side merges
-    second must cut an equal amount from that head.
+    `state-files.md`, and the callback-contract, loops and test-loop tests. **Head budget:** the first estimate was that B adds 150 to
+    250 characters to each inner-stage head, against 3 characters of room on the inline step-plan head. Phase B measured
+    its final wording (2026-10-29, at the reference install, on main's text): its `Check (` line, 329 characters per
+    inner head, broke two size suites and is gone, replaced by one phrase in the Checked-by line
+    (`navigator._checked_line`) and a shorter `prompts.CALLBACK_REASON`. That frees 23 characters on every inner head
+    but test (+16) on both routes, so the inline step-plan head would have 26 characters of room after B, and the test
+    head needs 16 left for B. Design T edits neither string, so they merge without a conflict there. *Superseded
+    estimate: the 150 to 250 characters.*
 - **2c. The ask-agent route** gets the same step boundaries (G1).
   **2c design, 2026-10-28: nothing built. The owner decided G1 on 2026-10-29: adopt (a2)** (the decision and what it
   builds are at the end of this item). The question G1 left open: the iteration is serial, but the chain builds
