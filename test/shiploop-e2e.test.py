@@ -3468,6 +3468,59 @@ class CodexHostTest(unittest.TestCase):
             self.assertNotIn("CODEX_SECRET", env)
             self.assertEqual(env["HOME"], str(Path(temp) / "home"))
 
+    def test_argv_trusts_the_hooks_of_its_throwaway_home_on_a_fresh_and_a_resumed_launch(self):
+        # Codex runs a plugin's hooks only once they are trusted, and a fresh CODEX_HOME holds no trust: without the
+        # flag the keepalive, the session-end hook and the takeover never run in a Codex round.
+        codex = hosts.host("codex", "codex-bin")
+        with tempfile.TemporaryDirectory() as temp:
+            for resume in (None, "thread-1"):
+                argv = codex.argv(prompt="go", prompt_file=Path(temp) / "p.txt", cwd=Path("/w"), model="gpt-6.1-terra",
+                                  effort="xhigh", permission_mode="auto", max_turns=10, resume=resume)
+                self.assertIn("--dangerously-bypass-hook-trust", argv)
+                self.assertLess(argv.index("--dangerously-bypass-hook-trust"), argv.index(resume or "go"))
+                if resume:
+                    self.assertLess(argv.index("--dangerously-bypass-hook-trust"), argv.index("resume"))
+
+    def test_the_trust_bypass_has_no_hook_to_trust_but_the_installed_plugins(self):
+        # The flag is safe only because nothing else is there to run: the throwaway home links auth.json and nothing
+        # that carries a hook or a trust record.
+        with tempfile.TemporaryDirectory() as temp:
+            real = Path(temp) / "real"
+            real.mkdir()
+            (real / "auth.json").write_text("{}")
+            (real / "hooks.json").write_text('{"hooks": {"Stop": []}}')
+            (real / "config.toml").write_text("[hooks.state]\n")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(real)}):
+                env = hosts.host("codex").env(Path(temp) / "home")
+            self.assertEqual(sorted(path.name for path in Path(env["CODEX_HOME"]).iterdir()), ["auth.json"])
+
+    def test_the_keepalive_block_names_the_hooks_the_plugin_brings_to_codex(self):
+        codex, grok = hosts.host("codex"), hosts.host("grok")
+        with tempfile.TemporaryDirectory() as temp:
+            plugin = Path(temp)
+            self.assertFalse(codex.keepalive_install({}, plugin)["installed"])
+            (plugin / "hooks").mkdir()
+            (plugin / "hooks" / "codex.json").write_text("{}")
+            self.assertTrue(codex.keepalive_install({}, plugin)["installed"])
+            with mock.patch.object(hosts, "grok_keepalive", return_value={"installed": True}) as installer:
+                self.assertEqual(grok.keepalive_install({"HOME": "h"}, plugin), {"installed": True})
+                installer.assert_called_once_with({"HOME": "h"}, plugin)
+            self.assertIsNone(hosts.host("claude").keepalive_install({}, plugin))
+
+    def test_a_codex_notice_is_a_thought_not_a_tool_call_or_a_turn(self):
+        # With hooks on, every launch opens with notices (the trust bypass, a clamped hook timeout); Codex sends them as
+        # `error` items. Counted as tool calls they would add turns to every Codex run.
+        translate = hosts.host("codex").translator()
+        notices = [{"type": "item.completed", "item": {"id": f"item_{n}", "type": "error", "message": text}}
+                   for n, text in enumerate(("`--dangerously-bypass-hook-trust` is enabled.",
+                                             "clamping SessionEnd hook timeout to 3s in /h/hooks.json"))]
+        events = [json.loads(raw) for event in [{"type": "thread.started", "thread_id": "t"}, *notices,
+                                                {"type": "turn.completed", "usage": {}}]
+                  for raw in translate((json.dumps(event) + "\n").encode())]
+        self.assertEqual([e["type"] for e in events], ["available_commands", "thought", "thought", "end"])
+        self.assertIn("clamping SessionEnd", events[2]["data"])
+        self.assertEqual(events[-1]["num_turns"], 0)
+
     def test_translated_stream_reads_like_grok_for_every_parser(self):
         events = self.translated()
         kinds = [e["type"] for e in events]

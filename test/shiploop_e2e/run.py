@@ -4189,7 +4189,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             require_improve_card(planning_review, plugin_dir)  # before the host CLI installs the plugin into its profile
         plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
-    keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
+    keepalive = host.keepalive_install(env, plugin_dir)
     improve_skill = earlier.get("improve_skill") if resumed else None
     if planning_review == "none" and not resumed:
         # The run option rides in the prompt the model is given (and prompt.txt keeps), as it did in a custom --prompt.

@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"01a18914-55b7-75e1-8d33-1827a1517ae1"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_2","type":"error","message":"clamping SessionEnd hook timeout to 3s in /private/tmp/claude-501/-Users-dadleet-src-skill-craft/1e5a7b35-1c52-4732-ac62-5d1376fa3b72/scratchpad/terra-live/home/.codex/plugins/cache/whichguy/skill-craft/2.22.1/hooks/codex.json"}}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'echo hooks-probe'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'echo hooks-probe'","aggregated_output":"hooks-probe\n","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"done"}}
+{"type":"turn.completed","usage":{"input_tokens":38777,"cached_input_tokens":24064,"cache_write_input_tokens":0,"output_tokens":41,"reasoning_output_tokens":0}}

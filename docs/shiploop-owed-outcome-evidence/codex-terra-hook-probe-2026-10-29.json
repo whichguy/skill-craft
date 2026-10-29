@@ -1,0 +1,29 @@
+{
+  "what": "One Terra turn through hosts.CodexHost in a throwaway CODEX_HOME holding only skill-craft 2.22.1 from the published marketplace",
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "flag": "--dangerously-bypass-hook-trust",
+  "prompt": "Run the shell command: echo hooks-probe . Then reply with the single word done.",
+  "answered": true,
+  "exit_code": 0,
+  "keepalive_decisions": {
+    "allow": 1
+  },
+  "notices_in_stream": [
+    "`--dangerously-bypass-hook-trust` is enabled (twice)",
+    "clamping SessionEnd hook timeout to 3s"
+  ],
+  "translated_event_types": [
+    "available_commands",
+    "thought",
+    "thought",
+    "thought",
+    "tool_call",
+    "tool_call_update",
+    "text",
+    "end"
+  ],
+  "num_turns": 2,
+  "num_turns_before_the_notice_fix": 5,
+  "stream": "codex-terra-hook-probe-2026-10-29.stream.jsonl"
+}

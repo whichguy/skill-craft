@@ -4,6 +4,28 @@ Written by scripts/release.py.
 
 ## 2026-10-29
 
+### skill-craft 2.22.1
+
+- Skills: shiploop 1.21.1, shiploop-e2e-audit 0.7.12
+
+### shiploop 1.21.1
+
+- A session that cannot read the process table no longer takes over a live session's run.
+  - When `ps` is missing, times out or is hidden by a sandbox, the keepalive treated every recorded owner as gone and let a
+    second session claim the run at once, so two sessions could drive one run. An unreadable table now counts as unknown,
+    and only the 30-minute rule frees the claim.
+  - The owner's own hook in that situation keeps the process it recorded instead of overwriting it with none.
+- A session end the host reports is now recorded in the run's `trace.jsonl`, so a run shows that the host's session-end hook
+  freed it.
+  - The hook writes a `hook` row (`hook=session-end`, `decision=release`, `released`, and the host's `reason`).
+    `released` is true when that session's claim on the run was removed, and false when the stop hook had already released
+    it (a normal exit) or another session owns the run. `shiploop trace` prints it like any hook row.
+  - `release_owner` returns whether it removed a claim.
+
+### shiploop-e2e-audit 0.7.12
+
+- The Grok adapter's list of direct ShipLoop subcommands now includes `check`, the verb that replaced `complete --check-only` in ShipLoop 1.21.0. Before, a Grok-hosted E2E run could not credit or run `shiploop check`, and `test_direct_subcommand_allowlist_matches_the_current_shiploop_cli` failed in CI's full tier (the 1.21.0 release commit, job `full / e2e-apparatus`).
+
 ### skill-craft 2.22.0
 
 - Skills: shiploop 1.21.0
