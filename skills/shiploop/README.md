@@ -156,9 +156,8 @@ of the prelude, per-item inner loop and outer loop, with their gates and
 loops.
 
 Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
-`system-test-author`, `release-plan`), every accepted step review (the Improve
-child that follows a step's `document` stage) and the successful
-`carry-forward` that leaves no work item pending follow this
+`system-test-author`, `release-plan`), every accepted step review and the
+successful `carry-forward` that leaves no work item pending follow this
 sequence; every other producer result is accepted on its own checks and the
 script selects the next producer directly (see "When Improve
 runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs)). That is the default of the run option `--planning-review stage|none`;
@@ -222,8 +221,9 @@ would accept a draft result now, without completing it; `complete` takes its yes
   command of the test stage after a code or test edit). A test it adds is
   registered in the result's `added_tests`, so every later run of that command
   must show it.
-- One Improve child then reviews the step's code, tests and docs (in both
-  planning review modes) from the tree the step began from, and commits nothing.
+- One Improve child then reviews the step's code, tests and docs after its
+  `document` stage (in both planning review modes) from the tree the step began from, and
+  commits nothing.
   When the review changed a file, its import lints the lines it changed and
   reruns the step's commands before the review is accepted. A step that changed
   no file starts no review.
