@@ -1,0 +1,1583 @@
+[
+ {
+  "id": "e2e-runs/20261027/v2170-ds-battleship-759a03|system-test-author-bca030cb|1",
+  "findings": [
+   {
+    "summary": "stopChild sent SIGTERM without waiting, letting a live listener leak into the next case",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "startServer reported an instantly exited child as a 5 s timeout, with no retry on port conflict",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "SYS_PORT_RESOLUTION missed negative and fractional PORT values among documented fallbacks",
+    "touched": [
+     "code"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Recorded costs, child-start counts and variant lists went stale after the fixture changed",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "architecture.md contradicted spec on bind address and inventories omitted the new system suite file",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "README says AD-1..AD-17 while architecture holds AD-1..AD-19; out of scope, not edited",
+    "touched": [
+     "nothing"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87|system-test-author-38a85ca1|2",
+  "findings": [
+   {
+    "summary": "Result summary still attributed AC-2.3 to SYS-3, a check that cannot observe it",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "architecture SYS-5 paragraph named only the suite rerun, omitting the captured consumer run",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Reviewed stage's architecture cross-link edit was left uncommitted",
+    "touched": [
+     "record"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   },
+   {
+    "summary": "SYS-2 cwd named inconsistently as repository parent versus worktree parent",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "polish",
+    "attribution": "uncertain"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|carry-forward-1ad29b98|1",
+  "findings": [
+   {
+    "summary": "Refusal messages interpolating a symbol value threw TypeError before the intended message; no case covered them",
+    "touched": [
+     "code",
+     "test",
+     "record"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "drive() assigned child after launch resolved, leaking Chrome and profile when launch timed out",
+    "touched": [
+     "code",
+     "record"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "stub-api readBody measures UTF-16 length against a byte limit; left unchanged",
+    "touched": [
+     "nothing"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|test-strategy-3b9fc67c|2",
+  "findings": [
+   {
+    "summary": "R-3.5 static half was checked only by an opt-in browser test",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "T-1..T-7 and T-10 appeared in no boundary row",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "ID convention promised titles the table never delivered",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Five test titles claimed less than their acceptance lines require",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-ds-battleship-759a03|carry-forward-1d2d9649|2",
+  "findings": [
+   {
+    "summary": "Three browser procedures described planned fixtures, not the cases the suite runs",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Improve status block cited one red run for two faults",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "A-R9.4 row called the 18-case map without saying it is the plan versus delivered 26",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "environment.md browser suite cost band and page-load claim contradicted measured runs",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/ds-flash-978478-battleship|step-plan-d264e71f|1",
+  "findings": [
+   {
+    "summary": "C4 check matched names anywhere in a block, so three doc stand-ins that must fail passed",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "C3 and S3 task listed five refused calls while proof and accepted row assert six",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "E2 absent-file expectation was dropped though result paths still declare the file",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|system-test-author-0307e586|2",
+  "findings": [
+   {
+    "summary": "T-32 explanation claimed four opt-in system cases and a count contradicting skipped 7",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Claim that each case closes its server in t.after asserting listening false overstated teardown evidence",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Vacuous miss+17 equality assertion in system test could never fail independently",
+    "touched": [
+     "test"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|system-test-author-f88df8be|3",
+  "findings": [
+   {
+    "summary": "Commands preamble claimed command 4 was run and recorded though the note holds a different form",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Lifecycle sentence misdescribed which commands write the scratch directory",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|plan-3e9149d3|1",
+  "findings": [
+   {
+    "summary": "AD-3 enumerable Game fields contradicted R-6.5 serialization requirement",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "RB-1 step 8 asserted a game id no observer can see on the real server",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|step-plan-ad359ebc|1",
+  "findings": [
+   {
+    "summary": "C1 serialized only the game object, weakening R-6.5 over fire responses; leaky stand-in passed",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "C1 and C2 cited T-5 and T-1, which cannot pass at that step",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Check command demanded spellings no step stated, rejecting a natural implementation",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|plan-3e9149d3|3",
+  "findings": [
+   {
+    "summary": "Default reporter does not print # SKIP for t.skip with a reason; documented expectation wrong",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Browser precondition named $HOME/.cache though the code uses the temp directory",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/ds-flash-978478-battleship|implement-e20d3c91|1",
+  "findings": [
+   {
+    "summary": "handleFire answered every throw as 400, mislabelling genuine faults as client errors",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "sendJson inside the try could fall into the refusal branch and write a second response",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "handleFire and readBody docstrings did not state what they refuse or reject",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87|carry-forward-df2f6577|2",
+  "findings": [
+   {
+    "summary": "Loadable seam bullet and AD-7 named the wrong mechanism (deferred resolve instead of deferred open)",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/ds-flash-978478-battleship|implement-46d5dd95|1",
+  "findings": [
+   {
+    "summary": "Two restating JSDoc tags on InvalidShotError bought nothing; removed and result summary corrected",
+    "touched": [
+     "code",
+     "run-result"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   },
+   {
+    "summary": "createGame entry shape left field types unspecified",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|step-plan-ad359ebc|2",
+  "findings": [
+   {
+    "summary": "C7 asserted a createGame(options) token the check never observes",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "C8 required unchanged convention bullets that its check cannot see",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Three inherited summary claims went stale after criteria renumbering",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|spec-675884d4|1",
+  "findings": [
+   {
+    "summary": "NFR-5 verification passed without any .gitignore because bytecode writing was disabled",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "A-1.4 and A-1.5 had no named confirmer",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "A-2.2 demanded a literal spelling that over-constrained a correct test",
+    "touched": [
+     "record"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   },
+   {
+    "summary": "A-1.6 'clean shell' was undefined where PYTHONDONTWRITEBYTECODE is set",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|system-test-author-b09fefe4|2",
+  "findings": [
+   {
+    "summary": "Two ragged line wraps in system-tests.md and test/system.test.js fixed as polish",
+    "touched": [
+     "record",
+     "test"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-ds-battleship-759a03|implement-bfaa54d9|1",
+  "findings": [
+   {
+    "summary": "fire's find callback named candidate shadowed the module-level placement function",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   },
+   {
+    "summary": "createGame @returns left shots value meaning unstated",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Header comment omitted shot resolution, the largest part of the module",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-ds-battleship-759a03|spec-d49f5f4d|4",
+  "findings": [
+   {
+    "summary": "R-7 exact-path rule left the query string undecided",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-7 still said 'well-formed id' after ids were decided opaque",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Accessibility NFR cited colour-independence that no acceptance line stated",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-2 ships-remaining display had no acceptance line",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-ds-battleship-759a03|spec-d49f5f4d|2",
+  "findings": [
+   {
+    "summary": "R-7 gave no status for a non-empty string id that is not a UUID",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-2 never required announcing the win state",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-10 left simultaneous in-flight shots unaddressed and untested",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "A-R10.2 used two browser tabs where two ids over HTTP observe isolation more cheaply",
+    "touched": [
+     "record"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|plan-3e9149d3|4",
+  "findings": [
+   {
+    "summary": "AD-6 never stated the new-game button handler that T-28 clicks",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|release-plan-0317e24b|3",
+  "findings": [
+   {
+    "summary": "Rollback plan granted authority and recipes but named no owner",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Accepted result lagged the knowledge file: missing receipt observation and per-stage check locations",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/haiku55-max-battleship-d521a8|spec-15f83612|6",
+  "findings": [
+   {
+    "summary": "TC-14 did not check the fire request body fields",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "TC-14 did not check GET /api/new is sent once on load",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "TC-14 did not check a cell rejects a second click while in flight",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "TC-14 did not check no more shots are accepted after game over",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "TC-6 did not confirm state unchanged after a rejection",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/ds-flash-978478-battleship|step-plan-d264e71f|2",
+  "findings": [
+   {
+    "summary": "Result opening sentence counted six broken variants where ten are run",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "E4 said both steps where the plan has four",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-ds-battleship-759a03|test-strategy-4178a210|7",
+  "findings": [
+   {
+    "summary": "TC_BROWSER_LOCK accepted only three lock mechanisms and would reject a valid page",
+    "touched": [
+     "record"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261028/pa-ds-battleship-4ed4e3|implement-cf995a82|1",
+  "findings": [
+   {
+    "summary": "createGame accepted an array and silently produced a random fleet",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "seeded accepted 2**32 and 0 giving identical sequences",
+    "touched": [
+     "test"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|test-strategy-c73da195|2",
+  "findings": [
+   {
+    "summary": "MU_4 and TC_3 rows claimed a traceback; running a missing script prints an interpreter error only",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/ds-flash-978478-battleship|test-strategy-3c29216f|4",
+  "findings": [
+   {
+    "summary": "Header still described the file as at commit d6025f4 after later Improve commits",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Harness table claimed all component cases use PORT=0, contradicting two fixed-port cases",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|spec-675884d4|2",
+  "findings": [
+   {
+    "summary": "NFR-5 negative control exits 1 for a tracked file under a blanket ignore, so it passes the stand-in",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring|step-plan-f75d222f|1",
+  "findings": [
+   {
+    "summary": "S2 page cases omitted the accuracy 89 assertion",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "missing-content",
+    "attribution": "uncertain"
+   },
+   {
+    "summary": "HTTP sweep accepted any integer shots and hits, repeated ship names and a repeated cell",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "uncertain"
+   },
+   {
+    "summary": "Error bodies were sent after the sweep so they could not affect counts already checked",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "uncertain"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|spec-920922da|1",
+  "findings": [
+   {
+    "summary": "Fool's mate side to move left ambiguous",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Kiwipete and position 3 FENs had no clocks and no parser rule",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "En passant, both-side castling and castle-through-check had no input FEN",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "35-ply line had no final FEN so a stub returning ongoing could pass",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "5,000 ms Kiwipete bound was only a gloss on 'well inside'",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87|spec-ec84d5ca|1",
+  "findings": [
+   {
+    "summary": "AC-2.2 omitted the exit status that R-2 requires the test to assert",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "AC-2.2 red check named no concrete mutation or procedure, so it was not replayable",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/gate-290-b60ed7-codex-hello|step-plan-7220b36e|1",
+  "findings": [
+   {
+    "summary": "E3 used only test -s on each file, a weak stand-in for its claim",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|spec-f2168971|2",
+  "findings": [
+   {
+    "summary": "Activating a cell had no game id because the page never called GET /api/new",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Draw fixture never overlapped, so a placer that keeps overlapping would pass",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Reliability line confirmed an id the server never created",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Step 22 put an HTTP 400 in the rules-module table",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|test-strategy-edacefd5|1",
+  "findings": [
+   {
+    "summary": "Case table dropped R-4 rule that applyMove accepts every returned move",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Case table dropped R-7 start status ongoing",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Case table dropped R-9 controller-equals-engine check",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Case table dropped R-8 pinned piece case",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Board promotion step named no moves so it could not be replayed",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Component harness pinned sfdx-lwc-jest without a package probe",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|carry-forward-11ddd8dc|2",
+  "findings": [
+   {
+    "summary": "exactMove returned no move for a legal underpromotion, so applyMove was never called",
+    "touched": [
+     "code",
+     "test",
+     "doc",
+     "record"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|step-plan-496ba713|1",
+  "findings": [
+   {
+    "summary": "S3 required Kiwipete castling moves before S4 adds castling, so its proof could not pass in order",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "S3 task omitted ordinary king moves and check detection",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Step proofs could pass a stub that only called the methods",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|release-plan-68ddd2f1|1",
+  "findings": [
+   {
+    "summary": "Two different dry-run release commands in environment.md",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|test-strategy-3679c7c7|2",
+  "findings": [
+   {
+    "summary": "Setup row said every HTTP test sets a free PORT, skipping the unset-PORT case",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Refused-connection confirm replaced by listener list only, weakening R-2",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/gate-290-b60ed7-claude-csv-report|implement-a8bcb609|1",
+  "findings": [
+   {
+    "summary": "parse_row raised ValueError traceback for units over 4300 digits",
+    "touched": [
+     "code",
+     "record"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Decimal 28-digit context may round sums; recorded as learning for S2",
+    "touched": [
+     "nothing"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261020/chess-sf-full-9e52e8|test-strategy-1b63cbb3|1",
+  "findings": [
+   {
+    "summary": "TC_1 could pass an unsorted move list with matching ends",
+    "touched": [
+     "record"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   },
+   {
+    "summary": "TC_META checked only that four paths exist, not API version or forbidden metadata",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Human commands could be copied into the tap reader",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|plan-5a226cb0|1",
+  "findings": [
+   {
+    "summary": "W1 done waited on W2 deploy and TC_19 named a class that did not yet exist",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "W2 switchover row said controller rides W1's deploy",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-17 was named only in the summary, not in contexts",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/trace-verify-4fd9f1/hello|implement-e6465476|1",
+  "findings": [
+   {
+    "summary": "Public main() had no contract docstring",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-ed3292|spec-1d6d2aa8|3",
+  "findings": [
+   {
+    "summary": "Queenside castling was only a membership check, with no result FEN",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "h1 rook move had no result FEN so a rights update could keep K",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-sonnet-battleship-491d9a|carry-forward-8b5f95bd|1",
+  "findings": [
+   {
+    "summary": "environment.md had two Commands sections",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Baseline 'missing coverage' and 'Proposal' layout text were stale",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "architecture.md had no Conventions section",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|implement-16059551|1",
+  "findings": [
+   {
+    "summary": "A reissue commit added rightsAfter and the S5 script beyond S1's scope; reverted",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/trace-verify-4fd9f1/hello|step-plan-b8fe3935|1",
+  "findings": [
+   {
+    "summary": "S1 task's single-quoted print contradicted MUT_2's sed of the double-quoted literal",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-sonnet-battleship-491d9a|spec-b63688de|1",
+  "findings": [
+   {
+    "summary": "R-4 full-game example had no fleet or shot sequence, so not replayable",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-2 '100 cells' not confirmable by an HTML test",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "No acceptance for 413 cap, 405, store eviction, default port or hidden-state keys",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-1 injection and listen entry points unspecified",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-12a23d|step-plan-b502a47b|1",
+  "findings": [
+   {
+    "summary": "Board procedure and TC_28 row kept an illegal capture and unreachable FEN that plan C28 replaced",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring|implement-33195b3f|1",
+  "findings": [
+   {
+    "summary": "applyScore had no contract above it",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   },
+   {
+    "summary": "200 send gave no note that the fireShot object is the body",
+    "touched": [
+     "code"
+    ],
+    "nature": "polish",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/trace-verify-4fd9f1/hello|plan-98086e52|1",
+  "findings": [
+   {
+    "summary": "Restore check git diff --stat is vacuous for an untracked hello.py",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2180-sonnet-battleship-36036c|carry-forward-1fdefda1|1",
+  "findings": [
+   {
+    "summary": "First Commands section described the suite as 0 tests and named no owner",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Platform facts still said Proposal for what is built",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring|test-spec-24c99ec9|1",
+  "findings": [
+   {
+    "summary": "TC_15 pure rounding case unreachable because the page script exposes no function in node:vm",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/chess-sf-full-ed3292|plan-643d8497|1",
+  "findings": [
+   {
+    "summary": "W1 done named only tap, leaving the R-6 human run unowned",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "W3 confirm was a mention of SLChessController that a comment would satisfy",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261020/chess-sf-full-9e52e8|spec-85867466|1",
+  "findings": [
+   {
+    "summary": "En passant, promotion, castling and in-check examples were not full FENs",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Scholar's mate example wrong: d8 occupied by Black's queen",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/trace-verify-4fd9f1/hello|test-strategy-88140e52|1",
+  "findings": [
+   {
+    "summary": "Planned IDs embedded in method names could never appear as their own word in -v output",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring|plan-8549ac5c|1",
+  "findings": [
+   {
+    "summary": "Ship names by position undefined for a sixth ship, dropping ship from JSON contrary to R-7",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/live-sonnet-battleship-01b9b3|implement-97fbd0f2|1",
+  "findings": [
+   {
+    "summary": "In-flight shot resolved against a new game, disabling the fresh board; busy stayed true",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/live-sonnet-battleship-01b9b3|step-plan-08604917|1",
+  "findings": [
+   {
+    "summary": "Planned regression min_tests 14 below R-6's 15 floor",
+    "touched": [
+     "run-result"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2170-sonnet-battleship-491d9a|test-strategy-ba26bc4f|1",
+  "findings": [
+   {
+    "summary": "architecture.md said Chrome needed a kill after dump, unverified and wrong",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/gate-290-b60ed7-claude-csv-report|test-strategy-5b627cd7|3",
+  "findings": [
+   {
+    "summary": "AD-3 skip-line timing self-contradictory; stderr ordering and exit precedence undefined",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/live-sonnet-battleship-01b9b3|carry-forward-0751aad1|1",
+  "findings": [
+   {
+    "summary": "Basis lines still said Pending though each requirement carried Status satisfied",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261026/live-sonnet-battleship-01b9b3|implement-1f17cb21|1",
+  "findings": [
+   {
+    "summary": "Malformed request URL threw outside any promise and crashed the server",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/gate-290-b60ed7-claude-batch/seat-reservations|spec-aa5bd521|2",
+  "findings": [
+   {
+    "summary": "R-6 scoped the suite to R-1..R-5 so R-7 had no owning suite",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "R-7 title no longer matched its content",
+    "touched": [
+     "record"
+    ],
+    "nature": "stale-or-wrong-reference",
+    "attribution": "clear"
+   },
+   {
+    "summary": "%2F ids undefined",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261024/gate-290-b60ed7-claude-csv-report|spec-0cc167ee|3",
+  "findings": [
+   {
+    "summary": "Encoding default (utf-8-sig, newline) had no acceptance line",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261027/v2180-sonnet-battleship-36036c|plan-2eed2887|2",
+  "findings": [
+   {
+    "summary": "Spec NFR store line contradicted reworded TC-14",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2100-96810d-claude-web/battleship|implement-667f08db|1",
+  "findings": [
+   {
+    "summary": "Oversized POST destroyed the socket instead of returning the documented 413",
+    "touched": [
+     "code"
+    ],
+    "nature": "behaviour-defect",
+    "attribution": "clear"
+   }
+  ]
+ },
+ {
+  "id": "e2e-runs/20261025/gate-2100-96810d-claude-web/battleship|test-strategy-2360893b|1",
+  "findings": [
+   {
+    "summary": "R-to-TC mapping missing",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Browser probe did not exercise JS",
+    "touched": [
+     "record"
+    ],
+    "nature": "contradiction-or-unverifiable",
+    "attribution": "clear"
+   },
+   {
+    "summary": "Browser test default-skip rule not stated",
+    "touched": [
+     "record"
+    ],
+    "nature": "missing-content",
+    "attribution": "clear"
+   }
+  ]
+ }
+]

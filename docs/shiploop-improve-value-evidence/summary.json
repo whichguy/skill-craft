@@ -1,0 +1,103 @@
+{
+ "active_seconds_one_item_done_runs": 61343.799999999996,
+ "behaviour_passes": 40,
+ "build_carry_behaviour_1 item, 1 step": "0/27",
+ "build_carry_behaviour_1 item, 2+ steps": "15/72",
+ "build_carry_behaviour_2+ items": "25/90",
+ "build_carry_behaviour_passes": 40,
+ "build_carry_passes": 189,
+ "build_carry_product_passes": 50,
+ "children": 275,
+ "findings_by_effect": {
+  "product": 89,
+  "records": 581,
+  "unacted": 11
+ },
+ "findings_labelled": 681,
+ "improve_minutes_all": 793.2,
+ "improve_seconds_one_item_done_runs": 19365,
+ "improve_share_done_runs": {
+  "max": 0.43,
+  "median": 0.281,
+  "min": 0.087,
+  "n": 22
+ },
+ "labels_problems": {
+  "passes without labels": 0,
+  "touched kind not among the pass's real changes": 32
+ },
+ "named_battleship": {
+  "active_min": 372.5,
+  "behaviour_passes": 5,
+  "children": 15,
+  "findings": 89,
+  "findings_by_effect": {
+   "product": 12,
+   "records": 74,
+   "unacted": 3
+  },
+  "improve_min": 102.3,
+  "passes": 37,
+  "planning_min": 55.4,
+  "product_passes": 6
+ },
+ "named_hello": {
+  "active_min": 152.3,
+  "behaviour_passes": 0,
+  "children": 8,
+  "findings": 28,
+  "findings_by_effect": {
+   "product": 1,
+   "records": 27
+  },
+  "improve_min": 42.0,
+  "passes": 17,
+  "planning_min": 21.4,
+  "product_passes": 1
+ },
+ "one_item_planning_seconds_by_model_family": {
+  "claude": {
+   "max": 3199,
+   "median": 181,
+   "min": 62,
+   "runs": 12
+  },
+  "deepseek": {
+   "max": 1283,
+   "median": 1112,
+   "min": 941,
+   "runs": 2
+  },
+  "gpt-6-luna": {
+   "max": 1159,
+   "median": 1159,
+   "min": 1159,
+   "runs": 1
+  },
+  "grok-4.7": {
+   "max": 898,
+   "median": 580,
+   "min": 263,
+   "runs": 2
+  }
+ },
+ "one_item_planning_seconds_max": 3199,
+ "one_item_planning_seconds_median": 210,
+ "one_item_planning_seconds_min": 62,
+ "one_item_planning_share_max": 0.27,
+ "one_item_planning_share_median": 0.142,
+ "one_item_planning_share_min": 0.064,
+ "one_item_runs": 17,
+ "one_item_runs_done": 17,
+ "passes": 520,
+ "passes_edited_anything": 273,
+ "passes_non_trivial": 247,
+ "passes_unrecorded_edit": 11,
+ "planning_minutes_all": 369.3,
+ "planning_passes_one_item": 135,
+ "planning_passes_one_item_product": 0,
+ "planning_seconds_one_item": 9715,
+ "planning_seconds_one_item_done_runs": 9715,
+ "product_passes": 50,
+ "runs": 25
+}
