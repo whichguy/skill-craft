@@ -2039,11 +2039,7 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         store.atomic_write_text(Path(root) / request_file.REQUEST_FILE, request_file.render(state["prompt"]))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
-    # The whole text of each field this packet or its Improve handoff prints cut (shiploop_fields), rebuilt from state.
-    for relative, text in field_files(state).items():
-        target = Path(root) / relative
-        if not target.is_file() or target.read_text(encoding="utf-8") != text:
-            store.atomic_write_text(target, text)
+    write_field_files(root, state)
     # The current inner action's Until Loop contract, when no transition wrote it: a run that reached the stage another
     # way (a seeded run, a recovery after the file was lost) would otherwise be told to report blocked. The contract is
     # rebuilt from state, the same text check_terminal compares with, so writing it here never changes the run.
@@ -3484,7 +3480,7 @@ def _layer_lines(state: Mapping[str, Any], work_item: str | None) -> fields.Show
     action = plan if own else current.get((None, "test-strategy"))
     if not lines or action is None:
         return fields.Shown(lines, None)
-    return fields.block(lines, len("\n".join(lines)), layers.LINES_PRINT, action, "test-layers")
+    return fields.block(lines, len("\n".join(lines)), layers.LINES_PRINT, action, "test-layers", header=1)
 
 
 def _concern_lines(state: Mapping[str, Any], work_item: str) -> fields.Shown:
@@ -3494,7 +3490,7 @@ def _concern_lines(state: Mapping[str, Any], work_item: str) -> fields.Shown:
     action = planning_revision.current_actions(state).get((None, "plan"))
     if not lines or action is None:
         return fields.Shown(lines, None)
-    return fields.block(lines, len("\n".join(lines[1:])), concerns.ROWS_PRINT, action, work_item + "-concerns")
+    return fields.block(lines, len("\n".join(lines[1:])), concerns.ROWS_PRINT, action, work_item + "-concerns", header=1)
 
 
 def field_files(state: Mapping[str, Any]) -> dict[str, str]:
@@ -3506,6 +3502,19 @@ def field_files(state: Mapping[str, Any]) -> dict[str, str]:
     files = dict(found.file for found in shown if found.file)
     files.update(_step_block_shown(state, item)[1])
     return files
+
+
+def write_field_files(root: Path, state: Mapping[str, Any]) -> None:
+    """Write the RUN/fields files that ``field_files`` derives from state, each only when it is missing or differs: the
+    whole text of every field the current packet or its Improve handoff prints cut (``shiploop_fields``).  ``emit`` and
+    the ``context`` command call it before they print, so a packet never names a file that is not there."""
+    for relative, text in field_files(state).items():
+        target = Path(root) / relative
+        if target.is_file():
+            with open(target, encoding="utf-8", newline="") as handle:   # no newline translation: a CRLF field matches
+                if handle.read() == text:
+                    continue
+        store.atomic_write_text(target, text)
 
 
 def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -> None:
@@ -7024,7 +7033,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     if stage == primary.STAGE:
         gates.append("a missing primary list, or a primary ID with no current entry in KNOWLEDGE/spec.md")
     if stage in primary.QUEUE_STAGES:
-        gates.append("a primary requirement in no item's follows, or a follows ID with no spec or architecture entry")
+        gates.append("a primary requirement in no item's follows")
     if stage in ("spec", "plan", "step-plan"):
         gates.append("a change to KNOWLEDGE/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID")
     if stage in unverified.STAGES:
@@ -7337,7 +7346,7 @@ def _step_block_shown(state: Mapping[str, Any], work_item: str | None) -> tuple[
     serves = fields.block(["  Serves (each criterion this step satisfies, in the step plan's words):",
                            *("    " + layers.criterion_label(row) + ": " + _one_line(row.get("text")) for row in rows)],
                           sum(len(str(row.get("text") or "")) for row in rows), STEP_CRITERIA_PRINT, view.plan_action,
-                          name + "-criteria", indent="    ") if rows else fields.Shown([], None)
+                          name + "-criteria", indent="    ", header=1) if rows else fields.Shown([], None)
     lines = [f"Step {step['id']} ({view.number} of {len(view.steps)}), the only work for this packet: "
              + _one_line(task.lines[0]),
              *serves.lines,
@@ -9257,7 +9266,7 @@ def improve_opening_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
     work_item = _current_work_item(state)
     item = (" of work item " + _one_line(work_item) + " (" + _one_line(_item_title(state, work_item)) + ")"
             if work_item else "")
-    headline = _one_line(seed.get("headline"))
+    headline = _status_text(seed.get("headline") or "", HEADLINE_SHOWN)   # shown cut, as the narrative shows it
     summary = _bounded_packet_text(_one_line(seed.get("summary")), limit=600)
     home = Path(state["repo"]) / "docs" / "shiploop"
     end_of_work = stage in stage_spec.with_improve("last-item")
@@ -9516,6 +9525,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         section = getattr(args, "section", "navigator")
         if section != "navigator":
             print(f"Navigator context has no separate artifact reader for {section!r}; current packet follows.")
+        write_field_files(root, state)
         print(render(core, root, state) + HEAD_END + "\n", end="")
         return 0
     if command == "status":

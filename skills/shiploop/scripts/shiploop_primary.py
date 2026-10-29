@@ -47,6 +47,8 @@ FIELD = "primary"
 ACCEPTANCE = "product-acceptance"
 # The stages whose done result sets the work queue: plan writes it whole, carry-forward may replace its future part.
 QUEUE_STAGES = ("plan", "carry-forward")
+# Display: how many primary IDs one plan or carry-forward packet lists; a spec with more says so and names where the rest are.
+PRIMARY_SHOWN = 6
 # The template's one entry, which states the bar; a text wrapped in angle brackets is a placeholder.
 PLACEHOLDER = "<R-<n> that carries an outcome the user asked for directly>"
 _REQUIREMENT = re.compile(r"^R-\d+$")
@@ -200,8 +202,9 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
         raise PrimaryError(
             "every primary requirement (spec primary) is served by a work item whose follows names it, and no work item "
             + ("of this plan" if stage == "plan" else "of the queue this result leaves (the completed and current "
-               "items, then the work_items given)") + " names " + ", ".join(missing) + ". Widen the work item that "
-            "serves it (its follows and context) or add a work item that serves it, such as "
+               "items, then the work_items given)") + " names " + ", ".join(missing) + ". Widen "
+            + ("the work item" if stage == "plan" else "a future work item") + " that serves it (its follows and context) or "
+            "add a work item that serves it, such as "
             '{"id": "W<n>", "title": "...", "follows": ["' + missing[0] + '"], "context": "..."}')
 
 
@@ -256,11 +259,14 @@ def packet_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[str]:
     if stage in QUEUE_STAGES:
         if not ids:
             return []
+        shown = ids[:PRIMARY_SHOWN]
+        more = ("; +" + str(len(ids) - len(shown)) + " more (spec primary)") if len(ids) > len(shown) else ""
+        if stage == "plan":   # one short line: the plan head has the least room, and no item exists yet to follow anything
+            return ["Primary requirements (spec primary), each in a work item's follows: " + " ".join(shown) + more + "."]
         served = followers([row for row in state.get("work_items") or () if isinstance(row, Mapping)])
-        head = ("Primary requirements (spec primary): each must be in the follows of a work item that serves it; "
-                "ShipLoop refuses a queue that leaves one out. The work items naming each now:")
-        return [head, *("- " + ident + ": " + (", ".join(served[ident]) if served.get(ident) else "none")
-                        for ident in ids)]
+        return ["Primary requirements (spec primary) and the work items following each now: "
+                + "; ".join(ident + " " + (", ".join(served[ident]) if served.get(ident) else "none") for ident in shown)
+                + more + ". The queue you leave keeps each in some work item's follows."]
     if stage != ACCEPTANCE:
         return []
     if not ids:

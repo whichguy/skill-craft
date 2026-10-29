@@ -1220,6 +1220,35 @@ class StepSizingRouteTests(RealCliCase):
         self.assertEqual(sorted(path for path in nav.field_files(self.state(run))),
                          sorted(path for path in (p.relative_to(run).as_posix() for p in (run / "fields").iterdir())))
 
+    def test_the_context_command_writes_the_field_file_its_packet_names(self) -> None:
+        """Review of plan F2: `context` printed the packet without writing RUN/fields, so after a restore it could name a
+        file that was not there.  Like `next`, it writes what the packet names before it prints."""
+        import shutil
+        step = dict(RESULTS["step-plan"]["steps"][0], task="Build it. " + "x" * 800)
+        run, head = self.new_run("implement", results={"step-plan": {"steps": [step]}})
+        shutil.rmtree(run / "fields")
+        printed = self.cli("context", "--run-dir", str(run)).stdout
+        found = re.search(r"RUN/(fields/\S+\.md) holds all ([\d,]+) characters", printed)
+        self.assertIsNotNone(found, printed[-400:])
+        self.assertEqual((run / found.group(1)).read_text(encoding="utf-8"), step["task"] + "\n")
+
+    def test_a_step_id_that_is_a_path_or_very_long_names_a_field_file_inside_the_run_and_nothing_else(self) -> None:
+        """Review of plan F2: a step ID was only checked for whitespace and became part of RUN/fields/<action>-<id>-task.md,
+        so `x/../../../outside` wrote outside the run and a 230-character ID made every later `next` fail.  The name is now
+        one safe component, and the packet names the file that was written."""
+        for label, step_id in (("a path", "x/../../../../outside"), ("a long ID", "S" * 230), ("a NUL", "S1\0x")):
+            with self.subTest(label):
+                step = dict(RESULTS["step-plan"]["steps"][0], id=step_id, task="Build it. " + "x" * 800)
+                run, head = self.new_run("implement", results={"step-plan": {"steps": [step]}})
+                found = re.search(r"RUN/(fields/\S+\.md) holds all ([\d,]+) characters", head)
+                self.assertIsNotNone(found, head[-600:])
+                written = (run / found.group(1)).resolve()
+                self.assertEqual(written.parent, (run / "fields").resolve())
+                self.assertEqual(written.read_text(encoding="utf-8"), step["task"] + "\n")
+                strays = [str(p) for folder in (run, run.parent, run.parent.parent) for p in folder.glob("*")
+                          if p.is_file() and ("outside" in p.name or p.name.endswith("-task.md"))]
+                self.assertEqual(strays, [])
+
     def test_a_step_without_its_proof_is_refused_by_name_and_the_step_with_it_is_accepted(self) -> None:
         """Implement-step fix plan T1 (section 4.1): every step records `proof`, the exact command that proves its criteria
         using that step and accepted earlier steps; ShipLoop runs it when the step reports done."""
@@ -1647,9 +1676,7 @@ class PrimaryRequirementRouteTests(RealCliCase):
                 run, head = self.new_run("plan", results={"spec": {"primary": ["R-1"]}})
                 self.living_spec(run)
                 packet = full_packet_text(head)
-                self.assertIn("Primary requirements (spec primary): each must be in the follows of a work item that "
-                              "serves it", packet)
-                self.assertIn("\n- R-1: none\n", packet)
+                self.assertIn("Primary requirements (spec primary), each in a work item's follows: R-1.", packet)
                 checked = next(line for line in packet.splitlines() if line.startswith("Checked by: "))
                 self.assertIn("a primary requirement in no item's follows", checked)
                 command, path, action = printed_callback(head)
@@ -1677,7 +1704,7 @@ class PrimaryRequirementRouteTests(RealCliCase):
                  {"id": "W2", "title": "Serve R-1", "follows": ["R-1"], "context": "R-1's change."}]
         run, head = self.new_run("carry-forward", results={"spec": {"primary": ["R-1"]}, "plan": {"work_items": queue}})
         self.living_spec(run)
-        self.assertIn("\n- R-1: W2\n", full_packet_text(head))
+        self.assertIn("work items following each now: R-1 W2.", full_packet_text(head))
         command, path, action = printed_callback(head)
         replaced = dict(self.fill_done(head), work_items=[{"id": "W3", "title": "Serve R-1 another way",
                                                            "context": "Replaces W2."}])

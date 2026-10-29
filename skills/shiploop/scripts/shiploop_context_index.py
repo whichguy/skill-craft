@@ -34,8 +34,8 @@ import shiploop_stage_spec as stage_spec
 RECORD_GLOBS = ("tests/*-verify*.md", "loops/*-terminal.json", "lint/*.md", "improve/*/receipt.md")
 
 INDEX_FILE = "context-index.md"
-# Display: the characters of a summary, lesson, assumption or context one index line quotes; each entry names the result
-# file that holds it whole, and the index's opening names state.md, which holds the rest.
+# Display: the characters of a summary, lesson, assumption or context one index line quotes.  The index's opening names
+# state.md, which holds every field whole; a summary or lesson line also names the result file that holds it.
 SUMMARY_LIMIT = 400
 
 # Entries each stage reads first.  A bare name is the run's root result for

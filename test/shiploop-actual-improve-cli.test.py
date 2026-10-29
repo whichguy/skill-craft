@@ -1612,6 +1612,20 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Its summary: " + summary, self.child_context()["request"])
         self.assertEqual(store.read_record(self.run / "state.md")["active_improve"]["seed_result"]["summary"], summary)
 
+    def test_a_long_headline_starts_the_improve_stage_shown_cut_in_the_opening_and_kept_whole_in_the_result(self):
+        """Review of plan F2: a headline has no character limit, and the Improve opening quotes it on one line, so it shows
+        it cut to the length the run narrative shows (``HEADLINE_SHOWN``) while the producer's result keeps it whole."""
+        long = ("Spec drafted: " + "a long account of what this stage established, " * 12).strip()
+        self.assertGreater(len(long), navigator.HEADLINE_SHOWN * 4)
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)], producer_extra={"headline": long})
+        receipt = bridge.receipt_path(self.bound)
+        self.assertTrue(receipt.is_file(), "the producer's complete started no Improve child")
+        opening = receipt.with_name("opening.md").read_text(encoding="utf-8")
+        self.assertNotIn(long, opening)
+        self.assertIn(long[:navigator.HEADLINE_SHOWN - 10], opening)
+        self.assertEqual(json.loads(receipt.read_text(encoding="utf-8"))["status"], "active")
+        self.assertEqual(store.read_record(self.run / "state.md")["active_improve"]["seed_result"]["headline"], long)
+
     def test_the_notes_and_the_final_result_of_an_improve_import_may_quote_credential_looking_text(self):
         """Owner decision 2026-10-16: no credential-pattern refusal at the Improve stage's complete. The review's notes
         and a revised final result are taken as written; the accepted record holds the text and the run moves on."""

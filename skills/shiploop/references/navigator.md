@@ -442,7 +442,7 @@ The semantic result contract is small:
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved, showing its first 100 characters (the result file keeps it whole). The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `KNOWLEDGE/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |
-| `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `add-work`. |
+| `work_items` | Ordered `{id,title,follows?,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `add-work`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
 Each term in these fields, the packets and the refusals has one meaning, defined in [the glossary](glossary.md),
@@ -485,11 +485,14 @@ Read the full `state.md` field `work_items`, including pending contexts that the
 packet's short queue summary omits. Include all still-required future work and
 exclude current/completed items. An empty array removes all future work. Explain
 removals, merges or approved supersession in the plan note; independent required
-work cannot disappear just because no other item consumes it. During Improve,
+work cannot disappear just because no other item consumes it. A done `plan`, and a
+`carry-forward` that supplies `work_items`, must leave every primary requirement (spec
+`primary`) in some item's `follows` (an R-<n> or AD-<n> with an entry in the living spec or
+architecture); ShipLoop refuses a queue that does not, and its refusal names the exit. During Improve,
 `active_improve.seed_result.work_items` holds proposed changes, while `work_items`
 still holds the accepted queue. Reconcile both against scope before revising the
-producer's final result. These are guidance and existing replacement semantics,
-not machine verification of semantic coverage or dependency readiness.
+producer's final result. Beyond the primary-requirement rule above these are guidance and existing
+replacement semantics, not machine verification of semantic coverage or dependency readiness.
 
 Results cannot set a successor, INNER stage, Improve phase, review count, or
 another item's action. The one accepted action determines the next effective

@@ -10,7 +10,7 @@
       "test": 18820,
       "document": 15756,
       "document-improve": 1328,
-      "carry-forward": 14381,
+      "carry-forward": 14329,
       "carry-forward-improve": 1333
     },
     "inline/163/96": {
@@ -22,7 +22,7 @@
       "test": 19718,
       "document": 16956,
       "document-improve": 1648,
-      "carry-forward": 15661,
+      "carry-forward": 15609,
       "carry-forward-improve": 1653
     },
     "ask-agent/83/96": {
@@ -34,7 +34,7 @@
       "test": 18820,
       "document": 15756,
       "document-improve": 1328,
-      "carry-forward": 15788,
+      "carry-forward": 15736,
       "carry-forward-improve": 1333
     },
     "ask-agent/163/96": {
@@ -46,7 +46,7 @@
       "test": 19718,
       "document": 16956,
       "document-improve": 1648,
-      "carry-forward": 17068,
+      "carry-forward": 17016,
       "carry-forward-improve": 1653
     }
   }

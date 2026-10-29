@@ -1163,9 +1163,8 @@ DUTIES = {
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
     open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
-17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (R-<n> served, AD-<n> followed; []
-    when none) and optional `context`, covering every approved outcome, including required independent work with no
-    downstream consumer. Every spec `primary` requirement is in some item's `follows`.
+17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (the R-<n>/AD-<n> it serves) and
+    optional `context`, covering every approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
     `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
@@ -1479,7 +1478,7 @@ preparatory commit); a mismatch there is a send-back.
      loop and report blocked; it is no queue edit.
    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "context"}` in
    prerequisite order, no completed or current ID, keeping unrelated pending work and each primary requirement in
-   some item's `follows`. Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the
+   some item's `follows` (a completed or current item counts). Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the
    queue.
 3. **Skill decision**, in `skill`:
    1. *Inspect* the repository skill index (the directory KNOWLEDGE/environment.md ## Skills names, or README or AGENTS.md

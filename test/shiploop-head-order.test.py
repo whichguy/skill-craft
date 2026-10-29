@@ -731,5 +731,35 @@ class EmitTests(unittest.TestCase):
             self.assertNotIn(navigator.HEAD_END, text.splitlines())  # the file has no closing line; its line B only names it
 
 
+class PrimaryRequirementHeadTests(unittest.TestCase):
+    """Review of plan F3: the plan and carry-forward packets print the spec's primary requirements as required text, but the
+    walk behind the head budgets records none, so the block was never measured.  A real spec has several; the plan head,
+    which has the least room, ends its required text before the bound for any number of them (the block lists at most
+    ``primary.PRIMARY_SHOWN`` IDs), and no head passes the host cut."""
+
+    def render(self, route: str, ids: list[str]) -> dict:
+        import shiploop_primary as primary
+        real = primary.primary_ids
+        primary.primary_ids = lambda state: list(ids)
+        try:
+            walk = lambda case, r, work, run_dir: plans.full_walk(case, r, work, run_dir, lint="report")  # noqa: E731
+            rows = packets.offline_renders(plans.CASE, route, run_dir_length=INSTALL_RUN_DIR,
+                                           cli_path_length=CLI_PATH_LENGTH, walk=walk)
+        finally:
+            primary.primary_ids = real
+        return {plans.stage_of(key): row["printed"] for key, row in rows.items()
+                if plans.stage_of(key) in ("plan", "carry-forward") and plans.is_producer(key, row["state"])}
+
+    def test_the_plan_and_carry_forward_heads_hold_the_bound_with_one_six_and_thirty_primary_requirements(self) -> None:
+        for route in ("inline", "ask-agent"):
+            for count in (1, 6, 30):
+                with self.subTest(route=route, primary=count):
+                    ids = ["R-" + str(n) for n in range(1, count + 1)]
+                    for stage, printed in self.render(route, ids).items():
+                        self.assertLessEqual(len(printed), HOST_CUT, stage)
+                        self.assertIn("Primary requirements (spec primary)", printed, stage)
+                        self.assertLessEqual(printed.index("\n", printed.index("Fill the template:")), REQUIRED_BOUND, stage)
+
+
 if __name__ == "__main__":
     unittest.main()

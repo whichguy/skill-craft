@@ -277,6 +277,40 @@ class FieldSpillTests(unittest.TestCase):
         self.assertTrue(shown.lines[0].endswith("\u2026"))
         self.assertEqual(shown.file[1], "x" * 500 + "\ny\n")
 
+    def test_a_multi_line_field_over_its_budget_prints_the_start_of_all_of_it_not_just_its_first_line(self):
+        task = "Implement the loader:\n" + "\n".join("- bullet " + str(n) + " " + "w" * 40 for n in range(30))
+        shown = fields.inline(task, 300, "plan-1", "S1-task")
+        line = shown.lines[0]
+        self.assertIn("- bullet 0", line)          # the second line of the field is printed too
+        self.assertLessEqual(len(line.split(" (cut here:")[0]), 300)
+        self.assertEqual(shown.file, ("fields/plan-1-S1-task.md", task + "\n"))
+
+    def test_a_field_of_only_whitespace_over_its_budget_does_not_raise(self):
+        shown = fields.inline("\n   \n" + " " * 50, 10, "plan-1", "S1-task")
+        self.assertEqual(len(shown.lines), 1)
+        self.assertIsNotNone(shown.file)
+
+    def test_a_block_whose_label_alone_fits_still_prints_some_of_its_first_row(self):
+        row = "  C1: " + "criterion text " * 100
+        shown = fields.block(["  Serves (criteria):", row], len(row), 200, "plan-1", "S1-criteria", indent="    ", header=1)
+        self.assertEqual(shown.lines[0], "  Serves (criteria):")
+        self.assertTrue(shown.lines[1].startswith("  C1: criterion text"))
+        self.assertLessEqual(len(shown.lines[1]), max(200, fields.MIN_SHOWN_CHARS))
+        self.assertIn("RUN/fields/plan-1-S1-criteria.md holds all 2 whole", shown.lines[-1])
+        self.assertEqual(shown.file[1], "\n".join(["  Serves (criteria):", row]) + "\n")
+
+    def test_a_name_that_is_a_path_or_too_long_becomes_one_safe_component(self):
+        for name in ("S1/../../../../outside", "S" * 230, "S1\0x", "..", "", ".hidden", "q/../nav-1-S1", "\u00e9"):
+            with self.subTest(name=name[:20]):
+                part = fields.component(name)
+                self.assertTrue(part and "/" not in part and "\0" not in part and not part.startswith("."), part)
+                self.assertLessEqual(len(part), fields.COMPONENT_MAX)
+                relative = fields.path("nav-1", name + "-task")
+                self.assertEqual(relative.count("/"), 1, relative)
+                self.assertTrue(relative.startswith("fields/") and relative.endswith(".md"))
+        self.assertEqual(fields.component("S1-task"), "S1-task")      # a safe name is kept as it is
+        self.assertNotEqual(fields.component("a/b"), fields.component("a_b"))   # two names never share a file
+
 
 # Every numeric limit in skills/shiploop/scripts, by kind (plan F2).  A "print budget" is the size up to which a required
 # block prints a model-written field by value; past it the block prints what fits and the field's RUN/fields file holds
@@ -284,6 +318,8 @@ class FieldSpillTests(unittest.TestCase):
 # runaway or binary file.  No kind is a refusal of the model's own text: the gates accept a field of any length.
 LIMIT_KINDS = {
     "shiploop_concerns.ROWS_PRINT": "print budget",
+    "shiploop_fields.MIN_SHOWN_CHARS": "display cut",
+    "shiploop_fields.COMPONENT_MAX": "guard",
     "shiploop_navigator.STEP_TASK_PRINT": "print budget",
     "shiploop_navigator.STEP_PROOF_PRINT": "print budget",
     "shiploop_navigator.STEP_CRITERIA_PRINT": "print budget",
@@ -352,6 +388,31 @@ def numeric_limits():
     return found
 
 
+# Inline length checks against a literal of 80 or more, which a scan of module constants cannot see.  Each is a display route
+# (the text goes to a file or is cut, never refused), not a refusal of the model's text.
+INLINE_LENGTH_CHECKS = {
+    ("shiploop_navigator.py", 6000): "a result template or an Improve seed too long to print inline goes to the file that holds it",
+    ("shiploop_progress_data.py", 280): "the progress view cuts an event summary",
+    ("shiploop_trace.py", 160): "the trace cuts a headline",
+}
+
+
+def inline_length_checks():
+    """``{(module file, literal): count}`` for each ``len(x) > N`` style comparison with a literal N of 80 or more."""
+    found = {}
+    for path in sorted(SCRIPTS.glob("shiploop_*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and isinstance(node.left, ast.Call) and getattr(node.left.func, "id", "") == "len":
+                for op, comparator in zip(node.ops, node.comparators):
+                    if (isinstance(comparator, ast.Constant) and isinstance(comparator.value, int)
+                            and not isinstance(comparator.value, bool) and comparator.value >= 80
+                            and isinstance(op, (ast.Gt, ast.GtE, ast.Lt, ast.LtE))):
+                        key = (path.name, comparator.value)
+                        found[key] = found.get(key, 0) + 1
+    return found
+
+
 class SizeLimitInventoryTests(unittest.TestCase):
     """Plan F2 done-when: every numeric limit has a kind, and a new refusing cap on model text fails here."""
 
@@ -362,6 +423,13 @@ class SizeLimitInventoryTests(unittest.TestCase):
                          "file past it), a display cut (the cut names the rest) or a guard (a runaway file); never as "
                          "a limit the gates refuse the model's own text for")
         self.assertEqual(sorted(set(LIMIT_KINDS) - set(found)), [], "a limit left LIMIT_KINDS stale: remove its row")
+
+    def test_no_inline_length_check_is_a_new_cap(self):
+        """A cap written inline (``if len(text) > 700:``) escapes the constant scan; each one is listed with its reason."""
+        self.assertEqual(sorted(set(inline_length_checks()) - set(INLINE_LENGTH_CHECKS)), [],
+                         "a new inline length check: if it refuses the model's text for its length, spill the text to a "
+                         "RUN/fields file instead (shiploop_fields); if it is a display route, list it in INLINE_LENGTH_CHECKS")
+        self.assertEqual(sorted(set(INLINE_LENGTH_CHECKS) - set(inline_length_checks())), [], "remove the stale row")
 
     def test_no_gate_refuses_the_models_text_for_its_length(self):
         """The refusals the D7 before-runs counted (3-5 per run) stated the size and a limit; none remains."""

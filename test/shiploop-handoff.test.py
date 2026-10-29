@@ -1063,13 +1063,19 @@ class PlanCoverageTests(RepoCase):
 
     def test_the_plan_and_carry_forward_packets_name_the_work_items_following_each(self) -> None:
         state = self.state_at("plan", primary_ids=["R-1", "R-2"])
-        lines = primary.packet_lines(self.root, state, "plan")
-        self.assertTrue(lines[0].startswith("Primary requirements (spec primary): each must be in the follows of a work "
-                                            "item that serves it; ShipLoop refuses a queue that leaves one out."), lines)
-        self.assertEqual(lines[1:], ["- R-1: none", "- R-2: none"])
+        # The plan head has the least room, so the plan gets one short line, and no item exists yet to follow anything.
+        self.assertEqual(primary.packet_lines(self.root, state, "plan"),
+                         ["Primary requirements (spec primary), each in a work item's follows: R-1 R-2."])
         queue = [{"id": "W1", "title": "one", "follows": ["R-1"]}, {"id": "W2", "title": "two", "follows": ["R-1", "R-2"]}]
         later = self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=queue)
-        self.assertEqual(primary.packet_lines(self.root, later, "carry-forward")[1:], ["- R-1: W1, W2", "- R-2: W2"])
+        self.assertEqual(primary.packet_lines(self.root, later, "carry-forward"),
+                         ["Primary requirements (spec primary) and the work items following each now: R-1 W1, W2; R-2 W2. "
+                          "The queue you leave keeps each in some work item's follows."])
+        many = self.state_at("plan", primary_ids=["R-" + str(n) for n in range(1, 10)])
+        shown = primary.packet_lines(self.root, many, "plan")
+        self.assertEqual(len(shown), 1)
+        self.assertIn("R-6; +3 more (spec primary).", shown[0])
+        self.assertNotIn("R-7", shown[0])
         self.assertEqual(primary.packet_lines(self.root, self.state_at("plan"), "plan"), [])     # none recorded
         self.assertEqual(primary.packet_lines(self.root, later, "test-spec"), [])                # no longer asked
 

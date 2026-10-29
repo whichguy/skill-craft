@@ -88,7 +88,9 @@ full `state.md` field `work_items`, including pending contexts the packet's
 short queue summary omits. Include all still-required future work and exclude
 current and completed items; an empty array removes all future work. Explain
 removals, merges or approved supersession in the plan note. Independent required
-work cannot disappear just because no other item consumes it. A completed
+work cannot disappear just because no other item consumes it. The queue it leaves
+keeps every primary requirement (spec `primary`) in some item's `follows`; ShipLoop
+refuses one that does not. A completed
 prerequisite invalidated by new evidence needs corrective work and revalidation
 before its consumer; do not rewrite past completion evidence.
 

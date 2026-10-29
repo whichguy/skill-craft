@@ -17,9 +17,17 @@ packet that names it: a cleared context finds the file the packet names (S-6), a
 
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import List, NamedTuple, Optional, Sequence, Tuple
 
 DIR = "fields"
+# Guard: the longest one path component of a field file's name may be, so a model-written ID cannot make the name too long
+# for the filesystem (action and field each get one component).
+COMPONENT_MAX = 80
+# Display: the fewest characters of a block's first body line that a packet prints when only the block's label fits.
+MIN_SHOWN_CHARS = 80
+_UNSAFE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 class Shown(NamedTuple):
@@ -29,9 +37,21 @@ class Shown(NamedTuple):
     file: Optional[Tuple[str, str]]  # (run-relative path, the whole field) when the field was cut; None when whole
 
 
+def component(name: str) -> str:
+    """``name`` as one safe path component: itself when it is made of letters, digits, ``.``, ``_`` and ``-`` and fits
+    ``COMPONENT_MAX``; else those characters of it (anything else becomes ``_``, leading dots go) and a short digest of
+    the original, so a step ID such as ``S1/../../x`` or a very long one names a file inside ``RUN/fields/`` and two
+    different IDs never name the same file."""
+    safe = _UNSAFE.sub("_", name).lstrip(".")
+    if safe and safe == name and len(safe) <= COMPONENT_MAX:
+        return safe
+    digest = hashlib.sha256(name.encode("utf-8", "surrogatepass")).hexdigest()[:8]
+    return (safe[:COMPONENT_MAX - 9] or "_") + "-" + digest
+
+
 def path(action: str, field: str) -> str:
     """The run-relative file that holds ``field`` of ``action``'s result whole."""
-    return DIR + "/" + action + "-" + field + ".md"
+    return DIR + "/" + component(action) + "-" + component(field) + ".md"
 
 
 def cut(text: str, budget: int) -> str:
@@ -40,21 +60,23 @@ def cut(text: str, budget: int) -> str:
 
 
 def inline(text: str, budget: int, action: str, field: str) -> Shown:
-    """A field printed on its label's line (a step's task or Proof): ``text`` as it is while it fits ``budget``; else its
-    first line, cut to the budget, then the file that holds it.  The file keeps the field as written, so a spilled Proof
-    runs as it is."""
+    """A field printed on its label's line (a step's task or Proof): ``text`` as it is while it fits ``budget``; else the
+    start of it on one line (whitespace collapsed), cut to the budget, then the file that holds it.  The file keeps the
+    field as written, so a spilled Proof runs as it is."""
     if len(text) <= budget:
         return Shown([text], None)
     relative = path(action, field)
-    first = " ".join(text.strip().splitlines()[0].split())
-    return Shown([cut(first, budget) + " (cut here: RUN/" + relative + " holds all " + f"{len(text):,}"
+    return Shown([cut(" ".join(text.split()), budget) + " (cut here: RUN/" + relative + " holds all " + f"{len(text):,}"
                   + " characters)"], (relative, text.strip("\n") + "\n"))
 
 
-def block(lines: Sequence[str], size: int, budget: int, action: str, field: str, indent: str = "") -> Shown:
+def block(lines: Sequence[str], size: int, budget: int, action: str, field: str, indent: str = "",
+          header: int = 0) -> Shown:
     """The lines of a required block (concern rows, criteria, test layers): all of them while ``size``, the field's own
     measure, fits ``budget``; else the leading lines that fit the budget, at least the first (cut to it), then a line
-    naming the file that holds every line."""
+    naming the file that holds every line.  ``header`` is how many leading lines are labels: when only they fit, the
+    first line after them is printed cut to what is left (at least ``MIN_SHOWN_CHARS``), so the block still shows some of
+    its content."""
     if size <= budget:
         return Shown(list(lines), None)
     relative = path(action, field)
@@ -65,10 +87,12 @@ def block(lines: Sequence[str], size: int, budget: int, action: str, field: str,
             break
         shown.append(line if shown else cut(line, budget))
         used += len(shown[-1]) + 1
+    if header and len(shown) <= header < len(lines):
+        shown.append(cut(lines[len(shown)], max(budget - used, MIN_SHOWN_CHARS)))
     left = len(lines) - len(shown)
     told = (f"{left} more line{'s' if left != 1 else ''} not printed here" if left else "cut here")
     return Shown(shown + [indent + "(" + told + ": RUN/" + relative + " holds all " + str(len(lines)) + " whole)"],
                  (relative, "\n".join(lines) + "\n"))
 
 
-__all__ = ("DIR", "Shown", "block", "cut", "inline", "path")
+__all__ = ("COMPONENT_MAX", "DIR", "MIN_SHOWN_CHARS", "Shown", "block", "component", "cut", "inline", "path")

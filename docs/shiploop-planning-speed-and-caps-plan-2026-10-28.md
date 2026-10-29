@@ -336,3 +336,25 @@ The owner asked overlapping sessions to stop and agree on owners. Design T (sess
     screen is built.
   - The criteria are observations, so acceptance stays scripted or rendered, never model taste (B7). Not measured: a UI
     case (the D7 cases have no interface), and the extra minutes per UI feature.
+- **Review of Wave A (2026-10-29): an independent reviewer read the engine diff and the author checked it again; every confirmed
+  finding is fixed in the commit that follows F2, F3 and P4.**
+  - **Field-file names (release blocker).** A step ID was checked only for whitespace and became part of
+    `RUN/fields/<action>-<id>-task.md`, so `x/../../../../outside` wrote outside the run, a 230-character ID made every later
+    `next` fail, and a NUL raised. `shiploop_fields.component` now turns any name into one safe component (letters, digits,
+    `.`, `_`, `-`, at most 80 characters, a digest of the original when it changed), so no step ID is refused and two
+    different IDs never share a file.
+  - **Primary block overflowed the plan head (release blocker).** The head budgets were measured on a walk whose spec
+    records no primary requirements. With one, the plan head's required text ended at 19,686 (bound 19,500); with six, the head
+    passed the 20,000 cut and a host that keeps only the first and last 10,000 characters lost the duties. The block is one short
+    line at plan (at most six IDs, then how many more) and a fuller one line at carry-forward, `PrimaryRequirementHeadTests`
+    measures one, six and thirty, and the plan head ends its required text at or under the bound for any number.
+  - **Cuts that lost the content.** `fields.block` printed only a block's label when a long first row did not fit, and
+    `fields.inline` printed only the first line of a multi-line field; a block now prints some of its first row, and an inline
+    field its first characters on one line.
+  - **Also fixed.** The Improve opening shows a headline cut as the narrative does; the `context` command writes the field files
+    it names; the carry-forward duty and refusal say a completed or current item counts and only a future item can be widened;
+    the protocol and carry-forward references document `follows` and the coverage rule; one stale comment.
+  - **New guards.** A hostile or long step ID stays inside `RUN/fields/`; a new inline `len(...) > N` check fails
+    `test_no_inline_length_check_is_a_new_cap`.
+  - **Left as is (reviewer residuals, judged low):** a retired ID is accepted in `follows`, and `add-work` rows get only a shape
+    check. P4's criteria are prompt text and no gate checks them, by design (B7).
