@@ -17,7 +17,8 @@ Each work item runs 7 stages in 4 phases (`INNER` in
   step's helper `skills` ([test loop](test-loop.md#test-loop), [expectations](#expectations-and-validate-existing)).
 - `test-spec` writes one `### <ID>` case per criterion a test confirms, before any
   code changes; ShipLoop refuses a case ID that no focused command lists, and a
-  focused ID with no case; last item: a primary requirement no case names
+  focused ID with no case. The cases follow this step; the plan keeps every primary
+  requirement in some work item's `follows`
   ([glossary](glossary.md)). Cases due at a later stage go under `## Due later` (read
   by `system-test-author`); criteria confirmed `searched` or `inspected` go under
   `## Not tested here`.
@@ -32,7 +33,8 @@ Each work item runs 7 stages in 4 phases (`INNER` in
   each changed entry point, and ShipLoop commits it
   ([commit stage](navigator.md#step-commits)). `verify` is retired.
 - `carry-forward` updates the knowledge home and the queue and records a
-  [skill decision](#carry-forward-skill-decision).
+  [skill decision](#carry-forward-skill-decision). A queue it replaces keeps every
+  primary requirement in some work item's `follows`.
 
 From `test-spec` through `document`, a goal that proves wrong goes back to the
 step plan ([Send-back](#send-back-back-to-the-step-plan)).

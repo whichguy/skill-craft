@@ -978,108 +978,115 @@ class PrimaryGateTests(RepoCase):
         self.assertEqual(primary.packet_lines(self.root, state, "handoff"), [])
 
 
-class SuiteCoverageTests(RepoCase):
-    """TS1 (docs/shiploop-judgement-stage-checks-proposal-2026-10-26.md, section 0): at the last work item's done test-spec,
-    every primary requirement (spec primary) has a test case naming it in some item's current test-spec, or a
-    ``suite_requirements`` row: a requirement a recorded command's own run observes (a test suite, "the tests run with
-    node --test"; a deploy; a check), which names one of the run's recorded test commands.  A replay of the eight saved runs
-    since ``primary`` exists found three such requirements and one primary requirement no case named."""
-
-    SUITE = {"requirement": "R-2", "command": "node --test"}
+class PlanCoverageTests(RepoCase):
+    """F3 of docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md (owner, 2026-10-28): coverage of the primary
+    requirements is a property of the plan, not of the last test-spec.  Each work item names in ``follows`` the R-<n> it
+    serves (and the AD-<n> it follows); a done plan, and a done carry-forward that replaces the future queue, leave every
+    primary requirement in some work item's follows, each ID there with an entry in the living files.  TS1, which asked
+    the last test-spec for a case or a suite row per primary requirement, is gone."""
 
     def setUp(self) -> None:
         super().setUp()
-        self.home("spec.md", "## Requirements\n\n- R-1: Play a game.\n- R-2: Tests run with node --test.\n\n"
-                             "## Retired\n\n- R-4: Dropped.\n")
+        self.home("spec.md", "## Requirements\n\n- R-1: Play a game.\n- R-2: Keep a score.\n\n## Retired\n\n"
+                             "- R-4: Dropped.\n")
+        self.home("architecture.md", "## Decisions\n\n### AD-1 Plain modules\n\nWhy.\n")
 
     def refused(self, call) -> str:
         with self.assertRaises(primary.PrimaryError) as caught:
             call()
         return str(caught.exception)
 
-    def state_at(self, item: str, *, primary_ids: list | None = None, earlier_cases: list | None = None) -> dict:
-        """The run at ``item``'s test-spec: the spec (``primary``), each item's step-plan test commands, and W1's
-        accepted test-spec cases when the cursor is on W2."""
+    def state_at(self, stage: str, *, primary_ids: list | None = None, work_items: list | None = None,
+                 work_index: int = 0) -> dict:
+        """The run at ``stage`` with the spec's ``primary`` (none recorded when None) and the queue ``work_items``."""
         spec = {"outcome": "done", "summary": "s"}
         if primary_ids is not None:
             spec["primary"] = primary_ids
-        commands = {"W1": [{"command": "npm test", "suite": "focused", "ids": ["TC-1"]}],
-                    "W2": [{"command": "node --test", "suite": "regression", "ids": ["TC-2"]}]}
-        rows = [({"action": "sp0", "stage": "spec", "workitem": None, "outcome": "done"}, spec),
-                ({"action": "st1", "stage": "step-plan", "workitem": "W1", "outcome": "done"},
-                 {"outcome": "done", "summary": "s", "test_commands": commands["W1"]})]
-        if item == "W2":
-            rows += [({"action": "ts1", "stage": "test-spec", "workitem": "W1", "outcome": "done"},
-                      {"outcome": "done", "summary": "s", "test_cases": earlier_cases or []}),
-                     ({"action": "st2", "stage": "step-plan", "workitem": "W2", "outcome": "done"},
-                      {"outcome": "done", "summary": "s", "test_commands": commands["W2"]})]
-        return item_state(self.repo, item, rows, "test-spec")
+        state = item_state(self.repo, "W1", [({"action": "sp0", "stage": "spec", "workitem": None, "outcome": "done"},
+                                              spec)], stage)
+        state.update(stage=stage, work_items=work_items or [{"id": "W1", "title": "one"}], work_index=work_index)
+        return state
 
     @staticmethod
-    def done(cases: list, **extra) -> dict:
-        return {"outcome": "done", "summary": "s", "test_cases": cases, **extra}
+    def done(work_items: list | None = None) -> dict:
+        result = {"outcome": "done", "summary": "s"}
+        if work_items is not None:
+            result["work_items"] = work_items
+        return result
 
-    def check(self, state: dict, result: dict) -> None:
-        primary.check_test_spec(state, "test-spec", result)
+    def test_a_plan_that_leaves_a_primary_requirement_out_of_every_follows_is_refused_naming_it(self) -> None:
+        state = self.state_at("plan", primary_ids=["R-1", "R-2"])
+        one = {"id": "W1", "title": "one", "follows": ["R-1"]}
+        message = self.refused(lambda: primary.check_queue(state, "plan", self.done([one, {"id": "W2", "title": "two"}])))
+        self.assertIn("every primary requirement (spec primary) is served by a work item whose follows names it", message)
+        self.assertIn("no work item of this plan names R-2.", message)
+        self.assertIn("Widen the work item that serves it", message)
+        self.assertIn('"follows": ["R-2"]', message)
+        # The retained queue (a plan that gives no work_items) is held to the same rule.
+        self.assertIn("names R-1, R-2.", self.refused(lambda: primary.check_queue(state, "plan", self.done())))
+        # The two exits the refusal names: widen the item that serves it, or add one.
+        primary.check_queue(state, "plan", self.done([dict(one, follows=["R-1", "R-2"])]))
+        primary.check_queue(state, "plan", self.done([one, {"id": "W2", "title": "two", "follows": ["R-2", "AD-1"]}]))
 
-    def test_the_last_items_test_spec_needs_a_case_or_a_suite_row_for_every_primary_requirement(self) -> None:
-        state = self.state_at("W2", primary_ids=["R-1", "R-2"], earlier_cases=[dict(CASE, id="TC-1", requirement="R-1")])
-        message = self.refused(lambda: self.check(state, self.done([])))
-        self.assertIn("R-2", message)
-        self.assertIn("primary requirement (spec primary)", message)
-        self.assertIn("suite_requirements", message)
-        self.assertIn('"command": "<one of: npm test, node --test>"', message)
-        self.assertIn("(a test suite, a deploy or a check", message)           # any recorded command may observe it
-        self.assertNotIn("about the tests themselves", message)
-        self.assertNotIn("R-1 ", message.split("Missing:")[-1].split(".")[0])     # W1's case covers R-1
-        self.check(state, self.done([], suite_requirements=[self.SUITE]))                    # the suite observes R-2
-        self.check(state, self.done([dict(CASE, id="TC-2", requirement="R-2")]))           # or a case names it
-        self.check(state, self.done([dict(CASE, id="TC-2", requirement="R-1, R-2")]))      # a case may name several
+    def test_each_follows_id_a_queue_gives_needs_an_entry_in_the_living_files(self) -> None:
+        state = self.state_at("plan", primary_ids=["R-1"])
+        message = self.refused(lambda: primary.check_queue(state, "plan", self.done(
+            [{"id": "W1", "title": "one", "follows": ["R-1", "R-9", "AD-2"]}])))
+        self.assertTrue(message.startswith("work_items follows names R-9, AD-2, with no entry"), message)
+        self.assertIn(str(self.repo / knowledge.HOME / "spec.md") + " (R-)", message)
+        self.assertIn(str(self.repo / knowledge.HOME / "architecture.md") + " (AD-)", message)
+        # A retired requirement still has an entry, as in a step plan's follows; the spec's primary list is checked
+        # for current entries at the spec stage.
+        primary.check_queue(state, "plan", self.done([{"id": "W1", "title": "one", "follows": ["R-1", "R-4", "AD-1"]}]))
 
-    def test_only_the_last_item_is_checked_and_an_unmeasured_or_blocked_result_is_not(self) -> None:
-        self.check(self.state_at("W1", primary_ids=["R-1", "R-2"]), self.done([]))         # W2 still to come
-        self.check(self.state_at("W2", primary_ids=None), self.done([]))                   # spec recorded no primary
-        self.check(self.state_at("W2", primary_ids=["R-1", "R-2"]), {"outcome": "blocked", "summary": "s"})
-        # A run whose step plans record no test command (documentation only): nothing executed to trace.
-        docs_only = self.state_at("W2", primary_ids=["R-1", "R-2"])
-        for row, _ in [(r, None) for r in docs_only["history"] if r["stage"] == "step-plan"]:
-            docs_only["accepted"][row["action"]]["test_commands"] = []
-        self.check(docs_only, self.done([]))
-        self.assertEqual(primary.packet_lines(self.root, docs_only, "test-spec"), [])
+    def test_a_carry_forward_that_replaces_the_queue_keeps_each_primary_requirement_followed(self) -> None:
+        queue = [{"id": "W1", "title": "one", "follows": ["R-1"]}, {"id": "W2", "title": "two", "follows": ["R-2"]}]
+        state = self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=queue, work_index=0)
+        message = self.refused(lambda: primary.check_queue(state, "carry-forward", self.done(
+            [{"id": "W3", "title": "three"}])))
+        self.assertIn("no work item of the queue this result leaves (the completed and current items, then the "
+                      "work_items given) names R-2.", message)
+        primary.check_queue(state, "carry-forward", self.done([{"id": "W3", "title": "three", "follows": ["R-2"]}]))
+        primary.check_queue(state, "carry-forward", self.done())       # no work_items: the queue stays as it was
+        # The completed and current items count: W1 already serves both.
+        both = [dict(queue[0], follows=["R-1", "R-2"]), queue[1]]
+        primary.check_queue(self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=both),
+                            "carry-forward", self.done([]))
 
-    def test_a_suite_row_names_a_current_requirement_and_one_of_the_runs_recorded_test_commands(self) -> None:
-        state = self.state_at("W1", primary_ids=["R-1"])
-        for row, fragment in ((dict(self.SUITE, command="pytest"), ("pytest is not one of this run's recorded test "
-                                                                    "commands (npm test)")),
-                              (dict(self.SUITE, requirement="R-3"), "R-3 has no current entry in"),
-                              (dict(self.SUITE, requirement="R-4"), "R-4 has no current entry in")):
-            with self.subTest(fragment):
-                self.assertIn(fragment, self.refused(
-                    lambda row=row: self.check(state, self.done([], suite_requirements=[dict(row)]))))
-        self.check(state, self.done([], suite_requirements=[dict(self.SUITE, command="npm test")]))
-        # Not only a test suite: a deploy a step plan records observes a structural requirement (Grok chess-sf 12a23d's
-        # R-1 and R-2, docs/experiments/judgement-stage-checks-20261026/chess-sf-ts1-check.txt).
-        deploy = "sf project deploy start --target-org de"
-        state["accepted"]["st1"]["test_commands"].append({"command": deploy, "suite": "check"})
-        self.check(state, self.done([], suite_requirements=[{"requirement": "R-1", "command": deploy}]))
-        for bad in ("R-2", [{"requirement": "R-2"}], [{"requirement": "R-2, R-1", "command": "npm test"}],
-                    [dict(self.SUITE, command="npm test"), dict(self.SUITE, command="npm test")]):
-            with self.subTest(bad=bad):
-                self.assertTrue(self.refused(lambda bad=bad: primary.canonical_suite(bad)).startswith("suite_requirements"))
+    def test_no_primary_list_another_stage_or_another_outcome_is_not_asked(self) -> None:
+        bare = [{"id": "W1", "title": "one"}]
+        primary.check_queue(self.state_at("plan"), "plan", self.done(bare))               # the spec recorded none
+        for stage in ("step-plan", "test-spec", "verify"):
+            primary.check_queue(self.state_at(stage, primary_ids=["R-1"]), stage, self.done(bare))
+        primary.check_queue(self.state_at("plan", primary_ids=["R-1"]), "plan",
+                            {"outcome": "blocked", "summary": "s", "work_items": bare})
 
-    def test_the_field_belongs_to_a_done_test_spec_and_the_last_items_packet_names_the_coverage(self) -> None:
-        done = {"outcome": "done", "summary": "s"}
-        self.assertEqual(canonical(dict(done, suite_requirements=[self.SUITE]), "test-spec")["suite_requirements"],
-                         [self.SUITE])
-        with self.assertRaisesRegex(navigator.NavigatorError, "suite_requirements is allowed only on a done test-spec"):
-            canonical(dict(done, suite_requirements=[self.SUITE]), "step-plan")
-        state = self.state_at("W2", primary_ids=["R-1", "R-2"], earlier_cases=[dict(CASE, id="TC-1", requirement="R-1")])
-        lines = primary.packet_lines(self.root, state, "test-spec")
-        self.assertTrue(lines[0].startswith("Primary requirements (spec primary): this is the last work item, so every "
-                                            "one needs a test case naming it"), lines)
-        self.assertIn("(a test suite, a deploy or a check)", lines[0])
-        self.assertEqual(lines[1:], ["- R-1: TC-1", "- R-2: no case yet"])
-        self.assertEqual(primary.packet_lines(self.root, self.state_at("W1", primary_ids=["R-1"]), "test-spec"), [])
+    def test_the_plan_and_carry_forward_packets_name_the_work_items_following_each(self) -> None:
+        state = self.state_at("plan", primary_ids=["R-1", "R-2"])
+        lines = primary.packet_lines(self.root, state, "plan")
+        self.assertTrue(lines[0].startswith("Primary requirements (spec primary): each must be in the follows of a work "
+                                            "item that serves it; ShipLoop refuses a queue that leaves one out."), lines)
+        self.assertEqual(lines[1:], ["- R-1: none", "- R-2: none"])
+        queue = [{"id": "W1", "title": "one", "follows": ["R-1"]}, {"id": "W2", "title": "two", "follows": ["R-1", "R-2"]}]
+        later = self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=queue)
+        self.assertEqual(primary.packet_lines(self.root, later, "carry-forward")[1:], ["- R-1: W1, W2", "- R-2: W2"])
+        self.assertEqual(primary.packet_lines(self.root, self.state_at("plan"), "plan"), [])     # none recorded
+        self.assertEqual(primary.packet_lines(self.root, later, "test-spec"), [])                # no longer asked
+
+    def test_a_work_items_follows_is_a_list_of_entry_ids_each_once_and_reloads_unchanged(self) -> None:
+        row = {"id": "W1", "title": "one", "follows": ["R-1", "AD-2"], "context": "c"}
+        done = canonical({"outcome": "done", "summary": "s", "work_items": [row]}, "plan")
+        self.assertEqual(done["work_items"], [row])
+        self.assertEqual(canonical(done, "plan"), done)                    # a saved state reloads unchanged
+        for bad in ("R-1", ["R1"], ["R-1", "R-1"], [3], ["<R-<n> or AD-<n> this item follows>"]):
+            with self.subTest(bad=bad), self.assertRaises(navigator.NavigatorError) as caught:
+                canonical({"outcome": "done", "summary": "s", "work_items": [dict(row, follows=bad)]}, "plan")
+            self.assertIn("work item W1's follows is a list of the R-<n> it serves and the AD-<n> it follows",
+                          str(caught.exception))
+        # The test-spec field TS1 read is gone (one supported version): a result that still holds it is refused.
+        with self.assertRaisesRegex(navigator.NavigatorError, "result has unsupported fields: suite_requirements"):
+            canonical({"outcome": "done", "summary": "s",
+                       "suite_requirements": [{"requirement": "R-1", "command": "npm test"}]}, "test-spec")
 
 
 class HandoffGateTests(GateCase):
@@ -2349,8 +2356,8 @@ class SendBackBudgetCliTests(inner.RunDriver):
 
 
 class CaseRowCliTests(inner.RunDriver):
-    """The test-spec cases through the real CLI: the refusal's spec line and the the check coverage notice (U12), and
-    TS1's refusal at the last work item with each of its named exits accepted."""
+    """The test-spec cases through the real CLI: the refusal's spec line and the check coverage notice (U12), and a
+    last work item's test-spec that is relative to its step (F3 of the 2026-10-28 plan; TS1 is gone)."""
 
     def command(self, action: str, path: Path, *flags: str, verb: str = "complete") -> list:
         return [sys.executable, "-B", str(CLI), verb, "--run-dir", str(self.run_dir), "--action", action,
@@ -2448,11 +2455,11 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertEqual(accepted["test_cases"], [case])
         self.assertEqual([row["settle"] for row in accepted["assumptions"]], [opt_in["settle"]])
 
-    def test_ts1_refuses_an_uncovered_primary_requirement_and_accepts_a_naming_case_or_a_suite_row(self) -> None:
-        """TS1 (2026-10-26) through the real CLI, at the run's only (so last) item: R-2, a primary requirement about the
-        tests, has no case.  Refused, naming R-2 and the recorded commands; a case that names it passes the check; a
-        suite row naming an unrecorded command is refused; one naming the recorded check command is accepted by the
-        real complete and stored."""
+    def test_the_last_items_test_spec_names_only_its_own_steps_requirements(self) -> None:
+        """F3 through the real CLI, at the run's only (so last) item.  The spec lists R-1 and R-2 as primary; the plan's
+        work item follows both (the plan gate holds the coverage), the step plan's focused case serves R-1 only, and
+        the test-spec's one case names R-1.  TS1 refused that with "Missing: R-2"; the check and the real complete
+        now accept it.  A result that still carries TS1's suite_requirements is refused as an unsupported field."""
         self.start()
         state = self.drive_to("spec")
         knowledge_support.write_spec(state)
@@ -2461,40 +2468,33 @@ class CaseRowCliTests(inner.RunDriver):
             "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\nR-2: The tests run with test -f a.py.\n"),
             encoding="utf-8")
         self.complete(dict(inner.DONE, primary=["R-1", "R-2"]))
-        self.drive_to("step-plan")
+        state = self.drive_to("step-plan")
+        self.assertEqual(state["work_items"][0]["follows"], ["R-1", "R-2"])   # the plan named both (fixture_follows)
         self.complete(dict(inner.DONE, paths=list(self.PATHS),
                            criteria=[{"id": "C1", "text": "The change works (R-1)."}],
                            test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                           {"command": "test -f a.py", "suite": "check"}]))
         state = self.drive_to("test-spec")
+        self.assertNotIn("Primary requirements (spec primary)", self.packet())
         action = navigator.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         good = inner.prepare(self.run_dir, state, dict(inner.DONE))
         self.assertEqual([row["requirement"] for row in good["test_cases"]], ["R-1"])
 
+        store.write_record(path, dict(good, suite_requirements=[{"requirement": "R-2", "command": "test -f a.py"}]),
+                           "result")
+        stale = self.run_cli(self.command(action, path))
+        self.assertEqual(stale.returncode, 2, stale.stdout + stale.stderr)
+        self.assertIn("result has unsupported fields: suite_requirements", stale.stderr)
+
         store.write_record(path, good, "result")
-        refused = self.run_cli(self.command(action, path, verb="check"))
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("Missing: R-2.", refused.stderr)
-        self.assertIn('"<one of: true, test -f a.py>"', refused.stderr)
-
-        # Exit 1: a case whose requirement names R-2 as well.
-        naming = dict(good, test_cases=[dict(good["test_cases"][0], requirement="R-1, R-2")])
-        store.write_record(path, naming, "result")
-        named = self.run_cli(self.command(action, path, verb="check"))
-        self.assertEqual(named.returncode, 0, named.stdout + named.stderr)
-
-        # Exit 2: a suite row; its command must be one a step plan records.
-        store.write_record(path, dict(good, suite_requirements=[{"requirement": "R-2", "command": "npm test"}]), "result")
-        unrecorded = self.run_cli(self.command(action, path, verb="check"))
-        self.assertEqual(unrecorded.returncode, 2, unrecorded.stdout + unrecorded.stderr)
-        self.assertIn("npm test is not one of this run's recorded test commands (true, test -f a.py)", unrecorded.stderr)
-        row = {"requirement": "R-2", "command": "test -f a.py"}
-        store.write_record(path, dict(good, suite_requirements=[row]), "result")
+        checked = self.run_cli(self.command(action, path, verb="check"))
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertNotIn("Missing: R-2", checked.stdout + checked.stderr)
         done = self.run_cli(self.command(action, path))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        self.assertEqual(self.state()["accepted"][action]["suite_requirements"], [row])
+        self.assertEqual(self.state()["accepted"][action]["test_cases"], good["test_cases"])
         self.assertNotEqual(navigator.current_stage(self.state()), "test-spec")
 
 

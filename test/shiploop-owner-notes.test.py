@@ -290,8 +290,9 @@ class HeadBoundTests(unittest.TestCase):
                  for index in range(1, 6)]
         for route in ("inline", "ask-agent"):
             # The plan head has the least room.  Plan F2 took the stated size limits and the headline's character count
-            # out of it, so one note now fits whole there; five do not, and the head prints the floor by id and file.
-            for stage, quoted in (("plan", {1: ["N1"], 5: []}),
+            # out of it, and plan F3's `follows` (the work item's row, the coverage rule in the checked-by line) took the
+            # room back: the head prints the floor by id and file, with no note quoted.
+            for stage, quoted in (("plan", {1: [], 5: []}),
                                   ("step-plan", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]}),
                                   ("implement", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]})):
                 for count in (1, 5):

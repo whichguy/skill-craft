@@ -761,7 +761,7 @@ ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed nam
 _CARRY_FORWARD_ONE_STEP = """\
 2. **Queue** (Carry-forward mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
-   queue, rows `{"id", "title", "context"}`, and say why in the summary.
+   queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary.
 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
    the repository skill index (KNOWLEDGE/environment.md ## Skills) and your host's skills and list them in evidence_refs,
    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n> says the
@@ -992,15 +992,16 @@ DUTIES = {
     requirement section and source used.
 """,
     "test-strategy": """\
-1. Build a risk-based strategy from KNOWLEDGE/spec.md and the spec changes since the run began (quoted below) before any
-   code. Under KNOWLEDGE/environment.md
-   ## Harnesses and suites plan, per requirement: its layers (unit, component, e2e, as in `test_layers`) and any
-   consumer check, negative cases, fixtures and data, environment and authorization needs, required surface, due
-   stage, owner, prerequisites; for a
-   state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
-   is not a pass). Name an expected-failure control where test-first applies.
-2. Plan checks for new and preserved behaviour from the spec changes since the run began and RUN/notes/current-system-baseline.md. An
-   unknown existing behaviour needs discovery before a preservation target; an old pass is not a current pass.
+1. Build a risk-based strategy from KNOWLEDGE/spec.md for the spec changes since the run began (quoted below) and
+   the preservation set they touch, before any code; the existing suite, run as is, covers the rest. Under
+   KNOWLEDGE/environment.md ## Harnesses and suites plan, per requirement in that scope: its layers (unit, component,
+   e2e, as in `test_layers`) and any consumer check, negative cases, fixtures and data, environment and authorization
+   needs, required surface, due stage, owner, prerequisites; for a state or data change, its before and after checks
+   (State and data assessment). Mark every check planned (planned is not a pass). Name an expected-failure control
+   where test-first applies.
+2. The preservation set: each existing behaviour a spec change touches, from those changes and
+   RUN/notes/current-system-baseline.md; plan a check that it still holds. An unknown existing behaviour needs
+   discovery before a preservation target; an old pass is not a current pass.
 3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
    evidence or access is not N/A.
 4. Select or revalidate harnesses and suite entry points (Repeatable test-suite guide); reuse a prior harness only
@@ -1156,8 +1157,9 @@ DUTIES = {
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
     open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
-17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
-    approved outcome, including required independent work with no downstream consumer.
+17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (R-<n> served, AD-<n> followed; []
+    when none) and optional `context`, covering every approved outcome, including required independent work with no
+    downstream consumer. Every spec `primary` requirement is in some item's `follows`.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
     `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
@@ -1467,9 +1469,10 @@ preparatory commit); a mismatch there is a send-back.
      transcript, invent no decision ledger; a context summary is not proof);
    - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
      loop and report blocked; it is no queue edit.
-   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prerequisite
-   order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or supersession in
-   the summary. Omit `work_items` to keep the queue.
+   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "context"}` in
+   prerequisite order, no completed or current ID, keeping unrelated pending work and each primary requirement in
+   some item's `follows`. Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the
+   queue.
 3. **Skill decision**, in `skill`:
    1. *Inspect* the repository skill index (the directory KNOWLEDGE/environment.md ## Skills names, or README or AGENTS.md
       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence_refs.

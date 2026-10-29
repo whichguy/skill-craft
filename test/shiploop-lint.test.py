@@ -973,6 +973,8 @@ def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True, 
         queue = result.get("work_items", state["work_items"])
         result = dict(result, concerns=inner.no_concerns_map(
             str(row.get("id")) for row in queue if isinstance(row, dict)))
+    if stage == "plan":
+        result = inner.fixture_follows(state, result)                       # F3: a work item for each primary one
     if stage == "step-plan" and result.get("outcome") == "done" and "paths" not in result:
         result = dict(result, paths=list(PATHS))
     if loop:

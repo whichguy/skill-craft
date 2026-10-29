@@ -313,3 +313,14 @@ The owner asked overlapping sessions to stop and agree on owners. Design T (sess
   96) passes with `--unit F2`: every printed text shrinks, and the head table is rewritten for the stages design T left.
   `test/shiploop-packet-bounds.test.py` lists every numeric limit by kind (`LIMIT_KINDS`) and fails on a new one without a
   kind or on a refusal that states a limit. Not measured yet: the rerun of the three D7 cases for "no size refusals".
+- **Plan F3 (2026-10-29), on F2.** Primary coverage moves from the last test-spec to the plan.
+  - `shiploop_primary.check_queue` replaces TS1's `check_test_spec`. A done plan, and a done carry-forward that replaces the
+    future queue, must leave every primary requirement of the spec in some work item's `follows`, and each `follows` ID
+    needs an entry in `spec.md` or `architecture.md`. The exit is to widen a work item or add one.
+  - A work item takes an optional `follows` (shape only: R-<n>/AD-<n>, each once). The plan and carry-forward packets print
+    each primary ID with the items that follow it; the last test-spec no longer gets the coverage block, so each
+    step's tests follow that step's own intention (`iteration.due_cases`, `active_commands`).
+  - Retired with one supported version: `suite_requirements`, `canonical_suite`, `test_spec_coverage` and TS1's refusal.
+  - Offline render diff, same four settings as F2, against the release: all 10 stages pass; the carry-forward packet grows
+    by 165 characters (the `follows` row shape and the coverage rule), approved in `packet_changes.json` key F3.
+  - Not measured yet: a rerun of the three D7 cases (hidden checks must stay 43/43), and a hooks-on Terra before/after.

@@ -78,20 +78,20 @@ def fixture_intake(state: Mapping[str, Any], result: Mapping[str, Any]) -> dict[
     return merged
 
 
-def fixture_suite(state: Mapping[str, Any], result: Mapping[str, Any]) -> dict[str, Any]:
-    """A done test-spec result with no cases, at the last work item, with a ``suite_requirements`` row for each primary
-    requirement no earlier case names (TS1, 2026-10-26), observed by the run's first recorded test command: a fixture
-    whose step plan lists no focused case IDs has no case to name it.  A result with cases is left to TS1."""
+def fixture_follows(state: Mapping[str, Any], result: Mapping[str, Any]) -> dict[str, Any]:
+    """A done plan result whose first work item also follows each primary requirement no item names (F3 of the
+    2026-10-28 plan: the plan gate refuses a queue that leaves one out), giving the run's current queue when the result
+    gives none: the default for suites whose intent is not that coverage."""
     import shiploop_primary as primary  # the scripts are on the path once the fixture is imported
     merged = dict(result)
-    commands = primary._recorded_commands(state)
-    if merged.get("outcome") != "done" or merged.get("test_cases") or primary.SUITE_FIELD in merged or not commands \
-            or not primary._is_last_item(state):
+    ids = primary.primary_ids(state)
+    queue = [dict(row) for row in merged.get("work_items", state.get("work_items") or ()) if isinstance(row, Mapping)]
+    if merged.get("outcome") != "done" or not ids or not queue:
         return merged
-    covered = primary.test_spec_coverage(state, merged)
-    missing = [ident for ident in primary.primary_ids(state) or () if not covered.get(ident)]
+    missing = [ident for ident in ids if ident not in primary.followers(queue)]
     if missing:
-        merged[primary.SUITE_FIELD] = [{"requirement": ident, "command": commands[0]} for ident in missing]
+        queue[0]["follows"] = [*queue[0].get("follows", []), *missing]
+        merged["work_items"] = queue
     return merged
 
 
@@ -184,7 +184,6 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
         # The cases live in the result (consumer contract 3.3); no gate reads a test-spec file.
         _action, plan = test_loop._step_plan(state, _current_item(state))
         result.setdefault("test_cases", test_cases_for(plan))
-        result = fixture_suite(state, result)
     elif stage == "document":
         result.setdefault("knowledge", dict(KNOWLEDGE_NONE))
     elif stage == "carry-forward":
@@ -272,6 +271,7 @@ class RunDriver(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result.setdefault("concerns", no_concerns_map(
                 str(row.get("id")) for row in queue if isinstance(row, Mapping)))
+            result = fixture_follows(state, result)          # F3: every primary requirement has a work item
         if stage == "intake":
             result = fixture_intake(state, result)          # IN1
         if stage == "spec" and result.get("outcome") == "done":
@@ -330,4 +330,4 @@ class RunDriver(unittest.TestCase):
 
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "KNOWLEDGE_NONE", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
-           "fixture_intake", "fixture_primary", "no_concerns_map", "prepare")
+           "fixture_follows", "fixture_intake", "fixture_primary", "no_concerns_map", "prepare")

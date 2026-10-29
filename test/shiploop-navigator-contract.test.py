@@ -2047,8 +2047,8 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("work_items", plan_template)
         self.assertEqual(len(plan_template["work_items"]), 1)
         self.assertEqual(
-            set(plan_template["work_items"][0]), {"id", "title", "context"}
-        )
+            set(plan_template["work_items"][0]), {"id", "title", "follows", "context"}
+        )   # follows: the R-<n> the item serves (F3 of the 2026-10-28 plan)
         self.assertNotIn(
             "work_items", store.loads(navigator._result_template(plan, "carry-forward"))
         )
@@ -4148,6 +4148,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 queue = result.get("work_items", state["work_items"])
                 result.setdefault("concerns", inner_fixture.no_concerns_map(
                     str(row.get("id")) for row in queue if isinstance(row, dict)))
+                result = inner_fixture.fixture_follows(state, result)          # F3: a work item for each primary one
             if stage == "step-plan":
                 result.setdefault("follows", [])
                 if "criteria" in result:

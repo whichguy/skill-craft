@@ -433,6 +433,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             queue = producer.get("work_items", state["work_items"])
             producer["concerns"] = inner_fixture.no_concerns_map(
                 row["id"] for row in queue if isinstance(row, dict))
+        if stage == "plan":
+            producer = inner_fixture.fixture_follows(state, producer)         # F3: a work item for each primary one
         if stage == "spec" and producer.get("outcome") == "done":
             for key, value in inner_fixture.fixture_primary(state).items():   # run-5 batch F6
                 producer.setdefault(key, value)
@@ -759,6 +761,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result["concerns"] = inner_fixture.no_concerns_map(
                 row["id"] for row in queue if isinstance(row, dict))
+        if stage == "plan":
+            result = inner_fixture.fixture_follows(state, result)             # F3: a work item for each primary one
         if stage == "spec" and result.get("outcome") == "done":
             for key, value in inner_fixture.fixture_primary(state).items():   # run-5 batch F6
                 result.setdefault(key, value)

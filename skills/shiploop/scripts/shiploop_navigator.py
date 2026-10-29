@@ -81,7 +81,7 @@ _RESULT_KEYS = frozenset((
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
-    "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions", "suite_requirements",
+    "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
     "knowledge", "added_tests",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
@@ -130,7 +130,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "suite_requirements", "knowledge", "added_tests",
+    "mutant_dispositions", "knowledge", "added_tests",
 )
 _STATE_KEYS = frozenset(
     (
@@ -569,22 +569,32 @@ def _title_from_prompt(prompt: str) -> str:
     return prompt.strip()[:160]
 
 
-def _normalise_work_items(value: Any, *, allow_empty: bool) -> list[dict[str, str]]:
+def _normalise_work_items(value: Any, *, allow_empty: bool) -> list[dict[str, Any]]:
     _need(isinstance(value, list), "work_items must be a list")
     _need(allow_empty or bool(value), "work_items must not be empty")
-    rows: list[dict[str, str]] = []
+    rows: list[dict[str, Any]] = []
     seen: set[str] = set()
     for raw in value:
         _need(isinstance(raw, Mapping), "work item must be an object")
         keys = set(raw)
-        _need(keys <= {"id", "title", "context"} and {"id", "title"} <= keys,
+        _need(keys <= {"id", "title", "follows", "context"} and {"id", "title"} <= keys,
               "work item has unsupported or missing fields")
         item_id = raw.get("id")
         _need(isinstance(item_id, str) and _WORK_ITEM_ID.fullmatch(item_id) is not None,
               "unsafe work item ID")
         _need(item_id not in seen, "duplicate work item ID")
         seen.add(item_id)
-        row = {"id": item_id, "title": _text(raw.get("title"), "work item title")}
+        row: dict[str, Any] = {"id": item_id, "title": _text(raw.get("title"), "work item title")}
+        if "follows" in raw:
+            # Shape only: the IDs' entries and the primary requirements' coverage are checked at the CLI gates
+            # (shiploop_primary.check_queue, F3 of the 2026-10-28 plan).
+            follows = raw["follows"]
+            _need(isinstance(follows, list) and all(isinstance(ident, str) and _ENTRY_ID.fullmatch(ident)
+                                                    for ident in follows)
+                  and len(set(follows)) == len(follows),
+                  "work item " + item_id + "'s follows is a list of the R-<n> it serves and the AD-<n> it follows, "
+                  'each once, such as ["R-3", "AD-2"] ([] when none)')
+            row["follows"] = list(follows)
         if "context" in raw:
             row["context"] = _text(raw.get("context"), "work item context")
         rows.append(row)
@@ -1193,7 +1203,7 @@ def _canonical_result(
     # are the item's own rows.
     for key, stages in (("test_layers", ("test-strategy", "step-plan")), ("test_layers_na", ("test-strategy",)),
                         ("targets", ("test-strategy",)), ("harness_runs", ("prepare",)),
-                        ("mutant_dispositions", ("test",)), ("suite_requirements", ("test-spec",))):
+                        ("mutant_dispositions", ("test",))):
         if key in value:
             _need(stage in stages and outcome == "done", key + " is allowed only on a done " + " or ".join(stages)
                   + " result")
@@ -1233,12 +1243,6 @@ def _canonical_result(
         _need(stage == primary.STAGE and outcome == "done", "primary is allowed only on a done spec result")
         try:
             result["primary"] = primary.canonical(value["primary"])
-        except primary.PrimaryError as exc:
-            raise NavigatorError(str(exc)) from exc
-    if "suite_requirements" in value:
-        # Shape only (TS1): each requirement and command is checked against the run at the CLI gates.
-        try:
-            result["suite_requirements"] = primary.canonical_suite(value["suite_requirements"])
         except primary.PrimaryError as exc:
             raise NavigatorError(str(exc)) from exc
     if "unverified" in value:
@@ -2262,9 +2266,9 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         # up the prerequisite harnesses, step-plan, test-spec and test plan and write the tests against them.
         blocks.append(_Block("test-layers", P1, _layer_lines(state, workitem).lines))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
-    if stage in (primary.ACCEPTANCE, primary.TEST_SPEC):
-        # Required text (run-5 batch F6; TS1): the spec's primary requirements by value, with the tests that passed for
-        # each at product-acceptance and, at the last work item's test-spec, the cases naming each so far.
+    if stage in (primary.ACCEPTANCE, *primary.QUEUE_STAGES):
+        # Required text (run-5 batch F6; F3 of the 2026-10-28 plan): the spec's primary requirements by value, with the
+        # tests that passed for each at product-acceptance, and at plan and carry-forward the work items following each.
         blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
@@ -3618,21 +3622,16 @@ def _check_submitted_request(state: Mapping[str, Any], stage: str, result: Any) 
 
 def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, result: Any) -> None:
     """The primary requirements at the CLI gates (run-5 batch F6): a done spec result lists ``primary``, each ID with a
-    current entry in the living spec; a done product-acceptance result's unverified rows name requirements the spec
+    current entry in the living spec; a done plan, or a carry-forward that replaces the queue, leaves each in some work
+    item's follows (F3, 2026-10-28); a done product-acceptance result's unverified rows name requirements the spec
     holds, and a primary one's lower_layer_check is a test ShipLoop's test runs passed for it (``shiploop_primary``)."""
+    if stage in primary.QUEUE_STAGES and isinstance(result, Mapping) and result.get("outcome") == "done" \
+            and "work_items" in result:
+        _normalise_work_items(result["work_items"], allow_empty=True)   # a template follows gets its shape refusal first
     try:
         primary.check_spec(Path(str(state["repo"])), stage, result)
+        primary.check_queue(state, stage, result)
         primary.check_unverified(root, state, stage, result)
-    except primary.PrimaryError as exc:
-        raise NavigatorError(str(exc)) from exc
-
-
-def _check_submitted_coverage(state: Mapping[str, Any], stage: str, result: Any) -> None:
-    """TS1: the last work item's done test-spec leaves no primary requirement without a case or a suite row
-    (``shiploop_primary.check_test_spec``).  It runs after ``_handoff_gate``, so a malformed case gets that gate's
-    shape refusal first."""
-    try:
-        primary.check_test_spec(state, stage, result)
     except primary.PrimaryError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -5038,7 +5037,7 @@ def _summary_placeholders() -> frozenset[str]:
         TEST_SUMMARY_PLACEHOLDER, guidance.SUMMARY_PLACEHOLDER, *guidance.SUMMARY_PLACEHOLDERS.values()))
 # The template's placeholder text for the hand-off fields (contract rule 5): the gate refuses any hand-off string equal to
 # one of them, as the headline and evidence placeholders are refused.
-FOLLOWS_PLACEHOLDER = "<R-<n> or AD-<n> this item follows>"
+FOLLOWS_PLACEHOLDER = "<R-<n> or AD-<n>>"
 # One test case's placeholders live with its shape (expectations.CASE_PLACEHOLDERS), which every refusal prints too.
 _CASE_PLACEHOLDERS = expectations.CASE_PLACEHOLDERS
 _BEHAVIOUR_PLACEHOLDER = "<behaviour this step added that no test case covers>"
@@ -5104,7 +5103,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
             result["harness_runs"] = [dict(layers.HARNESS_RUN_TEMPLATE, code=row["code"], layer=row["layer"])
                                       for row in wanted]
     if stage == "plan":
-        result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
+        result["work_items"] = [{"id": "W1", "title": "...", "follows": [FOLLOWS_PLACEHOLDER], "context": "..."}]
         result["concerns"] = {"W1": [{"id": "ui", "applies": "yes", "decision": "...", "anchor": "...",
                                       "owner_stage": "step-plan"}]}
     if stage == "step-plan":
@@ -7024,6 +7023,8 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates.extend(_INNER_GATES.get(stage, ()))
     if stage == primary.STAGE:
         gates.append("a missing primary list, or a primary ID with no current entry in KNOWLEDGE/spec.md")
+    if stage in primary.QUEUE_STAGES:
+        gates.append("a primary requirement in no item's follows, or a follows ID with no spec or architecture entry")
     if stage in ("spec", "plan", "step-plan"):
         gates.append("a change to KNOWLEDGE/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID")
     if stage in unverified.STAGES:
@@ -9460,7 +9461,6 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_delivery(state, action_id, current, submitted)
     _knowledge_gate(state, current, submitted)
     _handoff_gate(root, state, current, submitted, "complete", next_step=_next_step(root, action_id, "complete"))
-    _check_submitted_coverage(state, current, submitted)
     _check_submitted_request(state, current, submitted)
     preparatory = _inner_gates(root, state, stage, submitted, count=count)
     # Lint first, so the tests run on any code the lint gate auto-fixed.
@@ -9609,8 +9609,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                                   next_step=_next_step(root, action_id, "improve",
                                                        None if final_result is None
                                                        else getattr(args, "final_result", None)))
-                    _check_submitted_coverage(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_request(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _improve_change_gate(core, root, state, action_id, child, receipt)

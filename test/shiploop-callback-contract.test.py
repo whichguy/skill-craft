@@ -270,7 +270,7 @@ class RealCliCase(unittest.TestCase):
     def field_values(self) -> dict:
         """The minimum real value of every stage-specific field a done template can print."""
         return {
-            "work_items": [{"id": "W1", "title": "Build it", "context": "All of it."}],
+            "work_items": [{"id": "W1", "title": "Build it", "follows": ["R-1"], "context": "All of it."}],
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
@@ -318,7 +318,7 @@ class RealCliCase(unittest.TestCase):
             focused = [ident for row in plan.get("test_commands") or () if row.get("suite") == "focused"
                        for ident in row.get("ids") or ()]
             block["test_cases"] = [dict(TEST_CASES[0], id=ident) for ident in focused]
-        if focused or stage in ("spec", "product-acceptance"):
+        if focused or stage in ("spec", "plan", "product-acceptance"):
             # The spec's primary list and an unverified row name R-1, so the living spec holds its entry (F6).
             state = store.read_record(printed_callback(head)[1].parent.parent / "state.md")
             living = Path(state["repo"]) / knowledge.HOME / "spec.md"
@@ -1632,6 +1632,65 @@ class PrimaryRequirementRouteTests(RealCliCase):
     def at(self, stage: str, **accepted: dict) -> tuple[Path, str]:
         with mock.patch.dict(RESULTS, accepted):
             return self.new_run(stage)
+
+    def living_spec(self, run: Path) -> None:
+        """R-1's entry in the run's living spec, which a follows ID needs (F3)."""
+        living = Path(self.state(run)["repo"]) / knowledge.HOME / "spec.md"
+        living.parent.mkdir(parents=True, exist_ok=True)
+        living.write_text(LIVING_SPEC, encoding="utf-8")
+
+    def test_a_plan_leaving_a_primary_requirement_out_of_every_follows_is_refused_and_each_named_exit_is_accepted(self) -> None:
+        # F3 of docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md: coverage of the primary requirements is a
+        # property of the plan, checked where the work items are set, not at the last item's test-spec.
+        for way in ("widen the work item", "add a work item"):
+            with self.subTest(way):
+                run, head = self.new_run("plan", results={"spec": {"primary": ["R-1"]}})
+                self.living_spec(run)
+                packet = full_packet_text(head)
+                self.assertIn("Primary requirements (spec primary): each must be in the follows of a work item that "
+                              "serves it", packet)
+                self.assertIn("\n- R-1: none\n", packet)
+                checked = next(line for line in packet.splitlines() if line.startswith("Checked by: "))
+                self.assertIn("a primary requirement in no item's follows", checked)
+                command, path, action = printed_callback(head)
+                good = self.fill_done(head)
+                good = dict(good, work_items=[{key: value for key, value in good["work_items"][0].items()
+                                               if key != "follows"}])                # its one work item names no follows
+                write_block(path, good)
+                reply = self.refused(command, run)
+                self.assertIn("no work item of this plan names R-1.", reply)
+                self.assertIn("Widen the work item that serves it (its follows and context) or add a work item", reply)
+                # The fix is read from the reply: the follows of the row it prints.
+                follows = json.loads(re.search(r'"follows": (\[[^\]]*\])', reply).group(1))
+                if way == "widen the work item":
+                    fixed = dict(good, work_items=[dict(good["work_items"][0], follows=follows)])
+                else:
+                    added = {"id": "W2", "title": "Serve R-1", "follows": follows, "context": "R-1's change."}
+                    fixed = dict(good, work_items=[*good["work_items"], added],
+                                 concerns=inner_fixture.no_concerns_map(["W1", "W2"]))
+                write_block(path, fixed)
+                RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
+                self.assertEqual(self.recorded(run, action)["work_items"], fixed["work_items"])
+
+    def test_a_carry_forward_whose_queue_drops_the_work_item_serving_a_primary_requirement_is_refused(self) -> None:
+        queue = [{"id": "W1", "title": "Build it", "context": "All of it."},
+                 {"id": "W2", "title": "Serve R-1", "follows": ["R-1"], "context": "R-1's change."}]
+        run, head = self.new_run("carry-forward", results={"spec": {"primary": ["R-1"]}, "plan": {"work_items": queue}})
+        self.living_spec(run)
+        self.assertIn("\n- R-1: W2\n", full_packet_text(head))
+        command, path, action = printed_callback(head)
+        replaced = dict(self.fill_done(head), work_items=[{"id": "W3", "title": "Serve R-1 another way",
+                                                           "context": "Replaces W2."}])
+        write_block(path, replaced)
+        reply = self.refused(command, run)
+        self.assertIn("no work item of the queue this result leaves (the completed and current items, then the "
+                      "work_items given) names R-1.", reply)
+        follows = json.loads(re.search(r'"follows": (\[[^\]]*\])', reply).group(1))
+        fixed = dict(replaced, work_items=[dict(replaced["work_items"][0], follows=follows)])
+        write_block(path, fixed)
+        RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
+        self.assertEqual([row["id"] for row in self.state(run)["work_items"]], ["W1", "W3"])
+        self.assertEqual(self.state(run)["work_items"][1]["follows"], ["R-1"])
 
 
 class OutcomeShapeTests(RealCliCase):

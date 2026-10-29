@@ -20,9 +20,8 @@ return (owner rule, 2026-10-24).
 | outcome | `done`, `blocked`, `send-back` or `add-work`. | result `outcome` | |
 | blocked | An outcome only a person or an outside service can end; it names its wait in `awaiting`. A missing tool or a broken command is repair work, never blocked. | `awaiting` (answer, present, service) | the Until Loop's `continuation_assessment` value |
 | send-back | An outcome that returns the work item to the stage that wrote its plan (its destination); no count of send-backs stops it. | `send-back` | |
-| requirement | A spec entry, `R-<n>`, in KNOWLEDGE/spec.md, holding its acceptance lines. | `follows`, a case's `requirement`, `unverified[].requirement` | a criterion |
-| primary requirement | A requirement that carries one of the request's primary outcomes: what the user asked for directly. The spec stage records them once; a script cannot infer primacy. | spec `primary` | |
-| suite requirement | A primary requirement that a recorded command's own run observes rather than one case: a test suite ("the tests run with node --test"), a deploy ("the project deploys to the org"), or a check ("no access token is committed"). At the last work item's test-spec, every primary requirement needs a case naming it in some item's current test-spec, or a `suite_requirements` row `{"requirement": "R-<n>", "command": "<a recorded test command>"}` (TS1). ShipLoop refuses a missing one, naming it, a row whose requirement has no current spec entry, and a command no step plan records. A run whose step plans record no test command is not asked. | test-spec `suite_requirements` | a case |
+| requirement | A spec entry, `R-<n>`, in KNOWLEDGE/spec.md, holding its acceptance lines. | `follows` (a work item's and a step plan's), a case's `requirement`, `unverified[].requirement` | a criterion |
+| primary requirement | A requirement that carries one of the request's primary outcomes: what the user asked for directly. The spec stage records them once; a script cannot infer primacy. Each is served by a work item whose `follows` names it: ShipLoop refuses a done plan, or a carry-forward that replaces the queue, that leaves one out. A test-spec covers only its own step's focused IDs. | spec `primary` | |
 | lower-layer check | The executed check below the e2e layer that shows an unverified outcome's logic works: a unit or component test. For a primary requirement it is the ID of a test that ShipLoop ran and saw pass in a case for that requirement; otherwise it may be the reason none exists. | `unverified[].lower_layer_check` | a check row; the Proof |
 | acceptance line | One condition inside a requirement: what must hold, how it is confirmed and where it is observed. An inline step's implement or document stage may add acceptance lines inside an existing requirement. | inside `R-<n>` in spec.md | a criterion |
 | criterion | A step plan's completion condition, `C<n>`, with its `confirm`; a step's exit condition names the criteria assigned to it. | step-plan `criteria`, a case's `criterion` | a requirement; an acceptance line |
@@ -109,6 +108,8 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "terminal packet (the Until Loop's record)", "use": "receipt", "since": "2026-10-24",
   "pattern": "(?i)terminal packet|Until Loop packet|child packet", "allow": ["skills/shiploop/scripts/shiploop_planning_revision.py"]},
  {"retired": "Improve child (for the Improve stage or its review)", "use": "Improve stage; Improve review", "since": "2026-10-24",
-  "pattern": "\\b(?:start|starts|starting|started) (?:an|no) (?:actual )?Improve\\s+child|Improve\\s+child(?:'s)? (?:reviews|applies|evaluates)|no Improve\\s+child (?:starts|runs|reviews)|Improve\\s+children", "allow": []}
+  "pattern": "\\b(?:start|starts|starting|started) (?:an|no) (?:actual )?Improve\\s+child|Improve\\s+child(?:'s)? (?:reviews|applies|evaluates)|no Improve\\s+child (?:starts|runs|reviews)|Improve\\s+children", "allow": []},
+ {"retired": "suite requirement (TS1's suite_requirements row at the last test-spec)", "use": "a work item's follows (primary coverage is checked at plan)", "since": "2026-10-28",
+  "pattern": "suite_requirements|(?i:suite requirement)", "allow": []}
 ]
 ```

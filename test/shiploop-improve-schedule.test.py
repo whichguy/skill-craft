@@ -23,7 +23,7 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from shiploop_inner_fixture import fixture_intake, fixture_primary, no_concerns_map, fixture_test_layers  # noqa: E402
+from shiploop_inner_fixture import fixture_follows, fixture_intake, fixture_primary, no_concerns_map, fixture_test_layers  # noqa: E402,E501
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -538,6 +538,8 @@ class CliRunCase(unittest.TestCase):
         if state["stage"] == "plan" and merged.get("outcome") == "done" and "concerns" not in merged:
             queue = merged.get("work_items", state["work_items"])
             merged["concerns"] = no_concerns_map(row["id"] for row in queue if isinstance(row, dict))
+        if state["stage"] == "plan":
+            merged = fixture_follows(state, merged)                            # F3: a work item for each primary one
         if state["stage"] == "intake":
             merged = fixture_intake(state, merged)                             # IN1
         if state["stage"] == "spec" and merged.get("outcome") == "done":

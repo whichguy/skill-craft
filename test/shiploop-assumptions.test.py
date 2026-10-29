@@ -144,6 +144,8 @@ class GateTests(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result = dict(result, concerns=inner_fixture.no_concerns_map(
                 row["id"] for row in queue if isinstance(row, dict)))
+        if nav.current_stage(state) == "plan":
+            result = inner_fixture.fixture_follows(state, result)   # F3: every primary requirement has a work item
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, result)

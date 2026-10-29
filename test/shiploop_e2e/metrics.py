@@ -248,6 +248,10 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # The spec's primary requirements (run-5 batch F6, shiploop_primary.py check_spec and canonical).
     "primary": re.compile(r"a done spec result lists primary:|primary (?:lists (?:at least|an ID)|still holds the "
                           r"template|names |is a list of the R-<n>|is allowed only)"),
+    # A plan or carry-forward queue that leaves a primary requirement out of every work item's follows, or a follows ID
+    # with no entry (F3 of the 2026-10-28 plan, shiploop_primary.py check_queue; the work item's follows shape, navigator).
+    "primary_coverage": re.compile(r"is served by a work item whose follows names it|work_items follows names |"
+                                   r"work item \S+'s follows is a list of"),
     # An unverified row's requirement (F6: shiploop_unverified.py's ID shape, shiploop_primary.py's living-spec entry).
     "unverified_requirement": re.compile(r"unverified\[\d+\]\.requirement .+? (?:is not one requirement ID|has no "
                                          r"current entry in)"),

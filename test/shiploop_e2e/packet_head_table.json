@@ -2,7 +2,7 @@
   "_doc": "The per-stage head table of the packets (G-RENDER, test/shiploop_e2e/render_diff.py): the longest printed text each stage may have, in characters, by case, route, run-directory length and CLI path length (the key 'inline/83/96' is route/run directory/CLI path). render_diff exits non-zero when a stage prints more than its value here or has none. A value changes in the commit that journals the new value (the plan's U1 re-baselines it for the merged branches, U7 sets the allocation); no other unit raises it. The first values are main da9e2e75 (skill-craft 2.5.0 / ShipLoop 1.5.0) rendered by packets.py --offline --text-dir and written by render_diff.py --emit-table DIR --write; they are ceilings, not targets, and a stage over the 20,000-character host cut is journaled as such, not hidden here. Re-written 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72) with render_diff.py --emit-table --write on the four renders: the head prints the guides its duties cite and the Backchain lines with the text that cites them (up to +1,200, carry-forward), the one-line pass, floor and ratchet rules (-172 at test and verify); every printed text stays under 20,000 at 83 and 163. Re-written 2026-10-17 by packet-review wave 2 W2-A/W2-B (feat/pr-w2-proof-75e8ad) with render_diff.py --emit-table --write on the four renders: step-plan asks each step for its check, the Proof implement runs at done (step-plan whole +581 inline, +699 ask-agent), and implement's exit conditions name the step's criteria and Proof (+212 inline, +120 ask-agent); every printed text stays under 20,000 at 83 and 163.",
   "node-fix-bug": {
     "inline/83/96": {
-      "step-plan": 19848,
+      "step-plan": 19830,
       "step-plan-improve": 1329,
       "test-spec": 15777,
       "validate-existing": 14069,
@@ -10,11 +10,11 @@
       "test": 18820,
       "document": 15756,
       "document-improve": 1328,
-      "carry-forward": 14274,
+      "carry-forward": 14381,
       "carry-forward-improve": 1333
     },
     "inline/163/96": {
-      "step-plan": 19214,
+      "step-plan": 19196,
       "step-plan-improve": 1649,
       "test-spec": 15143,
       "validate-existing": 15349,
@@ -22,11 +22,11 @@
       "test": 19718,
       "document": 16956,
       "document-improve": 1648,
-      "carry-forward": 15554,
+      "carry-forward": 15661,
       "carry-forward-improve": 1653
     },
     "ask-agent/83/96": {
-      "step-plan": 18714,
+      "step-plan": 18696,
       "step-plan-improve": 1329,
       "test-spec": 13943,
       "validate-existing": 15070,
@@ -34,11 +34,11 @@
       "test": 18820,
       "document": 15756,
       "document-improve": 1328,
-      "carry-forward": 15681,
+      "carry-forward": 15788,
       "carry-forward-improve": 1333
     },
     "ask-agent/163/96": {
-      "step-plan": 19754,
+      "step-plan": 19736,
       "step-plan-improve": 1649,
       "test-spec": 15143,
       "validate-existing": 12518,
@@ -46,7 +46,7 @@
       "test": 19718,
       "document": 16956,
       "document-improve": 1648,
-      "carry-forward": 16961,
+      "carry-forward": 17068,
       "carry-forward-improve": 1653
     }
   }

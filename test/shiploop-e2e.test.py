@@ -3272,10 +3272,12 @@ class GateCountsTest(unittest.TestCase):
         self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + text), "improve_regression_test", text)
 
     def test_each_primary_requirement_refusal_classifies_under_its_own_gate(self) -> None:
-        """The F6 rows read the gates' own refusal text: built here by the gate functions, never typed."""
+        """The F6 rows, and F3's plan coverage (2026-10-28), read the gates' own refusal text: built here by the gate
+        functions, never typed."""
         scripts = str(ROOT / "skills/shiploop/scripts")
         sys.path.append(scripts)
         self.addCleanup(sys.path.remove, scripts)
+        import shiploop_navigator as navigator
         import shiploop_primary as primary
         import shiploop_unverified as unverified
         with tempfile.TemporaryDirectory() as temp:
@@ -3300,6 +3302,15 @@ class GateCountsTest(unittest.TestCase):
                                                        dict(done, unverified=[dict(row, requirement="R-1 and R-2")]))],
                 "lower_layer_check": [lambda: primary.check_unverified(repo, state, "product-acceptance",
                                                                        dict(done, unverified=[row]))],
+                # F3 (2026-10-28): the plan's queue leaves R-1 out of every follows, or follows an ID with no entry.
+                "primary_coverage": [
+                    lambda: primary.check_queue(state, "plan", dict(done, work_items=[{"id": "W1", "title": "t"}])),
+                    lambda: primary.check_queue(dict(state, work_index=0), "carry-forward",
+                                                dict(done, work_items=[{"id": "W2", "title": "t"}])),
+                    lambda: primary.check_queue(state, "plan", dict(done, work_items=[
+                        {"id": "W1", "title": "t", "follows": ["R-1", "R-9"]}])),
+                    lambda: navigator._normalise_work_items([{"id": "W1", "title": "t", "follows": "R-1"}],
+                                                            allow_empty=False)],
             }
             for gate, calls in faults.items():
                 for call in calls:

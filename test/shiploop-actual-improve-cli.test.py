@@ -263,6 +263,7 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["assumptions"] = []
             self.producer["concerns"] = inner_fixture.no_concerns_map(
                 row["id"] for row in state["work_items"] if isinstance(row, dict))
+            self.producer = inner_fixture.fixture_follows(state, self.producer)   # F3
         if stage == "step-plan":
             self.producer["test_commands"] = []
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."

@@ -205,6 +205,8 @@ class TestLoopTests(unittest.TestCase):
             queue = result.get("work_items", state["work_items"])
             result = dict(result, concerns=inner.no_concerns_map(
                 str(row.get("id")) for row in queue if isinstance(row, dict)))
+        if stage == "plan":
+            result = inner.fixture_follows(state, result)                   # F3: a work item for each primary one
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result = dict(result, unverified=[])
         if stage == "intake":
