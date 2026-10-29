@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import clear  # noqa: E402
 import flow  # noqa: E402
+import listeners  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
@@ -1040,6 +1041,21 @@ class ClearThroughMainTests(unittest.TestCase):
         self.claim_for_a_session_that_will_die()
         self.main(["implement"])
         self.assertEqual(self.owner_of_the_run(), "claude:the-cleared-session")
+
+    def test_a_slice_holds_its_case_lock_while_it_drives_the_host(self):
+        # As run.py does: lifecycle's orphan check read every live slice as orphaned because no slice held
+        # <out>/.harness-lock, which refused an owner-note run.py launch beside arm B (2026-10-28).
+        alive = []
+        drive = step_slice.drive
+
+        def spying(*args, **kwargs):
+            alive.append(listeners.case_alive(kwargs["out"]))
+            return drive(*args, **kwargs)
+
+        with mock.patch.object(step_slice, "drive", spying):
+            self.main(["implement"], "--clear-at", "implement")
+        self.assertEqual(alive, [True, True])  # the first session and the one after the clear
+        self.assertFalse(listeners.case_alive(self.out))  # released when main returns
 
 
 VIEWER_STUB = r"""

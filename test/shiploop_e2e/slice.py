@@ -59,6 +59,7 @@ sys.path.insert(0, str(HERE))
 import run  # noqa: E402  (also puts skills/shiploop/scripts on sys.path)
 import clear  # noqa: E402
 import hosts  # noqa: E402
+import listeners  # noqa: E402
 import metrics  # noqa: E402
 import overlay as overlays  # noqa: E402
 import packets  # noqa: E402
@@ -492,6 +493,9 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(why)
     run.install_termination_handlers()
     out = run.new_output_dir(args.output, f"slice-{args.case}")
+    # This harness is alive while main runs, as run.py marks its case: lifecycle's orphan check reads the lock to tell a
+    # live slice's host from a leftover, and the kernel drops it on any death. Kept referenced until main returns.
+    lock = listeners.hold_case(out)  # noqa: F841
     work = out / "work"
     work.mkdir()
     # A step slice is an E2E run: with no --backend it takes run.py's default (hosts.RUN_DEFAULT_BACKEND).
