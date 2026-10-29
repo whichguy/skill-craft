@@ -439,7 +439,7 @@ function timelineHtml(job) {
   const labels = lanes.map(l => `<div class="lbl" title="${esc(l)}">${esc(l)}</div>`).join("");
   const marksAny = (t.marks || []).length;
   const legend = `<div class="tlegend"><span><i></i>stage</span><span><i class="rv"></i>Improve review</span>${open ? '<span><i class="op"></i>running now</span>' : ""}`
-    + `${marksAny ? '<span><i class="mk"></i>refused callback</span><span><i class="ck"></i>refused --check-only check</span>' : ""}`
+    + `${marksAny ? '<span><i class="mk"></i>refused callback</span><span><i class="ck"></i>failed check</span>' : ""}`
     + `${bands ? '<span><i class="bd"></i>' + esc((t.bands[0] || {}).label || "paused") + "</span>" : ""}${forecast ? "<span>dashed: forecast to the ETA</span>" : ""}</div>`;
   return `<section class="card" aria-label="Timeline: ${esc(meta)}"><h2>Timeline<span>${esc(meta)}</span></h2>`
     + `<div class="tl">${curveLabel}${curve}<div style="display:flex;flex-direction:column">${labels}</div>`

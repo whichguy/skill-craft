@@ -3060,9 +3060,10 @@ class RequestIndexTests(unittest.TestCase):
                               '"evidence_refs": []}\n```\n', encoding="utf-8")
             command = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
                        "--result", str(result)]
-            for extra in (["--the check"], []):
-                with self.subTest(extra=extra):
-                    done = subprocess.run(command + extra, env=env, text=True, capture_output=True, timeout=120)
+            for verb in ("check", "complete"):   # the check and complete refuse the same uncited sentence
+                with self.subTest(verb=verb):
+                    done = subprocess.run([*command[:3], verb, *command[4:]], env=env, text=True, capture_output=True,
+                                          timeout=120)
                     self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
                     self.assertIn("intake's summary cites no S2, S5, S6 ", done.stdout + done.stderr)
             self.assertNotIn(action, store.read_record(run / "state.md")["accepted"])   # refused, not accepted

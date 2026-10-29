@@ -38,7 +38,7 @@
     {"id": "inner-loop", "obligation": "the eight inner stages and what each records", "old": "### The inner loop", "home": "inner-loop.md", "section": "# The inner loop", "trigger": "references/inner-loop.md",
      "anchors": ["8 stages in 5 phases", "`document` is issued only when"]},
     {"id": "stage-until-loops", "obligation": "the loop contract, the start command, the receipt and its check at complete", "old": "### Stage Until Loops", "home": "inner-loop.md", "section": "## Stage Until Loops", "trigger": "references/inner-loop.md",
-     "anchors": ["RUN the Until Loop now, once, before any work", "Never write or edit the receipt", "complete --check-only"]},
+     "anchors": ["RUN the Until Loop now, once, before any work", "Never write or edit the receipt", "shiploop check"]},
     {"id": "expectations", "obligation": "expectations, their checks and validate-existing", "old": "### Expectations and validate-existing", "home": "inner-loop.md", "section": "## Expectations and validate-existing", "trigger": "references/inner-loop.md",
      "anchors": ["`works`, an existing thing works today", "failed_expectations"]},
     {"id": "carry-forward-skill", "obligation": "the carry-forward skill decision and its checks", "old": "### Carry-forward skill decision", "home": "inner-loop.md", "section": "## Carry-forward skill decision", "trigger": "references/inner-loop.md",

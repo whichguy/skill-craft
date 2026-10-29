@@ -1924,7 +1924,7 @@ folders under `fixtures/`; `run.py` and `release_slice.py` hold no Salesforce wo
 | system-test, product-acceptance | a done record that says nothing ran | `seed_home/records.json` |
 
 The gates the release stages read are the real ones: `shiploop next` prints the release-plan packet with the system commands and
-A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `complete --check-only`
+A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `shiploop check`
 (`test/shiploop-e2e-release-slice.test.py`). No delivery contract is declared (an unmarked run, as the first live run was).
 
 **The org, by mode** (`--platform-existing`, default `fresh`; the case lists `update` in `platform.existing`, and a case that does not

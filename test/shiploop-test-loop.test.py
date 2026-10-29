@@ -1850,7 +1850,7 @@ class TestLoopTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, r"(?s)mutation check: test is not done.*This check does not "
                                                         r"count toward the refused runs"):
             nav.dispatch(CORE, self.run_dir, self.state(), types.SimpleNamespace(
-                command="complete", action=action, result=str(path), check=True))
+                command="check", action=action, result=str(path)))
         self.assertTrue((self.run_dir / test_loop.mutation_check_path(action)).is_file())
         self.assertFalse((self.run_dir / test_loop.mutation_path(action, 1)).exists())
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
@@ -2496,7 +2496,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("ran no tests", str(caught.exception))
 
     def test_complete_takes_a_passed_check_proof_only_while_the_candidate_is_unchanged(self):
-        """T27 (candidate binding): a passed --check-only Proof is taken at complete on the same tree; after an edit the
+        """T27 (candidate binding): a passed check Proof is taken at complete on the same tree; after an edit the
         Proof runs again, on the final candidate, and its record says which tree it judged."""
         self.start()
         self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))

@@ -5,7 +5,7 @@
   "obligations": [
     {"id": "callback", "obligation": "the stage's callback command, printed literally, with the reason to run it exactly as printed: no pipe, redirect, ';' or shell variable, because its output is the next stage's instructions and the status display reads the command (unit U8, SP-2)", "kinds": ["producer"], "surface": "head",
      "anchors": [{"any": ["Callback for this stage"], "source": "skills/shiploop/scripts/shiploop_prompts.py"},
-                 {"any": ["adding only --check-only to test before it accepts"], "source": "skills/shiploop/scripts/shiploop_prompts.py"}]},
+                 {"any": ["run it exactly as printed, with no pipe"], "source": "skills/shiploop/scripts/shiploop_prompts.py"}]},
     {"id": "goal-done-when", "obligation": "what the stage is for and when it is done", "kinds": ["producer"], "surface": "head",
      "anchors": [{"any": ["Goal:"], "source": "skills/shiploop/scripts/shiploop_navigator.py"},
                  {"any": ["Done when"], "source": "skills/shiploop/scripts/shiploop_navigator.py"}]},

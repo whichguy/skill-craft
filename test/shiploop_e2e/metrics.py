@@ -29,7 +29,7 @@ import sessionlog
 # The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
 # a test pins the two equal). The narrative reader and fidelity.py both key on it.
 NOT_APPLICABLE = "Not applicable to this item"
-SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
+SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|check|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
 # ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
 # tools, so it means the same thing for every case. A heuristic signal: the
@@ -132,8 +132,11 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # the CLI through head, grep or sed, which hides the exit (all 5 refusals of the round-1 Sonnet Battleship run).
 # The routed verbs lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3) instead;
 # until 2026-10-28 no prefix here matched it, so each was recorded with an empty line (7 lint refusals, bf-ds-*-09c33b).
-REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): ", re.M)
+# A failed `shiploop check` opens with "ShipLoop check: the check says no. " (phase B) and trails "Nothing was accepted or counted."
+REFUSAL_LINE = re.compile(r"^ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
+                          r"check: the check says no\. )", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
+                          r"Nothing was accepted or counted\. |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
 

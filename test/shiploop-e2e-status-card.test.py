@@ -208,7 +208,11 @@ class Builders(unittest.TestCase):
                 {"kind": "command", "verb": "complete", "exit": 2, "check_only": True, "stage": ["step-plan", "step-plan"],
                  "action": "a3", "ts": 1320.0, "error": "no result file"},
                 {"kind": "command", "verb": "complete", "exit": 0, "check_only": True, "stage": ["step-plan", "step-plan"],
-                 "action": "a3", "ts": 1330.0},
+                 "action": "a3", "ts": 1330.0},   # a run before phase B: complete --check-only
+                {"kind": "command", "verb": "check", "exit": 2, "stage": ["step-plan", "step-plan"],
+                 "action": "a3", "ts": 1340.0, "error": "step S1 must record its proof"},
+                {"kind": "command", "verb": "check", "exit": 0, "stage": ["step-plan", "step-plan"],
+                 "action": "a3", "ts": 1350.0},
                 {"kind": "command", "verb": "complete", "exit": 0, "stage": ["step-plan", "test-spec"], "action": "a3", "ts": 1400.0}]
         for row in rows:
             if row["kind"] == "packet":  # each print names the copy kept as sent, as shiploop_trace writes it
@@ -232,14 +236,15 @@ class Builders(unittest.TestCase):
                           ("Prelude", "discovery", "improve", 1120.0, 1300.0), ("W1", "step-plan", "stage", 1300.0, 1400.0),
                           ("W1", "test-spec", "stage", 1400.0, None)])
         self.assertEqual([(m["lane"], m["stage"], m["kind"], m["at"]) for m in line["marks"]],
-                         [("Prelude", "discovery", "refusal", 1090.0), ("W1", "step-plan", "check", 1320.0)])
+                         [("Prelude", "discovery", "refusal", 1090.0), ("W1", "step-plan", "check", 1320.0),
+                          ("W1", "step-plan", "check", 1340.0)])
         self.assertIn("Missing: R-6", line["marks"][0]["text"])
         # Each span names the action it ran, so the card can open that action's prompt and dialogue.
         self.assertEqual([s["action"] for s in line["spans"]], ["a1", "a2", "i1", "a3", None])
         tiles = {tile["label"]: tile for tile in model["tiles"]}
         self.assertEqual((tiles["Elapsed"]["live"], tiles["Elapsed"]["since"]), ("elapsed", 1000.0))
         self.assertEqual((tiles["Improve reviews"]["value"], tiles["Improve reviews"]["sub"]), ("1", "3.0 min"))
-        self.assertEqual((tiles["Refusals"]["value"], tiles["Refusals"]["sub"]), ("2", "1 a --check-only check"))
+        self.assertEqual((tiles["Refusals"]["value"], tiles["Refusals"]["sub"]), ("3", "2 failed checks"))
         self.assertEqual(tiles["Stages"]["value"], "3 of " + str(model["progress"]["total"]))
         # A run before the trace has no timeline, and the inline card ignores the new keys.
         untraced, _meta = status_card.build_e2e(self.e2e_folder(), NOW)
