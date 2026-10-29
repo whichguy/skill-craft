@@ -18,9 +18,10 @@ Hook events per host:
 Several agents can touch one run: a parallel-chain worker, a second terminal,
 consecutive driver sessions.  Only one session, the run's owner, is ever kept
 alive.  The first session to bind a free run owns it; ownership is released when
-the owner's turn ends normally, when the driver finishes a session, or after
-OWNER_STALE_SECONDS without any activity from the owner.  Every read-modify-write
-of a binding or owner record holds an exclusive file lock.
+the owner's turn ends normally, when the driver finishes a session, when the
+owner's host process is gone (``claim_owner``), or after OWNER_STALE_SECONDS
+without any activity from the owner.  Every read-modify-write of a binding or
+owner record holds an exclusive file lock.
 
 Every failure allows the stop: a broken hook must never trap a session.  The
 driver (``shiploop-drive``) covers hosts whose headless mode cannot be kept
@@ -65,6 +66,11 @@ STATUS_TIMEOUT_SECONDS = 20
 # An owner that has shown no hook activity for this long (a crashed or closed
 # session) no longer blocks another session from taking the run over.
 OWNER_STALE_SECONDS = 1800
+# What starts a hook and is not the host session itself: shells and launchers between the host and this script.
+LAUNCHERS = frozenset(("sh", "bash", "zsh", "dash", "fish", "ksh", "env", "timeout", "python", "python3"))
+# The host session started before its first ShipLoop command; a process that started with this hook is a launcher,
+# which exits with the hook. Seconds, as ps rounds them: one second of rounding never lets a launcher through.
+HOST_MIN_AGE_SECONDS = 2
 
 
 # ---------------------------------------------------------------- state
@@ -129,16 +135,66 @@ def _load_owner(run_dir: str) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def _processes() -> dict[int, dict]:
+    """{pid: {ppid, age, start, name}} from one ``ps`` call; empty when it cannot run."""
+    try:
+        listing = subprocess.run(["ps", "-A", "-o", "pid=,ppid=,etime=,lstart=,comm="], capture_output=True, text=True,
+                                 timeout=10, check=False).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    table = {}
+    for line in listing.splitlines():
+        fields = line.split(None, 8)  # pid, ppid, etime, the five words of lstart, then the command
+        if len(fields) == 9 and fields[0].isdigit() and fields[1].isdigit():
+            days, _, clock = fields[2].rpartition("-")
+            parts = [int(part) for part in clock.split(":") if part.isdigit()]
+            age = (int(days) if days.isdigit() else 0) * 86400 + sum(v * 60 ** i for i, v in enumerate(reversed(parts)))
+            table[int(fields[0])] = {"ppid": int(fields[1]), "age": age, "start": " ".join(fields[3:8]),
+                                     "name": os.path.basename(fields[8].strip())}
+    return table
+
+
+def host_process() -> dict | None:
+    """The host session's process, ``{pid, start}``: the nearest ancestor of this hook that is not a launcher, when it
+    started at least HOST_MIN_AGE_SECONDS before this hook.  None otherwise (the walk never guesses past that ancestor),
+    and then only OWNER_STALE_SECONDS frees the claim until a later hook finds the process."""
+    table, pid = _processes(), os.getppid()
+    hook_age = table.get(os.getpid(), {}).get("age", 0)
+    for _ in range(12):
+        row = table.get(pid)
+        if row is None or pid <= 1:
+            return None
+        if row["name"].lower() not in LAUNCHERS:
+            return {"pid": pid, "start": row["start"]} if row["age"] - hook_age >= HOST_MIN_AGE_SECONDS else None
+        pid = row["ppid"]
+    return None
+
+
+def owner_process_alive(process: Any) -> bool | None:
+    """Whether a recorded owner's host process still runs: the same pid with the same start time (a reused pid is
+    another process).  None when nothing was recorded, so only time can tell."""
+    if not isinstance(process, Mapping) or not isinstance(process.get("pid"), int):
+        return None
+    row = _processes().get(process["pid"])
+    return row is not None and row["start"] == process.get("start")
+
+
 def claim_owner(run_dir: str, host: str, session: str) -> bool:
-    """Take a free or stale run, or refresh our own claim.  True when we own it."""
+    """Take a free or stale run, or one whose owner's host process is gone, or refresh our own claim.  True when we
+    own it.  A live owner keeps the run however quiet it is (a long command sends no hook events) until it goes stale."""
     path = _owner_path(run_dir)
     my_owner_id = _owner_id(host, session)
     with _locked(path):
         owner = _load_owner(run_dir)
         now = time.time()
-        if owner.get("owner") not in (None, my_owner_id) and now - owner.get("seen", 0) < OWNER_STALE_SECONDS:
+        ours = owner.get("owner") in (None, my_owner_id)
+        alive = owner_process_alive(owner.get("process")) if owner.get("process") else None
+        if not ours and now - owner.get("seen", 0) < OWNER_STALE_SECONDS and alive is not False:
             return False
-        _write_json(path, {"run_dir": run_dir, "owner": my_owner_id, "seen": now})
+        # Our own record keeps its live process; a new claim, a record with none yet, or a session resumed in another
+        # process looks it up.
+        process = owner["process"] if ours and alive else host_process()
+        _write_json(path, {"run_dir": run_dir, "owner": my_owner_id, "seen": now, "process": process})
         return True
 
 

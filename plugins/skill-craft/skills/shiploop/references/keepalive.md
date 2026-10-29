@@ -101,8 +101,15 @@ only the run's owner session is ever kept alive.
   second terminal or any other session that binds the same run is let go at its
   turn end ("another session owns this run").
 - Ownership is released when the owner's turn ends normally, when the driver
-  finishes a session, or after 30 minutes with no hook activity from the owner
-  (a closed or crashed session). Any tool call by the owner refreshes the claim.
+  finishes a session, when the owner's host process is gone, or after 30 minutes
+  with no hook activity from the owner. Any tool call by the owner refreshes the
+  claim. A claim records the host session's process with its start time: the
+  nearest ancestor of the hook that is not a shell or launcher, when it started
+  at least 2 seconds before the hook. A session that finds that process gone, or
+  its pid reused, takes the run over at once. A live owner keeps the run however
+  quiet it is (one long command sends no hook events) until the 30 minutes pass.
+  Where no host process is found, only the 30 minutes free a claim, and the
+  owner's next hook looks again.
 - Subagent tool calls (Claude `agent_id`, Grok `subagentType`) never bind; the
   parent owns the run.
 - Every read-modify-write of a binding or owner record holds an exclusive file
