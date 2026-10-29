@@ -37,10 +37,12 @@ inventory and `CHANGELOG.md`.
 1. **Fresh canonical checkout.** Apply the local checkout policy: clean `main`,
    `git fetch origin`, `git merge --ff-only origin/main`.
 2. **Preview:** `python3 scripts/release.py --dry-run` lists each skill's old
-   and new version. A release that ships `shiploop` is refused unless a commit
-   since the last release touches `test/shiploop_e2e/LEARNINGS.md` (the E2E
-   round's lessons) or carries a `No-E2E-Round: <reason>` trailer; the refusal
-   names both fixes and appears in the dry run too.
+   and new version. A release that ships `shiploop` is refused unless every
+   commit since the last release that changes `skills/shiploop/` or
+   `changes/shiploop/` comes before the latest commit touching
+   `test/shiploop_e2e/LEARNINGS.md` (the E2E round's lessons), or carries its
+   own `No-E2E-Round: <reason>` trailer; the refusal names those commits and
+   both fixes, and appears in the dry run too.
 3. **Cut:** `python3 scripts/release.py`. It bumps versions, writes
    `CHANGELOG.md`, deletes the consumed notes, regenerates `plugins/`, the
    catalogs and the README inventory, checks them, and makes one commit with a

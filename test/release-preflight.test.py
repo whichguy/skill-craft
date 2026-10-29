@@ -99,11 +99,30 @@ class ReleasePreflightTests(unittest.TestCase):
         self.note("shiploop")
         self.assertRefused(self.release("--dry-run"))
 
-    def test_accepted_with_a_learnings_commit_in_the_range(self):
+    def test_accepted_with_a_learnings_commit_after_the_change(self):
+        self.release_commit()
+        self.note("shiploop")
+        self.write(LEARNINGS, "# Learnings\n\n## Run 1\n")
+        self.commit("test(shiploop-e2e): run 1 and its learnings")
+        self.assertAccepted(self.release("--dry-run"))
+
+    def test_a_round_recorded_before_a_change_does_not_vouch_for_it(self):
+        # 1.18.0 shipped three ShipLoop changes committed after the range's last LEARNINGS entry; the rule names them.
         self.release_commit()
         self.write(LEARNINGS, "# Learnings\n\n## Run 1\n")
         self.commit("test(shiploop-e2e): run 1 and its learnings")
-        self.note("shiploop")
+        self.write("skills/shiploop/scripts/hook.py", "print('changed after the round')\n")
+        self.commit("feat(shiploop): a change after the round")
+        self.note("shiploop", subject="docs(shiploop): its note")
+        message = self.assertRefused(self.release("--dry-run"))
+        self.assertIn("2 change(s) committed after its latest E2E round", message)
+        self.assertIn("feat(shiploop): a change after the round", message)
+        self.assertIn("docs(shiploop): its note", message)
+        self.git("commit", "-q", "--allow-empty", "-m", "chore: unrelated", "-m",
+                 "No-E2E-Round: one trailer does not cover other commits\nCo-Authored-By: Test <test@example.invalid>")
+        self.assertRefused(self.release("--dry-run"))
+        self.write(LEARNINGS, "# Learnings\n\n## Run 1\n\n## Run 2\n")
+        self.commit("test(shiploop-e2e): run 2 covers both")
         self.assertAccepted(self.release("--dry-run"))
 
     def test_accepted_with_a_trailer_that_has_a_reason(self):
@@ -147,7 +166,17 @@ class ReleasePreflightTests(unittest.TestCase):
         self.note("shiploop")
         self.assertRefused(self.release("--dry-run"))
 
-    def test_a_learnings_commit_merged_from_a_branch_counts(self):
+    def test_a_learnings_commit_merged_from_a_branch_counts_when_the_branch_has_the_change(self):
+        self.release_commit()
+        self.note("shiploop")
+        self.git("switch", "-q", "-c", "side")
+        self.write(LEARNINGS, "# Learnings\n")
+        self.commit("test(shiploop-e2e): a run on a side branch")
+        self.git("switch", "-q", "main")
+        self.git("merge", "-q", "--no-ff", "-m", "merge side", "side")
+        self.assertAccepted(self.release("--dry-run"))
+
+    def test_a_side_branch_run_that_never_had_the_change_does_not_count(self):
         self.release_commit()
         self.git("switch", "-q", "-c", "side")
         self.write(LEARNINGS, "# Learnings\n")
@@ -155,7 +184,7 @@ class ReleasePreflightTests(unittest.TestCase):
         self.git("switch", "-q", "main")
         self.note("shiploop")
         self.git("merge", "-q", "--no-ff", "-m", "merge side", "side")
-        self.assertAccepted(self.release("--dry-run"))
+        self.assertRefused(self.release("--dry-run"))
 
     def test_a_release_that_does_not_ship_shiploop_is_not_asked(self):
         self.release_commit()
@@ -175,10 +204,8 @@ class ReleasePreflightTests(unittest.TestCase):
         # No Skill-Craft-Release commit exists yet, so the range is every commit up to HEAD.
         self.note("shiploop")
         self.assertRefused(self.release("--dry-run"))
-        self.git("reset", "-q", "--hard", "HEAD~1")
         self.write(LEARNINGS, "# Learnings\n")
         self.commit("test(shiploop-e2e): the first run")
-        self.note("shiploop")
         result = self.release("--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("release: shiploop 1.0.0 -> 1.0.1", result.stdout)
