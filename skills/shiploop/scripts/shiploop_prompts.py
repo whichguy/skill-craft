@@ -2578,8 +2578,8 @@ base (below) and fix, within the item's paths, any of these:
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.
 Do not write tests, start a later step, or edit the Proof. After your last edit,
-rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop
-lint --action`), and record their exit codes. Commit your edits. A pass that
+rerun the step's Proof and ShipLoop's lint (its command is under Commit when the
+run lints), and record their exit codes. Commit your edits. A pass that
 finds none of these is trivial.
 """
 IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
@@ -2612,14 +2612,14 @@ _STEPS_WORDING = (
      "  step's work), or a new unwaived lint finding on a changed line, after your\n"
      "  last edit.\n"
      "Do not write tests, start a later step, or edit the Proof. After your last edit,\n"
-     "rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop\n"
-     "lint --action`), and record their exit codes. Commit your edits. A pass that\n"
+     "rerun the step's Proof and ShipLoop's lint (its command is under Commit when the\n"
+     "run lints), and record their exit codes. Commit your edits. A pass that\n"
      "finds none of these is trivial.",
      "- a recorded check command that fails, or a new lint finding on a changed line\n"
      "  with no waiver, after your last edit.\n"
      "Do not write tests or edit a recorded command. After your last edit, rerun the\n"
-     "steps' recorded check commands and ShipLoop's lint for this action (`shiploop\n"
-     "lint --action`), and record their exit codes. Commit your edits. A pass that finds none of these is trivial."),
+     "steps' recorded check commands and ShipLoop's lint (its command is under Commit\n"
+     "when the run lints), and record their exit codes. Commit your edits. A pass that finds none of these is trivial."),
     ("one implementation step's diff: its task and criteria,",
      "the diff of implementation steps {steps}: their tasks and criteria,"),
 )

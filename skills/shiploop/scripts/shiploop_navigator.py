@@ -7254,8 +7254,8 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         # (the route file holds the policy that is the same in every review; efficiency plan U18).
         focus, craft = _improve_focus(state, child)
         head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
-                 "## Commit", *_improve_commit_lines(core, root, state, child), "",
-                 *(["## Code craft", *craft, ""] if craft else [])]
+                 "## Commit", *_improve_commit_lines(core, root, state, child), *_improve_lint_lines(core, root, state),
+                 "", *(["## Code craft", *craft, ""] if craft else [])]
     head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
 
@@ -7364,6 +7364,20 @@ def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child
             + _callback(core, root, "improve-commit", action=improve_id(state),
                         message=str(improve_commit_message_path(child))),
             _improve_pass_line(core, root, state)]
+
+
+def _improve_lint_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
+    """The lint command a review runs after its last edit, when the run lints, as a producer packet prints its own.
+
+    ``shiploop lint`` lints the current action, which stays the reviewed one while its Improve stage runs, so this
+    command names the reviewed action's id where every other Improve command names the stage's own; the verb refuses
+    the stage's id (E2E 2026-10-28: all 6 lint calls of two DeepSeek runs, which had no printed command, used it).  It
+    follows the commit lines, which must end inside the first 4,500 characters."""
+    if lint_mode(state) not in ("fix", "report"):
+        return []
+    child = state["active_improve"]
+    return ["Lint after your last edit (report-only; its --action is the reviewed " + child["stage"] + " action, not "
+            "this Improve stage): " + _callback(core, root, "lint", action=child["action_id"])]
 
 
 def _regression_clause(stage: str) -> str:

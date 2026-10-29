@@ -337,7 +337,8 @@ class HandoffTests(unittest.TestCase):
 
     @classmethod
     def walk(cls, repo: Path, delegation: str) -> dict[str, str]:
-        state = nav.new_state(str(repo), "Synthetic route walk.", delegation=delegation)
+        # Lint on, the CLI's default for a new run: the bounds below then hold with the lint command each handoff prints.
+        state = nav.new_state(str(repo), "Synthetic route walk.", delegation=delegation, lint_option="fix")
         run = Path(repo).parent / ("run-" + delegation)
         run.mkdir()
         handoffs: dict[str, str] = {}
