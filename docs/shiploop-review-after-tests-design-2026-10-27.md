@@ -1197,6 +1197,9 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
 
     The per-step lifecycle is the same either way. (b), (c) and (d) were not recommended, and the owner did not choose
     them.
+  - **When it starts (owner, 2026-10-29: "After lanes B, C").** The build waits until lane B (2d, test gradations) and
+    lane C (the lint coverage line, F6, and the test-spec mock field, F5) have landed on the feature branch. The
+    three share the navigator, the test loop and the prompts, so building them together would conflict.
   - **What the decision builds** (proposed cut; none of it is built). The order is fixed by what each increment needs.
     - **2c-0, before the route changes, on both routes.** Astra's findings 2 and 3, which are defects in built code:
       - the commit stage's recovery. Record the commit and drop `pending` in the same save as the state it advances
