@@ -1020,8 +1020,9 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     `iteration.earlier_command` must also be checked against lane B's folded row (a focused row that is also the minimum
     regression, run alone with no IDs at an early step).
 - **2c. The ask-agent route** gets the same step boundaries (G1).
-  **2c design, 2026-10-28: nothing built; it waits on the owner's G1 (§9.2).** The question G1 leaves open: the
-  iteration is serial, but the chain builds independent steps in parallel.
+  **2c design, 2026-10-28: nothing built. The owner decided G1 on 2026-10-29: adopt (a2)** (the decision and what it
+  builds are at the end of this item). The question G1 left open: the iteration is serial, but the chain builds
+  independent steps in parallel.
   - **The route today** (checked in the code).
     - One implement action builds every step (`loops.implement_scope`, `all_steps`). Its duty 7 (`_IMPLEMENT_CHAIN`)
       binds a Plan Dispatcher chain on the step plan's execution graph, parallel by default.
@@ -1188,13 +1189,46 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
       - a planned join step where steps meet at an interface.
 
       Plan Dispatcher and Ask-Agent stay as skills of their own, and old runs' receipts and worktrees are kept.
-  - **The owner's decision (G1).** Choose one:
+  - **The owner's decision (G1), 2026-10-29: "Adopt (a2)".** The choice put to the owner was:
     - adopt (a2) and retire ShipLoop's chain. This accepts that a lost implement worker must be shown stopped before a
       replacement starts. The route's test, document and Improve workers already work this way, but for implement it
       gives up the unattended recovery the owner chose on 2026-10-03;
     - or keep isolated implement attempts and fund a revised (a1): one chain per step, whose return stays uncommitted.
 
-    The per-step lifecycle is the same either way. (b), (c) and (d) are not recommended.
+    The per-step lifecycle is the same either way. (b), (c) and (d) were not recommended, and the owner did not choose
+    them.
+  - **What the decision builds** (proposed cut; none of it is built). The order is fixed by what each increment needs.
+    - **2c-0, before the route changes, on both routes.** Astra's findings 2 and 3, which are defects in built code:
+      - the commit stage's recovery. Record the commit and drop `pending` in the same save as the state it advances
+        (today `_commit_stage` runs in `_transition`, before `dispatch` saves), and make a step with no ledger row
+        recoverable, not skipped;
+      - the base of RED and mutation. After a preparatory fix, the step's base must replace `preparatory_base`
+        from the second step on.
+
+      Each is a fail-first test through the real CLI, with a crash injected between the two writes.
+    - **2c-1, the route.** An ask-agent run issues one implement action per step, as an inline run does.
+      - The step branches go: `implement_scope`'s `all_steps`; the `INLINE` checks in `step_view`,
+        `_next_step_follows`, `_between_steps`, `_iteration_base`, `_step_entry`, `test_loop.step_number`,
+        `test_loop.step_command` and `look_back_lines`; `_item_commit_stage`; `prompts.for_steps`; and Run Review's
+        "no visit is tied to a step" for ask-agent runs.
+      - The step plan records no execution graph on either route (duty 11 is the inline paragraph).
+      - Implement gets one new paragraph for a worker in the shared checkout: it makes no commit, advances no
+        callback, starts no later step and leaves no delegate writing. The route keeps its context policy: the
+        packet's first line and the parent-only callbacks.
+      - A saved ask-agent run whose implement was item-level is refused (one supported version), never read as S1.
+    - **2c-2, retiring the chain.** `shiploop_chain` and its three helper modules (7,710 lines), the `chain` verb,
+      `chain_bindings` in the state, `guard_completion`, their seven test files, `chain-route.md` and
+      `parallel-chain.md`, and the references that link them.
+      - Plan Dispatcher and Ask-Agent stay as skills of their own.
+      - Old runs' receipts, ledgers and worktrees are kept, not deleted.
+      - The two stale paragraphs found below go with those references.
+    - **2c-3, the evidence.** The E2E chain cases (`--seed-at step-plan`) are rewritten for the per-step route or
+      retired, and the change is said openly. Head pins and Run Review follow.
+    - **The pilot** measures what Astra lists: order and commits, bases, crash recovery at four points, a killed
+      implement worker, context fidelity, quality and cost per stage, and Run Review's per-step view.
+    - **Open: the killed implement worker.** The route must say what the parent does when it cannot show a worker
+      stopped: wait, or ask the person. The pilot's killed-worker case decides whether a rule is needed beyond the
+      generic producer boundary.
   - **Found on the way** (reference text, not changed here). chain-route.md's inline paragraph still says "An Improve
     stage reviews each accepted step, and the callback after the last step's review moves to `test`".
     parallel-chain.md's diagram still ends in "The item's Improve stage, then the test stage". Both predate 2b-2.
@@ -1312,14 +1346,13 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
       the real CLI. With HEAD's gate the two-step plan was accepted. Both routes are then accepted.
 
 **9.2 New decisions:**
-- **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
-  item-level, which is a second lifecycle to maintain. **Refined by the 2c design (§9.1, 2026-10-28):** the choice is
-  between two serial forms:
-  - (a2), recommended by Astra and by me: no chain, and a lost implement worker must be shown stopped before it is
-    replaced;
-  - a revised (a1): one isolated chain per step, whose return stays uncommitted.
-
-  Parallel build followed by per-step iterations, and build ahead, are not recommended.
+- **G1. The ask-agent route.** **Decided 2026-10-29 (the owner): "Adopt (a2)".** The same step boundaries, so one
+  lifecycle: no chain, one implement action per step, run by a fresh worker in the execution checkout, and ShipLoop's
+  chain retired. This accepts that a lost implement worker must be shown stopped before it is replaced. The build is
+  §9.1 2c-0 to 2c-3.
+  - Considered and not chosen: a revised (a1), one isolated chain per step whose return stays uncommitted; parallel
+    build followed by per-step iterations (b); the item-level route (c); build ahead (d).
+  - The 2c design (§9.1, 2026-10-28) has the options and Astra's review.
 - **G2. Framing.** Recommended: present §8 as a quality and feedback-speed pilot. Its cost is measured, not forecast.
 
 Still unproven (Astra's open unknowns):
