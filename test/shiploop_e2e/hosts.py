@@ -52,11 +52,42 @@ OLLAMA_MODEL_VARS = ("ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROP
 # Monitor, Workflow, ...), which no outside model may have (ask-ollama). Skill and Agent are ShipLoop's Improve route.
 OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit", "WebFetch", "WebSearch", "TodoWrite",
                 "Skill", "Agent")
-# The backend an E2E run (run.py) uses when none is named: the Claude host runs on Ollama's DeepSeek flash, and
-# `--backend anthropic` names Claude's own models (owner, 2026-10-26: "switch the default e2e ... to use ollama and
-# deepseek-flash as the models for testing"). run.py and slice.py apply it; the host factory's own default stays anthropic,
-# so the session reviewer (review.py) and the fan-out check keep Claude's models.
+# The default backend an explicitly selected Claude host uses for an E2E run (run.py): Ollama's DeepSeek flash;
+# `--backend anthropic` selects Claude's own models. The host factory itself still defaults to Anthropic, so a caller
+# that explicitly asks for a Claude host without the E2E runner's backend policy keeps the factory default.
+RUN_DEFAULT_HOST = "codex"
 RUN_DEFAULT_BACKEND = {"claude": "ollama"}
+
+ROLE_DEFAULTS = {
+    "subject": {"host": RUN_DEFAULT_HOST, "model": "gpt-6.1-terra", "effort": "xhigh"},
+    "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
+    "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
+    "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "xhigh"},
+}
+
+
+def resolve_role(name: str, overrides: dict | None = None) -> dict:
+    """Return a role's host/model/effort, applying explicit overrides.
+
+    Changing hosts selects that host's defaults; only the subject follows the E2E run backend (Claude on Ollama).
+    An explicit model or effort then wins.
+    """
+    if name not in ROLE_DEFAULTS:
+        raise ValueError(f"unknown ShipLoop E2E role {name!r}; known: {', '.join(sorted(ROLE_DEFAULTS))}")
+    resolved = dict(ROLE_DEFAULTS[name])
+    overrides = overrides or {}
+    host_override = overrides.get("host")
+    if host_override is not None and host_override != resolved["host"]:
+        if host_override not in HOSTS:
+            raise ValueError(f"unknown E2E host {host_override!r}; known: {', '.join(sorted(HOSTS))}")
+        model = (run_default_model(host_override) if name == "subject" else HOST_DEFAULTS[host_override]["model"])
+        resolved.update(host=host_override, model=model,
+                        effort=HOST_DEFAULTS[host_override]["effort"])
+    for key in ("host", "model", "effort"):
+        value = overrides.get(key)
+        if value is not None:
+            resolved[key] = value
+    return resolved
 
 
 def run_default_model(name: str) -> str:
@@ -382,7 +413,7 @@ class CodexHost(Host):
     ``danger-full-access`` and no approvals, as the other hosts run unattended.
     """
 
-    name, model, effort = "codex", "gpt-6-luna", "xhigh"
+    name, model, effort = "codex", "gpt-6.1-terra", "xhigh"
     resumable = marketplace = True
 
     def __init__(self, binary: str = "codex"):

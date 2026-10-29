@@ -20,16 +20,13 @@ flowchart LR
     T -->|red| S
 ```
 
-An E2E run (`run.py`) defaults to **DeepSeek flash through Claude Code on Ollama** (`--host claude`, backend
-`ollama`, `deepseek-v4.1-flash:1017-cloud`; owner, 2026-10-26). `--backend anthropic` runs Claude's own models,
-Claude Sonnet 5.5 (`claude-sonnet-5-5`) by default. Step slices (`slice.py`) take the same default and `iterate.py`
-runs on the Claude host; the reviewer and the fan-out check keep Claude's models. It stays the default after Grok's
-credits reset (owner, 2026-10-28), so results stay comparable with every baseline since 2026-10-26; Grok runs are for
-checks that need another host, such as the trace checks and the keepalive, proven so far only on the Claude host.
-`--host grok` switches to Grok (`grok-4.7`, medium effort), and `--host codex` to Codex
-(GPT-6 Luna, `gpt-6-luna`, at xhigh effort). `--model` and `--effort` override either one, so
-switching model or effort is a flag, for example
-`--host codex --model gpt-6-sol --effort max`. Every stage launches a real
+New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Terra / xhigh** (owner,
+2026-10-29). Role profiles are explicit: reviewer **Astra xhigh**, fresh judge **Astra xhigh**, improver
+**GPT-6.1 Sol xhigh**. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+its `--host`, `--model` and `--effort` select the subject only. Existing runs resume their recorded identities.
+`--host claude` still selects DeepSeek flash on Ollama; add `--backend anthropic` to select Claude's own models.
+`--host grok` selects Grok's existing profile. New Terra results occupy their own host/model/effort baseline cells.
+Every stage launches a real
 model and costs money; none of it runs in default CI.
 
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
@@ -41,7 +38,7 @@ translated into Grok's event shape as it is captured, so metrics, the transcript
 and the reviewer read one format. Codex reports no dollar cost, so its cost is
 unknown, and it has no turn cap. Adding a host means adding one class.
 
-**The Claude host on Ollama** (`--backend ollama`, added 2026-10-26 and the default since that day) runs Claude Code
+**The Claude host on Ollama** (`--host claude --backend ollama`, the default backend for that explicit host) runs Claude Code
 headless on a model the local Ollama
 server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route the `ask-ollama` skill verified:
 - **No credentials.** The child's environment loses every `ANTHROPIC_*` and `CLAUDE*` variable, so the launching
@@ -2103,12 +2100,11 @@ checkout (the learnings recorded so far), and asks:
 2. Which considerations should the skill take into account but does not?
 3. What could be optimized without removing key functionality?
 
-Every finding states whether it preserves the core premise: **the script is the
-orchestrator**. It keeps navigation state, walks the SDLC graph and returns
-each step's prompt and callback; the model performs the step and never chooses
-a successor. Findings that would move navigation, successor choice or prompt
-selection into the model are recorded as rejected and never applied. The
-review is written to `review.md` and `review.json` in the run directory.
+The v2 reviewer also examines consequential surprises, missing expectations and possible new design positions.
+Each discovery separates observation from interpretation and records its mission relationship, materiality,
+confidence, alternatives and a next experiment. Current engine clauses remain binding: **the script is the
+orchestrator**. A finding that challenges them is retained for investigation or an owner decision. It cannot
+automatically authorise an implementation. The review is written to `review.md` and `review.json` in the run directory.
 
 The skill source is the one the run used (`skill_source` in `review.json`, added
 2026-10-16): `<plugin_dir>/skills/shiploop` of each launch record the run kept
@@ -2122,8 +2118,8 @@ A review counts only when it is valid (`validity` in `review.json`, added
 2026-10-16): the reviewer process exited, and its JSON carries the review's
 structure (`outcome`, the three finding lists and `harness`). Otherwise it is
 `failed`, `timed_out` or `invalid`, with the reason; it has no actionable
-findings, and `review.py` exits 1. A valid review with no findings is a clean
-review.
+findings, and `review.py` exits 1. A scoped clean assessment requires a valid v2 review, a fresh valid judge
+and no pending material discovery. A legacy empty review remains a diagnostic, and never establishes exhausted learning.
 
 ## Iterate
 
@@ -2134,12 +2130,14 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 `iterate.py` creates a worktree `.claude/worktrees/auto-shiploop-e2e-<rand>` on
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
-case, reviews it, and hands the **material, premise-preserving** findings to an
-improver agent. Its `--host` defaults to the Claude host (since 2026-10-26, while Grok's credits are out): the run goes
-through `run.py`, so it runs on DeepSeek flash (the default backend), and the review and the improvement run on Claude's
-own models. Pass `--host grok` to drive all three on Grok. Before the improver starts, the iteration appends its outcome
+case, reviews it, and hands independently admitted material findings to an
+improver agent. The default subject is Codex / Terra 6.1 xhigh, with Astra xhigh for review and a fresh
+judge session, and Sol 6.1 xhigh for improvement. Subject flags do not silently switch the other roles.
+Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and
+harness discoveries retain separate dispositions. Legacy reviews remain readable but cannot establish new
+review/judge completion or authorise automatic improvement. Before the improver starts, the iteration appends its outcome
 and every finding to `test/shiploop_e2e/LEARNINGS.md` and commits it with a
-detailed message (outcome, evidence, proposals, rejected findings, what to
+detailed message (outcome, evidence, proposals, retained challenges, what to
 apply next). Reviewer and improver both read the last three commit messages, so
 each iteration builds on the learnings of the ones before. The improver may
 change only the candidate: `skills/shiploop/`, `changes/shiploop/` and
@@ -2158,9 +2156,9 @@ The evaluator boundary (SPEC "The promotion contract", build step 3; `boundary.p
   prompt names them.
 - The checkout that grades the runs must have the same evaluator, oracle and case digests after the improver as before.
 
-It stops at `--iterations` (at most 10), after two consecutive clean reviews of
-passing runs (an unusable review is journaled with its outcome, resets the streak
-and applies nothing), when the improver commits nothing twice in a row, when a run never
+It stops at `--iterations`, after two consecutive scoped passing assessments with valid v2 reviews and fresh judgments
+and no pending material findings (this is scoped completion, never a claim of exhausted learning), when the improver
+commits nothing twice in a row, when a run never
 reached the skill under test, when the improver crosses the evaluator boundary
 (what grades the runs changed, or its events name a held-out file or can't be
 read), when it strays outside its scope, or on a red suite (nothing is reverted). `LEARNINGS.md` in the output directory records
@@ -2231,3 +2229,57 @@ first on PATH as `sf`, for the host and for the harness's own grading, so it nev
 running round as an HTML fragment for an inline widget: a plan strip (done, running, waiting, pending), a progress bar
 with an estimated end, and one slot per sample per arm (scored 1, below 1, running with its minutes, pending) with each
 arm's mean and its latest decide verdict. It reads run folders only.
+
+
+## Mission-anchored learning and strict epochs (2026-10-29)
+
+The reviewer records conformance and discoveries separately. A novel or design-challenging finding can anchor to the
+mission without a pre-existing clause; it is retained for investigation or owner review. Materiality and confidence are
+separate. The default Codex reviewer uses a read-only sandbox. The judge is a separate fresh Astra xhigh session with
+its own isolated home and read-only sandbox, bound to the exact review receipt. Only supported, material, eligible
+ShipLoop findings reach Sol 6.1 xhigh. Harness discoveries follow a
+separate evaluator experiment. Older reviews remain readable diagnostics and cannot supply the new review/judge gate.
+
+`epoch.py` is a stepwise controller over the existing runner, scorer and promotion rule. `init`, `next`, `status` and
+`resume` start no models. `launch` and `review` are explicit model calls; `review` makes both independent assessments.
+The registration freezes the cases, scorer, SPEC, nested evaluators, arm build identities and unique attempt inventory.
+Every generated product has its own post-run identity. The controller never publishes, deploys on its own, changes the
+active spec from a finding, or automatically retries an unknown launch.
+
+Prepare both plugin builds with the existing build workflow. Supply a `promotion/5` registration template with `cases`
+(each has `role` and `attempts`), `arms` (control and candidate each bind `shiploop_build` and `driver: {host, model,
+effort}`), and `attempts` (unique `{id, arm, case}` rows). `init` supplies the current frozen qualification snapshot and
+registration time when omitted, plus accuracy/fidelity floors, tokens-before-minutes efficiency, zero quality tolerance,
+10 percent efficiency tolerance and no budget. These are explicit recorded experiment defaults, not ShipLoop product
+loop limits. Add any applicable budget and confirmation/sample policy before dispatch; unknown budget measurements
+cannot qualify it. `purpose` is `product_change` by default; an A/A registration uses `calibration`, and a controlled
+model experiment uses `model_only`.
+
+```sh
+python3 test/shiploop_e2e/epoch.py init --registration /absolute/template.json --output /absolute/new-epoch
+python3 test/shiploop_e2e/epoch.py next --output /absolute/new-epoch
+python3 test/shiploop_e2e/epoch.py launch --output /absolute/new-epoch --attempt control-case --plugin-dir /absolute/control-plugin
+python3 test/shiploop_e2e/epoch.py review --output /absolute/new-epoch --attempt control-case
+python3 test/shiploop_e2e/epoch.py decide --output /absolute/new-epoch
+```
+
+Execute each registered attempt and review before deciding; the abbreviated example is not a complete campaign. A
+launch intent is fsynced before dispatch. After a crash, `next` returns `reconcile` rather than repeating that launch.
+`reconcile --attempt ID` can seal retained results after the harness stops; if there is no receipt the launch remains
+unknown. A restart requires a new registered attempt, preserving the old one. Seals cover the root run evidence,
+delivered work, bundle and recorded source roots; later changes yield `invalid_evidence` and `next` requests a new
+registration. External, broken or directory symlinks cannot qualify. Receipts also bind the runs root and overlapping
+neighbours; deleting a neighbour cannot erase the recorded overlap, and a missing run-time overlap baseline stays unknown.
+Partial receipts remain visible as unknown.
+A later improver change needs a new build and qualification registration; `iterate.py` writes `iteration-result.json`
+identifying the final source and whether it remains unevaluated.
+
+Every detailed review is an exposure event, including failed reviews. This is accounting, not proof that a holdout was
+never previously seen. The first controller's generalisation claim remains unobserved without independent registered
+coverage. `disposition` appends a reasoned lesson event (including deferral or reopening) without changing its original
+record or declaring implementation complete; acceptance outside admitted authority requires an owner-decision reference.
+
+No-model suites exercise malformed findings, unsupported judgments, snapshot drift, registration/budget/identity bypasses,
+interrupted dispatch, stale final candidates and review routing. They qualify controller mechanics only. The future live
+reviewer calibration should use a consequential surprise in an otherwise green trace and a matched ordinary trace; no
+novelty is required on the ordinary trace. No live discovery-sensitivity or broad enterprise claim follows from fixtures.

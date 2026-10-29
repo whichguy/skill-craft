@@ -29,6 +29,52 @@ the run's data.
 
 ## Design clauses
 
+### Mission, discovery and amendment authority (2026-10-29)
+
+The purpose above anchors the learning loop. Both new software and changes to existing repositories must retain
+traceability to authorised intent, applicable quality requirements and evidence about the delivered change. Generality
+is an intended property of the engine; a qualification claim states the task families and conditions actually observed.
+Quality and the current engine guarantees precede efficiency. Model profiles are evaluation parameters, not the mission.
+
+Every run review has three independent outputs: conformance against its frozen obligations; discoveries about what
+actually happened; and the disposition of those discoveries. Discovery includes unanticipated expectations, previously
+unidentified optimisations, measurement defects and evidence supporting a different design position. A passing run can
+reveal a material discovery. A discovery can anchor to the mission or the assumption it challenges without an existing
+S-clause citation. Existing S-1..S-16 remain binding for execution until explicitly amended; raising a challenge is not
+permission to change them. Direction-changing adoption remains the owner's decision.
+
+Materiality and confidence are distinct. A material finding names the consequential decision it could change about
+mission fulfilment, design, qualification, supported scope or resources, with its evidence and plausible alternatives.
+A weakly supported explanation remains a hypothesis, even where the possible impact is large. Reviews complete when
+their declared evidence scope has been examined and findings recorded and routed. No novelty quota applies, and no
+findings is not evidence that learning is exhausted. An investigation names the smallest discriminating observation;
+deferral names its reason and reopening condition. New evidence can reopen a prior decision without rewriting it.
+
+The active spec is curated accepted guidance. Learning/decision records are timestamped append-only history, with
+supporting and contrary evidence. A lesson's admission decision and its implementation/verification status are separate:
+an accepted requirement can remain unmet. Candidate fixes stay within current authority; harness/measurement proposals
+follow a separate evaluator experiment. Semantic judgment cannot manufacture a passing script-run check.
+
+New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
+are separate Astra xhigh sessions; Sol 6.1 xhigh is the improver and Terra 6.1 xhigh is the default test subject. The
+scripts record requested identities separately from any observed identity; unavailable served identity is not invented.
+Historical reviews remain readable but do not establish the new discovery/judge requirements.
+
+Strict comparison uses `promotion/5`. Registration precedes dispatch and binds the ShipLoop builds, drivers, unique
+attempts, case obligations, applicable scorer and evaluator inputs (including this spec and nested evaluators). Each
+attempt separately records the product it delivered; generated products are not assumed identical across attempts.
+Required unknowns never count as successes. Known trustworthy violations remain visible alongside unknowns. Budgets
+require usable measurement evidence. Candidate construction precedes registration; a later candidate needs its own
+qualification evidence. A/A calibration and model-only comparisons can intentionally share a build, with purpose
+declared in advance. `promotion/4` remains historical diagnostic behaviour, not the strict epoch qualification path.
+
+The stepwise epoch controller records every dispatch before launching and seals its evidence afterward. A resume is a
+session of its logical attempt; a restart is a new attempt. Lost launch receipts leave an explicit unknown state, not an
+automatic retry. Detailed review feedback is recorded as exposure. Changes to the mission, scorer or requirements take
+effect between comparisons; incompatible regrading appends a new interpretation instead of rewriting original evidence.
+An epoch can finish with a rejected candidate or an undecided comparison and still yield useful learning. Publication
+and live/hosted qualification remain separate actions and claims.
+
 **S-1 Scripts own the graph and the state.** ShipLoop's scripts decide which
 stage is next, which action is legal, what was accepted, and what the run's
 state is. The model never walks the graph, never decides that a stage is done

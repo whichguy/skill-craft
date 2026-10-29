@@ -63,6 +63,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import arms  # noqa: E402
+import hosts
 
 EXPERIMENTS = HERE / "experiments.json"
 JOURNAL = ROOT / "docs" / "shiploop-template-experiments-journal.md"
@@ -546,9 +547,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-early-stop", action="store_true", help="queue: run every sample even once a verdict is settled")
     p.add_argument("--samples", type=int, default=None, help="run: samples 1..N (default: the experiment's samples)")
     p.add_argument("--sample", type=int, default=None, help="run: exactly this one sample (its own background task)")
-    # The Claude host, which slice.py runs on its default backend: DeepSeek flash on Ollama (owner, 2026-10-28: "I want
-    # to use DeepSeek Flash for the test runs"); --host grok for Grok, --backend=anthropic for Claude's own models.
-    p.add_argument("--host", default="claude", help="slice host (default claude: DeepSeek flash on Ollama)")
+    # Each slice uses slice.py's host profile by default; --host claude selects the explicit Claude route, whose E2E
+    # backend defaults to Ollama unless --backend=anthropic is passed.
+    p.add_argument("--host", default=hosts.RUN_DEFAULT_HOST,
+                   help=f"slice host (default {hosts.RUN_DEFAULT_HOST})")
     p.add_argument("--out", type=Path, default=None)
     args, extra = p.parse_known_args(argv)
     out = (args.out or default_out()).expanduser().resolve()

@@ -591,8 +591,8 @@ class RoundSpeedups(unittest.TestCase):
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
     def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
-        """Owner, 2026-10-28: "I want to use DeepSeek Flash for the test runs". R3 moves to today's ShipLoop (the bound
-        shipped in 2.11.0): Cg is it as shipped, T the same commit with the sizing bullet before the bound."""
+        """R3 keeps its original arm shape; new dispatches use the owner-selected Terra default from 2026-10-29.
+        Cg is ShipLoop as shipped, T the same commit with the sizing bullet before the bound."""
         source = overlay.SCRIPTS / "shiploop_prompts.py"
         for exp_id, case in (("E6D2-K2", "node-chess-engine"), ("E6D2-K4", "node-battleship-server")):
             exp = experiment.load(exp_id)
@@ -610,7 +610,7 @@ class RoundSpeedups(unittest.TestCase):
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
-        self.assertEqual(launched[0][4], "claude")  # slice.py runs the Claude host on DeepSeek flash by default
+            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Terra subject profile.
 
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""

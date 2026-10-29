@@ -389,8 +389,9 @@ class HarnessCase(unittest.TestCase):
 
 
 class GrokRunTest(HarnessCase):
-    def test_claude_sonnet_5_5_is_the_default_host_and_grok_stays_at_medium_effort(self):
-        self.assertEqual(run.parser().parse_args([]).host, "claude")
+    def test_terra_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
+        self.assertEqual(run.parser().parse_args([]).host, "codex")
+        self.assertEqual(hosts.HOST_DEFAULTS["codex"]["model"], "gpt-6.1-terra")
         self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
         self.assertEqual(hosts.HOST_DEFAULTS["grok"]["effort"], "medium")
 
@@ -953,7 +954,7 @@ class FakeReviewer:
         return {"HOME": str(home)}
 
     def argv(self, **kwargs):
-        return ["offline-probe"]
+        return ["offline-probe", "-s", "danger-full-access"]
 
     def translator(self):
         return None
@@ -998,10 +999,10 @@ class ReviewValidityTest(unittest.TestCase):
                 self.assertEqual(verdict["actionable"], [])
                 self.assertEqual(code, 1)
 
-    def test_a_valid_review_with_no_findings_counts_as_clean(self):
+    def test_a_legacy_review_remains_readable_without_discovery_qualification(self):
         verdict, code = self.review("exited", VALID_EMPTY_REVIEW)
         self.assertEqual(verdict["validity"], {"status": "valid", "reason": None})
-        self.assertTrue(review.counts_as_clean(verdict))
+        self.assertFalse(review.counts_as_clean(verdict))
         self.assertEqual(code, 0)
 
 
@@ -1079,13 +1080,17 @@ class ReviewSourceTest(unittest.TestCase):
 class IterateConvergenceTest(unittest.TestCase):
     """iterate.main end to end with the host, the build and the run faked: only the review's validity varies."""
 
-    def iterate(self, replies: list, iterations: int, host: tuple = ("--host", "grok"), launched: list | None = None) -> str:
+    def iterate(self, replies: list, iterations: int, host: tuple = ("--host", "grok"), launched: list | None = None,
+                late_change=False, receipt: dict | None = None) -> str:
         """``host`` is the --host argument (empty: the default); ``launched`` collects each run's argv."""
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
         repo = tmp / "repo"
         (repo / "test" / "shiploop_e2e").mkdir(parents=True)
         (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").write_text("# ShipLoop E2E learnings\n")
+        (repo / "skills" / "shiploop").mkdir(parents=True)
+        source = repo / "skills" / "shiploop" / "SKILL.md"
+        source.write_text("tested ShipLoop source")
         for cmd in (["init", "-q", "-b", "main"], ["config", "user.name", "t"],
                     ["config", "user.email", "t@example.invalid"], ["add", "test"], ["commit", "-q", "-m", "base"]):
             subprocess.run(["git", "-C", str(repo), *cmd], check=True)
@@ -1108,25 +1113,38 @@ class IterateConvergenceTest(unittest.TestCase):
                 "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True}}))
             return 0
 
+        def independent_judge(run_dir, verdict, **kwargs):
+            return {"review_sha256": iterate.judge.review_sha256(run_dir, verdict), "assessments": [],
+                    "validity": {"status": "valid", "reason": None},
+                    "process": {"status": "exited", "returncode": 0}}
+
         fake = FakeReviewer(replies)
+        record = iterate.record_learnings
+        def record_then_change(*args):
+            recorded = record(*args)
+            if late_change:
+                source.write_text("source changed after its last E2E run")
+            return recorded
         with contextlib.ExitStack() as stack:
             for patch in fake.patches():
                 stack.enter_context(patch)
             stack.enter_context(mock.patch.object(iterate, "new_worktree", return_value=(repo, "auto/test")))
             stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
             stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
+            stack.enter_context(mock.patch.object(iterate.judge, "judge", side_effect=independent_judge))
+            stack.enter_context(mock.patch.object(iterate, "record_learnings", side_effect=record_then_change))
             stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
             iterate.main([*host, "--iterations", str(iterations), "--output", str(tmp / "out")])
+        if receipt is not None:
+            receipt.update(json.loads((tmp / "out" / "iteration-result.json").read_text()))
         return (tmp / "out" / "LEARNINGS.md").read_text()
 
-    def test_the_default_host_is_claude_so_the_run_takes_run_pys_default_backend(self):
-        # Owner, 2026-10-26: "all our end-to-end runs" on Claude with DeepSeek flash while Grok's credits are out. The run
-        # names the Claude host and no backend, so run.py's default (DeepSeek flash on Ollama) applies.
+    def test_the_default_subject_is_codex_with_separate_review_roles(self):
         launched: list = []
         self.iterate([("exited", VALID_EMPTY_REVIEW)] * 2, 2, host=(), launched=launched)
         self.assertTrue(launched)
         for argv in launched:
-            self.assertEqual(argv[argv.index("--host") + 1], "claude")
+            self.assertEqual(argv[argv.index("--host") + 1], "codex")
             self.assertNotIn("--backend", argv)
 
     def test_unusable_reviews_of_passing_runs_never_converge(self):
@@ -1137,10 +1155,29 @@ class IterateConvergenceTest(unittest.TestCase):
         for outcome in ("failed", "invalid", "timed_out"):
             self.assertIn(f"- review {outcome}:", journal)
 
-    def test_two_valid_empty_reviews_of_passing_runs_converge(self):
-        journal = self.iterate([("exited", VALID_EMPTY_REVIEW)] * 2, 3)
-        self.assertIn("clean review (streak 2)", journal)
-        self.assertIn("two consecutive clean reviews of passing runs", journal)
+    def test_legacy_empty_reviews_do_not_claim_discovery_qualified_convergence(self):
+        journal = self.iterate([("exited", VALID_EMPTY_REVIEW)] * 3, 3)
+        self.assertNotIn("two scoped passing assessments", journal)
+        self.assertIn("reached --iterations 3", journal)
+
+    def test_two_v2_empty_reviews_with_fresh_judgments_close_only_the_scoped_assessment(self):
+        payload = json.loads(VALID_EMPTY_REVIEW.split("```json\n", 1)[1].rsplit("\n```", 1)[0])
+        payload.update(version=2, discoveries=[])
+        response = "```json\n" + json.dumps(payload) + "\n```"
+        journal = self.iterate([("exited", response)] * 2, 3)
+        self.assertIn("two scoped passing assessments; no claim of exhausted learning", journal)
+
+    def test_a_late_source_change_cannot_inherit_the_last_tested_artifact_status(self):
+        receipt = {}
+        self.iterate([("exited", VALID_EMPTY_REVIEW)], 1, late_change=True, receipt=receipt)
+        self.assertEqual(receipt["qualification"], "unevaluated")
+        self.assertNotEqual(receipt["tested_source_sha256"], receipt["final_source_sha256"])
+        self.assertFalse(receipt["learning_exhausted"])
+
+    def test_an_unchanged_exploration_artifact_still_needs_comparative_qualification(self):
+        receipt = {}
+        self.iterate([("exited", VALID_EMPTY_REVIEW)], 1, receipt=receipt)
+        self.assertEqual(receipt["qualification"], "comparison_required")
 
     def test_an_unusable_review_between_two_clean_ones_resets_the_streak(self):
         journal = self.iterate([("exited", VALID_EMPTY_REVIEW), ("failed", ""), ("exited", VALID_EMPTY_REVIEW)], 3)
@@ -1199,6 +1236,10 @@ class IterateBoundaryTest(unittest.TestCase):
         (self.harness / "checks" / "checkers_accept.py").write_text("CHECKS = {}\n")
         acceptance = {"module": "checkers_accept", "calibration": [self.HELD_OUT[0]], "start": "node server.js", "checks": []}
         (self.harness / "cases.json").write_text(json.dumps({"checkers": {"prompt": "p", "quality": {"acceptance": acceptance}}}))
+        (self.harness / "suites.json").write_text('{"fixture":{"cases":["checkers"]}}')
+        (self.harness / "SPEC.md").write_text("# Fixture specification\n")
+        for module in ("scorecard.py", "boundary.py", "metrics.py", "delivery.py", "environment.py", "runrecord.py"):
+            (self.harness / module).write_text("# frozen dependency\n")
         # The improver's worktree, with the same held-out files committed.
         self.repo = self.tmp / "worktree"
         for path, text in ((self.HELD_OUT[1], "CHECKS = {}\n"), (self.HELD_OUT[0], "# a correct implementation\n"),
@@ -1310,13 +1351,34 @@ class IterateBoundaryTest(unittest.TestCase):
                 "boundary": {"evaluator": "e" * 12, "oracle": "o" * 12, "case": "c" * 12}, "versions": {"plugin_sha256": "p" * 12}}))
             return 0
 
-        fake = FakeImprover([("exited", ACTIONABLE_REVIEW)] * 3, self.repo, tamper)
+        discovery = {"id": "script-repair", "title": "Improve the script", "target": "shiploop",
+                     "mission_anchor": {"clause_id": "S-1", "relationship": "supports", "challenge": "Keep scripts authoritative"},
+                     "materiality": "material", "confidence": "high", "implementation_eligible": True,
+                     "proposed_disposition": "implement", "files": ["skills/shiploop/SKILL.md"],
+                     "proposal": "Repair the script generically", "potential_impact": "Restore durable navigation",
+                     "alternatives": ["The observed behaviour could be case-specific"],
+                     "next_experiment": "Rerun the navigation probe",
+                     "evidence": [{"reference": "result.json", "observation": "Navigation repeated",
+                                   "interpretation": "The script needs a generic repair"}]}
+        reply = json.dumps({"version": 2, "outcome": "A repair is warranted", "learnings": [],
+                            "missing_considerations": [], "optimizations": [], "harness": {},
+                            "discoveries": [discovery]})
+        fake = FakeImprover([("exited", reply)] * 3, self.repo, tamper)
+
+        def independent_judge(run_dir, verdict, **kwargs):
+            identity = iterate.judge.review_sha256(run_dir, verdict)
+            process = {"status": "exited", "returncode": 0}
+            report = {"review_sha256": identity, "assessments": [{"id": "script-repair", "status": "supported",
+                      "disposition": "implement", "reason": "The trace supports the repair", "evidence": ["result.json"]}]}
+            return {**report, "process": process,
+                    "validity": iterate.judge.validity(report, process, verdict, identity)}
         with contextlib.ExitStack() as stack:
             for patch in (*fake.patches(), *self.grading()):
                 stack.enter_context(patch)
             stack.enter_context(mock.patch.object(iterate, "new_worktree", return_value=(self.repo, "auto/test")))
             stack.enter_context(mock.patch.object(iterate.subprocess, "run", side_effect=no_build))
             stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
+            stack.enter_context(mock.patch.object(iterate.judge, "judge", side_effect=independent_judge))
             stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
             iterate.main(["--case", "checkers", "--host", "grok", "--iterations", "3", "--output", str(self.tmp / "out")])
         journal = (self.tmp / "out" / "LEARNINGS.md").read_text()
@@ -1392,7 +1454,7 @@ class LearningsTest(unittest.TestCase):
         self.assertTrue(message.startswith(
             "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
         for text in ("150 turns", "stage regression", "product at stop (information only, engine active at regression): 1/1",
-                     "host truncated 1 tool outputs", "Evidence: work/ empty", "breaks premise: rejected",
+                     "host truncated 1 tool outputs", "Evidence: work/ empty", "requires separate disposition",
                      "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222.",
                      "- further learning: Compare stage costs", "  proposal: track per stage",
                      "- evaluation criteria: not answered"):
@@ -3218,7 +3280,7 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(seen["auth_is_symlink"])
         self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
         argv = seen["argv"]
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-terra")
         self.assertIn("model_reasoning_effort=xhigh", argv)
         self.assertTrue(result["invoked"]["pass"], result["invoked"])
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
@@ -3338,7 +3400,7 @@ class CodexHostTest(unittest.TestCase):
         self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
         self.assertLess(resumed.index("--json"), resumed.index("resume"))
         self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
-        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6-luna", "xhigh", True))
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6.1-terra", "xhigh", True))
 
     def test_env_is_an_isolated_codex_home_linking_only_auth(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -5,8 +5,8 @@ Each run creates a fresh empty working directory, invokes the ShipLoop skill
 there with one headless host process, shows its progress live, and grades:
 
   invoked   the host registered the invoked skill command, so the prompt went
-            to the skill (Claude: /skill-craft:shiploop; Grok: /shiploop, since
-            Grok does not namespace plugin skills)
+            to the skill (Claude: /skill-craft:shiploop; Codex: $skill-craft:shiploop;
+            Grok: /shiploop, since Grok does not namespace plugin skills)
   plugin    exactly one skill-craft plugin loaded, and it is the build under test
             (a resumed or regraded Grok or Codex run keeps its first launch's
             verdict, which invocation.json records; Claude shows it in its events)
@@ -48,10 +48,10 @@ metrics.json only, at most five printed lines, never a verdict). The run's Run R
 documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
-The default host is Claude (Sonnet 5.5, claude-sonnet-5-5). By default the run tests
-what the whichguy marketplace publishes now (--source marketplace, gated on
-local HEAD == origin/main and matching versions); --source checkout builds
-this checkout instead. The host is isolated from the user's configuration:
+The default host is Codex (gpt-6.1-terra, xhigh). By default the run tests what
+the whichguy marketplace publishes now (--source marketplace, gated on local
+HEAD == origin/main and matching versions); --source checkout builds this
+checkout instead. The host is isolated from the user's configuration:
 
   grok    a throwaway HOME whose .grok holds only a symlink to the user's
           auth.json and the plugin under test, so neither the user's Grok
@@ -238,7 +238,7 @@ def stop_cause(stop_file: Path) -> str:
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
     """The selected host, with the binary its --<host>-bin flag names and the backend --backend names (Claude only); with no
-    --backend, the run default (hosts.RUN_DEFAULT_BACKEND: the Claude host on Ollama)."""
+    --backend, the E2E default for that host (hosts.RUN_DEFAULT_BACKEND: Claude on Ollama)."""
     backend = getattr(args, "backend", None) or hosts.RUN_DEFAULT_BACKEND.get(args.host)
     return hosts.host(args.host, getattr(args, args.host + "_bin"), backend)
 
@@ -2676,16 +2676,17 @@ def parser() -> argparse.ArgumentParser:
                         "requires). A named case keeps its case, style and baseline key; without the option the prompt "
                         "is the case's own and the engine's default applies. Not with --seed-at")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
-    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
-                   help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
+    p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default=hosts.RUN_DEFAULT_HOST,
+                   help=f"the host that drives ShipLoop (default: {hosts.RUN_DEFAULT_HOST}); 'all' only with --preflight-only "
+                        "(checks every host)")
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
                    help="claude only: ollama (default), Claude Code on a model the local Ollama server serves, default "
                         f"{hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed (SPEC \"The Claude host can run "
                         "on Ollama\"); or anthropic, Claude's own models. A resume keeps its run's backend")
-    p.add_argument("--model", help=f"default: {hosts.OLLAMA_MODEL} (claude), claude-sonnet-5-5 (claude --backend "
-                                   "anthropic), grok-4.7 (grok)")
-    p.add_argument("--effort", help="reasoning effort; default: host default (claude), medium (grok)")
-    p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude), shiploop (grok)")
+    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), {hosts.OLLAMA_MODEL} (claude), "
+                                   "claude-sonnet-5-5 (claude --backend anthropic), grok-4.7 (grok)")
+    p.add_argument("--effort", help="reasoning effort; default: xhigh (codex), host default (claude), medium (grok)")
+    p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude, codex), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
                         "local HEAD == origin/main and matching versions; checkout: build this checkout")
@@ -2697,11 +2698,11 @@ def parser() -> argparse.ArgumentParser:
                    help="a turn limit for the host session; default: none (the owner wants no turn limit)")
     # No limit is imposed unless one is asked for (owner 2026-10-24: no turn, spend, time or resume limit by default).
     p.add_argument("--max-budget-usd", type=float, default=None,
-                   help="claude --backend anthropic only, default none; grok has no spend cap")
+                   help="claude --backend anthropic only, default none; grok and codex have no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
     p.add_argument("--max-resumes", type=int, default=None,
-                   help="grok only: resume the same session at most this many times while ShipLoop is still active; "
+                   help="resumable hosts (grok, codex): resume the same session at most this many times while ShipLoop is still active; "
                         "default: no limit")
     p.add_argument("--quiet", action="store_true", help="do not print the live progress view")
     p.add_argument("--max-parallel", type=int, default=3,

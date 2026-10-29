@@ -9,9 +9,9 @@ with read-only instructions, and asks three questions:
   2. Which considerations should the skill take into account but does not?
   3. What could be optimized without removing key functionality?
 
-Every proposal must keep ShipLoop's core premise (PREMISE below). The reviewer
-marks each finding `preserves_premise`; the harness never applies one that
-does not. Writes review.json and review.md into the run directory.
+Discoveries may challenge the current design or reveal a missing expectation.
+A fresh independent judge admits material improvements within current authority;
+design challenges remain owner/investigation work. Writes review.json and review.md.
 
   python3 test/shiploop_e2e/review.py /tmp/shiploop-e2e/battleship-...
 """
@@ -20,22 +20,25 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
+import boundary
 import hosts  # noqa: E402
 import runrecord  # noqa: E402
 
 SPEC = Path(__file__).resolve().parent / "SPEC.md"
+SPEC_CLAUSE_IDS = set(re.findall(r"(?m)^\*\*(S-[1-9][0-9]*)\b", SPEC.read_text(encoding="utf-8")))
 # The standing E2E specification is the premise: one copy, loaded, never restated.
 PREMISE = ("Judge this run against the ShipLoop E2E specification below. Cite its clause IDs "
-           "(S-1 ...) in every finding; a proposal that weakens a clause does not preserve the "
-           "premise.\n\n" + SPEC.read_text(encoding="utf-8"))
+           "(S-1 ...) in every conformance finding; a proposal that weakens a clause does not preserve the "
+           "premise. A genuinely novel challenge may have no clause ID only when it explains the gap and routes the "
+           "idea to owner review or investigation.\n\n" + SPEC.read_text(encoding="utf-8"))
 
 QUESTIONS = """\
 1. learnings: What were the key learnings about the skill that we could improve?
@@ -55,9 +58,11 @@ Then, separately, about this E2E harness (not ShipLoop), answer in "harness":
 SCHEMA = """\
 {
   "outcome": "one sentence: did the run deliver the request, and how well",
+  "version": 2,
   "learnings": [FINDING, ...],
   "missing_considerations": [FINDING, ...],
   "optimizations": [FINDING, ...],
+  "discoveries": [DISCOVERY, ...],
   "harness": {
     "learning_retention": {"answer": "...", "proposals": ["..."]},
     "further_learning": {"answer": "...", "proposals": ["..."]},
@@ -72,7 +77,30 @@ FINDING = {
   "severity": "material" or "minor",
   "preserves_premise": true or false,
   "premise_note": "why the change keeps (or breaks) script-owned navigation"
-}"""
+}
+DISCOVERY = {
+  "id": "stable identifier, unique within this review",
+  "title": "short finding name",
+  "evidence": [{"reference": "run artifact path or transcript location",
+                "observation": "what the evidence directly shows",
+                "interpretation": "what that observation means for the mission"}],
+  "mission_anchor": {"clause_id": "S-1 or null for a novel challenge",
+                     "relationship": "supports, extends, challenges or novel",
+                     "challenge": "why an existing clause is challenged or why no clause fits"},
+  "materiality": "material or minor",
+  "confidence": "high, medium or low; separate from materiality",
+  "potential_impact": "the likely consequence if the finding is true",
+  "alternatives": ["other plausible explanations or approaches"],
+  "next_experiment": "the smallest next check that would resolve uncertainty",
+  "target": "shiploop or harness",
+  "files": ["candidate repository paths; required and in-scope for eligible findings"],
+  "proposal": "the concrete change or investigation proposed",
+  "implementation_eligible": true or false,
+  "proposed_disposition": "implement, owner_review, investigate or defer"
+}
+There is no novelty quota: return an empty discoveries array when the run reveals none. A material design challenge is not a
+rejection; route it to owner_review or investigate. Only an aligned discovery anchored to an existing clause may be
+implementation_eligible."""
 
 CATEGORIES = ("learnings", "missing_considerations", "optimizations")
 # The keys every usable review carries (SCHEMA); an object without them is not a review.
@@ -155,9 +183,20 @@ turns and cost with the earlier run.
 Answer, from evidence in this run:
 {QUESTIONS}
 
+Also produce version 2 discoveries. Review conformance against the specification and record material evidence-backed
+observations that reveal something useful beyond, or in tension with, its explicit clauses. Separate what the run shows
+(`observation`) from what you infer (`interpretation`). Materiality is impact; confidence is how sure you are. Do not lower
+materiality merely because confidence is low. Novel challenges may have `clause_id: null`; explain why in `challenge` and
+route them to `owner_review` or `investigate`. Do not reject a challenge just because it questions a design clause. Set
+`implementation_eligible` true only for an aligned ShipLoop change that cites an existing clause and proposes `implement`.
+Eligible findings must name one or more candidate paths under skills/shiploop/, changes/shiploop/, or ShipLoop's own tests.
+If eligibility is false, `files` may be empty and the proposal may be an investigation. Harness discoveries must have target
+`harness` and cannot be implementation-eligible for ShipLoop.
+
 Prefer few, well-evidenced findings over many speculative ones. Mark a finding
 "material" only when it would change the outcome, cost or reliability of a run like
-this one. Set preserves_premise=false for anything that moves navigation into the model.
+this one. Set preserves_premise=false for anything that moves navigation into the model. Do not invent a discovery to fill
+the array.
 
 End your reply with exactly one ```json fenced block matching:
 {SCHEMA}
@@ -171,23 +210,77 @@ def last_commit_messages(repo: Path, count: int = 3) -> str:
 
 
 def render_markdown(review: dict) -> str:
-    lines = ["# ShipLoop E2E review", "", review.get("outcome", ""), ""]
+    outcome = review.get("outcome", "")
+    if not isinstance(outcome, str):
+        outcome = "Invalid outcome payload."
+    lines = ["# ShipLoop E2E review", "", outcome, ""]
     for category in CATEGORIES:
         lines += [f"## {category.replace('_', ' ').capitalize()}", ""]
-        for finding in review.get(category) or []:
+        findings = review.get(category)
+        if not isinstance(findings, list):
+            lines.append(f"- Invalid {category} payload: expected a list.")
+            lines.append("")
+            continue
+        for finding in findings:
+            if not isinstance(finding, dict):
+                lines.append(f"- Invalid finding payload: {finding!r}")
+                continue
             premise = "keeps premise" if finding.get("preserves_premise") else "BREAKS PREMISE (rejected)"
             lines += [f"- **{finding.get('title')}** ({finding.get('severity')}, {premise})",
                       f"  - Evidence: {finding.get('evidence')}",
                       f"  - Proposal: {finding.get('proposal')}"]
-            if finding.get("files"):
-                lines.append(f"  - Files: {', '.join(finding['files'])}")
+            files = finding.get("files")
+            if isinstance(files, list) and all(isinstance(path, str) for path in files) and files:
+                lines.append(f"  - Files: {', '.join(files)}")
+            elif files:
+                lines.append("  - Files: invalid payload")
+        lines.append("")
+    if review.get("version") == 2:
+        lines += ["## Discoveries", ""]
+        discoveries = review.get("discoveries")
+        if not isinstance(discoveries, list):
+            discoveries = []
+            lines.append("- Invalid discoveries payload: expected a list.")
+        for finding in discoveries:
+            if not isinstance(finding, dict):
+                lines.append(f"- Invalid discovery payload: {finding!r}")
+                continue
+            anchor = finding.get("mission_anchor") if isinstance(finding.get("mission_anchor"), dict) else {}
+            anchor_text = anchor.get("clause_id") or "novel challenge"
+            lines.append(f"- **{finding.get('id')}** ({finding.get('materiality')}, {finding.get('confidence')} confidence; "
+                         f"{finding.get('target')}; anchor {anchor_text})")
+            lines.append(f"  - Eligibility: {finding.get('implementation_eligible')}; proposed disposition: "
+                         f"{finding.get('proposed_disposition')}")
+            if finding.get("title"):
+                lines.append(f"  - {finding['title']}: {finding.get('proposal')}")
+            if finding.get("potential_impact"):
+                lines.append(f"  - Potential impact: {finding['potential_impact']}")
+            if finding.get("alternatives"):
+                lines.append(f"  - Alternatives: {finding['alternatives']}")
+            if finding.get("next_experiment"):
+                lines.append(f"  - Next experiment: {finding['next_experiment']}")
+            files = finding.get("files")
+            if isinstance(files, list) and files:
+                lines.append(f"  - Files: {', '.join(str(path) for path in files)}")
+            evidence_items = finding.get("evidence")
+            if not isinstance(evidence_items, list):
+                evidence_items = []
+            for evidence in evidence_items:
+                if isinstance(evidence, dict):
+                    lines.append(f"  - Evidence ({evidence.get('reference')}): {evidence.get('observation')}")
+                    lines.append(f"    - Interpretation: {evidence.get('interpretation')}")
+            if anchor.get("challenge"):
+                lines.append(f"  - Challenge: {anchor['challenge']}")
+        if isinstance(review.get("discoveries"), list) and not review["discoveries"]:
+            lines.append("- No discoveries reported.")
         lines.append("")
     harness = review.get("harness") if isinstance(review.get("harness"), dict) else {}
     lines += ["## Harness", ""]
     for key in HARNESS_QUESTIONS:
         row = harness.get(key) if isinstance(harness.get(key), dict) else {}
         lines.append(f"- **{key.replace('_', ' ').capitalize()}:** {row.get('answer', 'not answered')}")
-        lines += [f"  - {proposal}" for proposal in row.get("proposals") or []]
+        proposals = row.get("proposals")
+        lines += [f"  - {proposal}" for proposal in proposals] if isinstance(proposals, list) else []
     lines.append("")
     return "\n".join(lines)
 
@@ -212,38 +305,197 @@ def validity(parsed: dict | None, process: dict) -> dict:
         return {"status": "timed_out", "reason": f"the reviewer timed out after {process.get('elapsed_seconds')} s"}
     if status != "exited":
         return {"status": "failed", "reason": f"the reviewer process {status} (rc {process.get('returncode')})"}
+    if process.get("returncode") != 0:
+        return {"status": "failed", "reason": f"the reviewer exited with rc {process.get('returncode')}"}
     if parsed is None:
         return {"status": "invalid", "reason": "the reviewer returned no JSON"}
+    if not isinstance(parsed, dict):
+        return {"status": "invalid", "reason": "the reviewer JSON is not an object"}
+    version = parsed.get("version", 1)
+    if isinstance(version, bool) or version not in (1, 2):
+        return {"status": "invalid", "reason": f"unsupported review version {version!r}"}
     problems = [key for key in REVIEW_KEYS if key not in parsed]
     problems += [f"{key} is not a list" for key in CATEGORIES if key in parsed and not isinstance(parsed[key], list)]
     if "outcome" in parsed and not isinstance(parsed["outcome"], str):
         problems.append("outcome is not text")
     if "harness" in parsed and not isinstance(parsed["harness"], dict):
         problems.append("harness is not an object")
+    if version == 2:
+        if not isinstance(parsed.get("outcome"), str) or not parsed["outcome"].strip():
+            problems.append("outcome is not non-empty text")
+        if "discoveries" not in parsed or not isinstance(parsed.get("discoveries"), list):
+            problems.append("discoveries is not a list")
+        for category in CATEGORIES:
+            findings = parsed.get(category)
+            if isinstance(findings, list):
+                for index, finding in enumerate(findings):
+                    problems.extend(_legacy_finding_problems(finding, f"{category}[{index}]"))
+        discoveries = parsed.get("discoveries")
+        if isinstance(discoveries, list):
+            ids = set()
+            for index, finding in enumerate(discoveries):
+                problems.extend(_discovery_problems(finding, index))
+                if isinstance(finding, dict):
+                    ident = finding.get("id")
+                    if isinstance(ident, str):
+                        if ident in ids:
+                            problems.append(f"discoveries[{index}].id is duplicated")
+                        ids.add(ident)
     if problems:
-        return {"status": "invalid", "reason": "the review JSON lacks the review structure: " + ", ".join(
-            p if " " in p else f"no {p}" for p in problems)}
-    return {"status": "valid", "reason": None}
+        result = {"status": "invalid", "reason": "the review JSON is invalid: " + ", ".join(problems)}
+        if version == 2:
+            result["discovery_qualified"] = False
+        return result
+    result = {"status": "valid", "reason": None}
+    if version == 2:
+        result["discovery_qualified"] = True
+    return result
+
+
+def _nonempty_text(value) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _eligible_candidate_path(value: str) -> bool:
+    return (boundary.candidate_path(value) and not value.startswith("/") and "\\" not in value
+            and ".." not in PurePosixPath(value).parts)
+
+
+def _legacy_finding_problems(finding, where: str) -> list[str]:
+    if not isinstance(finding, dict):
+        return [f"{where} is not an object"]
+    problems = []
+    for key in ("title", "evidence", "proposal", "premise_note"):
+        if not _nonempty_text(finding.get(key)):
+            problems.append(f"{where}.{key} is not non-empty text")
+    files = finding.get("files")
+    if not isinstance(files, list) or any(not isinstance(path, str) for path in files):
+        problems.append(f"{where}.files is not a list of text paths")
+    if finding.get("severity") not in ("material", "minor"):
+        problems.append(f"{where}.severity is not material or minor")
+    if not isinstance(finding.get("preserves_premise"), bool):
+        problems.append(f"{where}.preserves_premise is not boolean")
+    return problems
+
+
+def _discovery_problems(finding, index: int) -> list[str]:
+    where = f"discoveries[{index}]"
+    if not isinstance(finding, dict):
+        return [f"{where} is not an object"]
+    problems = []
+    ident = finding.get("id")
+    if not isinstance(ident, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", ident):
+        problems.append(f"{where}.id is not a stable identifier")
+    for key in ("title", "potential_impact", "next_experiment", "proposal"):
+        if not _nonempty_text(finding.get(key)):
+            problems.append(f"{where}.{key} is not non-empty text")
+    evidence = finding.get("evidence")
+    if not isinstance(evidence, list) or not evidence:
+        problems.append(f"{where}.evidence is not a non-empty list")
+    else:
+        for evidence_index, item in enumerate(evidence):
+            item_where = f"{where}.evidence[{evidence_index}]"
+            if not isinstance(item, dict):
+                problems.append(f"{item_where} is not an object")
+                continue
+            for key in ("reference", "observation", "interpretation"):
+                if not _nonempty_text(item.get(key)):
+                    problems.append(f"{item_where}.{key} is not non-empty text")
+    anchor = finding.get("mission_anchor")
+    clause = relationship = challenge = None
+    if not isinstance(anchor, dict):
+        problems.append(f"{where}.mission_anchor is not an object")
+    else:
+        clause = anchor.get("clause_id")
+        relationship = anchor.get("relationship")
+        challenge = anchor.get("challenge")
+        if clause is not None and (not isinstance(clause, str) or clause not in SPEC_CLAUSE_IDS):
+            problems.append(f"{where}.mission_anchor.clause_id is not a clause ID or null")
+        if relationship not in ("supports", "extends", "challenges", "novel"):
+            problems.append(f"{where}.mission_anchor.relationship is unsupported")
+        if clause is None and (relationship not in ("challenges", "novel") or not _nonempty_text(challenge)):
+            problems.append(f"{where}.mission_anchor without a clause must explain a novel challenge")
+        if clause is not None and relationship == "novel":
+            problems.append(f"{where}.mission_anchor cannot be novel and cite a clause")
+        if relationship == "challenges" and not _nonempty_text(challenge):
+            problems.append(f"{where}.mission_anchor challenge is not explained")
+    if finding.get("materiality") not in ("material", "minor"):
+        problems.append(f"{where}.materiality is not material or minor")
+    if finding.get("confidence") not in ("low", "medium", "high"):
+        problems.append(f"{where}.confidence is not low, medium or high")
+    alternatives = finding.get("alternatives")
+    if not isinstance(alternatives, list) or any(not _nonempty_text(value) for value in alternatives):
+        problems.append(f"{where}.alternatives is not a list of non-empty text")
+    target = finding.get("target")
+    if target not in ("shiploop", "harness"):
+        problems.append(f"{where}.target is not shiploop or harness")
+    eligible = finding.get("implementation_eligible")
+    if not isinstance(eligible, bool):
+        problems.append(f"{where}.implementation_eligible is not boolean")
+    disposition = finding.get("proposed_disposition")
+    if disposition not in ("implement", "owner_review", "investigate", "defer"):
+        problems.append(f"{where}.proposed_disposition is unsupported")
+    files = finding.get("files")
+    if not isinstance(files, list) or any(not isinstance(path, str) or not path.strip() for path in files):
+        problems.append(f"{where}.files is not a list of non-empty paths")
+    challenge_route = clause is None or relationship == "challenges"
+    if eligible is True and (target != "shiploop" or clause is None or relationship not in ("supports", "extends")
+                             or disposition != "implement"):
+        problems.append(f"{where} claims implementation eligibility without an aligned clause and implement disposition")
+    if eligible is True and isinstance(files, list) and (not files or any(not _eligible_candidate_path(path)
+                                                                            for path in files if isinstance(path, str))):
+        problems.append(f"{where} has no eligible candidate paths under the ShipLoop change boundary")
+    if eligible is False and disposition == "implement":
+        problems.append(f"{where} proposes implementation but is not implementation-eligible")
+    if target == "harness" and eligible is True:
+        problems.append(f"{where} targets the harness but claims ShipLoop implementation eligibility")
+    if challenge_route and disposition not in ("owner_review", "investigate"):
+        problems.append(f"{where} challenge must route to owner_review or investigate")
+    return problems
 
 
 def counts_as_clean(verdict: dict) -> bool:
-    """A valid review with no actionable finding: the only review that may count toward convergence."""
-    return (verdict.get("validity") or {}).get("status") == "valid" and not verdict.get("actionable")
+    """A valid v2 review, independently judged with no pending material discovery or actionable proposal."""
+    validity = verdict.get("validity") or {}
+    if validity.get("status") != "valid" or validity.get("discovery_qualified") is not True:
+        return False
+    judge = verdict.get("judge") or {}
+    if (judge.get("validity") or {}).get("status") != "valid" or verdict.get("actionable"):
+        return False
+    discoveries = verdict.get("discoveries")
+    return isinstance(discoveries, list) and not any(
+        isinstance(finding, dict) and finding.get("materiality") == "material" for finding in discoveries)
 
 
-def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effort: str | None = None,
+def _assessment_paths(run_dir: Path, assessment_id: str | None) -> tuple[Path, Path, Path]:
+    if assessment_id is None:
+        return run_dir / "review", run_dir / "review.json", run_dir / "review.md"
+    if not isinstance(assessment_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}", assessment_id):
+        raise ValueError("assessment_id must be 1-64 safe letters, digits, dots, underscores or hyphens")
+    return (run_dir / f"review-{assessment_id}", run_dir / f"review-{assessment_id}.json",
+            run_dir / f"review-{assessment_id}.md")
+
+
+def review(run_dir: Path, *, host: str | None = None, model: str | None = None, effort: str | None = None,
            skill_root: Path | None = None, max_turns: int = 60, timeout: int = 1200,
            prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude",
-           codex_bin: str = "codex") -> dict:
+           codex_bin: str = "codex", assessment_id: str | None = None) -> dict:
     run_dir = run_dir.resolve()
-    agent = hosts.host(host, {"grok": grok_bin, "claude": claude_bin, "codex": codex_bin}[host])
-    stage = run_dir / "review"
+    role = hosts.resolve_role("reviewer", {"host": host, "model": model, "effort": effort})
+    agent = hosts.host(role["host"], {"grok": grok_bin, "claude": claude_bin, "codex": codex_bin}[role["host"]])
+    stage, review_json, review_markdown = _assessment_paths(run_dir, assessment_id)
     stage.mkdir(exist_ok=False)
     env = agent.env(stage / "home")
     source = ran_source(run_dir, skill_root)
     argv = agent.argv(prompt=reviewer_prompt(run_dir, source, prior_learnings),
-                      prompt_file=stage / "prompt.txt", cwd=run_dir, model=model or agent.model,
-                      effort=effort or agent.effort, permission_mode="auto", max_turns=max_turns)
+                      prompt_file=stage / "prompt.txt", cwd=run_dir, model=role["model"],
+                      effort=role["effort"], permission_mode="auto", max_turns=max_turns)
+    if role["host"] == "codex":
+        try:
+            sandbox_index = argv.index("-s")
+        except ValueError as exc:
+            raise RuntimeError("Codex reviewer requires an explicit read-only sandbox") from exc
+        argv[sandbox_index + 1] = "read-only"
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
                               translate=agent.translator())
     found = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
@@ -252,19 +504,22 @@ def review(run_dir: Path, *, host: str = "grok", model: str | None = None, effor
     if checked["status"] != "valid" and not isinstance(parsed.get("outcome"), str):
         parsed["outcome"] = f"unusable review ({checked['status']}): {checked['reason']}"
     parsed["process"] = process
+    parsed["driver"] = dict(role)
     parsed["validity"] = checked
     parsed["skill_source"] = {**source, "roots": [str(root) for root in source["roots"]]}
+    parsed["review_receipt"] = {"stage_dir": str(stage.resolve()), "review_json": str(review_json.resolve()),
+                                "review_markdown": str(review_markdown.resolve())}
     # An unusable review hands nothing on: its findings, if any, are not evidence the improver may act on.
     parsed["actionable"] = actionable(parsed) if checked["status"] == "valid" else []
-    (run_dir / "review.json").write_text(json.dumps(parsed, indent=2) + "\n")
-    (run_dir / "review.md").write_text(render_markdown(parsed))
+    review_json.write_text(json.dumps(parsed, indent=2) + "\n")
+    review_markdown.write_text(render_markdown(parsed))
     return parsed
 
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("run_dir", type=Path, help="a run.py output directory")
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS))
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--skill-root", type=Path, help="the ShipLoop source the run used (default: the plugin_dir its launch "
@@ -275,7 +530,7 @@ def main(argv: list[str] | None = None) -> int:
     prior = "" if args.no_prior_learnings else last_commit_messages(ROOT)
     result = review(args.run_dir, host=args.host, model=args.model, effort=args.effort,
                     skill_root=args.skill_root, prior_learnings=prior)
-    print((args.run_dir / "review.md").read_text())
+    print(Path(result["review_receipt"]["review_markdown"]).read_text())
     source = result["skill_source"]
     if source["basis"] == "mismatch":
         print(f"source mismatch: {source['reason']}; the reviewer read {', '.join(source['roots'])}")

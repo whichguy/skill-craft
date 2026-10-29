@@ -53,7 +53,9 @@ A value nothing measured is null with its reason in ``unmeasured``, never 0. A f
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -62,12 +64,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import delivery  # noqa: E402  (delivery.fingerprint and delivery.changed: the delivery snapshot)
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
+import runrecord  # runrecord.launches: the source roots recorded before any review runs
 
 SCORECARD_ID = "scorecard/6"
 VERDICTS = ("invoked", "plugin", "process", "shiploop", "committed")
 NOT_YET = "no scripted enterprise rubric yet (design P2)"
 PASS, FAIL, UNOBSERVED, NOT_APPLICABLE = "pass", "fail", "unobserved", "not_applicable"
 CASES = Path(__file__).resolve().parent / "cases.json"
+_CURRENT_CASE = object()
+RUN_RECEIPT_FILES = ("prompt.txt", "result.json", "metrics.json", "timeline.jsonl", "invocation.json",
+                     "transcript.md", "events.jsonl", "stderr.txt")
 
 
 def combined(*parts: str) -> str:
@@ -78,8 +84,18 @@ def combined(*parts: str) -> str:
     return FAIL if FAIL in real else UNOBSERVED if UNOBSERVED in real else PASS
 
 
-def requires_acceptance(case) -> bool:
+def requires_acceptance(case, required_case=_CURRENT_CASE) -> bool | None:
     """Whether the case declares hidden acceptance checks (``cases.json`` ``quality.acceptance``): requiredness is the case's."""
+    if required_case is not _CURRENT_CASE:
+        if not isinstance(required_case, dict):
+            return None
+        quality = required_case.get("quality")
+        if quality is None:
+            return False
+        if not isinstance(quality, dict):
+            return None
+        acceptance = quality.get("acceptance")
+        return isinstance(acceptance, dict) if acceptance is not None else False
     try:
         declared = json.loads(CASES.read_text()).get(case) or {}
     except (OSError, ValueError):
@@ -167,9 +183,27 @@ def dimension(false_reasons: list[str], null_reasons: list[str]) -> dict:
     return {"valid": True, "why": []}
 
 
-def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> dict:
+def qualification_overlap(run: Path, result: dict) -> dict:
+    """Add current observations without erasing neighbours recorded when this run ended."""
+    live = environment.overlap(run)
+    recorded = (result.get("environment") or {}).get("overlap")
+    if not isinstance(recorded, dict) or recorded.get("observed") is not True:
+        return {**live, "observed": False, "reason": "the run recorded no observed overlap baseline"}
+    historical = recorded.get("runs")
+    if not isinstance(historical, list):
+        return {"observed": False, "reason": "recorded overlap has no readable neighbour inventory", "runs": []}
+    neighbours = {row["folder"]: row for row in historical if isinstance(row, dict) and isinstance(row.get("folder"), str)}
+    neighbours.update({row["folder"]: row for row in live.get("runs", [])
+                       if isinstance(row, dict) and isinstance(row.get("folder"), str)})
+    if recorded.get("root") != live.get("root"):
+        return {**live, "observed": False, "runs": list(neighbours.values()),
+                "reason": "the current overlap root differs from the recorded run root"}
+    return {**live, "runs": list(neighbours.values())}
+
+
+def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict, required_case=_CURRENT_CASE) -> dict:
     environment_block = result.get("environment") or {}
-    seen = environment.overlap(run)
+    seen = (environment.overlap(run) if required_case is _CURRENT_CASE else qualification_overlap(run, result))
     if not seen.get("observed"):
         unmeasured["validity.overlap"] = seen.get("reason")
     left = result.get("left_behind") or {}
@@ -188,7 +222,7 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
         unmeasured["validity.host_builds"] = "no launch record or init event names the host build"
     shared, shared_why = shared_tmp_names(run, seen, run_metrics)
     # Only a case with held-out acceptance holds anything out (quality.event_facts measures nothing for the others).
-    holds_out = requires_acceptance(result.get("case"))
+    holds_out = requires_acceptance(result.get("case"), required_case)
     held_out = (result.get("quality") or {}).get("held_out_seen") if holds_out else None
     block = {"resumed": resumed, "mixed_host": mixed if isinstance(mixed, bool) else None,
              "host_builds": builds, "overlapped_runs": overlapped, "overlap_root": seen.get("root"),
@@ -206,6 +240,7 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
         tree_null
         + ([f"/tmp names shared with an overlapping run: {', '.join(shared)}"] if shared else [])
         + ([f"shared /tmp state is not known: {shared_why}"] if shared is None else [])
+        + (["case requiredness is not available from the frozen qualification snapshot"] if holds_out is None else [])
         + ([f"the run's events name a held-out file, the checks folder or the case catalog {held_out} time(s)"]
            if isinstance(held_out, int) and held_out > 0 else [])
         + (["whether the run's events name a held-out file is not recorded"] if holds_out and held_out is None else []))
@@ -234,9 +269,9 @@ def validity(run: Path, result: dict, run_metrics: dict, unmeasured: dict) -> di
     return block
 
 
-def accuracy(result: dict, unmeasured: dict) -> dict:
+def accuracy(result: dict, unmeasured: dict, required_case=_CURRENT_CASE) -> dict:
     quality = result.get("quality") or {}
-    required = requires_acceptance(result.get("case"))
+    required = requires_acceptance(result.get("case"), required_case)
     acceptance = quality.get("acceptance")
     mutation = quality.get("mutation")
     block = {"pass": result.get("pass") is True,
@@ -254,8 +289,10 @@ def accuracy(result: dict, unmeasured: dict) -> dict:
                                            else "the case declares no mutation measure")
     hidden = block["acceptance"]
     block["acceptance_required"] = required
-    hidden_status = (NOT_APPLICABLE if not required else UNOBSERVED if hidden is None
+    hidden_status = (UNOBSERVED if required is None else NOT_APPLICABLE if not required else UNOBSERVED if hidden is None
                      else PASS if hidden["passed"] == hidden["total"] else FAIL)
+    if required is None:
+        unmeasured["accuracy.requiredness"] = "the frozen case requiredness snapshot is missing or malformed"
     block["floor"] = combined(PASS if block["pass"] else FAIL, hidden_status)
     return block
 
@@ -336,7 +373,160 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
     return block
 
 
-def score(run) -> dict:
+def delivery_product(result: dict) -> dict:
+    """The product tree delivered to checks, valid only when before/after snapshots identify the same tree."""
+    record = result.get("delivery") if isinstance(result.get("delivery"), dict) else {}
+    before = record.get("before") if isinstance(record.get("before"), dict) else {}
+    after = record.get("after") if isinstance(record.get("after"), dict) else {}
+    required = ("head", "tree")
+    if (before.get("observed") is not True or after.get("observed") is not True
+            or any(not isinstance(before.get(name), str) or not before.get(name) for name in required)
+            or any(not isinstance(after.get(name), str) or not after.get(name) for name in required)
+            or not isinstance(before.get("status"), list) or not isinstance(after.get("status"), list)):
+        return {"observed": False, "reason": "delivery before/after snapshots do not identify a product tree"}
+    same = all(before.get(name) == after.get(name) for name in ("head", "tree", "status"))
+    return {"observed": True, "head": before["head"], "tree": before["tree"],
+            "after_head": after["head"], "after_tree": after["tree"], "unchanged_during_checks": same,
+            **({} if same else {"reason": "delivery identity changed while checks ran"})}
+
+
+def run_receipt(run) -> dict:
+    """Seal run inputs, delivered product bytes, and reviewer source bytes; retain a stable partial receipt on gaps.
+
+    Reviewer output files are deliberately excluded: a reviewer may add them after the run evidence is sealed. Reviewer
+    source roots come only from launch records, which predate review. The ``product`` member records the live work tree's
+    delivery fingerprint, while ``files`` also catches untracked content and symlink-target changes.
+    """
+    run = Path(run).resolve()
+    files: dict[str, str] = {}
+    symlinks: dict[str, str] = {}
+    unsafe_symlinks: list[str] = []
+    missing: list[str] = []
+
+    def record_path(path: Path, key: str, scope_root: Path) -> None:
+        try:
+            if path.is_symlink():
+                target = os.readlink(path)
+                symlinks[key] = target
+                try:
+                    resolved = path.resolve(strict=True)
+                except (OSError, RuntimeError):
+                    unsafe_symlinks.append(f"{key} -> {target} (broken or unreadable)")
+                else:
+                    if not resolved.is_relative_to(scope_root.resolve()):
+                        unsafe_symlinks.append(f"{key} -> {target} (outside {scope_root})")
+                    elif resolved.is_dir():
+                        unsafe_symlinks.append(f"{key} -> {target} (directory target is not fully captured)")
+                    elif not resolved.is_file():
+                        unsafe_symlinks.append(f"{key} -> {target} (target is not a regular file)")
+                    else:
+                        try:
+                            target_bytes = resolved.read_bytes()
+                        except OSError:
+                            unsafe_symlinks.append(f"{key} -> {target} (target is unreadable)")
+                        else:
+                            files[key] = hashlib.sha256(os.fsencode(target) + b"\0" + target_bytes).hexdigest()
+            elif path.is_file():
+                files[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+            else:
+                missing.append(key)
+        except OSError as error:
+            missing.append(f"{key}: {error.strerror}")
+
+    for name in RUN_RECEIPT_FILES:
+        record_path(run / name, name, run)
+    for path in sorted(run.glob("invocation-resume-*.json")):
+        record_path(path, path.name, run)
+
+    # Hash a bundle when present and require it when the result records one.
+    bundle = run / "delivery" / "work.bundle"
+    result = _read(run / "result.json") or {}
+    before = ((result.get("delivery") or {}).get("before") or {}) if isinstance(result, dict) else {}
+    bundle_name = before.get("bundle") if isinstance(before, dict) else None
+    if bundle.exists() or bundle.is_symlink():
+        record_path(bundle, "delivery/work.bundle", run)
+    elif isinstance(bundle_name, str) and bundle_name:
+        missing.append("delivery/work.bundle")
+
+    def tree(root: Path, prefix: str) -> None:
+        if not root.is_dir():
+            missing.append(f"{prefix}/ (tree is not present)")
+            return
+
+        def unreadable(error: OSError) -> None:
+            missing.append(f"{prefix}/: {error.strerror}")
+
+        for here, folders, names in os.walk(root, topdown=True, onerror=unreadable, followlinks=False):
+            here_path = Path(here)
+            keep = []
+            for name in sorted(folders):
+                path = here_path / name
+                if name in (".git", "__pycache__"):
+                    continue
+                if path.is_symlink():
+                    record_path(path, (Path(prefix) / path.relative_to(root)).as_posix(), root)
+                    continue
+                keep.append(name)
+            folders[:] = keep
+            for name in sorted(names):
+                path = here_path / name
+                if name.endswith((".pyc", ".pyo")) or name == ".git":
+                    continue
+                record_path(path, (Path(prefix) / path.relative_to(root)).as_posix(), root)
+
+    work = run / "work"
+    tree(work, "work")
+    product = delivery.fingerprint(work)
+    if product.get("observed") is not True:
+        missing.append("work fingerprint: " + str(product.get("reason") or "not observed"))
+
+    # Record the exact ShipLoop source roots available to a later reviewer, using the launch records saved with this run.
+    roots = []
+    unreadable_launches = runrecord.unreadable(run)
+    if unreadable_launches:
+        missing.append("review source launch records: " + ", ".join(unreadable_launches))
+    for _name, launch in runrecord.launches(run):
+        plugin_dir = launch.get("plugin_dir")
+        if not isinstance(plugin_dir, str) or not plugin_dir:
+            continue
+        source = (Path(plugin_dir).expanduser() / "skills" / "shiploop").resolve()
+        if source not in roots:
+            roots.append(source)
+    for source in roots:
+        if not source.is_dir():
+            missing.append(f"review source is unavailable: {source}")
+            continue
+        prefix = "review_source/" + hashlib.sha256(os.fsencode(str(source))).hexdigest()[:12]
+        tree(source, prefix)
+
+    # Ambient evidence affects correctness and timing. Bind the root and the exact overlapping neighbour inputs so
+    # cleanup, a changed runs-root override, or a changed neighbour cannot silently erase an observed interference.
+    overlap_root = environment.runs_root(run).resolve()
+    overlap = qualification_overlap(run, result)
+    if overlap.get("observed") is not True:
+        missing.append("run-time overlap baseline: " + str(overlap.get("reason") or "not observed"))
+    neighbours = {}
+    for neighbour in overlap.get("runs", []):
+        folder = neighbour.get("folder")
+        if not isinstance(folder, str):
+            continue
+        neighbour_root = (overlap_root / folder).resolve()
+        if not neighbour_root.is_relative_to(overlap_root):
+            missing.append("overlapping run escapes its runs root")
+            continue
+        neighbours[folder] = {name: hashlib.sha256((neighbour_root / name).read_bytes()).hexdigest()
+                              if (neighbour_root / name).is_file() else None
+                              for name in ("timeline.jsonl", "metrics.json", "invocation.json")}
+    ambient = {"root": str(overlap_root), "observed": overlap.get("observed"), "neighbours": neighbours,
+               "unreadable": overlap.get("siblings_unreadable", [])}
+    body = {"observed": not missing and not unsafe_symlinks, "files": files, "symlinks": symlinks,
+            "unsafe_symlinks": sorted(unsafe_symlinks), "missing": sorted(missing), "product": product}
+    body["ambient"] = ambient
+    encoded = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode("utf-8")
+    return {**body, "sha256": hashlib.sha256(encoded).hexdigest()}
+
+
+def score(run, *, required_case=_CURRENT_CASE) -> dict:
     """The scorecard of one run folder; a folder without readable records gives a card that says so."""
     run = Path(run)
     result, run_metrics = _read(run / "result.json"), _read(run / "metrics.json")
@@ -350,7 +540,8 @@ def score(run) -> dict:
             "versions": {"source": str(versions["source"]).split(" (")[0] if versions.get("source") else None,
                          "plugin_version": versions.get("plugin_version"), "shiploop_version": versions.get("shiploop_version")},
             "outcome_class": result.get("outcome_class"),
-            "validity": validity(run, result, run_metrics, unmeasured), "accuracy": accuracy(result, unmeasured),
+            "validity": validity(run, result, run_metrics, unmeasured, required_case),
+            "accuracy": accuracy(result, unmeasured, required_case),
             "enterprise": {"observed": False, "reason": NOT_YET, "floor": NOT_APPLICABLE},
             "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured)}
     card["floors"] = {name: card[name]["floor"] for name in ("accuracy", "enterprise", "fidelity")}
@@ -363,6 +554,11 @@ def score(run) -> dict:
         unmeasured[f"boundary.{name}"] = why
     if versions.get("plugin_sha256") is None:
         unmeasured["boundary.candidate"] = versions.get("plugin_sha256_unmeasured") or "no plugin digest recorded"
+    if required_case is not _CURRENT_CASE:
+        card["attempt_id"] = result.get("attempt_id")
+        card["started"] = metrics.span(run / "timeline.jsonl")["started"]
+        card["delivery_product"] = delivery_product(result)
+        card["run_receipt"] = run_receipt(run)
     card["unmeasured"] = unmeasured
     return card
 

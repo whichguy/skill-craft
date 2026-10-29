@@ -150,6 +150,10 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
+    "test/shiploop-e2e-discovery.test.py",
+    "test/shiploop-e2e-qualification.test.py",
+    "test/shiploop-e2e-roles.test.py",
+    "test/shiploop-e2e-epoch.test.py",
     "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-e2e-slice.test.py",
     "test/shiploop-e2e-fidelity.test.py",
@@ -303,6 +307,10 @@ _DURATION_SECONDS = {
     # to 116.6 s), so 81.0 scaled by 104.7/84.1 is 100.  The new classes alone take 19.7 s.  Still an estimate and still under
     # QUICK_MAX_SECONDS (120): a further 20 s of tests here moves the suite out of the quick tier.
     "test/shiploop-e2e.test.py": 100.0,
+    "test/shiploop-e2e-discovery.test.py": 2.0,
+    "test/shiploop-e2e-qualification.test.py": 2.0,
+    "test/shiploop-e2e-roles.test.py": 2.0,
+    "test/shiploop-e2e-epoch.test.py": 3.0,
     "test/shiploop-e2e-runrecord.test.py": 0.2,
     # 140 tests on the compact extracts of fourteen saved runs (test/fixtures/fidelity) and the harness's own fake hosts: 8.1 s locally on
     # 2026-10-09 at load average about 6 (the replays are memoised; the through-main class runs fake-host cases).

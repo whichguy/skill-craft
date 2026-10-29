@@ -5,9 +5,9 @@ Each iteration, in a dedicated worktree of this repository:
 
   1. build   the worktree's skill-craft plugin (scripts/build-packages.py)
   2. run     run.py with that build, from a new empty directory
-  3. review  review.py answers the three questions, building on the last three
-             commit messages; only material findings that keep the core premise
-             (script-owned SDLC navigation) count
+  3. review  review.py examines conformance and discoveries, building on the last
+             three commit messages; a fresh judge admits supported improvements
+             and retains design challenges for a separate disposition
   4. record  append the run and review to test/shiploop_e2e/LEARNINGS.md and
              commit it with a detailed message: what was learned, key findings
              and considerations. That history is what the next iteration reads.
@@ -24,8 +24,8 @@ tool calls are searched for their names, and the digests of what grades the runs
 checks/ and the case entry) must be the same after it as before. Any of those failing stops the loop.
 
 It stops at --iterations, after two consecutive clean reviews of passing runs
-(a clean review is a valid one with no actionable finding; a failed, timed-out
-or malformed review is journaled as such and never counts),
+(a scoped clean review is v2, independently judged, with no pending material
+discovery; this never establishes exhausted learning),
 when the improver commits nothing twice in a row, on a run the skill cannot be
 blamed for (skill not invoked or wrong plugin), when the improver crosses the
 evaluator boundary, or on a red suite. Every
@@ -41,7 +41,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import secrets
 import subprocess
@@ -53,6 +52,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import boundary  # noqa: E402
 import hosts  # noqa: E402
+import judge
 import review as reviewer  # noqa: E402
 import run as runner  # noqa: E402
 
@@ -105,7 +105,7 @@ Rules:
   selection into model instructions. Skip a finding you cannot apply without breaking that.
 - Match the surrounding code and prose style; keep changes small and targeted.
 - Run `bash test/run-all.sh --group quick --changed-from {base}` and fix failures you caused.
-- Commit with `git add <explicit paths>` (never `git add -A`) and a message whose final paragraph
+- Commit with `git -C {worktree} add <explicit paths>` and a message whose final paragraph
   is `Co-Authored-By: ShipLoop E2E improver <shiploop-e2e@example.invalid>`.
 - Do not push, release or touch other branches.
 
@@ -118,13 +118,14 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
     stage.mkdir()
     cases = json.loads(runner.CASES.read_text())
     graded_before = boundary.fingerprint(HERE, cases.get(args.case))
-    agent = hosts.host(args.host)
+    profile = role_profile(args, "improver")
+    agent = hosts.host(profile["host"])
     git_config = Path.home() / ".gitconfig"
     env = agent.env(stage / "home", git_config if git_config.is_file() else None)
     base = git(worktree, "rev-parse", "HEAD")
     argv = agent.argv(prompt=improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
-                      prompt_file=stage / "prompt.txt", cwd=worktree, model=args.model or agent.model,
-                      effort=args.effort or agent.effort, permission_mode=args.permission_mode,
+                      prompt_file=stage / "prompt.txt", cwd=worktree, model=profile["model"],
+                      effort=profile["effort"], permission_mode=args.permission_mode,
                       max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
     held_out = boundary.held_out_files(cases)
     with boundary.withheld(worktree, held_out) as withheld:
@@ -156,14 +157,23 @@ def boundary_crossing(change: dict) -> str | None:
     return None
 
 
+def role_profile(args, role: str) -> dict:
+    """Subject flags never silently select a reviewer, judge or improver."""
+    return hosts.resolve_role(role, {key: getattr(args, f"{role}_{key}", None)
+                                     for key in ("host", "model", "effort")})
+
+
 def _finding_lines(finding: dict) -> list[str]:
-    lines = [f"- {finding.get('title')} ({finding.get('severity')}, "
-             f"{'keeps premise' if finding.get('preserves_premise') else 'breaks premise: rejected'})"]
+    lines = [(f"- {finding.get('title')} ({finding.get('materiality', finding.get('severity'))}, "
+              f"{'within current authority' if finding.get('implementation_eligible', finding.get('preserves_premise')) else 'requires separate disposition'})")]
     for label, key in (("Evidence", "evidence"), ("Proposal", "proposal"), ("Premise", "premise_note")):
         if finding.get(key):
             lines.append(f"  {label}: {finding[key]}")
     if finding.get("files"):
         lines.append(f"  Files: {', '.join(finding['files'])}")
+    if finding.get("mission_anchor"):
+        lines.append("  Mission relationship: " + json.dumps(finding["mission_anchor"], sort_keys=True))
+        lines.append(f"  Confidence: {finding.get('confidence')}; next experiment: {finding.get('next_experiment')}")
     return lines
 
 
@@ -207,6 +217,14 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
             lines += ["", category.replace("_", " ").capitalize(), ""]
             for finding in found:
                 lines += _finding_lines(finding)
+    discoveries = [f for f in verdict.get("discoveries", []) if isinstance(f, dict)]
+    if discoveries:
+        lines += ["", "Discoveries and independent judgment", ""]
+        for finding in discoveries:
+            lines += _finding_lines(finding)
+        judged = verdict.get("judge") or {}
+        lines.append("Judge: " + json.dumps({key: judged.get(key) for key in
+                                          ("review_sha256", "validity", "assessments")}, sort_keys=True))
     harness = verdict.get("harness") if isinstance(verdict.get("harness"), dict) else {}
     lines += ["", "Harness questions", ""]
     for key in reviewer.HARNESS_QUESTIONS:
@@ -216,7 +234,7 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
     actionable = verdict.get("actionable") or []
     lines += ["", "Next", ""]
     lines += ([f"- apply: {f.get('title')}" for f in actionable] if actionable
-              else ["- no material, premise-preserving finding to apply"])
+              else ["- no independently admitted ShipLoop finding to apply; retained challenges need disposition"])
     if prior:
         lines += ["", "Built on the learnings of " + ", ".join(prior) + "."]
     lines += ["", "Co-Authored-By: ShipLoop E2E harness <shiploop-e2e@example.invalid>"]
@@ -282,14 +300,14 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="battleship")
     p.add_argument("--iterations", type=int, default=3, help="how many iterations to run")
-    # The Claude host since 2026-10-26 (owner: "all our end-to-end runs" on Claude with DeepSeek flash while Grok's credits
-    # are out): its run goes through run.py, whose default backend is DeepSeek flash on Ollama (hosts.RUN_DEFAULT_BACKEND);
-    # the review and the improvement call the host factory, which keeps Claude's own models.
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude",
-                   help="host for the run, the review and the improvement (default claude: the run on DeepSeek flash "
-                        "through run.py's default backend, the review and the improvement on Claude's own models)")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default=hosts.RUN_DEFAULT_HOST,
+                   help="test subject host; reviewer, judge and improver have separate role profiles")
     p.add_argument("--model")
     p.add_argument("--effort")
+    for role in ("reviewer", "judge", "improver"):
+        p.add_argument(f"--{role}-host", choices=sorted(hosts.HOSTS))
+        p.add_argument(f"--{role}-model")
+        p.add_argument(f"--{role}-effort")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--run-max-turns", type=int, default=None)  # no turn limit unless one is asked for
     p.add_argument("--improve-max-turns", type=int, default=None)  # no turn limit unless asked
@@ -314,13 +332,24 @@ def main(argv: list[str] | None = None) -> int:
                         f"- host: {args.host} model={args.model or hosts.run_default_model(args.host)} "
                         f"effort={args.effort or hosts.HOST_DEFAULTS[args.host]['effort']}"])
     print(f"iterate: output={out} worktree={worktree} branch={branch}", flush=True)
+    (out / "roles.json").write_text(json.dumps({"subject": hosts.resolve_role("subject", {
+        "host": args.host, "model": args.model, "effort": args.effort}),
+        **{role: role_profile(args, role) for role in ("reviewer", "judge", "improver")}}, indent=2) + "\n")
+    frozen_evaluator = boundary.qualification_snapshot(HERE, [args.case])
+    (out / "qualification-inputs.json").write_text(json.dumps(frozen_evaluator, indent=2) + "\n")
 
     clean_streak = idle_streak = 0
     stop = f"reached --iterations {args.iterations}"
+    tested_source = None
     for index in range(1, args.iterations + 1):
+        if boundary.qualification_snapshot(HERE, [args.case]) != frozen_evaluator:
+            stop = "frozen evaluator inputs changed; start a new exploration round"
+            journal(learnings, ["- stopped: " + stop])
+            break
         stage = out / f"iter-{index}"
         stage.mkdir()
         sha = git(worktree, "rev-parse", "HEAD")
+        tested_source = runner.tree_digest(worktree / "skills" / "shiploop")
         prior_learnings = reviewer.last_commit_messages(worktree)
         prior = git(worktree, "log", "-3", "--format=%h").split()
         subprocess.run([sys.executable, "-B", str(worktree / "scripts/build-packages.py"), str(stage / "build")],
@@ -347,19 +376,39 @@ def main(argv: list[str] | None = None) -> int:
             journal(learnings, entry + ["- stopped: the skill was not invoked from the build under test"])
             stop = "run did not reach the skill under test (see result.json invoked/plugin)"
             break
+        if boundary.qualification_snapshot(HERE, [args.case]) != frozen_evaluator:
+            stop = "frozen evaluator inputs changed during the run; its assessment is unqualified"
+            journal(learnings, entry + ["- stopped: " + stop])
+            break
 
         print(f"== iteration {index}: review", flush=True)
-        verdict = reviewer.review(stage / "run", host=args.host, model=args.model, effort=args.effort,
+        verdict = reviewer.review(stage / "run", **role_profile(args, "reviewer"),
                                   skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings)
+        if (verdict.get("validity") or {}).get("discovery_qualified"):
+            judged = judge.judge(stage / "run", verdict, **role_profile(args, "judge"))
+            routes = judge.admitted(verdict, judged)
+            verdict["judge"] = judged
+            verdict["actionable"] = routes["implementation"]
+            (stage / "dispositions.json").write_text(json.dumps(routes, indent=2) + "\n")
+        else:
+            # Historical reviews are readable diagnostics, not fresh discovery/judge evidence.
+            verdict["actionable"] = []
+        if boundary.qualification_snapshot(HERE, [args.case]) != frozen_evaluator:
+            stop = "frozen evaluator inputs changed during review; do not apply its findings"
+            journal(learnings, entry + ["- stopped: " + stop])
+            break
         recorded = record_learnings(worktree, learnings_message(index, args, sha, result, verdict, prior), stage)
         print(review_line(index, stage / "run"), flush=True)
         findings = verdict["actionable"]
-        rejected = [f.get("title") for c in reviewer.CATEGORIES for f in verdict.get(c) or []
-                    if isinstance(f, dict) and f.get("preserves_premise") is False]
+        admitted_ids = {finding.get("id") for finding in findings}
+        rejected = [f.get("title") for f in verdict.get("discoveries", []) if isinstance(f, dict)
+                    and f.get("materiality") == "material" and f.get("id") not in admitted_ids]
+        rejected += [f.get("title") for c in reviewer.CATEGORIES for f in verdict.get(c) or []
+                     if isinstance(f, dict) and f.get("preserves_premise") is False]
         entry += [f"- outcome: {verdict.get('outcome')}",
-                  f"- actionable: {len(findings)}; premise-breaking (rejected): {len(rejected)}"]
-        entry += [f"  - [{f['category']}] {f.get('title')}" for f in findings]
-        entry += [f"  - rejected: {title}" for title in rejected]
+                  f"- actionable: {len(findings)}; design challenges retained: {len(rejected)}"]
+        entry += [f"  - [{f.get('category', 'discovery')}] {f.get('title')}" for f in findings]
+        entry += [f"  - requires disposition: {title}" for title in rejected]
         entry.append(f"- review: {stage / 'run' / 'review.md'}; learnings commit {recorded} "
                      f"(built on {', '.join(prior)})")
         checked = verdict["validity"]
@@ -371,10 +420,10 @@ def main(argv: list[str] | None = None) -> int:
                                         "(streak 0)"])
             continue
         if not findings:
-            clean_streak = clean_streak + 1 if result["pass"] else 0
-            journal(learnings, entry + [f"- clean review (streak {clean_streak})"])
+            clean_streak = clean_streak + 1 if result["pass"] and reviewer.counts_as_clean(verdict) else 0
+            journal(learnings, entry + [f"- scoped review complete without admitted implementation (streak {clean_streak})"])
             if clean_streak >= 2:
-                stop = "two consecutive clean reviews of passing runs"
+                stop = "two scoped passing assessments; no claim of exhausted learning"
                 break
             continue
         clean_streak = 0
@@ -419,6 +468,17 @@ def main(argv: list[str] | None = None) -> int:
                         "- next: review the branch, merge it, then scripts/release.py and "
                         "scripts/release-push.py to publish; nothing was published"])
     print(f"\niterate: {stop}\n  journal: {learnings}\n  branch:  {branch} ({len(commits.splitlines())} commits)")
+    final_sha = git(worktree, "rev-parse", "HEAD")
+    final_source = runner.tree_digest(worktree / "skills" / "shiploop")
+    evaluator_unchanged = boundary.qualification_snapshot(HERE, [args.case]) == frozen_evaluator
+    # A late improver commit is explicitly unevaluated; the comparative controller must evaluate this artifact.
+    (out / "iteration-result.json").write_text(json.dumps({"contract": "shiploop-iteration/2", "branch": branch,
+        "worktree": str(worktree), "final_commit": final_sha, "stop_reason": stop,
+        "tested_source_sha256": tested_source, "final_source_sha256": final_source,
+        "qualification": "unevaluated" if (not evaluator_unchanged or final_source is None
+                                           or final_source != tested_source) else "comparison_required",
+        "evaluator_unchanged": evaluator_unchanged,
+        "publication": "not_performed", "learning_exhausted": False}, indent=2) + "\n")
     return 0
 
 

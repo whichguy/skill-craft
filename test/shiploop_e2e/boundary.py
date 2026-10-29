@@ -22,9 +22,9 @@ import contextlib
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -38,6 +38,7 @@ CANDIDATE_PREFIXES = ("skills/shiploop/", "changes/shiploop/", "test/shiploop-",
 # The E2E harness and its suites, which the prefixes above would otherwise admit.
 HARNESS_PREFIXES = ("test/shiploop_e2e/", "test/shiploop-e2e")
 GROUPS = ("evaluator", "oracle", "case")  # the digests a candidate must leave unchanged
+QUALIFICATION_CONTRACT = "qualification-inputs/1"
 
 
 def candidate_path(path: str) -> bool:
@@ -70,6 +71,93 @@ def oracle_files(harness: Path) -> list[Path]:
         folders[:] = [name for name in folders if name != "__pycache__"]
         found += [Path(here) / name for name in names if not name.endswith(".pyc")]
     return found
+
+
+def _tree_files(folder: Path) -> list[Path]:
+    """All readable input files below a frozen evaluator tree, excluding generated Python cache files."""
+    found = []
+    if not folder.is_dir():
+        return found
+    def unreadable(error: OSError) -> None:
+        raise error
+
+    for here, folders, names in os.walk(folder, onerror=unreadable):
+        folders[:] = [name for name in folders if name != "__pycache__"]
+        found += [Path(here) / name for name in names if not name.endswith(".pyc")]
+    return sorted(found)
+
+
+def _canonical(value) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+def qualification_snapshot(harness: Path, case_names=None) -> dict:
+    """Freeze the scorecard inputs and their current bytes for a strict promotion/5 registration.
+
+    ``cases`` and ``suites`` are snapshots, so an old run is scored with the registered requiredness even if the live
+    catalogs later change. ``files`` binds the snapshot to the evaluator, recursive checks/evaluators, SPEC, catalogs and
+    the scorecard's source modules; a comparison recomputes this record before it can qualify anything. Paths are relative
+    to the repository root (the parent of ``test/``), not to a machine-specific checkout path.
+    """
+    harness = Path(harness).resolve()
+    repo = harness.parent.parent
+    try:
+        cases = json.loads((harness / "cases.json").read_text())
+        suites = json.loads((harness / "suites.json").read_text())
+    except (OSError, ValueError) as error:
+        raise ValueError(f"qualification catalogs cannot be read: {error}") from None
+    if not isinstance(cases, dict) or not isinstance(suites, dict):
+        raise TypeError("qualification cases.json and suites.json must contain objects")
+    names = sorted(set(cases) if case_names is None else case_names)
+    if not names or any(not isinstance(name, str) or not name for name in names):
+        raise ValueError("qualification snapshot needs non-empty case names")
+    missing = [name for name in names if name not in cases or not isinstance(cases[name], dict)]
+    if missing:
+        raise ValueError("qualification snapshot cannot find case definitions for " + ", ".join(map(str, missing)))
+    files = [harness / "SPEC.md", harness / "cases.json", harness / "suites.json"]
+    files += evaluator_files(harness)
+    files += _tree_files(harness / "checks")
+    files += _tree_files(harness / "evaluators")
+    # These modules are read by scorecard.py for validity and metrics. They are also top-level evaluator files today;
+    # spelling the dependency set out makes the frozen scorecard inputs explicit if their layout changes later.
+    files += [harness / name for name in ("scorecard.py", "boundary.py", "metrics.py", "delivery.py",
+                                           "environment.py", "runrecord.py")]
+    files = sorted({path.resolve() for path in files})
+    hashes = {}
+    for path in files:
+        try:
+            hashes[path.relative_to(repo).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        except (OSError, ValueError) as error:
+            raise ValueError(f"qualification input cannot be read: {path}: {error}") from None
+    frozen = {"contract": QUALIFICATION_CONTRACT, "scorecard": "scorecard/6", "files": hashes,
+              "cases": {name: cases[name] for name in names}, "suites": suites}
+    frozen["sha256"] = hashlib.sha256(_canonical(frozen)).hexdigest()
+    return frozen
+
+
+def qualification_changes(frozen: dict, harness: Path, case_names=None) -> list[str]:
+    """The strict qualification inputs that differ now from a registration, or a reason the current inputs are unknown."""
+    try:
+        current = qualification_snapshot(harness, case_names)
+    except (OSError, ValueError) as error:
+        return [f"current qualification inputs are unavailable: {error}"]
+    if not isinstance(frozen, dict) or frozen.get("contract") != QUALIFICATION_CONTRACT:
+        return ["the registration has no supported qualification-input snapshot"]
+    try:
+        digest = hashlib.sha256(_canonical({key: value for key, value in frozen.items() if key != "sha256"})).hexdigest()
+    except (TypeError, ValueError):
+        return ["the registered qualification snapshot digest is malformed"]
+    if frozen.get("sha256") != digest:
+        return ["the registered qualification snapshot digest is malformed"]
+    changed = sorted(set(frozen.get("files") or {}) | set(current["files"]))
+    changed = [name for name in changed if (frozen.get("files") or {}).get(name) != current["files"].get(name)]
+    if frozen.get("cases") != current.get("cases"):
+        changed.append("case requiredness snapshot")
+    if frozen.get("suites") != current.get("suites"):
+        changed.append("suite requiredness snapshot")
+    if frozen.get("scorecard") != current.get("scorecard"):
+        changed.append("scorecard version")
+    return changed
 
 
 def fingerprint(harness: Path, case: dict | None) -> dict:

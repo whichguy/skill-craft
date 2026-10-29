@@ -400,13 +400,14 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--case", help="a case from step_cases.json")
     p.add_argument("--regrade", type=Path, metavar="OUTPUT",
                    help="grade an earlier slice again from its files (no host starts), with the case it ran")
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default=hosts.RUN_DEFAULT_HOST,
+                   help=f"host for the slice (default: {hosts.RUN_DEFAULT_HOST})")
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
                    help="claude only: ollama (default, as for run.py: Claude Code on the local Ollama server's "
                         f"{hosts.OLLAMA_MODEL}) or anthropic, Claude's own models")
-    p.add_argument("--model", help=f"default: the host's ({hosts.OLLAMA_MODEL} on claude, claude-sonnet-5-5 on claude "
-                                   "--backend anthropic)")
-    p.add_argument("--effort")
+    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), {hosts.OLLAMA_MODEL} (claude), "
+                                   "claude-sonnet-5-5 (claude --backend anthropic), grok-4.7 (grok)")
+    p.add_argument("--effort", help="reasoning effort; default: xhigh (codex), host default (claude), medium (grok)")
     p.add_argument("--delegation", choices=("inline", "ask-agent"), default="inline",
                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
     p.add_argument("--plugin-dir", type=Path, help="a skill-craft plugin build to test (default: build this checkout)")
@@ -415,7 +416,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--max-turns", type=int, default=None,
                    help="a turn limit for the host session; default: none")
     p.add_argument("--max-budget-usd", type=float, default=None,
-                   help="claude --backend anthropic only, default none; grok has no spend cap")
+                   help="claude --backend anthropic only, default none; grok and codex have no spend cap")
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--max-resumes", type=int, default=None,
                    help="resumable hosts (grok, codex): continue a session that ended before the slice was complete; "
