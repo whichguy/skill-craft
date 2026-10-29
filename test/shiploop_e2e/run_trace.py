@@ -10,10 +10,11 @@ gives the harness's readers one shape:
 - ``failures``: every traced command that exited non-zero, in order (a failed check included and flagged: ``shiploop check``, or ``complete --check-only`` before it; as the
   host stream counted them), with the stage the run was in, the action, the refusal text and its first line;
 - ``packets``: per action, every print, with its text as sent, its size as printed and whether it repeated an earlier one;
-- ``hooks``: every keepalive stop decision with its text;
+- ``hooks``: every keepalive stop decision with its text, and every session end the host reported (``hook=session-end``);
 - ``notes``: every owner note and where it stands (waiting, shown, delivered), as ``shiploop trace`` reads it.
 
-``checks`` reads three live behaviours from them (keepalive text, packet copies, owner notes) into metrics.json.
+``checks`` reads four live behaviours from them (keepalive text, packet copies, owner notes, session end) into
+metrics.json.
 
 The host stream stays the source of what the model did (its calls, text and turns); the trace is ShipLoop's account of what it
 sent and refused. A run with no ``trace.jsonl`` (before 1.12.0) reads None and its readers keep their stream sources.
@@ -38,6 +39,7 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / "skills/shiploop/scripts"))
+import shiploop_keepalive  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_trace  # noqa: E402
 
@@ -51,6 +53,9 @@ RUN_DIR_FLAG = re.compile(r"--run-dir\b")
 # The verbs shiploop_protocol hands to their own modules before the navigator loads the run: not traced from 1.13.1, traced
 # with an exit and no text in 1.12.0. The harness reads their failures from the host stream on every release.
 ROUTED_VERBS = frozenset(("chain", "lint", "red-check", "backchain-check"))
+# A session end that freed the run is followed by the next session's claim within this long; a claim after it is
+# indistinguishable from the stale-claim path the hook exists to beat (shiploop_keepalive.OWNER_STALE_SECONDS).
+CLAIM_WITHIN_SECONDS = shiploop_keepalive.OWNER_STALE_SECONDS // 2
 
 
 def first_line(text: str | None, limit: int | None = LINE_LIMIT) -> str:
@@ -97,6 +102,8 @@ def read(run_dir: Path | str | None) -> dict | None:
         elif event["kind"] == "hook":
             hooks.append({"i": event["i"], "ts": event.get("ts"), "at": event.get("at"), "action": owner,
                           "decision": event.get("decision"), "why": event.get("why"), "host": event.get("host"),
+                          "hook": event.get("hook"), "session": event.get("session"), "released": event.get("released"),
+                          "reason": event.get("reason"),
                           "text": shiploop_trace._screened(event["text"]) if isinstance(event.get("text"), str) else None})
     # Steps the trace did not see are the reader's `accepted` events; the harness's seeded ones were never the model's.
     unseen = [event.get("action") for event in events if event["kind"] == "accepted"]
@@ -156,7 +163,7 @@ def _check(verdict: str, evidence: str, lines: list | None = None) -> dict:
 
 
 def checks(traced: dict | None) -> dict | None:
-    """Three live behaviours the trace's fixtures prove (docs/shiploop-run-trace-journal.md, 2026-10-28), each read from
+    """Four live behaviours the trace's fixtures prove (docs/shiploop-run-trace-journal.md, 2026-10-28), each read from
     the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had not delivered when it
     stopped short of done) or ``not exercised`` (the run never did the thing, which is not a pass).
 
@@ -164,7 +171,9 @@ def checks(traced: dict | None) -> dict | None:
     - ``packet_copies``: every printed packet names a kept copy (``packets/sent/<sha>.md``) whose text has that hash, the
       copy the Run Review page reads; reprints are counted (``lines``). Until 2026-10-28 this was ``packet_reprint`` and
       read identical reprints only, which a fresh session's ``next`` reprint never is;
-    - ``owner_note``: every owner note was delivered (a step accepted with it shown); ``--owner-note-at`` writes one mid-step.
+    - ``owner_note``: every owner note was delivered (a step accepted with it shown); ``--owner-note-at`` writes one mid-step;
+    - ``session_end``: the host's session-end hook freed the run and the next session took it at once (``session_end`` below);
+      ``slice.py --host-ends-session`` makes a clear exercise it.
     """
     if traced is None or "error" in traced:
         return None
@@ -200,7 +209,54 @@ def checks(traced: dict | None) -> dict | None:
     note = (_check("not exercised", "no owner note was written to the run") if not notes else
             _check("pass", told) if not undelivered else
             _check("fail" if traced.get("status") == "done" else "open", told))
-    return {"keepalive_text": keepalive, "packet_copies": copies, "owner_note": note}
+    return {"keepalive_text": keepalive, "packet_copies": copies, "owner_note": note, "session_end": session_end(traced)}
+
+
+def session_end(traced: dict) -> dict:
+    """The ``session_end`` check: the host's session-end hook freed the run, and the next session took it at once.
+
+    A session end the trace holds (``hook=session-end``) says ``released``: true when that session's claim was removed, false
+    when the stop hook had freed it first (a normal exit) or another session owned the run. The next session's claim is its
+    first stop decision after the release that continued the turn (only the owner's does); a decision that let the host stop
+    is a session that did not get the run. Each released row has one of three fates:
+    - claimed within CLAIM_WITHIN_SECONDS: the hook freed the run and the next session took it: ``pass``;
+    - the next session's first stop decision refused or came later than that: ``fail``;
+    - no other session's stop decision followed (the run ended, or the harness did): ``not exercised``, as when no session
+      end freed a claim at all (``released: false`` is a normal exit's row, not a failure of the hook)."""
+    hooks = traced["hooks"]
+    ends = [hook for hook in hooks if hook.get("hook") == "session-end"]
+    if not ends:
+        return _check("not exercised", "no session end reached the run's trace")
+    freed = [hook for hook in ends if hook.get("released")]
+    if not freed:
+        return _check("not exercised", f"{len(ends)} session end{'s' if len(ends) != 1 else ''} recorded, none freed a claim "
+                                       "(released false: the stop hook had freed the run first, or the session owned nothing)",
+                      [hook["i"] for hook in ends])
+    claimed, failed, unseen = [], [], []
+    for end in freed:
+        later = [hook for hook in hooks if hook.get("hook") != "session-end" and isinstance(hook.get("ts"), (int, float))
+                 and hook["ts"] >= end["ts"] and hook.get("session") != end.get("session")]
+        if not later:
+            unseen.append(end)
+            continue
+        first = min(later, key=lambda hook: hook["ts"])
+        gap = first["ts"] - end["ts"]
+        if first.get("decision") == "continue" and gap <= CLAIM_WITHIN_SECONDS:
+            claimed.append((end, first, gap))
+        else:
+            failed.append((end, first, gap))
+    if failed:
+        end, first, gap = failed[0]
+        return _check("fail", f"after the release at line {end['i']} the next session's first stop decision (line {first['i']}, "
+                              f"{round(gap)} s later) was {first.get('decision')}: {first_line(first.get('why'), 100)}",
+                      [row["i"] for pair in failed for row in pair[:2]])
+    if claimed:
+        end, first, gap = claimed[0]
+        return _check("pass", f"freed the run at line {end['i']} ({end.get('host')}, {end.get('reason') or 'no reason'}); the next "
+                              f"session continued it {round(gap)} s later" + (f" ({len(claimed)} releases)" if len(claimed) > 1 else ""),
+                      [row["i"] for pair in claimed for row in pair[:2]])
+    return _check("not exercised", f"{len(freed)} session end{'s' if len(freed) != 1 else ''} freed the run, but no other "
+                                   "session's stop decision followed", [end["i"] for end in unseen])
 
 
 def checks_line(found: dict | None) -> str | None:

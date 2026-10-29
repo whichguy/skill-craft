@@ -385,7 +385,7 @@ class Builders(unittest.TestCase):
         checks = [tile for tile in model["tiles"] if tile.get("check")]
         self.assertEqual([(t["label"], t["value"], t["tone"]) for t in checks],
                          [("Keepalive text", "not exercised", ""), ("Packet copies", "pass", "ok"),
-                          ("Owner note", "not exercised", "")])
+                          ("Owner note", "not exercised", ""), ("Session end", "not exercised", "")])
         self.assertEqual(checks[0]["sub"], "no stop decision continued a turn")
         self.assertEqual(model["tiles"][:4], [t for t in model["tiles"] if not t.get("check")])  # headline tiles first
         # The same run once a stop is continued, a packet is printed twice and the owner writes a note.
@@ -407,8 +407,20 @@ class Builders(unittest.TestCase):
         model, _meta = status_card.build_e2e(folder, NOW)
         checks = {tile["check"]: tile for tile in model["tiles"] if tile.get("check")}
         self.assertEqual({name: (t["value"], t["tone"]) for name, t in checks.items()},
-                         {"keepalive_text": ("pass", "ok"), "packet_copies": ("pass", "ok"), "owner_note": ("open", "warn")})
+                         {"keepalive_text": ("pass", "ok"), "packet_copies": ("pass", "ok"), "owner_note": ("open", "warn"),
+                          "session_end": ("not exercised", "")})
         self.assertEqual(checks["owner_note"]["sub"], "N1 waiting")
+        # A session end that freed the run, then the next session's continued turn: the session-end tile passes.
+        ended = {"kind": "hook", "hook": "session-end", "decision": "release", "released": True, "host": "claude",
+                 "session": "aaaaaaaaaaaa", "reason": "other", "ts": 1404.0}
+        taken = {"kind": "hook", "hook": "stop", "decision": "continue", "session": "bbbbbbbbbbbb", "ts": 1410.0,
+                 "text": "ShipLoop run is active: continue."}
+        with (run / "trace.jsonl").open("a", encoding="utf-8") as trace:
+            trace.write(json.dumps(ended) + "\n" + json.dumps(taken) + "\n")
+        model, _meta = status_card.build_e2e(folder, NOW)
+        tile = next(t for t in model["tiles"] if t.get("check") == "session_end")
+        self.assertEqual((tile["label"], tile["value"], tile["tone"]), ("Session end", "pass", "ok"))
+        self.assertIn("freed the run", tile["sub"])
         # A changed kept copy fails the copies check, drawn as a failure.
         (run / "packets" / "sent" / f"{sha}.md").write_text("not what was sent\n", encoding="utf-8")
         model, _meta = status_card.build_e2e(folder, NOW)
@@ -427,7 +439,8 @@ class Builders(unittest.TestCase):
         document = status_card.job_document(model, meta, job, NOW)
         # The job's own tiles replace the builder's headline numbers; the run's trace checks follow them.
         self.assertEqual(document["tiles"][:1], job["tiles"])
-        self.assertEqual([tile["check"] for tile in document["tiles"][1:]], ["keepalive_text", "packet_copies", "owner_note"])
+        self.assertEqual([tile["check"] for tile in document["tiles"][1:]],
+                         ["keepalive_text", "packet_copies", "owner_note", "session_end"])
         self.assertEqual(document["comparison"], job["comparison"])
         self.assertEqual(document["timeline"]["bands"], job["bands"])
         self.assertEqual(document["timeline"]["spans"], model["timeline"]["spans"])

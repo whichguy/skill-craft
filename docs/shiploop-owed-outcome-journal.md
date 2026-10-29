@@ -894,6 +894,47 @@ to the host's own pid; the SessionEnd hook is registered with the keepalive's 10
   but whether a signal mid-turn runs it is open; the harness mode is host-neutral and its check reads `released: false`
   (never a pass) where the hook did not run.
 
+**Design, built 2026-10-29 (status: interim until a live round shows it; the unit and fake-host tests pass).**
+- **Product** (`skills/shiploop/`, change note `changes/shiploop/session-end-evidence.md`: the 1.21.0 release consumed `session-end-releases-run.md`, so this change has its own): `release_owner` returns
+  whether it removed a claim; `session_end` returns the bound run, the host it was bound under and `released`;
+  `trace.record_session_end` writes a `hook` row (`hook=session-end`, `decision=release`, `released`, the payload's
+  `reason`, the session as the 12-character hash the stop rows use), and `run_hook`'s session-end branch calls it. A session
+  bound to no run writes nothing (it has no run), and a second registration of one host (Grok's global and plugin hooks)
+  finds the binding gone and writes nothing, so the row is once per session. Tests (`test/shiploop-keepalive.test.py`,
+  `SessionEndTests`, 8 in all, 5 of them new): `release_owner` says whether it removed a claim; the owner's end records `released: true` and its reason; a codex session bound to a
+  claude-owned run, and an end after the stop hook's release, record `released: false`; the next session's claim follows
+  the row inside the stale window; with `trace.record_session_end` stubbed out the three tests that read the row fail
+  (1 failure, 2 errors).
+- **Harness check** (`run_trace.checks`, fourth check `session_end`; `status_card.CHECK_LABELS` gives it a tile): `pass`
+  when a released row is followed by another session's stop decision that continued its turn within
+  `CLAIM_WITHIN_SECONDS` (900 s, half of `OWNER_STALE_SECONDS`); `fail` when that decision let the host stop or came
+  later; `not exercised` (never a pass) when no session end is in the trace, none freed a claim, or no other session
+  decided after the release. **Why a stop decision is the claim:** the trace holds no claim row, and only the owner gets
+  a `continue`. A claim row would make the check exact (the next session's claim could be timed to the second instead
+  of by its first turn end); it is a product change this task did not make and is left as a follow-up.
+- **Slice mode** (`slice.py --clear-signal SIGTERM|SIGINT|SIGHUP|SIGKILL`, default none and unchanged): a clear sends the
+  signal to the host's leader (`run.end_host`; through `caffeinate`, which forwards it), waits until the host's whole
+  group has gone, at most 15 s (the hook's 10 s timeout plus margin), ends the group as before, and
+  `release_after_clear` leaves the owner alone. SIGKILL is not waited for and leaves the dead owner's claim in place. The
+  signal is recorded in each clear's record (`end_signal`) and `invocation.json` (`clear_signal`). The fake-host tests
+  (`test/shiploop-e2e-slice.test.py`, `ClearSignalTests`, `ClearThroughMainTests`) run the real keepalive and trace: a
+  fake Claude session claims the run, runs its session-end hook on SIGTERM and exits; after the clear the trace holds the
+  `released: true` row, no harness release ran, the next fake session takes the run, and `session_end` reads `pass`. With
+  SIGKILL the trace has no row and the claim stays.
+- **Verification before any push (2026-10-29):** quick tier `--changed-from 7f21c0e7 --jobs 4`: 57 suites, 56 OK in 1131 s.
+  `shiploop-e2e` failed once, `StopFileTest.test_a_stop_requested_as_a_session_ends_stops_the_resume_loop_and_reads_as_stopped_everywhere`
+  (`['stopped'] != ['exited']`: the fake host's own exit races the stop poll) at load average about 45 with six other
+  sessions running. It passes alone 3 of 3 and the whole suite passes on a rerun (470 OK, 317 s). The new `run.launch`
+  branch runs only with `end_signal`, which that test never sets, so this reads as load, not the change (exploratory: the
+  failure did not reproduce, and it was not run on a checkout without the change). The push waited for the phase B release, whose preflight a late
+  `skills/shiploop/` commit would block. After the rebase onto that release (`e064e875`, shiploop 1.21.0) the quick tier
+  (`--changed-from e064e875`) ran 58 suites, 57 OK in 712 s; `shiploop-e2e-lifecycle`'s
+  `test_a_session_that_ends_takes_what_it_left_in_its_group_with_it` failed once (an extra pid in the group snapshot, at
+  load average about 42), and passes alone 3 of 3 and as a whole suite (19 OK). That code path is unchanged by this lane.
+- **Not done here:** the evidence round itself and the 1.21.0 release (Stage 2). The release preflight still holds
+  `1961f4c5` and this change until an E2E round runs after them; this change adds no `LEARNINGS.md` entry on purpose (an
+  entry before the round would satisfy the preflight by ancestry, the thing this path exists to prevent).
+
 ## Phases B and C: plan (2026-10-28, awaiting the owner's approval)
 
 [The plan](shiploop-check-phases-bc-plan-2026-10-28.md) names every file, symbol, test and removal for B (one

@@ -169,6 +169,9 @@ PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
 EXIT_POLL_SECONDS = 0.1  # how soon the end of a host session is seen (its leader is polled, not reaped, until its group is ended)
+# What a host gets to run its SessionEnd hooks after it is signalled (end_host): the keepalive registers its session-end hook
+# with a 10 s timeout, so a host that is still there after this long has not run it in time and is ended with the group.
+SESSION_END_SECONDS = 15
 # With no resume limit by default, a host that cannot run (its auth expired, its binary broke) or a model that ends every
 # turn without moving the run would be resumed forever. Evidence, not a count of work: this many resumed sessions in a row
 # that left ShipLoop's revision where it was end the loop (the owner's rule for autonomous runs: stop on three
@@ -810,10 +813,37 @@ def declared_needs(name: str, args, earlier: dict | None = None) -> list[str]:
     return list(dict.fromkeys(found))
 
 
+def end_host(leader: int, signum: int, grace: float = SESSION_END_SECONDS) -> bool:
+    """Signal the host's leader with ``signum`` and wait, up to ``grace`` seconds, until its whole process group has gone: the
+    host runs its SessionEnd hooks while it ends itself (docs/shiploop-owed-outcome-evidence/session_end_probe.out: SIGTERM,
+    SIGINT and SIGHUP do, under `caffeinate` too, in under a second; SIGKILL never does). True when the group went by itself.
+    The caller ends the group afterwards either way (listeners.end_group). SIGKILL is not waited for: nothing runs after it."""
+    if listeners.unreaped(leader) != "running":
+        return True
+    try:
+        os.kill(leader, signum)
+    except ProcessLookupError:
+        return True
+    if signum == signal.SIGKILL:
+        return False
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline:
+        if listeners.unreaped(leader) != "running":
+            with contextlib.suppress(listeners.Unobserved):
+                if not [row for row in lifecycle.table().values() if row["pgid"] == leader and row["pid"] != leader]:
+                    return True
+        time.sleep(EXIT_POLL_SECONDS)
+    return False
+
+
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
            first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None,
-           before_start=None) -> dict:
+           before_start=None, end_signal=None) -> dict:
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
+
+    `end_signal()`, asked once when `stop_when` ended the session, may name a signal to send the host first (end_host): the
+    host runs its session-end hooks and exits, and the group is ended after it as always. Unset, or None from it, the group
+    is killed at once. The result's ``end_signal`` names the signal sent.
 
     `before_start(line)` is called once the checks above pass and before the host is spawned, with the number of events.jsonl
     lines already written (the session's first event will be that line): the session record's start row, which therefore
@@ -885,6 +915,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         deadline = time.monotonic() + timeout
         status = None
         left: list = []  # what a session that ended left in its own group, ended with it
+        sent_signal = None  # the signal end_signal named, once sent
         try:
             # The leader is watched without being reaped (listeners.unreaped), so once it has ended its number is still its group's.
             next_check = 0.0
@@ -904,6 +935,9 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                 with contextlib.suppress(listeners.Unobserved):
                     left = [{"pid": row["pid"], "command": row["command"][:200]}
                             for row in lifecycle.table().values() if row["pgid"] == proc.pid and row["pid"] != proc.pid]
+            if status == "interrupted" and end_signal is not None and (sent := end_signal()):
+                sent_signal = signal.Signals(sent).name
+                end_host(proc.pid, sent)
             # The whole process group: the host and any native workers it started, or what a session that ended left in it (SPEC
             # "The resource lifecycle"). Sent while the leader is unreaped, so the number is still its group's; reaped right after.
             listeners.end_group(proc.pid)
@@ -920,7 +954,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
-            "elapsed_seconds": round(time.time() - start, 1), "stop": stop, "left_behind": listeners.reap(out)}
+            "elapsed_seconds": round(time.time() - start, 1), "stop": stop, "left_behind": listeners.reap(out),
+            **({"end_signal": sent_signal} if sent_signal else {})}
 
 
 def summarize_events(path: Path) -> dict:

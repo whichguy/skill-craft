@@ -36,6 +36,12 @@ Verdicts (slice-result.json):
   no_redo        only with --clear-at (repeatable, with --resume-prompt): every clear of the S-6 probe passed, none of the
                  fresh sessions repeated a completed state-changing call (clear.py; clear.json lists the clears and
                  slice-result.json `clear_unfired` the positions that never came)
+A clear ends the host with SIGKILL to its group and the harness frees the run's keepalive owner itself (release_keepalive_owner).
+With `--clear-signal SIGTERM` the host frees it: the signal goes to the host, which runs its SessionEnd hook (the keepalive's
+session-end hook releases the run it owned and writes a `hook` row to RUN/trace.jsonl) and exits, the group is ended after
+run.SESSION_END_SECONDS, and the harness releases nothing, so the run trace's `session_end` check can pass on a live round
+(run_trace.checks). `--clear-signal SIGKILL` is the same switch for a host that dies without a hook: the claim stays with its dead
+owner, and only the keepalive's process check lets the next session take the run.
 The candidate is graded against the seed commit, committed or not: each item is assembled inside the execution
 checkout, verify commits the files the step plan declares (and documentation and docs/shiploop/), and anything else is
 committed only at the final return (`workspace plan-return`, at release), which a slice does not reach
@@ -50,6 +56,7 @@ import json
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -249,6 +256,7 @@ CLEAR_RECORD = "clear.json"  # a list: one record per clear, in the order they f
 # What continues the run in a session that holds none of it (--resume-prompt): `names-next` is the prompt a resume
 # always had (run.resume_prompt); `withheld` names no command, path or stage (condition R0 of the S-6 battery).
 RESUME_PROMPTS = ("names-next", "withheld")
+CLEAR_SIGNALS = ("SIGTERM", "SIGINT", "SIGHUP", "SIGKILL")
 WITHHELD_PROMPT = "Continue the ShipLoop work for the repository in this directory."
 
 
@@ -262,6 +270,16 @@ def release_keepalive_owner(cli: Path, run_dir: str, env: dict) -> None:
                             text=True, check=False, timeout=60)
     if result.returncode != 0:
         raise SystemExit("the plugin under test could not release the run's keepalive owner: " + result.stderr.strip()[-300:])
+
+
+def release_after_clear(cli: Path, run_dir: str, env: dict, clear_signal: int | None) -> bool:
+    """What follows a cleared session: the harness frees the run's keepalive owner (release_keepalive_owner) unless the host
+    was ended with ``--clear-signal``, when freeing it is the host's own (its session-end hook, or for SIGKILL nothing, and
+    the claim stays with its dead owner). True when the harness released it."""
+    if clear_signal is not None:
+        return False
+    release_keepalive_owner(cli, run_dir, env)
+    return True
 
 
 def continue_prompt(condition: str, run_dir: str, cli: Path) -> tuple[str, dict | None]:
@@ -287,14 +305,14 @@ def clear_records(out: Path) -> list[dict]:
 def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, timeout: int, watch: bool,
           translate=None, host_name: str = "fake", model: str | None = None, first: bool = True,
           resumed_session: str | None = None, clear_at: list[dict] | None = None, told: dict | None = None,
-          stop_after: str | None = None) -> dict:
+          stop_after: str | None = None, clear_signal: int | None = None) -> dict:
     """One host session that the slice stop ends. Its status is ``slice-complete`` when the slice ended it, or when the
     session ended by itself with the slice already complete.
 
     With `clear_at` (clear.parse_spec) the session is also ended at the first position not yet cleared (status
     ``cleared``): the positions fire in order, and clear.json holds the ones that already did. The stop point is
     appended to clear.json and the caller continues in a fresh session. `told` is what that session's prompt named
-    (sessions.jsonl)."""
+    (sessions.jsonl). A clear ends the host with `clear_signal` first, when given (run.end_host), and the record names it."""
     hit: list = []
     earlier = clear_records(out)
     spec = clear_at[len(earlier)] if clear_at and len(earlier) < len(clear_at) else None
@@ -321,7 +339,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
     process = None
     try:
         process = run.launch(argv, work, out, env, timeout, watch, first=first, fresh=False, translate=translate,
-                             stop_when=stop_when, stop_file=out / "stop", before_start=begin)
+                             stop_when=stop_when, stop_file=out / "stop", before_start=begin,
+                             end_signal=lambda: clear_signal if hit else None)
     finally:
         if started:
             sessionlog.end(out, started[0], events_line=run.events_line_count(events_path, repair=False),
@@ -333,7 +352,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
         # Recorded after the kill, so the point is where the stop actually landed (an overrun is work done before it).
         actual = clear.point(out / "events.jsonl", read_state(run_dir) or {}, metrics.current_stage,
                              navigator.current_action)
-        record = {"n": len(earlier) + 1, **spec, "triggered": hit[0], "stopped": actual}
+        record = {"n": len(earlier) + 1, **spec, "triggered": hit[0], "stopped": actual,
+                  **({"end_signal": process["end_signal"]} if process.get("end_signal") else {})}
         (out / CLEAR_RECORD).write_text(json.dumps([*earlier, record], indent=2) + "\n")
         process["status"] = "cleared"
     elif process["status"] == "interrupted" or (process["status"] == "exited" and (
@@ -428,6 +448,12 @@ def parser() -> argparse.ArgumentParser:
                    help="the S-6 probe, repeatable: stop the host when STAGE's packet arrives (or, with :inside, after "
                         "its first completed call), continue in a fresh session, and grade no_redo (clear.py). STAGE "
                         "`improve` is an Improve stage. The positions fire in the order given, one per session")
+    p.add_argument("--clear-signal", choices=CLEAR_SIGNALS, default=None, metavar="SIGNAL",
+                   help=f"how a clear ends the host: this signal to the host's process (one of {', '.join(CLEAR_SIGNALS)}), then "
+                        "the group after the host's session-end hook ran or run.SESSION_END_SECONDS passed, and the harness "
+                        "does not free the run's keepalive owner. The host's own session-end hook frees it (SIGTERM, SIGINT, "
+                        "SIGHUP: the run trace's `session_end` check); SIGKILL runs no hook and leaves a dead owner's claim. "
+                        "Default: SIGKILL to the group and the harness frees the owner")
     p.add_argument("--resume-prompt", choices=RESUME_PROMPTS, default="names-next",
                    help="what continues the run in a session after a clear: names-next (default) is the resume prompt, "
                         "which names the next command and the run directory; withheld names none of them (condition R0)")
@@ -549,7 +575,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "delegation": args.delegation, "plugin_dir": str(plugin_dir), "plugin": plugin,
                   "versions": run.installed_versions(plugin_dir), "local_head": run.git("rev-parse", "HEAD").strip(),
                   "seeded": seeded, "checks": case["checks"], "expect_paths": case.get("expect_paths"),
-                  "clear_at": [clear.label(spec) for spec in clear_at], "resume_prompt": args.resume_prompt,
+                  "clear_at": [clear.label(spec) for spec in clear_at], "clear_signal": args.clear_signal,
+                  "resume_prompt": args.resume_prompt,
                   "seed_at": args.seed_at, "stop_after": args.stop_after, "ref": args.ref, "overlay": applied,
                   "opening_note": note or None, "seed_state": target, "fake_sf": shim,
                   "planning_review": args.planning_review or stage_spec.DEFAULT_PLANNING_REVIEW}
@@ -566,7 +593,7 @@ def _main(argv: list[str] | None, held: list) -> int:
     deadline = time.monotonic() + (args.timeout or float("inf"))  # active time, as in run.py: sleep spends none of it
     session_args = dict(work=work, out=out, env=env, run_dir=run_dir, watch=not args.quiet,
                         translate=host.translator(), host_name=host.name, model=model, clear_at=clear_at,
-                        stop_after=args.stop_after)
+                        stop_after=args.stop_after, clear_signal=getattr(signal, args.clear_signal) if args.clear_signal else None)
     process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
                     timeout=args.timeout or float("inf"), **session_args)
     sessions = [process]
@@ -578,7 +605,7 @@ def _main(argv: list[str] | None, held: list) -> int:
             if not args.quiet:
                 print(f"cleared at {clear_records(out)[-1]['stopped']}; continuing in a fresh session "
                       f"(prompt {args.resume_prompt})", flush=True)
-            release_keepalive_owner(cli, str(run_dir), env)
+            release_after_clear(cli, str(run_dir), env, session_args["clear_signal"])
             prompt, told = continue_prompt(args.resume_prompt, str(run_dir), cli)
             process = drive(host.argv(prompt=prompt, prompt_file=out / f"resume-after-clear-{number}.txt", **common),
                             timeout=max(60, deadline - time.monotonic()), first=False, told=told, **session_args)

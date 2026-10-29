@@ -494,7 +494,8 @@ def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
              "sub": f'{checks} a failed check' if checks == 1 else f"{checks} failed checks"}]
 
 
-CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_copies": "Packet copies", "owner_note": "Owner note"}
+CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_copies": "Packet copies", "owner_note": "Owner note",
+                "session_end": "Session end"}
 CHECK_TONES = {"pass": "ok", "fail": "bad", "open": "warn"}
 CHECK_SUB = 90  # characters of a check's evidence a tile shows; metrics.json keeps it whole
 
