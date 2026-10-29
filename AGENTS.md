@@ -40,6 +40,25 @@ OpenCode (`${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills`), Hermes (`~/.herm
 - Unit of a skill: agentskills.io-style package (`SKILL.md` + optional tree).
 - Discovery ≠ execution for engine multi-host claims.
 
+## Decisions
+
+Owner, 2026-10-28: a session makes routine decisions itself and records each one (what, why, the evidence) in the
+commit message or journal where the work lands. Routine:
+
+- publishing a release once `scripts/release.py`'s preflight and CI pass on a commit that fast-forwards `main`, and
+  refreshing the hosts after it;
+- choosing between equivalent fixes;
+- launching verification runs.
+
+Ask the owner first for anything one-way or that sets direction:
+
+- deleting data, branches or runs that are not the session's own;
+- deploying to the owner's orgs or other external services;
+- changing a default that breaks comparability with earlier evidence (the E2E subject model, a baseline);
+- a ShipLoop product behaviour trade-off, or any limit on ShipLoop's loops.
+
+Another session's runs, branches and releases stay its own: message that session instead of acting on them.
+
 ## First skill
 
 **skill-interop** — author/review portable multi-host skills (Grok, Claude Code, Codex, Hermes).
