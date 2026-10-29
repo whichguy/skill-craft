@@ -270,3 +270,33 @@ This is Q3.
 - **Wave C**: P6 (large case) and F7.2. Revisit E2 and Q5 with that evidence.
 - **Batch discipline.** Each wave lands as one release with one verification batch. No engine change lands while a
   batch runs.
+
+## 9. Coordination with design T (2026-10-28)
+
+The owner asked overlapping sessions to stop and agree on owners. Design T (session "E2E (fork)", branch
+`feat/per-step-iteration-6adde0`, `docs/shiploop-review-after-tests-design-2026-10-27.md` §8-§9) accepted this split.
+
+**Design T owns:**
+- the step and stage structure: verify retired, gates in each step, a commit stage per step, step skills;
+- test gradations, where each step runs its own cases and the full regression runs at the last step;
+- the per-step bookkeeping;
+- its own F5 and F6, which are not this plan's (this plan's items are "plan F-n");
+- the ask-agent step boundaries.
+
+**This plan owns:** plan F2 (spills), plan F3 (coverage at plan), P4 (fancy-UI text) and the Improve-lint fix.
+
+**Order:**
+1. Lanes C (F6+F5), then B (2d and step 3), merge onto the design T branch.
+2. Wave A rebases there: design T names the commit to build on.
+3. Design T lands on main after its pilot E2E rounds and README, not before 2026-10-29.
+4. The lint fix (d0916465, e740819b), D8, the node-tickets case pair and this plan's documents land on main now. Design T
+   rebases onto them, and they meet at `test/test-groups.test.py`'s suite counts.
+
+**Constraints for the Wave A rebase:**
+- **Plan F3.** Test gradations already make each step run its own cases (`iteration.due_cases`, `active_commands`).
+  Request coverage at plan does not exist on design T and stays this plan's to build. It must line up with
+  `due_cases` and the step-plan criteria gate (`_check_step_sizing`).
+- **Plan F2.** Lane F6 adds a "Lint coverage:" line right after "Result:" in every lint block and in `gate()`'s two
+  refusals. A display cut that pages or trims a lint block keeps the Result and Lint coverage lines together.
+- **The lint fix.** On design T's base the step review belongs to document (2b-2), not implement, so d0916465's
+  "implement review" wording is checked when design T rebases onto it.
