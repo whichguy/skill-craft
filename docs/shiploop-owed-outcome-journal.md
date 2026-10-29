@@ -855,6 +855,36 @@ evaluator, `shiploop check`) and C (the loop ends when the check says yes), the 
   and arm B's event streams), so C's mechanism is untested on any model; the plan puts a one-slice pilot before
   C's batch.
 
+### Phases B and C: build log (2026-10-28, owner: "Approve as recommended", D1-D8 as the plan recommends)
+
+Branch `feat/shiploop-check-f13af3` (worktree `.claude/worktrees/shiploop-check-f13af3`), from `070d752e`.
+
+Decisions taken while building, each routine (AGENTS.md "Decisions"):
+- **The batch runs the whole inner loop.** Arm B ran `--stop-after implement`, which never reaches the test stage, where
+  B changes the most (base run, floors, mutation check). The before, B and C arms all run without `--stop-after`, so
+  they stay comparable with each other; arm B's continuation numbers stay comparable through `--clear-at
+  implement:inside` with `names-next`. One slice per background task, since a task is killed at about 120 minutes.
+  The first launch (three slices in one task) was stopped after a minute and its folder kept as
+  `bc-before-1-7ab627.aborted`.
+- **`complete` keeps the candidate-run reuse it had (`test_loop._reused`, owner decision D5).** A yes is taken whole
+  only while its key matches; when only the draft changed, the gates run again, and an unchanged tree still lets the
+  candidate run be taken. The plan listed `_reused` for renaming to `take_check`; `take_check` is a separate function.
+- **The key leaves out refused runs of other kinds.** The floors read only candidate counts (`action_counts`,
+  `accepted_counts`), so a refused Proof run does not change the key: after a refused `complete`, restoring the files
+  the check judged lets `complete` take that yes again (the test-loop Proof test pins it).
+- **The harness keeps its `check_only` field.** metrics.json, flow.json and the status card already carry it in
+  committed evidence; renaming it would break comparisons. Its readers now also count the trace verb `check`, and the
+  record globs skip the check's own records (`-base-check`, `-mutation-check`).
+- **D2, lint.** Zero of 39 lint gate records in arm A, and none in eight other recent runs, applied an auto-fix, so the
+  fix path is rare. A report-mode pass cannot tell which fixes the fix pass would apply (it stops at "report-only
+  pass", and some formatters run only when fixing), so `complete` that takes a yes runs no lint pass at all, the
+  check's lint refusal names the new `shiploop lint --fix`, and `complete` without a yes keeps fix-and-refuse-once.
+
+B's first two parts, firm for the tests named: `test_the_check_and_complete_agree_on_the_floor_the_base_run_sets` and
+`test_the_check_refuses_an_outcome_the_stage_does_not_allow` fail on main (the dry run passes) and pass on the branch;
+`test_complete_takes_the_checks_matching_yes_and_runs_nothing_again` and
+`test_each_change_to_what_the_gates_read_makes_complete_run_them_again` pass.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in

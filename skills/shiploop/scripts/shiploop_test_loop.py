@@ -112,6 +112,11 @@ def base_path(action: str, number: int) -> str:
     return "tests/" + action + "-base" + str(number) + ".md"
 
 
+def base_check_path(action: str) -> str:
+    """The base run a check makes: replaced on each call, never counted; the check's floors come from it."""
+    return "tests/" + action + "-base-check.md"
+
+
 def red_check_path(action: str) -> str:
     """The red-check report: a base run the loop asks for, replaced on each call and never counted."""
     return "tests/" + action + "-red-check.md"
@@ -927,8 +932,18 @@ def action_counts(root: Path, action: str) -> Dict[str, int]:
     return most
 
 
+def _check_base(root: Path, action: str) -> Optional[Mapping[str, Any]]:
+    """The base run of this action's latest check (``base_check_path``) when it passed, else None."""
+    path = Path(root) / base_check_path(action)
+    try:
+        record = store.read_record(path) if path.is_file() else None
+    except (OSError, store.StorageError):
+        return None
+    return record if isinstance(record, Mapping) and record.get("passed") else None
+
+
 def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: str,
-                 result: Optional[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
+                 result: Optional[Mapping[str, Any]], *, check: bool = False) -> Dict[str, Dict[str, Any]]:
     """Per focused and regression command, its floor and where it comes from (the test stage's rule).
 
     ``floor = max(base count - retired shown, earlier runs - retired seen)``: the base count is the latest passed base
@@ -937,9 +952,12 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
     in); the earlier runs are this action's own (``action_counts``) and any run accepted for the item since its step
     plan (``accepted_counts``), less every retired test the base run saw (``retired_seen``), since a candidate record
     cannot say which command ran it.  A command with no number from any source has no floor.
+
+    ``check`` (``shiploop check``) takes the base run that check just made (``base_check_path``), so the check holds
+    its candidate to the floor ``complete`` sets from the same run (F15, owed-outcome journal).
     """
     root = Path(root)
-    base = _latest_base(root, action, passed=True) or {}
+    base = (_check_base(root, action) if check else _latest_base(root, action, passed=True)) or {}
     base_runs = {run.get("command"): run for run in base.get("runs") or ()}
     earlier = accepted_counts(root, state, work_item)
     for command, ran in action_counts(root, action).items():
@@ -1128,6 +1146,36 @@ def _tree(root: Path, repo: Path) -> str:
             index.unlink()
 
 
+def working_tree(root: Path, repo: Path) -> str:
+    """The repository's working content as a Git tree, "" when there is none (``_tree``); part of a check's key."""
+    return _tree(root, repo)
+
+
+def check_paths(action: str) -> Tuple[str, ...]:
+    """The run-relative records a check of ``action`` can write, in the order ``complete`` would make them."""
+    return (base_check_path(action), check_only_path(action), mutation_check_only_path(action),
+            step_proof_check_only_path(action))
+
+
+def take_check(root: Path, action: str, records: Sequence[str], answer: str) -> None:
+    """Write each check record a taken yes rests on as this action's next counted record (``complete`` taking a
+    check's matching yes, phase B), ``reused`` naming the check record and the answer; nothing runs."""
+    root = Path(root)
+    counted: Dict[str, Callable[[str, int], str]] = {
+        base_check_path(action): base_path, check_only_path(action): verify_path,
+        mutation_check_only_path(action): mutation_path, step_proof_check_only_path(action): step_proof_path}
+    for relative in records:
+        target = counted.get(relative)
+        if target is None:
+            continue
+        record = dict(store.read_record(root / relative))
+        record.pop("counted", None)
+        record["attempt"] = _next_attempt(root, action)
+        record["reused"] = {"path": relative, "created_at": record.get("created_at"), "answer": answer}
+        number = _count(root, action, target) + 1
+        store.atomic_write_text(root / target(action, number), store.dumps(record, "ShipLoop record taken from a check"))
+
+
 def _reused(root: Path, action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,
             held: Mapping[str, Mapping[str, Any]]) -> Optional[Tuple[List[Dict[str, Any]], Dict[str, Any]]]:
     """The runs of this action's passed check-only record, held to today's floors, when ``complete`` takes them instead
@@ -1227,7 +1275,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     elif observed and observed["where"] == "unknown":
         failure = str(observed["reason"])
     if stage in STAGES:
-        held = floor_detail(root, state, work_item, action, result)
+        held = floor_detail(root, state, work_item, action, result, check=not count)
     elif stage in OUTER_SOURCES or not work_item:
         held = {}
     else:
@@ -1829,7 +1877,7 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
 
 
 def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
-               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None,
+               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None, count: bool = True,
                **options: Any) -> List[str]:
     """The test stage's base run at complete; raises ``TestLoopError`` with the refusal.
 
@@ -1840,14 +1888,24 @@ def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: 
     record ``tests/<action>-base<N>.md`` holds each command's base count (the floor's base term) and counts in
     ``refused_runs`` with the candidate runs.  Returns one summary line per command.  ``options`` pass through
     (runner, env, clock, command_timeout).
+
+    ``count=False`` (``shiploop check``) runs the same base run and judgement and writes ``base_check_path``
+    instead: never counted, and the floors of that check's candidate run come from it (``floor_detail``).
     """
     root = Path(root)
     check_result_fields(state, work_item, result)
     refused = refused_runs(root, action_id)
     record, refusal = _base_run(root, state, work_item, action_id, result, base_commit=base_commit, **options)
-    record["attempt"] = _next_attempt(root, action_id)
-    relative = base_path(action_id, _base_count(root, action_id) + 1)
+    if count:
+        record["attempt"] = _next_attempt(root, action_id)
+        relative = base_path(action_id, _base_count(root, action_id) + 1)
+    else:
+        record["counted"] = False
+        relative = base_check_path(action_id)
     store.atomic_write_text(root / relative, store.dumps(record, "ShipLoop test base run"))
+    if refusal and not count:
+        raise TestLoopError(refusal + "\nFix the tests (or red_na / retired_tests) and check again. This check does not "
+                            "count toward the refused runs. Full output: " + str(root / relative) + ".")
     if refusal:
         if record["disposition"] == "could-not-run":
             tail = _unavailable_sentence(STAGES[0], refused, options.get("command_timeout", COMMAND_TIMEOUT_SECONDS))
@@ -1920,10 +1978,12 @@ __all__ = (
     "accepted_counts",
     "action_counts",
     "base_check",
+    "base_check_path",
     "base_commands",
     "base_path",
     "base_worktree",
     "check_only_path",
+    "check_paths",
     "check_result_fields",
     "default_suite_drift",
     "floor_detail",
@@ -1952,6 +2012,8 @@ __all__ = (
     "step_proof",
     "step_proof_check_only_path",
     "step_proof_path",
+    "take_check",
     "verify",
     "verify_path",
+    "working_tree",
 )

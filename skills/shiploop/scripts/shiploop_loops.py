@@ -811,6 +811,15 @@ def _verify_refused(root: Path, action_id: str) -> bool:
     return bool(refused and refused(root, action_id) >= 1)
 
 
+def check_outcome(stage: str, result: Any) -> None:
+    """Refuse an outcome the inner stage does not accept.  ``check_terminal`` asks it first, and ``shiploop check``
+    asks it too, since a check runs before the receipt exists (P9, phases B and C plan)."""
+    outcome = result.get("outcome") if isinstance(result, Mapping) else None
+    allowed = stage_spec.stage(stage).outcomes
+    _need(outcome in allowed,
+          stage + " accepts only " + ", ".join(allowed) + "; the bound Until Loop repeats the work, not the graph")
+
+
 def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, Any]) -> Path | None:
     """Refuse the current inner action's result that its Until Loop receipt does not support.
 
@@ -824,10 +833,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     found = cursor(state)
     _need(found is not None, "the run is not in an inner stage, so it has no stage loop")
     stage, action_id, _ = found
+    check_outcome(stage, result)
     outcome = result.get("outcome") if isinstance(result, Mapping) else None
-    allowed = stage_spec.stage(stage).outcomes
-    _need(outcome in allowed,
-          stage + " accepts only " + ", ".join(allowed) + "; the bound Until Loop repeats the work, not the graph")
     root = Path(root)
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
@@ -891,6 +898,7 @@ __all__ = (
     "WORK_ONE_STEP",
     "WORK_STEP",
     "check_loop_packet",
+    "check_outcome",
     "check_terminal",
     "open_send_back",
     "send_back_open_path",
