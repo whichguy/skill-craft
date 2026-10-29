@@ -1,0 +1,8 @@
+{
+  "session_id": "__SESSION__",
+  "transcript_path": "/tmp/shiploop-keepalive-fixture",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "prompt_id": "4150e668-74ef-450a-8b69-c7a225cc6451",
+  "hook_event_name": "SessionEnd",
+  "reason": "other"
+}

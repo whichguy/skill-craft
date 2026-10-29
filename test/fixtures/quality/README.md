@@ -10,6 +10,12 @@ Fixtures of the delivered-quality tests (`test/shiploop-e2e-quality.test.py`).
   `test/shiploop_e2e/fixtures/node-base`, with an independent alternative and fourteen targeted defects
   (`build(dest, variant)`), for its held-out checks (`test/shiploop_e2e/checks/user_listing_accept.py`) and the base's pristine
   tests. Its tests are in `test/shiploop-e2e-brownfield.test.py`.
+* `reference_ticket_assignment.py` and `reference_ticket_escalation.py`: the `ticket-assignment` brownfield case's reference
+  delivery, written as edits over `test/shiploop_e2e/fixtures/node-tickets`, and its follow-on `ticket-escalation`'s, written
+  over the first one's reference (which stands in for the first run's delivery). Each has an independent alternative and
+  targeted defects (`build(dest, variant)`), for the held-out checks (`test/shiploop_e2e/checks/ticket_assignment_accept.py`,
+  `ticket_escalation_accept.py`) and the base's pristine tests. Their tests are in
+  `test/shiploop-e2e-brownfield-tickets.test.py`.
 * `memory-write-events.jsonl`: the shape of `events.jsonl` lines 599 to 606 of the saved run
   `/Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet` (a Claude session writing two files under its profile's memory folder),
   reduced to the keys the detector reads, with the home folder renamed, plus one Grok-shaped line.

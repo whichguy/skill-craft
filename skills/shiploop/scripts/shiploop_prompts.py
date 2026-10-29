@@ -144,9 +144,13 @@ def packet_pointer(path: object, head_end: str) -> str:
 # own `head`, and the status display, which reads the command, never fires.  The label names the absolute result path
 # because `complete` reads that one path by default and the command carries no --result flag.
 CALLBACK_LABEL_PREFIX = "Callback for this stage (run once after its work, with the result written to "
-CALLBACK_REASON = ("run it exactly as printed, adding only --check-only to test before it accepts, and with no pipe, "
-                   "redirect, \";\" or shell variable: its output is the next stage's instructions and the status display "
-                   "reads the command")
+CALLBACK_REASON = ("run it exactly as printed, with no pipe, redirect, \";\" or shell variable: its output is the next "
+                   "stage's instructions and the status display reads the command")
+# How an inner stage asks whether ShipLoop would accept its draft (phases B and C plan, decision D3): the callback's own
+# command with the verb `check`, which runs the same gates and changes nothing.  Not a second printed command: the
+# separate "Check (" line cost 329 characters in every inner head and pushed a step-plan head with test layers at their
+# limit past the host cut.  An outer stage's callback is its own check, so its packet does not mention one.
+CHECK_HOW = "the callback with `check` in place of `complete`"
 
 
 def callback_label(result_path: object) -> str:
@@ -2544,12 +2548,11 @@ Each fix that changes behaviour adds a test that fails without it, as a sub-case
 of the closest case, and corrects the docs it affects; change an existing test
 only for an independent reason you record, and never weaken, delete or skip one.
 Do not start a later step or edit the Proof. After each edit rerun the step's
-recorded commands and ShipLoop's lint for the step's action (`shiploop lint
---action`), and record their exit codes: ShipLoop lints the lines you changed
-and reruns the commands when it imports this review. Leave your edits
-uncommitted: once this review is accepted, ShipLoop commits them with the step's
-code, tests and docs as the step's one commit. A pass that finds none of these
-is trivial.
+recorded commands and ShipLoop's lint (its command is under Commit when the run
+lints), and record their exit codes: ShipLoop lints the lines you changed and
+reruns the commands when it imports this review. Leave your edits uncommitted:
+once this review is accepted, ShipLoop commits them with the step's code, tests
+and docs as the step's one commit. A pass that finds none of these is trivial.
 """
 IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 

@@ -1,0 +1,3 @@
+{"run": "X2a nb-B", "arm": "B scoped (prompts/baseline-scoped.md)", "subject": "claude sonnet (agent)", "repo": "node-base fixture at cc92991f2e24 (the fixture committed once)", "request": "requests/node-base-user-listing.md",
+ "duration_s": 870.5, "subagent_tokens": 221267, "tool_uses": 31,
+ "reported": "BASELINE: 10 requirements, 12 decisions (0 linking repository records), deep: src/server.js, src/users.js, src/paginate.js, test, package.json, open items: 3"}

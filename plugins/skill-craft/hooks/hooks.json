@@ -37,6 +37,17 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-session-end",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

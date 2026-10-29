@@ -1,0 +1,622 @@
+{
+ "_about": "B arm of the phases B and C measure (docs/shiploop-check-phases-bc-plan-2026-10-28.md). Counted: the two B slices that completed. Not counted: bc-final-3-3e986d, cut at 15:11Z (08:11 PDT) by Ollama's monthly usage limit (API Error 429) in carry-forward's Improve child; its per-stage segments are kept for completeness only. Before arm: bc-before-*, in bc-before-per-stage.json.",
+ "counted": [
+  "bc-final-1-73d523",
+  "bc-final-2-fe3324"
+ ],
+ "not_counted": {
+  "slice": "bc-final-3-3e986d",
+  "reason": "api_error 429: monthly usage limit reached (Ollama), at carry-forward's Improve child; verdicts process and inner_loop false because of it"
+ },
+ "by_stage_counted": {
+  "step-plan": {
+   "n": 2,
+   "commands": 35.0,
+   "dry_runs": 1.0,
+   "refused_completes": 0,
+   "seconds": null,
+   "complete_ms": 341.0
+  },
+  "improve": {
+   "n": 6,
+   "commands": 17.5,
+   "dry_runs": 0.0,
+   "refused_completes": 0,
+   "seconds": 92.8,
+   "complete_ms": 536.5
+  },
+  "test-spec": {
+   "n": 2,
+   "commands": 8.5,
+   "dry_runs": 1.0,
+   "refused_completes": 0,
+   "seconds": 49.2,
+   "complete_ms": 1361.5
+  },
+  "implement": {
+   "n": 2,
+   "commands": 14.0,
+   "dry_runs": 0.0,
+   "refused_completes": 1,
+   "seconds": 80.8,
+   "complete_ms": 1855.0
+  },
+  "test": {
+   "n": 2,
+   "commands": 13.0,
+   "dry_runs": 2.5,
+   "refused_completes": 0,
+   "seconds": 59.4,
+   "complete_ms": 645.5
+  },
+  "document": {
+   "n": 2,
+   "commands": 6.0,
+   "dry_runs": 0.5,
+   "refused_completes": 0,
+   "seconds": 35.8,
+   "complete_ms": 1413.5
+  },
+  "verify": {
+   "n": 2,
+   "commands": 9.0,
+   "dry_runs": 1.0,
+   "refused_completes": 0,
+   "seconds": 39.4,
+   "complete_ms": 478.0
+  },
+  "carry-forward": {
+   "n": 2,
+   "commands": 8.0,
+   "dry_runs": 1.0,
+   "refused_completes": 0,
+   "seconds": 69.8,
+   "complete_ms": 410.0
+  }
+ },
+ "slices_counted": [
+  {
+   "slice": "bc-final-1-73d523",
+   "segments": [
+    {
+     "stage": "step-plan",
+     "next": "improve",
+     "action": "nav-35e48704945b41e982237869363fe011",
+     "commands": 41,
+     "kinds": {
+      "other": 37,
+      "loop_start": 1,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": null,
+     "complete_ms": 400
+    },
+    {
+     "stage": "improve",
+     "next": "test-spec",
+     "action": "nav-801c0612003a43ce8efaf64ec28f480d",
+     "commands": 37,
+     "kinds": {
+      "other": 25,
+      "loop_next": 1,
+      "dry_run": 2,
+      "lint": 2,
+      "improve-pass": 3,
+      "loop_done": 3,
+      "complete": 1
+     },
+     "dry_runs_yes": 2,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 275.0,
+     "complete_ms": 544
+    },
+    {
+     "stage": "test-spec",
+     "next": "implement",
+     "action": "nav-8302f1a6cd3b4005a670c1a38d88bd45",
+     "commands": 9,
+     "kinds": {
+      "loop_start": 1,
+      "other": 5,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 63.6,
+     "complete_ms": 1930
+    },
+    {
+     "stage": "implement",
+     "next": "improve",
+     "action": "nav-60b65aa7ba01459f82bc96ee3bf34d88",
+     "commands": 11,
+     "kinds": {
+      "loop_start": 1,
+      "other": 6,
+      "loop_next": 1,
+      "lint": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 73.1,
+     "complete_ms": 1886
+    },
+    {
+     "stage": "improve",
+     "next": "test",
+     "action": "nav-932f3123d38a45fbae9de0817161bd0f",
+     "commands": 13,
+     "kinds": {
+      "other": 8,
+      "loop_next": 1,
+      "lint": 1,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 49.4,
+     "complete_ms": 529
+    },
+    {
+     "stage": "test",
+     "next": "document",
+     "action": "nav-0591b3c08ad0443db3443f104d525652",
+     "commands": 11,
+     "kinds": {
+      "loop_start": 1,
+      "other": 4,
+      "red-check": 1,
+      "lint": 1,
+      "dry_run": 2,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 1,
+     "refused_completes": 0,
+     "seconds": 59.1,
+     "complete_ms": 768
+    },
+    {
+     "stage": "document",
+     "next": "verify",
+     "action": "nav-5e1bbf499b6a48f7af652d856acc9403",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 3,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 42.2,
+     "complete_ms": 1829
+    },
+    {
+     "stage": "verify",
+     "next": "carry-forward",
+     "action": "nav-35cc43e7bf3647988ed8edb530d879bf",
+     "commands": 11,
+     "kinds": {
+      "loop_start": 1,
+      "other": 7,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 47.7,
+     "complete_ms": 519
+    },
+    {
+     "stage": "carry-forward",
+     "next": "improve",
+     "action": "nav-9d9a3ed991bd4e12a724c9f1161347c4",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 75.1,
+     "complete_ms": 383
+    },
+    {
+     "stage": "improve",
+     "next": "system-test-author",
+     "action": "nav-9a9e6e37d83041c58f01ad9f9de4c63e",
+     "commands": 22,
+     "kinds": {
+      "loop_next": 1,
+      "other": 15,
+      "lint": 1,
+      "improve-pass": 2,
+      "loop_done": 2,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 133.3,
+     "complete_ms": 1192
+    }
+   ]
+  },
+  {
+   "slice": "bc-final-2-fe3324",
+   "segments": [
+    {
+     "stage": "step-plan",
+     "next": "improve",
+     "action": "nav-6dc2741ed8a84e8b8c0c0b7046b8dd16",
+     "commands": 29,
+     "kinds": {
+      "other": 26,
+      "dry_run": 2,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": null,
+     "complete_ms": 282
+    },
+    {
+     "stage": "improve",
+     "next": "test-spec",
+     "action": "nav-e6af1083957849e1971233313b1f63ec",
+     "commands": 9,
+     "kinds": {
+      "other": 5,
+      "loop_next": 1,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 59.1,
+     "complete_ms": 229
+    },
+    {
+     "stage": "test-spec",
+     "next": "implement",
+     "action": "nav-dfdcbd6f120745f284b22e54acfa875f",
+     "commands": 8,
+     "kinds": {
+      "other": 6,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 34.8,
+     "complete_ms": 793
+    },
+    {
+     "stage": "implement",
+     "next": "improve",
+     "action": "nav-c766361bffcc451480e453db8c121d06",
+     "commands": 17,
+     "kinds": {
+      "loop_start": 1,
+      "other": 10,
+      "loop_next": 1,
+      "lint": 2,
+      "loop_done": 1,
+      "complete": 2
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 1,
+     "seconds": 88.5,
+     "complete_ms": 1824
+    },
+    {
+     "stage": "improve",
+     "next": "test",
+     "action": "nav-46bc1f14f9de406cb3d12c2e4f415f13",
+     "commands": 10,
+     "kinds": {
+      "other": 5,
+      "loop_next": 1,
+      "lint": 1,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 37.6,
+     "complete_ms": 369
+    },
+    {
+     "stage": "test",
+     "next": "document",
+     "action": "nav-44abb2769b63452b8d0b3a11f49100c1",
+     "commands": 15,
+     "kinds": {
+      "loop_start": 1,
+      "other": 5,
+      "red-check": 2,
+      "lint": 2,
+      "loop_done": 1,
+      "dry_run": 3,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 2,
+     "refused_completes": 0,
+     "seconds": 59.6,
+     "complete_ms": 523
+    },
+    {
+     "stage": "document",
+     "next": "verify",
+     "action": "nav-882a636463fc4aa4b4144815174c3f23",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "loop_done": 1,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 29.3,
+     "complete_ms": 998
+    },
+    {
+     "stage": "verify",
+     "next": "carry-forward",
+     "action": "nav-110a5fe05259422da746f4acc877ae9d",
+     "commands": 7,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "lint": 1,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 31.0,
+     "complete_ms": 437
+    },
+    {
+     "stage": "carry-forward",
+     "next": "improve",
+     "action": "nav-e0c1ab93cdc249eeab4062819f5f90a5",
+     "commands": 10,
+     "kinds": {
+      "loop_start": 1,
+      "other": 6,
+      "loop_done": 1,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 64.5,
+     "complete_ms": 437
+    },
+    {
+     "stage": "improve",
+     "next": "system-test-author",
+     "action": "nav-e4c424beb6e34bf48cef6d71efd52fa1",
+     "commands": 31,
+     "kinds": {
+      "other": 22,
+      "loop_next": 1,
+      "lint": 2,
+      "improve-commit": 1,
+      "improve-pass": 2,
+      "loop_done": 2,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 126.6,
+     "complete_ms": 1179
+    }
+   ]
+  }
+ ],
+ "slice_not_counted": {
+  "slice": "bc-final-3-3e986d",
+  "segments": [
+   {
+    "stage": "step-plan",
+    "next": "improve",
+    "action": "nav-9e2e3579167340b68447f5bf6cb54215",
+    "commands": 42,
+    "kinds": {
+     "other": 36,
+     "loop_start": 1,
+     "dry_run": 4,
+     "complete": 1
+    },
+    "dry_runs_yes": 1,
+    "dry_runs_no": 1,
+    "refused_completes": 0,
+    "seconds": null,
+    "complete_ms": 210
+   },
+   {
+    "stage": "improve",
+    "next": "test-spec",
+    "action": "nav-90a095dad70b46b6a6bd7b68665d10cc",
+    "commands": 16,
+    "kinds": {
+     "other": 7,
+     "loop_next": 1,
+     "dry_run": 1,
+     "improve-pass": 4,
+     "loop_done": 2,
+     "complete": 1
+    },
+    "dry_runs_yes": 1,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 92.1,
+    "complete_ms": 225
+   },
+   {
+    "stage": "test-spec",
+    "next": "implement",
+    "action": "nav-e2b08d7b05954bdb9d35837b9eaf797c",
+    "commands": 14,
+    "kinds": {
+     "other": 11,
+     "loop_start": 1,
+     "loop_done": 1,
+     "complete": 1
+    },
+    "dry_runs_yes": 2,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 107.6,
+    "complete_ms": 717
+   },
+   {
+    "stage": "implement",
+    "next": "improve",
+    "action": "nav-69caabb53e474dbab3ef30db819a3357",
+    "commands": 9,
+    "kinds": {
+     "loop_start": 1,
+     "other": 7,
+     "complete": 1
+    },
+    "dry_runs_yes": 0,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 36.2,
+    "complete_ms": 1049
+   },
+   {
+    "stage": "improve",
+    "next": "test",
+    "action": "nav-9ac1cb15fd054b98936b01c727dbd942",
+    "commands": 8,
+    "kinds": {
+     "other": 5,
+     "improve-pass": 1,
+     "loop_done": 1,
+     "complete": 1
+    },
+    "dry_runs_yes": 0,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 31.8,
+    "complete_ms": 287
+   },
+   {
+    "stage": "test",
+    "next": "document",
+    "action": "nav-c57e9c4fc257484ab29b8f3ec59c9b35",
+    "commands": 12,
+    "kinds": {
+     "other": 3,
+     "loop_start": 1,
+     "red-check": 1,
+     "lint": 1,
+     "complete": 3,
+     "dry_run": 2,
+     "loop_done": 1
+    },
+    "dry_runs_yes": 1,
+    "dry_runs_no": 1,
+    "refused_completes": 0,
+    "seconds": 51.4,
+    "complete_ms": 229
+   },
+   {
+    "stage": "document",
+    "next": "verify",
+    "action": "nav-9d524afd729241ab833275832554154d",
+    "commands": 7,
+    "kinds": {
+     "loop_start": 1,
+     "other": 4,
+     "loop_done": 1,
+     "complete": 1
+    },
+    "dry_runs_yes": 0,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 35.6,
+    "complete_ms": 743
+   },
+   {
+    "stage": "verify",
+    "next": "carry-forward",
+    "action": "nav-24115e98b2e64c30a9ac284376bb7920",
+    "commands": 9,
+    "kinds": {
+     "loop_start": 1,
+     "other": 5,
+     "dry_run": 1,
+     "loop_done": 1,
+     "complete": 1
+    },
+    "dry_runs_yes": 1,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 33.0,
+    "complete_ms": 415
+   },
+   {
+    "stage": "carry-forward",
+    "next": "improve",
+    "action": "nav-6d62ccb860594c4bb957737afced8cc9",
+    "commands": 7,
+    "kinds": {
+     "loop_start": 1,
+     "other": 3,
+     "dry_run": 1,
+     "loop_done": 1,
+     "complete": 1
+    },
+    "dry_runs_yes": 1,
+    "dry_runs_no": 0,
+    "refused_completes": 0,
+    "seconds": 42.4,
+    "complete_ms": 299
+   }
+  ]
+ }
+}

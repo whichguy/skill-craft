@@ -24,6 +24,7 @@ began, through `c59c4809`.
 | E3 | Where does a packet tell the model to call back? | [packet_position.py](shiploop-owed-outcome-evidence/packet_position.py), `graph-dry-run --scenario delivery --format markdown`, W1 verify packet | 18,317 characters; callback at 5%; 7 mentions, all at or before 57%; nothing after the RULES block repeats it ([output](shiploop-owed-outcome-evidence/packet_position.out)) | firm for the dry-run rendering |
 | E4 | Does a ShipLoop command between two stops reset the hook's memory? | [rebind_repro.py](shiploop-owed-outcome-evidence/rebind_repro.py), real run in a temp dir, recorded Claude payloads, no live host | Yes: `shiploop next` between stops empties the binding's `last_block_progress` and `turn_blocks`, so the next stop blocks again; a loop-runtime command does not, so the next stop is released ([output](shiploop-owed-outcome-evidence/rebind_repro.out)) | firm |
 | E5 | Can the Until Loop runtime tell finished work from work not started? | [loop_next_probe.py](shiploop-owed-outcome-evidence/loop_next_probe.py), real `start --receipt`, work done without `done` | No: `next_argv` returns a byte-identical instruction; it is execute-then-report with a "recheck artifacts" guard ([output](shiploop-owed-outcome-evidence/loop_next_probe.out)) | firm |
+| E6 | Where do models dry-run `complete --check-only`, and is a `complete` refused after a passing one? (2026-10-28) | [trace_check_pairs.py](shiploop-owed-outcome-evidence/trace_check_pairs.py) over the run traces of arm A, the owner-note hello run and the six arm B slices | Inner stages: about one dry run per `complete`, and every inner `complete` accepted (arm A 35 of 35). Outer stages: a dry run before each `complete` (arm A 29, hello 17). Refused right after a passing dry run: 5; 4 outer in the full runs, and 1 inner in arm B owed 1 (test-spec, an outcome the stage does not allow: that rule is in `check_terminal`, which the dry run skips) ([output](shiploop-owed-outcome-evidence/trace_check_pairs.out)) | firm counts, two full runs and six slices |
 
 ## Findings
 
@@ -793,6 +794,161 @@ dropped in favour of it: it also closes the lock in a `finally` and tests the or
   from the detached progress observer that `shiploop init` starts, which rewrites the run folder every 2 seconds. The
   suite now sets `SHIPLOOP_PROGRESS=off`, as run_suites.py already does for the tier.
 
+**Correction (2026-10-29, firm): the takeover shipped in 1.20.0, not "with the next round".** Release `3d7b83a3`
+(skill-craft 2.21.0, shiploop 1.20.0, 2026-10-28 20:08) shipped `f82da379` on that commit's own `No-E2E-Round` trailer:
+"host process lookup checked live on a real Claude session (host_process_probe.out); the takeover rule is unit-tested;
+no E2E case crashes a session". The release deleted `changes/shiploop/keepalive-dead-owner-takeover.md`, and Claude,
+Codex and Grok each have 2.21.0 installed.
+- **What said otherwise.** `917e0c2b` (20:16: "its change note is pending and release.py's preflight (eba6d983) refuses
+  a release until a LEARNINGS commit descends from it") was written from a check made minutes before that release
+  landed. A rebase before the push pulled the release in and the claim was not rechecked. `1961f4c5` repeats it ("as
+  the owner chose for the takeover"). The owner's "Ship with next batch's round" (2026-10-28) rested on that premise.
+- **What is still owed.** Live evidence for the takeover: a run whose dead owner's claim is left in place, and the next
+  session taking it at once. It is earned in the evidence round shared with the session-end hook (`1961f4c5`, below).
+  `run.py --interrupt-at` already kills a host and leaves its claim in place (`run.py` never frees one); a slice clear
+  frees the claim itself, so it cannot show the takeover.
+- **Decided (owner, 2026-10-29).** Keep the takeover live and earn that evidence (with no process found, only the
+  30-minute rule frees a claim, and it fixes a stall seen in the phase A round). Asked whether the release
+  preflight should also check which build the journaled runs used, the owner said no: it stays as `eba6d983` left
+  it, ancestry only. The gap that would have closed: a LEARNINGS commit, once rebased, vouches for runs built
+  before the change (`bff6f0f4` records runs pinned at `8aa6e1fe`, shiploop 1.17.0, which has neither the takeover
+  nor the session-end hook). So the discipline is manual: a round runs on a build that contains what it vouches for.
+
+## Session end releases the run (2026-10-28, owner: "Yes, build it"; firm for Claude, constructed for the others)
+
+The follow-up named in batch 2. A `/clear` or a normal exit leaves the host process alive, so the process check cannot
+free the run; the host's own session-end event can.
+- **Host support, from the installed binaries:**
+  - Codex 0.165.0 has `hooks/src/events/session_end.rs` and "failed to flush transcript before SessionEnd hook";
+  - Grok 1.0.70 lists `SessionEnd` among its known hook events, and its validator rejects only unknown names, so the
+    shared Claude-format `hooks/hooks.json` stays valid for Grok;
+  - cursor-agent 2026.09.23 knows `sessionEnd`;
+  - Claude Code runs `SessionEnd`, as the owner's own global hooks already use.
+- **Probe on a real Claude session** (`docs/shiploop-owed-outcome-evidence/session_end_probe.py`, `.out`): a `claude -p`
+  session's `SessionEnd` hook fired on exit with `session_id`, `prompt_id`, `transcript_path` and `reason: "other"`. That
+  payload is the test fixture. The Codex, Grok and Cursor fixtures are constructed, as their README says.
+- **Change:**
+  - `shiploop_keepalive.session_end` drops the session's binding and releases the run only when that session owns it.
+    It looks the session id up under every host, because a Codex session-end payload may lack the `turn_id` that tells
+    Codex apart;
+  - the plugin declares a `session-end` hook (`host-hooks.json`, new generator event mapped to `SessionEnd` and Cursor
+    `sessionEnd`);
+  - `shiploop-hook install` writes the same entries.
+- **Tests** (shiploop-keepalive, 75 OK; package-integrity 11 OK; skill-frontmatter PASS):
+  - each host's session end releases its own run;
+  - the next session takes it at once;
+  - another session's end, a subagent's, or an unbound session's changes nothing;
+  - the installer writes and removes the entries;
+  - each host's generated hooks file runs the session-end script and releases.
+  - Fail-first: with `session_end` stubbed, all three behaviour tests fail.
+
+## Phases B and C: plan (2026-10-28, awaiting the owner's approval)
+
+[The plan](shiploop-check-phases-bc-plan-2026-10-28.md) names every file, symbol, test and removal for B (one
+evaluator, `shiploop check`) and C (the loop ends when the check says yes), the measure and the decisions D1-D8.
+
+- **F18, firm (E6).** A dry run before an inner `complete` is already the norm, and no inner `complete` was refused
+  in arm A. The `verify_script` that C makes mandatory takes the dry run's place, so commands per inner step should
+  not fall; the plan pre-registers M1 as unchanged within ±1. The repeated gates are at the outer stages, where the
+  callback line (`shiploop_prompts.CALLBACK_REASON`) invites a dry run before every `complete` (plan decision D3).
+- **F19, firm.** No live ShipLoop run has run an Until Loop `verify_script` (0 `UNTIL-LOOP-RECORDED` lines in arm A's
+  and arm B's event streams), so C's mechanism is untested on any model; the plan puts a one-slice pilot before
+  C's batch.
+
+### Phases B and C: build log (2026-10-28, owner: "Approve as recommended", D1-D8 as the plan recommends)
+
+Branch `feat/shiploop-check-f13af3` (worktree `.claude/worktrees/shiploop-check-f13af3`), from `070d752e`.
+
+Decisions taken while building, each routine (AGENTS.md "Decisions"):
+- **The batch runs the whole inner loop.** Arm B ran `--stop-after implement`, which never reaches the test stage, where
+  B changes the most (base run, floors, mutation check). The before, B and C arms all run without `--stop-after`, so
+  they stay comparable with each other; arm B's continuation numbers stay comparable through `--clear-at
+  implement:inside` with `names-next`. One slice per background task, since a task is killed at about 120 minutes.
+  The first launch (three slices in one task) was stopped after a minute and its folder kept as
+  `bc-before-1-7ab627.aborted`.
+- **`complete` keeps the candidate-run reuse it had (`test_loop._reused`, owner decision D5).** A yes is taken whole
+  only while its key matches; when only the draft changed, the gates run again, and an unchanged tree still lets the
+  candidate run be taken. The plan listed `_reused` for renaming to `take_check`; `take_check` is a separate function.
+- **The key leaves out refused runs of other kinds.** The floors read only candidate counts (`action_counts`,
+  `accepted_counts`), so a refused Proof run does not change the key: after a refused `complete`, restoring the files
+  the check judged lets `complete` take that yes again (the test-loop Proof test pins it).
+- **The harness keeps its `check_only` field.** metrics.json, flow.json and the status card already carry it in
+  committed evidence; renaming it would break comparisons. Its readers now also count the trace verb `check`, and the
+  record globs skip the check's own records (`-base-check`, `-mutation-check`).
+- **D2, lint.** Zero of 39 lint gate records in arm A, and none in eight other recent runs, applied an auto-fix, so the
+  fix path is rare. A report-mode pass cannot tell which fixes the fix pass would apply (it stops at "report-only
+  pass", and some formatters run only when fixing), so `complete` that takes a yes runs no lint pass at all, the
+  check's lint refusal names the new `shiploop lint --fix`, and `complete` without a yes keeps fix-and-refuse-once.
+
+B's first two parts, firm for the tests named: `test_the_check_and_complete_agree_on_the_floor_the_base_run_sets` and
+`test_the_check_refuses_an_outcome_the_stage_does_not_allow` fail on main (the dry run passes) and pass on the branch;
+`test_complete_takes_the_checks_matching_yes_and_runs_nothing_again` and
+`test_each_change_to_what_the_gates_read_makes_complete_run_them_again` pass.
+
+### Phase B: the before arm, the first tier run and the fixes (2026-10-29)
+
+**Before arm (firm for what it counts; n = 3, one case, one model).** Three node-fix-bug slices from `070d752e` (Claude
+host, DeepSeek flash on Ollama, seed at step-plan, clear at `implement:inside`, `names-next`, the whole inner loop, no
+`--stop-after`), output `~/e2e-runs/20261028/bc-before-{1,2,3}-*`. All six verdicts passed in each. Medians, from
+`arm_b_metrics.py --per-stage` ([bc-before-per-stage.json](shiploop-owed-outcome-evidence/bc-before-per-stage.json)):
+
+| stage | commands to accept | dry runs | refused completes | complete (ms) |
+|---|---|---|---|---|
+| step-plan | 39 | 1 | 0 | 287 |
+| test-spec | 6 | 1 | 0 | 888 |
+| implement | 12 | 1 | 0 | 1,345 |
+| test | 10 | 1 | 0 | 2,961 |
+| document | 6 | 0 | 0 | 1,257 |
+| verify | 7 | 1 | 0 | 1,386 |
+| carry-forward | 6 | 1 | 1 (slice 2) | 447 |
+| improve (9 children) | 12 | 0 | 0 | 353 |
+
+This is E6 and plan P8 again on a clean run: one dry run per inner `complete`, and one refused `complete` in 21 inner
+stages.
+
+**What separates the before arm from the tip (checked 2026-10-29).** `git diff --stat 070d752e 202b2643 -- skills changes`
+lists only `1961f4c5` ("when the host ends a session, the run it owned is released at once"): `host-hooks.json`,
+`references/keepalive.md`, the new `scripts/shiploop-keepalive-session-end`, `scripts/shiploop_keepalive.py` and its
+change note. It touches the stop hook's ownership, not what a model runs to get a step accepted, so the comparison
+stands with that one caveat. The tip adds phase B on top.
+
+**First tier run of `a25cec39` (receipt `/Users/dadleet/tier-receipts/bc-b-d2dc65`, stopped at 29 of 70 suites;
+firm).** Three real findings:
+- `shiploop-rehydration`: the run map in `shiploop_context_index.MAP_ROWS` did not list `RUN/checks/`. Added; the test's map
+  limit went from 3,850 to 4,100 bytes for the row.
+- `shiploop-packet-recut`, `shiploop-step-packets`: the printed `Check (` line (a copy of the callback's command, 329
+  characters per inner head) pushed four heads over their journaled sizes and an ask-agent step-plan head with test
+  layers at their limit past the host cut. Removed. The inner stage's Checked-by line now says to run "the callback with
+  `check` in place of `complete`" (`prompts.CHECK_HOW`); an outer stage's packet names no check. Test and verify heads
+  grew 13-16 characters and are raised in `head_table.json` with the reason; every other head falls or is unchanged.
+- Learning: a prompt line that repeats a long literal command is expensive where heads are at the cut; derive the
+  command from the callback the packet already prints. This is how the old flag worked too.
+
+**B-arm smoke slice (n = 1, firm only for what it shows).** Slice `bc-b-1-ddde3c` ran `a25cec39`, the printed-line wording:
+all six verdicts passed; the trace shows 7 `check` calls, 10 `complete` calls and no use of the old flag, so a model uses
+the verb. It does not cover the final wording above; the B round runs on the final tip.
+
+### Phase B round: results against the pre-registered predictions (2026-10-29)
+
+Full entry: `test/shiploop_e2e/LEARNINGS.md`, "Phase B round". Evidence:
+[bc-before-per-stage.json](shiploop-owed-outcome-evidence/bc-before-per-stage.json) and
+[bc-b-per-stage.json](shiploop-owed-outcome-evidence/bc-b-per-stage.json). The B arm is two counted slices; a third was cut
+by Ollama's monthly usage limit (`API Error 429`, 08:11 PDT) in carry-forward's Improve child and is not a result.
+
+| # | Prediction (plan "Measure of success") | Result | Status |
+|---|---|---|---|
+| M1 | Commands to accept per inner action unchanged within one command per stage; overall median not above before | **Missed.** Per-stage medians before (n = 3) and B arm (n = 2): step-plan 39, 35; test-spec 6, 8.5; implement 12, 14; test 10, 13; document 6, 6; verify 7, 9; carry-forward 6, 8. Per slice: 89, 108, 86 against 95, 92. The ranges overlap and the extra commands are mostly ordinary ones | interim (n = 2 against 3); stop rule applies: phase C stays paused |
+| M2 | The accepted `complete` is faster at test and verify | **Met.** test 2,961 ms to 646 ms, verify 1,386 ms to 478 ms; 4 records per counted slice carry `reused.answer`. Other stages did not fall (several rose; not explained) | firm for test and verify |
+| M3 | No refused `complete` right after a yes with nothing changed | **Met.** 0 cases; the one refused `complete` (a spec write-back gate) had no check before it | firm |
+| M4, M5 | Phase C's post-loop refusals and packet sizes | Not applicable to phase B. Packet heads: the final wording is 23 characters shorter than main at step-plan on both routes and at most 16 longer at test and 13 at verify | firm (measured) |
+| M6 | Every sample passes its verdicts | 2 of 2 counted slices pass all six; the third was cut by infrastructure | firm for the counted two |
+| M7, M8 | Phase C's pilot; outer-stage dry runs (D3) | Not run. The outer-stage count after D3 is unmeasured | open |
+
+Also found by this round: the first full quick-tier runs failed because of phase B's own rename (seven suites on the
+second run, three on the first), all test and harness fallout; the targeted runs I chose after the rename had missed
+them, and a task's exit code (`tail`'s) had hidden a failing tier. The tier that qualifies the release passed 71 of 71
+(receipt `bc-final2-ebdaab`) with its exit code read from the log.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in
@@ -828,3 +984,6 @@ tree hash excludes.
 - 2026-10-28: intent audit I1-I13 added, anchored in code with four test files and the new retry-carry probe.
 - 2026-10-28: corrected the experiments' provenance: E3-E5 were rerun at `821db5c0` before the commit, not only run
   at `b0d29284`; four commits from other sessions had landed on main in between, none touching the traced code.
+- 2026-10-28: E6 (dry runs per stage, from the run traces), F18-F19 and the phases B and C plan added.
+- 2026-10-29: correction: the dead-session takeover shipped in 1.20.0 (`3d7b83a3`) on its own `No-E2E-Round`; `917e0c2b` and `1961f4c5` said it was pending. Live evidence still owed.
+- 2026-10-29: owner decisions: keep the takeover live; leave the release preflight ancestry-only.

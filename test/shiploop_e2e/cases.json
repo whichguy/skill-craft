@@ -417,5 +417,230 @@
       ],
       "refuse_ports_source": "the base: src/server.js listens on the port in PORT and defaults to 3000. The held-out checks start the delivered server with PORT set, and a delivery that ignored it would meet the refusal"
     }
+  },
+  "ticket-assignment": {
+    "style": "brownfield",
+    "base": {
+      "fixture": "node-tickets",
+      "digest": "5652a97375d0",
+      "source": "D7 of docs/shiploop-brownfield-baseline-design-2026-10-28.md: a medium brownfield case with a follow-on run, on the E2E subject. fixtures/node-tickets is a help-desk ticket service (about 1,700 lines of source, 1,300 of tests and 600 of documents, with eight decision records), big enough that reading it again costs a run real time; pinned, so a change to the base is a change to the case (SPEC: A brownfield case)"
+    },
+    "prompt": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add ticket assignment. `PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it; an agent is a non-empty name of at most 64 characters. Only open and in-progress tickets can be assigned or unassigned. Assigning a ticket to the agent it already has changes nothing. Every ticket shows its `assignee` (null when unassigned). The agent a ticket is assigned to is notified that it was assigned to them. `GET /tickets` gains an `assignee` filter: `assignee=<agent>` keeps that agent's tickets and an empty `assignee=` keeps the unassigned ones; a ticket must match every filter given. The command-line listing shows each ticket's assignee. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+      "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\""
+    ],
+    "checks_source": "the request: the suite check reads 'Add node:test tests under test/ for the new behaviour' (more tests pass than the base's own); the pristine check reads 'its existing tests must still pass as they are', with the base's tests at their pristine bytes and apart from the delivery's own (SPEC: A brownfield case, pass-to-pass); the HTTP check reads 'assigns the ticket to that agent', 'Every ticket shows its `assignee`' and 'assignee=<agent> keeps that agent's tickets'",
+    "quality": {
+      "acceptance": {
+        "module": "ticket_assignment_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_ticket_assignment.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request and the base's documents, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); the checks that need a data file, a notification file, the worker off or the command line start the product themselves (quality.Product); graded fail-to-pass and pass-to-pass against the base, and calibrated against the base, the reference, an alternative and targeted defects in test/fixtures/quality/reference_ticket_assignment.py (SPEC: A brownfield case); the latent facts each reads are in docs/experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md",
+        "checks": [
+          {
+            "id": "ticket-lifecycle-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the service already does keeps working', read for docs/api.md's create, read, change and lifecycle endpoints (a resolved ticket can still change; a closed one cannot), their error envelope and the audit trail"
+          },
+          {
+            "id": "listing-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/api.md 'List tickets' and docs/decisions/0005-cursor-pagination.md: 20 to a page by default, cursor pages, one filter at a time, and 400 for a bad limit, cursor or filter"
+          },
+          {
+            "id": "notifications-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/decisions/0006-notification-outbox.md: the requester's created and resolved notifications wait in the outbox while WORKER_INTERVAL_MS is 0 and are delivered once each by the worker to NOTIFY_FILE"
+          },
+          {
+            "id": "restart-keeps-state",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/decisions/0008-json-data-file.md: a restart from DATA_FILE keeps the tickets, their audit trail and the outbox, and ticket numbers go on (docs/decisions/0002)"
+          },
+          {
+            "id": "cli-raw-columns",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for README.md 'Command line': 'scripts/weekly-report.js runs list --raw and reads these columns by position, so they must keep their positions', with assigned tickets in the data"
+          },
+          {
+            "id": "old-data-loads",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/decisions/0008-json-data-file.md: a data file the base wrote (version 1, no assignee) loads, on the API and the command line"
+          },
+          {
+            "id": "assign-and-unassign",
+            "grade": "fail-to-pass",
+            "source": "the request: '`{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it', 'Only open and in-progress tickets can be assigned' and 'Every ticket shows its `assignee` (null when unassigned)', read on a new ticket, GET /tickets/:id and the listing"
+          },
+          {
+            "id": "assignee-validation",
+            "grade": "fail-to-pass",
+            "source": "the request: 'an agent is a non-empty name of at most 64 characters', read at both ends, with docs/decisions/0004-error-envelope.md for how the refusal answers (400 invalid in the envelope)"
+          },
+          {
+            "id": "assign-state-and-missing",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Only open and in-progress tickets can be assigned or unassigned', with docs/decisions/0004-error-envelope.md: a state that does not allow it is 409 conflict and an unknown ticket 404 not_found, in the envelope"
+          },
+          {
+            "id": "assign-same-agent-noop",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Assigning a ticket to the agent it already has changes nothing', read for the ticket, its audit trail (docs/decisions/0007) and the outbox"
+          },
+          {
+            "id": "assign-audited",
+            "grade": "fail-to-pass",
+            "source": "CONTRIBUTING.md 'Changes go through the store' and docs/decisions/0007-append-only-audit-log.md: each assignment is one audit entry with the X-Actor actor (system without one) and the assignee before and after"
+          },
+          {
+            "id": "assignee-notified",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The agent a ticket is assigned to is notified that it was assigned to them', with docs/decisions/0006-notification-outbox.md: the notification waits in the outbox (a reassignment while the first waits gets its own) and the worker delivers it once"
+          },
+          {
+            "id": "assignee-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: '`assignee=<agent>` keeps that agent's tickets and an empty `assignee=` keeps the unassigned ones'"
+          },
+          {
+            "id": "filters-combine",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a ticket must match every filter given', and docs/api.md 'Filters combine'; the base's listing lists a ticket that matches any one filter (src/tickets/query.js matchesFilters), a defect the request does not name"
+          },
+          {
+            "id": "assignee-filter-pages",
+            "grade": "fail-to-pass",
+            "source": "the request's `assignee` filter read with docs/decisions/0005-cursor-pagination.md: 'Filtering happens before paging: a page holds limit matching items, and next is null exactly when no matching item is left'"
+          },
+          {
+            "id": "assignee-persists",
+            "grade": "fail-to-pass",
+            "source": "the request's assignment read with docs/decisions/0008-json-data-file.md: 'a field added to a ticket is added there too, or it is lost at the next restart'"
+          },
+          {
+            "id": "old-tickets-unassigned",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Every ticket shows its `assignee` (null when unassigned)', read with docs/decisions/0008-json-data-file.md: 'A field older files do not have takes its default when they load', for tickets of a data file the base wrote"
+          },
+          {
+            "id": "cli-shows-assignee",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The command-line listing shows each ticket's assignee'"
+          }
+        ]
+      },
+      "refuse_ports": [
+        4180
+      ],
+      "refuse_ports_source": "the base: src/config.js reads PORT and defaults to 4180, README.md 'Configuration'. The held-out checks start the delivered server with PORT set, and a delivery that ignored it would meet the refusal. 4180, not 3000, because other cases hold a lease on 3000"
+    }
+  },
+  "ticket-escalation": {
+    "style": "brownfield",
+    "follows": "ticket-assignment",
+    "prompt": "Extend the ticket service with bulk reassignment and escalation. `POST /tickets/reassign` with `{\"from\": \"<agent>\", \"to\": \"<agent>\"}` moves every open or in-progress ticket assigned to `from` over to `to` and answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`; `from` and `to` must be two different agents. Each moved ticket's new agent is notified as for a single assignment. Urgent tickets must not wait unassigned: when an open, unassigned, urgent ticket is older than ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60), the agent named in the ONCALL environment variable is notified that the ticket was escalated; without ONCALL nothing is escalated. A ticket is escalated at most once, even across restarts of the service. Everything the service already does keeps working, assignment included, and the existing tests must still pass. Add node:test tests for the new behaviour.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+      "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\""
+    ],
+    "checks_source": "the request: the first check reads 'moves every open or in-progress ticket assigned to `from` over to `to` and answers {\"moved\", \"ids\"} in id order'; the second reads 'the agent named in the ONCALL environment variable is notified that the ticket was escalated', with ESCALATE_AFTER_MINUTES=0 so a ticket is old enough at once and WORKER_INTERVAL_MS=50 so the wait is short. The followed case's checks run again as regression",
+    "retention": [
+      "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in reassign escalat; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name reassignment and escalation\"",
+      "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi escalat docs/shiploop/spec.md && ! grep -qi escalat \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }"
+    ],
+    "retention_source": "SPEC S-11: knowledge from the followed run is retained in the repository and built on, as in battleship-scoring: every earlier file kept, no dependency added, no fewer tests passing, the test files changed and naming reassignment and escalation, and the living spec keeping every earlier requirement ID while it records escalation",
+    "quality": {
+      "acceptance": {
+        "module": "ticket_escalation_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_ticket_escalation.py",
+          "test/fixtures/quality/reference_ticket_assignment.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request and the base's documents, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); the checks that need a data file, a notification file, the worker off or ONCALL start the product themselves (quality.Product). Graded against the followed run's delivery: pass-to-pass checks reuse checks/ticket_assignment_accept.py and ask whether the second run kept what the first one built. Calibrated with test/fixtures/quality/reference_ticket_escalation.py, whose base is reference_ticket_assignment.py's reference (SPEC: A brownfield case)",
+        "checks": [
+          {
+            "id": "existing-api-kept",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the service already does keeps working', read as ticket-lifecycle-unchanged reads it"
+          },
+          {
+            "id": "assignment-kept",
+            "grade": "pass-to-pass",
+            "source": "the request: 'assignment included', read as ticket-assignment's assign-and-unassign, assignee-validation and assign-state-and-missing read their sentences"
+          },
+          {
+            "id": "assignment-listing-kept",
+            "grade": "pass-to-pass",
+            "source": "the same, read as ticket-assignment's assignee-filter, filters-combine and assignee-filter-pages"
+          },
+          {
+            "id": "assignment-notified-kept",
+            "grade": "pass-to-pass",
+            "source": "the same, read as ticket-assignment's assignee-notified"
+          },
+          {
+            "id": "assignment-persists-kept",
+            "grade": "pass-to-pass",
+            "source": "the same, read as ticket-assignment's assignee-persists"
+          },
+          {
+            "id": "cli-raw-columns-kept",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the service already does keeps working', read as ticket-assignment's cli-raw-columns reads README.md"
+          },
+          {
+            "id": "worker-off-is-quiet",
+            "grade": "pass-to-pass",
+            "source": "CONTRIBUTING.md 'Background work runs in the worker ... WORKER_INTERVAL_MS=0 must stop all of it' and docs/decisions/0006-notification-outbox.md: with the worker off, reads and edits of an urgent, unassigned ticket escalate nothing, even with ONCALL set and ESCALATE_AFTER_MINUTES=0"
+          },
+          {
+            "id": "reassign-moves",
+            "grade": "fail-to-pass",
+            "source": "the request: '`POST /tickets/reassign` ... moves every open or in-progress ticket assigned to `from` over to `to` and answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`'"
+          },
+          {
+            "id": "reassign-validation",
+            "grade": "fail-to-pass",
+            "source": "the request: '`from` and `to` must be two different agents', with docs/decisions/0004-error-envelope.md for the refusal (400 invalid in the envelope) and the first request's agent: a non-empty name of at most 64 characters"
+          },
+          {
+            "id": "reassign-notifies",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Each moved ticket's new agent is notified as for a single assignment', with docs/decisions/0006-notification-outbox.md: through the outbox, delivered once by the worker"
+          },
+          {
+            "id": "reassign-audited",
+            "grade": "fail-to-pass",
+            "source": "CONTRIBUTING.md 'Changes go through the store' and docs/decisions/0007-append-only-audit-log.md: each moved ticket gains one audit entry with the X-Actor actor and the assignee before and after"
+          },
+          {
+            "id": "escalation-notifies-oncall",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the agent named in the ONCALL environment variable is notified that the ticket was escalated; without ONCALL nothing is escalated', through the outbox (docs/decisions/0006)"
+          },
+          {
+            "id": "escalation-rules",
+            "grade": "fail-to-pass",
+            "source": "the request: 'when an open, unassigned, urgent ticket is older than ESCALATE_AFTER_MINUTES minutes': assigned, high, in-progress and resolved tickets are not escalated, and with 1 minute a ticket under two seconds old is not either"
+          },
+          {
+            "id": "escalation-at-most-once",
+            "grade": "fail-to-pass",
+            "source": "the request: 'A ticket is escalated at most once, even across restarts of the service', read with docs/decisions/0008-json-data-file.md: a restart from DATA_FILE escalates it no second time"
+          }
+        ]
+      },
+      "refuse_ports": [
+        4180
+      ],
+      "refuse_ports_source": "the base, as ticket-assignment declares it: src/config.js reads PORT and defaults to 4180"
+    }
   }
 }

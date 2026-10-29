@@ -259,8 +259,11 @@ class PacketCompletenessTests(unittest.TestCase):
                 # to repeat it until it accepts).
                 self.assertIn("at done ShipLoop refuses ", line)
                 self.assertIn("the usual faults (", line)
-                self.assertIn("`complete --check-only` prints the first refusal without accepting, so repeat it until it "
-                              "accepts", line)
+                if stage in stage_spec.INNER:
+                    self.assertIn("the callback with `check` in place of `complete` prints the first refusal without accepting, so "
+                                  "repeat it until the check says yes", line)
+                else:
+                    self.assertNotIn("check", line.split("A refusal does not advance the run")[1])
                 self.assertNotIn("every refusal", line)
                 self.assertIn("does not judge the work", line)
                 # Claims no wider than the gates: relative evidence paths are not checked.  No credential pattern is

@@ -4060,3 +4060,67 @@ evidence in `docs/shiploop-owed-outcome-evidence/arm-b-*`. The two baseline rows
 - Owner decisions:
   - Should a session that runs `next` or `complete` take over a dead owner's claim?
   - Should Improve scale to the request's size?
+
+## Phase B round: `shiploop check`, and `complete` taking its yes, on DeepSeek flash (2026-10-29) — status: firm for the two counted verdicts, the verb's use and `complete` taking the yes; interim for the command counts (n = 2 against 3); the SessionEnd hook was present but not exercised
+
+**Question.** Phase B (docs/shiploop-check-phases-bc-plan-2026-10-28.md) put the complete gates in one evaluator, added
+the verb `shiploop check` (it replaces `complete --check-only`) and made `complete` take a matching yes instead of
+running the gates again.
+- Does a model use the verb when the packet does not print its command?
+- Does `complete` take the check's yes?
+- Do commands to accept a step change?
+
+**Setup.**
+- Claude host, DeepSeek flash on Ollama, node-fix-bug slices seeded at step-plan, cleared at `implement:inside`,
+  continued with `names-next`, no `--stop-after` (the whole inner loop), no timeout.
+- **Before arm:** three slices from `070d752e` (ShipLoop 1.20.0 plus the plan). **B arm:** slices from `997bb7d4`, which is
+  origin/main `8a8f1e59` plus phase B's commits as they stood then. The tip published differs from `997bb7d4` only in
+  two reference files (`references/inner-loop.md`, `references/glossary.md`) and in test and harness fixes; no packet
+  text or script changed after the slices ran.
+- Counts come from each run's own `trace.jsonl` and `events.jsonl` by `arm_b_metrics.py --per-stage`. Another session's
+  commits changed the harness evaluator between the arms; that does not touch these counts.
+- Not counted, shown for the record: `bc-b-1-ddde3c` (`a25cec39`, a printed Check line, since removed) and
+  `bc-bf-1-05cbe0` (final wording, before the rebase) each passed all six verdicts.
+
+**Not covered.**
+- **The SessionEnd hook (`1961f4c5`, pending note `session-end-releases-run`) was present on the tip but not
+  exercised.** The slices end by the harness stop or a normal exit; none tests that a host's session end releases the run.
+  That evidence is the session-end evidence session's, and follows in the next release.
+- Other sessions' commits on the tip (the entry-start fix in `shiploop_knowledge_home`, the Improve handoff's lint action
+  ID) ran inside these slices without being targeted; their own round does that.
+
+**Result** (evidence: `docs/shiploop-owed-outcome-evidence/bc-before-per-stage.json`, `bc-b-per-stage.json`).
+
+| B-arm slice | verdict | `check` calls | `complete` calls | removed-flag uses | refused `complete`s | failed checks | records `complete` took from a check |
+|---|---|---|---|---|---|---|---|
+| B1 | PASS | 8 | 10 | 0 | 0 | 1 | 4 |
+| B2 | PASS | 8 | 11 | 0 | 1 (a spec write-back gate at implement, no check before it) | 2 | 4 |
+| B3, not counted | cut | 9 | 9 | 0 | 0 | 2 | 4 |
+
+B3 is not a result. At 15:11Z (08:11 PDT) the host got `API Error 429: you (dadleet) have reached your monthly usage
+limit` from Ollama, in carry-forward's Improve child; the verdicts `process` and `inner_loop` are false because of it. Its
+seven inner stages and carry-forward had been accepted, and the last check had said yes. The limit is account-wide, and
+no slice was rerun.
+
+**What it shows.**
+- **The verb is used, derived from the callback.** 16 `check` calls in the 2 counted slices (25 with B3), none with the
+  removed flag; the packet prints no check command (a printed `Check (` line cost 329 characters in every inner head
+  and was removed).
+- **`complete` takes the yes.** In each counted slice 4 records carry `reused.answer` (the test stage's base, candidate
+  and mutation records, and the verify stage's rerun), and every stored answer is a yes. The accepted `complete` at
+  test fell from a median 2,961 ms to 646 ms, at verify from 1,386 ms to 478 ms. At the other stages it did not fall
+  (step-plan 287 to 341, test-spec 888 to 1,362, implement 1,345 to 1,855, document 1,257 to 1,414, carry-forward 447 to
+  410); the data do not explain the rises.
+- **No refused `complete` followed a yes** (0 cases). The one refused `complete` in the counted slices had no check before
+  it. The checks that said no did their job: a draft outcome the stage does not accept (the allowed-outcome rule the old
+  dry run skipped), a missing result file, a malformed `retired_tests` and `red_na`.
+- **Commands to accept: the pre-registered bar was missed.** The plan predicted no change within one command per stage.
+  Medians of commands, before (n = 3) and B arm (n = 2): step-plan 39, 35; test-spec 6, 8.5; implement 12, 14; test 10, 13;
+  document 6, 6; verify 7, 9; carry-forward 6, 8. Inner-stage commands per slice: before 89, 108, 86; B arm 95, 92.
+  The ranges overlap and most of the extra commands are ordinary ones (reads and edits), not ShipLoop or loop calls, so
+  the data cannot tie them to the verb. The plan's stop rule applies all the same: **phase C stays paused until the
+  cause is found.**
+
+**Next.** Release the phase B change. Do not start phase C until a larger sample, or a look at the extra commands,
+explains the count; its own pilot (no live run has ever executed an Until Loop `verify_script`) is still owed. Rerun B3
+once the Ollama limit is lifted.

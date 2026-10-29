@@ -1,0 +1,90 @@
+{
+ "about": "Every `shiploop lint` refusal in the two DeepSeek flash brownfield E2E runs of 2026-10-28 (Claude host, ShipLoop pinned at 8aa6e1fe; run directories under ~/e2e-runs-brownfield/20261028/). Read on 2026-10-28 from each run's events.jsonl (tool calls and results) and state.md (history, improve_results). refused_action is the Improve stage's own id (is_improve_stage_of names the action it reviews), current_action the reviewed action the lint verb accepts; next_lint_* is the model's next lint call after the refusal and its events.jsonl line.",
+ "count": 7,
+ "refusals": [
+  {
+   "run": "bf-ds-ticket-assignment-09c33b",
+   "events_line": 333338,
+   "refused_action": "nav-e855fd9654204228997474701af88096",
+   "is_improve_stage_of": "nav-2e2d9ad92f864b2ca279ff5c253fba85",
+   "current_action": "nav-2e2d9ad92f864b2ca279ff5c253fba85",
+   "reviewed_stage": "implement",
+   "work_item": "W2",
+   "next_lint_action": "nav-2e2d9ad92f864b2ca279ff5c253fba85",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 333525
+  },
+  {
+   "run": "bf-ds-ticket-assignment-09c33b",
+   "events_line": 399092,
+   "refused_action": "nav-f3ee877fc9a34ead8192842dcc57dc10",
+   "is_improve_stage_of": "nav-4f18ffbe43be49298568257f5f64647c",
+   "current_action": "nav-4f18ffbe43be49298568257f5f64647c",
+   "reviewed_stage": "implement",
+   "work_item": "W3",
+   "next_lint_action": "nav-4f18ffbe43be49298568257f5f64647c",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 399248
+  },
+  {
+   "run": "bf-ds-user-listing-09c33b",
+   "events_line": 111541,
+   "refused_action": "nav-81e1bbd759a6461d97532b31ec396bda",
+   "is_improve_stage_of": "nav-2242dc58d8f84538a7851bb15232cc0e",
+   "current_action": "nav-2242dc58d8f84538a7851bb15232cc0e",
+   "reviewed_stage": "implement",
+   "work_item": "W1",
+   "next_lint_action": "nav-2242dc58d8f84538a7851bb15232cc0e",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 111569
+  },
+  {
+   "run": "bf-ds-user-listing-09c33b",
+   "events_line": 163638,
+   "refused_action": "nav-d5a01c3ca99c4b0fa5b21446424dee83",
+   "is_improve_stage_of": "nav-bb7ab86bdfe54797891bda991f59a522",
+   "current_action": "nav-bb7ab86bdfe54797891bda991f59a522",
+   "reviewed_stage": "implement",
+   "work_item": "W2",
+   "next_lint_action": "nav-bb7ab86bdfe54797891bda991f59a522",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 163770
+  },
+  {
+   "run": "bf-ds-user-listing-09c33b",
+   "events_line": 197205,
+   "refused_action": "nav-c3b26c90e1b344a59aea78c8cb35a44d",
+   "is_improve_stage_of": "nav-d9092a1eff4e44e7a10ec5f8180af3b7",
+   "current_action": "nav-d9092a1eff4e44e7a10ec5f8180af3b7",
+   "reviewed_stage": "carry-forward",
+   "work_item": "W2",
+   "next_lint_action": "nav-d9092a1eff4e44e7a10ec5f8180af3b7",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 197251
+  },
+  {
+   "run": "bf-ds-user-listing-09c33b",
+   "events_line": 231089,
+   "refused_action": "nav-cb36fbafadb24302b1a24144d4dd31b3",
+   "is_improve_stage_of": "nav-acbfabbc492648d98f65aa125a023de2",
+   "current_action": "nav-acbfabbc492648d98f65aa125a023de2",
+   "reviewed_stage": "system-test-author",
+   "work_item": null,
+   "next_lint_action": "nav-acbfabbc492648d98f65aa125a023de2",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 232071
+  },
+  {
+   "run": "bf-ds-user-listing-09c33b",
+   "events_line": 279819,
+   "refused_action": "nav-7b3d66508eef49669098619e93e273fb",
+   "is_improve_stage_of": "nav-14a7427776144b1db0cf4d8a214e623d",
+   "current_action": "nav-14a7427776144b1db0cf4d8a214e623d",
+   "reviewed_stage": "release-plan",
+   "work_item": null,
+   "next_lint_action": "nav-14a7427776144b1db0cf4d8a214e623d",
+   "next_lint_accepted": true,
+   "next_lint_events_line": 279910
+  }
+ ]
+}

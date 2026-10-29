@@ -1,0 +1,69 @@
+== e2e-runs/20261028/pa-ds-battleship-4ed4e3/.shiploop-runs/work-20261028-173217-a07d74/run/trace.jsonl
+   ('check', 'improve', 'no') 6
+   ('check', 'inner', 'no') 20
+   ('check', 'inner', 'ok') 35
+   ('check', 'outer', 'no') 9
+   ('check', 'outer', 'ok') 20
+   ('complete', 'improve', 'no') 1
+   ('complete', 'improve', 'ok') 15
+   ('complete', 'inner', 'ok') 35
+   ('complete', 'outer', 'no') 6
+   ('complete', 'outer', 'ok') 23
+   ('refusal-class', 'lint') 1
+   ('refusal-class', 'other') 2
+   ('refusal-class', 'shape') 4
+   refused complete right after a passing check-only on the same action: 3
+      ('intake', 'lint', 'result has unsupported fields: risks. Delete them and run the same callback again; a result carries only: assu')
+      ('system-test', 'other', 'system_commands are allowed only on a done system-test-author result')
+      ('release-plan', 'shape', 'headline must be one line of at most 100 characters')
+== e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87/.shiploop-runs/work-20261028-194550-435718/run/trace.jsonl
+   ('check', 'improve', 'no') 2
+   ('check', 'inner', 'no') 1
+   ('check', 'inner', 'ok') 6
+   ('check', 'outer', 'no') 4
+   ('check', 'outer', 'ok') 13
+   ('complete', 'improve', 'ok') 8
+   ('complete', 'inner', 'ok') 7
+   ('complete', 'outer', 'no') 1
+   ('complete', 'outer', 'ok') 16
+   ('refusal-class', 'other') 1
+   refused complete right after a passing check-only on the same action: 1
+      ('system-test-author', 'other', 'result requires outcome and summary: the shiploop-state block is a stored-record wrapper (top-level keys: acti')
+== e2e-runs/20261028/pb-hook-generic-1-232e69/.shiploop-runs/seed/run/trace.jsonl
+   ('check', 'improve', 'ok') 3
+   ('check', 'inner', 'ok') 3
+   ('complete', 'improve', 'ok') 2
+   ('complete', 'inner', 'ok') 3
+   refused complete right after a passing check-only on the same action: 0
+== e2e-runs/20261028/pb-hook-generic-2-232e69/.shiploop-runs/seed/run/trace.jsonl
+   ('check', 'inner', 'ok') 2
+   ('complete', 'improve', 'ok') 2
+   ('complete', 'inner', 'ok') 3
+   refused complete right after a passing check-only on the same action: 0
+== e2e-runs/20261028/pb-hook-generic-3-232e69/.shiploop-runs/seed/run/trace.jsonl
+   ('check', 'improve', 'no') 1
+   ('check', 'inner', 'no') 1
+   ('check', 'inner', 'ok') 3
+   ('complete', 'improve', 'ok') 2
+   ('complete', 'inner', 'ok') 3
+   refused complete right after a passing check-only on the same action: 0
+== e2e-runs/20261028/pb-hook-owed-1-232e69/.shiploop-runs/seed/run/trace.jsonl
+   ('check', 'inner', 'no') 1
+   ('check', 'inner', 'ok') 4
+   ('complete', 'improve', 'ok') 2
+   ('complete', 'inner', 'no') 1
+   ('complete', 'inner', 'ok') 4
+   ('refusal-class', 'loop') 1
+   refused complete right after a passing check-only on the same action: 1
+      ('test-spec', 'loop', 'test-spec accepts only done, blocked, send-back; the bound Until Loop repeats the work, not the graph')
+== e2e-runs/20261028/pb-hook-owed-2-232e69/.shiploop-runs/seed/run/trace.jsonl
+   ('check', 'inner', 'ok') 2
+   ('complete', 'improve', 'ok') 2
+   ('complete', 'inner', 'ok') 3
+   refused complete right after a passing check-only on the same action: 0
+== e2e-runs/20261028/pb-hook-owed-3-232e69/.shiploop-runs/seed/run/trace.jsonl
+   ('check', 'improve', 'no') 1
+   ('check', 'inner', 'ok') 4
+   ('complete', 'improve', 'ok') 2
+   ('complete', 'inner', 'ok') 3
+   refused complete right after a passing check-only on the same action: 0

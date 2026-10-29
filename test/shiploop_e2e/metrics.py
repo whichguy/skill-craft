@@ -29,7 +29,7 @@ import sessionlog
 # The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
 # a test pins the two equal). The narrative reader and fidelity.py both key on it.
 NOT_APPLICABLE = "Not applicable to this item"
-SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
+SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|check|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
 # ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
 # tools, so it means the same thing for every case. A heuristic signal: the
@@ -130,8 +130,13 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # (8 of the 13 refusals of the Luna 1.16.1 run); the script's text is pinned by test/shiploop-e2e.test.py.
 # The same line is what makes a tool result a failure on every host, whatever exit code the host showed: the model pipes
 # the CLI through head, grep or sed, which hides the exit (all 5 refusals of the round-1 Sonnet Battleship run).
-REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked): ", re.M)
+# The routed verbs lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3) instead;
+# until 2026-10-28 no prefix here matched it, so each was recorded with an empty line (7 lint refusals, bf-ds-*-09c33b).
+# A failed `shiploop check` opens with "ShipLoop check: the check says no. " (phase B) and trails "Nothing was accepted or counted."
+REFUSAL_LINE = re.compile(r"^ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
+                          r"check: the check says no\. )", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
+                          r"Nothing was accepted or counted\. |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
 
@@ -192,7 +197,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "expectations_gate": re.compile(r"must list expectations: the facts its steps build on|names steps the result "
                                     r"does not list|have no expectation listing them in paths|needs an absent "
                                     r"expectation\.|needs a works or broken expectation\."),
-    # Improve stage misuse: --check-only has no draft to preview there (shiploop_navigator.py).
+    # Improve stage misuse: a check (or --check-only before phase B) has no draft to preview there.
     "improve_checkonly": re.compile(r"the Improve stage has no draft to check"),
     # improve-pass gates: no bound Improve stage, the review loop already ended or is not active, the improve
     # skill was not invoked, or the review file is missing or incomplete (shiploop_navigator.py:8095-8149).
@@ -201,7 +206,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                r"invalid:"),
     # Improve ended on an unchanged trivial pass, but the worktree moved since the review was bound (shiploop_navigator.py:4232).
     "improve_stale_files": re.compile(r"ended on one unchanged trivial pass, but these files changed"),
-    # complete --check-only replays the base run's own refusal (shiploop_navigator.py:4075).
+    # complete --check-only replayed the base run's own refusal in runs before phase B; a check's base refusal is now
+    # base_run_not_done's text.
     "check_only_base_run": re.compile(r"ShipLoop check-only: the base run would refuse this result"),
     # The focused/regression commands on the item's base are not all passing (shiploop_test_loop.py:1751).
     "base_run_not_done": re.compile(r"ShipLoop base run: test is not done"),
@@ -1281,7 +1287,7 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     (the exporter's `improveMin` runs to the receipt instead, so the two differ by the receipt's write time).
 
     Readers: `summary_lines` and progress.py print the totals; the rows are for the owner's reading of metrics.json
-    (is the planning window under 30 minutes, and where did it go) and for the Run Review page.
+    (how long the planning window took, and where it went) and for the Run Review page.
     """
     unmeasured: dict[str, str] = {}
     window = {"closed": False, "through": None, "seconds": None, "host_seconds": None, "before_engine_seconds": None}
@@ -2833,7 +2839,7 @@ def shiploop_invocations(command: str) -> list[dict]:
         before_pipe = line if pipe is None else re.split(r"(?<!\|)\|(?!\|)", line, maxsplit=1)[0]
         run_dir = RUN_DIR_ARG.search(before_pipe)
         for verb in verbs:
-            found.append({"verb": verb, "check_only": "--check-only" in line, "piped": pipe is not None,
+            found.append({"verb": verb, "check_only": "--check-only" in line or verb == "check", "piped": pipe is not None,
                           "cut": pipe if pipe is not None and pipe["into"] in ("head", "tail", "sed") else None,
                           "variable_built": bool(run_dir and SHELL_VARIABLE_ANY.search(run_dir.group("dir"))),
                           "variable_any": bool(SHELL_VARIABLE_ANY.search(before_pipe)), "hook_visible": visible_to_hook})
@@ -2978,9 +2984,11 @@ def skipped_gates(run_dir: Path | None) -> dict:
         if records:
             gates.append({"gate": name, "records": len(records), "skipped": len(reasons), "reason": reasons[0] if reasons else None})
 
-    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if (r := _state_block(p))]
+    # A check's own runs (-base-check, -mutation-check, -check-only before phase B) are never counted.
+    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if not p.name.endswith("-base-check.md")
+            and (r := _state_block(p))]
     row("base", base, [reason for r in base if (reason := skipped_reason(r))])
-    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith("-check-only.md")
+    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith(("-check-only.md", "-check.md"))
                 and (r := _state_block(p))]
     row("mutation", mutation, [skipped_reason(r) or "no mutants" for r in mutation
                                if skipped_reason(r) or not r.get("mutants")])
@@ -3257,8 +3265,8 @@ def _run_dir_counters(run_dir: Path | None, order: list, tools: "ToolLog", class
 
 
 def stage_share(out: Path, run_dir: Path | None = None, stage: str = "plan", needle: str = "backchain") -> dict:
-    """What a planning stage takes of the planning window, offline (plan N5: the plan-stage Backchain child, which the 30-minute
-    bar does not price). The window and its stages are ``planning_window``'s; ``authoring_seconds`` is the stage's accept-to-accept
+    """What a planning stage takes of the planning window, offline (plan N5: the plan-stage Backchain child, which the window's
+    total does not price). The window and its stages are ``planning_window``'s; ``authoring_seconds`` is the stage's accept-to-accept
     time less its Improve child's (the figure the Luna study called the plan-stage Backchain work, 64.1 of 375.9 minutes), and
     ``named`` is the span of the stage's own tool calls whose input names ``needle`` (the Backchain guide, its artifacts), from
     the stage's start to the end of its authoring. Shares are fractions of the window on the engine clock. Anything the records

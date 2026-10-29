@@ -1,0 +1,47 @@
+{
+ "P1": {
+  "request": "E1",
+  "request_file": "requests/hc-E1-celery.md",
+  "arm": "A0w"
+ },
+ "P2": {
+  "request": "T2",
+  "request_file": "requests/hc-T2-status-api.md",
+  "arm": "A0w"
+ },
+ "P3": {
+  "request": "T1",
+  "request_file": "requests/hc-T1-retries.md",
+  "arm": "A0"
+ },
+ "P4": {
+  "request": "T1",
+  "request_file": "requests/hc-T1-retries.md",
+  "arm": "A0w"
+ },
+ "P5": {
+  "request": "E1",
+  "request_file": "requests/hc-E1-celery.md",
+  "arm": "A0"
+ },
+ "P6": {
+  "request": "T2",
+  "request_file": "requests/hc-T2-status-api.md",
+  "arm": "A1"
+ },
+ "P7": {
+  "request": "T1",
+  "request_file": "requests/hc-T1-retries.md",
+  "arm": "A1"
+ },
+ "P8": {
+  "request": "T2",
+  "request_file": "requests/hc-T2-status-api.md",
+  "arm": "A0"
+ },
+ "P9": {
+  "request": "E1",
+  "request_file": "requests/hc-E1-celery.md",
+  "arm": "A1"
+ }
+}

@@ -92,7 +92,8 @@ def summarise(out: Path, run_dir: Path | None = None) -> dict:
                     "time_to_first_state_changing_call": (c.get("orientation") or {}).get("time_to_first_state_changing_call")}
                    for c in clears],
         "redone": sum(len(c.get("redone") or []) for c in clears) if clears else None,
-        "refusals": sum(1 for f in failures if f.get("verb") == "complete") if isinstance(failures, list) else None,
+        # `check` counts as before phase B, when a failed dry run was a failed `complete --check-only`: the arms stay comparable.
+        "refusals": sum(1 for f in failures if f.get("verb") in ("complete", "check")) if isinstance(failures, list) else None,
         # Where metrics.json counted them: ShipLoop's run trace (shiploop 1.12.0 and later) or the host stream (earlier, and a
         # metrics.json written before the field existed).
         "refusals_source": ((recorded.get("failures_source") or {}).get("file") or "events.jsonl")

@@ -1,7 +1,7 @@
 # ShipLoop on an existing repository: the baseline (design, 2026-10-28)
 
-Status: **proposal, revision 2** (after the experiments and Astra's max review). Execute: ask. Owner decisions:
-section 9. Evidence: [the journal](shiploop-brownfield-baseline-journal.md) and
+Status: **accepted, revision 2** (owner, 2026-10-28: "Accept D1–D9", every recommendation in section 9). Execute:
+in D7's order: the E2E evidence on today's ShipLoop comes before the build of section 10; D8 is built. Evidence: [the journal](shiploop-brownfield-baseline-journal.md) and
 [docs/experiments/brownfield-baseline-20261028/](experiments/brownfield-baseline-20261028/).
 
 ## 0. The answer
@@ -290,12 +290,18 @@ Both checkers needed fixes that the experiments forced:
 | D3 | Conflicts are resolved before dependent work, never by "current behaviour stands" | yes |
 | D4 | When a repository keeps decision records, should ShipLoop also write its new decisions in the team's format (a product file written at `document`)? | yes, linked from AD-<n> |
 | D5 | An instruction-file rule that restricts the work: classify its scope, continue ungoverned work, stop before a governed operation | yes; stop only before the governed operation |
-| D6 | Charge discovery's account to the 30-minute planning window | yes; bound it by the remaining allowance |
+| D6 | ~~Charge discovery's account to the 30-minute planning window~~ **Withdrawn 2026-10-28.** The 30 minutes was the owner's alarm threshold ("planning takes more than 30 minutes" means rethink planning), never an allowance; the owner: "I don't want to have a 30-minute planning session at all." See [the plan](shiploop-planning-speed-and-caps-plan-2026-10-28.md) | withdrawn |
 | D7 | The E2E evidence needed before building: `user-listing` live, plus a medium brownfield case with a follow-on run, on the E2E subject | yes; this is the measure of cross-run value |
 | D8 | Fix the `_entries` shadowing edge now (independent of this design) | yes, a small fix with a test |
 | D9 | Open questions as `Q-<n>` in the knowledge home, quoted by value into research, spec and plan, each answered by ID (script-checked). This is also the "key questions anchored" step of the planning research loop the owner listed on 2026-10-11 | yes; it is the one change the experiments show a recorded baseline needs before it adds value |
 
+Owner, 2026-10-28: "Accept D1–D9". Each recommendation above is now the decision. Progress against them is in
+[the journal](shiploop-brownfield-baseline-journal.md), under "Owner decisions and their execution".
+
 ## 10. Smallest first build
+
+**Held 2026-10-28.** The D7 before-runs showed no correctness gap on cases that fit in context (journal, "The before-runs"). [The plan](shiploop-planning-speed-and-caps-plan-2026-10-28.md) proposes deferring step 1 until a large case shows one (Q5) and taking step 2's consumer-scope rule into F3.
+
 
 1. Discovery writes the touched-flow account into `spec.md` and `architecture.md` (4.1-4.5); C1 at its close; the
    comparison snapshot; `spec_diff` from it.

@@ -17,6 +17,10 @@ repository tooling run, and nothing sent to any project. Repository text was dat
 | `results/x3/`, `results/x3b/` | the plans (blind labels and `key.json`), the knowledge diffs of the baseline arm, the judge verdicts and the T1 fact coverage |
 | `results/astra/` | the question to and answer from GPT-6 Astra at max effort |
 | `results/cost-ledger.tsv` | every agent run: seconds, tokens, tool calls, outcome |
+| `entry_starts.py`, `results/d8-entry-starts.txt` | D8: the forms an entry ID starts in across past E2E runs' knowledge files, and the entries the fix moves (`python3 entry_starts.py OLD_REV ROOT …`) |
+
+The repository ignores every `results/` folder (`.gitignore`), so this one is committed with `git add -f`; a new file
+under it needs the same.
 
 Pinned repositories: [log4brains](https://github.com/thomvaill/log4brains) `17e32021a8c5`,
 [healthchecks](https://github.com/healthchecks/healthchecks) `f6c46b594dec`,

@@ -23,7 +23,7 @@ After ``loop_run`` passes on the candidate, ShipLoop:
 
 The record ``tests/<action>-mutation<N>.md`` holds every mutant and the totals, passed or not (the E2E harness reads
 the kill count as a measure).  A refused check counts in ``refused_runs`` with the base and candidate runs;
-``count=False`` (``complete --check-only``) writes ``tests/<action>-mutation-check-only.md`` and never counts.
+``count=False`` (the check) writes ``tests/<action>-mutation-check.md`` and never counts.
 
 Known limits, the same as the base run's: ignored files other than the platform cards' dependency directories
 (``dependency_directories``) are absent from the copy (so the unmutated run may fail there, and the check then records
@@ -436,7 +436,7 @@ def _reusable(root: Path, state: Mapping[str, Any], work_item: str, action_id: s
         return None
     if base_commit:
         base = test_loop._at_commit(base, base_commit)
-    paths = [test_loop.mutation_check_only_path(action_id)]
+    paths = [test_loop.mutation_check_path(action_id)]
     paths += [mutation_path(action_id, number) for number in range(1, test_loop._mutation_count(root, action_id) + 1)]
     found = []
     for relative in paths:
@@ -476,7 +476,7 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
                    **_options: Any) -> List[str]:
     """The test stage's mutation check, after ``loop_run`` passed; raises ``TestLoopError`` with the refusal.
 
-    Writes ``tests/<action>-mutation<N>.md`` (``count=False``: ``tests/<action>-mutation-check-only.md``, never
+    Writes ``tests/<action>-mutation<N>.md`` (``count=False``: ``tests/<action>-mutation-check.md``, never
     counted) and returns its summary line.  Refused only when at least one mutant ran and none was killed; that
     refusal counts in ``refused_runs``.  ``result`` is accepted for the gate's uniform call and not read.
     """
@@ -511,7 +511,7 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
         relative = mutation_path(action_id, test_loop._mutation_count(root, action_id) + 1)
     else:
         record["counted"] = False
-        relative = test_loop.mutation_check_only_path(action_id)
+        relative = test_loop.mutation_check_path(action_id)
     store.atomic_write_text(root / relative, store.dumps(record, "ShipLoop test mutation check"))
     if record.get("skipped"):
         summary = "mutation: skipped (" + str(record["skipped"]) + ")"
@@ -541,7 +541,7 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
     if count:
         tail = test_loop.refused_note(refused + 1, test_loop.STAGES[0])
     else:
-        tail = "This check-only run does not count toward the refused runs."
+        tail = "This check does not count toward the refused runs."
     lines.append("Add or strengthen assertions that check the behaviour the test spec's oracle states, so a change "
                  "like these makes a focused test fail (a test that only loads the code asserts nothing), start the "
                  "Until Loop again, then submit done again. " + tail + " Full output: " + str(root / relative) + ".")

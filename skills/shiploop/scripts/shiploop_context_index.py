@@ -63,6 +63,8 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/commits/", "each inline step's commit", "a step is redone"),
     ("RUN/tests/", "ShipLoop's test runs: base, candidate, reruns and each implement step's Proof",
      "implement, test and document"),
+    ("RUN/checks/", "the latest `shiploop check` answer per action: yes or no, its reason and the key it was given on",
+     "complete takes a check's yes, or you ask why a check said no"),
     ("RUN/lint/", "lint output for the item's changes", "a lint verdict is cited"),
     ("RUN/improve/", "per reviewed action: receipt, review files, lessons", "an Improve stage"),
     ("RUN/expectations/", "validate-existing's check results", "validate-existing"),

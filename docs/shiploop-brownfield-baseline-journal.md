@@ -287,3 +287,149 @@ repository). Evidence: [results/x3b/](experiments/brownfield-baseline-20261028/r
 
 Design revisions: revision 1 (a separate, script-gated baseline stage) → revision 2 (discovery's close writes a
 progressive, flow-scoped account; plan inherits; C1-C3 as traceability and notice), after F4, F6, F9 and Astra.
+
+F11 is fixed (D8, below), so its status is now superseded by the fix, 2026-10-28.
+
+## Owner decisions and their execution (2026-10-28)
+
+The owner accepted D1–D9 as recommended ("Accept D1–D9"). D7 orders the work: the E2E evidence on today's ShipLoop
+comes first, because the experiments showed no single-run gain on Sonnet and left three questions open (a weaker
+subject, reuse across a real run's stages, a second run that inherits a committed home). The build of design section 10
+follows that evidence and is measured against it.
+
+### D8: an entry starts at its heading or list item — firm (built, tested)
+
+- **Question.** Which line stands for an `R-<n>` or `AD-<n>` entry when the ID starts more than one line?
+  `shiploop_knowledge_home._entries` took the first start of any form (F11).
+- **Corpus.** Every living `docs/shiploop/spec.md` and `architecture.md` under `~/e2e-runs`, `~/e2e-runs-owner-note`
+  and the default E2E output folder: runs from 2026-10-04 to 2026-10-28 on Grok, Sonnet, Opus, Haiku, DeepSeek and
+  Codex hosts. At the snapshot that is 1,204 files and 5,369 entries; 56 files have an ID that starts more than once.
+  Live runs keep adding files, so a rerun counts a few more.
+- **Patterns, first start → later starts** ([entry_starts.py](experiments/brownfield-baseline-20261028/entry_starts.py),
+  output in [d8-entry-starts.txt](experiments/brownfield-baseline-20261028/results/d8-entry-starts.txt)).
+
+  | Pattern | IDs | Real entry |
+  |---|---|---|
+  | heading → table | 56 | the heading; the table is a traceability row |
+  | heading → list | 29 | the heading; the list items are its acceptance lines (`- **R-1.1 …**`) |
+  | table → heading | 18 | the heading; the table is a summary above it (a Haiku 5.5 max run) |
+  | list → plain line | 15 | the list item |
+  | heading → heading, plain line | 9 | the first heading |
+  | heading → list, plain line | 5 | the heading |
+  | plain line → heading | 5 | the heading (`AD-5's HTTP step 5 relies on this order, …`) |
+  | plain line → heading, list | 4 | the heading (`R-3–R-9 and the API half of R-10 therefore carry …`) |
+
+- **Rule.** The ID's first heading or list-item start is its entry. When it has none, the first start of any form
+  (a table row, or a plain line that begins with the ID) still counts, so table-only and paragraph-only formats keep
+  working. `outline` uses the same start.
+- **Effect on the corpus.** The script compares the parser at the commit before the fix with the fixed one on every file:
+  27 entries move, 18 from a table row and 9 from a plain line, each to its heading. The key sets are identical (asserted),
+  no retired flag changes (asserted), and 8 files' outlines change.
+- **Test.** `EntryTests.test_a_heading_or_list_start_outranks_an_earlier_table_row_or_plain_line_of_the_id` in
+  `test/shiploop-handoff.test.py`. On the old parser it fails: the summary row `| AD-1 | Plain modules |` came back as
+  AD-1. The handoff, knowledge and callback-contract suites pass (124, 135 and 87 tests).
+- **Change note.** `changes/shiploop/entry-start-prefers-heading.md` (patch).
+
+### D7: E2E evidence on today's ShipLoop — firm for these cases (n=1 per case)
+
+Recorded below as the runs finish: the `user-listing` live run, and the medium brownfield case with its follow-on, both
+on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN_DEFAULT_BACKEND`).
+
+#### The medium case pair: built and calibrated, not yet run — firm (as an instrument)
+
+- **What.** `ticket-assignment` on a new base, `test/shiploop_e2e/fixtures/node-tickets`, and its follow-on
+  `ticket-escalation` (`follows`, run with `--continue-from`). The base is a dependency-free help-desk ticket service:
+  1,681 lines of source, 1,264 of tests (117 `node:test` tests), 624 of documents, with eight decision records (one
+  superseded), an index and a template. `user-listing`'s base is 149 lines; this one is about 24 times that, so reading it
+  again costs a run real time.
+- **What it measures (D7).** (1) Does a run keep behaviour and team decisions its request does not name? Thirteen latent
+  facts, LA1-LA8 for the first request and LB1-LB5 for the follow-on, each with the file and symbol that holds it and the
+  checks that read it: [node-tickets-expected.md](experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md).
+  Like node-base, the base breaks one of them in the flow the request touches: its listing combines two filters with "or"
+  where `docs/api.md` says every filter must match, and its tests try one filter at a time. (2) Does the follow-on keep what
+  the first run had to learn? The follow-on's seven pass-to-pass checks reuse the first case's checks, so against the first
+  run's delivery a check that passed after the first run and fails after the second is something the second run lost.
+- **Checks.** 18 held-out checks for the first case (6 pass-to-pass, 12 fail-to-pass) and 14 for the follow-on (7 and 7),
+  plus each case's visible checks (the first: `base_tests.py suite` and `pristine`, one HTTP check; the follow-on: two HTTP
+  checks and four retention checks in battleship-scoring's shape).
+- **Calibration** (`test/shiploop-e2e-brownfield-tickets.test.py`, 24 tests). 54 variants: each base fails exactly its
+  fail-to-pass checks and passes its pass-to-pass checks and the 117 pristine tests; each reference and each independently
+  written alternative passes everything; 27 targeted defects of the first case and 21 of the follow-on each fail exactly the
+  checks they read. Every check is failed by some defect, and every defect is caught by a check or the pristine tests.
+  Three defects break a base module and edit the base's tests to match, so only the pristine tests see them; three break
+  existing behaviour that both the pristine tests and a held-out pass-to-pass check see; and one, `update-rejects-resolved`
+  (in both cases), is seen only by a held-out pass-to-pass check, because nothing in the base's tests edits a resolved ticket.
+- **Harness change.** A held-out check may take a second parameter, the delivered copy (`quality.Product`): more servers
+  of the product with an environment of the check's own, restarts, and the product's command lines. `quality.free_port`
+  never hands out a port twice within 4,096, and a product server that exits on `EADDRINUSE` naming its own port is started
+  again on another. The evaluator digest changes for every case (as it does for any harness change), and the oracle digest
+  with the new check modules: a promotion decision never spans this commit.
+- **Findings while building it (firm for the instrument):**
+  - The base's tests first compared whole objects (a created ticket, the loaded data file, the configuration), so the
+    request's own `assignee` field, or the follow-on's `ONCALL` setting, failed the pristine suite. A base whose tests forbid
+    the requested change is a broken case; they now compare the fields they own.
+  - Grading 54 variants side by side made thousands of short TCP connections a minute. Closing them from the product's side
+    left wait states on its ports, which `listen(0)` hands to the base's own test servers; closing them from the client's side
+    ran the ephemeral range out (`EADDRNOTAVAIL`). The checks now keep one connection per server and close it first, and the
+    base's test client keeps one per test. What remained, under load averages of 40 to 90 from other work, was about one
+    reset in two hundred concurrent `node --test` runs, never twice in a row; the calibration grades a disagreeing result once
+    more, alone, and pins that this happens at most four times.
+- **Runs.** None yet: the owner launches them. `python3 test/shiploop_e2e/run.py --case ticket-assignment --output <out>`,
+  then `python3 test/shiploop_e2e/run.py --case ticket-escalation --continue-from <out> --output <out2>`, both on the E2E
+  subject by default. The same pair runs again after section 10's build.
+
+#### The before-runs: no correctness gap; planning is slow, and Improve is most of it — firm for these cases (n=1)
+
+- **Conditions.**
+  - Subject: DeepSeek flash (`deepseek-v4.1-flash:1017-cloud`) on Ollama through the Claude host, `--permission-mode auto`.
+  - Source: `--source checkout` from one detached worktree pinned at 8aa6e1fe (origin/main 4e1c8df0, plus the design, its
+    results, D8 and the medium case).
+  - Output: under `~/e2e-runs-brownfield/20261028/`, a runs root of our own. Under `~/e2e-runs` the E6D2 slices hold no
+    run lock, so the orphan check refused. The runs sharing Ollama at each launch are in
+    [results/d7/](experiments/brownfield-baseline-20261028/results/d7/).
+  - Tokens and cost are not measured on this host, so cost compares in minutes and turns only.
+  - Laptop sleep: the machine slept 13:00-13:47 before any of these runs started, so none of them include it.
+- **Evidence.** [before-runs.json](experiments/brownfield-baseline-20261028/results/d7/before-runs.json), built by
+  [d7_summary.py](experiments/brownfield-baseline-20261028/d7_summary.py) from each run's `result.json` and `metrics.json`.
+
+  | Run | Held-out checks | Visible checks | Planning window (Improve) | Run | Refusals |
+  |---|---|---|---|---|---|
+  | `user-listing` (149 lines) | 11/11 (2 pass-to-pass, 9 fail-to-pass) | 3/3 | 17.4 min (10.0) | 68.1 min | 25 |
+  | `ticket-assignment` (3,631 lines) | 18/18 (6, 12) | 3/3 | 30.1 min (17.2) | 110.5 min | 27 |
+  | `ticket-escalation` (follow-on) | 14/14 (7 kept from run 1, 7 new) | 9/9, with 4 retention | 48.7 min (25.7) | 138.6 min | 18 |
+
+- **Correctness: no gap.**
+  - Every latent fact was kept: LA1-LA8, and LB1-LB5 on the follow-on.
+  - Both planted defects were fixed: `paginate`'s partial last page, and the OR filter.
+  - The follow-on broke none of run 1's behaviour.
+  - This repeats X3 and X3b (Sonnet) on the E2E subject. On these cases, neither a single run nor a second run needed a
+    recorded baseline to stay correct.
+  - Limit of the instrument: 3,631 lines fit in the host's context (peak 157-160K), so "too big to read" is untested.
+- **Discovery is not where the reading happens.** Discovery took 0.6, 1.6 and 2.4 minutes. The model read the code in
+  spec, step-plan and implement.
+- **Planning: Improve is 53-58% of the window** (10.0 of 17.4, 17.2 of 30.1, 25.7 of 48.7 min).
+  - The spec stage's own authoring took 0.6, 0.5 and 1.4 min; its Improve review took 2.2, 6.2 and 7.5 min.
+  - The 2026-10-05 ledger found the same share on Luna xhigh (54%).
+- **The follow-on's planning grows where it works on larger living files.**
+  - Authoring: test-strategy 6.6 against 2.3 min, step-plan 5.5 against 2.8 min.
+  - Improve: test-strategy 9.5 against 5.2 min, step-plan 6.5 against 2.5 min.
+  - Carry-forward: 14.7 against 9.5 min in total.
+  - `environment.md` was 72 KB after run 1 and 87 KB after run 2. The spec went from R-1..R-12 to R-1..R-20.
+  - Run 2's harness plan names only its own requirements (R-13 to R-18, R-20), so test-strategy did not re-plan run 1's.
+    The growth is in reading and reviewing bigger files, not in re-testing old requirements. Status: interim; one
+    follow-on.
+- **Refusals.**
+  - Size limits: 3-5 per run.
+  - Improve protocol: `--check-only` at Improve, and a skipped skill call at a new Improve.
+  - Lint at Improve: 6 of 6 lint refusals named the Improve action while lint wanted the reviewed step's. Fixed in
+    18844f21 (first made as d0916465 on `claude/priceless-hertz-be6123`, which is not merged). The harness stored those
+    refusals without their text; fixed there too, 8764d1b1 (first e740819b).
+  - Quality gates: mutation, expectations, evidence, and the primary-coverage gate.
+  - Every refusal was recovered.
+- **What it means for the design.**
+  - Section 10's as-is account has no correctness gap to close on these cases.
+  - The measured costs are Improve at planning and growing living files.
+  - D6's "30-minute planning window" was a misreading of the owner's alarm threshold.
+  - The owner's answer, 2026-10-28: "I don't want to have a 30-minute planning session at all." The plan that follows
+    is [docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md](shiploop-planning-speed-and-caps-plan-2026-10-28.md).
+

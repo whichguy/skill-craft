@@ -1247,6 +1247,32 @@ task:
 `test/fixtures/quality/reference_user_listing.py` builds the base, the reference, an independently written alternative
 and fourteen targeted defects; `test/shiploop-e2e-brownfield.test.py` grades each and pins the exact checks each fails.
 
+#### The medium pair: `ticket-assignment` and its follow-on `ticket-escalation`
+
+```sh
+python3 test/shiploop_e2e/run.py --case ticket-assignment --output ~/e2e-runs/<day>/<name>
+python3 test/shiploop_e2e/run.py --case ticket-escalation --continue-from ~/e2e-runs/<day>/<name> --output ~/e2e-runs/<day>/<name>-escalation
+```
+
+D7 of `docs/shiploop-brownfield-baseline-design-2026-10-28.md` asks for E2E evidence from a brownfield case big enough
+that reading it again costs a run real time, with a follow-on run on the same repository. `fixtures/node-tickets` is a
+help-desk ticket service with no dependencies (about 1,700 lines of source, 1,300 of tests and 600 of documents, eight
+decision records). `ticket-assignment` adds assignment to it; `ticket-escalation` follows it (`follows`), so it starts
+from the first run's checkout, runs the first case's checks again and adds retention checks, as battleship-scoring does.
+Both declare `refuse_ports: [4180]`, the base's default port, which no other case leases.
+
+The held-out checks (`checks/ticket_assignment_accept.py`, `checks/ticket_escalation_accept.py`) read each request and
+the facts it depends on and does not name: the error envelope, the notification outbox and its worker, the audit log, cursor
+pages, filters that combine, the data file and the files an earlier version wrote, and the command line's raw columns. Those
+that need a data file, a notification file, the worker off or the command line start the product themselves through
+`quality.Product`. The follow-on's pass-to-pass checks are the first case's, so against the first run's delivery they show
+what the second run kept. The facts, where they are, and the checks that read them are in
+`docs/experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md`.
+
+`test/fixtures/quality/reference_ticket_assignment.py` and `reference_ticket_escalation.py` (built on the first's
+reference, the stand-in for the first run) build each case's base, reference, alternative and targeted defects;
+`test/shiploop-e2e-brownfield-tickets.test.py` grades all 54 side by side and pins the exact checks each fails.
+
 ### What version is tested
 
 By default (`--source marketplace`) a run tests exactly what the `whichguy`
@@ -1899,7 +1925,7 @@ folders under `fixtures/`; `run.py` and `release_slice.py` hold no Salesforce wo
 | system-test, product-acceptance | a done record that says nothing ran | `seed_home/records.json` |
 
 The gates the release stages read are the real ones: `shiploop next` prints the release-plan packet with the system commands and
-A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `complete --check-only`
+A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `shiploop check`
 (`test/shiploop-e2e-release-slice.test.py`). No delivery contract is declared (an unmarked run, as the first live run was).
 
 **The org, by mode** (`--platform-existing`, default `fresh`; the case lists `update` in `platform.existing`, and a case that does not

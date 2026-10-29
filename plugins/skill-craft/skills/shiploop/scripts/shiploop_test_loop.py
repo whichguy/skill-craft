@@ -112,14 +112,19 @@ def base_path(action: str, number: int) -> str:
     return "tests/" + action + "-base" + str(number) + ".md"
 
 
+def base_check_path(action: str) -> str:
+    """The base run a check makes: replaced on each call, never counted; the check's floors come from it."""
+    return "tests/" + action + "-base-check.md"
+
+
 def red_check_path(action: str) -> str:
     """The red-check report: a base run the loop asks for, replaced on each call and never counted."""
     return "tests/" + action + "-red-check.md"
 
 
-def check_only_path(action: str) -> str:
-    """The candidate run ``complete --check-only`` asks for: replaced on each call, never counted, never a floor."""
-    return "tests/" + action + "-check-only.md"
+def check_path(action: str) -> str:
+    """The candidate run a check makes: replaced on each call, never counted, never a floor."""
+    return "tests/" + action + "-check.md"
 
 
 def step_proof_path(action: str, number: int) -> str:
@@ -127,9 +132,9 @@ def step_proof_path(action: str, number: int) -> str:
     return "tests/" + action + "-step-proof" + str(number) + ".md"
 
 
-def step_proof_check_only_path(action: str) -> str:
-    """The Proof run ``complete --check-only`` asks for: replaced on each call, never counted."""
-    return "tests/" + action + "-step-proof-check-only.md"
+def step_proof_check_path(action: str) -> str:
+    """The Proof run a check makes: replaced on each call, never counted."""
+    return "tests/" + action + "-step-proof-check.md"
 
 
 def mutation_path(action: str, number: int) -> str:
@@ -137,9 +142,9 @@ def mutation_path(action: str, number: int) -> str:
     return "tests/" + action + "-mutation" + str(number) + ".md"
 
 
-def mutation_check_only_path(action: str) -> str:
-    """The mutation check ``complete --check-only`` asks for: replaced on each call, never counted."""
-    return "tests/" + action + "-mutation-check-only.md"
+def mutation_check_path(action: str) -> str:
+    """The mutation check a check makes: replaced on each call, never counted."""
+    return "tests/" + action + "-mutation-check.md"
 
 
 # What a one-line refusal adds (the check, the step check and the test command): a live run read three validators'
@@ -927,8 +932,18 @@ def action_counts(root: Path, action: str) -> Dict[str, int]:
     return most
 
 
+def _check_base(root: Path, action: str) -> Optional[Mapping[str, Any]]:
+    """The base run of this action's latest check (``base_check_path``) when it passed, else None."""
+    path = Path(root) / base_check_path(action)
+    try:
+        record = store.read_record(path) if path.is_file() else None
+    except (OSError, store.StorageError):
+        return None
+    return record if isinstance(record, Mapping) and record.get("passed") else None
+
+
 def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: str,
-                 result: Optional[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
+                 result: Optional[Mapping[str, Any]], *, check: bool = False) -> Dict[str, Dict[str, Any]]:
     """Per focused and regression command, its floor and where it comes from (the test stage's rule).
 
     ``floor = max(base count - retired shown, earlier runs - retired seen)``: the base count is the latest passed base
@@ -937,9 +952,12 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
     in); the earlier runs are this action's own (``action_counts``) and any run accepted for the item since its step
     plan (``accepted_counts``), less every retired test the base run saw (``retired_seen``), since a candidate record
     cannot say which command ran it.  A command with no number from any source has no floor.
+
+    ``check`` (``shiploop check``) takes the base run that check just made (``base_check_path``), so the check holds
+    its candidate to the floor ``complete`` sets from the same run (F15, owed-outcome journal).
     """
     root = Path(root)
-    base = _latest_base(root, action, passed=True) or {}
+    base = (_check_base(root, action) if check else _latest_base(root, action, passed=True)) or {}
     base_runs = {run.get("command"): run for run in base.get("runs") or ()}
     earlier = accepted_counts(root, state, work_item)
     for command, ran in action_counts(root, action).items():
@@ -1128,17 +1146,47 @@ def _tree(root: Path, repo: Path) -> str:
             index.unlink()
 
 
+def working_tree(root: Path, repo: Path) -> str:
+    """The repository's working content as a Git tree, "" when there is none (``_tree``); part of a check's key."""
+    return _tree(root, repo)
+
+
+def check_paths(action: str) -> Tuple[str, ...]:
+    """The run-relative records a check of ``action`` can write, in the order ``complete`` would make them."""
+    return (base_check_path(action), check_path(action), mutation_check_path(action),
+            step_proof_check_path(action))
+
+
+def take_check(root: Path, action: str, records: Sequence[str], answer: str) -> None:
+    """Write each check record a taken yes rests on as this action's next counted record (``complete`` taking a
+    check's matching yes, phase B), ``reused`` naming the check record and the answer; nothing runs."""
+    root = Path(root)
+    counted: Dict[str, Callable[[str, int], str]] = {
+        base_check_path(action): base_path, check_path(action): verify_path,
+        mutation_check_path(action): mutation_path, step_proof_check_path(action): step_proof_path}
+    for relative in records:
+        target = counted.get(relative)
+        if target is None:
+            continue
+        record = dict(store.read_record(root / relative))
+        record.pop("counted", None)
+        record["attempt"] = _next_attempt(root, action)
+        record["reused"] = {"path": relative, "created_at": record.get("created_at"), "answer": answer}
+        number = _count(root, action, target) + 1
+        store.atomic_write_text(root / target(action, number), store.dumps(record, "ShipLoop record taken from a check"))
+
+
 def _reused(root: Path, action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,
             held: Mapping[str, Mapping[str, Any]]) -> Optional[Tuple[List[Dict[str, Any]], Dict[str, Any]]]:
-    """The runs of this action's passed check-only record, held to today's floors, when ``complete`` takes them instead
+    """The runs of this action's passed check record, held to today's floors, when ``complete`` takes them instead
     of running every command again (owner decision D5, 2026-10-17); else None.
 
     It takes them when that record passed at this stage and item, lists exactly ``commands``, and the repository's
-    working content (``_tree``) is now a tree the check-only run started on or left.  A run the floor now refuses is
+    working content (``_tree``) is now a tree the check's run started on or left.  A run the floor now refuses is
     not taken: the commands run again, so a refusal always comes from a run made now.  Returns (runs, the ``reused``
-    entry the counted record carries: which check-only record and the tree).
+    entry the counted record carries: which check record and the tree).
     """
-    path = Path(root) / check_only_path(action)
+    path = Path(root) / check_path(action)
     if not path.is_file():
         return None
     try:
@@ -1162,21 +1210,7 @@ def _reused(root: Path, action: str, stage: str, work_item: str, commands: Seque
             if run.get("status") == "passed" and run.get("counts") and run["counts"]["ran"] < floor["floor"]:
                 return None
         runs.append(run)
-    return runs, {"path": check_only_path(action), "created_at": record.get("created_at"), "tree": tree}
-
-
-def reuse_note(root: Path, action: str) -> str:
-    """What ``complete --check-only`` prints about its test run when the real ``complete`` can take it (``_reused``),
-    else ""."""
-    path = Path(root) / check_only_path(action)
-    try:
-        record = store.read_record(path) if path.is_file() else None
-    except (OSError, store.StorageError):
-        return ""
-    if not (isinstance(record, Mapping) and record.get("passed") is True and record.get("trees")):
-        return ""
-    return ("That complete takes this test run (" + str(path) + ") instead of running the commands again while the "
-            "tree and the recorded commands stay as they are now; any edit makes it run them again.")
+    return runs, {"path": check_path(action), "created_at": record.get("created_at"), "tree": tree}
 
 
 def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str, *,
@@ -1194,11 +1228,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     recorded ``could-not-run`` and does not count in ``refused_runs``.  ``command_timeout`` bounds each command; every
     command runs, with no total time budget.
 
-    ``count=False`` (``complete --check-only``) runs the same commands and judgement and writes ``check_only_path``
+    ``count=False`` (the check) runs the same commands and judgement and writes ``check_path``
     instead of a numbered record, so the run never counts as a refused run or sets a floor.
     Where the commands run in the repository (every stage but release-verify, whose place can change with a return), it
     also records the command list and the working trees the run started on and left; a counted run (``complete``) then
-    takes a passed check-only run whose command list and tree are unchanged instead of running again (``_reused``), and
+    takes a passed check run whose command list and tree are unchanged instead of running again (``_reused``), and
     its record says so under ``reused``.
     """
     root = Path(root)
@@ -1227,7 +1261,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     elif observed and observed["where"] == "unknown":
         failure = str(observed["reason"])
     if stage in STAGES:
-        held = floor_detail(root, state, work_item, action, result)
+        held = floor_detail(root, state, work_item, action, result, check=not count)
     elif stage in OUTER_SOURCES or not work_item:
         held = {}
     else:
@@ -1291,7 +1325,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             record["trees"] = [tree for tree in dict.fromkeys([*trees, _tree(root, repo)]) if tree]
     if observed is not None:
         record["observed"] = observed
-    relative = verify_path(action, number) if count else check_only_path(action)
+    relative = verify_path(action, number) if count else check_path(action)
     writes = {relative: store.dumps(record, "ShipLoop test-loop verification")}
     if record["passed"]:
         return writes, ""
@@ -1312,7 +1346,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         lines.append(_place_reply(stage, refused) + " Full output: " + str(root / relative) + ".")
         return writes, "\n".join(lines)
     if not count:
-        attempts = "This check-only run does not count toward the refused runs."
+        attempts = "This check does not count toward the refused runs."
     elif disposition == "could-not-run":
         attempts = _unavailable_sentence(stage, refused, command_timeout)
     else:
@@ -1347,7 +1381,7 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
 
     Writes ShipLoop's record (``tests/<action>-verify<N>.md``) either way and returns one summary line per command.
     ``result`` is the submitted test result (its ``retired_tests`` lower a floor).  ``count=False`` is the
-    non-counting run ``complete --check-only`` makes: the same judgement, recorded at ``check_only_path`` and never
+    non-counting run a check makes: the same judgement, recorded at ``check_path`` and never
     counted as a refused run (see ``verify``).  ``options`` pass through to ``verify`` (runner, env, clock,
     command_timeout).
     """
@@ -1359,11 +1393,11 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
         number = _verify_count(root, action_id)
         path = verify_path(action_id, number) if number else ""
     else:
-        path = check_only_path(action_id)
+        path = check_path(action_id)
     if path and (Path(root) / path).is_file():
         record = store.read_record(Path(root) / path)
         if record.get("reused"):
-            lines.append("candidate: reused the passed check-only run of " + str(record["reused"]["created_at"])
+            lines.append("candidate: reused the check's passed run of " + str(record["reused"]["created_at"])
                          + " (" + str(record["reused"]["path"]) + "): the tree and the recorded commands are unchanged")
         for run in record.get("runs") or ():
             tally = run.get("counts") or {}
@@ -1377,9 +1411,9 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
 # ---------------------------------------------------------------- the step Proof (inline implement, unit W2-A)
 
 def _proof_records(root: Path, action: str) -> List[Tuple[str, Mapping[str, Any]]]:
-    """(run-relative path, record) of this action's readable Proof records: the check-only one, then the numbered ones."""
+    """(run-relative path, record) of this action's readable Proof records: the check's, then the numbered ones."""
     found: List[Tuple[str, Mapping[str, Any]]] = []
-    paths = [step_proof_check_only_path(action)] + [step_proof_path(action, n)
+    paths = [step_proof_check_path(action)] + [step_proof_path(action, n)
                                                      for n in range(1, _count(root, action, step_proof_path) + 1)]
     for relative in paths:
         try:
@@ -1398,7 +1432,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
 
     The Proof is the step plan's ``check`` for the step (``step_command``), judged as a check (``judge``: exit 0, and a
     runner summary that shows no test ran is no pass), with the test loop's timeout and capture.  Its record
-    (``step_proof_path``, or ``step_proof_check_only_path`` for ``count=False``) is bound to the action, the step, the
+    (``step_proof_path``, or ``step_proof_check_path`` for ``count=False``) is bound to the action, the step, the
     command and the candidate: the working trees the run started on and left (``_tree``).  A passed record of this
     action for the same step and command whose trees include today's is taken instead of running again, so an
     unchanged candidate reuses its receipt; at complete that writes a numbered record that says so, and at the Improve
@@ -1421,7 +1455,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                    None) if count else None
     created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if matched is not None:
-        line = ("step-proof: reused the passed " + ("check-only run" if "check-only" in matched[0] else "run") + " of "
+        line = ("step-proof: reused the passed " + ("check's run" if "-check.md" in matched[0] else "run") + " of "
                 + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
         if phase != "complete":
             return {}, "", [line]
@@ -1445,7 +1479,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
               "runs": [run], "trees": [found_tree for found_tree in dict.fromkeys([tree, _tree(root, repo)]) if found_tree]}
     if not count:
         record["counted"] = False
-    relative = step_proof_path(action, number) if count else step_proof_check_only_path(action)
+    relative = step_proof_path(action, number) if count else step_proof_check_path(action)
     writes = {relative: store.dumps(record, "ShipLoop step proof")}
     summary = ["step-proof: [check] " + row["command"] + " -> " + run["status"]]
     if record["passed"]:
@@ -1829,7 +1863,7 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
 
 
 def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
-               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None,
+               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None, count: bool = True,
                **options: Any) -> List[str]:
     """The test stage's base run at complete; raises ``TestLoopError`` with the refusal.
 
@@ -1840,14 +1874,24 @@ def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: 
     record ``tests/<action>-base<N>.md`` holds each command's base count (the floor's base term) and counts in
     ``refused_runs`` with the candidate runs.  Returns one summary line per command.  ``options`` pass through
     (runner, env, clock, command_timeout).
+
+    ``count=False`` (``shiploop check``) runs the same base run and judgement and writes ``base_check_path``
+    instead: never counted, and the floors of that check's candidate run come from it (``floor_detail``).
     """
     root = Path(root)
     check_result_fields(state, work_item, result)
     refused = refused_runs(root, action_id)
     record, refusal = _base_run(root, state, work_item, action_id, result, base_commit=base_commit, **options)
-    record["attempt"] = _next_attempt(root, action_id)
-    relative = base_path(action_id, _base_count(root, action_id) + 1)
+    if count:
+        record["attempt"] = _next_attempt(root, action_id)
+        relative = base_path(action_id, _base_count(root, action_id) + 1)
+    else:
+        record["counted"] = False
+        relative = base_check_path(action_id)
     store.atomic_write_text(root / relative, store.dumps(record, "ShipLoop test base run"))
+    if refusal and not count:
+        raise TestLoopError(refusal + "\nFix the tests (or red_na / retired_tests) and check again. This check does not "
+                            "count toward the refused runs. Full output: " + str(root / relative) + ".")
     if refusal:
         if record["disposition"] == "could-not-run":
             tail = _unavailable_sentence(STAGES[0], refused, options.get("command_timeout", COMMAND_TIMEOUT_SECONDS))
@@ -1920,10 +1964,12 @@ __all__ = (
     "accepted_counts",
     "action_counts",
     "base_check",
+    "base_check_path",
     "base_commands",
     "base_path",
     "base_worktree",
-    "check_only_path",
+    "check_path",
+    "check_paths",
     "check_result_fields",
     "default_suite_drift",
     "floor_detail",
@@ -1933,7 +1979,7 @@ __all__ = (
     "loop_lines",
     "loop_run",
     "mutation_check",
-    "mutation_check_only_path",
+    "mutation_check_path",
     "mutation_path",
     "new_ids",
     "normalise_commands",
@@ -1945,13 +1991,14 @@ __all__ = (
     "refused_runs",
     "remedy_open",
     "rerun_lines",
-    "reuse_note",
     "rule_lines",
     "stage_commands",
     "step_command",
     "step_proof",
-    "step_proof_check_only_path",
+    "step_proof_check_path",
     "step_proof_path",
+    "take_check",
     "verify",
     "verify_path",
+    "working_tree",
 )

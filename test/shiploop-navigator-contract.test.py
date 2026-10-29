@@ -4143,12 +4143,12 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                    "SHIPLOOP_KEEPALIVE": "off"},
                               cwd=self.base, text=True, capture_output=True, timeout=120)
 
-    def submit(self, result: dict, *, check_only: bool = False, loop: bool = True) -> subprocess.CompletedProcess:
+    def submit(self, result: dict, *, check: bool = False, loop: bool = True) -> subprocess.CompletedProcess:
         """Write ``result`` to the inbox and run `shiploop complete`; an inner stage's loop runs first."""
         state = self.state()
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]
-        if loop and not check_only and stage in EXPECTED_INNER and result.get("outcome") != "blocked":
+        if loop and not check and stage in EXPECTED_INNER and result.get("outcome") != "blocked":
             receipt = self.loop_support.finish_loop(
                 self.run_dir, outcome="done" if result.get("outcome") == "done" else "blocked")
             result = self.loop_support.with_receipt(result, receipt)
@@ -4175,8 +4175,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))
-        argv = ["complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path)]
-        return self.cli(*argv, *(["--check-only"] if check_only else []))
+        argv = ["check" if check else "complete", "--run-dir", str(self.run_dir), "--action", action, "--result",
+                str(path)]
+        return self.cli(*argv)
 
     def accept(self, result: dict, **options: Any) -> None:
         if navigator.current_stage(self.state()) == "implement" and result.get("outcome") == "done":
@@ -4682,26 +4683,26 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         block = navigator._producer_blocks(self.core, self.run_dir, state, None, path=self.run_dir / "packets" / "x.md")
         self.assertEqual(next(b.tier for b in block if b.name == "look-back"), navigator.P1)
 
-    def test_complete_check_only_runs_the_gates_and_accepts_nothing(self) -> None:
+    def test_the_check_runs_the_gates_and_accepts_nothing(self) -> None:
         self.start()
         self.drive_to_step_plan()
         before = (self.run_dir / "state.md").read_bytes()
         action = navigator.current_action(self.state())["id"]
         draft = self.step_plan([dict(self.ABSENT_NOTES)])
         del draft["expectations"]
-        refused = self.submit(draft, check_only=True)
+        refused = self.submit(draft, check=True)
         self.assertNotEqual(refused.returncode, 0, refused.stdout)
         self.assertIn("each with a check ShipLoop runs at validate-existing", refused.stdout + refused.stderr)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
-        checked = self.submit(self.step_plan([dict(self.ABSENT_NOTES)]), check_only=True)
+        checked = self.submit(self.step_plan([dict(self.ABSENT_NOTES)]), check=True)
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-        self.assertIn("ShipLoop check-only: every script gate for step-plan accepts this result", checked.stdout)
+        self.assertIn("ShipLoop check: the check says yes for step-plan: every script gate accepts this result", checked.stdout)
         # Nothing accepted: same state, same action, and no loop receipt was needed or written.
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
         self.assertEqual(navigator.current_action(self.state())["id"], action)
         self.assertFalse((self.run_dir / "loops" / (action + "-terminal.json")).exists())
-        # The same result without --check-only, its loop run, is accepted.
+        # The same result through complete, its loop run, is accepted.
         self.accept(self.step_plan([dict(self.ABSENT_NOTES)]))
         self.assertEqual(self.state()["active_improve"]["action_id"], action)  # accepted; its child is pending
 

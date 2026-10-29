@@ -1,0 +1,255 @@
+[
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|release-plan-18902b16|3","findings":[
+{"summary":"Return-plan review command left ten product paths undecided, so the return would be refused; corrected to a verified --keep list.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Exclude rationale misdescribed the mechanism: .shiploop-improve is excluded by rule, not by reviewer decision.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|release-plan-38b8dd30|1","findings":[
+{"summary":"Rollback recipes keyed on the pre-run baseline would undo the first return too; rebased onto the first-return SHA.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Release target bullet repeated the wrong base commit for main.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Step 1 did not say where the README check runs or that plan-return commits uncommitted work, shifting the head.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"A13 settle said returned-tree confirmation happens at release-check, which runs before the return; reassigned to release-verify.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|system-test-author-0307e586|1","findings":[
+{"summary":"Four ST catalog rows claimed requirement clauses their cases never observe, overclaiming system-level coverage.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"Accessibility N/A bullet attributed R-3.5 live clauses to ST-1, which does not observe them.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|system-test-author-b09fefe4|1","findings":[
+{"summary":"Release step 1 README requirement no longer matched ST-4's port-statement oracle, risking a release failing its own check.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"ID-convention row for ST-4 omitted R-2.3 and the README clause.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Release-check ST-4 row and consumer check 2 absent output did not name a README dropping the port statement.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Spec acceptance status lacked a note recording what the second pass changed.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|test-strategy-3b9fc67c|1","findings":[
+{"summary":"AD-6 built the cells in the inline script, contradicting R-3.1 and T-12; server-render them into the page string.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"T-26 loading-state check could pass on a page whose script never ran.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"T-32 pgrep listener check could not attribute a listener to the suite; replaced with in-suite assertions.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Helpers under test/support would be run as tests by node --test, letting pass>=1 hold with no real test.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"T-30 exit-0 half is vacuous at base where node --test with no files exits 0.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"T-33 command block failed before node ran because test/ directory is absent; added mkdir -p.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|test-strategy-4178a210|1","findings":[
+{"summary":"TC_BROWSER_WIN expected every cell to show a result, which cannot happen after the grid disables at game over.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Twelve acceptance lines had no check naming them; coverage mapping was only prose.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_BROWSER_LOCK had no ordered procedure.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_PORT_DEFAULTS miscounted starts and ignored an already-held port 3000/8081, so not replayable.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"TC_BROWSER_ERROR would hang as written because server.close() waits for keep-alive sockets.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Test-count floor (at least 14 tests, 3 per file) was never shown reachable.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":".gitignore missing from the file list although the suite writes profile files.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|release-plan-38b8dd30|2","findings":[
+{"summary":"Step 2 gave an expected main SHA the plan's own commit had already falsified.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Step 1 claimed plan-return commits release-plan edits, no longer true after improve-commit.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Step 4 called a past SHA the current candidate.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Three ragged line wraps in the touched paragraphs.","touched":["record"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|test-strategy-4178a210|4","findings":[
+{"summary":"TC_COORDINATES lacked the accept-at-extremes half of A-R5.2, so a clamping server would pass.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"TC_GAME_OVER_REFUSAL did not require an unfired cell, so it could pass without reaching the game-over branch.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"TC_RESOLUTION and TC_REPEAT_SHOT had no stated oracle for the 5 sunk, 12 hit split and repeat-hit rule.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_TWO_GAMES and TC_CONCURRENT_FIRE dropped A-R10.2 sequence and A-R10.5 shipsRemaining clauses.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_ERROR_TABLE fixtures could not produce non-UUID id, trailing-slash 404 and query-string rows.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|spec-058d0544|2","findings":[
+{"summary":"R-4 cited research assumption A4 for UUID default; the actual source is R2/A5.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"R-5 error list defined no precedence, leaving combined faults under-determined.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-5.5 and TR-10 said the concurrent loser always gets already fired, false when the winning shot ends the game.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-5.4 repeat-shot clause contradicted the post-game rule.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-5 never required Content-Type application/json on /api/fire, leaving the header claim unverifiable.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-3.2, R-3.3 and R-3.5 stated behaviour their confirmations did not check.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/ds-flash-978478-battleship|test-spec-d6368698|1","findings":[
+{"summary":"C-R5-3 oracle asserted an error-message wording that no criterion or accepted plan supports and named no substring.","touched":["record","run-result"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"Result summary attributed C-R2-3 to W2; the plan gives it to W3.","touched":["run-result"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"C-R5-3 GREEN ended with a next-valid-shot clause that no assertion checked.","touched":["run-result"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"Accepted step plan's S1 proof runs a test file written only after implement; recorded as open item, not fixed.","touched":["nothing"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/ds-flash-978478-battleship|release-plan-7c48bc1d|2","findings":[
+{"summary":"SYS-REL-1 expected output had a trailing slash after the port that the command does not print.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|spec-058d0544|1","findings":[
+{"summary":"R-5.1 said fire every cell while R-5.4 rejects shots after game over; full-game check not replayable.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-2.2 said empty PORT means 3000 but Number(PORT) maps empty to 0.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-2.2/R-2.3 confirmation relied on binding port 3000 with a permitted skip, which is not evidence.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"TR-6 and TR-7 gave two answers for a post-game repeat shot.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"State inventory claimed a sunk ship's other cells render sunk, though the client never learns them.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-3.1 accepted any title containing Battleship and named no stable cell selector.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"F-2 had the player firing at cells of the last unsunk ship, which the player cannot know.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-7.4 scratch failing test lay outside test/, so node --test would not discover it.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"A2 was omitted from the Open gaps section.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Accepted result headline said 27 acceptance lines; the spec has 28.","touched":["run-result"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Transition IDs T-n collided with the test-ID scheme; renamed TR-n including in the spec result.","touched":["record","run-result"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Operability NFR claimed port reporting no acceptance line requires; security NFR cited wrong line for body cap.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|carry-forward-3ccf2d8c|2","findings":[
+{"summary":"Suite live bullet called the class-wide command focused, contradicting the file's own Smoke definition.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Skills bullet repeated focused and full suite runs where smoke and full was meant.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/ds-flash-978478-battleship|step-plan-79f8865f|1","findings":[
+{"summary":"C1 fleet-shape check could not fail: shot sequences do not determine ship lengths when ships touch; also depended on fire after game over.","touched":["record","run-result"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Check command accepted one merged doc block, though C4 asks for a block per entry point.","touched":["run-result"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|test-strategy-4178a210|6","findings":[
+{"summary":"TC_BROWSER_WIN stop condition needed a message wording the spec never fixes; now stops on a request-less click.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"TC_BROWSER_FIRE required a ready status message the spec does not ask for.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"TC_BROWSER_ERROR decided re-enablement from markup rather than behaviour.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|test-strategy-3b9fc67c|3","findings":[
+{"summary":"RB-6 checked the page.js module instead of the served HTTP body that R-3.1 names.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"No check backed the no filesystem or shell use security claim; added static scan to T-8.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"AD-4 port parse left under-specified where spec requires Number(PORT) semantics and empty guard order.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|release-plan-0317e24b|2","findings":[
+{"summary":"Nothing observed that the return actually happened; consumer checks can fall back to the work area.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Target bullet named a worktree tip SHA already invalidated by the pass's own commit.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Deploy step described only the fast-forward, not the working-tree fallback.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Confirm paragraph and table header implied one location for checks that release-check also runs.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Missing blank line glued the cleanup paragraph to the release-verify paragraph.","touched":["record"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|carry-forward-1d2d9649|3","findings":[
+{"summary":"Check table rows for TC_BROWSER_ERROR, START_FAIL and WIN described behaviour the cases no longer have.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"A-R2.3 row pointed at TC_BROWSER_WIN step 4, moved to step 5 by the prior review's rewrite.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"W3 status line still said page.js holds seven cases.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"environment.md harness description claimed a case-stopped server and a sole reload navigation, untrue of eight cases.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Reserved test-ID list never extended with TC_BROWSER_START_FAIL.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"spec A-R2.4 prescribed stopping the server while the case injects failure; open-gap still counted seven browser cases.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|plan-3e9149d3|2","findings":[
+{"summary":"T-10 require scan would reject the product's own relative modules that R-1.1 permits.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"T-33 scratch test title used a command-level ID, breaking the ID convention and polluting T-31 extraction.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"T-32 and T-33 command blocks discarded output, so they could not show their stated expected results.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/haiku55-max-battleship-d521a8|spec-15f83612|4","findings":[
+{"summary":"R-12 and TC-13 did not say shots are sent before reading the first response, so a sequential run passes a racy server.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"R-10 mutation check did not name the rule it breaks, so not replayable.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-18 loopback-only clause had no check; TC-16 covered only port 3000.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC-5 did not assert 200 and application/json for each valid shot.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC-6 did not assert application/json for each rejection.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-9 said server.js handles HTTP only, uncheckable and conflicting with it holding the games.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|spec-d49f5f4d|5","findings":[
+{"summary":"A-R10.2 named no replayable predicate and the same-coordinates test proves nothing; replaced with a verifiable sequence.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"Performance NFR claimed no document reload but no acceptance line backed it; A-R2.2 extended.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/ds-flash-978478-battleship|implement-e510b622|1","findings":[
+{"summary":"lib/game.js header called the logic pure, contradicted by Math.random and record mutation; comment reworded.","touched":["code"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|spec-d49f5f4d|10","findings":[
+{"summary":"R-1 and research decision 10 stated incompatible port rules; spec now records which binds.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261028/pa-ds-battleship-4ed4e3|implement-8baf1eca|1","findings":[
+{"summary":"withPage ignored Page.navigate errors, so an unreachable origin failed as an uninformative 5 s timeout.","touched":["test"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|implement-768ae1f5|1","findings":[
+{"summary":"close() after a Chrome crash never settled because no second exit event is emitted.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Launch failure while waiting for DevToolsActivePort leaked the browser-check profile directory.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Failed spawn raised an unhandled error event and fast exits cost the full 20 s deadline.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Removed dead wsPath field.","touched":["code"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/ds-flash-978478-battleship|test-strategy-3c29216f|3","findings":[
+{"summary":"C-NFR3-1 required exactly one stdout line, stricter than the spec, failing conforming servers.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Rules-module call and fleet shape for deterministic tests were unnamed in plan and architecture.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello|plan-53e7a3b6|2","findings":[
+{"summary":"W1 context did not name the acceptance identifiers its completion covers, only a generic phrase.","touched":["run-result"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/haiku55-max-battleship-d521a8|spec-15f83612|7","findings":[
+{"summary":"TC-3 checked that served HTML has the title, so a longer title would pass; now checks exact title text.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"TC-6 did not name the request for each rejection row.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC-6 repeated-cell row referred to a 409 without sending the second shot.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC-6 game-over row did not send the shot the 409 applies to.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261026/ds-flash-978478-battleship|implement-22401cdc|1","findings":[
+{"summary":"server.js header lacked the access posture statement (loopback bind, no authentication); added.","touched":["code"],"nature":"polish","attribution":"clear"},
+{"summary":"Header carried a plan note about later steps that goes stale when S2 lands; removed.","touched":["code"],"nature":"polish","attribution":"clear"},
+{"summary":"Shell new-game button is unlabelled; left as planned for W3.","touched":["nothing"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/haiku55-max-battleship-d521a8|spec-15f83612|13","findings":[
+{"summary":"Loopback clause omitted ::1, so checkers could disagree.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-5 said a valid shot returns 200 while R-6 rejects post-game shots with 409; defined valid shot.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-8 named a game record no check or response carries; words removed.","touched":["record"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/haiku55-max-battleship-d521a8|spec-15f83612|10","findings":[
+{"summary":"TC-5 per-cell checks named no fleet or cells, so not replayable; fleet and firing sequence added.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/haiku55-max-battleship-d521a8|spec-15f83612|12","findings":[
+{"summary":"TC-13 second check named no cells for its ten shots; now names (0,0) to (0,9).","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-ds-battleship-759a03|release-plan-18902b16|4","findings":[
+{"summary":"Inline code span for workspace return split across a line break; and release-target bullet split.","touched":["record"],"nature":"polish","attribution":"clear"},
+{"summary":"Closing sentence said non-knowledge paths are kept as if already decided, rather than by the review's --keep.","touched":["record"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261020/chess-sf-full-9e52e8|system-test-author-304a799f|1","findings":[
+{"summary":"SYS-TAB expected the tab absent and allowed a name-only PermissionSetTabSetting filter, a false empty.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"SYS-UI named no illegal square and no promotion plies.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261020/chess-sf-full-9e52e8|plan-5e48872e|1","findings":[
+{"summary":"A4 visibility check (listing CustomTab metadata) does not show who can open the tabs and was a weaker stand-in.","touched":["record","run-result"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"W2 confirm-by omitted the human class command R-9 requires.","touched":["run-result"],"nature":"missing-content","attribution":"uncertain"},
+{"summary":"Budget-test row said budget item although those methods belong to W1.","touched":["record","run-result"],"nature":"stale-or-wrong-reference","attribution":"uncertain"}]},
+{"id":"e2e-runs/20261024/chess-sf-full-12a23d|spec-920922da|3","findings":[
+{"summary":"R-4 claimed both perft strings omit clocks as published, but position 3 includes 0 1.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|spec-f2168971|3","findings":[
+{"summary":"Sweep counted only hit and sunk, so a fire body carrying extra properties such as ship cells would pass.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-6 accepted an import the server never calls.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Restart check assumed port 3000 was free.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-codex-hello|spec-becdd8d0|1","findings":[
+{"summary":"Stage result summary held an actual newline flattened by the display; final_result now represents LF literally.","touched":["run-result"],"nature":"polish","attribution":"clear"},
+{"summary":"Clarified failure and excluded-behaviour confirmation methods in the spec.","touched":["record"],"nature":"polish","attribution":"uncertain"}]},
+{"id":"e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|spec-f2168971|1","findings":[
+{"summary":"R-5 told HTTP checks to replay a seeded coordinate table the server cannot accept, so the start is unreachable.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-5 said an unshot cell after gameOver can return sunk; it can only be miss.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"R-6 would pass a test that only put R-4 or R-5 in the title.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261020/chess-sf-full-9e52e8|implement-4b58f3cf|1","findings":[
+{"summary":"After New game a click could call applyMove with a move from the stale previous move list.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Square buttons showed only the piece glyph; the coordinate was only in aria-label.","touched":["code"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring|spec-6370fe42|1","findings":[
+{"summary":"Success body not stated as exactly its keys, so an extra JSON key would pass.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-6 allowed an R-5 test checking only result and gameOver.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Page could list the same sunk name twice; no rule forbade it.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"S3's word every needed explicit limit to successful fires.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/chess-sf-full-12a23d|test-spec-4fb41465|1","findings":[
+{"summary":"TC_8 stopped at the e2e4 FEN, so a bug never clearing en passant on the next move would pass.","touched":["run-result"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_4 counted 14 moves without showing omitted clocks default to 0 and 1.","touched":["run-result"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_21 named Kiwipete without the FEN string.","touched":["run-result"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|test-strategy-3679c7c7|4","findings":[
+{"summary":"TC-2 listener comparison after process exit could pass a server holding an ephemeral port or never exiting.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/chess-sf-full-ed3292|spec-1d6d2aa8|6","findings":[
+{"summary":"Promotion results named only the queen, so a wrong suffix still yielding a queen would pass.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"En passant capture was specified for white only.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Black promotion case was unstated.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/chess-sf-full-12a23d|implement-dbefdc1f|1","findings":[
+{"summary":"applyMove accepted e2e4q as e2e4 because the promotion character was ignored.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"legalMoves accepted side W because Apex == is case-insensitive.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Bad clock threw TypeException instead of IllegalMoveException.","touched":["code"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Four public methods had no contract comments.","touched":["code"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-claude-csv-report|implement-a8bcb609|2","findings":[
+{"summary":"Three docstring lines exceeded 88 characters; rewrapped.","touched":["code"],"nature":"polish","attribution":"clear"}]},
+{"id":"e2e-runs/20261020/chess-sf-full-9e52e8|test-strategy-1b63cbb3|2","findings":[
+{"summary":"TC_META treated any SLChess_Board mention as the app tab, and a flexipage with no component would pass.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"TC_8 and TC_14 showed ellipsis fragments, so a suffix assertion could stand in for the whole FEN.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/chess-sf-full-ed3292|test-strategy-18434ee2|1","findings":[
+{"summary":"R-1 had no check.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_5 named castle UCI moves without result FENs.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC_9 accepted any non-empty list for the check position.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"},
+{"summary":"Smoke command had never been run; probe exit recorded.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2180-sonnet-battleship-36036c|release-plan-e0b16ff4|1","findings":[
+{"summary":"Consumer check bare node --test exits 0 with zero tests when product absent, so it could not fail.","touched":["record","run-result"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|test-strategy-3679c7c7|3","findings":[
+{"summary":"Invalid-PORT check did not say to stop the unset-PORT server first, so overlap could flake the refused-connection check.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/chess-sf-full-ed3292|spec-1d6d2aa8|4","findings":[
+{"summary":"Black rook leaving home lacked a replayable result FEN, so an engine clearing rights only on capture would pass.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship|implement-0259dbfc|2","findings":[
+{"summary":"Implement result said the status starts as Choose a cell; corrected in the final result for the test stage.","touched":["run-result"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261020/chess-sf-full-9e52e8|carry-forward-56923aa8|1","findings":[
+{"summary":"W3 focused command was in environment.md but uncommitted, absent from HEAD.","touched":["nothing"],"nature":"missing-content","attribution":"uncertain"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-claude-batch/seat-reservations|carry-forward-774f502c|1","findings":[
+{"summary":"environment.md misdescribed the request helper signature.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261020/chess-sf-full-9e52e8|test-strategy-1b63cbb3|3","findings":[
+{"summary":"TC_10 said the en passant square is included, which was wrong.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"TC_11 named only the first rank of a promotion.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"App check allowed a Classic app with Standard navigation.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/trace-verify-1131-b096ae/hello|release-plan-c7eae63c|1","findings":[
+{"summary":"Rollback used git reset --hard with a placeholder path instead of the documented reset --keep recipe.","touched":["record","run-result"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"Post-release present and absent outputs were claimed but unprobed.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2180-sonnet-battleship-36036c|spec-1124a2e8|2","findings":[
+{"summary":"R-4 left the order of validation checks open, so two implementations could differ.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2180-sonnet-battleship-36036c|test-strategy-fb638172|2","findings":[
+{"summary":"Claim about bare node --test was wrong: it runs helpers.js and loads the opt-in browser file.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"},
+{"summary":"TC-13 had no fixed seeds.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"TC-16 left TC-15's status open.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-sonnet-battleship-491d9a|release-plan-bdc2c569|1","findings":[
+{"summary":"Post-release absent signal cannot occur: node --test exits 0 with tests 0, a pass by absence.","touched":["record"],"nature":"behaviour-defect","attribution":"clear"}]},
+{"id":"e2e-runs/20261027/v2170-sonnet-battleship-491d9a|plan-a2ae7a70|1","findings":[
+{"summary":"AD-3 and AD-4 were filed under Structure rather than Decisions.","touched":["record"],"nature":"polish","attribution":"clear"},
+{"summary":"No architecture decision carried a status.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/trace-verify-4fd9f1/hello|spec-02fe4971|1","findings":[
+{"summary":"R-2 checked only stdout, weaker than R-1's exit code and stderr checks.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"R-2 mutation check named no concrete mutation.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"cwd check used a <repo> placeholder that cannot be replayed.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/trace-verify-1131-b096ae/hello|carry-forward-f61da625|1","findings":[
+{"summary":"spec.md Basis lines carried test ID TC_1, against the rule that test IDs live only in test code.","touched":["record"],"nature":"stale-or-wrong-reference","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/gate-2100-96810d-claude-web/battleship|spec-d63ccce7|1","findings":[
+{"summary":"Examples had no concrete coordinates, so not replayable.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"Row/col orientation was unstated.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"Server startup method for tests was unspecified.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"No 405 behaviour was specified.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship|test-strategy-e311b92a|1","findings":[
+{"summary":"Injected layout and rng had no interface.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"UI-1 had a garbled sentence and no countable selector.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-claude-batch/seat-reservations|test-strategy-e1d8bd68|1","findings":[
+{"summary":"Test file layout unspecified, so the discovery command was not replayable.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"},
+{"summary":"TC_14 exactly-64KiB case named no endpoint or body.","touched":["record"],"nature":"missing-content","attribution":"clear"},
+{"summary":"All responses JSON had no assertion.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship|plan-1f3bd8cd|1","findings":[
+{"summary":"AD-2 left page location open between inline string and page.html.","touched":["record"],"nature":"missing-content","attribution":"clear"}]},
+{"id":"e2e-runs/20261025/trace-verify-1131-b096ae/hello|test-strategy-831800cc|1","findings":[
+{"summary":"ID convention put TC_1 in the method name, which would not count as its own word in -v output.","touched":["record"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]},
+{"id":"e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship|test-spec-f941e8f3|1","findings":[
+{"summary":"TC-4 oracle asserted shots count unchanged, a field the contract never defines; replaced with observable state.","touched":["run-result"],"nature":"contradiction-or-unverifiable","attribution":"clear"}]}
+]

@@ -1,0 +1,11 @@
+{
+ "model_used": "gpt-6-astra",
+ "fallback": false,
+ "exit": 0,
+ "profile": "agent",
+ "persona": "codex-astra",
+ "effort": "max",
+ "sandbox": "workspace-write",
+ "tool_restrictions": "none",
+ "error": null
+}

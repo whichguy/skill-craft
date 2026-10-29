@@ -455,12 +455,12 @@ const TRACE = /*TRACE-DATA*/null;
 
   // ---------------------------------------------------------------- timeline
   const isHeld = (ev) => ev.kind === "command" && !!(ev.held && ev.held.length);
-  const isRefusal = (ev) => ev.kind === "command" && !!ev.exit && !ev.check_only && !isHeld(ev);
+  const isRefusal = (ev) => ev.kind === "command" && !!ev.exit && ev.verb !== "check" && !isHeld(ev);
   function eventRow(ev) {
     const failed = ev.kind === "command" && ev.exit;
     const held = isHeld(ev);
     const refusal = isRefusal(ev);
-    const kind = failed ? (held ? "held" : ev.check_only ? "check" : "refused") : ev.kind;
+    const kind = failed ? (held ? "held" : ev.verb === "check" ? "check" : "refused") : ev.kind;
     let body = [];
     if (ev.kind === "command") {
       body.push(el("span", {class: "mono"}, ev.verb + (ev.action ? " " + short(ev.action) : "")), " → exit " + ev.exit);

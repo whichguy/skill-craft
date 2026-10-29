@@ -35,6 +35,7 @@ import shiploop_stage_spec as stage_spec  # noqa: E402
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
 import shiploop_inner_fixture as inner_fixture  # noqa: E402
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
@@ -213,13 +214,15 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
-    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None, bind=True, predecessors=None):
+    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None, bind=True,
+                               predecessor_extra=None):
         """Create a real CLI parent at a target stage after synthetic setup only.
 
         The pure navigator transitions below deliberately do not claim preceding
         Improve execution.  The test's target-stage bind, child runtime and
-        parent import still use the actual command-line interfaces.  ``predecessors``
-        maps a stage the walk passes to the fields its synthetic result adds.
+        parent import still use the actual command-line interfaces.
+        ``predecessor_extra`` adds fields to a predecessor's synthetic result, by stage (an implement target needs a
+        step-plan with a step).
         """
         run = self.base / ("parent-" + stage)
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
@@ -238,7 +241,7 @@ class ImproveCliFixture(unittest.TestCase):
             }
             if predecessor == "plan":
                 setup["work_items"] = [{"id": "W1", "title": "Synthetic local-skill item"}]
-            setup.update((predecessors or {}).get(predecessor, {}))
+            setup.update((predecessor_extra or {}).get(predecessor, {}))
             state = navigator.apply(state, action, setup)
             if state.get("active_improve") is not None:
                 state = navigator.finish_improve(state, action, {
@@ -1135,7 +1138,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                   "environment": "none: no new command"}
         self._start_parent_at_stage("document", [str(self.product_contract)],
                                     producer_extra={"knowledge": record, "assumptions": []},
-                                    predecessors={"step-plan": {"paths": ["src/**"], "steps": steps}})
+                                    predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
         handoff = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         self.assertNotIn("improve-commit --run-dir", handoff)
         message = bridge.receipt_path(self.bound).with_name("commit-message.md")
@@ -1497,7 +1500,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                   "environment": "none: no new command"}
         self._start_parent_at_stage("document", [str(self.product_contract)],
                                     producer_extra={"knowledge": record, "assumptions": []},
-                                    predecessors={"step-plan": {"paths": ["src/**"], "steps": steps}})
+                                    predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
         self.assertEqual(self.bound["stage"], "document")
         self.finish_ephemeral()
         spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: unmarked."), encoding="utf-8")
@@ -1524,7 +1527,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                   "environment": "none: no new command"}
         self._start_parent_at_stage("document", [str(self.product_contract)],
                                     producer_extra={"knowledge": record, "assumptions": []},
-                                    predecessors={"step-plan": {"paths": ["src/**"], "steps": steps}})
+                                    predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
         state = store.read_record(self.run / "state.md")
         base = self.home_git("rev-parse", "HEAD").strip()
         navigator._iteration_record(self.run, "W1", test_loop._step_plan(state, "W1")[0], "S1", number=1, base=base,
@@ -1954,13 +1957,14 @@ class ImproveCommitContractTests(ImproveCliFixture):
         return subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, text=True,
                               env=self.environment).stdout
 
-    def begin(self, stage="test-strategy", producer_extra=None):
+    def begin(self, stage="test-strategy", producer_extra=None, predecessor_extra=None):
         self.git("init", "-q")
         self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "-A")
         self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "base")
         self.base_commit = self.git("rev-parse", "HEAD").strip()
         (self.repo / "scratch.txt").write_text("the user's own uncommitted note\n", encoding="utf-8")
-        self._start_parent_at_stage(stage, [str(self.product_contract)], producer_extra=producer_extra)
+        self._start_parent_at_stage(stage, [str(self.product_contract)], producer_extra=producer_extra,
+                                    predecessor_extra=predecessor_extra)
         self.message = bridge.receipt_path(self.bound).with_name("commit-message.md")
         self.message.parent.mkdir(parents=True, exist_ok=True)
         self.commit_args = [CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve,
@@ -2044,16 +2048,17 @@ class ImproveCommitContractTests(ImproveCliFixture):
                              *completion, status=2).stderr
         self.assertIn("Commit this review's changes first", self.line_one(stderr))
 
-    def test_check_only_on_the_improve_stage_is_refused_and_imports_nothing(self):
-        """Review of 2026-10-12: --check-only on the Improve stage's id ran the real import.  It previews a producer
+    def test_a_check_on_the_improve_stage_is_refused_and_imports_nothing(self):
+        """Review of 2026-10-12: --check-only (now `check`) on the Improve stage's id ran the real import.  It previews a producer
         stage's draft; the Improve stage has none, so it is refused with the command to run instead."""
         self.begin()
         self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
         before = (self.run / "state.md").read_bytes()
-        stderr = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, "--check-only",
-                             *completion, status=2).stderr
-        self.assertIn("--check-only previews a producer stage's draft result", self.line_one(stderr))
+        stderr = self.invoke(CLI, "check", "--run-dir", self.run, "--action", self.improve, status=2).stderr
+        first = stderr.splitlines()[0]
+        self.assertTrue(first.startswith("ShipLoop check: the check says no. "), stderr)
+        self.assertIn("the Improve stage has no draft to check", first)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)  # the named command works
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
@@ -2978,8 +2983,8 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertTrue({"improve-pass", "complete"} <= verbs, verbs)
         for command in commands:
             with self.subTest(command=command):
-                if shlex.split(command)[2] in ("pause", "improve-commit"):
-                    continue  # not a driving command (a pause ends the turn; improve-commit prints no packet)
+                if shlex.split(command)[2] in ("pause", "improve-commit", "lint"):
+                    continue  # not a driving command (a pause ends the turn; improve-commit and lint print no packet)
                 self.assertTrue(keepalive.DRIVING_COMMAND.search(command), command)
                 self.assertEqual(keepalive.command_run_dir({"tool_input": {"command": command}}), str(self.run))
 
@@ -3016,6 +3021,73 @@ class ImprovePassTests(ImproveCliFixture):
                           encoding="utf-8")
         self.run_argv(wrapper)
         self.assertTrue((self.reviews() / "report-1.json").is_file())
+
+
+class ImproveLintCommandTests(ImproveCliFixture):
+    """The lint command an Improve handoff prints, run as printed through the real `shiploop lint` (E2E 2026-10-28).
+
+    `shiploop lint` lints the current action, and while an Improve stage runs the cursor stays on the reviewed action,
+    so the verb accepts only that action's id.  Every command in the Improve stage's own files names the Improve stage's
+    id, and the handoff printed no lint command: in two DeepSeek flash brownfield runs (bf-ds-*-09c33b) all 7 lint
+    refusals were a reviewer's call with the Improve stage's id, at implement (4), carry-forward, system-test-author and
+    release-plan reviews.  The handoff now prints the command with the reviewed action's id, as producer packets print
+    theirs; the Improve stage's own id stays refused (one supported version: no alias).
+    """
+
+    _write_producer = ImproveCommitContractTests._write_producer
+    _start_parent = ImproveCommitContractTests._start_parent
+    git = ImproveCommitContractTests.git
+    begin = ImproveCommitContractTests.begin
+    run_argv = ImproveCommitContractTests.run_argv
+
+    def setUp(self):
+        super().setUp()
+        self.environment["HOME"] = str(self.base / "home")
+
+    def assert_the_printed_lint_command_runs(self, stage, **options):
+        """Start the review of ``stage`` (``options`` go to ``begin``), run the handoff's lint command as printed."""
+        knowledge_support.write({"repo": str(self.repo)})       # the knowledge home a run has by then (release-plan's close)
+        self.begin(stage, **options)
+        self.assertEqual(store.read_record(self.run / "state.md")["lint"], "fix")      # init's default: the run lints
+        # The file the improve skill reads, as ShipLoop wrote it when it printed the Improve packet.
+        handoff = navigator.improve_handoff_path(self.bound).read_text(encoding="utf-8")
+        lines = [line for line in handoff.splitlines() if " lint --run-dir=" in line]
+        self.assertEqual(len(lines), 1, "the handoff prints one runnable lint command")
+        # Exit 0: the only changed file (scratch.txt) has no linter, so no host tool decides the result.
+        linted = self.run_argv(shlex.split(lines[0][lines[0].index("python3 "):]))
+        self.assertIn("ShipLoop never gates on it.", linted.stdout)                 # the line a finished pass ends with
+        # The id every other command in the Improve files names stays refused: the handoff, not the verb, changed.
+        refused = self.run_argv([sys.executable, "-B", str(CLI), "lint", "--run-dir", str(self.run),
+                                 "--action", self.improve], status=3)
+        self.assertIn(self.improve + " is not the current action (" + self.action + ")", refused.stderr)
+
+    def test_a_step_reviews_printed_lint_command_runs_through_shiploop_lint(self):
+        # The step review follows the step's document stage (design T section 8), so the step plan the fixture accepts
+        # has one step; it replaces the implement review the command was first printed for.
+        step = {"id": "S1", "task": "Make the planned change.", "deps": [], "criteria": [], "proof": "true",
+                "paths": ["src/**"], "skills": []}
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self.assert_the_printed_lint_command_runs(
+            "document", producer_extra={"knowledge": record, "assumptions": []},
+            predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": [step], "test_commands": [],
+                                             "test_commands_na": "The fixture has no test suite."}})
+
+    def test_a_carry_forward_reviews_printed_lint_command_runs_through_shiploop_lint(self):
+        self.assert_the_printed_lint_command_runs(
+            "carry-forward", producer_extra={"skill": {"decision": "none", "reason": "No procedure repeated."}})
+
+    def test_a_system_test_author_reviews_printed_lint_command_runs_through_shiploop_lint(self):
+        self.assert_the_printed_lint_command_runs(
+            "system-test-author",
+            producer_extra={"system_commands": [], "system_commands_na": "The fixture has no system to test."})
+
+    def test_a_release_plan_reviews_printed_lint_command_runs_through_shiploop_lint(self):
+        # A planning review lints too: the seventh refusal came from one.
+        entry = {"how": "A person opens the product contract.", "sources": ["product/contracts/cold-recovery.md"]}
+        self.assert_the_printed_lint_command_runs(
+            "release-plan", producer_extra={"consumer_entry": entry, "consumer_checks": [],
+                                            "consumer_checks_na": "The fixture releases nothing."})
 
 
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):

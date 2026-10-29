@@ -68,10 +68,9 @@ a missing or still-active receipt and a packet from another contract; `blocked`
 needs no receipt when the loop never started. Every stage exits on its first
 iteration whose exit assessment holds. There is no iteration limit.
 
-`complete --check-only` runs the stage's script gates on a result without
-completing the action or saving anything, and prints each refusal as `complete`
-would. The step-plan loop runs it on every draft. A duplicate command runs
-once; check-only reuse: state-files.md `tests/`.
+`shiploop check` runs `complete`'s gates on a result and accepts nothing; `complete` takes its yes (`checks/`,
+state-files.md). The Checked-by line says to run the callback with `check` in place of `complete`; the
+step-plan loop checks each draft. A duplicate command runs once.
 
 ## Expectations and validate-existing
 

@@ -439,3 +439,44 @@ now asks for a path-independent measurement with headroom, and asks the owner be
   the comments above `MAX_DEFAULT_JOBS` and `_SHIPLOOP_PACKET_SOURCES`, and `test/test-groups.test.py` passing.
 - F19 (firm): the hub check no longer depends on a count. Adding consumers leaves a hub's selection unchanged, and
   turning the hub rule off fails it. Proof: the mutant above.
+
+## Round 4 (2026-10-29): a suite's bytecode broke a sibling suite's `tar` on CI
+
+**Question.** Why did CI's quick job fail on `1961f4c5` (run 40813164137) when every local run was green?
+
+**What CI showed.** `sync-plugin-views` and `native-marketplace-adapters` failed within 2 ms of each other (03:51:21Z),
+each with `tar: ./test: file changed as we read it`. Both copy the checkout with `tar -cf - .` into a fixture. The
+rerun failed the same way. The full tier had passed on the release before it (`3d7b83a3`).
+
+**Cause (inferred; the runner was not observed).** At `--jobs 4` the first four suites in catalog order start
+together: `test-groups`, `ci-policy`, `sync-plugin-views` and `native-marketplace-adapters`. The first two are Python
+suites that import `test/ci_policy.py`, `suite_catalog.py` and `run_suites.py`, so on a fresh runner checkout they
+create `test/__pycache__` while the other two are copying. GNU tar exits 1 when a directory changes during the copy.
+The runner's own `python3 -B` does not reach the processes it starts, so `run_process` gave its children an
+environment with bytecode writing on.
+
+**Why no local run showed it.** Two reasons, both found today:
+- macOS's bsdtar (3.5.3) makes no such check. GNU tar is not installed here and was not downloaded.
+- The owner's shell exports `PYTHONDONTWRITEBYTECODE=1`, so nothing here wrote bytecode in the first place.
+
+**Change.** `run_suites.run_process` sets `PYTHONDONTWRITEBYTECODE=1` for every suite, beside `SHIPLOOP_PROGRESS=off`
+and the private `XDG_STATE_HOME`. The tar sites are left alone: the fixtures already exclude `__pycache__`, and the
+`test/` directory itself changing was the only trigger found.
+
+**Evidence.**
+- `test/test-groups.test.py` `ChildBytecodeTest`: a child that imports a sibling module leaves no `__pycache__`. The
+  test removes the variable from the parent environment, so the runner has to supply it. Fail-first: before the change
+  the child left one `__pycache__`; after, none. `test-groups`: 51 OK.
+- Through the runner, with the variable removed from the parent environment as on CI, running
+  `test/ci-policy.test.py`: origin/main leaves `test/__pycache__` (0 dirs before, 1 after); with the change, 0 after.
+- ruff on `test/run_suites.py` and `test/test-groups.test.py`: 4 and 12 findings, the same counts as origin/main.
+
+**Findings**
+- F20 (interim): the cause is inferred and GNU tar was not run here. The fix is proven at the runner: a child suite no
+  longer creates bytecode in the tree.
+- CI on the fix commit `7f21c0e7` (2026-10-29): the push run (40889687968) and a full-tier dispatch (40889741622, all
+  five groups) are green. The quick job ran only `test-groups` and `ci-policy`, so it did not repeat the failing
+  condition. The full tier's core group (53 suites, `--jobs 4`, catalog order) ran `sync-plugin-views` and
+  `native-marketplace-adapters` and both passed on the Linux runner. That is the nearest repeat so far, but the log
+  prints each suite's output at the end, so it does not show whether they started beside the Python suites. F20
+  stays interim until a quick run that selects both suites, as the 1.21.0 release's hook changes will, is also green.

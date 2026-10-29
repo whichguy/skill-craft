@@ -7,7 +7,7 @@ that named the run, with its exit code and refusal text; each packet printed, wi
 that script's own reader (``shiploop_trace.build``), so the harness and ``shiploop trace`` attribute events the same way, and
 gives the harness's readers one shape:
 
-- ``failures``: every traced command that exited non-zero, in order (``--check-only`` failures included and flagged, as the
+- ``failures``: every traced command that exited non-zero, in order (a failed check included and flagged: ``shiploop check``, or ``complete --check-only`` before it; as the
   host stream counted them), with the stage the run was in, the action, the refusal text and its first line;
 - ``packets``: per action, every print, with its text as sent, its size as printed and whether it repeated an earlier one;
 - ``hooks``: every keepalive stop decision with its text;
@@ -86,7 +86,8 @@ def read(run_dir: Path | str | None) -> dict | None:
             before = (event.get("stage") or [None])[0]
             text = shiploop_trace._screened(event["error"]) if isinstance(event.get("error"), str) else None
             failures.append({"i": event["i"], "ts": event.get("ts"), "at": event.get("at"), "verb": event.get("verb") or "unknown",
-                             "exit": event.get("exit"), "check_only": bool(event.get("check_only")),
+                             "exit": event.get("exit"),
+                             "check_only": bool(event.get("check_only") or event.get("verb") == "check"),
                              "action": event.get("action") or (event.get("cursor") or [None])[0] or owner,
                              "stage": before, "text": text, "line": first_line(text)})
         elif event["kind"] == "packet" and owner:

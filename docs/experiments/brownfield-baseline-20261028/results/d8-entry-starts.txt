@@ -1,0 +1,11 @@
+files 1204; entries 5369; files with an ID that starts more than once 56
+first start -> later starts:
+    56  heading -> table
+    29  heading -> list
+    18  table -> heading
+    15  list -> plain line
+     9  heading -> heading, plain line
+     5  heading -> list, plain line
+     5  plain line -> heading
+     4  plain line -> heading, list
+entries whose start moved: 27 {'table -> heading': 18, 'plain line -> heading': 9}; retired flags changed: 0 (asserted); outlines changed: 8

@@ -894,7 +894,7 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     done: reruns every check where the entry ran them (the record's ``place``) and refuses a mismatch, then
     ``check_preparatory_changes`` against the entry snapshot; at the base (re-entry) any change since entry is
     refused and nothing is returned.  send-back: requires ``failed_expectations`` naming known expectations.  blocked:
-    nothing.  ``tag`` names the saved outputs (``check-only`` for ``complete --check-only``, which commits nothing).
+    nothing.  ``tag`` names the saved outputs (``check`` for ``shiploop check``, which commits nothing).
     Raises ExpectationError.
     """
     _need(isinstance(result, Mapping), "the result must be an object")

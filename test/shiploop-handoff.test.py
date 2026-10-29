@@ -244,6 +244,22 @@ class EntryTests(RepoCase):
             with self.assertRaises(ValueError):
                 knowledge.entry_text(self.repo, bad)
 
+    def test_a_heading_or_list_start_outranks_an_earlier_table_row_or_plain_line_of_the_id(self) -> None:
+        # Owner decision D8, 2026-10-28: the first start counted, so an overview sentence or a summary row stood for the
+        # entry below it, and the superseded AD-4 read as current.  Over past E2E runs' knowledge files this rule moved 27
+        # entries, every one from such a line to its heading (docs/experiments/brownfield-baseline-20261028/entry_starts.py).
+        self.home("architecture.md", "# Architecture\n\n## Overview\n\nAD-4 and AD-10 appear under Superseded.\n\n"
+                  "| ID | Decision |\n|---|---|\n| AD-1 | Plain modules |\n\n## Decisions\n\n### AD-1 Plain modules\n\n"
+                  "Why: no build step.\n\n## Superseded\n\n### AD-4 The number is the ID\n\nSuperseded by AD-1.\n")
+        found = knowledge.entries(self.repo, "architecture.md")
+        self.assertEqual(found["AD-1"], knowledge.Entry("### AD-1 Plain modules\n\nWhy: no build step.", False))
+        self.assertEqual(found["AD-4"], knowledge.Entry("### AD-4 The number is the ID\n\nSuperseded by AD-1.", True))
+        self.assertNotIn("AD-10", found)                                  # a mention inside a line
+        self.assertEqual(knowledge.outline((self.repo / knowledge.HOME / "architecture.md").read_text(), "architecture.md"), [
+            knowledge.Section(1, "Architecture", ()), knowledge.Section(2, "Overview", ()),
+            knowledge.Section(2, "Decisions", (("AD-1", "AD-1 Plain modules"),)),
+            knowledge.Section(2, "Superseded", (("AD-4", "AD-4 The number is the ID"),))])
+
 
 # ------------------------------------------------------------------------------------------ run baseline and diff (D3)
 
@@ -2258,21 +2274,21 @@ class CompleteRouteTests(inner.RunDriver):
 
 
 class SendBackBudgetCliTests(inner.RunDriver):
-    """Send-backs through the real CLI (owner 2026-10-24: no run caps): check-only accepts a third send-back, one more
+    """Send-backs through the real CLI (owner 2026-10-24: no run caps): the check accepts a third send-back, one more
     than the old cap of two, and blocked awaiting a decision is still accepted by the same gate."""
 
     SEND_BACK = {"outcome": "send-back", "summary": "The step plan cannot meet a criterion as written."}
     DECISION = {"kind": "answer", "question": "Which criterion yields: C1 or C2?", "options": ["C1", "C2"],
                 "no_default": "The plan cannot meet both criteria and either choice changes the product."}
 
-    def cli(self, action: str, path: Path, *flags: str) -> subprocess.CompletedProcess:
-        argv = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run_dir), "--action", action,
+    def cli(self, action: str, path: Path, *flags: str, verb: str = "complete") -> subprocess.CompletedProcess:
+        argv = [sys.executable, "-B", str(CLI), verb, "--run-dir", str(self.run_dir), "--action", action,
                 "--result", str(path), *flags]
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
                    SHIPLOOP_PROGRESS="off", SHIPLOOP_KEEPALIVE="off")
         return subprocess.run(argv, capture_output=True, text=True, env=env)
 
-    def test_check_only_accepts_a_third_send_back_and_blocked_is_still_accepted(self) -> None:
+    def test_check_accepts_a_third_send_back_and_blocked_is_still_accepted(self) -> None:
         self.start()
         for used in (1, 2):
             self.drive_to("implement")
@@ -2283,24 +2299,24 @@ class SendBackBudgetCliTests(inner.RunDriver):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, inner.prepare(self.run_dir, state, dict(self.SEND_BACK)), "result")
-        third = self.cli(action, path, "--check-only")
+        third = self.cli(action, path, verb="check")
         self.assertEqual(third.returncode, 0, third.stdout + third.stderr)
         self.assertNotIn("send-backs", third.stdout + third.stderr)
-        self.assertEqual(self.state()["revisions"], {"W1": 2})   # check-only completes nothing
-        # The named exit goes through the same gate, check-only first, then for real.
+        self.assertEqual(self.state()["revisions"], {"W1": 2})   # the check completes nothing
+        # The named exit goes through the same gate, the check first, then for real.
         store.write_record(path, dict(self.SEND_BACK, outcome="blocked", awaiting=self.DECISION), "result")
-        checked = self.cli(action, path, "--check-only")
+        checked = self.cli(action, path, verb="check")
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         done = self.cli(action, path)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual(self.state()["status"], "blocked")
         self.assertEqual(self.state()["status_reason"], "answer: " + self.SEND_BACK["summary"])
 
-    def test_check_only_accepts_a_third_outer_send_back_to_the_same_target(self) -> None:
+    def test_check_accepts_a_third_outer_send_back_to_the_same_target(self) -> None:
         """system-test sends the run back to system-test-author (S1.5); no count of send-backs refuses a third.
 
         The fixture's synthetic results do not fill the OUTER stages' fields, so the state comes from the dry run's
-        declarations (each through the real gate) and only the check-only call goes through the CLI."""
+        declarations (each through the real gate) and only the the check call goes through the CLI."""
         import shiploop_navigator_dry_run as dry_run
         outer = {"outcome": "send-back", "summary": "A case in the system test plan cannot observe its clause."}
         rows = dry_run.activity()
@@ -2327,18 +2343,18 @@ class SendBackBudgetCliTests(inner.RunDriver):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, dict(outer), "result")
-        third = self.cli(action, path, "--check-only")
+        third = self.cli(action, path, verb="check")
         self.assertEqual(third.returncode, 0, third.stdout + third.stderr)
         self.assertNotIn("send-backs", third.stdout + third.stderr)
         self.assertEqual(self.state()["revisions"], {"system-test-author": 2})
 
 
 class CaseRowCliTests(inner.RunDriver):
-    """The test-spec cases through the real CLI: the refusal's spec line and the check-only coverage notice (U12), and
+    """The test-spec cases through the real CLI: the refusal's spec line and the the check coverage notice (U12), and
     TS1's refusal at the last work item with each of its named exits accepted."""
 
-    def command(self, action: str, path: Path, *flags: str) -> list:
-        return [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run_dir), "--action", action,
+    def command(self, action: str, path: Path, *flags: str, verb: str = "complete") -> list:
+        return [sys.executable, "-B", str(CLI), verb, "--run-dir", str(self.run_dir), "--action", action,
                 "--result", str(path), *flags]
 
     def run_cli(self, argv: list) -> subprocess.CompletedProcess:
@@ -2346,7 +2362,7 @@ class CaseRowCliTests(inner.RunDriver):
                    SHIPLOOP_PROGRESS="off", SHIPLOOP_KEEPALIVE="off")
         return subprocess.run(argv, capture_output=True, text=True, env=env)
 
-    def test_a_missing_requirement_is_refused_with_the_spec_ids_and_check_only_prints_the_coverage_notice(self) -> None:
+    def test_a_missing_requirement_is_refused_with_the_spec_ids_and_check_prints_the_coverage_notice(self) -> None:
         self.start()
         self.drive_to("step-plan")
         self.complete(dict(inner.DONE, paths=list(self.PATHS),
@@ -2366,20 +2382,20 @@ class CaseRowCliTests(inner.RunDriver):
         # A row without its requirement: refused, and the second line lists the spec's IDs (R-3 is nowhere).
         bare = [{key: value for key, value in row.items() if key != "requirement"} for row in good["test_cases"]]
         store.write_record(path, dict(good, test_cases=bare), "result")
-        refused = self.run_cli(self.command(action, path, "--check-only"))
+        refused = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         lines = refused.stderr.splitlines()
         self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green", lines[0])
         self.assertEqual(lines[1], str(home / "spec.md") + " lists R-1, R-2.")
         self.assertNotIn("R-3", refused.stderr)
-        # The fixed result: check-only accepts it and counts C2, which no case and no recorded command confirms.
+        # The fixed result: the check accepts it and counts C2, which no case and no recorded command confirms.
         store.write_record(path, good, "result")
-        checked = self.run_cli(self.command(action, path, "--check-only"))
+        checked = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         notices = [line for line in checked.stdout.splitlines() if line.startswith(expectations.COVERAGE_PREFIX)]
         self.assertEqual(len(notices), 1, checked.stdout)
         self.assertIn("Criterion C2 has no test case", notices[0])
-        self.assertEqual(self.state()["accepted"].get(action), None)             # check-only completes nothing
+        self.assertEqual(self.state()["accepted"].get(action), None)             # the check completes nothing
         # The real complete accepts the same result: a notice never refuses.
         done = self.run_cli(self.command(action, path))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
@@ -2413,19 +2429,19 @@ class CaseRowCliTests(inner.RunDriver):
         good = inner.prepare(self.run_dir, state, dict(inner.DONE, test_cases=[case], assumptions=[opt_in]))
         # A procedure object on the case: the shape refusal names the six fields and nothing else.
         store.write_record(path, dict(good, test_cases=[dict(case, procedure={"start": "an empty store"})]), "result")
-        refused = self.run_cli(self.command(action, path, "--check-only"))
+        refused = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green",
                       refused.stderr.splitlines()[0])
         # The opt-in check written as a case row: refused, its ID is no focused one (never made a default command).
         store.write_record(path, dict(good, test_cases=[case, dict(case, id="RB-1")]), "result")
-        refused = self.run_cli(self.command(action, path, "--check-only"))
+        refused = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         self.assertIn("Fix the case IDs in " + str(path), refused.stderr.splitlines()[0])
         self.assertIn("Not listed by a focused command of W1: RB-1.", refused.stderr.splitlines())
         # The named exits: six fields, the opt-in check as an open item naming its locator.  Accepted.
         store.write_record(path, good, "result")
-        checked = self.run_cli(self.command(action, path, "--check-only"))
+        checked = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         done = self.run_cli(self.command(action, path))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
@@ -2435,7 +2451,7 @@ class CaseRowCliTests(inner.RunDriver):
 
     def test_ts1_refuses_an_uncovered_primary_requirement_and_accepts_a_naming_case_or_a_suite_row(self) -> None:
         """TS1 (2026-10-26) through the real CLI, at the run's only (so last) item: R-2, a primary requirement about the
-        tests, has no case.  Refused, naming R-2 and the recorded commands; a case that names it passes check-only; a
+        tests, has no case.  Refused, naming R-2 and the recorded commands; a case that names it passes the check; a
         suite row naming an unrecorded command is refused; one naming the recorded check command is accepted by the
         real complete and stored."""
         self.start()
@@ -2459,7 +2475,7 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertEqual([row["requirement"] for row in good["test_cases"]], ["R-1"])
 
         store.write_record(path, good, "result")
-        refused = self.run_cli(self.command(action, path, "--check-only"))
+        refused = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         self.assertIn("Missing: R-2.", refused.stderr)
         self.assertIn('"<one of: true, test -f a.py>"', refused.stderr)
@@ -2467,12 +2483,12 @@ class CaseRowCliTests(inner.RunDriver):
         # Exit 1: a case whose requirement names R-2 as well.
         naming = dict(good, test_cases=[dict(good["test_cases"][0], requirement="R-1, R-2")])
         store.write_record(path, naming, "result")
-        named = self.run_cli(self.command(action, path, "--check-only"))
+        named = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(named.returncode, 0, named.stdout + named.stderr)
 
         # Exit 2: a suite row; its command must be one a step plan records.
         store.write_record(path, dict(good, suite_requirements=[{"requirement": "R-2", "command": "npm test"}]), "result")
-        unrecorded = self.run_cli(self.command(action, path, "--check-only"))
+        unrecorded = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(unrecorded.returncode, 2, unrecorded.stdout + unrecorded.stderr)
         self.assertIn("npm test is not one of this run's recorded test commands (true, test -f a.py)", unrecorded.stderr)
         row = {"requirement": "R-2", "command": "test -f a.py"}
@@ -3159,9 +3175,10 @@ class RequestIndexTests(unittest.TestCase):
                               '"evidence_refs": []}\n```\n', encoding="utf-8")
             command = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run), "--action", action,
                        "--result", str(result)]
-            for extra in (["--check-only"], []):
-                with self.subTest(extra=extra):
-                    done = subprocess.run(command + extra, env=env, text=True, capture_output=True, timeout=120)
+            for verb in ("check", "complete"):   # the check and complete refuse the same uncited sentence
+                with self.subTest(verb=verb):
+                    done = subprocess.run([*command[:3], verb, *command[4:]], env=env, text=True, capture_output=True,
+                                          timeout=120)
                     self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
                     self.assertIn("intake's summary cites no S2, S5, S6 ", done.stdout + done.stderr)
             self.assertNotIn(action, store.read_record(run / "state.md")["accepted"])   # refused, not accepted

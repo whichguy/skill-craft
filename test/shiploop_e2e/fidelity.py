@@ -46,7 +46,7 @@ RUN_KIND = {"lint-gate": "lint", "test-base": "verify", "test-loop": "verify", "
 REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the "
                   "refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second "
                   "failed try); a result the host saved to a file is not read")
-TRACE_REFUSAL_LIMITS = ("read from ShipLoop's run trace: every command that named the run and exited non-zero, a --check-only failure "
+TRACE_REFUSAL_LIMITS = ("read from ShipLoop's run trace: every command that named the run and exited non-zero, a failed check (`shiploop check`, or `complete --check-only` before it) "
                         "flagged, a routed verb's (lint, red-check) with no text; a command that named no run (a workspace verb on "
                         "--workspace-root) or did not parse is read from the stream (source events.jsonl), so one a pipe hid is missing, "
                         "as is a command on a wrong --run-dir; a repeat is the same whole first line in the same stage as the "

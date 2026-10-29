@@ -37,7 +37,7 @@
       "smoke": "hello covers it in the smoke suite and as the batch gate; breadth is the generality gate for product styles",
       "parallel-graph": "no parallel-graph case has a qualified passing baseline (SPEC Promotion: a style whose focused suite has never passed is not used to judge other changes); the four cases stay opt-in with --case",
       "hosted-platform": "its cases deploy to a real hosted org (the Salesforce chess and Battleship cases need a developer org and the owner's explicit go for each deploy), so it cannot be a routine generality gate; it runs on its own with --case or its own suite",
-      "brownfield": "its one case, user-listing (build step 6, R10), has not run live, so the style has no qualified passing baseline (SPEC Promotion: a style whose focused suite has never passed is not used to judge other changes); it runs with --case"
+      "brownfield": "its cases, user-listing (build step 6, R10) and the ticket-assignment pair with its follow-on ticket-escalation (D7 of the brownfield-baseline design), have not run live, so the style has no qualified passing baseline (SPEC Promotion: a style whose focused suite has never passed is not used to judge other changes); they run with --case"
     }
   },
   "cli-files": {

@@ -205,3 +205,83 @@ Each was run against a git archive of the tip before its commit, with only the t
 
 Related: 112b239c (the listing fix), 9a8727f7, 22fbba28, bc67846c, 63d4f50a, 1411d5f1 (release 1.21.0), 7aff70aa, c895d921, and on this branch
 dc3ce69a, 541ed116, afab1d5c, e8a26f58, 30eeb187, e0ce12a9 (the work this continues).
+
+## 2026-10-28: a reviewer's lint call names the Improve stage, and lint refuses it
+
+Request from the session running the brownfield-baseline design's decision D7 (`docs/shiploop-brownfield-baseline-design-2026-10-28.md`).
+Its E2E "before" runs, pinned at `8aa6e1fe`, kept hitting lint refusals, and every one was the same template defect. The task: fix the
+template so a reviewer can run lint, with a test that runs the printed command through the real CLI; then, in a separate commit, make the
+harness keep the refusal's text. The fix stays on its own branch until the owner decides when it lands, because the "before" runs and the
+design's "after" runs must share one base. Base `68086fc1`. Nothing was pushed, released or run live; the run directories under
+`~/e2e-runs-brownfield/20261028/` were only read. Evidence: `docs/experiments/shiploop-improve-lint-20261028/lint-refusals.json` (each
+refusal's run, events.jsonl line, refused and current action, reviewed stage, and the model's next lint call).
+
+### Findings
+
+1. **Firm. All 7 lint refusals of the two DeepSeek flash runs are this defect.** Each reads "ShipLoop lint could not run: <Improve stage id>
+   is not the current action (<reviewed action id>)". They came at implement reviews (4: ticket-assignment W2 and W3, user-listing W1 and
+   W2) and, in user-listing, at the carry-forward (W2), system-test-author and release-plan reviews. The investigating session counted 6;
+   the release-plan one, later in user-listing, is the seventh (its metrics.json lists 5 lint failures). After each refusal the model's next lint call used the
+   reviewed id, which the refusal names, and was accepted: each cost a call and a turn, not the review.
+2. **Firm. Why.** `shiploop lint` lints the current action (`shiploop_navigator.lint_view`), and the cursor stays on the reviewed action while
+   its Improve stage runs, so the verb accepts only that id (`shiploop_lint.main`). Every command the Improve stage's own files print
+   (complete, improve-pass and improve-commit, in the handoff and in `CHILD/parent-return.md`) names the Improve stage's id, and the handoff
+   printed no lint command. The implement focus said "ShipLoop's lint for the step's action (`shiploop lint --action`)". That is the form
+   `docs/shiploop-packet-concision-2026-10-10.md` (finding 2) found unrunnable in producer heads, since fixed there. No other handoff mentioned
+   lint. At carry-forward the model reasoned "The lint command used at verify was `shiploop lint --action=...`. Let me use the same form", and
+   ran it with the Improve stage's id.
+3. **Firm. Reviews lint where no text asks them to.** Only the 4 implement refusals followed an instruction (the implement focus). The
+   carry-forward, system-test-author and release-plan reviews linted on their own after their edits. So the command goes in every bound
+   handoff while the run lints, not only in implement's.
+4. **Firm. The harness kept none of their text.** `test/shiploop_e2e/metrics.py` reads a refusal by its own line only when the line
+   begins with one of the protocol's prefixes (`REFUSAL_LINE`: "ShipLoop navigator: ", "ShipLoop blocked: ", "ShipLoop workspace
+   blocked: "); otherwise it keeps the first line with a failure word (`FAILURE_LINE`). lint, red-check and backchain-check refuse with
+   "ShipLoop <verb> could not run: " (exit 3), which has no failure word. So all 7 lint rows of the two runs' metrics.json read
+   `{"verb": "lint", "exit": 3, "line": ""}`, and the owner page's refusal panel, which counts refusal lines, did not list them.
+
+### What changed
+
+| Commit | Change | Where |
+|---|---|---|
+| 18844f21 (first d0916465) | Each bound handoff's Commit section ends with "Lint after your last edit (report-only; its --action is the reviewed <stage> action, not this Improve stage): <exact command>" when the run's lint option is fix or report, as producer packets print theirs. The implement focus, in both wordings, says "(its command is under Commit when the run lints)" in place of the unrunnable form. `shiploop lint` is unchanged: it still refuses the Improve stage's id (one supported version, no alias). | `shiploop_navigator.py`: `_improve_lint_lines`, `improve_handoff_text`; `shiploop_prompts.py`: `IMPLEMENT_STEP_REVIEW_FOCUS_HEAD`, `_STEPS_WORDING`; note `improve-lint-reviewed-action` |
+| this commit | `REFUSAL_LINE` also matches "ShipLoop <verb> could not run: ". Such a refusal is read from its own line and, like the protocol's, counts whatever exit code the host showed; the owner page's refusal panel lists it by stage. Harness only, no note. | `test/shiploop_e2e/metrics.py`: `REFUSAL_LINE` |
+
+The line follows the improve-commit and improve-pass lines, because the improve-commit line must end inside the first 4,500 characters: at
+install lengths 24 to 99 characters are left in the handoffs nearest the bound. The focus edit keeps the one-step wording's length and adds
+6 characters to the several-steps wording.
+
+### Tests
+
+- `ImproveLintCommandTests` (4 tests, `test/shiploop-actual-improve-cli.test.py`). For implement, carry-forward, system-test-author and
+  release-plan, a run started by `init` (lint fix, the default) reaches the stage's Improve stage through the real `complete`. The test reads
+  the handoff file the improve skill reads, runs its one lint command as printed (exit 0), and checks that the Improve stage's id is still
+  refused (exit 3, "is not the current action"). Run against a worktree of `68086fc1` with only the test file copied in, all 4 fail: "0 != 1
+  : the handoff prints one runnable lint command".
+- `test/improve-route.test.py`'s walk now lints, the CLI's default, so its 2,000-, 4,500- and 22,000-byte bounds cover the new line. The
+  longest implement handoff is 21,366 bytes (ask-agent).
+- `ImprovePassTests`' check that every printed ShipLoop command drives the run for the keepalive hooks skips the new lint command, as it
+  skips improve-commit: neither prints a packet (`shiploop_keepalive.DRIVING_COMMAND`). The first quick tier caught it.
+- `MetricsTest.test_a_routed_verbs_could_not_run_refusal_is_recorded_by_its_own_line` (`test/shiploop-e2e.test.py`): a lint refusal with
+  exit 3 shown, the same piped with exit 0 shown, and a red-check refusal keep their line. On `68086fc1` it fails: `'' != 'ShipLoop lint
+  could not run: nav-b is not the current action (nav-a)'`.
+- `test/shiploop-e2e-run-trace.test.py` drives a real `shiploop lint` that cannot run. Its metrics row now keeps the line, and the Read
+  first panel counts 3 refusal lines where it counted 2 (the check's, the workspace's and now the lint's), as the owner page says ("the
+  host stream showed 3"). The first quick tier caught the old counts.
+- Quick tier, `bash test/run-all.sh --group quick --changed-from 68086fc1`, run with both commits' changes in the tree: 56 of 56
+  suites pass (275.8 s wall). The first run passed 54: it failed the keepalive check and the run-trace counts above.
+
+Effect on earlier results: both runs recomputed in memory with this reader (their metrics.json were left as written).
+- user-listing keeps its 25 failures; its 5 lint rows now carry their text, and no other row changes.
+- ticket-assignment goes from 27 to 28. Its 2 lint rows carry their text, and one refusal the old reader missed is counted: "ShipLoop
+  red-check could not run: red-check runs only for the current test action". The prepare stage ran it on purpose, as a runner-start
+  control inside a piped compound command, so the host showed no exit code.
+- A comparison with a metrics.json written before this commit should recompute that run with this reader.
+
+### Not established
+
+- That a live reviewer runs the printed command. The brownfield "after" runs would show it as 0 lint refusals.
+- Whether the line makes planning reviews lint more often. Each extra run is a few seconds and gates nothing.
+
+Related: `8aa6e1fe` (the runs' pinned base); `337b09c5`, `999bf7d5`, `090c8c88` (the last three changes to `shiploop_prompts.py`, read
+first: they set the item and wide-item reviews whose handoff this edits); `63d4f50a` (the harness reads a refusal by its own line, not
+the trailer after it; this adds the routed verbs' prefix).

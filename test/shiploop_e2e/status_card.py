@@ -411,8 +411,8 @@ def _trace_rows(path: Path) -> list[dict]:
 def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
     """The run on one time axis, from ShipLoop's run trace (RUN/trace.jsonl, shiploop 1.12.0 and later): each accepted
     callback closes the span of the stage it finished and opens the next; an Improve review is its own span (kind
-    `improve`) in the lane of the stage it reviews; each refused callback is a mark (`check` when it was a --check-only
-    check). Lanes are Prelude, each work item, Outer. Times are epoch seconds; the stage the run is on has end None.
+    `improve`) in the lane of the stage it reviews; each refused callback is a mark (`check` when it was a failed
+    `shiploop check`, or a `complete --check-only` in a run before it). Lanes are Prelude, each work item, Outer. Times are epoch seconds; the stage the run is on has end None.
     None when the run has no trace."""
     rows = _trace_rows(trace) if trace.is_file() else []
     if not rows:
@@ -440,14 +440,16 @@ def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
         if row.get("kind") == "packet":
             printed = row.get("action") or printed
         stage = row.get("stage") if isinstance(row.get("stage"), list) and len(row["stage"]) == 2 else None
-        if row.get("kind") != "command" or row.get("verb") != "complete" or not stage:
+        if row.get("kind") != "command" or row.get("verb") not in ("complete", "check") or not stage:
             continue
         at = round(row["ts"], 1)
+        # A check is the verb `check` (phase B) or, in a run before it, `complete` with check_only: it moves nothing.
+        is_check = row.get("verb") == "check" or bool(row.get("check_only"))
         if row.get("exit") not in (0, None):
-            marks.append({"at": at, "kind": "check" if row.get("check_only") else "refusal",
+            marks.append({"at": at, "kind": "check" if is_check else "refusal",
                           "lane": lane(stage[0], row.get("action")), "stage": stage[0], "text": str(row.get("error") or "")})
             continue
-        if row.get("check_only"):
+        if is_check:
             continue
         name = reviewed[1] if stage[0] == "improve" else stage[0]
         span = {"lane": lane(stage[0], row.get("action")), "stage": name, "action": row.get("action"),
@@ -478,7 +480,7 @@ def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
             {"label": "Stages", "value": f'{progress.get("done", 0)} of {progress.get("total", 0)}'},
             {"label": "Improve reviews", "value": str(len(reviews)), "sub": f"{minutes:.1f} min"},
             {"label": "Refusals", "value": str(len(line["marks"])),
-             "sub": f'{checks} a --check-only check' if checks == 1 else f"{checks} --check-only checks"}]
+             "sub": f'{checks} a failed check' if checks == 1 else f"{checks} failed checks"}]
 
 
 CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_copies": "Packet copies", "owner_note": "Owner note"}

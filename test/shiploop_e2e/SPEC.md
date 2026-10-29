@@ -134,8 +134,10 @@ passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
 
 **S-10 carve-out, owner decision 2026-10-05** (anchor: the owner's rule that
-planning takes no more than 30 minutes, decided after the evaluation of the
-skill-craft 1.21.0 battleship runs on Luna xhigh and Grok medium, not a clause
+planning is fast, set after the evaluation of the
+skill-craft 1.21.0 battleship runs on Luna xhigh and Grok medium as an alarm at 30 minutes ("anything where planning
+takes more than 30 minutes" means rethink planning); amended 2026-10-28: no figure is a budget or a target, "I don't
+want to have a 30-minute planning session at all" (docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md, Q1); not a clause
 this serves; it relaxes S-9, S-10 and the rule that a step iterates until a
 check confirms each exit criterion, for the Improve review of planning results,
 and says so). (amended 2026-10-11: the 8-stage inner loop.) The run option `planning_review` (state option `planning_review`,
@@ -379,8 +381,8 @@ on quickly before the breadth of everything is checked.
   `hello` covers in its focused suite and as the batch gate, or
   `parallel-graph`, whose cases have no qualified passing baseline and stay
   opt-in (`--case`), or `hosted-platform`, whose cases deploy to a real hosted
-  org and need the owner's go for each deploy, or `brownfield`, whose one case
-  (`user-listing`, build step 6) has not run live, so it has no baseline. A style joins breadth once its focused suite has passed
+  org and need the owner's go for each deploy, or `brownfield`, whose cases
+  (`user-listing`, build step 6, and the `ticket-assignment` pair, 2026-10-28) have not run live, so it has no baseline. A style joins breadth once its focused suite has passed
   (Promotion); until then the breadth claim leaves it out by name
   (amended 2026-10-16: the claim said every style while breadth held three
   of five).
@@ -577,6 +579,22 @@ and two decisions are compared only under the same id.
     not name: `paginate` drops a partial last page. Breadth leaves the style out until its focused suite has passed.
   - *What this does not do.* The base's tests are visible, since the model starts from them; only the acceptance is held
     out. It is one base and one task family: R10's Python CLI and Flask bases come later. No live run has used it yet.
+  - *The medium pair (added 2026-10-28; D7 of docs/shiploop-brownfield-baseline-design-2026-10-28.md).* `ticket-assignment`
+    extends `fixtures/node-tickets`, a help-desk ticket service of about 3,600 lines (1,700 of source) with eight decision
+    records, and `ticket-escalation` follows it, so it starts from the first run's delivery and runs the first case's checks
+    again beside its retention checks. The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
+    request does not name, and whether the follow-on keeps what the first run had to learn. As node-base does, its base holds a
+    latent defect in the flow the request touches, which the request depends on and does not name.
+    - *Checks that start the product themselves.* A held-out check may take a second parameter, the delivered copy
+      (`quality.Product`). It starts more servers of the product with an environment of its own (a data file, a
+      notification file, the background worker off), stops and restarts them, and runs the product's own command lines.
+      Each runs in a group the harness ends, under the same port guard; what the product writes for a check lives under
+      `<output>/quality`. A server whose free port was taken before it bound it is started again on another.
+    - *Pass-to-pass of a follow-on.* The follow-on's pass-to-pass checks reuse the first case's checks: against the first
+      run's delivery they read what that run built, so a check that passed after the first run and fails after the second
+      is something the second run lost.
+    - The latent facts, the documents and code they are in, and the checks that read them are in
+      docs/experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md, never shown to a model.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
@@ -591,7 +609,7 @@ and two decisions are compared only under the same id.
 | S-7 | truncated outputs, peak context, compactions, packet head size; per-stage `context` (model calls, peak, share of the window; a stage with no events carries none, and a Grok `usage` event is a model call like a Claude message) and, for Claude, `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
 | S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the Improve stage is an action of its own, so its packet is its own entry `<improve stage id>`, and `<improve stage id>-bind` before a card is bound, with stage `improve`; a run of the older layout has `<action>-improve` beside the producer's), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line (`=== end ShipLoop print ===` from 2026-10-24, `=== end ShipLoop head ===` from 2026-10-16, when the status block moved ahead of the stage's duties; before that the status block's end, or the narrative block's), with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it, while S-6's clear-the-context probe, not these bytes, decides whether a shorter packet is allowed |
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which the test stage's base run passes by design; amended 2026-10-11, was a test-red record or a probe), Improve children; a zero-test pass fails |
-| S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
+| S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner reads how long planning took and where it went from it (no figure is a budget, 2026-10-28), and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
 | S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the run folders under the runs root whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run (amended 2026-10-24: under the runs root, not only the same parent folder; see Parallel work). A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
 | "Concurrency must not change a verdict", The resource lifecycle | `resources.jsonl` in the output folder (added 2026-10-26): the process groups the harness started and their leaders' creation identity, the adopted progress observer, the leases and the data directories, with an `ended`, `released` or `disposed` row for each given back; `resources` in result.json: this invocation's leases, `contention` (the live runs under the runs root on the same host and model), the disk headroom checked, and what its cleanup stopped, found gone or reused, or left `unverified`. A record beside the verdicts: a refusal (a held lease, a busy port, an orphan, a low disk) starts nothing and writes no result |

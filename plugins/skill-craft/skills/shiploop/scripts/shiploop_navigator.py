@@ -28,6 +28,7 @@ from typing import Any, NamedTuple
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
+import shiploop_check
 import shiploop_concerns as concerns
 import shiploop_primary as primary
 import shiploop_test_layers as layers
@@ -663,7 +664,7 @@ def _normalise_awaiting(value: Any) -> dict[str, Any]:
 
 def _check_submitted_delivery(state: Mapping[str, Any], action_id: str, stage: str, result: Any) -> None:
     """A marked run's release-plan done that leaves the delivery contract unsettled, refused at the stage's own complete
-    and check-only (``consumer_delivery.validate_settled``), not only when its Improve review is imported."""
+    and its check (``consumer_delivery.validate_settled``), not only when its Improve review is imported."""
     try:
         consumer_delivery.validate_settled(state, action_id, stage, result)
     except consumer_delivery.ConsumerDeliveryError as exc:
@@ -3173,7 +3174,7 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, check_only: bool = False) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, count: bool = True) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -3184,7 +3185,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
 
     ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
     keep it before the loop wrote it (the loop checks accept blocked without a receipt), and so may a
-    ``--check-only`` run made from inside the still-running loop; done still needs it, through the loop's own terminal
+    check (``count`` False) made from inside the still-running loop; done still needs it, through the loop's own terminal
     check.  The live hello run on 13d278dd (2026-10-11) was told "Write the file" for it, an invitation to forge it.
     """
     if not isinstance(result, Mapping):
@@ -3195,8 +3196,8 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
             continue
         path = Path(_EVIDENCE_SUFFIX.sub("", ref))
         # The prefilled receipt is the runtime's to write, never the model's: before the loop ends (any outcome but
-        # done, or a --check-only run from inside the loop) it may not exist yet.
-        if (own_receipt is not None and (result.get("outcome") != "done" or check_only)
+        # done, or a check from inside the loop) it may not exist yet.
+        if (own_receipt is not None and (result.get("outcome") != "done" or not count)
                 and str(path) == str(own_receipt)):
             continue
         if not path.exists():
@@ -3574,7 +3575,7 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
                   next_step: NextStep) -> None:
     """Refuse a done result whose hand-off fields its consumers cannot use (consumer contract, slice 4a).
 
-    Runs on complete (``--check-only`` too, and on an Improve stage), right after ``_knowledge_gate``, on the result those
+    Runs on complete (and its check, and on an Improve stage), right after ``_knowledge_gate``, on the result those
     gates check.  It canonicalises first (X5), so a wrong type is the shape refusal ``apply`` would give, never a
     TypeError.  A refusal's line 1 is the fix, one absolute path (the result file) and ``next_step``; line 2 the shape and
     who quotes it; the failing IDs follow in full.  Checks: step-plan's follows exist as entries; test-spec's cases
@@ -4360,11 +4361,11 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
 
 
 def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: Any, *,
-                 check_only: bool = False) -> list[str]:
+                 count: bool = True) -> list[str]:
     """The inner stages' own gates (owner decisions 2026-10-10); returns validate-existing's paths to commit.
 
-    ``check_only`` (``complete --check-only``) saves validate-existing's rerun outputs under a check-only tag; the
-    caller commits nothing on that path."""
+    ``count`` False (the check) saves validate-existing's rerun outputs under a check tag; the caller commits
+    nothing on that path."""
     if not isinstance(submitted, Mapping):
         return []
     outcome = submitted.get("outcome")
@@ -4373,7 +4374,7 @@ def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: An
             expectations.check_step_plan(root, state, submitted)
         elif stage == "validate-existing" and outcome in ("done", "send-back"):
             return expectations.check_complete(root, state, submitted,
-                                               tag="check-only" if check_only else "complete")
+                                               tag="complete" if count else "check")
         elif stage == "carry-forward" and outcome == "done":
             _check_skill_decision(state, submitted.get("skill"))
     except expectations.ExpectationError as exc:
@@ -4406,7 +4407,7 @@ def _check_skill_decision(state: Mapping[str, Any], skill: Any) -> None:
 
 
 def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-                    workitem: str | None, submitted: Any, *, check_only: bool = False) -> list[str]:
+                    workitem: str | None, submitted: Any, *, count: bool = True) -> list[str]:
     """Accept the test stage's done only after ShipLoop's own two runs and its mutation check (owner decisions
     2026-10-10 and 2026-10-11); return what the three gates found, one ``Gates:`` line each.
 
@@ -4415,8 +4416,9 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
     floor.  Each run writes its own record and counts in the refused-run tally.  A send-back is accepted without a
     loop packet when ``test_loop.remedy_open`` says the latest run could not run.
 
-    ``check_only`` (``complete --check-only``) changes nothing the run counts: the base rule runs as ``red_check`` and
-    the candidate run with ``count=False``; neither counts in the refused-run tally nor sets a floor.
+    ``count`` False (the check) changes nothing the run counts: each of the three runs writes its check record
+    (``count=False``), and the check's candidate run is held to the floor its own base run sets, as ``complete``'s is
+    (F15); none counts in the refused-run tally.
 
     The lines are the gates' own summaries (``base: skipped (...)`` is a gate that did nothing, which the record says
     too): ``complete`` prints them after what it accepted, so a green result never hides a gate that did not run.
@@ -4424,21 +4426,12 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return []
     try:
-        if check_only:
-            ok, lines = test_loop.red_check(root, state, workitem or "", action_id, submitted,
-                                            base_commit=preparatory_base(root, workitem or ""))
-            _need(ok, "\n".join(["ShipLoop check-only: the base run would refuse this result:"] + lines))
-            found = [line for line in lines if line.startswith("base: ")]
-            found += test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=False)
-            found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=False,
-                                              base_commit=preparatory_base(root, workitem or ""))
-            return ["Gates: " + line for line in found]
         found = test_loop.base_check(root, state, workitem or "", action_id, submitted,
-                                     base_commit=preparatory_base(root, workitem or ""))
-        found += test_loop.loop_run(root, state, workitem or "", action_id, submitted)
+                                     base_commit=preparatory_base(root, workitem or ""), count=count)
+        found += test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=count)
         # On new code the base run can only see a load failure (RED by rule); the mutation check is what proves the
         # tests assert real behaviour (owner decision 2026-10-11).
-        found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted,
+        found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=count,
                                           base_commit=preparatory_base(root, workitem or ""))
         return ["Gates: " + line for line in found]
     except test_loop.TestLoopError as exc:
@@ -4446,18 +4439,18 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
 
 
 def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, workitem: str | None,
-                     submitted: Any, *, check_only: bool = False) -> list[str]:
+                     submitted: Any, *, count: bool = True) -> list[str]:
     """Accept an inline implement step's done only after ShipLoop runs the step's Proof on the candidate (implement-step
     fix plan section 4.1, unit W2-A); return its ``Gates:`` line.
 
     The whole-plan ask-agent action is not gated (its chain runs the steps and the item's checks stay its own).  A
     refusal names both routes through the loop with its literal start command: fix the work and report done, or, when
-    the Proof cannot assess the step as planned, stop the loop blocked and report send-back.  ``check_only`` runs the Proof
-    without counting it (``test_loop.step_proof(count=False)``)."""
+    the Proof cannot assess the step as planned, stop the loop blocked and report send-back.  ``count`` False (the check)
+    runs the Proof without counting it (``test_loop.step_proof(count=False)``)."""
     if (not isinstance(submitted, Mapping) or submitted.get("outcome") != "done"
             or step_view(state, workitem) is None):
         return []
-    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=not check_only)
+    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=count)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     if refusal:
@@ -4477,13 +4470,13 @@ def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id:
 
 
 def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-                     workitem: str | None, submitted: Any, *, check_only: bool = False) -> None:
+                     workitem: str | None, submitted: Any, *, count: bool = True) -> None:
     """Accept done at a stage that can edit code only after ShipLoop reruns every recorded test command.
 
-    ``check_only`` makes the rerun non-counting (``test_loop.verify(count=False)``)."""
+    ``count`` False (the check) makes the rerun non-counting (``test_loop.verify(count=False)``)."""
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return
-    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage, count=not check_only)
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage, count=count)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _need(not refusal, refusal)
@@ -4615,20 +4608,21 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
 
 
 def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-               workitem: str | None, submitted: Any, *, check_only: bool = False) -> None:
+               workitem: str | None, submitted: Any, *, count: bool = True) -> None:
     """Refuse a gate stage's done (``lint.GATE_STAGES``) while the lint gate reports an unwaived new finding.
 
     Runs only for a done submission on a run whose lint option is fix or
     report.  The record is written whether or not the submission is refused;
-    a pass that cannot run never refuses (see ``lint.gate``).  ``check_only``
-    runs it report-only: it never auto-fixes a file.
+    a pass that cannot run never refuses (see ``lint.gate``).  ``count``
+    False (the check) runs it report-only: it never auto-fixes a file, and its refusal names ``shiploop lint --fix``.
     """
     result = _canonical_result(submitted, stage=stage,
                                delivery_contract="delivery_contract_version" in state)
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
         return
-    if check_only:
+    fixing = mode == "fix"
+    if not count:
         mode = "report"
     # Owner decision 2026-10-10: every implement step is gated (each is followed by its own Improve review and names
     # its own paths); before, earlier steps only reported and the item's last step gated.
@@ -4640,6 +4634,9 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _lint_finish(root, payload)
+    if refusal and fixing and not count:
+        refusal += ("\nThis run's lint option is fix: to let ShipLoop apply its own fixes on the lines this item "
+                    "changed, run " + lint.fix_command(_command(core), root, action_id) + ", then check again.")
     _need(not refusal, refusal)
 
 
@@ -5875,7 +5872,7 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
     lines = loops.invoke_lines(root, state)
     if stage in test_loop.STAGES:
         # With the CLI, the list ends with the red-check command (a base check that does not count); the loop's work
-        # reaches it through the callback's --check-only, which also runs the candidate and mutation checks.
+        # reaches every gate through the check command, which also runs the candidate and mutation checks.
         cli = shlex.join(["python3", str(Path(__file__).resolve().parent / "shiploop")])
         lines += test_loop.loop_lines(root, state, work_item or "", action_id, stage, cli=cli)
     return lines
@@ -6758,8 +6755,9 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work.
 
     One line (aggressive re-cut, 2026-10-11): what ShipLoop runs at done, then only the refusals that go beyond the
-    exit conditions; `complete --check-only` runs the same gates on a draft and prints the first refusal's fix (a gate
-    raises at the first fault it finds, so a result with two faults needs two runs).
+    exit conditions.  At an inner stage the callback with `check` in place of `complete` (``guidance.CHECK_HOW``) runs
+    the same gates on a draft and prints the first refusal's fix (a gate raises at the first fault it finds, so a
+    result with two faults needs two runs); an outer stage's callback is its own check (decision D3, phases B and C plan).
     """
     extra = _stage_gates(row.name, state)
     # The step Proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
@@ -6768,8 +6766,9 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
             + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
-            "and run the same command again; `complete --check-only` prints the first refusal without accepting, so "
-            "repeat it until it accepts.")
+            "and run the same command again" + ("; " + guidance.CHECK_HOW + " prints the first refusal without "
+                                                 "accepting, so repeat it until the check says yes."
+                                                 if row.name in loops.STAGES else "."))
 
 
 # An inner stage's done-when: its conditions are the numbered exit conditions of the Until Loop argument.
@@ -7254,8 +7253,8 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         # (the route file holds the policy that is the same in every review; efficiency plan U18).
         focus, craft = _improve_focus(state, child)
         head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
-                 "## Commit", *_improve_commit_lines(core, root, state, child), "",
-                 *(["## Code craft", *craft, ""] if craft else [])]
+                 "## Commit", *_improve_commit_lines(core, root, state, child), *_improve_lint_lines(core, root, state),
+                 "", *(["## Code craft", *craft, ""] if craft else [])]
     head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
 
@@ -7364,6 +7363,20 @@ def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child
             + _callback(core, root, "improve-commit", action=improve_id(state),
                         message=str(improve_commit_message_path(child))),
             _improve_pass_line(core, root, state)]
+
+
+def _improve_lint_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
+    """The lint command a review runs after its last edit, when the run lints, as a producer packet prints its own.
+
+    ``shiploop lint`` lints the current action, which stays the reviewed one while its Improve stage runs, so this
+    command names the reviewed action's id where every other Improve command names the stage's own; the verb refuses
+    the stage's id (E2E 2026-10-28: all 6 lint calls of two DeepSeek runs, which had no printed command, used it).  It
+    follows the commit lines, which must end inside the first 4,500 characters."""
+    if lint_mode(state) not in ("fix", "report"):
+        return []
+    child = state["active_improve"]
+    return ["Lint after your last edit (report-only; its --action is the reviewed " + child["stage"] + " action, not "
+            "this Improve stage): " + _callback(core, root, "lint", action=child["action_id"])]
 
 
 def _regression_clause(stage: str) -> str:
@@ -8179,7 +8192,7 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "", state: Mapping
         metadata = path.lstat()
     except OSError as exc:
         # Name the file and the fix: the bare "navigator result is unavailable" cost a run 17 calls of reading ShipLoop's
-        # scripts to learn that --check-only needs the result written first (packet review 2026-10-17, D-8/D-9).
+        # scripts to learn that the check needs the result written first (packet review 2026-10-17, D-8/D-9).
         raise NavigatorError("no result file at " + str(expected) + ": write the result there (the packet's Result "
                              "template, filled in) with a file tool, then run the same command again") from exc
     _need(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
@@ -9062,6 +9075,71 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
     return 0
 
 
+def _answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str | None, workitem: str | None,
+                draft: Path) -> dict[str, Any]:
+    """The check's key for this action now (``shiploop_check.answer_key``, with the run's lint option)."""
+    return shiploop_check.answer_key(root, state, action_id, stage, workitem, draft, lint_option=lint_mode(state))
+
+
+def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str | None,
+              workitem: str | None, submitted: Any, *, count: bool) -> tuple[list[str], list[str]]:
+    """Would ShipLoop accept this result now?  The one question ``complete`` acts on and its check asks (phases B and
+    C plan, 2026-10-28): every script gate in order, raising ``NavigatorError`` with the first refusal.  Returns the
+    gates' ``Gates:`` lines and validate-existing's preparatory paths to commit.
+
+    ``count`` False is the check: each gate writes its check record and nothing counts (report-only lint, a base run
+    whose floors hold the check's own candidate run, non-counting candidate, mutation and Proof runs, no send-back
+    marker).  An inner stage's allowed outcomes are asked here as well as in ``loops.check_terminal``, because the
+    check runs before the loop's receipt exists (P9).
+    """
+    if stage in loops.STAGES:
+        try:
+            loops.check_outcome(stage, submitted)
+        except loops.LoopError as exc:
+            raise NavigatorError(str(exc)) from exc
+    current = current_stage(state)
+    gate_lines: list[str] = []
+    _check_submitted_evidence(submitted, _loop_receipt(root, state, stage, action_id, workitem), count=count)
+    _check_submitted_assumptions(state, current, submitted)
+    _check_producer_bounds(current, submitted)
+    _check_submitted_concerns(state, current, submitted)
+    _check_submitted_layers(state, current, submitted)
+    _check_submitted_unverified(state, current, submitted)
+    _check_submitted_primary(root, state, current, submitted)
+    _check_submitted_test_commands(current, submitted)
+    _check_focused_ids_new(state, current, submitted)
+    _check_focused_guards(current, submitted)
+    _check_submitted_consumer_entry(state["repo"], current, submitted)
+    _check_submitted_recorded_commands(current, submitted)
+    _check_submitted_awaiting(submitted)
+    _check_submitted_delivery(state, action_id, current, submitted)
+    _knowledge_gate(state, current, submitted)
+    _handoff_gate(root, state, current, submitted, "complete", next_step=_next_step(root, action_id, "complete"))
+    _check_submitted_coverage(state, current, submitted)
+    _check_submitted_request(state, current, submitted)
+    preparatory = _inner_gates(root, state, stage, submitted, count=count)
+    # Lint first, so the tests run on any code the lint gate auto-fixed.
+    if stage in lint.GATE_STAGES:
+        _lint_gate(core, root, state, action_id, stage, workitem, submitted, count=count)
+    if stage in test_loop.STAGES:
+        gate_lines = _test_loop_gate(root, state, action_id, stage, workitem, submitted, count=count)
+    elif stage in test_loop.RERUN_STAGES:
+        _test_rerun_gate(root, state, action_id, stage, workitem, submitted, count=count)
+    if stage in test_loop.STEP_PROOF_STAGES:
+        gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, workitem, submitted,
+                                                   count=count)
+    if stage == "implement" and workitem and isinstance(submitted, Mapping) and submitted.get("outcome") == "done":
+        refusal = item_scope.scope_refusal(root, state, workitem)
+        view = step_view(state, workitem)
+        if not refusal and view is not None:  # an inline step's spec write-back (build plan S3.3)
+            refusal = knowledge.step_spec_refusal(Path(str(state["repo"])), workitem + "/" + str(view.step.get("id")))
+        if refusal and count:
+            # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
+            loops.open_send_back(root, action_id, refusal)
+        _need(not refusal, refusal)
+    return gate_lines, preparatory
+
+
 def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
              *, completion_guard: Any = None) -> int:
     """Execute one navigator CLI verb; callers hold the run lock."""
@@ -9070,7 +9148,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     terminal_knowledge_closed = False
     gate_lines: list[str] = []  # the test stage's gate outcomes, printed after the packet
     _need(command in {
-        "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
+        "init", "next", "status", "context", "report", "complete", "check", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile", "delegation",
         "lint-mode"
     }, f"navigator does not support command {command!r}")
@@ -9115,13 +9193,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         return _improve_commit(core, root, state, args)
     if command == "improve-pass":
         return _improve_pass(core, root, state, args)
+    if command == "check" and _reviewed_action(state, getattr(args, "action", None)) is not None:
+        raise NavigatorError("`shiploop check` asks about a producer stage's draft result; the Improve stage has no "
+                             "draft to check, and its complete imports the finished review. Run it after the improve "
+                             "skill has completed: " + _callback(core, root, "complete",
+                                                                     action=getattr(args, "action", None)))
     if command in ("improve-bind", "improve-reconcile") or improve_import:
         import shiploop_standalone_improve as standalone
         stage_action = getattr(args, "action", None)
-        _need(not (improve_import and getattr(args, "check_only", False)),
-              "--check-only previews a producer stage's draft result; the Improve stage has no draft to check, and its "
-              "complete imports the finished review. Run it without --check-only after the improve skill has completed: "
-              + _callback(core, root, "complete", action=stage_action))
         action_id = _reviewed_action(state, stage_action)
         _need(action_id is not None,
               f"action {stage_action!r} is not this run's Improve stage; to read the current packet run: "
@@ -9248,7 +9327,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             return 0
         except standalone.StandaloneImproveError as exc:
             raise NavigatorError(str(exc)) from exc
-    if command == "complete":
+    if command in ("complete", "check"):
         action_id = getattr(args, "action", None)
         if state["status"] == "active" and action_id not in state["accepted"]:
             # Name a wrong action before path/format checks can misdescribe it.
@@ -9261,82 +9340,63 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             submitted = _replay_with_receipt(root, state, action_id, submitted)
         cursor_stage, _, cursor_item = _active_cursor(state)
         preparatory: list[str] = []
-        # Owner decision 2026-10-10: --check-only runs the stage's script gates on a draft without completing, and
-        # changes nothing the run counts (report-only lint, red-check, a non-counting candidate run, no commit).  It
-        # runs inside the stage's own loop, whose receipt is still active, so the receipt check waits for the real
-        # complete.
-        check_only = bool(getattr(args, "check_only", False))
+        # `shiploop check` (phases B and C plan, 2026-10-28): the same gates on a draft, recorded as one answer, with
+        # nothing accepted, counted or committed.  It runs inside the stage's own loop, whose receipt is still
+        # active, so the receipt check waits for complete.
+        checking = command == "check"
         if state["status"] == "active" and action_id not in state["accepted"]:
             # An owner note this action's packet did not print whole holds the callback once, before any gate runs
             # (owner decision D2, 2026-10-26): the model sees it before this step is committed.
             held = owner_notes.to_hold(root, state, action_id)
             if held and owner_notes.mark_held(root, action_id, held):
-                if not check_only:
+                if not checking:
                     raise NotesHeld(owner_notes.hold_text(held), [note["id"] for note in held])
-                print(owner_notes.hold_text(held, check_only=True))
+                print(owner_notes.hold_text(held, check=True))
         if (state["status"] == "active" and action_id not in state["accepted"]
-                and cursor_stage in loops.STAGES and not check_only):
+                and cursor_stage in loops.STAGES and not checking):
             # Every inner stage runs one Until Loop (owner decision 2026-10-10): its receipt is checked first.
             try:
                 submitted = loops.cite_receipt(submitted, loops.check_terminal(root, state, submitted))
             except loops.LoopError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
-            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
-                                      check_only=check_only)
-            _check_submitted_assumptions(state, current_stage(state), submitted)
-            _check_producer_bounds(current_stage(state), submitted)
-            _check_submitted_concerns(state, current_stage(state), submitted)
-            _check_submitted_layers(state, current_stage(state), submitted)
-            _check_submitted_unverified(state, current_stage(state), submitted)
-            _check_submitted_primary(root, state, current_stage(state), submitted)
-            _check_submitted_test_commands(current_stage(state), submitted)
-            _check_focused_ids_new(state, current_stage(state), submitted)
-            _check_focused_guards(current_stage(state), submitted)
-            _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
-            _check_submitted_recorded_commands(current_stage(state), submitted)
-            _check_submitted_awaiting(submitted)
-            _check_submitted_delivery(state, action_id, current_stage(state), submitted)
-            _knowledge_gate(state, current_stage(state), submitted)
-            _handoff_gate(root, state, current_stage(state), submitted, "complete",
-                          next_step=_next_step(root, action_id, "complete"))
-            _check_submitted_coverage(state, current_stage(state), submitted)
-            _check_submitted_request(state, current_stage(state), submitted)
-            preparatory = _inner_gates(root, state, cursor_stage, submitted, check_only=check_only)
-            # Lint first, so the tests run on any code the lint gate auto-fixed.
-            if cursor_stage in lint.GATE_STAGES:
-                _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted, check_only=check_only)
-            if cursor_stage in test_loop.STAGES:
-                gate_lines = _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
-                                             check_only=check_only)
-            elif cursor_stage in test_loop.RERUN_STAGES:
-                _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
-                                 check_only=check_only)
-            if cursor_stage in test_loop.STEP_PROOF_STAGES:
-                gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, cursor_item, submitted,
-                                                           check_only=check_only)
-            if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
-                    and submitted.get("outcome") == "done"):
-                refusal = item_scope.scope_refusal(root, state, cursor_item)
-                view = step_view(state, cursor_item)
-                if not refusal and view is not None:  # an inline step's spec write-back (build plan S3.3)
-                    refusal = knowledge.step_spec_refusal(Path(str(state["repo"])),
-                                                          cursor_item + "/" + str(view.step.get("id")))
-                if refusal and not check_only:
-                    # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
-                    loops.open_send_back(root, action_id, refusal)
-                _need(not refusal, refusal)
-        if check_only:
-            # The gates above ran in check-only form; nothing is accepted, saved or committed.
-            # Owner decision D5 (2026-10-17): the real complete takes this test run while nothing changes.
-            reuse = test_loop.reuse_note(root, str(action_id)) if cursor_stage in test_loop.VERIFY_STAGES else ""
-            if cursor_stage in test_loop.STEP_PROOF_STAGES and any("step-proof:" in line for line in gate_lines):
-                reuse = ("That complete takes this Proof run while the candidate stays as it is now; any edit makes it "
-                         "run the Proof again.")
-            print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
-                  "Until Loop receipt is checked only on the real complete). The action is not completed; once the Until "
-                  "Loop's receipt says complete or stopped, run the same callback without --check-only to "
-                  "submit it." + (" " + reuse if reuse else ""))
+            draft = _result_input_path(root, action_id)
+            if checking:
+                # The check: the same gates, recorded as one answer complete can take (phases B and C plan).
+                started = datetime.now(timezone.utc).timestamp()
+                try:
+                    gate_lines, preparatory = _evaluate(core, root, state, action_id, cursor_stage, cursor_item,
+                                                        submitted, count=False)
+                except NavigatorError as exc:
+                    shiploop_check.record_answer(root, action_id, cursor_stage, _answer_key(root, state, action_id,
+                                                 cursor_stage, cursor_item, draft), yes=False, reason=str(exc))
+                    raise
+                shiploop_check.record_answer(
+                    root, action_id, cursor_stage, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft),
+                    yes=True, gate_lines=gate_lines, preparatory=preparatory,
+                    records=shiploop_check.written_since(root, action_id, started))
+            else:
+                taken = shiploop_check.matching_yes(
+                    root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft))
+                if taken is not None:
+                    # Nothing the gates read changed since the check said yes: take its answer, run nothing again.
+                    test_loop.take_check(root, action_id, taken["records"], shiploop_check.answer_path(action_id))
+                    gate_lines = (["Gates: taken from the check of " + str(taken["created_at"]) + " ("
+                                   + shiploop_check.answer_path(action_id) + "), which said yes on these same files"]
+                                  + list(taken["gate_lines"]))
+                    preparatory = list(taken["preparatory"])
+                else:
+                    gate_lines, preparatory = _evaluate(core, root, state, action_id, cursor_stage, cursor_item,
+                                                        submitted, count=True)
+        if checking:
+            # The gates above ran as a check; nothing is accepted, counted or committed.
+            print("ShipLoop check: the check says yes for " + str(cursor_stage) + ": every script gate accepts this "
+                  "result now. Nothing was accepted, counted or committed"
+                  + ("; the Until Loop receipt is checked by the callback, once the loop says complete or stopped"
+                     if cursor_stage in loops.STAGES else "")
+                  + ". The callback takes this answer (" + str(root / shiploop_check.answer_path(action_id))
+                  + ") instead of running the gates again while the result and the files stay as they are now; any "
+                  "change makes it run them again.")
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.

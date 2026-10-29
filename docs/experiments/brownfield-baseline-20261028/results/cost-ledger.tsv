@@ -1,0 +1,24 @@
+X2a	nb-B	scoped	870.5	221267	31	BASELINE: 10 R, 12 AD (0 linking), open 3
+X3	T2-status-api-A0	current	759.3	257318	51	PLAN: 1 items, 5 decisions
+X3	T2-status-api-A0w	inherit-wording	769.7	279445	68	PLAN: 1 items, 11 decisions
+X3	T1-retries-A0	current	1050.0	309190	78	PLAN: 3 items, 9 decisions
+X3	E1-celery-A0	current	1131.3	340037	70	PLAN: 4 items, 15 decisions
+X2c	l4b-B	scoped	1404.6	431108	101	BASELINE: 12 R, 33 AD (19 linking), open 9
+X3	E1-celery-A0w	inherit-wording	1218.0	356753	64	PLAN: 3 items, 20 decisions
+X3	T1-retries-A0w	inherit-wording	1354.7	328012	77	PLAN: 3 items, 18 decisions
+X3b	nb-A0-2	current	557.5	170804	25	PLAN: 2 items, 8 decisions
+X3b	nb-A0-1	current	599.0	175438	11	PLAN: 3 items, 9 decisions
+X3b	nb-A1-2	inherit+baseline	631.1	199836	19	PLAN: 3 items, 15 decisions
+X3b	nb-A1-1	inherit+baseline	770.8	209197	31	PLAN: 3 items, 18 decisions
+X2b	hc-B1	scoped	1795.2	519529	180	BASELINE: 18 R, 27 AD (0 linking), open 10
+judge	nb-B	opus	564.4	166085	14	JUDGED: 26/27 correct, 0 wrong, 0 unsupported, coverage 6/6
+X3	T2-status-api-A1	inherit+baseline	805.1	275123	50	PLAN: 1 items, 10 decisions
+judge	l4b-B	opus	940.5	306803	66	JUDGED: 47/48 correct, 0 wrong, 0 unsupported, coverage 7/7
+X2b	hc-A	whole	3023.2	883407	169	BASELINE: 90 R, 38 AD (0 linking), open 15
+judge	hc-B1	opus	1278.9	336715	104	JUDGED: 39/42 correct, 0 wrong, 0 unsupported, coverage 7/7
+X3	T1-retries-A1	inherit+baseline	1351.2	348006	70	PLAN: 2 items, 21 decisions
+X3	E1-celery-A1	inherit+baseline	1640.5	416771	84	PLAN: 3 items, 26 decisions
+X2d	hc-B2	scoped-deepen	2180.4	516813	182	BASELINE: 33 R, 36 AD; 24 added, 5 changed; open 7
+judge	x3-plans	opus	864.5	272848	35	all 9: unauthorized 0, rebuilt 0; named existing A0 17, A0w 19, A1 18
+judge	scoped-vs-whole-T1	opus	1270.6	380182	85	41 facts; only A matter 2; only B matter 8; neither 2
+judge	t1-fact-coverage	opus	920.3	235604	24	P3(A0) 32/41 handled 4 missed; P4(A0w) 34 handled 3 missed; P7(A1) 31 handled 4 missed

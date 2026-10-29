@@ -1151,6 +1151,108 @@ class AcceptanceRunTest(QualityCase):
         self.assertLessEqual(len(row["note"]), 300)
 
 
+# A product server for the Product tests: it answers GET with its GREETING, its HOLDOUT (or "-") and its working folder, and
+# ends by itself after two minutes. With a marker path as its argument, its first start fails as a server whose port was taken.
+ECHO_SERVER = """
+import http.server, os, sys, threading
+from pathlib import Path
+if len(sys.argv) > 1 and not Path(sys.argv[1]).exists():
+    Path(sys.argv[1]).write_text("taken")
+    sys.stderr.write("Error: listen EADDRINUSE: address already in use :::" + os.environ["PORT"] + "\\n")
+    raise SystemExit(1)
+class Echo(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = "|".join((os.environ.get("GREETING", ""), os.environ.get("HOLDOUT", "-"), os.getcwd())).encode()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *args):
+        pass
+threading.Timer(120, os._exit, (0,)).start()
+http.server.HTTPServer(("127.0.0.1", int(os.environ["PORT"])), Echo).serve_forever()
+"""
+
+
+class AcceptanceProductTest(AcceptanceRunTest):
+    """The delivered copy a held-out check may take as its second parameter (quality.Product), added 2026-10-28 for the ticket
+    cases, whose checks restart the product on a data file, turn its worker off and run its command line."""
+
+    def setUp(self):
+        super().setUp()
+        (self.tmp / "echo.py").write_text(ECHO_SERVER)
+        self.start = f"{sys.executable} {self.tmp / 'echo.py'}"
+
+    def run_checks(self, source: str, ids=("one",), start: str | None = None) -> dict:
+        directory = self.checks_dir("import urllib.request\nfrom pathlib import Path\n"
+                                    "def fetch(url):\n    return urllib.request.urlopen(url, timeout=5).read().decode()\n" + source)
+        return self.accept(self.block(start or self.start, ids=ids), checks_dir=directory)
+
+    def test_only_a_check_with_a_second_parameter_gets_the_copy(self):
+        block = self.run_checks("CHECKS = {'one': lambda base: (True, 'one'), 'two': lambda base, product: (True, str(product.folder))}\n",
+                                ids=("one", "two"))
+        self.assertTrue(block["observed"], block)
+        self.assertEqual([row["note"] for row in block["checks"]], ["one", str(self.tmp / "run-0")])
+
+    def test_serve_starts_another_server_in_the_copy_with_the_checks_environment_and_ends_it(self):
+        source = ("def one(base, product):\n"
+                  "    with product.serve({'GREETING': 'hello', 'HOLDOUT': None}) as other:\n"
+                  "        answer = fetch(other)\n"
+                  "    return other != base, answer\n"
+                  "CHECKS = {'one': one}\n")
+        with mock.patch.dict(os.environ, {"HOLDOUT": "from the harness"}):
+            block = self.run_checks(source)
+        self.assertTrue(block["observed"], block)
+        greeting, holdout, folder = block["checks"][0]["note"].split("|")
+        self.assertEqual((greeting, holdout), ("hello", "-"), "the check's value is set, and None removes an inherited one")
+        self.assertEqual(os.path.realpath(folder), os.path.realpath(self.tmp / "run-0"))
+        self.assertTrue(block["checks"][0]["pass"])
+        self.assertEqual(len(self.groups.added), 2, "the first server and the check's own")
+        self.assertEqual(set(self.groups), set(), "both groups ended")
+
+    def test_run_runs_the_products_own_command_in_the_copy_and_scratch_is_under_the_logs(self):
+        source = ("import sys\n"
+                  "def one(base, product):\n"
+                  "    scratch = product.scratch()\n"
+                  "    done = product.run([sys.executable, '-c', 'import os; print(os.getcwd(), os.environ[\"WHERE\"])'],\n"
+                  "                       env={'WHERE': str(scratch)})\n"
+                  "    return done['returncode'] == 0 and scratch.is_dir() and not any(scratch.iterdir()), done['output']\n"
+                  "CHECKS = {'one': one}\n")
+        block = self.run_checks(source)
+        self.assertTrue(block["checks"][0]["pass"], block)
+        folder, scratch = block["checks"][0]["note"].split()
+        self.assertEqual(os.path.realpath(folder), os.path.realpath(self.tmp / "run-0"))
+        self.assertTrue(Path(scratch).is_relative_to(self.tmp / "run-0" / "logs"))
+        self.assertEqual(set(self.groups), set())
+
+    def test_a_server_of_the_check_that_does_not_start_raises_and_leaves_nothing_running(self):
+        folder = self.tmp / "copy"
+        folder.mkdir()
+        product = quality.Product(folder, f"{sys.executable} -c 'raise SystemExit(4)'", groups=self.groups, logs=self.tmp / "logs",
+                                  guard={}, refusals_log=self.tmp / "refusals.log")
+        with self.assertRaisesRegex(RuntimeError, "exited 4 before it listened"):
+            with product.serve():
+                self.fail("a server that exited is not served")
+        self.assertEqual(set(self.groups), set())
+
+    def test_a_server_whose_free_port_was_taken_starts_again_on_another(self):
+        marker = self.tmp / "taken"
+        block = self.run_checks("CHECKS = {'one': lambda base: (True, fetch(base))}\n", start=f"{self.start} {marker}")
+        self.assertTrue(block["observed"], block)
+        self.assertTrue(marker.exists(), "the first start met a taken port")
+        self.assertEqual(len(self.groups.added), 2)
+
+    def test_only_its_own_port_counts_as_taken(self):
+        log = self.tmp / "server.log"
+        log.write_text("Error: listen EADDRINUSE: address already in use :::51234\n")
+        self.assertTrue(quality.port_taken(log, 51234))
+        self.assertFalse(quality.port_taken(log, 4180), "a declared port the guard refused is the product's own doing")
+        self.assertFalse(quality.port_taken(self.tmp / "absent.log", 51234))
+
+    def test_free_port_hands_out_no_port_twice(self):
+        ports = [quality.free_port() for _ in range(300)]
+        self.assertEqual(len(set(ports)), len(ports))
+
+
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1252,8 +1354,12 @@ class EventFactsTest(QualityCase):
         # Build step 3: iterate.py withholds these from the improver's worktree (boundary.held_out_files).
         cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(boundary.held_out_files(cases), ["test/fixtures/quality/reference_checkers.py",
+                                                          "test/fixtures/quality/reference_ticket_assignment.py",
+                                                          "test/fixtures/quality/reference_ticket_escalation.py",
                                                           "test/fixtures/quality/reference_user_listing.py",
                                                           "test/shiploop_e2e/checks/checkers_accept.py",
+                                                          "test/shiploop_e2e/checks/ticket_assignment_accept.py",
+                                                          "test/shiploop_e2e/checks/ticket_escalation_accept.py",
                                                           "test/shiploop_e2e/checks/user_listing_accept.py"])
         for path in boundary.held_out_files(cases):
             self.assertTrue((ROOT / path).is_file(), path)

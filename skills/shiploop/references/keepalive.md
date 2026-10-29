@@ -14,6 +14,7 @@ optional; runs work without it.
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
+| `scripts/shiploop-hook session-end` | When the host ends the session (Claude, Codex and Grok `SessionEnd`, Cursor `sessionEnd`: a `/clear`, an exit): drop the session's binding and release the run it owned, so the next session takes it at once. A killed session sends nothing; the process check below covers it. |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
 `hook-status` is the only place that decides whether a run can move.
@@ -100,10 +101,10 @@ only the run's owner session is ever kept alive.
 - The first session to bind a free run owns it. A parallel-chain worker, a
   second terminal or any other session that binds the same run is let go at its
   turn end ("another session owns this run").
-- Ownership is released when the owner's turn ends normally, when the driver
-  finishes a session, when the owner's host process is gone, or after 30 minutes
-  with no hook activity from the owner. Any tool call by the owner refreshes the
-  claim. A claim records the host session's process with its start time: the
+- Ownership is released when the owner's turn ends normally, when the host ends
+  the owner's session, when the driver finishes a session, when the owner's host
+  process is gone, or after 30 minutes with no hook activity from the owner.
+  Any tool call by the owner refreshes the claim. A claim records the host session's process with its start time: the
   nearest ancestor of the hook that is not a shell or launcher, when it started
   at least 2 seconds before the hook. A session that finds that process gone, or
   its pid reused, takes the run over at once. A live owner keeps the run however
