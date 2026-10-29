@@ -1045,6 +1045,23 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     but test (+16) on both routes, so the inline step-plan head would have 26 characters of room after B, and the test
     head needs 16 left for B. Design T edits neither string, so they merge without a conflict there. *Superseded
     estimate: the 150 to 250 characters.*
+- **Integration, final state, 2026-10-29.** After the lanes and ShipLoop 1.21.0 (phase B, `shiploop check`, on main as
+  `e064e875`) the feature branch holds, in order: the lanes' integration (`e767c171`), F5 `7bb71757`, the head-order fix
+  `e02fd696`, the merge of main `08782c48`, lane B's step 3 `cc3acd27` and the README `a6498142`.
+  - **The merge of main.** Ten conflicting files. Main had moved the whole gate sequence into `_evaluate(..., count=)`, so
+    that shape was kept and design T's one change to the sequence went inside it: the spec write-back refusal runs for
+    implement and document. `complete --check-only` is gone, so the tests T wrote for the check-only path run at
+    `document` with the `check` verb, and main's tests of the verify duty went with the duty. Two tests main had added
+    assumed a review right after implement and were adapted to the step review after document (the lint D2 test, and the
+    Improve lint command test). Phase B's measured head cost held exactly: −23 characters on every inner head and +16 on
+    the test head.
+  - **Two quick-tier suites the lanes' tiers never selected had failed on the tip** (found by lane C's broader tier, not by
+    mine): `shiploop-head-order`, whose fixture still required the test rules at a step that owes no command (2d prints
+    none), fixed by following the code's own predicate; and `shiploop-package-integrity`, because `references/test-loop.md`
+    went from 8,186 to 8,990 bytes against the 8,192 card bound across three lanes' additions, trimmed to 8,096 in step 3.
+    A lesson for the next integration: run the quick tier on the merged tip, not the lanes' own lists.
+  - **The whole shiploop group** runs once on `cc3acd27`, four suites at a time, after the machine's load average is
+    below 30 (a timeout under load proves nothing); its result is recorded below when it ends.
 - **2c. The ask-agent route** gets the same step boundaries (G1).
   **2c design, 2026-10-28: nothing built. The owner decided G1 on 2026-10-29: adopt (a2)** (the decision and what it
   builds are at the end of this item). The question G1 left open: the iteration is serial, but the chain builds
