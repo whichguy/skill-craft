@@ -570,11 +570,44 @@ Quick tier (`--changed-from 89a30e03 --jobs 8`): PASS, 40 suites, 253.8 s wall.
 **Open.** The card shows a job only when the session running it writes the job document each tick. The owed-outcome
 round's arms were not on the card on 2026-10-28.
 
+## 2026-10-28: each check has a live pass; a step slice holds the case lock (firm, n = 1 per check)
+
+**Live results.** Main's `run_trace.checks` (at `68086fc1`, after the `packet_copies` rename) over the round's two full
+runs, both on the Claude Code host with DeepSeek flash on Ollama. Evidence:
+`docs/shiploop-run-trace-evidence/live-checks-2026-10-28.json`.
+
+| run | keepalive_text | packet_copies | owner_note |
+|---|---|---|---|
+| arm A, battleship, done (4 of 4 case checks) | pass: 1 continuation, at release-check (revision 68), with its text | pass: 74 prints, 0 reprints | not exercised (no note, by design) |
+| hello, `--owner-note-at implement`, done | not exercised | pass: 33 prints, 1 reprint | pass: N1 delivered by the test step and cited |
+
+Arm B's six slices were not exercised on keepalive_text and owner_note
+(`docs/shiploop-owed-outcome-evidence/arm-b-trace-checks.json`, under the old names). So each check has one live pass,
+on one host and one model. The round journal (`docs/shiploop-owed-outcome-journal.md`) reads the stops themselves.
+
+**Defect fixed: a live step slice read as an orphan.** Launching the owner-note run, `run.py` refused to start beside
+arm B's slices and another session's E6 slices. Both pre-start checks (`lifecycle.orphans` and the stale-listener check
+in `listeners`) judge a harness alive by its held `<output>/.harness-lock`. `run.py` holds it; `slice.py` never did,
+so every live slice's host and servers read as a killed harness's leftovers. The refusal suggested
+`lifecycle.py cleanup` on them, which would have killed live runs. The workaround was a separate runs root, used by the
+owner-note run and the brownfield runs. Its cost: a run's overlap and contention records see only its own root.
+- Change: `slice.main` holds `listeners.hold_case(out)` from the moment its output folder exists until it returns. The
+  `main`/`_main` split is the same as `run.py`'s, and the kernel drops the lock on any death.
+- Test (`shiploop-e2e-slice`, `test_a_live_slice_holds_its_case_lock_so_the_orphan_scan_beside_it_finds_nothing`): at
+  the first stop poll, the fake host's group is in the ledger, the slice reads alive, and `lifecycle.orphan_lines` over
+  the root is empty. After `main` returns, the lock is gone.
+- Fail-first: with the lock removed, the same scan names the live host (pid 77445, role host) and suggests a cleanup.
+- Slice suite: 66 OK; the new test adds about 23 s (a full fake-host slice). Quick tier (`--changed-from 68086fc1
+  --jobs 8`): PASS, 40 suites, 262.6 s wall, with two live E2E runs on the machine.
+- Unchanged: port leases (`quality.refuse_ports`) are machine-wide by design. A slice started from an older checkout
+  holds no lock until it ends.
+
 ## Open (exploratory)
 
-- **Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case
+- ~~**Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case
   with `--owner-note-at implement` and reads `run_trace.checks` (2026-10-28 entry). The keepalive text and a reprint are
-  read on every run, so they settle whenever a run continues a turn or reprints a packet.
+  read on every run, so they settle whenever a run continues a turn or reprints a packet.~~ Superseded 2026-10-28: each
+  check has passed live once (entry above).
 - ~~**E2E consumers**: `flow.py` and the Run Review exporter rebuild the sequence from host streams; they can read
   `trace.jsonl` instead for refusals, reprints and hook text once a released run has one.~~ Superseded 2026-10-25: built,
   see "the E2E harness reads the trace" above; the exporter follows through `metrics.json`. The 1.13.1 rerun shows

@@ -1,0 +1,73 @@
+{
+ "computed_with": "test/shiploop_e2e/run_trace.checks at 68086fc1",
+ "runs": {
+  "pa-ds-battleship-4ed4e3": {
+   "status": "done",
+   "counts": {
+    "accepted": 64,
+    "commands": 227,
+    "packets": 74,
+    "reprints": 0,
+    "refusals": 11,
+    "held": 0,
+    "checks_failed": 35,
+    "continuations": 1,
+    "stops": 1,
+    "skills": 15
+   },
+   "checks": {
+    "keepalive_text": {
+     "verdict": "pass",
+     "evidence": "1 continuation with text; first: ShipLoop run RUN is still active at stage release-check (revision 68). Do not end the turn: run `python3 /Users/dadleet/",
+     "lines": [
+      300
+     ]
+    },
+    "packet_copies": {
+     "verdict": "pass",
+     "evidence": "74 prints (0 reprints), each with its kept copy",
+     "lines": []
+    },
+    "owner_note": {
+     "verdict": "not exercised",
+     "evidence": "no owner note was written to the run",
+     "lines": []
+    }
+   }
+  },
+  "pc-ds-hello-note-b45e87": {
+   "status": "done",
+   "counts": {
+    "accepted": 24,
+    "commands": 88,
+    "packets": 33,
+    "reprints": 1,
+    "refusals": 4,
+    "held": 0,
+    "checks_failed": 7,
+    "continuations": 0,
+    "stops": 1,
+    "skills": 8
+   },
+   "checks": {
+    "keepalive_text": {
+     "verdict": "not exercised",
+     "evidence": "no stop decision continued a turn",
+     "lines": []
+    },
+    "packet_copies": {
+     "verdict": "pass",
+     "evidence": "33 prints (1 reprint), each with its kept copy",
+     "lines": [
+      127
+     ]
+    },
+    "owner_note": {
+     "verdict": "pass",
+     "evidence": "N1 delivered by nav-1c83c27c19ad465f884da33525621448, cited",
+     "lines": []
+    }
+   }
+  }
+ }
+}

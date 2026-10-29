@@ -1552,9 +1552,10 @@ So do not serve a case folder by hand while its run ends (say with `python3 -m h
 stops that too.
 
 A launch is refused while a listener sits under another case's output folder and that case's harness is not running
-(`--preflight-only` fails the same way, and a suite is refused once, before any case starts). A harness is running while it
-holds an exclusive lock on `<output>/.harness-lock`; the kernel drops that lock on any death, SIGKILL included, so parallel
-runs and pairs started by hand never refuse each other. The run's own folder is never refused (a resume stops its
+(`--preflight-only` fails the same way, and a suite is refused once, before any case starts). A harness (`run.py`, or a step
+slice's `slice.py`, the experiments' too) is running while it holds an exclusive lock on `<output>/.harness-lock`; the
+kernel drops that lock on any death, SIGKILL included, so parallel runs, live slices and pairs started by hand never refuse
+each other. The orphan check of "The resource lifecycle" reads the same lock. The run's own folder is never refused (a resume stops its
 leftovers first), and a regrade starts nothing so it is never refused. The refusal names the pid, the port and the case
 folder and has no override: stop it by pid with `kill <pid>`. A finished case folder you serve by hand blocks later
 launches the same way until you stop that process. A harness started before the lock existed holds none, so a launch refuses its

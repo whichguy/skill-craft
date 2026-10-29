@@ -19,7 +19,8 @@ a completed slice.
 Everything is written under the output directory (default $TMPDIR/shiploop-e2e/slice-<case>-...): the product
 repository (work/), ShipLoop's run directory and its product worktree (.shiploop-runs/seed/), the plugin built from this
 checkout (build/), the event stream, the packet archive, slice-result.json, metrics.json, packet-report.md, and
-flow.json with flow.html (flow.py: the ShipLoop-to-model sequence, browsable with other runs). No baseline
+flow.json with flow.html (flow.py: the ShipLoop-to-model sequence, browsable with other runs), and .harness-lock, held
+while the slice runs (listeners.hold_case, as run.py holds it). No baseline
 row is written; nothing is installed into a host's own plugin set (Claude loads the build with --plugin-dir; Grok and
 Codex run in a throwaway HOME, but Claude's session transcript lands in the user's ~/.claude/projects).
 
@@ -59,6 +60,7 @@ sys.path.insert(0, str(HERE))
 import run  # noqa: E402  (also puts skills/shiploop/scripts on sys.path)
 import clear  # noqa: E402
 import hosts  # noqa: E402
+import listeners  # noqa: E402
 import metrics  # noqa: E402
 import overlay as overlays  # noqa: E402
 import packets  # noqa: E402
@@ -480,6 +482,16 @@ def regrade(out: Path, quiet: bool) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run one slice (or --regrade one) and return the exit code; see _main."""
+    held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
+    try:
+        return _main(argv, held)
+    finally:
+        for handle in held:
+            handle.close()
+
+
+def _main(argv: list[str] | None, held: list) -> int:
     args = parser().parse_args(argv)
     if args.regrade:
         return regrade(args.regrade, args.quiet)
@@ -492,6 +504,11 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(why)
     run.install_termination_handlers()
     out = run.new_output_dir(args.output, f"slice-{args.case}")
+    # This harness is alive while main runs, as run.py's is: a launch elsewhere reads the lock (lifecycle.orphans, the
+    # stale-listener check) to tell this slice's host and servers from a killed harness's leftovers. Without it a live
+    # slice reads as an orphan and refuses every run.py launch under the same runs root.
+    if (lock := listeners.hold_case(out)) is not None:
+        held.append(lock)
     work = out / "work"
     work.mkdir()
     # A step slice is an E2E run: with no --backend it takes run.py's default (hosts.RUN_DEFAULT_BACKEND).

@@ -34,6 +34,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import clear  # noqa: E402
 import flow  # noqa: E402
+import lifecycle  # noqa: E402
+import listeners  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
@@ -985,6 +987,23 @@ class ClearThroughMainTests(unittest.TestCase):
         with self.assertRaises(SystemExit) as refused:
             self.main(["implement"], backend=(), ready="the Ollama server does not answer")
         self.assertIn("--backend ollama: the Ollama server does not answer", str(refused.exception))
+
+    def test_a_live_slice_holds_its_case_lock_so_the_orphan_scan_beside_it_finds_nothing(self):
+        # run.py refuses a launch over an orphan: a recorded host group whose harness holds no lock. Look while the
+        # fake host runs (the first stop poll), with its group in the ledger, as a launch under the same root would.
+        seen: list = []
+        complete = step_slice.slice_complete
+
+        def poll(state):
+            if not seen:
+                seen.append((len(lifecycle.open_groups(self.out)), listeners.case_alive(self.out),
+                             lifecycle.orphan_lines(self.tmp)))
+            return complete(state)
+
+        with mock.patch.object(step_slice, "slice_complete", side_effect=poll):
+            self.main(["implement"])
+        self.assertEqual(seen, [(1, True, [])], "the host's group is recorded, the slice is alive, nothing is an orphan")
+        self.assertFalse(listeners.case_alive(self.out), "dropped when main returns")
 
     def test_three_positions_with_the_prompt_withheld_give_three_records_a_flow_and_the_unfired_one_named(self):
         result = self.main(["implement", "implement"], "--clear-at", "implement", "--clear-at", "implement:inside",
