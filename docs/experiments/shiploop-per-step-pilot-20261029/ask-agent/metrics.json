@@ -1,0 +1,515 @@
+{
+  "tmp_writes": [],
+  "claude_code_version": null,
+  "sessions": [],
+  "turns": null,
+  "model_calls": 124,
+  "window_tokens": 475000,
+  "tokens": {
+    "input_peak": 136770,
+    "processed": null,
+    "output": null
+  },
+  "unmeasured": {
+    "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+    "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "tokens_processed": "no session reported its usage",
+    "tokens_output": "no session reported its usage"
+  },
+  "cost_usd": null,
+  "models_served": null,
+  "unreported_sessions": 1,
+  "unreported_sessions_at_least": null,
+  "compactions": 0,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": [],
+  "shiploop_failures": [],
+  "failures_source": {
+    "file": "events.jsonl",
+    "why": "trace.jsonl does not cover the run: 1 accepted step the model ran before the trace began (traced since 2026-10-29T19:27:05Z)"
+  },
+  "run_trace": {
+    "file": "trace.jsonl",
+    "covers": false,
+    "partial": "1 accepted step the model ran before the trace began (traced since 2026-10-29T19:27:05Z)",
+    "traced_since": "2026-10-29T19:27:05Z",
+    "untraced_steps": 8,
+    "seeded_steps": 7,
+    "commands": 39,
+    "refusals": 1,
+    "checks_failed": 5,
+    "packets": 14,
+    "reprints": 0,
+    "continuations": 0,
+    "stops": 0,
+    "notes": {
+      "written": 0,
+      "held": 0,
+      "delivered": 0,
+      "cited": 0
+    },
+    "stream_failures": 0,
+    "checks": {
+      "keepalive_text": {
+        "verdict": "not exercised",
+        "evidence": "no stop decision continued a turn",
+        "lines": []
+      },
+      "packet_copies": {
+        "verdict": "pass",
+        "evidence": "14 prints (0 reprints), each with its kept copy",
+        "lines": []
+      },
+      "owner_note": {
+        "verdict": "not exercised",
+        "evidence": "no owner note was written to the run",
+        "lines": []
+      },
+      "session_end": {
+        "verdict": "not exercised",
+        "evidence": "no session end reached the run's trace",
+        "lines": []
+      }
+    }
+  },
+  "gate_counts": {},
+  "dodges": {
+    "plans": 1,
+    "grep_searched": 2,
+    "grep_executed": 0,
+    "grep_unmatched": 0,
+    "guarded": 0,
+    "inspected": 0,
+    "surviving_mutants": 1,
+    "dodges": 1,
+    "by_action": {
+      "nav-076e3a37f6b549a1b7bde2e7660d2ca8": {
+        "grep": {
+          "searched": [
+            "rg -U '/\\*\\*[^*]*(\\*[^/][^*]*)*\\*/\\s*function parseRecords' src/records.js",
+            "rg -U '/\\*\\*[^*]*(\\*[^/][^*]*)*\\*/\\s*function select' src/records.js"
+          ],
+          "executed": [],
+          "unmatched": []
+        },
+        "guarded": [],
+        "inspected": []
+      }
+    }
+  },
+  "nomenclature": {
+    "glossary_sha256": "ade5eec27bc4f01ea51ed0895aed3ea0a269d4dbef5226fbac8a2252afbb459a",
+    "texts_scanned": 13,
+    "retired": {
+      "acceptance criteria (inside a requirement)": {
+        "use": "acceptance lines",
+        "texts": 2,
+        "first": {
+          "event": 96,
+          "line": "- 75e6bfa Align records fixtures with diagnostic criteria | learned: A later fixture plan must retain the exact line-number cases promised by its acceptance criteria while adding blank-line coverage."
+        }
+      }
+    }
+  },
+  "tool_use": null,
+  "script_verifications": {
+    "records": 7,
+    "passed": 7,
+    "could_not_run": 0,
+    "commands": 45,
+    "red": 0
+  },
+  "model_glue": [],
+  "asked_user": [],
+  "improve_children": 4,
+  "improve_reviews": {
+    "children": 4,
+    "passes": 9,
+    "edited_children": 4,
+    "max_passes": 3,
+    "per_child": [
+      {
+        "child": "carry-forward-d1e8a41d",
+        "passes": 2,
+        "lines": [
+          35,
+          8
+        ],
+        "seconds": 30.7,
+        "review_seconds": 111.2,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 4735
+      },
+      {
+        "child": "document-1cf0275a",
+        "passes": 2,
+        "lines": [
+          50,
+          0
+        ],
+        "seconds": 24.6,
+        "review_seconds": 98.5,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 5369
+      },
+      {
+        "child": "document-6762eb32",
+        "passes": 2,
+        "lines": [
+          8,
+          0
+        ],
+        "seconds": 20.8,
+        "review_seconds": 91.2,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 5344
+      },
+      {
+        "child": "step-plan-660d2ca8",
+        "passes": 3,
+        "lines": [
+          77,
+          2,
+          0
+        ],
+        "seconds": 64.4,
+        "review_seconds": 172.6,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 7338
+      }
+    ]
+  },
+  "knowledge_reads": [],
+  "narrative": {
+    "emitted": 3,
+    "shown": 3,
+    "verbatim": 3,
+    "skipped": [],
+    "results": 17,
+    "with_headline": 9
+  },
+  "stages": [
+    {
+      "stage": "intake",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "discovery",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "research",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "spec",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "test-strategy",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "plan",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "prepare",
+      "outcome": "done",
+      "timing": "unavailable"
+    },
+    {
+      "stage": "step-plan",
+      "outcome": "done",
+      "seconds": 324.6,
+      "turns": null,
+      "tool_calls": 39,
+      "context": {
+        "calls": 34,
+        "peak": 71350,
+        "peakPct": 15.0,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test-spec",
+      "outcome": "done",
+      "seconds": 69.0,
+      "turns": null,
+      "tool_calls": 5,
+      "context": {
+        "calls": 6,
+        "peak": 77393,
+        "peakPct": 16.3,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "validate-existing",
+      "outcome": "done",
+      "seconds": 0.0,
+      "turns": null,
+      "tool_calls": 0,
+      "context": {
+        "calls": 0,
+        "peak": null,
+        "peakPct": null,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "implement",
+      "outcome": "done",
+      "seconds": 66.0,
+      "turns": null,
+      "tool_calls": 4,
+      "context": {
+        "calls": 5,
+        "peak": 83148,
+        "peakPct": 17.5,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test",
+      "outcome": "done",
+      "seconds": 84.0,
+      "turns": null,
+      "tool_calls": 6,
+      "context": {
+        "calls": 7,
+        "peak": 90379,
+        "peakPct": 19.0,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "document",
+      "outcome": "done",
+      "seconds": 225.0,
+      "turns": null,
+      "tool_calls": 24,
+      "context": {
+        "calls": 23,
+        "peak": 101827,
+        "peakPct": 21.4,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "implement",
+      "outcome": "done",
+      "seconds": 67.0,
+      "turns": null,
+      "tool_calls": 4,
+      "context": {
+        "calls": 6,
+        "peak": 107526,
+        "peakPct": 22.6,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test",
+      "outcome": "done",
+      "seconds": 61.0,
+      "turns": null,
+      "tool_calls": 4,
+      "context": {
+        "calls": 5,
+        "peak": 113730,
+        "peakPct": 23.9,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "document",
+      "outcome": "done",
+      "seconds": 180.0,
+      "turns": null,
+      "tool_calls": 19,
+      "context": {
+        "calls": 17,
+        "peak": 124599,
+        "peakPct": 26.2,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "carry-forward",
+      "outcome": "done",
+      "seconds": 216.0,
+      "turns": null,
+      "tool_calls": 21,
+      "context": {
+        "calls": 21,
+        "peak": 136770,
+        "peakPct": 28.8,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "system-test-author",
+      "outcome": null,
+      "incomplete": true,
+      "seconds": 0.0,
+      "turns": null,
+      "tool_calls": 0,
+      "context": {
+        "calls": 0,
+        "peak": null,
+        "peakPct": null,
+        "compactions": 0
+      }
+    }
+  ],
+  "planning": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": null,
+      "host_seconds": null,
+      "before_engine_seconds": null
+    },
+    "stages": [],
+    "improve": null,
+    "producer_seconds": null,
+    "unmeasured": {
+      "window": "a planning stage was accepted before the host's first event (the harness records a seeded run's early stages itself), so the window is not the host's work"
+    },
+    "tokens": {
+      "unmeasured": "the planning window is not measured: a planning stage was accepted before the host's first event (the harness records a seeded run's early stages itself), so the window is not the host's work"
+    }
+  },
+  "fresh_starts": [],
+  "fresh_starts_unmeasured": null,
+  "context_windows": [
+    {
+      "start": 1793302027.397,
+      "end": 1793303319.454,
+      "minutes": 21.53,
+      "stages": [
+        "step-plan",
+        "test-spec",
+        "validate-existing",
+        "implement",
+        "test",
+        "document",
+        "carry-forward"
+      ],
+      "peak_tokens": null,
+      "server_tool_rounds": 0,
+      "compacted": false,
+      "bytes": {
+        "shiploop_packets": 179203,
+        "shiploop_reads": 61980,
+        "product_reads": 0,
+        "run_record_reads": 45136,
+        "knowledge_reads": 0,
+        "shell_output": 67299,
+        "web": 0,
+        "model_text": 4126,
+        "other": 9969
+      },
+      "top": [
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'cat /Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/",
+          "bytes": 39121
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'cat /Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/",
+          "bytes": 27751
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'cat /Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/",
+          "bytes": 22100
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f",
+          "bytes": 20209
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f",
+          "bytes": 20010
+        }
+      ]
+    }
+  ],
+  "context_summary": {
+    "windows": 1,
+    "compactions": 0,
+    "server_tool_rounds": 0,
+    "bytes": {
+      "shiploop_packets": 179203,
+      "shiploop_reads": 61980,
+      "product_reads": 0,
+      "run_record_reads": 45136,
+      "knowledge_reads": 0,
+      "shell_output": 67299,
+      "web": 0,
+      "model_text": 4126,
+      "other": 9969
+    },
+    "share": {
+      "shiploop_packets": 0.4873,
+      "shiploop_reads": 0.1686,
+      "product_reads": 0.0,
+      "run_record_reads": 0.1227,
+      "knowledge_reads": 0.0,
+      "shell_output": 0.183,
+      "web": 0.0,
+      "model_text": 0.0112,
+      "other": 0.0271
+    },
+    "total_bytes": 367713,
+    "median_minutes": 21.53,
+    "median_window_bytes": 367713.0,
+    "top_sources": [
+      {
+        "source": "shiploop_packets",
+        "bytes": 179203
+      },
+      {
+        "source": "shell_output",
+        "bytes": 67299
+      },
+      {
+        "source": "shiploop_reads",
+        "bytes": 61980
+      },
+      {
+        "source": "run_record_reads",
+        "bytes": 45136
+      },
+      {
+        "source": "other",
+        "bytes": 9969
+      },
+      {
+        "source": "model_text",
+        "bytes": 4126
+      }
+    ]
+  },
+  "span": {
+    "started": 1793302027.397,
+    "ended": 1793303319.454
+  }
+}

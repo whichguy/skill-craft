@@ -1,0 +1,18 @@
+{
+ "W1.json": {
+  "plans": {
+   "nav-076e3a37f6b549a1b7bde2e7660d2ca8": {
+    "S1": {
+     "base": "aeb9ca7e8580ca463dfed41ad427895350ff7d0e",
+     "commit": "8b503a159938b9bdde015b1d1fe3c39df4efcf97",
+     "number": 1
+    },
+    "S2": {
+     "base": "8b503a159938b9bdde015b1d1fe3c39df4efcf97",
+     "commit": "d70c70979d7798b9d4c6d7f3444f382bb59ea6b6",
+     "number": 2
+    }
+   }
+  }
+ }
+}

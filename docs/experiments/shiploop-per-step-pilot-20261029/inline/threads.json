@@ -1,0 +1,20 @@
+{
+ "threads": 1,
+ "totals": {
+  "input_tokens": 8055547,
+  "cached_input_tokens": 7893632,
+  "output_tokens": 23461,
+  "reasoning_output_tokens": 512
+ },
+ "workers_spawned_by_the_parent": [],
+ "per_thread": [
+  {
+   "role": "parent",
+   "tool_calls": 74,
+   "input_tokens": 8055547,
+   "cached_input_tokens": 7893632,
+   "output_tokens": 23461,
+   "reasoning_output_tokens": 512
+  }
+ ]
+}

@@ -292,18 +292,24 @@ is section 9.1). Saved runs from before it are refused (state version 11).
 - 4: `test/shiploop-step-edges.test.py` drives the edges through the real `complete`. It found a defect from 2b-2: a
   step after the first was refused because the base run judged an earlier step's cases as new. Fixed and pinned.
 - F5 (a test case names its mock, built first) and F6 (every lint result says how each file was covered).
+- 2c: the ask-agent route runs one implement action per step in a fresh worker (owner decision G1, "adopt a2"), and
+  ShipLoop's chain is retired: its code, commands, guides and tests. The commit stage saves its record with the state,
+  so a call that stops anywhere is retried.
+- The pilots (Codex `gpt-6.1-terra` at xhigh, one two-step case, 2026-10-29): the inline control and the per-step
+  ask-agent route both pass, each committing its steps in plan order with S2 based on S1's commit. The per-step route
+  used 13 fresh workers against the 8 of the item-level route it replaced, about 1.25 times the time and 1.16 times the
+  input tokens; one run per arm, so the cost is indicative. Evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`.
 
-**In progress.** 2c: the ask-agent route runs one implement action per step in a fresh worker, and ShipLoop's chain is
-retired (owner decision G1, "adopt a2"). Done so far: the commit stage saves its record with the state (a call that stops
-anywhere is retried), and the route issues one implement action per step. Still to come: removing the chain's code, its
-commands and its guides, and the evidence.
+**In progress.** Nothing in the code. The release is cut once the full test tier is green on the exact tip.
 
 **Pending.**
-- The two pilots decide what is still unproven: the net cost, how faithful the mocks are, and whether the review and
-  the entry-point trace catch what verify caught.
-- The owner's framing decision (G2: present the lifecycle as a quality and feedback-speed pilot) and the release go.
-- Landing: `shiploop check` (phase B) landed on main first (ShipLoop 1.21.0) and this stack has merged main once. The
-  stack itself is not on main until the pilots, the 2c build and the owner's release go.
+- Still unmeasured, said openly: what a fresh worker was told (the messages between agents are encrypted on Codex), a
+  killed implement worker (the slice harness has no trigger for it, so what the parent does when it cannot show a worker
+  stopped is open), and the bases after a preparatory fix or a send-back (none occurred in the pilots; tests cover them).
+  How faithful the mocks are, and whether the review and the entry-point trace catch what verify caught, need more runs
+  than one case gives.
+- The owner's framing decision (G2: present the lifecycle as a quality and feedback-speed pilot).
+- Landing: `shiploop check` (phase B) landed on main first (ShipLoop 1.21.0) and this stack has merged main.
 
 ```mermaid
 flowchart LR

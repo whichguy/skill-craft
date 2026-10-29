@@ -1,0 +1,8 @@
+770d5f6 docs(shiploop): record in-this-node-js-project-add-70e4ba knowledge after carry-forward
+731a3c8 Test valid inherited property names in records
+dc244be feat: W1 Add parseRecords and select in src/records.js
+681627d docs(shiploop): record in-this-node-js-project-add-70e4ba knowledge after test
+bfa76ea docs(shiploop): record in-this-node-js-project-add-70e4ba knowledge after step-plan
+db4ffdc Correct per-step regression timing and proof prerequisites
+1eae0cc Clarify records plan verification and test ownership
+c3f2cfc seed: baseline

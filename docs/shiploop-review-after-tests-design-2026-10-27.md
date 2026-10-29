@@ -1401,7 +1401,7 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
         `ci-policy`, `shiploop-progress`, `-progress-data`, `-v4-consumers`, `-stage-spec`, `-delegation`, `-e2e`,
         `-e2e-reorientation`, `-e2e-run-trace`, `-e2e-commit-counters` and `-workspace` pass after their chain parts were
         removed; the whole quick and shiploop groups were run on the result (below).
-    - **2c-3: the evidence (2026-10-29; the pilot is proposed, not run).**
+    - **2c-3: the evidence (2026-10-29; the pilot ran afterwards: see "The pilot, run" below).**
       - *Done.* The head pins and Run Review followed the route in 2c-1. The E2E chain grade went with the chain in 2c-2,
         since `run.py` read the deleted ledger; what that retires and what stays is said in `test/shiploop_e2e/README.md`
         ("The chain cases, retired") and in SPEC S-10's list of copies of the stuck rule. No journal entry was written to
@@ -1410,7 +1410,7 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
       - *Release preflight.* Every commit of this stack that changes `skills/shiploop/` or `changes/shiploop/` comes
         after the last `LEARNINGS.md` entry, so `scripts/release.py` will refuse the release until an E2E round follows
         them (or each carries `No-E2E-Round: <reason>`, which says the round was not run). The pilot below is that round.
-      - *Proposed pilot* (the owner's go and a model budget; none of it was run).
+      - *Proposed pilot* (run later the same day, on Codex with `gpt-6.1-terra` at xhigh: see "The pilot, run" below).
         - *Runs.* One step slice seeded at `step-plan` with at least two steps on the ask-agent route, and the same case
           inline as the control, on the E2E default subject (DeepSeek flash on Ollama, judge Opus). Cost to expect: about
           4n fresh workers for n steps on ask-agent against n + 3 for the old item-level route, at about 86k tokens each at start.
@@ -1429,6 +1429,29 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     still said "An Improve stage reviews each accepted step, and the callback after the last step's review moves to
     `test`". parallel-chain.md's diagram still ended in "The item's Improve stage, then the test stage". Both predated
     2b-2.
+- **The pilot, run (2026-10-29).** Evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`; the journal entry is the last
+  one in `test/shiploop_e2e/LEARNINGS.md`. The owner chose Codex with `gpt-6.1-terra` at xhigh as the subject, since the
+  Ollama route had hit its monthly limit (429). Case `stand-in-parser`, planned as two steps in every run. Three runs: inline
+  (the control), the per-step ask-agent route (2c), and the item-level ask-agent route that 2c replaced, run on the commit
+  before 2c-1.
+  - **Verdicts.** All three pass all five (process, inner loop, no overshoot, assembled, checks).
+  - **The lifecycle's order and commits.** Both per-step runs commit `feat(W1/S1)` then `feat(W1/S2)`, in plan order, from
+    ShipLoop's commit stage, and the ledger shows S2's base is S1's commit. The old route made one item commit. The new
+    route's final review added one fix commit, a validation fix the step reviews had missed.
+  - **Cost.** The new route took 21.6 minutes against the old route's 17.3 and the control's 5.3, with 13 fresh workers
+    (`fork_turns: none`) against 8 and 0: four per step (implement, test, document, the step's review) plus five for the
+    item (step plan, its review, test spec, carry-forward, the final review). That is the design's "4n". Input tokens
+    were 23.1 M against 19.9 M and 8.1 M (96% cached), output tokens 105 k against 85 k and 23 k. One case, one run per arm:
+    the ratios (1.25x the time, 1.16x the input tokens, against the old route) are indicative.
+  - **Refusals.** The run trace shows 0 ShipLoop refusals on the new route, 6 on the old one and 3 on the control; every
+    one the control hit was a real catch (a leftover `check_na`, a surviving mutant, a spec write-back).
+  - **Run Review.** It exports all three: stage model v6, steps planned and executed 2 and 2 on the version-11 runs.
+  - **Not measured, said openly.** Context fidelity: the messages between agents are encrypted on this host, so only the
+    worker names, counts and fresh context are visible. The four crash points inside the commit stage cannot be provoked from
+    the slice harness; the three tests of 2c-0 part 1 (`EightStageInnerLoopCliTests`) inject them. The killed implement
+    worker has no harness trigger yet, so the parent's choice when it cannot show a worker stopped (wait, ask, replace) is
+    still open. Neither a preparatory fix nor a send-back occurred, so the bases after them are covered by tests only
+    (`shiploop-step-edges`, `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit`).
 - **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
 
   > "One of the things that I want to make sure of in our test suite is that we're both running the tests for the new
