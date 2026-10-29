@@ -4060,3 +4060,285 @@ evidence in `docs/shiploop-owed-outcome-evidence/arm-b-*`. The two baseline rows
 - Owner decisions:
   - Should a session that runs `next` or `complete` take over a dead owner's claim?
   - Should Improve scale to the request's size?
+
+## Phase B round: `shiploop check`, and `complete` taking its yes, on DeepSeek flash (2026-10-29) — status: firm for the two counted verdicts, the verb's use and `complete` taking the yes; interim for the command counts (n = 2 against 3); the SessionEnd hook was present but not exercised
+
+**Question.** Phase B (docs/shiploop-check-phases-bc-plan-2026-10-28.md) put the complete gates in one evaluator, added
+the verb `shiploop check` (it replaces `complete --check-only`) and made `complete` take a matching yes instead of
+running the gates again.
+- Does a model use the verb when the packet does not print its command?
+- Does `complete` take the check's yes?
+- Do commands to accept a step change?
+
+**Setup.**
+- Claude host, DeepSeek flash on Ollama, node-fix-bug slices seeded at step-plan, cleared at `implement:inside`,
+  continued with `names-next`, no `--stop-after` (the whole inner loop), no timeout.
+- **Before arm:** three slices from `070d752e` (ShipLoop 1.20.0 plus the plan). **B arm:** slices from `997bb7d4`, which is
+  origin/main `8a8f1e59` plus phase B's commits as they stood then. The tip published differs from `997bb7d4` only in
+  two reference files (`references/inner-loop.md`, `references/glossary.md`) and in test and harness fixes; no packet
+  text or script changed after the slices ran.
+- Counts come from each run's own `trace.jsonl` and `events.jsonl` by `arm_b_metrics.py --per-stage`. Another session's
+  commits changed the harness evaluator between the arms; that does not touch these counts.
+- Not counted, shown for the record: `bc-b-1-ddde3c` (`a25cec39`, a printed Check line, since removed) and
+  `bc-bf-1-05cbe0` (final wording, before the rebase) each passed all six verdicts.
+
+**Not covered.**
+- **The SessionEnd hook (`1961f4c5`, pending note `session-end-releases-run`) was present on the tip but not
+  exercised.** The slices end by the harness stop or a normal exit; none tests that a host's session end releases the run.
+  That evidence is the session-end evidence session's, and follows in the next release.
+- Other sessions' commits on the tip (the entry-start fix in `shiploop_knowledge_home`, the Improve handoff's lint action
+  ID) ran inside these slices without being targeted; their own round does that.
+
+**Result** (evidence: `docs/shiploop-owed-outcome-evidence/bc-before-per-stage.json`, `bc-b-per-stage.json`).
+
+| B-arm slice | verdict | `check` calls | `complete` calls | removed-flag uses | refused `complete`s | failed checks | records `complete` took from a check |
+|---|---|---|---|---|---|---|---|
+| B1 | PASS | 8 | 10 | 0 | 0 | 1 | 4 |
+| B2 | PASS | 8 | 11 | 0 | 1 (a spec write-back gate at implement, no check before it) | 2 | 4 |
+| B3, not counted | cut | 9 | 9 | 0 | 0 | 2 | 4 |
+
+B3 is not a result. At 15:11Z (08:11 PDT) the host got `API Error 429: you (dadleet) have reached your monthly usage
+limit` from Ollama, in carry-forward's Improve child; the verdicts `process` and `inner_loop` are false because of it. Its
+seven inner stages and carry-forward had been accepted, and the last check had said yes. The limit is account-wide, and
+no slice was rerun.
+
+**What it shows.**
+- **The verb is used, derived from the callback.** 16 `check` calls in the 2 counted slices (25 with B3), none with the
+  removed flag; the packet prints no check command (a printed `Check (` line cost 329 characters in every inner head
+  and was removed).
+- **`complete` takes the yes.** In each counted slice 4 records carry `reused.answer` (the test stage's base, candidate
+  and mutation records, and the verify stage's rerun), and every stored answer is a yes. The accepted `complete` at
+  test fell from a median 2,961 ms to 646 ms, at verify from 1,386 ms to 478 ms. At the other stages it did not fall
+  (step-plan 287 to 341, test-spec 888 to 1,362, implement 1,345 to 1,855, document 1,257 to 1,414, carry-forward 447 to
+  410); the data do not explain the rises.
+- **No refused `complete` followed a yes** (0 cases). The one refused `complete` in the counted slices had no check before
+  it. The checks that said no did their job: a draft outcome the stage does not accept (the allowed-outcome rule the old
+  dry run skipped), a missing result file, a malformed `retired_tests` and `red_na`.
+- **Commands to accept: the pre-registered bar was missed.** The plan predicted no change within one command per stage.
+  Medians of commands, before (n = 3) and B arm (n = 2): step-plan 39, 35; test-spec 6, 8.5; implement 12, 14; test 10, 13;
+  document 6, 6; verify 7, 9; carry-forward 6, 8. Inner-stage commands per slice: before 89, 108, 86; B arm 95, 92.
+  The ranges overlap and most of the extra commands are ordinary ones (reads and edits), not ShipLoop or loop calls, so
+  the data cannot tie them to the verb. The plan's stop rule applies all the same: **phase C stays paused until the
+  cause is found.**
+
+**Next.** Release the phase B change. Do not start phase C until a larger sample, or a look at the extra commands,
+explains the count; its own pilot (no live run has ever executed an Until Loop `verify_script`) is still owed. Rerun B3
+once the Ollama limit is lifted.
+
+## Session-end hook and takeover: live round on Claude Sonnet 5.5 (2026-10-29) — status: firm for the hook's release and the takeover (n = 1 each); the `session_end` check read not exercised in all three slices
+
+**Question.** Does the host's SessionEnd hook (`1961f4c5`, with the trace row of `1f0bc835`) free a run that its session
+owned, and does the next session take it at once? And does the takeover (`f82da379`, with the unreadable-process-table fix
+`2e62367a`) hand a run over when the owner's process was killed and no hook ran?
+
+**Setup.**
+- One-off on the Claude host with `--backend anthropic` (Sonnet 5.5, the CLI's own effort), because Ollama's monthly usage
+  limit (HTTP 429, 08:11 PDT) ended DeepSeek runs. The owner chose it on 2026-10-29. The E2E default and its baselines are
+  unchanged and no baseline row was written.
+- `slice.py --case node-fix-bug --seed-at step-plan --clear-at implement --clear-signal SIGTERM` and `SIGKILL`, from
+  `2fa82212` (release 2.22.0 / shiploop 1.21.0, `1f0bc835`, `2e62367a`); `--max-budget-usd 5`, `--timeout 2400`.
+  `owner_watch.py` logged the run's claim file every 0.25 s beside each slice.
+- Every ShipLoop commit since the release is in that build (`1f0bc835`, `2e62367a`). Later commits on main: one test
+  commit (`7ec4651d`).
+
+**Not covered.** Grok, Codex and Cursor session ends. A model that ends a turn after a release, so `keepalive_text` and a
+`session_end` pass stayed not exercised. The takeover fix's own case (an unreadable process table) is unit-tested only. n = 1
+per mechanism.
+
+**Result** (evidence: `docs/shiploop-owed-outcome-evidence/live-round-2026-10-29.json`, the two claim logs beside it).
+
+| slice | signal at `implement` | trace row | claim after | next session's claim | verdicts |
+|---|---|---|---|---|---|
+| `round-se-sigterm-1-e35e7d` | none: `implement:inside` never fired | none | none | none | all pass, no evidence |
+| `round-se-sigterm-2-b14d8c` | SIGTERM, exit 143 after 120.4 s | `session-end` release, `released: true` | removed 0.46 s before the end was recorded | +10.8 s | all pass, `no_redo` too |
+| `round-se-sigkill-1-708d75` | SIGKILL, exit -9 after 132.0 s | none | stayed, owner pid dead | +5.2 s, replacing it | all pass, `no_redo` too |
+
+**What it shows.**
+- **The hook frees the run.** The harness releases nothing when `--clear-signal` is set, and the claim went before the
+  harness recorded the session's end, so the host's hook freed it. The next session claimed it 10.8 s later.
+- **The takeover takes a dead owner's run at once.** The next session replaced the dead claim 5.2 s after the kill. The
+  dead claim's last refresh was 6.2 s old, so the process check freed it, not the 1,800 s window.
+- **The `session_end` check cannot pass on a slice yet.** It needs another session's stop decision after the release, and
+  the fresh sessions never end a turn. It read not exercised in all three, as designed. A claim row in the trace is the fix.
+- **`implement:inside` depends on the model.** Sonnet made four Bash calls and no Edit or Write in `implement`, and the
+  harness counts all four as ShipLoop calls, so the position never fired and the first slice, 256.8 s and 61 turns, gave
+  no evidence. Use a stage-boundary position for
+  host-mechanism rounds.
+
+**Next.** The SessionEnd hook and the takeover now have live evidence on Claude; the release may proceed. Ollama's
+limit still blocks DeepSeek rounds; the brownfield and phase B reruns need credits or the monthly reset. Build the claim row
+when a round needs the check to pass.
+## Brownfield D7 before-runs: user-listing, ticket-assignment and its follow-on on DeepSeek flash (2026-10-28) — status: firm for the verdicts; interim for the time split (n = 1 per case)
+
+**Question.** D7 of the brownfield-baseline design (owner-accepted 2026-10-28) asked for evidence before section 10 is
+built:
+- On an existing repository, does today's ShipLoop lose or break behaviour the request does not name?
+- Does a follow-on run lose what the first run learned?
+
+Setup:
+- Claude host, DeepSeek flash on Ollama, `--permission-mode auto`, no timeout.
+- `--source checkout` from one detached worktree pinned at 8aa6e1fe: origin/main 4e1c8df0 plus the design, the entry-start
+  fix (D8) and the new case pair.
+- The case pair: `ticket-assignment`, on the 3,631-line `fixtures/node-tickets` (8 decision records, one planted OR
+  defect), and its follow-on `ticket-escalation` (`--continue-from`).
+- Output under a runs root of our own, `~/e2e-runs-brownfield`. Step slices then held no case lock, so `run.py`
+  refused to start beside a live E6 slice; fixed on main in 98e7aff0.
+
+**Result** (`docs/shiploop-brownfield-baseline-journal.md` "The before-runs";
+`docs/experiments/brownfield-baseline-20261028/results/d7/before-runs.json`; the three baseline rows were committed with
+the branch).
+
+| run | verdict | held-out | planning window (Improve) | run min | refusals |
+|---|---|---|---|---|---|
+| user-listing (first live run of the case) | PASS | 11/11 | 17.4 (10.0) | 68.1 | 25 |
+| ticket-assignment | PASS | 18/18 | 30.1 (17.2) | 110.5 | 27 |
+| ticket-escalation (follow-on) | PASS | 14/14, 7 kept from run 1 | 48.7 (25.7) | 138.6 | 18 |
+
+**What it shows.**
+- **No correctness gap.** Every latent fact was kept and both planted defects fixed, and the follow-on lost nothing
+  of run 1. The cases fit in the host's context (peak 157-160K), so "too big to read" is untested.
+- **Improve is 53-58% of every planning window.** The spec stage wrote for 0.5-1.4 min, and its review took 2.2-7.5 min.
+- **The follow-on's extra planning sits in the stages that work over growing living files.** Test-strategy took 16.1
+  min against 7.5, step-plan 12.0 against 5.3, carry-forward 14.7 against 9.5, while `environment.md` grew from 72 KB
+  to 87 KB. Its harness plan named only its own requirements (R-13 to R-20).
+- **Refusals, all recovered.** Size caps: 3-5 per run. Lint at Improve: 7 of 7 lint calls named the Improve action
+  instead of the reviewed step's (fixed in c89c8c20; the harness now keeps such refusals' text, 47e99461). Repeated
+  habits: `--check-only` at Improve, and a skipped skill call at a new Improve. TS1's coverage refusal at the last
+  test-spec ("Missing: R-20. Add a case …") attached a test to a step whose intention it was not.
+
+## R1: the same three cases on the pushed tip, after the Ollama limit, on Codex with Terra 6.1 at xhigh (2026-10-29) — status: firm for the verdicts and the lint result; interim for the speed comparison (one subject, n = 1 per case)
+
+**Question.** Do the changes pushed on 2026-10-29 (the entry-start fix 300ef968, the Improve-lint fix c89c8c20 with its
+harness part 47e99461, `quality.Product` d9a92f05, and the node-tickets pair 5851bf5b and c51e218a) leave the three D7
+cases passing, and does the Improve handoff's printed lint command get used without a refusal?
+
+Setup:
+- A detached worktree pinned at 8a8f1e59, the pushed tip. It contains the session-end hook (1961f4c5) and the case-lock fix
+  (98e7aff0). The rounds ran on a tree containing the hook and did not aim at it: this entry claims no live proof of the
+  hook or of the dead-session takeover.
+- **First attempt, DeepSeek flash on Ollama, not a result.** `ticket-assignment` died at 44.9 min on Ollama's monthly usage
+  limit (`api_error 429 … monthly usage limit, upgrade for higher limits`), so its host session ended and the harness graded
+  it FAILED. Its model had also abandoned a first run after a shell-quoting error, leaving two run folders and an
+  "ambiguous" grade; the harness now picks the live run (abac209f). The other two launches were stopped. That row is not in
+  `baselines.jsonl`.
+- **Second attempt, flags for this round only:** `run.py --host codex --model gpt-6.1-terra --effort xhigh --source checkout`
+  (the Codex catalog now lists `gpt-6.1-terra`; the harness default is unchanged). `ticket-assignment` and `user-listing`
+  ran in parallel and `ticket-escalation` followed on `ticket-assignment`'s delivery. No Ollama load, no stagger.
+
+**Result** (`docs/experiments/brownfield-baseline-20261028/results/d7/r1-codex-runs.json`; three baseline rows in this commit).
+
+| run | verdict | held-out | planning window (Improve) | run min | refusals |
+|---|---|---|---|---|---|
+| user-listing | PASS | 11/11 | 5.6 (2.3) | 19.1 | 4 |
+| ticket-assignment | PASS | 18/18 | 4.5 (1.3) | 19.5 | 4 |
+| ticket-escalation (follow-on) | PASS | 14/14, 7 kept from run 1 | 4.7 (1.4) | 17.1 | 4 |
+
+**What it shows.**
+- **Every case passed and the follow-on kept run 1.** All three reached `done`, one run folder each.
+- **The lint fix worked in practice.** The printed lint line is in 9, 11 and 10 Improve handoff files, the reviewers ran
+  `shiploop lint` throughout, and no run has a "lint could not run" line; D7 had 7 of 7 refused.
+- **This subject plans in about 5 minutes with Improve at 29-41% of it,** against 17-49 minutes and 53-58% on DeepSeek
+  flash. It is a different subject, so the speed is not a Wave A or fix effect. The model wrote about 21,000 output
+  tokens for the first planning window, 4% of them reasoning.
+- **Refusals fell from 18-27 to 4 per run.** The remaining ones: a 1,200-character concern-rows cap once (Wave A removes it),
+  a headline and a result-format slip, and protocol misses.
+- **What is not shown.** The runs fit in the host's context, so "too big to read" is untested; the as-is account is not
+  needed on these cases (the D7 conclusion stands). A before-and-after for Wave A needs a Terra baseline on this host.
+
+## R2: the same three cases on main e79c39aa, on Codex with Terra 6.1 at xhigh (2026-10-29) — status: firm for the verdicts and the `check` verb's use; interim for the baseline figures (one subject, n = 1 per case)
+
+**Question.** After 1.21.0 and the fixes that followed it, do the three cases still pass on a tree that contains the released
+`check` verb, the Improve-lint fix, the entry-start fix and the dead-session safety fix 2e62367a?
+
+Setup: a detached worktree pinned at e79c39aa (the 1.21.0 release e064e875 plus the harness run-choice fix abac209f and
+2e62367a); `run.py --host codex --model gpt-6.1-terra --effort xhigh --source checkout`; `ticket-assignment` and
+`user-listing` in parallel, `ticket-escalation` on `ticket-assignment`'s delivery. Nothing else was running.
+
+**Result** (`docs/experiments/brownfield-baseline-20261028/results/d7/r2-codex-runs.json`; three baseline rows in this commit).
+
+| run | verdict | held-out | planning window (Improve) | run min | refusals |
+|---|---|---|---|---|---|
+| user-listing | PASS | 11/11 | 4.8 (1.8) | 16.7 | 0 |
+| ticket-assignment | PASS | 18/18 | 5.4 (2.3) | 23.1 | 3 |
+| ticket-escalation (follow-on) | PASS | 14/14, 7 kept from run 1 | 5.5 (2.5) | 16.9 | 6 |
+
+**What it shows.**
+- **The released `check` verb is used and the removed form never is:** `shiploop check` appears 16, 26 and 24 times in the
+  three streams and `complete --check-only` never. No refusal says a lint action is not current.
+- **The follow-on's six refusals include four size caps** (the 1,200-character limits on model text) that plan F2 removes;
+  the other two are a result-format slip and a quality gate.
+- **These two rounds are the Terra baseline for Wave A** on this host: planning 4.5-5.6 min, 0-6 refusals per run, 17-23 min
+  per case. A Wave A comparison should rerun the cases on the same host and model.
+- **Not aimed at.** The session-end hook (1961f4c5), its trace row (1f0bc835) and the takeover (f82da379, 2e62367a) have their
+  own live round in the entry above (Sonnet 5.5, build 2fa82212). The rounds in this entry ran on trees containing the hook
+  and did not aim at it, so this entry claims no live proof of the hook or the takeover; 1f0bc835 landed after R2's pin.
+
+## Per-step iteration pilot: inline, per-step ask-agent and item-level ask-agent on Codex Terra 6.1 (2026-10-29) — status: firm for the verdicts, the commit shape and the worker count; interim for the cost ratios (one case, one run per arm)
+
+**Question.** Design T (`docs/shiploop-review-after-tests-design-2026-10-27.md` §8, §9.1 step 5, the pilot proposed at 2c-3) made every
+step an iteration: built, tested, documented, reviewed and committed before the next starts, on both routes.
+- Does the lifecycle run end to end on the inline route and on the ask-agent route, with one commit per step in plan order?
+- What does the ask-agent route cost now that it starts a fresh worker for each stage of each step, against the item-level route it
+  replaced and against the inline control?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh (the owner's choice, 2026-10-29, after the Ollama route hit its monthly limit: not the
+  DeepSeek default, so these are not comparable with the earlier rounds' timings).
+- Case `stand-in-parser`, a step slice seeded at `step-plan` (`slice.py`, no `--stop-after`), planned as two steps in every run.
+- **Inline** and **per-step ask-agent**: the stack at `f0127708`. **Item-level ask-agent**: `a949ee29`, the commit before 2c-1. The
+  tip published differs from `f0127708` only in the two `SKILL.md` version fields of the 2.22.1 release and in the README and
+  docs; no navigator script or packet text changed after the runs.
+- Counts are each run's own: `slice-result.json`, `metrics.json` and the run trace; threads and tokens from the Codex rollouts under
+  each run's home by `tally_threads.py`.
+
+**Not covered.**
+- What a fresh worker was told (context fidelity): the messages between Codex agents are encrypted, so only each worker's name, count
+  and fresh context (`fork_turns: none`) are visible.
+- The four crash points inside the commit stage, and a killed implement worker: the slice harness has no trigger for either. The
+  three tests of 2c-0 part 1 (`EightStageInnerLoopCliTests`) inject the crash points; the killed-worker rule (wait, ask, or replace
+  when the parent cannot show a worker stopped) stays an open question.
+- The bases after a preparatory fix and after a send-back: neither occurred in any run. `shiploop-step-edges` and
+  `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit` cover them.
+- A second case, or a second run of any arm.
+
+**Result** (evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`).
+
+| | inline | ask-agent, per step | ask-agent, item level (before 2c-1) |
+|---|---|---|---|
+| verdicts | all five pass | all five pass | all five pass |
+| first accept to last accept | 5.3 min | 21.6 min | 17.3 min |
+| Codex threads (parent + workers) | 1 | 14 (13 fresh workers) | 9 (8 workers) |
+| input tokens (cached) | 8.06 M (7.89 M) | 23.11 M (22.23 M) | 19.94 M (19.30 M) |
+| output tokens | 23.5 k | 105.2 k | 85.1 k |
+| ShipLoop refusals (run trace) | 3, all `check` | 0 | 6 (`check` 4, `complete` 2) |
+| commits on the product | `feat(W1/S1)`, `feat(W1/S2)` | `feat(W1/S1)`, `feat(W1/S2)`, one review fix | one `feat: W1 ...` item commit, one review fix |
+
+**What it shows.**
+- **The lifecycle works on both routes (firm, for this case).** Each step commit is ShipLoop's commit stage's, in plan order, and the
+  ledger shows S2's base is S1's commit (`iteration-ledger.json`). The item-level route made one commit for the item.
+- **The ask-agent route's worker count is the design's "4n" (firm).** The 13 workers are four per step (implement, test, document and
+  the step's review: `implement_parse`, `test_parse`, `document_parse`, `parser_improve`, then the same for the selector) plus five for
+  the item (`step_plan`, `plan_improve`, `test_spec`, `carry_forward`, `final_improve`), every one started with no inherited context.
+  The old route started 8 and none for implement.
+- **The per-step route costs about a quarter more than the route it replaced, and about four times the control (interim).** Against the
+  old route: 1.25x the time, 1.16x the input tokens, 1.24x the output tokens, 1.4x the packet bytes. Against the control: 4.1x, 2.9x,
+  4.5x. The main-thread figures (model calls 124, 110 and 74; context peak 137 k, 137 k and 161 k) leave the workers out; the thread
+  tally does not.
+- **The final review earns its place on the new route (one observation).** It found and fixed an input-validation defect in
+  `records.js` (with a test and a doc line) that the step reviews had not; the control's mutation check caught a surviving mutant in
+  its own test stage. All three pass the case's held-out checks.
+- **The `check` verb is used and its refusals are real catches (firm).** The control's three refusals were a leftover `check_na`, a
+  surviving mutant and a spec write-back; it fixed each and went on.
+- **Run Review reads all three (firm).** It exports stage model v6, planned and executed steps 2 and 2 on the version-11 runs, and
+  says "not measured" for the executed steps of the older saved run, as designed.
+
+**Decision.**
+- Adopt the per-step ask-agent route (owner decision G1, 2026-10-29): its measured cost over the route it replaces is modest, and it
+  gives the per-step commits and bases the inline route already had.
+- The unmeasured items above stay open and are recorded as known limits, not as passes. The killed-worker question needs a harness
+  trigger before it can be answered.
+- A multi-case, repeated round would turn the cost ratios from indicative to firm; none is scheduled.
+
+**Verified by.** The evidence directory's `README.md` lists the commands; every number above is in a file there. Full test tiers on
+the tip: all 154 hermetic suites pass on the tree before the last cleanup, and the changed-file selections plus the apparatus group
+pass after it.

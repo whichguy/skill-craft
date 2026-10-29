@@ -590,10 +590,1176 @@ Nits, also taken:
 4. Exercise send-back, commit failure and retry, test-only steps, cross-step cases and tests a review adds.
 5. Update the packets and Run Review (v6, with older runs still read). Then run the two pilots, with stage-level
    defect and cost attribution.
+6. **Once the lifecycle is complete, update the README** (owner, 2026-10-28: "Once complete, we should update the
+   README with the updated detailed status"). Two parts go into `skills/shiploop/README.md`:
+   - **The lifecycle in detail.** Rewrite the "Navigator: producer, Improve child, then transition" section, which
+     today lists "the 8 inner stages in 5 phases" with `implement` once per step. It covers:
+     - the per-step iteration (build, test, document with its review, knowledge, commit);
+     - each stage's gates, the lint points and mocks before system tests;
+     - the skills block, and the commit stage in place of verify.
+   - **A status section in the owner's frame.**
+     - Plan: the build order.
+     - Accomplished: each step, with its evidence.
+     - In progress.
+     - Pending: what still waits on the owner (the F and G decisions), and the pilots' results.
+     - A small dependency picture of the steps.
+
+   It lands with the change that completes the lifecycle, so the README never describes a flow the code does not run.
+
+**Step 1 done (2026-10-28): the iteration contract.** `skills/shiploop/scripts/shiploop_iteration.py` specifies the four
+invariants as pure functions. `test/shiploop-iteration.test.py` pins them: 24 tests, written first and failing on the
+missing module.
+- **Identity.**
+  - `Iteration` holds (item, plan revision, step, number, base).
+  - `start` takes the plan's next uncommitted step, in plan order, from HEAD; `advance` gives the next base.
+  - A base is always a full commit ID. It is never a snapshot of a dirty checkout, so edits that a send-back leaves
+    behind count as the next iteration's change.
+  - `stale` marks a receipt recorded for another identity.
+- **Producer ownership.**
+  - `STAGES` is implement, test, document, knowledge, commit. The stage IDs keep `implement` for build.
+  - `MODEL_STAGES` holds every stage but commit, which is ShipLoop's alone.
+  - `owns_improve`: document owns the review.
+- **Retry invalidation.**
+  - `invalidated`: a send-back voids its target's receipt and every later one.
+  - `ends_iteration` and `after_send_back`: a send-back inside the iteration keeps its base; one to planning ends the
+    iteration.
+  - Commit is never a send-back target.
+- **The final-tree commit invariant.**
+  - `pending_record` is written before the commit.
+  - `commit_decision` commits the gated tree on the base, and refuses a tree that changed after the knowledge gate,
+    reopening knowledge.
+  - It recognises a commit that already happened, and refuses any other commit: only the commit stage commits.
+
+The navigator does not use it yet. Step 2 wires it in.
+
+The build stays on a feature branch until the lifecycle is complete, so no release from main ships half of it.
+
+**Step 2 plan (2026-10-28).** Step 2 is the lifecycle switch, and its reach is wide. Today `"verify"` appears in 96 test
+files and 11 ShipLoop modules, and in Run Review and the E2E audit harness. The per-step test stage also needs each
+case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, on the feature branch:
+- **2a. Due cases per step,** pure, in `shiploop_iteration`. **F1 needs no new field:**
+  - each test-spec case already names its step-plan `criterion`;
+  - each step already lists the `criteria` it satisfies;
+  - so a case is due at the last step that lists its criterion, and a case no step lists is due at the last step.
+
+  For each step, ShipLoop derives:
+  - **due cases:** every case due so far, which must be GREEN;
+  - **new cases:** this step's cases, the only ones RED applies to;
+  - **active commands:**
+    - a focused command runs from the first step one of its IDs is due, narrowed to the IDs due by then;
+    - a check command runs from the last step that lists its criteria;
+    - the regression command runs at every step.
+
+  On 36036c's real plan:
+  - **S1:** the game tests;
+  - **S2:** the server tests, and the docs check (it names C4 and C8);
+  - **S3:** the page's server test (TC-4) and the browser test.
+
+  Floors per step stay step 3's.
+  **2a done (2026-10-28):** `case_step`, `due_cases`, `new_cases` and `active_commands` in `shiploop_iteration`. Nine
+  fail-first tests in `test/shiploop-iteration.test.py` pin them on 36036c's plan, 33 tests in all. The navigator does
+  not use them yet.
+- **2b. The navigator switch.**
+  - The per-step stage sequence runs through `shiploop_iteration`, with the identity in the inner loop's record and
+    the step advancing after its commit.
+  - Rule `item` moves to document, so document owns the review.
+  - The knowledge stage gets its row and packet.
+  - The commit stage becomes a script step with its pending record. Verify is retired, and carry-forward follows the
+    last iteration.
+  - The test stage runs 2a's active commands, with RED on the new cases against the iteration base.
+  - The omitted-document route is covered.
+  - Every test that pins the old flow is updated in the same change, so there is one supported version.
+  2b runs in five increments, each a commit whose tests pass:
+  - **2b-1, done 2026-10-28.** Each inline step records its iteration in `RUN/iterations/<item>.json`, which
+    `current_iteration` reads, and the step commit records the step's commit beside it.
+    - The base is HEAD at the end of the call that entered the step, after that call's step, preparatory, skill and
+      knowledge commits.
+    - It cannot be taken earlier, because `_transition` runs before those commits.
+    - Bookkeeping only: the flow is unchanged. One fail-first CLI test covers it (a three-step walk), and the quick tier
+      passed 33 suites.
+  - **2b-2, done 2026-10-28.** Test and document run after each step:
+    - the test stage runs 2a's active commands, with RED on the new cases in a checkout of the iteration's base;
+    - document's left-out rule reads the step's diff since the base;
+    - rule `item` moves to document;
+    - the next step's implement follows document.
+
+    Verify still closes the item, for now. What landed:
+    - **Order.** `_next_step_follows` routes an inline document to the next step's implement while steps remain;
+      `step_view` names the step just built at test and document, and the step to build at implement.
+    - **Base per step.** `_iteration_base` recaptures `lint.capture_base` when document hands over to the next
+      implement, after `_step_commit` has committed the step. Lint, mutation, the RED base check, the left-out rule
+      and the review diff all read it, so the second step's lint gate sees only its own lines: a finding the first
+      step waived is in that step's commit (`GateTests.test_every_implement_step_is_gated`).
+    - **Review.** Rule `item` is on document. The review prints the Step block, implement's guides beside its own,
+      and the review base since the step began; it leaves its edits uncommitted
+      (`STEP_REVIEW_NO_COMMIT`), and its import reruns the step's focused command when it changed a file. A step
+      whose document stage records `changed: false` starts no review.
+    - **One commit per step.** `_step_commit` runs in `_transition` once the step's document row is accepted. The
+      knowledge close no longer splits a step's spec line out of it.
+    - **Reads.** Document quotes the step's due cases, so it reads the item's test-spec result (consumer contract:
+      a quoted key's producer is among the reads). The review receipt is document's product now, and verify reads
+      each step's document result, so its packet still lists the step reviews it builds on. Head budgets: document
+      +75 characters, verify +207 (`test/shiploop_e2e/head_table.json`).
+    - **Removed.** The wide-item rule (`step_path_groups`, `_wide_item`, `_item_steps`, `_review_steps`) and the
+      implement-stage review. The references (README, navigator.md, improve-stages.md, glossary) say so; the
+      replay harness's literal schedule parks document.
+    - **Left for 2b-5.** Lint's gate text still says "lines this item changed": under per-step bases those are the
+      step's lines since its base. The test and document packets do not print the Step block (F9). (Run Review's
+      stage catalog and card text follow the new schedule already.)
+  - **2b-3. The step's reflection, done 2026-10-28 (option C).** The owner chose C ("Go with C", 2026-10-28): no
+    knowledge stage. What landed:
+    - **Document reflects.** Its duty 3 is now *Reflect*: with the step built, tested and documented, it records what
+      the step showed in the knowledge home. That means a marked line in the R-<n> entry it concerns (a clarified
+      clause, or the files and test file that now meet it), a decision implement did not record (a new AD-<n>), and a
+      command, harness or platform fact. It routes new work: a defect in the step is fixed now, work the step plan
+      lacks is a send-back, work a later step holds is left to it, and work outside the item is an open item due at
+      carry-forward. Document's packet names the step and its mark (`_document_step_lines`) and lists all three
+      living files (`knowledge.READS`, `STAGE_FILES`). Its done-when gains "the knowledge home records what this step
+      showed, and `knowledge` names each living file with what changed in it or why nothing did".
+    - **The knowledge record.** A done document result carries `knowledge`: exactly `spec`, `architecture` and
+      `environment`, one per living file, each nonblank (`KNOWLEDGE_RECORD`, `_canonical_handoff`). The keys are not
+      file names, because a result template must print no product-like file name (packet-completeness). A missing one is refused ("Add
+      knowledge to …"). The step commit prints it as its Knowledge home section (`step_commit_message`).
+    - **Open items.** Document joins `OPEN_ITEM_STAGES` and `CARRY_FORWARD_PRODUCERS`. `open_items` lists every step's
+      document result since the item's latest send-back (`PER_STEP_STAGES`, `_step_actions`). Astra's finding was
+      verified: `current_actions` keeps one result per (item, stage), so S1's rows would have dropped out at S2.
+    - **Gates on the final tree.** `_step_spec_refusal` runs at implement's and document's complete and at the step
+      review's import. Its refusal now says "In a step, spec.md takes only new lines inside an R-<n> entry the committed
+      spec holds". The review's focus covers the knowledge edits and its import checks them, so the step commit holds a
+      tree a gate ran on.
+    - **Contract.** `iteration.STAGES` is `implement, test, document, commit`. The commit decision reopens document
+      when the tree changed after the last gate.
+    - **Packet size** (`test/shiploop_e2e/head_table.json`). Inline document grows 13,594 -> 15,976 characters and is
+      still printed whole. Ask-agent document's whole grows 15,162 -> 17,544, so it now prints as a 13,626-character
+      head that keeps the duties and gates and leaves out the optional lookups, as the other heads do. The due-stage
+      placeholder adds 10 characters at test-spec, verify and carry-forward.
+    - **Kept as reported, by decision.**
+      - *The not-applicable document skips the reflection.* A step whose change touches no code or test path has no
+        observed behaviour to reflect on. Implement's and test's own write-backs stand, and carry-forward reconciles
+        the knowledge home at the item's end.
+      - *Test writes the knowledge home too.* Test records the harnesses it builds, at the time it builds them.
+        Document reflects on what remains.
+      - *The skill decision* stays once per item, at carry-forward.
+    - **Not done.** No unique-AD-ID gate. It waits for a run that shows a reused AD ID; `knowledge.check` already
+      refuses a dropped one. Lint on the knowledge files stays with the commit stage (2b-4).
+    - **Evidence.** Fail-first tests, each seen failing before the code:
+      - shiploop-handoff `test_each_steps_document_keeps_its_open_items_until_its_items_carry_forward` and the
+        `knowledge` shape rows;
+      - shiploop-navigator-contract `StepReflectionCliTests` (three CLI tests);
+      - shiploop-actual-improve-cli `test_a_step_reviews_unmarked_spec_line_is_refused_at_its_import_and_a_marked_one_is_imported`,
+        which fails with the import gate disabled;
+      - shiploop-iteration's stage order and commit decision;
+      - shiploop-knowledge's writer pins.
+
+    Option A's cut, superseded 2026-10-28 by the owner's choice of C (kept for the record):
+    - **Row.** `knowledge` is an inner model stage after document, on both routes (once per item on the ask-agent
+      route until 2c). It writes the knowledge home (spec.md, environment.md, architecture.md) and the skill, and
+      nothing else.
+    - **Result.** `knowledge` names each of the three files with what changed or why nothing did; `skill` is
+      carry-forward's decision, unchanged in shape.
+    - **Gates at done.** Each file named with a non-empty line; the spec only gained lines inside an existing R-n,
+      each ending with the step's marker (`step_spec_refusal`, whose refusal names send-back); no AD ID is used twice in
+      architecture.md; the skill decision's shape and repeat evidence (`_check_skill_decision`, moved).
+    - **Routing.** The iteration's last model stage is knowledge: `_next_step_follows` keys on it, the step commit
+      fires when it is accepted (so the step's knowledge and any skill are in the step's one commit), and the base is
+      recaptured when it hands over.
+    - **Carry-forward** keeps the queue and the item's learnings; its skill decision goes.
+    - **Not in 2b-3.** Lint on the knowledge files and the test rerun before the commit are the commit stage's
+      (2b-4), which checks the tree the knowledge gate ran on.
+
+    **Reopened 2026-10-28, decided C the same day (the owner).** The owner asked: "Do we need to introduce a stage at all
+    during the sequence after we implement? To say, do we need to update the architecture environment or anything that
+    we've sort of more well understood about the specs? Just as a reflection to determine if the definitions need any
+    updating as well, do we need to introduce a consideration of whether there are any more tasks that should be
+    added?"
+    - **Option A** is the cut above: a `knowledge` model stage after each step's review.
+    - **Option C:** no new stage. Document becomes the step's one place to reflect and record knowledge. The step
+      review corrects that knowledge and writes back what it finds. The gates run on the final tree at the step
+      commit. A step may record follow-up work as open items for carry-forward. The skill decision stays per item at
+      carry-forward.
+    - **Astra (gpt-6-astra, max effort) recommends C with three additions:** the review writes its corrections back,
+      every step's open items are kept, and the gates check the final tree. Evidence:
+      `docs/experiments/knowledge-stage-review-20261028/astra-review.md`.
+    - **Its reasons:**
+      - C keeps the knowledge edits inside the change the review already examines. A adds a writing action after the
+        review (§9 rows 1 and 7).
+      - A costs one model action per step: 15 against 12 on a three-step item.
+      - All 20 recorded skill decisions were `none`.
+    - **What C loses:** a skill created after one step for use by the next.
+    - **Revisit A** when a pilot shows C missing knowledge, or a skill reused within one item.
+    - **Its findings:**
+      - **Verified and fixed** (`07585d1a`): the spec gate took its R-n spans from the edited text, so a step could
+        add a marked `R-2`.
+      - **Reported, then checked in 2b-3:**
+        - document is in neither `OPEN_ITEM_STAGES` nor `CARRY_FORWARD_PRODUCERS`: true, fixed;
+        - `current_actions` keeps one result per (item, stage), so S1's open items vanish once S2 submits: true, fixed;
+        - `_document_entry`'s N/A route would skip the reflection: true, kept by decision (above);
+        - the step commit message carries only implement's learnings: true, fixed (Knowledge home section);
+        - test is a third knowledge writer: true, kept by decision (above).
+  - **2b-4. The commit stage.**
+    - It replaces the step commit, the review's commits (Improve without commit), the knowledge-record commits inside
+      an iteration, and verify's item commit.
+    - It uses `pending_record` and `commit_decision`.
+    - Verify is retired, and carry-forward follows the last iteration.
+
+    It lands as two commits whose tests pass: 2b-4a, the commit stage; then 2b-4b with 2b-4c, verify's gates moved
+    into the step and verify retired. (2b-4b was cut as its own commit first; its quick tier showed the same packet
+    pins and heads failing that retiring verify changes again, so the two land together.)
+    - **2b-4c, 2026-10-28: verify retired.** The stage table has 23 stages; each item runs step-plan, test-spec and
+      validate-existing, then implement, test and document per step, then carry-forward (`_finish`: send-back from
+      test-spec through document). State version 10; a version-9 run is refused with `V9_REASON`.
+      - **Where verify's duties went** (§7.3, checked against its duty text):
+        - *Run and Confirm* (every recorded command after the last edit; each criterion confirmed): document's rerun
+          and the review import's rerun. A criterion no passing command confirms is the step review's, by inspection
+          after its last edit (a new bullet in its focus).
+        - *Trace* (one valid, one boundary and one invalid input per changed public entry point): a new step-review
+          bullet, and the test stage's duty 3 now writes those three cases. Every finding verify made in five runs came
+          from this trace (§7.2).
+        - *Review* (the whole diff against the Code craft rubric): the step review's focus already held the rubric
+          and the same checklist.
+        - *Assembly* (chained work on the ask-agent route): a bullet of the item review's steps wording, "two steps
+          that conflict, or disagree at an interface they share".
+        - *Later checks*: document's open items, due at the stage that makes the check.
+        - *Reconcile cases*: the test stage's ID, floor and RED gates at every step, so nothing is left to reconcile by
+          hand. *Services* got no new home: in the five runs verify found no service issue (§7.2); test-spec plans
+          service cases.
+      - **The item commit.** `_item_commit` is gone. On the inline route each step's commit stage commits it; on the
+        ask-agent route `_item_commit_stage` commits the item whole as `feat: <item> <title>` when its document stage
+        and review are accepted, fail-closed like the step's. Both name the changed files they leave
+        (`_left_notice`), and document's packet prints "Changed, ShipLoop will not commit: …" when one is left.
+      - **Removed with verify.** The change inventory (lint), the advisory lint pass at its entry, `shiploop_quality`
+        and its rubric file, verify's one-trivial-review loop (`TRIVIAL_REVIEWS`, `_LOOP_LAST`), its RED-unobserved
+        lines (product-acceptance keeps every item's). Carry-forward reads the item's test and document results, and
+        its unnamed-commands line reads the item's test stage (`_passed_commands`).
+      - **Run Review** reads the new loop as stage model v6, and an 8-stage run with verify as v5, frozen as v4 is
+        (`defaults/stages-v5.json`). Per-step rendering stays 2b-5's.
+      - **A defect from 2b-2, found here.** The step review's handoff still told the child to commit, though its focus
+        said "Leave your edits uncommitted". It did so in its Commit section (improve-commit and its message rules),
+        its top line, Checked-by, Changes and Evidence lines. A review that followed it would have moved HEAD inside
+        the step, and since 2b-4a the commit stage refuses that.
+        - Now every one of those lines says the step review commits nothing (`STEP_REVIEW_COMMIT_LINE`), and
+          `improve-commit` refuses at a step review, naming improve-pass. improve-pass already left the edits
+          uncommitted (`STEP_REVIEW_NO_COMMIT`, 2b-2).
+        - The handoff fits pilot A again (21,475 bytes inline, 21,896 on the ask-agent route). Its Commit line ends at
+          5,395 and 5,476 characters, inside a 5,600 window that improve-route measures; every other review keeps
+          4,500.
+      - **Suites that `--changed-from` never selected had drifted since 2b-2.** improve-route, improve-schedule,
+        consumer-delivery, send-back and chain still expected implement's step review, or a walk from S1's build
+        straight to S2's. Each failure was checked against 3e4c3e0e or 388de0bf. The whole shiploop group now runs
+        for this switch, and it ran on the commit (Evidence below).
+      - **Left for 2b-5** (E2E audit harness): `test/shiploop_e2e/counters.py` matches only `feat: <item> ` subjects,
+        so it counts no inline step commit (`feat(W1/S1): …`); `slice.py`'s docstring still names verify. Recorded
+        fixtures and evaluators that name verify are history and stay as recorded.
+      - **Evidence.** `run-all.sh --group quick --group shiploop --changed-from fdad45b4`: 118 suites in 1,776 s; 116
+        passed. The two that failed, delegation and packet-completeness, still expected the improve-commit command in
+        the step review's handoff; both pass after the fix (66 and 63 tests). Fail-first tests, each seen failing
+        first:
+        - the version-9 refusal (send-back);
+        - the v5/v6 stage models (run-review StageModelTests);
+        - the step review's Commit section (improve-route);
+        - improve-commit refused at a step review (actual-improve-cli, through the real CLI);
+        - 2b-4b's three gate tests (below).
+    - **2b-4b, 2026-10-28: verify's gates move into the step.**
+      - **Document's done** runs the lint gate and a rerun, both measured from the tree document began from. That tree
+        is recorded at its entry as `entry`, by `_document_entry` (read back by `_stage_base`).
+        - The lint gate judges only document's own lines. A finding implement or test waived is not document's to
+          waive again, and the refusal says "on lines the document stage changed".
+        - The rerun (`_document_rerun`) covers what document's edits could affect, out of the commands its step's
+          test stage ran:
+          - nothing after no edit;
+          - the check commands after edits to no code or test path, so a docs edit reruns the doc checks;
+          - every command after a code or test edit, or when the edits cannot be read.
+
+          So a step whose document edits only Markdown does not rerun its test suites (the owner's 2d cost rule). The
+          design's §8.2 table said exactly this: "lint on docs; the doc checks among the recorded commands".
+      - **The step review's import** lints the lines the review changed since its bind snapshot
+        (`_review_lint_gate`), then reruns the step's commands as before. Since 2b-2 the review's edits to every step
+        but the last were linted by no gate: verify's gate measured from the last step's base.
+      - **Refused reruns.** Document's refused rerun opens its send-back route as verify's does (`loops._rerun_refused`).
+      - **Evidence.** Fail-first tests, each seen failing first:
+        - shiploop-test-loop `test_document_reruns_what_its_own_edits_could_affect` (all three cases);
+        - shiploop-lint `GateTests.test_document_is_gated_on_the_lines_it_changed_and_only_on_them` and
+          `test_a_step_reviews_edits_are_gated_at_its_import_on_the_lines_the_review_changed`.
+    - **2b-4a, done 2026-10-28.** The step's commit is the iteration's commit stage (`_commit_stage`, which replaces
+      `_step_commit`).
+      - **When it runs.** It runs in the call that accepts the step's last stage: document's complete, or the import
+        of its review. Nothing writes the checkout between those gates and the commit, so it commits the tree the
+        gates ran on, by construction.
+        - So `commit_decision` lost its two tree arguments and `Decision.reopen`. They could never differ in that
+          call, and a test run that writes output would have made a later comparison refuse every retry.
+      - **Fail-closed.** Before, a commit Git refused printed a note and the step moved on uncommitted, left for
+        verify's item commit. Now the call is refused and nothing is saved, so the step advances only once its commit
+        lands. The same callback, run again, retries it; at an import that reruns the review's gates as well.
+        A step whose changes cannot be read (no base was captured, as a harness seed can leave it) is skipped with a
+        note, as the base run and the mutation check are, because no retry could read them
+        (`shiploop-e2e-slice`'s seeded-without-base drive caught the first cut, which refused it).
+      - **Pending record.**
+        - The step's ledger row (`RUN/iterations/<item>.json`) holds `pending`: the iteration, its parent and the
+          planned tree (`shiploop_git.planned_tree`, HEAD plus the scope paths, built in a temporary index). It is
+          written before the commit and dropped once the commit is recorded, or when the step is entered again.
+        - A call that stopped after Git committed is recognised on retry (`done`), not committed twice.
+        - A HEAD that anything else moved inside the step is refused. The refusal names `git reset --soft <base>`,
+          which keeps the changes, or blocked when the commit is not the step's work.
+      - **Already true before 2b-4a.** Inside an iteration the review leaves its edits uncommitted
+        (`STEP_REVIEW_NO_COMMIT`), and the knowledge close skips implement and test. Git runs without hooks
+        (`shiploop_git.git`), so a refused commit means a lock, a permission or a disk failure, never a product hook.
+      - **Not in 2b-4a.** Verify's item commit still runs on the ask-agent route, and on the inline route after the
+        last step, where it finds nothing left to commit.
+      - **Evidence.** Fail-first tests, each seen failing before the code:
+        - shiploop-navigator-contract: a held index lock refuses the review's import, with nothing saved, and the
+          same import then commits once; a commit that landed before ShipLoop recorded it is recognised; a
+          hand-made commit inside the step is refused, and committed once reset;
+        - shiploop-actual-improve-cli: the same refusal and retry through the real `complete` CLI on an Improve
+          stage. With HEAD's navigator it was accepted and moved to verify.
+        - shiploop-iteration's commit tests were updated for the new signature.
+        - The quick tier (`run-all.sh --group quick --changed-from 1e192981`, 71 suites, 612 s) failed only that
+          slice test; after the fix, shiploop-e2e-slice (60) and the navigator's EightStageInnerLoopCliTests (22)
+          pass.
+  - **2b-5. The rest of the switch.**
+    - The packets' text, Run Review v6 and the E2E audit harness.
+    - The lifecycle's change note (`bump: minor`).
+    - **The packets, done 2026-10-28.**
+      - **Skills per stage (F9, §8.2c).** A step plan's skill entry takes an optional `stages` list (implement, test,
+        document, improve; implement when absent), refused when it names any other stage
+        (`expectations.normalise_skills`).
+        - Implement's Step block lists implement's skills.
+        - The test and document packets print the step just built and "Skills for this stage". Before, the test packet
+          had no Step block at all, which 2b-2 had left open.
+        - The step review's handoff prints "Skills for this review".
+        - Each line names the skill's use and locator, or says none is listed and points at KNOWLEDGE/environment.md
+          `## Skills` (`step_skills`, `_skills_line`, `_review_skills_lines`).
+        - The test duty now says to use each skill its packet lists, and still assumes no unlisted skill or MCP.
+        - Not built: a skill a later item's carry-forward created reaches a step only through environment.md
+          `## Skills` and the step plan, which rereads the index; there is no knowledge stage to create one mid-item
+          (2b-3, option C).
+      - **Lint's wording.** A lint record says "on a line changed since the base" in place of "this item changed".
+        Since 2b-2 every gate measures from its own base (the step's, document's entry, the review's bind), and the
+        record's Base line names which. An inline step's refusal says "on lines this step changed".
+      - **Size.** step-plan's duty text gained the `stages` field: its head is 19,995 characters inline (+51) and
+        19,536 on the ask-agent route. The first cut was 137 characters longer and pushed the layers-at-their-limit
+        step-plan head past the cut, which dropped its References block; shiploop-step-packets caught it. The test
+        head is 17,954 on both routes (+54).
+      - **Evidence.** Fail-first tests:
+        - shiploop-test-loop `test_each_stage_of_a_step_lists_the_skills_the_step_plan_names_for_it` and
+          `test_a_step_skill_naming_an_unknown_stage_is_refused`;
+        - shiploop-lint's seven wording assertions.
+
+        Head pins are in test/shiploop_e2e/head_table.json; head-order allows test's Step block at P0.
+    - **Run Review per step, done 2026-10-28.** A v6 run's inner visits carry their step (`stages[].step` on implement,
+      test and document, with the step just built at test and document, as the engine reads it). Each work item's
+      `steps` list gives each step's number, its visit range and its commit.
+      - The commit is read from the iterations ledger only: absent when unknown, `null` when the ledger records none.
+        The exporter reads no git log.
+      - The page groups the visits under one header per step: "Step S1 · implement → test → document → review · commit
+        1a2b3c4". The review is the document visit's Improve child; the engine records no history row for it.
+      - A send-back restarts the numbering under the new plan. v4 and v5 runs render as before.
+      - Fixed on the way: an item stopped between steps counted as past implement and lost its `stepsExecuted`.
+      - Nine fail-first tests: shiploop-run-review StepIterationExportTests and StepGroupPageTests.
+    - **The E2E audit harness, done 2026-10-28.**
+      - **Step commits were miscounted.** `test/shiploop_e2e/counters.py` counted every inline step commit as the
+        model's (`other`). They are ShipLoop's: the commit stage's, and before 2b-4a the step commit's.
+        - A read-only regrade of the 108 runs under ~/e2e-runs found 97 step commits in 30 runs from 2026-10-20 on, all
+          counted as the model's. In 26 of those runs `other` was exactly the step-commit count. For example:
+          - chess-sf-full-12a23d: script 21 -> 32, other 11 -> 0;
+          - ds-flash-978478-battleship: 21 -> 33, other 12 -> 0;
+          - gate-2100 battleship: 14 -> 16, other 3 -> 1, a real model commit.
+        - A step commit is now ShipLoop's by its announcement ("ShipLoop committed step W1/S1 as …") or by its
+          `feat(<item>/…` subject for an item of the run. A `feat(ui)` commit, or one naming another run's item, stays
+          the model's. The committed fixtures are unchanged.
+      - **Verify-era text.** The harness text that presented verify as live is updated: `slice.py`, the harness
+        README, SPEC.md's gate list and comments in `run.py` and metrics. `metrics.skipped_gates` and `flow.py` read
+        the item-commit gate at an accepted document; for older runs, at verify.
+      - **Kept as recorded.** LEARNINGS.md entries, the `tests/*-verify<N>.md` record names, `packet_anatomy.py`'s
+        grouping of 8-stage runs, and `behavior_capture.py`'s stage allowlist, which keeps verify so that older
+        captures still parse.
+      - **Evidence.** Five fail-first tests in shiploop-e2e-commit-counters and shiploop-e2e-efficiency.
+        - `ClassifyTest`: script/other is (7, 5) with the run's ledger, against (5, 7) before.
+        - `ShipLoopOwnedSubjectsTest` pins `step_commit_message` and the announcement line.
+- **Step 4 (lane D), the edge cases, 2026-10-28.** The cases are driven through the real `complete` in a new suite,
+  `test/shiploop-step-edges.test.py`. Commit failure and retry were done in 2b-4a. Tests a review adds are step 3's,
+  in lane B.
+  - **A defect, since 2b-2.** At every step after the first, the base run refused an earlier step's focused IDs:
+    they pass on the later step's base, as they should, and the RED check judged them as new. `red_na` could not exempt
+    them, since it accepts only `new_ids`. So a multi-step item with code was stuck at its second step's test stage.
+    (An item whose validate-existing made a preparatory fix was not: see "Not fixed here" below.) The plain walks never
+    showed it, because they used docs-only or one-step plans.
+    - Fixed in `test_loop._base_run`. It judges only the step's new cases (`new_ids`), runs and counts the rest, and
+      records them as `earlier_steps` in the base record. A focused command holding only earlier steps' cases, with IDs
+      or with only criteria, is counted, not judged (`iteration.earlier_command`, `test_loop._earlier_step`): an
+      ID-less command exits 0 on that base too.
+    - Fail-first: before the fix, the cross-step test was refused at S2 with "passed TC-1 on the item's base". With the
+      base run's RED switched off for the step's new cases, the retention test fails ("NavigatorError not raised").
+  - **Covered now:**
+    - A send-back after S1 is committed commits nothing and keeps S1's commit. The next plan's S1, with nothing left to
+      change, starts no review and makes no commit. Its S2 is committed on S1's commit, and the ledger keeps both
+      plans' rows.
+    - A step review whose result is a send-back commits nothing. The step's change stays in the checkout, and the next
+      plan's S1 commits it.
+    - A case whose criterion S1 and S2 both list is due at S2 only. S1's test stage passes the real gate before that
+      case's test exists, and S2's is refused until it runs.
+    - RED holds at S2 for the cases new there: S1's change already holds what TC-2 asserts, so TC-2 is refused by
+      name while S1's TC-1, which passes there too, is not judged; `red_na` takes TC-2.
+    - **After a send-back the redone plan counts steps afresh**, so a case an earlier plan's S1 committed is new again at
+      the redone S1 and passes on that base. The base run refuses it and the refusal names the way through: `red_na`,
+      worded "a case a step committed before a send-back". The cost is one avoidable refused run per such case;
+      red-check shows it first (not counted).
+    - `red_na` names only a test ID new at this step, and `retired_tests` refuses an ID a focused command still lists,
+      an earlier step's included. Both refusals now say so. The base rule in the packet says "No test ID new at this
+      step may pass there" and that an earlier step's IDs "are not judged".
+    - A step that only changes test files is still refused (owner sizing rule), now saying the test stage writes the
+      tests for the behaviour the steps build (route-neutral: the ask-agent route has one test stage for every step).
+      The old text said the test stage runs "after the last implement step", untrue on the inline route since 2b-2.
+  - **Adversarial review.** 37 agents read the diff through three lenses (RED correctness, suite validity, words
+    against behaviour) and two skeptics tried to refute each finding: 17 findings, 13 survived, all fixed above except
+    the one below. They also found that the first version of the suite did not pin RED at later steps; the
+    retention test does.
+  - **Not fixed here (lane B, step 3).** With a preparatory-fix commit, every step's base run and mutation check take
+    the tree before step 1 (`_test_loop_gate` passes `base_commit=preparatory_base` at every step), so RED is weaker
+    there: a step's new test that asserts only an earlier step's behaviour fails there and is accepted. Step 3's
+    "shared baselines" build (the preparatory commit moves the base only at the first step) is that fix. When it merges,
+    `iteration.earlier_command` must also be checked against lane B's folded row (a focused row that is also the minimum
+    regression, run alone with no IDs at an early step).
+- **Integration of the lanes, 2026-10-29.** Lane D (the step edge cases) was committed first and pushed; lanes C, B and A
+  were then cherry-picked, in that order, onto it in a separate worktree, and the feature branch was fast-forwarded to
+  the result (`e767c171`). The lanes had been cut from `bb32139c`, not from the pushed `8d768519`, so a merge would have
+  replayed 2b-5; cherry-picking each lane's own commits avoids that.
+  - **What landed:** D `f195ec80`; C's F6 `cc89bec6` (was `0cb983f4`); B's 2d `23ff03e4` (was `a46404c7`); A's docs
+    `ea9dba31`, `15e46c42`, `32120d83` (were `94629594`, `0ca16d4a`, `ba961648`); the re-measured head ceilings
+    `e767c171`. Still to come, from their worktrees: B's step 3 (a WIP commit already rebased onto the tip) and C's F5.
+  - **Conflicts:** one, `test/shiploop_e2e/head_table.json` (B's 2d against F6's own growth). Each lane had measured the
+    printed heads on its own base, so none knew the others' growth. On the integration `packet-recut` failed six
+    ceilings, now raised: implement 16,980 inline and 18,330 ask-agent, document 15,833, test 18,531 (F6 +176 on each;
+    the base rule's new wording +124 on the test head). The step-plan head is untouched at 19,997 of the 20,000-character
+    cut inline, and 19,536 ask-agent.
+  - **A miss, corrected.** D's own tier run showed two `packet-recut` failures (D grew the test head by 124 and had not
+    re-measured), plus three `shiploop-progress` timing failures that pass alone (17 tests) and came from a machine load of
+    about 60. The first was fixed by the integration commit; the second is load, not a regression.
+  - **Landing on main, the owner's call (relayed 2026-10-29 by the E2E session):** phase B (`shiploop check`) lands first;
+    design T merges main once afterwards and is not pushed to main before 2c-0, the pilots, the README and the owner's
+    release go. Six files conflict between B and this stack: `shiploop_navigator.py`, `shiploop_prompts.py`,
+    `state-files.md`, and the callback-contract, loops and test-loop tests. **Head budget:** the first estimate was that B adds 150 to
+    250 characters to each inner-stage head, against 3 characters of room on the inline step-plan head. Phase B measured
+    its final wording (2026-10-29, at the reference install, on main's text): its `Check (` line, 329 characters per
+    inner head, broke two size suites and is gone, replaced by one phrase in the Checked-by line
+    (`navigator._checked_line`) and a shorter `prompts.CALLBACK_REASON`. That frees 23 characters on every inner head
+    but test (+16) on both routes, so the inline step-plan head would have 26 characters of room after B, and the test
+    head needs 16 left for B. Design T edits neither string, so they merge without a conflict there. *Superseded
+    estimate: the 150 to 250 characters.*
+- **Integration, final state, 2026-10-29.** After the lanes and ShipLoop 1.21.0 (phase B, `shiploop check`, on main as
+  `e064e875`) the feature branch holds, in order: the lanes' integration (`e767c171`), F5 `7bb71757`, the head-order fix
+  `e02fd696`, the merge of main `08782c48`, lane B's step 3 `cc3acd27` and the README `a6498142`.
+  - **The merge of main.** Ten conflicting files. Main had moved the whole gate sequence into `_evaluate(..., count=)`, so
+    that shape was kept and design T's one change to the sequence went inside it: the spec write-back refusal runs for
+    implement and document. `complete --check-only` is gone, so the tests T wrote for the check-only path run at
+    `document` with the `check` verb, and main's tests of the verify duty went with the duty. Two tests main had added
+    assumed a review right after implement and were adapted to the step review after document (the lint D2 test, and the
+    Improve lint command test). Phase B's measured head cost held exactly: −23 characters on every inner head and +16 on
+    the test head.
+  - **Two quick-tier suites the lanes' tiers never selected had failed on the tip** (found by lane C's broader tier, not by
+    mine): `shiploop-head-order`, whose fixture still required the test rules at a step that owes no command (2d prints
+    none), fixed by following the code's own predicate; and `shiploop-package-integrity`, because `references/test-loop.md`
+    went from 8,186 to 8,990 bytes against the 8,192 card bound across three lanes' additions, trimmed to 8,096 in step 3.
+    A lesson for the next integration: run the quick tier on the merged tip, not the lanes' own lists.
+  - **The whole shiploop group on `cc3acd27`** (109 suites, four at a time, started once the load average was below 30):
+    107 passed in 2,062 s of wall time. Two did not:
+    - `shiploop-e2e-brownfield-tickets` failed one follow-on check in the parallel run (the case starts a product server
+      while another session's round held ports). It passes alone, in full (24 tests, 90 s).
+    - `shiploop-chain-lifecycle` hit the runner's 1,800 s limit. Alone it passes (52 tests, 1,744 s). Run at the same time
+      on design T and on main `e064e875`, it took 1,529 s and 1,527 s, with the same user and system time, so the stack
+      does not slow it; the suite needs about 1,500 s on this machine and sits near its limit on main as well (an earlier
+      measurement on a calmer machine was 803 s). That is a CI risk for main, not for this stack.
+    The README and the fix to two of its sentences came after that run; every suite that reads the README passes with
+    them (navigator-contract 142, callback-contract 88, delegation, cross-run, chain-handoff, domain-words, confirmation,
+    package-integrity).
+- **2c. The ask-agent route** gets the same step boundaries (G1).
+  **2c design, 2026-10-28: nothing built. The owner decided G1 on 2026-10-29: adopt (a2)** (the decision and what it
+  builds are at the end of this item). The question G1 left open: the iteration is serial, but the chain builds
+  independent steps in parallel.
+  - **The route today** (checked in the code).
+    - One implement action builds every step (`loops.implement_scope`, `all_steps`). Its duty 7 (`_IMPLEMENT_CHAIN`)
+      binds a Plan Dispatcher chain on the step plan's execution graph, parallel by default.
+    - Chain workers build and commit in sibling worktrees. Each accepted step's `done` fast-forwards its candidate into
+      the execution checkout (`shiploop_chain._per_step_integrate`, `shiploop_chain_git.fast_forward`), and
+      `guard_completion` holds implement until the chain's finish receipt exists. So the item's code lands as worker
+      commits and "ShipLoop chain prepared" merges (`_PREPARED_MERGE_PREFIX`).
+    - Then come one test stage for the whole item, one document, one review in a fresh worker, and
+      `_item_commit_stage`.
+      - In the test stage `test_loop.step_number` is None, so every case is new and RED runs on the item's base;
+        `step_command` runs no step Proof.
+      - The commit, `feat: <item> <title>`, holds the tests, docs, knowledge and review edits. It writes no ledger row
+        and no pending record.
+    - Every other ask-agent producer differs from inline only in its packet's first line, "Execute the prompt in a fresh
+      context". As navigator.md says, "The setting selects packet text; no script verifies who executed an assignment."
+  - **Why the chain and an iteration do not compose as they stand.**
+    - `done` moves HEAD with a worker commit. Inside an iteration, `iteration.commit_decision` refuses any HEAD but the
+      base or its pending commit.
+    - `_per_step_expected_target` advances the bound target "only through recorded integrations". So a step commit
+      between two chain steps makes the next `done` refuse ("prepared target is stale").
+    - `shiploop_chain_git.target_identity` requires a clean checkout ("repository must be clean, including staged and
+      untracked paths"). An iteration keeps its tests and docs uncommitted until its commit stage.
+    - A chain lives inside one implement action. `_require_bindable` and `_current_binding` accept only the current
+      action, and `dispatch` runs `guard_completion` on every `complete` of a bound action, a send-back included.
+  - **What the chain has shown live** (test/shiploop_e2e/LEARNINGS.md). All of these runs were on Sonnet 5.5 on
+    2026-10-03 and 04, and all but chain-full were seeded at step-plan.
+    - **Shapes.**
+      - S1 ∥ S2 → S3: chain-seeded, chain-full and b3;
+      - four steps in flight: unit-converter;
+      - depth 3: word-report.
+    - **Recovery.** In group C, c1 and c2 recovered a host killed with two workers in flight, with no person. They used
+      `retry` with `native_status: "unavailable"`, which keeps the lost worker's worktree aside (owner, 2026-10-03:
+      "retry without proof").
+    - **Speed.** The runs show overlap. In chain-full, S1 and S2 launched at 17:02:10 and settled at 17:05:08 and
+      17:05:28. No run measured the serial counterfactual, so the gain (about one step's build per parallel pair) is an
+      estimate, not a measurement.
+    - **Use since.** All 93 run states under ~/e2e-runs written since 2026-10-05 record `delegation: inline`. The
+      harness still seeds ask-agent by default (`run.seed_run`).
+  - **The options.** Each step gets its own test, document and review in every option but (c). On ask-agent each of
+    those stages is a fresh worker, so an n-step item starts about 4n workers instead of about n + 3. A fresh Claude
+    Code subagent costs about 86k tokens at start (measured 2026-09-27).
+    - **(a1) Serialise, one chain per step.**
+      - *How.* Each step's implement binds a chain on a one-node graph cut from the reviewed graph. The worker's change
+        must come back uncommitted, with HEAD left on the iteration's base. Fast-forwarding and then squashing at the
+        commit stage would make the chain's recorded ancestry and the step's history disagree. A `--no-commit` on the
+        fast-forward still moves HEAD (Astra).
+      - *Cost.* The chain needs an uncommitted return with its own recoverable intent, and a change to `prepare`,
+        `done`, `finish` and `guard_completion`'s ancestry check. The one-node graph must keep the step's criteria and
+        show its dependencies already committed. Each step pays about nine chain callbacks. Serial mode runs in the
+        main conversation, so a fresh worker needs one-worker parallel mode.
+      - *Risk.* It has no parallel build at all: the chain is kept only for isolation and its unattended retry.
+      - *One lifecycle.* Yes, once the return is uncommitted.
+      - *Ledger and pending record.* Inline's. The return needs its own intent record, because the commit's pending
+        record cannot tell a half-applied return from a whole one.
+      - *Send-back mid-item.* As inline, except that an unfinished chain blocks it (`guard_completion`) until the chain
+        gains a way to abandon an attempt.
+    - **(a2) Serialise, no chain.**
+      - *How.* One implement action per step, as on the inline route, run by a fresh worker in the execution checkout.
+      - *Cost.* It removes code: the route's step branches go. They are:
+        - `implement_scope`'s `all_steps`;
+        - the route checks in `step_view`, `_next_step_follows`, `_between_steps`, `_iteration_base`, `_step_entry`,
+          `test_loop.step_number`, `test_loop.step_command` and `look_back_lines`;
+        - `_item_commit_stage` and `prompts.for_steps`;
+        - the ask-agent step-plan and implement duty paragraphs, and their head pins;
+        - Run Review's "no visit is tied to a step" for ask-agent runs.
+
+        Implement needs one new paragraph for a worker in the shared checkout, because `_IMPLEMENT_INLINE` says to
+        dispatch no worker. ShipLoop's chain is then unused, so under one supported version it goes (the owner's
+        call). A saved item-level run is refused, not read as S1.
+      - *Risk.* A lost implement worker writes the shared checkout, so a replacement waits until it is shown stopped
+        (Astra, finding 1). Fresh-context execution stays a host behaviour that no script sees.
+      - *One lifecycle.* Yes. The route keeps only its context policy, which says who executes each stage.
+      - *Ledger and pending record.* Inline's, unchanged.
+      - *Send-back mid-item.* Inline's. Earlier steps stay committed, the current step's edits stay uncommitted against
+        the new plan's base, and no later step's code is in that base.
+    - **(b) Parallel build, then iterate per step over the integrated result.**
+      - *How.* The chain builds every step. Then test, document, review and commit run per step, in plan order.
+      - *Cost.* Each step needs a second base for RED: the chain's recorded start revision, which can lack steps that
+        are accepted by then, so RED can hold for the wrong reason. GREEN runs on a tree that holds later steps' code,
+        so it cannot show a step works without them. Lint and mutation need the contribution's lines mapped through
+        the prepare merges. The review's diff since its base shows tests and docs but not the step's code.
+      - *Risk.* Each step commit holds only tests, docs and review edits; the code is the workers'. The hard part is
+        rebuilding contribution boundaries after the combined preparation, not shared files as such. It is the
+        monolithic build the owner ruled out.
+      - *One lifecycle.* No: an iteration without a build, and different evidence.
+      - *Ledger and pending record.* The base is the previous step's commit (S1's is the chain's finish commit), plus a
+        RED base per step. The pending record describes a tests-and-docs commit, not the whole-step commit.
+      - *Send-back mid-item.* A send-back at step k carries steps k+1 to n, untested and unreviewed, into the next
+        plan's committed base: the vanishing that §9 row 5 forbids.
+    - **(c) Keep the route item-level** (§9.2's alternative).
+      - *How.* As today.
+      - *Cost.* The cheapest change now. It keeps a second lifecycle, with different answers to what is accepted, what
+        RED compares against, who may commit and what a send-back keeps. Every later lifecycle change is decided twice:
+        2d's test tiers, F9's skills per stage, Run Review's per-step view. 2b-4c found the chain, send-back and
+        improve-route suites drifted. Astra notes that test selection is part of that cause, because `--changed-from`
+        never selected those suites.
+      - *Risk.* None of §9 rows 2, 3 and 5 holds on this route. Calling the item one iteration only renames the
+        monolithic build.
+      - *One lifecycle.* No.
+      - *Ledger and pending record.* None. Recovering the chain's integration does not make the later item commit
+        idempotent.
+      - *Send-back mid-item.* As today: the worker commits stay, and the next implement binds a new chain over every
+        step.
+    - **(d) Build ahead.**
+      - *How.* While step k iterates, steps whose dependencies are committed build in sibling worktrees. At step k+1's
+        entry, ShipLoop applies its contribution as an uncommitted change on step k's commit, and the iteration runs
+        as on the inline route.
+      - *Cost.* The largest new design. The chain must outlive its implement action, with an owner of speculative work
+        across stages. It must also advance its target through ShipLoop's commits and integrate without committing.
+        "Contribution ready" must be told apart from "step accepted", because `_per_step_done` releases dependents at
+        integration. A send-back or a review change voids speculative builds, and their late returns must be refused.
+      - *Risk.* It relaxes the owner's order: step two is built before step one is reviewed. Its net gain is
+        unmeasured, though longer per-step stages leave more build time to hide.
+      - *One lifecycle.* Yes, if applying the contribution is the step's implement stage.
+      - *Ledger and pending record.* Inline's. The contribution records where it was built.
+      - *Send-back mid-item.* The old plan's speculative attempts are voided and kept as evidence.
+  - **Astra's verdict** (`gpt-6-astra`, max effort, read-only sandbox, no fallback): "**Recommend (a2): one serial
+    per-step lifecycle, with `ask-agent` selecting the execution context.** Pilot it before release." Retiring the
+    chain also "removes a demonstrated isolation and recovery capability—not merely parallel build speed". Astra's
+    rating of each option:
+    - a1: reserve it for required isolation;
+    - a2: pilot and adopt;
+    - b and c: reject;
+    - d: defer.
+
+    The question and the answer, verbatim:
+    [`astra-review.md`](experiments/ask-agent-step-boundaries-20261028/astra-review.md).
+  - **Astra's findings, each checked against the code.** All hold.
+
+    | # | finding | checked against | result |
+    |---|---|---|---|
+    | 1 (P1) | (a2) loses unattended replacement of a lost implement worker | `shiploop_chain._parse_retry` accepts `confirmed_stopped: false` with `native_status: "unavailable"`; `_retry` keeps the old worktree; LEARNINGS batch B (F1) and group C | **True.** One addition: the route's test, document and Improve workers already write the shared checkout with no such fence. (a2) extends that exposure to implement; it does not create it |
+    | 2 (P1) | The commit stage's recovery has crash windows | `_commit_stage` records the commit and drops `pending` inside `_transition`, before `dispatch` saves the state; a retry then finds HEAD on its own commit with no pending record, and `commit_decision` refuses. `_iteration_entry` runs after the save, and `_commit_stage` skips a step that has no ledger row | **True, on both routes.** It is a defect of 2b-1 and 2b-4a, to fix before the release whatever G1 is. The refusal's `git reset --soft` route recovers the first window by hand |
+    | 3 (P1) | After a preparatory fix, RED and mutation do not read the step's base | `_test_loop_gate` passes `preparatory_base` to `base_check`, `red_check` and `mutation_check`; `_base_run` and `shiploop_mutation._check` replace the step's base with it (`_at_commit`) | **True, on both routes**, for items with a preparatory fix. From S2 on, RED and mutation measure from before S1. Fix it with 2 |
+    | 4 (P1) | (d), and (a1) too, need changes to the chain's lifetime and its completion authority | `_require_bindable`, `_current_binding`; `dispatch` calls `guard_completion` before it reads the outcome; `_per_step_done` releases dependents at integration | **True.** Folded into (a1) and (d) above |
+    | 5 (P2) | More live chain runs exist than the two I cited, and the gain is inferred | LEARNINGS batch B and group C | **True.** Corrected above. My "every full run since is inline" was checked: 93 of 93 run states since 2026-10-05 |
+    | 6 (P2) | The removal list for (a2) is incomplete | `test_loop.step_command`, `step_number`; Run Review `export` (ask-agent visits tied to no step); `_IMPLEMENT_INLINE` ("dispatch no worker") | **True.** Folded into (a2). Its point on old runs is taken: refused, not reinterpreted |
+    | nit | Shared files alone do not stop per-step commits | | Taken into (b) |
+
+  - **Recommendation: (a2)**, as Astra recommends.
+    - It is the owner's order: build one step, then test, document and review it, then build the next.
+    - It keeps one lifecycle. The route keeps only its context policy, and every step rule is shared.
+    - Parallel build's gain was never measured. Per-step test, document and review are serial whatever the build
+      does.
+    - It removes code instead of adding a third integration mode to a 7,710-line chain.
+    - **Conditions.**
+      - Fix findings 2 and 3 first; they are on both routes.
+      - The pilot measures what Astra lists:
+        - the lifecycle's order and commits;
+        - the bases after a preparatory fix and after a send-back;
+        - crash recovery at four points: before the commit, after Git commits, after the ledger records it but before
+          the save, and after the save but before the iteration entry;
+        - a killed implement worker;
+        - context fidelity;
+        - quality and cost per stage;
+        - Run Review's per-step view on ask-agent.
+      - The E2E chain cases are rewritten for the per-step route or retired, and the change is said openly; they are
+        not counted as unchanged coverage.
+    - **What (a2) keeps from the chain, as duties** (Astra):
+      - parent verification, the step's Proof (`_step_proof_gate`), cumulative GREEN, per-step RED and mutation, and
+        the review;
+      - the whole assignment context: the Step block, the planning references and the skills;
+      - parent-only callbacks, and an existing worker confirmed stopped before a replacement starts;
+      - a planned join step where steps meet at an interface.
+
+      Plan Dispatcher and Ask-Agent stay as skills of their own, and old runs' receipts and worktrees are kept.
+  - **The owner's decision (G1), 2026-10-29: "Adopt (a2)".** The choice put to the owner was:
+    - adopt (a2) and retire ShipLoop's chain. This accepts that a lost implement worker must be shown stopped before a
+      replacement starts. The route's test, document and Improve workers already work this way, but for implement it
+      gives up the unattended recovery the owner chose on 2026-10-03;
+    - or keep isolated implement attempts and fund a revised (a1): one chain per step, whose return stays uncommitted.
+
+    The per-step lifecycle is the same either way. (b), (c) and (d) were not recommended, and the owner did not choose
+    them.
+  - **When it starts (owner, 2026-10-29: "After lanes B, C").** The build waits until lane B (2d, test gradations) and
+    lane C (the lint coverage line, F6, and the test-spec mock field, F5) have landed on the feature branch. The
+    three share the navigator, the test loop and the prompts, so building them together would conflict.
+  - **What the decision builds** (proposed cut; none of it is built). The order is fixed by what each increment needs.
+    - **2c-0, before the route changes, on both routes.** Astra's findings 2 and 3, which are defects in built code:
+      - the commit stage's recovery. Record the commit and drop `pending` in the same save as the state it advances
+        (today `_commit_stage` runs in `_transition`, before `dispatch` saves), and make a step with no ledger row
+        recoverable, not skipped;
+      - the base of RED and mutation. After a preparatory fix, the step's base must replace `preparatory_base`
+        from the second step on.
+
+      Each is a fail-first test through the real CLI, with a crash injected between the two writes.
+    - **2c-1, the route.** An ask-agent run issues one implement action per step, as an inline run does.
+      - The step branches go: `implement_scope`'s `all_steps`; the `INLINE` checks in `step_view`,
+        `_next_step_follows`, `_between_steps`, `_iteration_base`, `_step_entry`, `test_loop.step_number`,
+        `test_loop.step_command` and `look_back_lines`; `_item_commit_stage`; `prompts.for_steps`; and Run Review's
+        "no visit is tied to a step" for ask-agent runs.
+      - The step plan records no execution graph on either route (duty 11 is the inline paragraph).
+      - Implement gets one new paragraph for a worker in the shared checkout: it makes no commit, advances no
+        callback, starts no later step and leaves no delegate writing. The route keeps its context policy: the
+        packet's first line and the parent-only callbacks.
+      - A saved ask-agent run whose implement was item-level is refused (one supported version), never read as S1.
+    - **2c-2, retiring the chain.** `shiploop_chain` and its three helper modules (7,710 lines), the `chain` verb,
+      `chain_bindings` in the state, `guard_completion`, their seven test files, `chain-route.md` and
+      `parallel-chain.md`, and the references that link them.
+      - Plan Dispatcher and Ask-Agent stay as skills of their own.
+      - Old runs' receipts, ledgers and worktrees are kept, not deleted.
+      - The two stale paragraphs found below go with those references.
+    - **2c-3, the evidence.** The E2E chain cases (`--seed-at step-plan`) are rewritten for the per-step route or
+      retired, and the change is said openly. Head pins and Run Review follow.
+    - **The pilot** measures what Astra lists: order and commits, bases, crash recovery at four points, a killed
+      implement worker, context fidelity, quality and cost per stage, and Run Review's per-step view.
+    - **Open: the killed implement worker.** The route must say what the parent does when it cannot show a worker
+      stopped: wait, or ask the person. The pilot's killed-worker case decides whether a rule is needed beyond the
+      generic producer boundary.
+  - **Built (2026-10-29, on the feature tip `08782c48`).**
+    - **2c-0 part 1: the commit stage's crash windows (done; both routes).** Two windows, both fixed.
+      - *The call stops after Git commits and before the state is saved.* `_commit_stage` wrote the ledger row's `commit`
+        and dropped `pending` inside `_transition`, before `dispatch` saved. A retry found HEAD on its own commit with no
+        pending record, and `commit_decision` refused it. Now `_commit_stage` writes only `pending`, before Git commits.
+        It returns the ledger row and the commit file (`_commit_records`), which `_transition` hands to `save` with the
+        state. The save is one journaled transaction (`shiploop_store.transaction`), which the next run completes
+        (`store.recover` runs under every run lock). So a call that stops anywhere leaves the old state with `pending`
+        still in the ledger, and the retry takes `commit_decision`'s "done"; or it leaves the journal, and the next run
+        writes the ledger row and the state together.
+      - *The call stops after the save and before `_iteration_entry`.* The step was current with no ledger row, so
+        `_commit_stage` printed "has no iteration record" and never committed it. `dispatch` now calls
+        `_iteration_recover` first, for every command but `status` and `report`: a step in implement, test or document
+        with no row gets its base from HEAD, which is the commit the entry would have recorded, since inside an iteration
+        only the commit stage commits.
+      - *Evidence.* Three tests in `EightStageInnerLoopCliTests`
+        (`test/shiploop-navigator-contract.test.py`), each seen failing before the code, for the reasons Astra gave:
+        `test_a_step_commit_that_landed_before_shiploop_saved_it_is_recognised_on_retry_not_made_again` (before: "HEAD is
+        not the iteration's base … or its pending commit: only the commit stage commits inside an iteration");
+        `test_a_save_cut_part_way_rolls_the_step_commit_forward_with_the_state_and_the_next_step_is_committed` and
+        `test_a_step_entered_by_a_call_that_stopped_before_recording_its_base_gets_one_from_the_next_call` (before: "the
+        next step has an iteration record" was None). The crash is injected in the call (`store.transaction` or
+        `_iteration_entry` raising `OSError`), as a killed process would leave it; the recovery is the real CLI's
+        (`shiploop next`, `store.recover` and the dispatch hook); S2 is then built, tested, documented and committed on
+        S1's commit. The suite imports the Improve child in process, as its other tests do, so the crashed call is the
+        in-process tail of the Improve import (`finish_improve`), not a `complete` through the CLI.
+      - *Found, not fixed (not on Astra's list; read in `dispatch`, not tested).* `_preparatory_commit` and
+        `_skill_commit` run after the save too. A call killed between the save and either leaves the preparatory fix or
+        the skill record uncommitted, and the retry does not run them again, since a repeated `complete` of an accepted
+        action changes nothing. They are not part of a step's commit stage; they need their own record before they can
+        recover.
+    - **2c-1: the route (done 2026-10-29; the chain's code stays until 2c-2).** The ask-agent route issues one implement
+      action per step, as the inline route does.
+      - *What changed.*
+        - `loops.implement_scope` and `several_steps` are gone, so the scope of an implement action is
+          `loops.current_step`. `WORK["implement"]` and `REPEAT["implement"]` are now `WORK_STEP` and `REPEAT_STEP`.
+        - The route checks in `step_view`, `_next_step_follows`, `_between_steps`, `_iteration_base`, `_step_entry`,
+          `look_back_lines`, `test_loop.step_number`, `test_loop.step_command` and the Improve hand-off are removed.
+        - `_item_commit_stage`, `_item_commit_product`, `_ask_agent`, `stage_spec.for_steps`, the rows' `steps_goal` and
+          `steps_done_when`, and `prompts.for_steps` are removed too. The step notes `learned` and `decisions` are
+          required on both routes, and the step plan's template asks no per-step `paths`.
+        - The implement duty is one text. Its item 7 is the only paragraph that names who does the step: the inline
+          paragraph is unchanged, and the new worker paragraph (349 characters, in place of the 1,627-character chain
+          paragraph) says the worker makes no commit, runs no callback, starts no later step and leaves no delegate
+          writing. The step-plan duty's item 11 says "Record none" on both routes.
+        - The context policy loses its "select the chain route first" paragraph, and so does the Improve route file that
+          mirrors it (`skills/improve/references/shiploop-route-ask-agent.md`, a patch note for `improve`).
+      - *Decisions, routine under AGENTS.md "Decisions".*
+        - State version 10 to 11, with `V10_REASON`. Version 10 was never released, but development runs saved at it
+          (the E2E cases seeded at `step-plan`) hold an ask-agent implement action that built every step; a narrower
+          refusal cannot tell that action from step 1 of a per-step run until the item passes its document stage. All
+          version-10 runs are refused, inline ones too.
+        - Run Review keeps its "no visit is tied to a step" reading for an ask-agent run saved before version 11. The
+          brief listed it among the branches to remove; removing it would read an old run's single implement visit as step
+          1 and report the later steps unexecuted. Receipts and ledgers of old runs are kept (the owner's G1 text).
+        - The `backchain-graph` verb (`shiploop_backchain_graph`) is not on the 2c-2 list and is left alone: it has no
+          caller but the chain's reviewed graph. The owner may want it retired with the chain.
+      - *Evidence.*
+        - New, seen failing before the code (`'an ask-agent step is a step of the iteration'` was None):
+          `test_an_ask_agent_run_builds_commits_and_advances_one_step_at_a_time_as_an_inline_run_does`, through the real
+          CLI: three steps, three `feat(W1/Sn)` commits, one implement action each.
+        - Rewritten or replaced (the old ones pinned the item-level route): in shiploop-delegation (the step plan
+          records no graph; implement is issued once per step; the aggregate-wording class), shiploop-loops (the ask-agent
+          contract is the inline one byte for byte), shiploop-test-loop (the step Proof runs on the ask-agent route; the
+          item-commit locator is gone), shiploop-stage-spec, shiploop-head-order, shiploop-actual-improve-cli,
+          shiploop-guidance (a step's result label), shiploop-handoff (the state version; the hand-off is cut to the
+          step), shiploop-e2e-commit-counters (the item subject is read for old runs and written by none),
+          shiploop-run-review (a version-11 ask-agent run pairs its steps; a version-10 one does not), improve-route
+          (the ask-agent step review is worded for one step; its hand-off is 22,575 bytes against inline's 21,553, so
+          its bound is 23,000 and inline keeps pilot A's 22,000) and shiploop-send-back (the supported state version).
+        - Seven tests in `ChainIntegrationTests` (`test/shiploop-chain.test.py`) are removed, not rewritten: they drove a
+          chain through the navigator's implement packet and `complete`, which no longer binds one. The rest of the
+          chain's tests stay (36 pass) until 2c-2 deletes the chain.
+        - Run on the tree after this change: the quick group and the whole shiploop group (119 suites, `--jobs 3`).
+          Three suites failed (improve-route, shiploop-send-back, shiploop-chain: the tests above); each passes after its
+          fix, run alone.
+        - `test/shiploop_e2e/head_table.json`: ask-agent implement head 18,307 to 17,135, step-plan 19,486 to 18,801;
+          test and carry-forward rise by 7 and 21 (their cause is not traced); the reasons are in its `_comment`.
+      - *2c-0 part 2 (the preparatory base at every step)* is lane B's `test_base_commit`. The inline test
+        `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit` now also runs on the ask-agent route, which
+        has steps since this change, and passes (`test_red_at_a_later_step_holds_with_a_preparatory_commit_on_the_ask_agent_route_too`).
+    - **2c-2: the chain retired (done 2026-10-29).** ShipLoop no longer has an implementation chain.
+      - *Removed.*
+        - `shiploop_chain`, `_git`, `_handoff` and `_ledger` (7,710 lines); the `chain` verb and its place among the
+          traced verbs; `chain_bindings` (the state key, its validation, the packets' chain orientation blocks, the
+          reconciliation guard) and `guard_completion` (which held `complete` and `halt` while a chain ran).
+        - The seven chain test files (`shiploop-chain`, `-async`, `-git`, `-handoff`, `-ledger`, `-lifecycle`,
+          `-planning-context`), their two support modules and two worker fixtures, their rows in `suite_catalog.py`
+          (109 ShipLoop suites to 99) and in the groups tests.
+        - `chain-route.md`, `parallel-chain.md`, `chain-navigation.md`, three rows of the card-split ledger and every link
+          to them in the card, the README, the references and the repository README. This resolves the two stale
+          paragraphs found under 2c: both lived in files that are gone. The step exit criteria are read in
+          `inner-loop.md#stage-until-loops`.
+        - The progress view's chain activity and bound-graph projection (`shiploop_progress_data`); it keeps the accepted
+          step plan's steps, now with the same done / active / queued reading on both routes.
+        - The E2E harness's chain grade (`run.py`: `chain_facts`, `chain_in_flight`, the `recovery` grade and
+          `--interrupt-at`), the four cases' `chain` expectations in `cases.json`, and the tests of those. The cases
+          stay, as ordinary seeded cases of the `parallel-graph` style; 2c-3 says what that leaves uncovered.
+        - The native pilot (`test/experiments/shiploop_chain`, three suites): it drove the `shiploop chain` lifecycle.
+      - *Kept, on purpose.* Plan Dispatcher and Ask-Agent as skills; old runs' receipts, ledgers and worktrees; the Grok
+        adapter's list of ShipLoop subcommands, which still names `chain` (its source hash binds the trace corpus, and an
+        old Grok trace may carry the verb); the
+        `shiploop-chain-ask-agent-managed-worktree/v1` capability name, which is those skills' contract and is not ShipLoop
+        code; `counters.py`'s reading of the chain's merge subject and the item commit subject, for old runs.
+      - *Not on the brief's list; left for the owner.*
+        - `shiploop_planning_context.py` and its own suite: the chain was its only caller, and Plan Dispatcher consumes
+          the manifest it writes.
+        - `shiploop_backchain_graph.py` (`backchain-check`), which checks a candidate plan's graph.
+        - `test/current_dispatcher.py`, the `current-dispatcher` integration command and its fixture tests in
+          `integration-boundaries.test.py`: they qualified a Dispatcher by running the native pilot, which is gone.
+        - The default `delegation` of a seeded E2E step slice is still ask-agent, "which the chain cases need"; changing
+          it breaks comparability with earlier evidence, so it is the owner's.
+      - *Evidence.* Fail-first does not apply to a deletion; the evidence is that what still exists runs. `shiploop-package-integrity`
+        (the card-split ledger), `-reference`, `-reference-routing`, `-retired-terms`, `-domain-words`, `test-groups`,
+        `ci-policy`, `shiploop-progress`, `-progress-data`, `-v4-consumers`, `-stage-spec`, `-delegation`, `-e2e`,
+        `-e2e-reorientation`, `-e2e-run-trace`, `-e2e-commit-counters` and `-workspace` pass after their chain parts were
+        removed; the whole quick and shiploop groups were run on the result (below).
+    - **2c-3: the evidence (2026-10-29; the pilot ran afterwards: see "The pilot, run" below).**
+      - *Done.* The head pins and Run Review followed the route in 2c-1. The E2E chain grade went with the chain in 2c-2,
+        since `run.py` read the deleted ledger; what that retires and what stays is said in `test/shiploop_e2e/README.md`
+        ("The chain cases, retired") and in SPEC S-10's list of copies of the stuck rule. No journal entry was written to
+        `test/shiploop_e2e/LEARNINGS.md`: it is the E2E rounds' journal, and release preflight reads it, so an entry
+        that is not a round would make the preflight pass without one.
+      - *Release preflight.* Every commit of this stack that changes `skills/shiploop/` or `changes/shiploop/` comes
+        after the last `LEARNINGS.md` entry, so `scripts/release.py` will refuse the release until an E2E round follows
+        them (or each carries `No-E2E-Round: <reason>`, which says the round was not run). The pilot below is that round.
+      - *Proposed pilot* (run later the same day, on Codex with `gpt-6.1-terra` at xhigh: see "The pilot, run" below).
+        - *Runs.* One step slice seeded at `step-plan` with at least two steps on the ask-agent route, and the same case
+          inline as the control, on the E2E default subject (DeepSeek flash on Ollama, judge Opus). Cost to expect: about
+          4n fresh workers for n steps on ask-agent against n + 3 for the old item-level route, at about 86k tokens each at start.
+        - *Measured, from Astra's list:* the lifecycle's order and commits (one `feat(<item>/<step>)` commit per step, in
+          plan order, none by a worker); the bases after a preparatory fix and after a send-back; crash recovery at four
+          points (before the commit, after Git commits, after the ledger records it but before the save, after the save
+          but before the iteration entry), which this change makes testable but nothing has exercised live; context
+          fidelity (what the fresh worker saw: the Step block, the references, the skills); quality and cost per stage;
+          Run Review's per-step view on a version-11 ask-agent run.
+        - *The killed implement worker.* Add one harness trigger (kill the host once the current implement action's
+          worktree has uncommitted edits, then resume with a fresh session) and record what the parent does when it
+          cannot show the worker stopped: waits, asks the person, or starts a replacement. That decides whether the route
+          needs a rule beyond the generic producer boundary ("collect or confirm an existing owner stopped before
+          replacement"). It is the open question above, left to the pilot.
+  - **Found on the way** (reference text; resolved in 2c-2, which deleted both files). chain-route.md's inline paragraph
+    still said "An Improve stage reviews each accepted step, and the callback after the last step's review moves to
+    `test`". parallel-chain.md's diagram still ended in "The item's Improve stage, then the test stage". Both predated
+    2b-2.
+- **The pilot, run (2026-10-29).** Evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`; the journal entry is the last
+  one in `test/shiploop_e2e/LEARNINGS.md`. The owner chose Codex with `gpt-6.1-terra` at xhigh as the subject, since the
+  Ollama route had hit its monthly limit (429). Case `stand-in-parser`, planned as two steps in every run. Three runs: inline
+  (the control), the per-step ask-agent route (2c), and the item-level ask-agent route that 2c replaced, run on the commit
+  before 2c-1.
+  - **Verdicts.** All three pass all five (process, inner loop, no overshoot, assembled, checks).
+  - **The lifecycle's order and commits.** Both per-step runs commit `feat(W1/S1)` then `feat(W1/S2)`, in plan order, from
+    ShipLoop's commit stage, and the ledger shows S2's base is S1's commit. The old route made one item commit. The new
+    route's final review added one fix commit, a validation fix the step reviews had missed.
+  - **Cost.** The new route took 21.6 minutes against the old route's 17.3 and the control's 5.3, with 13 fresh workers
+    (`fork_turns: none`) against 8 and 0: four per step (implement, test, document, the step's review) plus five for the
+    item (step plan, its review, test spec, carry-forward, the final review). That is the design's "4n". Input tokens
+    were 23.1 M against 19.9 M and 8.1 M (96% cached), output tokens 105 k against 85 k and 23 k. One case, one run per arm:
+    the ratios (1.25x the time, 1.16x the input tokens, against the old route) are indicative.
+  - **Refusals.** The run trace shows 0 ShipLoop refusals on the new route, 6 on the old one and 3 on the control; every
+    one the control hit was a real catch (a leftover `check_na`, a surviving mutant, a spec write-back).
+  - **Run Review.** It exports all three: stage model v6, steps planned and executed 2 and 2 on the version-11 runs.
+  - **Not measured, said openly.** Context fidelity: the messages between agents are encrypted on this host, so only the
+    worker names, counts and fresh context are visible. The four crash points inside the commit stage cannot be provoked from
+    the slice harness; the three tests of 2c-0 part 1 (`EightStageInnerLoopCliTests`) inject them. The killed implement
+    worker has no harness trigger yet, so the parent's choice when it cannot show a worker stopped (wait, ask, replace) is
+    still open. Neither a preparatory fix nor a send-back occurred, so the bases after them are covered by tests only
+    (`shiploop-step-edges`, `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit`).
+- **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
+
+  > "One of the things that I want to make sure of in our test suite is that we're both running the tests for the new
+  > code and a sufficient amount of regression tests. Again, we got to be careful because we really need test suites.
+  > Some are going to be really long and time-consuming. We don't need to run full regressions on everything, so we
+  > kind of want gradations of test suites to be run: to make sure the new code didn't break existing things, as well
+  > as the fact that the new code is actually validated to some degree.
+  >
+  > We need some finesse in the test stage that has an appropriate prompt that determines whether this is a new test
+  > suite, whether it enhances the minimum test suite, or whether it can always add tests to all of the suites as
+  > needed. We want to make sure that the code didn't break anything basic, and then also that the code is implemented
+  > in detail and tested in detail in the testing phase for the code that was just added. That one we want to run in
+  > full mode, if you will. We definitely want to make sure that we don't do exhaustive regressions on every iteration
+  > because that would be extremely expensive. Again, we should really consider unit tests and mock tests as much as
+  > needed to validate a lot of the code and the logic that we needed. We should not be afraid to use MCP servers,
+  > skills, or anything of that nature if needed to test the newly added code in detail."
+
+  What it changes:
+  - **Each step runs three tiers.**
+    - **Full detail on the new code:** the step's focused cases, unit and mock tests first.
+    - **The earlier steps' focused tests:** they carry over, as 2a already projects them.
+    - **A minimum regression,** a fast suite that shows nothing basic broke.
+  - **The exhaustive regression** runs at the item's last step, never on every iteration.
+  - **The step plan marks the tier.** A regression command marked `minimum` runs at every step, and an unmarked one
+    only at the last. A plan of two or more steps records a minimum command, or a reason it has none.
+  - **The test packet asks where each new test belongs:** a new suite, the minimum suite, or the full suites.
+  - **It names the tools.** MCP servers and skills may be used to test the new code in detail, beside the unit and
+    mock tests.
+- **F6. Lint coverage shown, done 2026-10-28** (the owner's go on §8.5's recommended form).
+  - **What landed.**
+    - A lint pass prints `Lint coverage:` on the line after its `Result:` line (`shiploop_lint._coverage_line`,
+      stored as the record's `coverage_line`). It counts the files a linter covered and names the linters, then
+      lists every other changed file with its coverage text, grouped:
+      - *syntax only, not linted*: `node --check`, a JSON parse, or a linter that was unavailable or timed out;
+      - *not linted*: no catalogued linter, excluded, or not in scope;
+      - *linted in part*: another linter the repository configures did not run, timed out or failed.
+
+      Deleted files are left out.
+    - On 36036c's shape the line reads: "1 file linted by ruff; syntax only, not linted: game.js, server.js (syntax
+      checked by node --check (no catalogued linter)); not linted: public/index.html (not in scope: no catalogued
+      linter for this file type; git diff --check only)".
+    - **Where the model sees it.** The packet's lint digest (`render_lines`, `_packet_digest`) keeps it beside the
+      verdict, though it still leaves the per-file Coverage section to the record (U13). Both gate refusals (after an
+      auto-fix, and on an unwaived finding) print it, and so does a pass that could not run (`NONE_COVERAGE`).
+      `shiploop lint --action` prints it with the block.
+    - **Lint off.** Implement, test and document print `OFF_COVERAGE` in their lint-commands block
+      (`lint.command_lines`): no linter and no lint gate run, so the step chooses its own static checks. Before, an
+      off run printed nothing there, though `_lint_command_lines`' docstring said it did.
+  - **Packet size.** The offline walk runs with lint off, so those three stages grow by the off line, 176 characters
+    with its newline, head and whole on both routes (`test/shiploop_e2e/head_table.json`): for example inline test
+    head 17,954 -> 18,130 and whole 19,852 -> 20,028. Every head fits the 20,000 cut. The bound rose rather than the
+    line being cut, since it carries an obligation.
+  - **Evidence.** Four fail-first tests in shiploop-lint `CoverageLineTests`, each seen failing before the code (no
+    `coverage_line` key, no off line, refusals without the line): the result's coverage line and the digest that
+    keeps it; a tool unavailable, timed out, and a configured linter not run; both refusals and a pass that could not
+    run; the off line at each gate stage and its absence elsewhere. A spot check after the first cut found that a file
+    two linters covered named only the first ("linted by eslint (…), prettier (…)"); the labels are now dropped before
+    the names are read, pinned by "1 file linted by eslint, prettier". shiploop-lint passes (105 tests), and so do
+    shiploop-packet-recut and shiploop-step-packets with the new pins.
+  - **Kept out.**
+    - The run's report. Its achievement report reads no lint record, so the line would need a new reader (§8.2a
+      named it).
+    - The environment.md coverage line (8.2b). That belonged to option A's knowledge stage; under option C document
+      reflects, and a reviewer reads the coverage in the step's lint records.
+    - A gate on coverage. A syntax-only or unlinted file still never refuses: the line informs, as §8.5 recommends.
+- **F5. Mocks before system tests, done 2026-10-28** (the owner's go on §8.5's recommended form: a test-spec field
+  and a stage duty, no gate).
+  - **What landed.**
+    - **The field.** A `test_cases` row may add `"mock": {"simulates": …, "plays": …}`: what the mock stands in for,
+      and the slow, failing or out-of-order behaviour it plays (`expectations.MOCK_KEYS`, `normalise_test_cases`).
+      Both are nonblank text. A mock of any other shape is refused with the shape; one still holding the shape's
+      placeholders (`MOCK_PLACEHOLDERS`) is refused as a placeholder, as a case's are (`HANDOFF_PLACEHOLDERS`).
+    - **Test-spec's duty**, item 6: a case whose code calls a dependency (the network, the clock, randomness,
+      storage, a child process, a browser API) names the mock it runs against.
+    - **The test stage's duty**, item 1 opens with "Mocks first": before a case's test, build the mock it names,
+      playing what it says the dependency does; the mock's own header states what it stands in for and what it
+      plays. The loop's Work cites the numbered items, so the duty lives inside item 1, not in a lead paragraph.
+    - **Quoting.** Every packet that quotes the cases (implement, test, document, system-test-author) prints the
+      mock under its case: `| mock: <simulates> | plays: <plays>` (`_source_lines`).
+    - `references/testing-and-documentation.md#test-cases` gains "Mocks before system tests".
+  - **Packet size** (`test/shiploop_e2e/head_table.json`), measured on the integration tip e767c171. Test-spec +269
+    on both routes (inline whole 15,438 -> 15,707; ask-agent head 13,719 -> 13,988); test +295 on both routes (head
+    18,531 -> 18,826; whole inline 20,429 -> 20,724, ask-agent 21,997 -> 22,292). Every head fits the 20,000 cut; the
+    test head, at 18,826, is the tightest of the heads this changes.
+  - **Evidence.** Four fail-first tests in shiploop-handoff `MockCaseTests`, each seen failing before the code: the
+    field accepted and five malformed mocks refused with its shape; a copied placeholder refused at
+    `test_cases[0].mock.simulates` and `.plays`; the test packet's mock line, and none for a case without one; both
+    duty sentences on both routes. `test_every_template_placeholder_is_refused` now reads the case refusal's shape
+    beside `HANDOFF_SHAPES`, since the mock's placeholders are printed there. The quick and shiploop tier over both
+    F6 and F5 (`--changed-from 917e0c2b`) ran on the tree F5 commits; its summary is in F5's commit message.
+  - **Kept out.**
+    - **A gate.** None until a live run shows a case skipping its mock (§8.5). What a gate could check is structural
+      only: that a test file names the mock. Whether a test runs against it is a review's judgement (§9 row 7).
+    - **Mapping each mock to a real system case and its owner** (§9 row 6). That belongs with step 3's obligation
+      aggregation.
+    - **Run Review's case table** shows no mock column yet.
+
+  **2d done (2026-10-28).** What landed:
+  - **The field.** A regression command takes `"minimum": true` (`test_loop.COMMAND_KEYS`). It is valid only as true, on
+    a regression command or on a focused row that is also the regression command (`regression: true`), and a fold keeps
+    it, so the one row still runs at every step (`normalise_commands`, `_fold`). The listing labels it "(minimum
+    regression: every step)".
+  - **The projection** (`iteration.active_commands`):
+    - a minimum regression runs at every step, and an unmarked one only at the item's last step;
+    - a focused row that is also the minimum regression runs as that regression alone, with no IDs and no criteria,
+      at a step before any of its IDs is due.
+
+    A step before the last that owes nothing (no minimum, no case or criterion due yet) gets no command. Its packet says
+    so (`test_loop.NONE_DUE`), where before it said the step plan recorded no test_commands and sent the model to
+    send-back.
+  - **The gate** (`expectations._check_minimum_suite`, at step-plan's done). A plan of two or more steps with test
+    commands marks a regression command minimum, or gives `minimum_na`. The refusal names both routes, and says which
+    steps run only the minimum and which step runs the rest. `minimum_na` must be nonblank, needs test commands, and is
+    refused beside a marked row. It is a done step-plan result key, as `check_na` is.
+  - **The test packet** names the full regression it leaves to the last step (`test_loop.held_back`). Its duty 1 asks
+    where each new test belongs: a new suite (a recorded command must run it), the minimum suite or the full suites,
+    with the summary saying which. It says to test the new code in detail, unit and mock tests first, then any MCP
+    server or skill this host offers where it observes more. The earlier "never assume another named skill or MCP is
+    available" is now "this host offers", which keeps the guard against an imagined tool.
+  - **References.** `references/test-loop.md` states the field and the gate; `testing-and-documentation.md` gains "What
+    each step runs" (the three tiers, the last step's full regression, the placement question).
+  - **Decisions kept.**
+    - *No `minimum_na` refusal on a one-step plan.* Its one step is the last, so the field changes nothing; refusing it
+      would only cost a round trip when a plan shrinks to one step.
+    - *Route-independent gate.* The ask-agent route runs every command in its one test stage, so the mark changes
+      nothing there today. The gate still applies, so 2c's step boundaries (G1) find the plans already marked.
+    - *The template marks it.* The step-plan template's regression row carries `"minimum": true`, so a model that fills
+      the printed two-step template passes the gate. callback-contract's template test caught the first cut, which
+      refused it.
+    - *The gates line names no new fault.* The step-plan head had 5 characters of room under the 20,000 cut.
+      - The first wording (+329) dropped the ask-agent head's References block with the test layers at their limit.
+      - A +38 cut dropped the inline head's Builds-on lines.
+      - The final text paid for itself. Duty 5 leaves its shape list to the template printed beside it, and drops "the
+        test stage runs exactly these", which per-step projection made untrue, and "Implement runs only each step's own
+        proof", which duty 4 already says.
+      - The refusal itself explains the rule and both routes.
+  - **Size** (`test/shiploop_e2e/head_table.json`): step-plan -27 on both routes (inline head 19,995 -> 19,968); the
+    test head +277 on both (17,954 -> 18,231).
+  - **Evidence.** Fail-first tests, each seen failing before the code:
+    - shiploop-iteration: a minimum regression at every step, the unmarked one at the last only (S1's pin changed to
+      match), and the folded row;
+    - shiploop-test-loop: `test_minimum_marks_a_regression_command_and_survives_a_fold` and
+      `test_a_step_before_the_last_runs_the_minimum_regression_and_its_packet_asks_where_each_new_test_belongs`;
+    - shiploop-callback-contract: `test_a_plan_of_two_steps_marks_a_minimum_regression_or_gives_minimum_na`, through
+      the real CLI. With HEAD's gate the two-step plan was accepted. Both routes are then accepted.
+
+**Step 3, the bookkeeping per step: design note (2026-10-28, written before the build).** Step 3 of the build order is
+"due-case projection, cumulative floors, shared baselines and obligation aggregation" (Astra's §9 rows 4 and 6). For
+each part, what the code already does, read at 2d's tip, and what step 3 builds:
+- **Due-case projection.** Built: 2a's `due_cases`, `new_cases` and `active_commands`, and 2d's grades. Nothing to
+  add.
+- **Cumulative floors.**
+  - *What exists.*
+    - A floor is keyed by command text (`floor_detail`).
+    - Its earlier-run term reads every run ShipLoop accepted for the item since its step plan (`accepted_counts`), so a
+      step's floor already carries the earlier steps' counts.
+    - The projection narrows only a command's IDs, never its text, and IDs only grow from step to step. So a carried
+      count stays reachable unless a test is removed, and `retired_tests` lowers it for a deliberate removal.
+  - *Gap 1: what the step owes is not added.* The carried count does not grow by the tests this step newly owes. A
+    step can delete an earlier step's unnamed tests (sub-cases, entry-point cases, a review's tests), add its own new
+    cases, and land on the same count. The base run does not catch it either: the deletion is in the changed test file
+    the base run copies in.
+  - *Build for gap 1.* At a step's test stage, the carried term becomes the earlier count plus this step's new IDs on
+    that command. The floor is then the largest of:
+    - the base count;
+    - the earlier count plus the new IDs;
+    - this action's own earlier runs.
+
+    Retired tests still lower it.
+  - *Not inheriting a count the step can no longer reach.* A new ID in `red_na` passes on the step's base, so its
+    test may already be in the earlier count. It is left out of the addition, and so is an ID a review registered
+    (below).
+  - *Gap 2: `min_tests` is the item's total.* At a step before every ID a focused command lists is due, the narrowed
+    command cannot reach it, and the only way out was to write a later step's case early, which the test duty forbids.
+  - *Build for gap 2.* The projection drops `min_tests` from a command whose IDs it narrowed. It holds from the step at
+    which all of them are due.
+- **Tests a review adds, registered by ID.**
+  - *What exists.* None. A step review's fix adds a test as a sub-case of the closest case (`TC-3 (a)`). The reruns
+    after it check only the step plan's IDs, so a test the review added in a file no recorded command runs, or later
+    deleted, goes unseen (Astra row 4: "`_test_rerun_gate` cannot detect a new test excluded by an old filter").
+  - *Build.* A done document result, and so the step review's final result, may carry
+    `added_tests: [{"id", "command"}]`:
+    - `id` is the start of the test's printed title (`TC-3 (a)`); the ID matcher already reads it as a phrase;
+    - `command` is one of the item's recorded focused or regression commands.
+
+    ShipLoop appends each registered ID to that command's IDs wherever the command runs afterwards: the review's own
+    import rerun, document's rerun, and every later step's test stage, document and review. So each of those runs must
+    show it. A registered ID is never a new ID, so the RED rule does not apply to it. The step review's focus asks for
+    the field.
+- **Shared baselines.**
+  - *What exists.* 2b-2's `_iteration_base` recaptures the item's lint base when a step hands over to the next. Lint,
+    the mutation check, the base run, document's left-out rule, the commit scope and the review diff read it.
+  - *Gap: every base caller passes `base_commit=preparatory_base(...)`.* These are the test gate's base run and
+    mutation check, the check-only route and the `red-check` CLI. When validate-existing committed a preparatory fix,
+    `_at_commit` moves the base to that commit, which predates step 1. So from step 2 on, the base run, the mutation
+    check and the red-check run on the tree before step 1, whenever the item had a preparatory fix. This is Astra's
+    "baseline callers still use the item/preparatory base".
+  - *Build.* The preparatory commit moves the base only while the base predates it, that is, at the first step.
+- **One revision-aware aggregate of every step's receipts and open obligations.**
+  - *What exists.*
+    - Document's open items come from every step's result since the item's latest send-back
+      (`assumptions.PER_STEP_STAGES`, `_step_actions`, 2b-3).
+    - The Builds-on lines list each step's implement result (`navigator._PER_STEP`, `_item_actions`, built from
+      history since the step plan).
+    - Each step's base and commit are in `RUN/iterations/<item>.json`.
+  - *Gap.*
+    - The test and document results are read through `current_actions`, which keeps one per (item, stage). So
+      carry-forward's Builds-on lines name only the last step's test and document, and system-test-author's item
+      records (`_ITEM_RECORDS`) name only the last step's test result and candidate run.
+    - An earlier step's `red_na`, `retired_tests` and lint waivers, and its document's knowledge record, drop out of
+      the packets that reconcile the item.
+    - The two per-step readers also define "current" twice: since the latest send-back, and since the latest step
+      plan.
+  - *Build.* One function, `planning_revision.step_actions(state, item, stage)`: every accepted done action of
+    `stage` for `item` since the item's latest accepted step plan and its latest send-back, in order. Open items,
+    `_item_actions` (now for implement, test and document) and the item records all read it.
+  - *Not built.* Astra's "each mock maps to a real system case and its owner" needs a mock field in the test spec,
+    which is lane C's.
+
+**Step 3 done (2026-10-29).** What landed, against the note above:
+- **A later step's base run holds only its new cases to RED.** This was found while building, and it is the largest
+  fix here. Lane D (edge-case tests) found it independently and landed the fix first, on the tip this commit is
+  rebased onto (`_earlier_step`, `earlier_steps` in the base record). Step 3 keeps that fix and adds the registered
+  tests to it.
+  - *The defect.* `_judge_base` held every ID a command lists to failing on the base. From S2 on, S1's cases pass
+    on S2's base, which is S1's commit. `red_na` may name only a new ID, so a step after the first could not get its
+    test stage accepted at all whenever a focused command spans steps.
+  - *Reproduced.* On 2d's code, S2's done was refused: "passed TC-1 on the item's base … name it in the result's
+    red_na". This is Astra's row 4: "S2's base check would reject already-green S1 cases". 2b-2 made `new_ids`
+    step-aware, but not the base run, and no test drove a counted command through two steps.
+  - *The fix.* `_base_run` counts, and does not judge, the IDs that are not new at the step: an earlier step's
+    cases and, from step 3, registered tests (`new_ids` never lists one). Their counts still set the floor.
+- **Cumulative floors** (`test_loop.floor_detail`, `accepted_counts(earlier_steps=True)`). At an inline step after
+  the first, the earlier-run term adds this step's new IDs on the command to the earlier steps' count. A `red_na` ID
+  is left out, and so is an ID a review registered. The refusal reads "at least 4: 3 in an earlier run plus this step's
+  1 new ID (TC-2)". The projection drops `min_tests` from a narrowed command (`iteration.active_commands`).
+- **Registered tests** (`test_loop.registered`, `ADDED_TESTS`).
+  - A done document result, and so the step review's final result, may carry `added_tests: [{"id", "command"}]`.
+    The canonical result checks the shape. `_check_added_tests` refuses a command the step plan did not record as
+    focused or regression, at complete and at the review's import.
+  - `stage_commands` lists each registered ID after the command's own, from the item's accepted document results
+    under its current step plan. The review's import rerun and document's rerun also take the rows of the result not
+    accepted yet.
+  - `new_ids` never counts a registered ID, so it is never held to RED.
+  - The step review's focus asks for the field: "listed in the final result's `added_tests`".
+- **Shared baselines** (`navigator.test_base_commit`). The test gate's base run and mutation check, the check-only
+  route and the `red-check` CLI move the base to the preparatory commit only while the base predates it
+  (`merge-base --is-ancestor`). `preparatory_base` still names the commit in the Builds-on lines.
+  - *The effect, driven through the real gates* (`test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit`).
+    With the fix as every step's base, a test S2 writes that already passes on S2's base looked RED there, because
+    the older tree lacks S1's work, and was accepted without `red_na`. Now S2 refuses it, and S2's base record starts
+    from the commit S1 made.
+- **The aggregate** (`planning_revision.step_actions`).
+  - It returns every accepted done action of a stage for the item, after its latest accepted step plan and its
+    latest send-back.
+  - Open items (`assumptions.open_items`, replacing `_step_actions`), the Builds-on lines (`_item_actions`) and the
+    not-covered hand-off read it.
+  - carry-forward and system-test-author (`_EVERY_STEP_READERS`) list every step's implement, test and document
+    results. Every other packet that reads a test or document result lists the latest one.
+  - An inline step's result is labelled with its step in every packet ("W1 test S1 result"), because an artifact
+    keeps one label across the run (`shiploop-packet-completeness`). The first cut labelled only the item-wide
+    readers' lines, and that suite refused it: the same result read "W1 test result" at document and "W1 test S1
+    result" at carry-forward. The ask-agent route's one action names no step, so its implement line no longer reads
+    "S1".
+- **Caught by the tier, not by the suites I ran first** (they were outside the set I touched):
+  - `shiploop-packet-completeness` (the labels, above);
+  - `shiploop-delegation`: the step review's new `added_tests` example named `TC-3`, and step 1's review may not
+    mention a later step's case, so the example is now `<case ID> (a)`;
+  - `shiploop-test-loop`: the carry-forward line for the item commit reads "W1 document S1 item commit";
+  - `shiploop-package-integrity` and `shiploop-head-order` (reported by the main session from the tip): see References.
+- **Decisions kept.**
+  - *The addition counts only the earlier steps' runs.* Runs accepted inside the step being tested are never added
+    to, so a count is never added twice.
+  - *Registration rides on the document result.* A step review's final result replaces its document's accepted
+    result, so registration needs no ledger of its own and survives in state. A review that adds no test writes no
+    final result for it.
+  - *A test no recorded command runs is a send-back.* The refusal says so. A step review cannot add a command.
+- **Not built.** Mapping each mock to a real system case and its owner (lane C's test-spec mock field).
+- **References.** The floors that add up and the registered tests are written in
+  `testing-and-documentation.md#floors-and-their-known-limits`. `references/test-loop.md` only points to them, because
+  `shiploop-package-integrity` bounds it at 8,192 bytes (`test/fixtures/shiploop-card-ledger.json`, `file_max_bytes`):
+  it was 8,186 at 8d768519, 8,449 with the edge-case wording and 8,990 with 2d, and step 3's first draft made it
+  9,209. It is 8,096 now. 2d's tiers, the floors and release-verify's copy rules point to the other reference, the
+  base-run paragraph is tightened, and every anchor in the ledger stays. One sentence the workspace card is pinned
+  against (`shiploop-guidance`: "clean copy of the result the workspace return delivered", `consumer-check`) stays here.
+- **Size.** inline carry-forward +21 (head 14,298 -> 14,319, whole 17,179 -> 17,200), from seven step labels in its Builds-on lines; the ask-agent test and document heads -7 each (18,231 -> 18,224 and 15,657 -> 15,650), because the one implement action no longer reads "S1". The step review's `added_tests` clause is in the Improve handoff (improve-route's bounds), not in a producer packet.
+- **Evidence.** Fail-first tests, each seen failing on 2d's code:
+  - shiploop-test-loop:
+    - `test_a_later_steps_base_run_holds_only_its_new_cases_to_red`, a two-step drive through the real gates;
+    - `CountFloorTests.test_a_later_step_owes_the_earlier_steps_count_plus_its_own_new_cases`, which was accepted
+      with 3;
+    - `test_a_test_the_step_review_adds_is_registered_by_id_and_every_later_rerun_must_show_it`, where the import was
+      not refused;
+    - `SharedBaseTests`, where the function was missing;
+    - `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit`, which fails with `test_base_commit`
+      patched back to `preparatory_base` ("NavigatorError not raised"): the main session's item 3;
+  - shiploop-iteration: `test_a_narrowed_command_is_held_to_min_tests_only_once_every_id_it_lists_is_due`;
+  - shiploop-handoff `StepAggregateTests`, where the lists held only the last step's test.
+- **Tier.** `run-all.sh --group quick --group shiploop --changed-from <merge-base with origin/main>`; its summary is in this commit's message.
 
 **9.2 New decisions:**
-- **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
-  item-level, which is a second lifecycle to maintain.
+- **G1. The ask-agent route.** **Decided 2026-10-29 (the owner): "Adopt (a2)".** The same step boundaries, so one
+  lifecycle: no chain, one implement action per step, run by a fresh worker in the execution checkout, and ShipLoop's
+  chain retired. This accepts that a lost implement worker must be shown stopped before it is replaced. The build is
+  §9.1 2c-0 to 2c-3.
+  - Considered and not chosen: a revised (a1), one isolated chain per step whose return stays uncommitted; parallel
+    build followed by per-step iterations (b); the item-level route (c); build ahead (d).
+  - The 2c design (§9.1, 2026-10-28) has the options and Astra's review.
 - **G2. Framing.** Recommended: present §8 as a quality and feedback-speed pilot. Its cost is measured, not forecast.
 
 Still unproven (Astra's open unknowns):

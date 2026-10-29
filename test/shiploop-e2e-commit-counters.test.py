@@ -34,7 +34,6 @@ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import counters  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_git  # noqa: E402
-import shiploop_item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_navigator  # noqa: E402
@@ -476,8 +475,14 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
     def test_the_kept_reply_filter_covers_every_pattern_counters_reads(self):
         for sample in ("ShipLoop navigator | discovery | revision 1", "Committed this review's changes as 7e11860aaaaa: a.py.",
                        "ShipLoop committed W1's declared changes as 65cd022aaaaa.",
-                       "ShipLoop committed W1's changes (its declared paths and documentation) as 65cd022aaaaa."):
+                       "ShipLoop committed W1's changes (its declared paths and documentation) as 65cd022aaaaa.",
+                       "ShipLoop committed step W1/S1 as 65cd022aaaaa."):
             self.assertTrue(metrics.KEPT_REPLY.search(sample), sample)
+
+    def test_the_step_announcement_is_read_with_its_commit(self):
+        found = counters.STEP_COMMITTED.search("ShipLoop committed step W1/S2 as 65cd022aaaaa.")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.group("sha"), "65cd022aaaaa")
 
     def test_the_work_item_announcement_is_read_in_both_wordings_saved_runs_hold(self):
         # Release 1.27 reworded the line (the item's documentation rides in its commit); saved runs hold the older wording. The
@@ -494,6 +499,7 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
 MESSAGES = {row["name"]: row["message"] for row in json.loads((FIXTURES / "messages.json").read_text())}
 IMPROVE_LINE = "Committed this review's changes as {sha}: {files}."
 ITEM_LINE = "ShipLoop committed {item}'s declared changes as {sha}."
+STEP_LINE = "ShipLoop committed step {item}/{step} as {sha}."
 
 
 def claude_events(replies: list[str]) -> list[dict]:
@@ -668,6 +674,27 @@ class ClassifyTest(GitCase):
         without, _ = self.counted()
         self.assertEqual((without["script"]["n"], without["other"]["n"]), (5, 5), "with no run directory only replies name an item")
 
+    def test_an_inline_step_commit_is_the_scripts_by_its_announcement_or_by_its_subject(self):
+        # ShipLoop's commit stage commits each inline step as `feat(<item>/<step>): <headline>` (since the step commits of
+        # build plan S3.2, 2026-10-18; the commit stage of design T §9.1 2b-4a) and announces it with "ShipLoop committed
+        # step <item>/<step> as <sha>." Before this, the harness counted every one as the model's own: 97 step commits in 30
+        # saved runs from 2026-10-20 on, each one of the run's `other` commits. The model's pipe can cut the announcement, so
+        # the subject names the run's own item too; a lookalike that names no work item of the run stays the model's.
+        announced = self.by_shiploop("s1.js", "feat(W1/S1): Add the grid\n\nWhat it did.\n\nKey learnings:\n- none\n")
+        self.replies.append(STEP_LINE.format(item="W1", step="S1", sha=announced[:12]))
+        self.by_shiploop("s2.js", "feat(W1/S2): Draw the ships\n\nWhat it did.\n\nKey learnings:\n- none\n")  # cut reply
+        self.by_the_model("ui.js", "feat(ui): add a toolbar\n")                  # a conventional-commit scope, no item
+        self.by_the_model("w9.js", "feat(W9/S1): an item this run has not\n")
+        run_dir = self.out / "run"
+        run_dir.mkdir()
+        (run_dir / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '
+                                          '"title": "t"}]}\n```\n')
+        block, _ = self.counted(run_dir=run_dir)
+        self.assertEqual((block["script"]["n"], block["other"]["n"]), (7, 5))
+        without, _ = self.counted()
+        self.assertEqual((without["script"]["n"], without["other"]["n"]), (6, 6),
+                         "with no run directory only the announcement names a step commit")
+
     def test_an_announced_sha_that_is_not_a_commit_of_this_run_names_nothing(self):
         self.replies.append(IMPROVE_LINE.format(sha="0123456789ab", files="x"))
         block, _ = self.counted()
@@ -730,28 +757,36 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn("work item, before the return", workspace)
         navigator = (scripts / "shiploop_navigator.py").read_text()
         self.assertIn("\"Committed this review's changes as \" + head[:12]", navigator)
-        self.assertIn("\"'s changes (its declared paths and documentation) as \"", navigator)
-        self.assertIn("\"ShipLoop committed \"", navigator)
+        # The item commit's announcement is gone from the source (design T §9.1 2c-1: every route commits step by step);
+        # counters.py still matches it, for the runs that were saved with it.
+        self.assertNotIn("\"'s changes (its declared paths and documentation) as \"", navigator)
+        self.assertIn("\"ShipLoop committed step \"", navigator)
         self.assertTrue(counters.LEFTOVERS_SUBJECT.startswith("chore(shiploop): commit files written after the last work item"))
 
-    def test_the_work_item_subject_counters_matches_is_the_one_the_verify_stage_writes(self):
-        # The verify stage's reply names the commit, but the model's pipe can cut that reply, and then only the subject tells the
-        # script's commit from the model's. The message is built in shiploop_navigator._item_commit: call it with the commit itself
-        # replaced and read the message it hands over, so a reworded subject turns the matched work item commits into `other` here
-        # and not silently in a run.
-        before = {"history": []}
-        after = {"history": [{"stage": "verify", "outcome": "done", "workitem": "W1", "summary": "What it did."}],
-                 "work_items": [{"id": "W1", "title": "Add the grid"}]}
-        with mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [])) as made:
-            shiploop_navigator._item_commit(Path("."), before, after)
-        self.assertEqual(made.call_count, 1, "the verify row of the history makes one item commit")
-        message = made.call_args.args[3]
+    def test_the_work_item_subject_counters_matches_is_no_longer_written_by_any_route(self):
+        # The ask-agent route's commit stage committed the item whole under ``feat: <item> <title>``. Design T §9.1 2c-1
+        # retired it: every route commits each step under ``feat(<item>/<step>)``. counters.py keeps the item subject for
+        # the historical runs that carry it, so it is still read, and ShipLoop's source writes it nowhere.
+        self.assertFalse(hasattr(shiploop_navigator, "_item_commit_stage"))
+        source = (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py").read_text()
+        self.assertNotIn('"feat: " + item', source)
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '
                                                 '"title": "Add the grid"}]}\n```\n')
-            prefixes = counters._item_prefixes(Path(tmp))
-        self.assertEqual(prefixes, ("feat: W1 ",))
-        self.assertTrue(message.startswith(prefixes), f"counters matches {prefixes} and ShipLoop wrote {message.splitlines()[0]!r}")
+            self.assertEqual(counters._item_prefixes(Path(tmp)), ("feat: W1 ",))
+
+    def test_the_step_subject_and_announcement_counters_match_are_the_ones_the_commit_stage_writes(self):
+        # The inline route's commit stage (shiploop_navigator._commit_stage) commits each step with step_commit_message and
+        # announces it; a reworded subject or line would turn every step commit into `other` here, not silently in a run.
+        message = shiploop_navigator.step_commit_message("W1", {"id": "S2", "task": "Draw the ships."}, {"headline": "Draw"})
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '
+                                                '"title": "Add the grid"}]}\n```\n')
+            prefixes = counters._step_prefixes(Path(tmp))
+        self.assertEqual(prefixes, ("feat(W1/",))
+        self.assertTrue(message.startswith(prefixes), message.splitlines()[0])
+        source = (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py").read_text()
+        self.assertIn('print("ShipLoop committed step " + item + "/" + step + " as " + commit[:12] + ".",', source)
 
     def test_the_harness_matches_the_retire_subject_with_its_own_pattern_since_knowledge_home_dropped_it(self):
         self.assertFalse(hasattr(knowledge_home, "is_retire_subject"))
@@ -763,9 +798,11 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
             self.assertIsNone(counters.RETIRE_SUBJECT.fullmatch(other))
         self.assertFalse(hasattr(counters, "knowledge_home"))
 
-    def test_the_chain_merge_prefix_is_the_one_the_chain_writes(self):
-        self.assertIn(f'_PREPARED_MERGE_PREFIX = "{counters.CHAIN_PREFIX}"',
-                      (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_chain_git.py").read_text())
+    def test_the_chain_merge_prefix_is_written_by_no_script_since_the_chain_was_retired(self):
+        # Design T §9.1 2c-2 retired the chain (shiploop_chain_git wrote "ShipLoop chain prepared"); counters.py still
+        # reads the prefix for the runs that were saved with it.
+        self.assertFalse((ROOT / "skills" / "shiploop" / "scripts" / "shiploop_chain_git.py").exists())
+        self.assertTrue(counters.CHAIN_PREFIX)
 
 
 class ReaderCase(GitCase):

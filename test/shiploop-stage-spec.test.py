@@ -7,7 +7,6 @@ change to a stage's behaviour has to change both the table and this suite.
 
 from __future__ import annotations
 
-import dataclasses
 from pathlib import Path
 import sys
 import unittest
@@ -21,19 +20,20 @@ import shiploop_context_index as context_index  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
-import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 PRELUDE = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
-INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward")
+# Verify is retired (design T §9.1 2b-4c): each step's document stage and its review close the step, and the commit
+# stage, ShipLoop's own, commits it.
+INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward")
 OUTER = ("system-test-author", "system-test", "product-acceptance", "release-plan", "release-check",
          "release", "release-verify", "operations", "handoff")
 
 
 class StageTableTest(unittest.TestCase):
-    def test_graph_order_is_the_fixed_24_stages(self) -> None:
-        self.assertEqual(len(spec.STAGES), 24)
+    def test_graph_order_is_the_fixed_23_stages(self) -> None:
+        self.assertEqual(len(spec.STAGES), 23)
         self.assertEqual(spec.PRELUDE, PRELUDE)
         self.assertEqual(spec.INNER, INNER)
         self.assertEqual(spec.OUTER, OUTER)
@@ -62,23 +62,18 @@ class StageTableTest(unittest.TestCase):
         knowledge layout moved to HOME (consumer contract 4b), and ShipLoop derives the changes from the spec diff."""
         for name, row in spec.STAGE_SPEC.items():
             with self.subTest(stage=name):
-                for text in (row.goal, *row.done_when, row.steps_goal or "", *row.steps_done_when):
+                for text in (row.goal, *row.done_when):
                     self.assertNotIn("FEATURE", text)
         self.assertIn("ShipLoop derives this run's ID changes from the spec diff", spec.stage("spec").goal)
 
-    def test_the_several_steps_wording_is_a_pair_of_the_goal_and_each_condition_of_one_row(self) -> None:
-        """Only implement words itself for the steps one ask-agent action builds; a condition keeps the row's rules."""
-        self.assertEqual([name for name, row in spec.STAGE_SPEC.items() if row.steps_goal is not None], ["implement"])
-        row = spec.stage("implement")
-        worded = spec.for_steps(row, "S1 to S2", "a.py, b.py")
-        self.assertEqual(len(worded.done_when), len(row.done_when))
-        self.assertTrue(worded.goal.rstrip().endswith("."))
-        self.assertTrue(all(";" not in item for item in worded.done_when))   # the Improve contract joins them with "; "
-        self.assertIn("S1 to S2", worded.goal)
-        self.assertIn("S1 to S2", worded.done_when[0])
-        self.assertEqual(worded.done_when[1], row.done_when[1])               # shared conditions are word for word
-        with self.assertRaises(ValueError):                                   # a goal without one condition per entry
-            dataclasses.replace(row, steps_done_when=row.steps_done_when[:2])
+    def test_no_stage_row_has_wording_for_an_action_that_builds_several_steps(self) -> None:
+        """Design T section 9.1 2c-1: every route issues one implement action per step, so a row has one goal and one
+        list of conditions, and nothing words itself for 'S1 to S2'."""
+        for name, row in spec.STAGE_SPEC.items():
+            with self.subTest(stage=name):
+                self.assertFalse(hasattr(row, "steps_goal"))
+                self.assertFalse(hasattr(row, "steps_done_when"))
+        self.assertFalse(hasattr(spec, "for_steps"))
 
     def test_improve_rules(self) -> None:
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({
@@ -86,7 +81,8 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
         # Rule item (owner, 2026-10-26, design 560c396f P0): one implement review per work item; test-spec has none.
         self.assertEqual(spec.IMPROVE_RULES, ("always", "last-item", "item", "first-item"))
-        self.assertEqual(spec.with_improve("item"), frozenset({"implement"}))
+        # Design T §8 (owner 2026-10-27/28): each step's one review follows its document stage.
+        self.assertEqual(spec.with_improve("item"), frozenset({"document"}))
         self.assertIsNone(spec.stage("test-spec").improve)
 
     def test_planning_review_modes(self) -> None:
@@ -122,9 +118,9 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(prompts.BACKCHAIN_AUDIT_STAGES, frozenset({
             "spec", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
-            "verify", "system-test", "product-acceptance", "release-verify", "handoff"}))
-        # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test,
-        # document and verify cite the rules they apply in their own duties.
+            "system-test", "product-acceptance", "release-verify", "handoff"}))
+        # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test and
+        # document cite the rules they apply in their own duties, and the step review carries the rubric.
         self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({"implement"}))
         # step-plan's duty carries its own design-basis point (2026-10-11 dedupe), so it left this block.
         self.assertEqual(spec.with_block("interaction-design"),
@@ -134,17 +130,19 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(set(prompts.ENVIRONMENT_DISCOVERY_REQUIREMENTS), {"discovery", "research"})
 
     def test_assistive_tool_runs(self) -> None:
-        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "verify"))
+        # Document's done is gated on its own edits and reruns what they could affect (design T §8.2, 2b-4b).
+        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "document"))
         self.assertEqual(lint.GATE_STAGE, "implement")
-        self.assertEqual(lint.LINT_STAGES, ("verify",))
+        self.assertFalse(hasattr(lint, "LINT_STAGES"))  # verify's advisory entry pass is gone with it
         self.assertEqual(test_loop.STAGES, ("test",))
-        self.assertEqual(test_loop.RERUN_STAGES, ("verify", "system-test", "release-verify"))
+        self.assertEqual(test_loop.RERUN_STAGES, ("document", "system-test", "release-verify"))
+        self.assertEqual(test_loop.STEP_RERUN_STAGE, "document")
         self.assertFalse(hasattr(test_loop, "RED_STAGE"))
         self.assertFalse(hasattr(test_loop, "PROBE_STAGE"))
         self.assertEqual(spec.with_complete_run("test-base"), ("test",))
         self.assertNotIn("test-probe", spec.COMPLETE_RUNS)
         self.assertEqual(spec.with_complete_run("expectation-check"), ("validate-existing",))
-        self.assertEqual(quality.STAGE, "verify")
+        self.assertEqual(spec.ENTRY_RUNS, frozenset({"lint-base", "loop-contract", "expectation-check"}))
         self.assertEqual(spec.with_entry_run("lint-base"), ("step-plan",))
         # Every inner stage is an Until Loop: its contract is written on entry and its receipt checked at complete.
         self.assertEqual(spec.with_entry_run("loop-contract"), spec.INNER)
@@ -165,7 +163,6 @@ class StageTableTest(unittest.TestCase):
         (owner: no count stops), so no text may state one: a leftover copy would tell a model a stop rule that no gate
         applies.  The prompts carry the rule itself and every prose copy its anchor."""
         import re
-        import shiploop_chain as chain
         import shiploop_keepalive as keepalive
         import shiploop_loops as loops
         import shiploop_prompts as prompts
@@ -176,7 +173,6 @@ class StageTableTest(unittest.TestCase):
                            ("implement duty", prompts.prompt("implement", delegation=prompts.INLINE))):
             with self.subTest(prompt=name):
                 self.assertIn(spec.STUCK_FIX, " ".join(text.split()))
-        self.assertIn(spec.STUCK_FIX_ANCHOR, " ".join(chain._EXIT_CRITERIA_INSTRUCTION.split()))
         gone = (
             re.compile(r"\b(?:\d+|seven|three)\s+genuine\s+fix\s+attempts\b", re.IGNORECASE),
             re.compile(r"GENUINE_FIX_ATTEMPTS"),
@@ -206,7 +202,8 @@ class StageTableTest(unittest.TestCase):
             for pattern in gone:
                 with self.subTest(file=str(path.relative_to(ROOT)), removed=pattern.pattern):
                     self.assertIsNone(pattern.search(raw))
-        self.assertGreaterEqual(copies, 4)  # the scan reaches the copies: the skill card and the references
+        # The scan reaches the copies: the skill card and the references (4 before the chain's guides were deleted, 2c-2).
+        self.assertGreaterEqual(copies, 3)
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint

@@ -39,10 +39,12 @@ import listeners  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
+import run_trace  # noqa: E402
 import sessionlog  # noqa: E402
 import slice as step_slice  # noqa: E402
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 import shiploop_item_scope as item_scope  # noqa: E402
+import shiploop_keepalive as keepalive  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
@@ -53,14 +55,32 @@ CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
 GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
 IDENTITY = ["-c", "user.name=Fake host", "-c", "user.email=fake-host@example.invalid"]
 
-# argv: scripts dir, CLI, run dir, mode (normal | overrun | grow). Prints nothing: the harness reads files only.
+# argv: scripts dir, CLI, run dir, mode (normal | overrun | grow), stages to pause at, and, for a keepalive session, its id and
+# the hook payload fixtures' directory. Prints nothing: the harness reads files only.
 FAKE_HOST = textwrap.dedent('''
     import json, subprocess, sys, time
     from pathlib import Path
     scripts, cli, run_dir, mode = sys.argv[1:5]
     pause_at = (sys.argv[5] if len(sys.argv) > 5 else "").split(",")  # stages to stay at once, e.g. "implement,test"
+    session = sys.argv[6] if len(sys.argv) > 6 else ""
     sys.path.insert(0, scripts)
     import shiploop_navigator as nav, shiploop_stage_spec as spec, shiploop_store as store
+    if session:
+        # A host session of the keepalive: its first ShipLoop tool result binds it to the run and claims it (observe), a SIGTERM
+        # runs its session-end hook as Claude Code does (the probe: docs/shiploop-owed-outcome-evidence/session_end_probe.out),
+        # and its first turn's end asks the stop hook. No host process is found, so only a session end or time frees a claim.
+        import signal
+        import shiploop_keepalive as keepalive
+        keepalive.host_process = lambda: None
+        fixtures = Path(sys.argv[7])
+        def hook(event, marker=""):
+            text = (fixtures / ("claude-" + event + ".json")).read_text().replace("__SESSION__", session)
+            return keepalive.run_hook(event, "claude", text.replace("__MARKER__", marker))
+        def on_term(signum, frame):
+            hook("session-end")
+            sys.exit(143)
+        signal.signal(signal.SIGTERM, on_term)
+        observed = False
     run_dir = Path(run_dir)
     memo = run_dir.parent / "fake-paused.txt"  # a fresh session of the fake does not stay where an earlier one did
     paused = set(memo.read_text().split()) if memo.exists() else set()
@@ -68,7 +88,11 @@ FAKE_HOST = textwrap.dedent('''
     git = ["git", "-C", str(worktree), "-c", "user.name=Fake host", "-c", "user.email=fake-host@example.invalid"]
     extra_outer = 2 if mode == "overrun" else 0
     while True:
-        subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True)  # emit the packet
+        packet = subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True, text=True).stdout
+        if session and not observed:
+            observed = True
+            hook("observe", next(line for line in packet.splitlines() if "SHIPLOOP-RUN" in line))
+            hook("stop")  # the first turn ends with the run still active: the owner is asked to go on, and the trace records it
         state = store.read_record(run_dir / "state.md")
         stage = nav.current_stage(state)
         past = state["status"] != "active" or state["work_index"] > 0 or stage in spec.OUTER
@@ -128,13 +152,17 @@ class SliceCase(unittest.TestCase):
                             **{"checks": CASE["checks"], **options})
 
     def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: list[dict] | None = None,
-             first: bool = True) -> dict:
+             first: bool = True, session: str = "", clear_signal: int | None = None) -> dict:
         script = self.out / "fake_host.py"
         script.write_text(FAKE_HOST)
         argv = [sys.executable, str(script), str(CLI.parent), str(CLI), seeded["run_dir"], mode, pause_at]
+        env = GIT_ENV
+        if session:  # a keepalive session, with its own state folder (the keepalive reads it from the environment)
+            argv += [session, str(ROOT / "test" / "fixtures" / "shiploop-keepalive")]
+            env = {**GIT_ENV, "SHIPLOOP_KEEPALIVE_HOME": str(self.out / "keepalive"), "SHIPLOOP_PROGRESS": "off"}
         started = time.time()
-        process = step_slice.drive(argv, work=self.work, out=self.out, env=GIT_ENV, run_dir=Path(seeded["run_dir"]),
-                                   timeout=90, watch=False, clear_at=clear_at, first=first)
+        process = step_slice.drive(argv, work=self.work, out=self.out, env=env, run_dir=Path(seeded["run_dir"]),
+                                   timeout=90, watch=False, clear_at=clear_at, first=first, clear_signal=clear_signal)
         process["wall"] = time.time() - started
         return process
 
@@ -279,7 +307,7 @@ class StopTests(SliceCase):
         # from it, and the archive the poll still writes covers only the packets the trace never printed.
         self.assertTrue(report["emissions_source"].startswith("run trace"), report["emissions_source"])
         stages = {row["stage"] for row in report["packets"]}
-        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward"}
+        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward"}
         self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once
         self.assertGreaterEqual(len(archived), len(inner))
         self.assertTrue((self.out / packets.REPORT_MD).is_file())
@@ -734,10 +762,10 @@ class ClearProbeTests(SliceCase):
 
     def test_each_session_ends_at_the_next_position_not_yet_cleared_and_three_clears_give_three_records(self):
         seeded = self.seed()
-        specs = clear.parse_spec(["implement", "test", "verify"])
+        specs = clear.parse_spec(["implement", "test", "document"])  # verify retired (design T §9.1 2b-4c)
         statuses, first = [], True
         for _ in range(6):                                   # the loop in slice.main: continue while a clear ended the session
-            process = self.fake(seeded, "normal", pause_at="implement,test,verify", clear_at=specs, first=first)
+            process = self.fake(seeded, "normal", pause_at="implement,test,document", clear_at=specs, first=first)
             statuses.append(process["status"])
             first = False
             if process["status"] != "cleared":
@@ -745,9 +773,89 @@ class ClearProbeTests(SliceCase):
         self.assertEqual(statuses, ["cleared", "cleared", "cleared", "slice-complete"])
         records = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
         self.assertEqual([(r["n"], r["stage"], r["stopped"]["stage"]) for r in records],
-                         [(1, "implement", "implement"), (2, "test", "test"), (3, "verify", "verify")])
+                         [(1, "implement", "implement"), (2, "test", "test"), (3, "document", "document")])
         lines = [r["stopped"]["events_line"] for r in records]
         self.assertEqual(lines, sorted(lines))
+
+
+CLEAR_AT_IMPLEMENT = [{"stage": "implement", "inside": False}]
+
+
+class ClearSignalTests(SliceCase):
+    """`--clear-signal`: a clear ends the host with a signal, so its session-end hook frees the run instead of the harness
+    (docs/shiploop-owed-outcome-journal.md, "Session-end evidence path"). The fake host plays Claude Code's part: it claims the
+    run as a keepalive session and runs the session-end hook on SIGTERM; the keepalive and the trace are the real ones."""
+
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE_HOME": str(self.out / "keepalive")})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @staticmethod
+    def owner(seeded: dict) -> str | None:
+        """The run's keepalive owner, as the keepalive names the run: by its resolved path."""
+        return keepalive._load_owner(str(Path(seeded["run_dir"]).resolve())).get("owner")
+
+    def session_ends(self, seeded: dict) -> list[dict]:
+        rows = (Path(seeded["run_dir"]) / "trace.jsonl").read_text().splitlines()
+        return [row for row in map(json.loads, rows) if row.get("hook") == "session-end"]
+
+    def test_sigterm_at_a_clear_frees_the_run_through_the_hook_and_the_next_session_takes_it(self):
+        seeded = self.seed()
+        run_dir = seeded["run_dir"]
+        first = self.fake(seeded, "normal", pause_at="implement", clear_at=CLEAR_AT_IMPLEMENT, session="s-one",
+                          clear_signal=signal.SIGTERM)
+        self.assertEqual((first["status"], first["end_signal"]), ("cleared", "SIGTERM"))
+        self.assertLess(first["wall"], 60)
+        (record,) = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        self.assertEqual(record["end_signal"], "SIGTERM")
+        # The release is the host's: the trace holds the session end, and nothing in the harness touched the owner.
+        (ended,) = self.session_ends(seeded)
+        self.assertEqual((ended["decision"], ended["released"], ended["host"], ended["reason"]), ("release", True, "claude", "other"))
+        self.assertIsNone(self.owner(seeded))
+        self.assertEqual(run_trace.checks(run_trace.read(run_dir))["session_end"]["verdict"], "not exercised")  # no next session yet
+        # A fresh session, with nothing released for it by the harness, takes the run and is told to go on.
+        second = self.fake(seeded, "normal", first=False, session="s-two")
+        self.assertEqual(second["status"], "slice-complete")
+        found = run_trace.checks(run_trace.read(run_dir))["session_end"]
+        self.assertEqual(found["verdict"], "pass", found)
+        self.assertEqual(self.owner(seeded), "claude:s-two")
+
+    def test_sigkill_runs_no_hook_and_leaves_the_dead_owners_claim_in_place(self):
+        seeded = self.seed()
+        first = self.fake(seeded, "normal", pause_at="implement", clear_at=CLEAR_AT_IMPLEMENT, session="s-one",
+                          clear_signal=signal.SIGKILL)
+        self.assertEqual((first["status"], first["end_signal"]), ("cleared", "SIGKILL"))
+        self.assertEqual(self.session_ends(seeded), [])
+        self.assertEqual(self.owner(seeded), "claude:s-one")  # only the process check frees it
+        self.assertEqual(run_trace.checks(run_trace.read(seeded["run_dir"]))["session_end"]["verdict"], "not exercised")
+
+    def test_without_the_switch_a_clear_kills_the_group_and_names_no_signal(self):
+        seeded = self.seed()
+        first = self.fake(seeded, "normal", pause_at="implement", clear_at=CLEAR_AT_IMPLEMENT, session="s-one")
+        self.assertEqual(first["status"], "cleared")
+        self.assertNotIn("end_signal", first)
+        (record,) = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        self.assertNotIn("end_signal", record)
+        self.assertEqual(self.session_ends(seeded), [])                  # SIGKILL to the group: no hook ran
+        self.assertEqual(self.owner(seeded), "claude:s-one")
+
+    def test_the_harness_releases_the_owner_after_a_clear_only_when_no_signal_was_asked(self):
+        with mock.patch.object(step_slice, "release_keepalive_owner") as release:
+            self.assertTrue(step_slice.release_after_clear(CLI, "/r/run", {}, None))
+            release.assert_called_once_with(CLI, "/r/run", {})
+            release.reset_mock()
+            for signum in (signal.SIGTERM, signal.SIGKILL):
+                self.assertFalse(step_slice.release_after_clear(CLI, "/r/run", {}, signum))
+            release.assert_not_called()
+
+    def test_the_command_line_offers_the_signals_and_defaults_to_the_harness_release(self):
+        self.assertIsNone(step_slice.parser().parse_args([]).clear_signal)
+        for name in ("SIGTERM", "SIGINT", "SIGHUP", "SIGKILL"):
+            self.assertEqual(step_slice.parser().parse_args(["--clear-signal", name]).clear_signal, name)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            step_slice.parser().parse_args(["--clear-signal", "SIGUSR1"])
 
 
 class ClearRecordTests(SliceCase):
@@ -963,7 +1071,7 @@ class ClearThroughMainTests(unittest.TestCase):
         """The fake claude answers the Anthropic route unless ``backend`` names another (a slice's default is Ollama)."""
         config = self.tmp / "config.json"
         config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
-                                      "run_dir": str(self.run_dir), "holds": holds, "improve_of": "implement"}))
+                                      "run_dir": str(self.run_dir), "holds": holds, "improve_of": "document"}))
         case = {**CASE, "fixture": "node-base"}
         with mock.patch.dict(os.environ, {"FAKE_SLICE_CONFIG": str(config),
                                           "SHIPLOOP_KEEPALIVE_HOME": str(self.tmp / "keepalive")}), \
@@ -1059,6 +1167,21 @@ class ClearThroughMainTests(unittest.TestCase):
         self.claim_for_a_session_that_will_die()
         self.main(["implement"])
         self.assertEqual(self.owner_of_the_run(), "claude:the-cleared-session")
+
+    def test_a_clear_signal_ends_the_host_with_it_and_the_harness_frees_nothing(self):
+        # The fake claude runs no session-end hook, so what stays is what the harness did not do: with the switch the run's
+        # owner is left to the host (ClearSignalTests shows a host that frees it), and the record names the signal.
+        for name in ("SIGTERM", "SIGKILL"):
+            with self.subTest(signal=name):
+                self.tmp.joinpath("keepalive").mkdir(exist_ok=True)
+                self.claim_for_a_session_that_will_die()
+                self.main(["implement"], "--clear-at", "implement", "--clear-signal", name)
+                self.assertEqual(self.owner_of_the_run(), "claude:the-cleared-session")
+                (record,) = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+                self.assertEqual(record["end_signal"], name)
+                self.assertEqual(json.loads((self.out / "invocation.json").read_text())["clear_signal"], name)
+                shutil.rmtree(self.out)
+                self.prompts.unlink()
 
 
 VIEWER_STUB = r"""

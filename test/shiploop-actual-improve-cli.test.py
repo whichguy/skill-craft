@@ -167,9 +167,11 @@ class ImproveCliFixture(unittest.TestCase):
         """
         if self.producer.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
-            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+            if stage in ("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
                          "release-plan", "release-verify"):
                 self.producer.setdefault("assumptions", [])
+            if stage == "document":
+                self.producer.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
             if stage == "spec":
@@ -793,14 +795,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                             "Continue in this context and execute the prompt. Delegation: inline"),
                         cold,
                     )
-                    self.assertNotIn(chain_guide, cold)
-                    self.assertNotIn("bind the default parallel mode", cold)
-                    # The inline "one step per packet" statement is the Step line (re-cut 2026-10-11).
-                    self.assertIn("the only work for this packet:", cold)
-                else:
-                    self.assertIn(chain_guide, cold)
-                    self.assertIn("bind the default parallel mode", cold)
-                    self.assertIn("when the Plan Dispatcher and Ask-Agent contracts are compatible", cold)
+                # Every route issues one implement action per step (design T §9.1 2c-1): no chain guide, no chain to bind.
+                self.assertNotIn(chain_guide, cold)
+                self.assertNotIn("bind the default parallel mode", cold)
+                # The "one step per packet" statement is the Step line (re-cut 2026-10-11).
+                self.assertIn("the only work for this packet:", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         """Cumulative report transport, not proof of model review or summarization."""
@@ -1123,6 +1122,31 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         refused = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.improve, status=2)
         self.assertIn("invalid choice", refused.stderr)
         self.assertIn("improve-complete", refused.stderr)
+
+    def test_a_step_review_commits_nothing_and_improve_commit_refuses_it_naming_improve_pass(self):
+        """Design T §8 (2b-4): a step's review leaves its edits for the commit stage, which refuses any other commit
+        inside the step, so the step review's improve-commit is refused, with the pass's command, before any commit."""
+        if not self.inline():
+            self.skipTest("an inline step's review")
+        self.commit_architecture()
+        steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
+                  "skills": []}]
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self._start_parent_at_stage("document", [str(self.product_contract)],
+                                    producer_extra={"knowledge": record, "assumptions": []},
+                                    predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
+        handoff = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertNotIn("improve-commit --run-dir", handoff)
+        message = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        message.parent.mkdir(parents=True, exist_ok=True)
+        message.write_text("fix: a review edit\n\nKey learnings: none\n", encoding="utf-8")
+        before = self.home_git("rev-parse", "HEAD").strip()
+        refused = self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve, "--message",
+                              message, status=2).stderr
+        self.assertIn("This step review commits nothing.", refused)
+        self.assertIn("improve-pass --run-dir=", refused)
+        self.assertEqual(self.home_git("rev-parse", "HEAD").strip(), before)
 
     def test_improve_commit_commits_only_the_reviews_uncommitted_changes(self):
         """The model writes the message with a file tool; ShipLoop stages and commits."""
@@ -1456,6 +1480,71 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.import_the_review()  # the import that line 1 names; no commit refusal in between
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
         self.assertIn("AD-2: split by layer instead.", self.home_git("show", "HEAD:docs/shiploop/architecture.md"))
+
+    def test_a_step_reviews_unmarked_spec_line_is_refused_at_its_import_and_a_marked_one_is_imported(self):
+        """Design T §9.1 2b-3, option C (owner 2026-10-28): a step's review may correct what its document stage recorded in
+        the knowledge home, and ShipLoop commits the review's edits with the step, so the spec gate runs again when the
+        review is imported: the step's commit holds the tree a gate ran on (Astra's review, 2026-10-28)."""
+        if not self.inline():
+            self.skipTest("an inline step's review")
+        self.commit_architecture()                     # a checkout whose HEAD holds the knowledge home
+        spec = self.repo / "docs/shiploop/spec.md"
+        committed = spec.read_text(encoding="utf-8")
+        requirement = next(line for line in committed.splitlines() if line.startswith("R-1"))
+        steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
+                  "skills": []}]
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self._start_parent_at_stage("document", [str(self.product_contract)],
+                                    producer_extra={"knowledge": record, "assumptions": []},
+                                    predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
+        self.assertEqual(self.bound["stage"], "document")
+        self.finish_ephemeral()
+        spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: unmarked."), encoding="utf-8")
+        lines = self.refused_import()
+        self.assertIn("without the step's mark: Clarified: unmarked.", "\n".join(lines))
+        self.assertIn("each ending (W1/S1)", "\n".join(lines))
+        spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: the change is planned. (W1/S1)"),
+                        encoding="utf-8")
+        self.import_the_review()
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
+    def test_a_step_review_whose_commit_git_refuses_is_refused_at_its_import_and_the_same_import_commits_it(self):
+        """Design T §9 row 3 (2b-4): the step's commit stage runs in the review's import, after its gates, and the step
+        advances only once the commit lands.  Git refusing it (a held index lock) refuses the import with nothing saved,
+        and the same import, made again, commits the step."""
+        if not self.inline():
+            self.skipTest("an inline step's review")
+        import shiploop_lint as lint
+        import shiploop_test_loop as test_loop
+        self.commit_architecture()
+        steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
+                  "skills": []}]
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self._start_parent_at_stage("document", [str(self.product_contract)],
+                                    producer_extra={"knowledge": record, "assumptions": []},
+                                    predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
+        state = store.read_record(self.run / "state.md")
+        base = self.home_git("rev-parse", "HEAD").strip()
+        navigator._iteration_record(self.run, "W1", test_loop._step_plan(state, "W1")[0], "S1", number=1, base=base,
+                                    commit=None)
+        for relative, text in lint.capture_base(self.run, self.repo, "W1").items():
+            store.atomic_write_text(self.run / relative, text)
+        (self.repo / "src").mkdir(exist_ok=True)
+        (self.repo / "src" / "change.py").write_text("CHANGED = True\n", encoding="utf-8")   # the step's change
+        self.finish_ephemeral()
+        lock = self.repo / ".git" / "index.lock"
+        lock.write_text("")
+        lines = "\n".join(self.refused_import())
+        self.assertIn("index.lock", lines)
+        self.assertIn("run the same callback again", lines)
+        lock.unlink()
+        self.import_the_review()
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+        self.assertEqual(self.home_git("log", "-1", "--format=%P").strip(), base, "one commit, on the step's base")
+        self.assertTrue(self.home_git("log", "-1", "--format=%s").startswith("feat(W1/S1): "))
+        self.assertIn("src/change.py", self.home_git("show", "--name-only", "--format=", "HEAD").split())
 
     def test_test_spec_accepted_at_its_complete_with_validate_existing_after_it_is_no_close_and_prints_no_notice(self):
         """The complete that accepts test-spec also records validate-existing (test-spec has no Improve review,
@@ -1837,9 +1926,11 @@ class ImproveCommitContractTests(ImproveCliFixture):
         """
         if self.producer.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
-            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+            if stage in ("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
                          "release-plan", "release-verify"):
                 self.producer.setdefault("assumptions", [])
+            if stage == "document":
+                self.producer.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
             if stage == "spec":
@@ -1954,16 +2045,17 @@ class ImproveCommitContractTests(ImproveCliFixture):
                              *completion, status=2).stderr
         self.assertIn("Commit this review's changes first", self.line_one(stderr))
 
-    def test_check_only_on_the_improve_stage_is_refused_and_imports_nothing(self):
-        """Review of 2026-10-12: --check-only on the Improve stage's id ran the real import.  It previews a producer
+    def test_a_check_on_the_improve_stage_is_refused_and_imports_nothing(self):
+        """Review of 2026-10-12: --check-only (now `check`) on the Improve stage's id ran the real import.  It previews a producer
         stage's draft; the Improve stage has none, so it is refused with the command to run instead."""
         self.begin()
         self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
         before = (self.run / "state.md").read_bytes()
-        stderr = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, "--check-only",
-                             *completion, status=2).stderr
-        self.assertIn("--check-only previews a producer stage's draft result", self.line_one(stderr))
+        stderr = self.invoke(CLI, "check", "--run-dir", self.run, "--action", self.improve, status=2).stderr
+        first = stderr.splitlines()[0]
+        self.assertTrue(first.startswith("ShipLoop check: the check says no. "), stderr)
+        self.assertIn("the Improve stage has no draft to check", first)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)  # the named command works
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
@@ -2966,12 +3058,15 @@ class ImproveLintCommandTests(ImproveCliFixture):
                                  "--action", self.improve], status=3)
         self.assertIn(self.improve + " is not the current action (" + self.action + ")", refused.stderr)
 
-    def test_an_implement_reviews_printed_lint_command_runs_through_shiploop_lint(self):
-        # The review follows the item's one step, so the step plan the fixture accepts has one.
+    def test_a_step_reviews_printed_lint_command_runs_through_shiploop_lint(self):
+        # The step review follows the step's document stage (design T section 8), so the step plan the fixture accepts
+        # has one step; it replaces the implement review the command was first printed for.
         step = {"id": "S1", "task": "Make the planned change.", "deps": [], "criteria": [], "proof": "true",
                 "paths": ["src/**"], "skills": []}
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
         self.assert_the_printed_lint_command_runs(
-            "implement", producer_extra={"learned": ["none"], "decisions": ["none"]},
+            "document", producer_extra={"knowledge": record, "assumptions": []},
             predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": [step], "test_commands": [],
                                              "test_commands_na": "The fixture has no test suite."}})
 

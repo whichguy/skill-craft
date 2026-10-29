@@ -7,7 +7,7 @@ as its test command). Every inner-loop stage, and every Improve packet the item'
 - naming the case's work item (an Improve packet: the result it reviews);
 - with each skill reference it names present on disk;
 - with the printed head inside the host's shell-output limit.
-Each packet that runs the item's tests (test, verify) must also name the recorded test command.
+Each packet that runs the item's tests (test, document) must also name the recorded test command.
 
 Run `python3 test/shiploop_e2e/packets.py --offline <case>` to see sizes, sections and the cross-packet overlap.
 """
@@ -37,8 +37,9 @@ import shiploop_test_layers as layers  # noqa: E402
 CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
          if not name.startswith("_")}
 # The stages whose packets carry the item's recorded test commands to run them: the test stage (its /until-loop
-# argument) and verify (its Test rerun list).  Declared here; a test below pins them to the stage table's runs.
-RUNS_THE_TESTS = ("test", "verify")
+# argument) and document (its Test rerun list: what its own edits could affect, design T §8.2).  Declared here; a test
+# below pins them to the stage table's runs.
+RUNS_THE_TESTS = ("test", "document")
 
 
 class StepPacketTests(unittest.TestCase):
@@ -83,8 +84,9 @@ class StepPacketTests(unittest.TestCase):
         self.assertEqual(gone["missing"], [str(guides / "no-such-guide.md")])
         self.assertEqual(packets.references("Coding decision guide: GUIDES/coding-guidance.md\n")["skill_references"], 0)
         # The offline packets name guides this way, and the count did not fall when they became symbols (43 before).
+        # Verify's packet, which named its own guides, retired with verify (design T §9.1 2b-4c): 41 since.
         named = [packets.references(text)["skill_references"] for text in self.found["node-fix-bug"].values()]
-        self.assertGreaterEqual(sum(named), 43, named)
+        self.assertGreaterEqual(sum(named), 41, named)
 
     def test_stages_that_run_the_tests_name_the_recorded_command(self) -> None:
         for name, found in self.found.items():
@@ -143,9 +145,9 @@ class StepPacketTests(unittest.TestCase):
                                     self.assertIn(str(number) + ". " + condition, block.exits)
                                 else:
                                     self.assertIn("- " + condition + "\n", text)
-                        # test and verify list it in their loop; test-spec gets it once, as the step plan's hand-off
-                        # (navigator.CONSUMES, consumer contract section 4).
-                        self.assertEqual(text.count(listing), 1 if stage in ("test", "verify", "test-spec") else 0)
+                        # test lists it in its loop and document in its Test rerun; test-spec gets it once, as the
+                        # step plan's hand-off (navigator.CONSUMES, consumer contract section 4).
+                        self.assertEqual(text.count(listing), 1 if stage in ("test", "document", "test-spec") else 0)
 
     def test_the_printed_head_fits_the_host_output_limit(self) -> None:
         case = CASES["node-fix-bug"]

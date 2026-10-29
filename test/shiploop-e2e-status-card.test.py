@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -150,7 +151,7 @@ class Builders(unittest.TestCase):
         history = ([{"stage": stage, "outcome": "done", "workitem": None, "action": "p" + stage}
                     for stage in ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")]
                    + [{"stage": stage, "outcome": "done", "workitem": "W1", "action": "w" + stage}
-                      for stage in ("step-plan", "test-spec", "implement", "test", "document", "verify")]
+                      for stage in ("step-plan", "test-spec", "implement", "test", "document")]
                    + [{"stage": "implement", "outcome": "send-back", "workitem": "W1", "action": "sb"},
                       {"stage": "implement", "outcome": "done", "workitem": "W1", "action": "again"},
                       {"stage": "step-plan", "outcome": "done", "workitem": "W2", "action": "w2"}])
@@ -172,8 +173,7 @@ class Builders(unittest.TestCase):
         self.assertEqual(names, ["Prelude", "W1", "W2", "Outer"])
         self.assertEqual(slots(model, 0), [("pass", "")] * 7)
         # A finished item shows only the stages it ran; implement ran twice, after one send-back.
-        self.assertEqual(slots(model, 1), [("pass", ""), ("pass", ""), ("pass", "2"), ("pass", ""), ("pass", ""),
-                                           ("pass", "")])
+        self.assertEqual(slots(model, 1), [("pass", ""), ("pass", ""), ("pass", "2"), ("pass", ""), ("pass", "")])
         self.assertEqual(model["rows"][1]["sub"], "1 sent back or added work")
         self.assertEqual(slots(model, 2)[:3], [("pass", ""), ("running", "I"), ("pending", "")])
         self.assertTrue(all(state == "pending" for state, _label in slots(model, 3)))
@@ -208,7 +208,11 @@ class Builders(unittest.TestCase):
                 {"kind": "command", "verb": "complete", "exit": 2, "check_only": True, "stage": ["step-plan", "step-plan"],
                  "action": "a3", "ts": 1320.0, "error": "no result file"},
                 {"kind": "command", "verb": "complete", "exit": 0, "check_only": True, "stage": ["step-plan", "step-plan"],
-                 "action": "a3", "ts": 1330.0},
+                 "action": "a3", "ts": 1330.0},   # a run before phase B: complete --check-only
+                {"kind": "command", "verb": "check", "exit": 2, "stage": ["step-plan", "step-plan"],
+                 "action": "a3", "ts": 1340.0, "error": "step S1 must record its proof"},
+                {"kind": "command", "verb": "check", "exit": 0, "stage": ["step-plan", "step-plan"],
+                 "action": "a3", "ts": 1350.0},
                 {"kind": "command", "verb": "complete", "exit": 0, "stage": ["step-plan", "test-spec"], "action": "a3", "ts": 1400.0}]
         for row in rows:
             if row["kind"] == "packet":  # each print names the copy kept as sent, as shiploop_trace writes it
@@ -232,19 +236,65 @@ class Builders(unittest.TestCase):
                           ("Prelude", "discovery", "improve", 1120.0, 1300.0), ("W1", "step-plan", "stage", 1300.0, 1400.0),
                           ("W1", "test-spec", "stage", 1400.0, None)])
         self.assertEqual([(m["lane"], m["stage"], m["kind"], m["at"]) for m in line["marks"]],
-                         [("Prelude", "discovery", "refusal", 1090.0), ("W1", "step-plan", "check", 1320.0)])
+                         [("Prelude", "discovery", "refusal", 1090.0), ("W1", "step-plan", "check", 1320.0),
+                          ("W1", "step-plan", "check", 1340.0)])
         self.assertIn("Missing: R-6", line["marks"][0]["text"])
         # Each span names the action it ran, so the card can open that action's prompt and dialogue.
         self.assertEqual([s["action"] for s in line["spans"]], ["a1", "a2", "i1", "a3", None])
         tiles = {tile["label"]: tile for tile in model["tiles"]}
         self.assertEqual((tiles["Elapsed"]["live"], tiles["Elapsed"]["since"]), ("elapsed", 1000.0))
         self.assertEqual((tiles["Improve reviews"]["value"], tiles["Improve reviews"]["sub"]), ("1", "3.0 min"))
-        self.assertEqual((tiles["Refusals"]["value"], tiles["Refusals"]["sub"]), ("2", "1 a --check-only check"))
+        self.assertEqual((tiles["Refusals"]["value"], tiles["Refusals"]["sub"]), ("3", "2 failed checks"))
         self.assertEqual(tiles["Stages"]["value"], "3 of " + str(model["progress"]["total"]))
         # A run before the trace has no timeline, and the inline card ignores the new keys.
         untraced, _meta = status_card.build_e2e(self.e2e_folder(), NOW)
         self.assertNotIn("timeline", untraced)
         self.assertNotIn("timeline", status_card.render(model))
+
+    def write_run(self, folder: Path, name: str, state: dict) -> Path:
+        """One more run under .shiploop-runs/<name>/run, with a worktree beside it."""
+        run = folder / ".shiploop-runs" / name / "run"
+        run.mkdir(parents=True)
+        (run.parent / "worktree").mkdir()
+        (run / "state.md").write_text("# state\n\n```shiploop-state\n" + json.dumps(state) + "\n```\n", encoding="utf-8")
+        return run
+
+    def test_an_e2e_card_draws_the_live_run_not_the_first_run_the_model_paused_and_replaced(self):
+        # Brownfield 2026-10-29: the model paused its first run ("replaced by a fresh run") and started a second. The card
+        # took the first state.md in path order, so it drew the abandoned run's intake cursor for the whole of the second.
+        folder = self.e2e_folder()  # .shiploop-runs/work-1: live, on W2's test-spec
+        self.write_run(folder, "work-0", {"status": "paused", "stage": "intake", "revision": 1, "history": []})
+        model, meta = status_card.build_e2e(folder, NOW)
+        self.assertEqual([row["name"] for row in model["rows"]], ["Prelude", "W1", "W2", "Outer"])
+        self.assertEqual(slots(model, 0), [("pass", "")] * 7)  # not the paused run's intake, which is running there
+        self.assertEqual(slots(model, 2)[:3], [("pass", ""), ("running", "I"), ("pending", "")])
+        self.assertEqual(meta["events"][0]["text"], "done: step-plan (W2)")
+        alone, _meta = status_card.build_e2e(self.e2e_folder_alone(), NOW)
+        self.assertEqual(model["rows"], alone["rows"])  # the same card as when the paused run is not there
+
+    def e2e_folder_alone(self) -> Path:
+        shutil.rmtree(self.base / "chess-sf-full-abc123", ignore_errors=True)
+        return self.e2e_folder()
+
+    def test_an_e2e_card_with_runs_nothing_tells_apart_says_so_and_draws_no_stage(self):
+        folder = self.e2e_folder()
+        self.write_run(folder, "work-2", {"status": "active", "stage": "plan", "revision": 8, "history": []})
+        model, meta = status_card.build_e2e(folder, NOW)
+        words = "ambiguous: 2 ShipLoop runs, nothing tells the live one apart"
+        self.assertEqual((model["rows"], model["plan"]), ([], []))  # drawing either run's cursor would be a guess
+        self.assertEqual(meta["events"][0], {"at": meta["events"][0]["at"], "kind": "warn", "text": words})
+        self.assertTrue(meta["subtitle"].endswith(words), meta["subtitle"])
+        self.assertIn(words, status_card.render(model))
+        self.assertNotIn("timeline", model)
+
+    def test_the_inspector_reads_reviews_from_the_worktree_beside_the_run_the_card_draws(self):
+        folder = self.base / "two-runs"
+        old = self.write_run(folder, "work-0", {"status": "paused", "stage": "intake", "revision": 1})
+        live = self.write_run(folder, "work-1", {"status": "active", "stage": "plan", "revision": 8})
+        self.assertEqual(status_card._worktree(folder), live.parent / "worktree")
+        self.assertNotEqual(status_card._worktree(folder), old.parent / "worktree")
+        self.write_run(folder, "work-2", {"status": "active", "stage": "plan", "revision": 3})  # now two live: no run
+        self.assertEqual(status_card._worktree(folder), folder)
 
     def test_a_refusal_is_material_unless_it_is_a_length_cap_or_an_ordering_slip(self):
         material = status_card.refusal_is_material
@@ -334,7 +384,7 @@ class Builders(unittest.TestCase):
         checks = [tile for tile in model["tiles"] if tile.get("check")]
         self.assertEqual([(t["label"], t["value"], t["tone"]) for t in checks],
                          [("Keepalive text", "not exercised", ""), ("Packet copies", "pass", "ok"),
-                          ("Owner note", "not exercised", "")])
+                          ("Owner note", "not exercised", ""), ("Session end", "not exercised", "")])
         self.assertEqual(checks[0]["sub"], "no stop decision continued a turn")
         self.assertEqual(model["tiles"][:4], [t for t in model["tiles"] if not t.get("check")])  # headline tiles first
         # The same run once a stop is continued, a packet is printed twice and the owner writes a note.
@@ -356,8 +406,20 @@ class Builders(unittest.TestCase):
         model, _meta = status_card.build_e2e(folder, NOW)
         checks = {tile["check"]: tile for tile in model["tiles"] if tile.get("check")}
         self.assertEqual({name: (t["value"], t["tone"]) for name, t in checks.items()},
-                         {"keepalive_text": ("pass", "ok"), "packet_copies": ("pass", "ok"), "owner_note": ("open", "warn")})
+                         {"keepalive_text": ("pass", "ok"), "packet_copies": ("pass", "ok"), "owner_note": ("open", "warn"),
+                          "session_end": ("not exercised", "")})
         self.assertEqual(checks["owner_note"]["sub"], "N1 waiting")
+        # A session end that freed the run, then the next session's continued turn: the session-end tile passes.
+        ended = {"kind": "hook", "hook": "session-end", "decision": "release", "released": True, "host": "claude",
+                 "session": "aaaaaaaaaaaa", "reason": "other", "ts": 1404.0}
+        taken = {"kind": "hook", "hook": "stop", "decision": "continue", "session": "bbbbbbbbbbbb", "ts": 1410.0,
+                 "text": "ShipLoop run is active: continue."}
+        with (run / "trace.jsonl").open("a", encoding="utf-8") as trace:
+            trace.write(json.dumps(ended) + "\n" + json.dumps(taken) + "\n")
+        model, _meta = status_card.build_e2e(folder, NOW)
+        tile = next(t for t in model["tiles"] if t.get("check") == "session_end")
+        self.assertEqual((tile["label"], tile["value"], tile["tone"]), ("Session end", "pass", "ok"))
+        self.assertIn("freed the run", tile["sub"])
         # A changed kept copy fails the copies check, drawn as a failure.
         (run / "packets" / "sent" / f"{sha}.md").write_text("not what was sent\n", encoding="utf-8")
         model, _meta = status_card.build_e2e(folder, NOW)
@@ -376,7 +438,8 @@ class Builders(unittest.TestCase):
         document = status_card.job_document(model, meta, job, NOW)
         # The job's own tiles replace the builder's headline numbers; the run's trace checks follow them.
         self.assertEqual(document["tiles"][:1], job["tiles"])
-        self.assertEqual([tile["check"] for tile in document["tiles"][1:]], ["keepalive_text", "packet_copies", "owner_note"])
+        self.assertEqual([tile["check"] for tile in document["tiles"][1:]],
+                         ["keepalive_text", "packet_copies", "owner_note", "session_end"])
         self.assertEqual(document["comparison"], job["comparison"])
         self.assertEqual(document["timeline"]["bands"], job["bands"])
         self.assertEqual(document["timeline"]["spans"], model["timeline"]["spans"])

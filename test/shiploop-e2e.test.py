@@ -45,10 +45,12 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
+import packets
 import progress  # noqa: E402
 import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
+import status_card
 # The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import scorecard  # noqa: E402
@@ -184,33 +186,6 @@ if mode in ("done", "no-skill"):
 if mode == "active":
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-if mode == "chain-hang":
-    sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
-    import shiploop_chain_ledger as ledger, time
-    chain = Path.cwd().parent / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
-    child = chain / "child"
-    def ledger_events(*rows):
-        start = len(ledger.read_events(str(chain / "events")))
-        for number, (kind, data) in enumerate(rows, start):
-            ledger.append_event(str(chain / "events"), f"e{{number}}", kind, data)
-    if "This session ended" not in argv[argv.index("-p") + 1]:
-        child.mkdir(parents=True)
-        # The run is active while its chain worker is in flight, as a real run's state.md says.
-        store.write_record(chain.parent.parent / "state.md", {{"status": "active", "stage": "implement", "revision": 3}})
-        store.write_record(chain / "binding.md", {{"dispatcher_run": str(child), "mode": "parallel"}})
-        ledger_events(("launched_result", {{"attempt": "A-1"}}), ("launched_result", {{"attempt": "B-1"}}))
-        time.sleep(120)  # killed by --interrupt-at long before this ends
-    (child / "plan-dispatcher-state.json").write_text(json.dumps({{
-        "graph": {{"steps": [{{"id": "A", "deps": []}}, {{"id": "B", "deps": []}}]}},
-        "steps": {{"A": {{"status": "accepted"}}, "B": {{"status": "accepted"}}}},
-        "attempts": {{"A-1": {{"step": "A", "handle": "h"}}, "B-1": {{"step": "B", "handle": "h"}}}}}}))
-    ledger_events(("handoff_import_result", {{"attempt": "A-1"}}), ("handoff_import_result", {{"attempt": "B-1"}}),
-                  ("contribution_recorded", {{"attempt": "A-1", "step": "A"}}),
-                  ("contribution_recorded", {{"attempt": "B-1", "step": "B"}}))
-    # The fresh session finishes the seeded run itself: the harness grades the run it seeded, not work/.shiploop.
-    store.write_record(chain.parent.parent / "state.md", {{"status": "done", "stage": "done", "revision": 9}})
-    (chain.parent.parent / "report.html").write_text("<html></html>")
-    product()
 if mode == "api-error":
     # What the real CLI wrote when the API refused: subtype stays "success", is_error says otherwise.
     print(json.dumps({{"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "api_error",
@@ -675,106 +650,9 @@ class SeedTest(HarnessCase):
         self.assertIn(f'next --run-dir "{result["seeded"]["run_dir"]}"', prompt)
         self.assertIn("stages before step-plan without doing them", prompt)
         self.assertEqual(result["committed"]["start_head"], result["seeded"]["start_head"])
-        self.assertEqual((result["chain"]["pass"], result["chain"]["bindings"]), (False, []))
+        self.assertNotIn("chain", result)    # the chain grade is retired with the chain (design T §9.1 2c-2)
         self.assertFalse(self.baselines.exists())
 
-    def chain(self, events: list[tuple[str, str]], status: dict[str, str], deps: dict[str, list[str]] | None = None,
-              expect: dict | None = None) -> dict:
-        """A binding whose ledger holds `events` as (kind, step); contributions name their step."""
-        import shiploop_chain_ledger as ledger
-        out = self.tmp / "out"
-        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
-        dispatcher = chain_dir / "child"
-        dispatcher.mkdir(parents=True)
-        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
-        deps = deps or {step: [] for step in status}
-        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
-            "graph": {"steps": [{"id": step, "deps": needs} for step, needs in deps.items()]},
-            "steps": {step: {"status": s} for step, s in status.items()},
-            "attempts": {f"{step}-1": {"step": step, "handle": f"h-{step}"} for step in status}}))
-        for number, (kind, step) in enumerate(events):
-            data = {"attempt": f"{step}-1", **({"step": step} if kind == "contribution_recorded" else {})}
-            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
-        return run.chain_facts(out, expect)
-
-    @staticmethod
-    def worked(*steps: str) -> list[tuple[str, str]]:
-        """Launch every step together, then import and integrate each."""
-        return ([("launched_result", s) for s in steps] + [("handoff_import_result", s) for s in steps]
-                + [("contribution_recorded", s) for s in steps])
-
-    def test_chain_passes_when_all_accepted_in_order_once_and_two_ran_together(self):
-        events = self.worked("A", "B") + self.worked("J")
-        facts = self.chain(events, {"A": "accepted", "B": "accepted", "J": "accepted"},
-                           {"A": [], "B": [], "J": ["A", "B"]})
-        self.assertTrue(facts["pass"], facts)
-        binding = facts["bindings"][0]
-        self.assertEqual((binding["max_in_flight"], binding["depth"], binding["native_attempts"]), (2, 2, 3))
-
-    def test_serial_chain_fails(self):
-        facts = self.chain(self.worked("A") + self.worked("B"), {"A": "accepted", "B": "accepted"})
-        self.assertFalse(facts["pass"])
-        self.assertEqual(facts["bindings"][0]["max_in_flight"], 1)
-
-    def test_unaccepted_step_fails_even_after_fan_out(self):
-        facts = self.chain(self.worked("A", "B"), {"A": "accepted", "B": "running"})
-        self.assertFalse(facts["pass"])
-
-    def test_a_step_launched_before_its_dependency_was_integrated_fails(self):
-        events = [("launched_result", "A"), ("launched_result", "B"), ("launched_result", "J"),
-                  ("handoff_import_result", "A"), ("handoff_import_result", "B"), ("handoff_import_result", "J"),
-                  ("contribution_recorded", "A"), ("contribution_recorded", "B"), ("contribution_recorded", "J")]
-        facts = self.chain(events, {"A": "accepted", "B": "accepted", "J": "accepted"},
-                           {"A": [], "B": [], "J": ["A", "B"]})
-        self.assertFalse(facts["pass"])
-        self.assertEqual(facts["bindings"][0]["out_of_order"], ["J"])
-
-    def test_a_step_integrated_twice_or_never_fails(self):
-        twice = self.chain(self.worked("A", "B") + [("contribution_recorded", "A")],
-                           {"A": "accepted", "B": "accepted"})
-        self.assertEqual(twice["bindings"][0]["integrated_twice"], ["A"])
-        self.assertFalse(twice["pass"])
-
-    def test_case_expectations_raise_the_bar(self):
-        events = self.worked("A", "B") + self.worked("J")
-        status = {"A": "accepted", "B": "accepted", "J": "accepted"}
-        facts = self.chain(events, status, {"A": [], "B": [], "J": ["A", "B"]},
-                           expect={"min_steps": 3, "min_in_flight": 3, "min_depth": 2})
-        self.assertFalse(facts["pass"])  # only two ran together
-        self.assertEqual(facts["expect"]["min_in_flight"], 3)
-
-    def test_a_retried_worker_stops_counting_as_in_flight(self):
-        # Kill-and-resume: A-1 and B-1 are lost (never imported) and retried; their
-        # replacements then run one after the other. Only one worker ever really ran
-        # after the kill, so the lost attempts must not inflate the count.
-        import shiploop_chain_ledger as ledger
-        out = self.tmp / "out"
-        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
-        dispatcher = chain_dir / "child"
-        dispatcher.mkdir(parents=True)
-        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
-        attempts = {"A-1": "A", "B-1": "B", "A-2": "A", "B-2": "B"}
-        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
-            "graph": {"steps": [{"id": "A", "deps": []}, {"id": "B", "deps": []}]},
-            "steps": {"A": {"status": "accepted"}, "B": {"status": "accepted"}},
-            "attempts": {a: {"step": s, "handle": "h"} for a, s in attempts.items()}}))
-        events = [("launched_result", "A-1"), ("launched_result", "B-1"), ("retry_result", "A-1"),
-                  ("retry_result", "B-1"), ("launched_result", "A-2"), ("handoff_import_result", "A-2"),
-                  ("contribution_recorded", "A-2"), ("launched_result", "B-2"), ("handoff_import_result", "B-2"),
-                  ("contribution_recorded", "B-2")]
-        for number, (kind, attempt) in enumerate(events):
-            data = {"attempt": attempt, **({"step": attempts[attempt]} if kind == "contribution_recorded" else {})}
-            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
-        facts = run.chain_facts(out)
-        self.assertEqual(facts["bindings"][0]["max_in_flight"], 2)  # A-1 and B-1 before the kill
-        self.assertEqual(facts["bindings"][0]["max_in_flight_after_retry"], 1)
-
-    def test_chain_in_flight_is_true_only_between_launch_and_import(self):
-        self.chain([("launched_result", "A")], {"A": "running"})
-        self.assertTrue(run.chain_in_flight(self.tmp / "out"))
-        shutil.rmtree(self.tmp / "out")
-        self.chain(self.worked("A"), {"A": "accepted"})
-        self.assertFalse(run.chain_in_flight(self.tmp / "out"))
 
     def test_launch_kills_the_session_when_its_stop_condition_holds(self):
         out = self.tmp / "out-stop"
@@ -816,22 +694,6 @@ class SeedTest(HarnessCase):
         self.assertEqual(result["status"], "interrupted")
         self.assertEqual(len(polls), 2)
         self.assertLess(result["elapsed_seconds"], 10, result)
-
-    def test_interrupt_kills_the_host_mid_chain_and_a_fresh_session_finishes(self):
-        code, result = self.invoke("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        self.assertEqual(code, 0, {k: result.get(k) for k in ("process", "chain", "recovery", "shiploop")})
-        sessions = result["process"]["sessions"]
-        self.assertEqual([s["status"] for s in sessions], ["interrupted", "exited"])
-        # The killed session began and never reported: the cost is a lower bound by one session.
-        self.assertEqual(result["metrics"]["unreported_sessions"], 1)
-        self.assertTrue(result["recovery"]["pass"], result["recovery"])
-        self.assertEqual(result["recovery"]["interrupt"]["at"], "chain-launched")
-        self.assertIn("This session ended", (Path(result["output"]) / "resume-after-interrupt.txt").read_text()
-                      if (Path(result["output"]) / "resume-after-interrupt.txt").exists() else self.seen()["argv"][1])
-
-    def test_without_interrupt_no_recovery_verdict(self):
-        code, result = self.invoke("claude", "done")
-        self.assertIsNone(result["recovery"])
 
 
 class ExpectationTest(HarnessCase):
@@ -1774,6 +1636,259 @@ class GradeIdentityTest(unittest.TestCase):
     def test_a_run_inside_the_repository_is_graded(self):
         inside = self.state("work/.shiploop", "done", report=True)
         self.assertEqual((run.grade_shiploop(self.out)["run_dir"], run.grade_shiploop(self.out)["pass"]), (inside, True))
+
+
+class MultipleRunsTest(unittest.TestCase):
+    """A model that abandons its first ShipLoop run and starts a second leaves two runs in the output folder (brownfield
+    bf-ds-r1-ticket-assignment, 2026-10-29: the first paused with a status_reason saying it was replaced, the second live).
+    Five readers say which run the folder holds: grade_shiploop (the verdict), metrics.run_dir_of (every measurement that
+    reads the run's files), progress.report (the live monitor), status_card.build_e2e (the Live Run Card the owner is fed
+    each tick) and packets.find_run_dir (the run flow.build, packets.build and the owner page describe). They share one
+    rule, so each case here asks all five: a run is told apart by its revision, which the monitor prints, the card draws
+    (the run's trace starts at its revision) and the other three return as the run directory."""
+
+    STAMP = 1_800_000_000  # seconds; the state.md of each run is stamped from here so the newest state change is known
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out = Path(tmp.name).resolve()
+        self.written = 0
+
+    def make(self, name: str, status: str, revision: int, *, changed: int | None = None, report: bool = False,
+             stage: str | None = None) -> str:
+        """One run under .shiploop-runs/<name>/run, its state.md stamped `changed` seconds after STAMP (default: later than
+        the runs written before it)."""
+        folder = self.out / ".shiploop-runs" / name / "run"
+        state = {"status": status, "stage": stage or ("done" if status == "done" else "implement"), "revision": revision}
+        if status in ("paused", "blocked", "halted"):
+            state["status_reason"] = f"{status} by the test"
+        run.store.write_record(folder / "state.md", state)
+        # The Live Run Card draws no revision; it draws the run's trace on a time axis that starts at the trace's first row.
+        (folder / "trace.jsonl").write_text(json.dumps({"kind": "command", "verb": "workspace", "exit": 0, "ts": float(revision)}) + "\n")
+        if report:
+            (folder / "report.html").write_text("<html></html>")
+        self.written += 1
+        stamp = (self.STAMP + (self.written if changed is None else changed)) * 10 ** 9
+        os.utime(folder / "state.md", ns=(stamp, stamp))
+        return str(folder)
+
+    def readers(self) -> tuple[dict, str | None, int | None, str]:
+        """(the graded verdict, the directory run_dir_of returns, the revision the monitor shows, the monitor's text)."""
+        graded = run.grade_shiploop(self.out)
+        picked = metrics.run_dir_of(self.out)
+        text = progress.report(self.out)
+        shown = re.search(r"\| \w+, rev (\d+),", text)
+        return graded, str(picked) if picked else None, int(shown.group(1)) if shown else None, text
+
+    def card(self) -> tuple[int | None, dict, dict]:
+        """(the revision the Live Run Card drew, its model, its meta); None where it drew no run."""
+        model, meta = status_card.build_e2e(self.out)
+        return (int(model["timeline"]["start"]) if model.get("timeline") else None), model, meta
+
+    def packet_reader(self) -> str | None:
+        """What packets.find_run_dir answers: the directory, None, or the message of the exit it makes."""
+        try:
+            found = packets.find_run_dir(self.out)
+        except SystemExit as stopped:
+            return str(stopped)
+        return str(found) if found else None
+
+    def assert_chosen(self, directory: str, revision: int) -> dict:
+        graded, picked, shown, text = self.readers()
+        self.assertEqual(graded.get("run_dir"), directory, graded)
+        self.assertEqual(picked, directory)
+        self.assertEqual(shown, revision, text)
+        drawn, _model, meta = self.card()
+        self.assertEqual(drawn, revision, meta)
+        self.assertFalse(any("ambiguous" in event["text"] for event in meta["events"]), meta)
+        self.assertEqual(self.packet_reader(), directory)
+        return graded
+
+    def assert_ambiguous(self, *directories: str) -> dict:
+        graded, picked, shown, text = self.readers()
+        self.assertFalse(graded["pass"])
+        self.assertEqual(sorted(graded.get("ambiguous", [])), sorted(directories), graded)
+        self.assertIn("ambiguous", graded["reason"])
+        self.assertIsNone(picked)
+        self.assertIsNone(shown, text)
+        self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", text)
+        # The card draws no run, and says why instead of drawing the first one in path order.
+        drawn, model, meta = self.card()
+        self.assertIsNone(drawn, meta)
+        self.assertEqual(model["rows"], [])
+        self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", meta["events"][0]["text"])
+        # packets.find_run_dir exits with the same words; flow.build, packets.build and the owner page stop there.
+        self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", self.packet_reader() or "")
+        return graded
+
+    # ---- the reported defect
+
+    def test_a_run_the_model_paused_and_replaced_is_not_the_run_while_its_live_successor_is(self):
+        first = self.make("work-1", "paused", 1, stage="intake")
+        second = self.make("work-2", "active", 5, stage="test-strategy")
+        graded = self.assert_chosen(second, 5)
+        self.assertEqual((graded["status"], graded["pass"], graded["runs"], graded["other_runs"]), ("active", False, 2, [first]))
+        self.assertNotIn("paused", self.readers()[3].split("\n")[0])
+
+    def test_the_choice_follows_the_runs_statuses_so_it_is_not_recorded_as_the_runs_identity(self):
+        self.make("work-1", "paused", 1)
+        self.make("work-2", "active", 5)
+        self.assert_chosen(str(self.out / ".shiploop-runs" / "work-2" / "run"), 5)
+        self.assertNotIn("run_dir", run.run_identity(self.out))
+
+    def test_a_live_run_is_preferred_to_a_paused_one_whichever_changed_last(self):
+        first = self.make("work-1", "paused", 1, changed=500)
+        second = self.make("work-2", "active", 5, changed=100)
+        self.assert_chosen(second, 5)
+        self.assertNotEqual(second, first)
+
+    def test_a_halted_run_is_set_aside_as_a_paused_one_is(self):
+        self.make("work-1", "halted", 1)
+        second = self.make("work-2", "active", 5)
+        self.assert_chosen(second, 5)
+
+    def test_a_blocked_run_is_still_in_play_beside_a_paused_one(self):
+        blocked = self.make("work-1", "blocked", 1, changed=100)
+        self.make("work-2", "paused", 5, changed=500)
+        self.assert_chosen(blocked, 1)
+
+    def test_the_live_run_is_found_among_several_that_were_set_aside(self):
+        first = self.make("work-1", "paused", 1)
+        second = self.make("work-2", "halted", 2)
+        third = self.make("work-3", "active", 5)
+        graded = self.assert_chosen(third, 5)
+        self.assertEqual(graded["other_runs"], [first, second])
+
+    # ---- candidates that nothing tells apart
+
+    def test_two_live_runs_stay_ambiguous_and_the_newer_one_is_not_picked(self):
+        first = self.make("work-1", "active", 1, changed=100)
+        second = self.make("work-2", "active", 5, changed=500)
+        graded = self.assert_ambiguous(first, second)
+        self.assertEqual(graded["runs"], 2)
+        self.assertNotIn("other_runs", graded)
+
+    def test_a_finished_run_beside_an_active_one_stays_ambiguous(self):
+        # The 2026-10-16 audit's control: an unrelated finished run is never preferred, and nothing prefers the active one either.
+        finished = self.make("work-1", "done", 3, report=True, changed=500)
+        active = self.make("work-2", "active", 5, changed=100)
+        self.assert_ambiguous(finished, active)
+
+    def test_the_live_runs_that_remain_are_the_only_ones_listed_as_ambiguous(self):
+        self.make("work-1", "paused", 1)
+        second = self.make("work-2", "active", 5)
+        third = self.make("work-3", "active", 7)
+        graded = self.assert_ambiguous(second, third)
+        self.assertEqual(graded["runs"], 3)
+        self.assertIn("2 ShipLoop runs under the output directory that are not paused or halted", graded["reason"])
+
+    def test_the_host_naming_one_of_two_live_runs_resolves_them_in_every_reader(self):
+        first = self.make("work-1", "active", 1)
+        second = self.make("work-2", "active", 5)
+        self.assert_ambiguous(first, second)
+        command = f'python3 "/x/shiploop" next --run-dir "{first}"'
+        (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
+        graded = self.assert_chosen(first, 1)
+        self.assertEqual(graded["other_runs"], [second])
+
+    def test_a_paused_run_the_host_named_does_not_beat_a_live_one_it_did_not(self):
+        paused = self.make("work-1", "paused", 1)
+        live = self.make("work-2", "active", 5)
+        command = f'python3 "/x/shiploop" pause --run-dir "{paused}"'
+        (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
+        self.assert_chosen(live, 5)
+
+    def test_a_run_dir_naming_an_unknown_user_does_not_crash_a_reader(self):
+        first = self.make("work-1", "active", 1)
+        second = self.make("work-2", "active", 5)
+        commands = ['python3 "/x/shiploop" next --run-dir "~no_such_user_for_this_test/run"',
+                    f'python3 "/x/shiploop" next --run-dir "{first}"']
+        (self.out / "events.jsonl").write_text(
+            "\n".join(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) for command in commands) + "\n")
+        graded = self.assert_chosen(first, 1)
+        self.assertEqual(graded["other_runs"], [second])
+
+    # ---- no run is live
+
+    def test_when_every_run_was_set_aside_the_one_changed_last_is_the_run(self):
+        first = self.make("work-1", "paused", 1, changed=500)
+        second = self.make("work-2", "halted", 5, changed=100)
+        graded = self.assert_chosen(first, 1)
+        self.assertEqual((graded["status"], graded["other_runs"]), ("paused", [second]))
+
+    def test_set_aside_runs_changed_at_the_same_moment_stay_ambiguous(self):
+        first = self.make("work-1", "paused", 1, changed=100)
+        second = self.make("work-2", "paused", 5, changed=100)
+        self.assert_ambiguous(first, second)
+
+    def test_a_finished_run_beside_a_paused_one_is_the_run_and_its_pass_is_its_own(self):
+        finished = self.make("work-1", "done", 3, report=True, changed=100)
+        self.make("work-2", "paused", 5, changed=500)
+        graded = self.assert_chosen(finished, 3)
+        self.assertTrue(graded["pass"])
+
+    # ---- the identity the harness recorded still wins
+
+    def test_a_recorded_run_wins_in_every_reader_even_when_it_is_the_paused_one(self):
+        recorded = self.make("work-1", "paused", 1)
+        self.make("work-2", "active", 5)
+        run.record_run_identity(self.out, run_dir=recorded, basis="seeded by the harness")
+        graded = self.assert_chosen(recorded, 1)
+        self.assertEqual(graded["identity"], "recorded")
+
+    def test_a_recorded_run_whose_state_is_gone_is_chosen_again_by_the_rule(self):
+        gone = self.make("work-1", "paused", 1)
+        paused = self.make("work-2", "paused", 2)
+        live = self.make("work-3", "active", 7)
+        run.record_run_identity(self.out, run_dir=gone, basis="seeded by the harness")
+        (Path(gone) / "state.md").unlink()
+        graded = self.assert_chosen(live, 7)
+        self.assertEqual(graded["other_runs"], [paused])
+
+    def test_runs_that_were_there_before_the_invocation_are_candidates_for_no_reader(self):
+        stale = self.make("a-stale", "done", 3, report=True)
+        run.record_preexisting_runs(self.out)
+        live = self.make("work-2", "active", 5)
+        graded = self.assert_chosen(live, 5)
+        self.assertNotEqual(graded["run_dir"], stale)
+
+    # ---- state files that are not runs
+
+    def test_a_state_file_nobody_can_read_is_not_a_run(self):
+        self.make("work-1", "paused", 1)
+        live = self.make("work-2", "active", 5)
+        broken = self.out / ".shiploop-runs" / "work-3" / "run" / "state.md"
+        broken.parent.mkdir(parents=True)
+        broken.write_bytes(b"not a record \xff\xfe")
+        graded = self.assert_chosen(live, 5)
+        self.assertEqual(graded["runs"], 2)
+
+    def test_one_readable_run_beside_an_unreadable_one_is_the_only_run(self):
+        paused = self.make("work-1", "paused", 1)
+        broken = self.out / ".shiploop-runs" / "work-2" / "run" / "state.md"
+        broken.parent.mkdir(parents=True)
+        broken.write_text("# no state fence here\n")
+        graded = self.assert_chosen(paused, 1)
+        self.assertEqual(graded["identity"], "the only run that was not there before the invocation")
+        self.assertNotIn("other_runs", graded)
+
+    # ---- a folder with exactly one run is graded as it always was
+
+    def test_exactly_one_run_grades_with_the_same_keys_in_the_same_order_whatever_its_status(self):
+        for status, report in (("paused", False), ("active", False), ("done", True), ("halted", False)):
+            with self.subTest(status=status):
+                shutil.rmtree(self.out / ".shiploop-runs", ignore_errors=True)
+                (self.out / run.RUN_IDENTITY).unlink(missing_ok=True)
+                only = self.make("only", status, 4, report=report)
+                graded = self.assert_chosen(only, 4)
+                self.assertEqual(list(graded), ["pass", "run_dir", "status", "stage", "revision", "report_html", "runs", "identity",
+                                                "worktree"])
+                self.assertEqual(graded, {"pass": status == "done", "run_dir": only, "status": status,
+                                          "stage": "done" if status == "done" else "implement", "revision": 4,
+                                          "report_html": report, "runs": 1,
+                                          "identity": "the only run that was not there before the invocation", "worktree": None})
+                self.assertEqual(run.run_identity(self.out)["run_dir"], only)  # one run: bound at the first grade, as before
 
 
 class FollowOnTest(HarnessCase):
@@ -3415,6 +3530,59 @@ class CodexHostTest(unittest.TestCase):
             self.assertNotIn("CODEX_SECRET", env)
             self.assertEqual(env["HOME"], str(Path(temp) / "home"))
 
+    def test_argv_trusts_the_hooks_of_its_throwaway_home_on_a_fresh_and_a_resumed_launch(self):
+        # Codex runs a plugin's hooks only once they are trusted, and a fresh CODEX_HOME holds no trust: without the
+        # flag the keepalive, the session-end hook and the takeover never run in a Codex round.
+        codex = hosts.host("codex", "codex-bin")
+        with tempfile.TemporaryDirectory() as temp:
+            for resume in (None, "thread-1"):
+                argv = codex.argv(prompt="go", prompt_file=Path(temp) / "p.txt", cwd=Path("/w"), model="gpt-6.1-terra",
+                                  effort="xhigh", permission_mode="auto", max_turns=10, resume=resume)
+                self.assertIn("--dangerously-bypass-hook-trust", argv)
+                self.assertLess(argv.index("--dangerously-bypass-hook-trust"), argv.index(resume or "go"))
+                if resume:
+                    self.assertLess(argv.index("--dangerously-bypass-hook-trust"), argv.index("resume"))
+
+    def test_the_trust_bypass_has_no_hook_to_trust_but_the_installed_plugins(self):
+        # The flag is safe only because nothing else is there to run: the throwaway home links auth.json and nothing
+        # that carries a hook or a trust record.
+        with tempfile.TemporaryDirectory() as temp:
+            real = Path(temp) / "real"
+            real.mkdir()
+            (real / "auth.json").write_text("{}")
+            (real / "hooks.json").write_text('{"hooks": {"Stop": []}}')
+            (real / "config.toml").write_text("[hooks.state]\n")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(real)}):
+                env = hosts.host("codex").env(Path(temp) / "home")
+            self.assertEqual(sorted(path.name for path in Path(env["CODEX_HOME"]).iterdir()), ["auth.json"])
+
+    def test_the_keepalive_block_names_the_hooks_the_plugin_brings_to_codex(self):
+        codex, grok = hosts.host("codex"), hosts.host("grok")
+        with tempfile.TemporaryDirectory() as temp:
+            plugin = Path(temp)
+            self.assertFalse(codex.keepalive_install({}, plugin)["installed"])
+            (plugin / "hooks").mkdir()
+            (plugin / "hooks" / "codex.json").write_text("{}")
+            self.assertTrue(codex.keepalive_install({}, plugin)["installed"])
+            with mock.patch.object(hosts, "grok_keepalive", return_value={"installed": True}) as installer:
+                self.assertEqual(grok.keepalive_install({"HOME": "h"}, plugin), {"installed": True})
+                installer.assert_called_once_with({"HOME": "h"}, plugin)
+            self.assertIsNone(hosts.host("claude").keepalive_install({}, plugin))
+
+    def test_a_codex_notice_is_a_thought_not_a_tool_call_or_a_turn(self):
+        # With hooks on, every launch opens with notices (the trust bypass, a clamped hook timeout); Codex sends them as
+        # `error` items. Counted as tool calls they would add turns to every Codex run.
+        translate = hosts.host("codex").translator()
+        notices = [{"type": "item.completed", "item": {"id": f"item_{n}", "type": "error", "message": text}}
+                   for n, text in enumerate(("`--dangerously-bypass-hook-trust` is enabled.",
+                                             "clamping SessionEnd hook timeout to 3s in /h/hooks.json"))]
+        events = [json.loads(raw) for event in [{"type": "thread.started", "thread_id": "t"}, *notices,
+                                                {"type": "turn.completed", "usage": {}}]
+                  for raw in translate((json.dumps(event) + "\n").encode())]
+        self.assertEqual([e["type"] for e in events], ["available_commands", "thought", "thought", "end"])
+        self.assertIn("clamping SessionEnd", events[2]["data"])
+        self.assertEqual(events[-1]["num_turns"], 0)
+
     def test_translated_stream_reads_like_grok_for_every_parser(self):
         events = self.translated()
         kinds = [e["type"] for e in events]
@@ -4442,17 +4610,6 @@ class ReportedCostThroughMainTest(PrintedCase):
         self.assertIn("cost=not reported", process)
         self.assertNotIn("$0", process)
         self.assertIn("cost not reported", self.line(printed, "  metrics   turns"))
-
-    def test_a_session_the_run_killed_is_named_beside_the_cost_and_is_not_a_baseline_key(self):
-        code, result, printed = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        self.assertEqual(code, 0, result)
-        note = "(lower bound: 1 session(s) never reported)"
-        self.assertIn(f"cost=$0.0 {note}", self.line(printed, "  process"))
-        self.assertIn(f"cost $0.0 {note}", self.line(printed, "  metrics   turns"))
-        self.assertNotIn("unreported_sessions", run.baseline_row(result, None, None))
-        code, result, printed = self.invoke_printed("claude", "done")
-        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
-        self.assertNotIn("lower bound", printed)
 
 
 class ResumedRunRecordTest(PrintedCase):
@@ -5852,13 +6009,6 @@ class ResumeCliThroughMainTest(PrintedCase):
         self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)  # the first host's install, not the new one
         self.assertNotIn(str(other_cli), prompt)
 
-    def test_the_resume_after_an_interrupt_names_the_cli_the_run_started_on(self):
-        code, result, _ = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        self.assertEqual(code, 0, result)
-        argv = self.seen()["argv"]
-        prompt = argv[argv.index("-p") + 1]
-        self.assertIn("This session ended while the ShipLoop run was still active", prompt)
-        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
 
     def test_a_resume_whose_plugin_cli_is_gone_is_refused_before_any_host_starts(self):
         code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")

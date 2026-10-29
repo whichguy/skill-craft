@@ -226,7 +226,7 @@ class PacketCompletenessTests(unittest.TestCase):
     # skill_na is gone with the skill stages.
     GATE_WORDS = {
         # The plan's assumptions, and the open items of the later stages (consumer contract X10, 2026-10-11).
-        "assumption": {"plan", "test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+        "assumption": {"plan", "test-spec", "document", "carry-forward", "system-test-author", "system-test",
                        "release-plan", "release-verify"},
         "criterion": {"step-plan"},
         "deps": {"step-plan"},
@@ -259,8 +259,11 @@ class PacketCompletenessTests(unittest.TestCase):
                 # to repeat it until it accepts).
                 self.assertIn("at done ShipLoop refuses ", line)
                 self.assertIn("the usual faults (", line)
-                self.assertIn("`complete --check-only` prints the first refusal without accepting, so repeat it until it "
-                              "accepts", line)
+                if stage in stage_spec.INNER:
+                    self.assertIn("the callback with `check` in place of `complete` prints the first refusal without accepting, so "
+                                  "repeat it until the check says yes", line)
+                else:
+                    self.assertNotIn("check", line.split("A refusal does not advance the run")[1])
                 self.assertNotIn("every refusal", line)
                 self.assertIn("does not judge the work", line)
                 # Claims no wider than the gates: relative evidence paths are not checked.  No credential pattern is
@@ -276,7 +279,8 @@ class PacketCompletenessTests(unittest.TestCase):
         # review 2026-10-10, P-rv-1).
         # test-spec's close requires the item's test-spec.md under docs/shiploop, and its row now runs the loop
         # receipt check too, so its line belongs to this group (8-stage inner loop, 2026-10-10).
-        closes = {"release-verify", "test-spec", "step-plan"}  # step-plan: the ID-retention line (L4)
+        # document: its spec write-back gate on KNOWLEDGE/spec.md (design T §9.1 2b-3).
+        closes = {"release-verify", "test-spec", "step-plan", "document"}  # step-plan: the ID-retention line (L4)
         for (stage, kind), packet in sorted(self.found.items()):
             row = stage_spec.stage(stage)
             if kind != "producer" or not row.complete_runs:
@@ -1041,7 +1045,11 @@ class ChildSymbolTests(unittest.TestCase):
             child = child_dir(handoff)
             with self.subTest(stage=stage):
                 commands = [line for line in handoff.splitlines() if "--run-dir" in line and child in line]
-                if stage != "plan":  # the planning handoff prints no improve-commit command (it is in parent-return.md)
+                # The planning handoff prints no improve-commit command (it is in parent-return.md), and a step's review
+                # commits nothing (design T §8, 2b-4), so no command of its names the child directory.
+                if stage == "document":
+                    self.assertFalse([line for line in handoff.splitlines() if " improve-commit --run-dir" in line])
+                elif stage != "plan":
                     self.assertTrue([line for line in commands if " improve-commit " in line
                                      and "--message=" + child + "/commit-message.md" in line], commands)
                 self.assertFalse([line for line in handoff.splitlines() if re.search(r"--(?:run-dir|message)=CHILD", line)])
@@ -1230,8 +1238,10 @@ class SummaryPlaceholderTests(unittest.TestCase):
         self.assertIn("cited S<n>", flat(prompts.DUTIES["intake"]))
         self.assertIn("each value all cases share, once", prompts.summary_placeholder("test-spec"))
         self.assertNotIn("Summary: which harness and suite decisions", flat(prompts.DUTIES["test-spec"]))
-        self.assertIn("entry points traced", prompts.summary_placeholder("verify"))
-        self.assertNotIn("entry points traced", prompts.DUTIES["verify"])
+        # Verify's placeholder ("entry points traced; ...") retired with verify (design T §9.1 2b-4c): the entry-point walk
+        # is each step's review's, and the stage table has no verify row to template.
+        self.assertNotIn("verify", prompts.SUMMARY_PLACEHOLDERS)
+        self.assertNotIn("verify", prompts.DUTIES)
         self.assertIn("key reference statements", prompts.summary_placeholder("plan"))
         self.assertNotIn("key reference statements", prompts.DUTIES["plan"])
         # SP-8: duty 9 opens with the record's status and its scope; the closing sentence that said it is gone. Since the

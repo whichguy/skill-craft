@@ -17,6 +17,12 @@
         "timeout": 30,
         "loop_limit": 50
       }
+    ],
+    "sessionEnd": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-session-end",
+        "timeout": 10
+      }
     ]
   }
 }

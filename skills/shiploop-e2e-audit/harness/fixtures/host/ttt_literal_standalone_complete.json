@@ -32,10 +32,10 @@
   },
   "id": "ttt-literal-standalone-complete",
   "observer": {
-    "grok_adapter_sha256": "1ae7162d71dc64a90022cb5e84a18dc960882d314ff0b8ad9c03b7dff761312a",
+    "grok_adapter_sha256": "9252bd56ac1c2f3490f81858705f36c1e7b67072237b7fda304970b7bf94f21e",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
-    "previous_grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
-    "revalidation": "The direct-form ShipLoop verb allowlist now also accepts note, the owner-notes command added in ShipLoop 1.15.0. All five golden attribution expectations replayed unchanged against this source (check_suite.py --suite mock). Original capture provenance, events and expectations are unchanged.",
+    "previous_grok_adapter_sha256": "53746ab246964bb745ed7a34f9cb365f018f20a0935503c03a98ae5b0f89642d",
+    "revalidation": "The direct-form ShipLoop verb allowlist no longer names chain, the implementation-chain verb retired with ShipLoop's chain (design T 2c-2). No fixture uses it (they use only the retained complete verb); all five golden attribution expectations replayed unchanged against this source (test_trace_corpus).",
     "revalidation_history": [
       {
         "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
@@ -76,6 +76,16 @@
         "grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
         "previous_grok_adapter_sha256": "534e380aaeaaadc0365815c5e6347abb4d57dcc30a879af42816229633533bd9",
         "revalidation": "The direct-form ShipLoop verb allowlist now also accepts trace, the run-trace reader added in ShipLoop 1.12.0. All five golden attribution expectations independently replayed unchanged before this source rebind. Original capture provenance, events and expectations are unchanged."
+      },
+      {
+        "grok_adapter_sha256": "1ae7162d71dc64a90022cb5e84a18dc960882d314ff0b8ad9c03b7dff761312a",
+        "previous_grok_adapter_sha256": "ff3300305f277b2a8134c696fcf77bcf707714b7ca45aefe244e8222a92f55f6",
+        "revalidation": "The direct-form ShipLoop verb allowlist now also accepts note, the owner-notes command added in ShipLoop 1.15.0. All five golden attribution expectations replayed unchanged against this source (check_suite.py --suite mock). Original capture provenance, events and expectations are unchanged."
+      },
+      {
+        "grok_adapter_sha256": "53746ab246964bb745ed7a34f9cb365f018f20a0935503c03a98ae5b0f89642d",
+        "previous_grok_adapter_sha256": "1ae7162d71dc64a90022cb5e84a18dc960882d314ff0b8ad9c03b7dff761312a",
+        "revalidation": "The direct-form ShipLoop verb allowlist now also accepts check, the verb that replaced complete --check-only in ShipLoop 1.21.0. No fixture uses it (they use only the retained complete verb); all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged."
       }
     ]
   },

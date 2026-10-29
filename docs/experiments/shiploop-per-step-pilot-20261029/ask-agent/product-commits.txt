@@ -1,0 +1,8 @@
+ae8852e docs(shiploop): record in-this-node-js-project-add-f098bc knowledge after carry-forward
+9207e5b Validate selector arguments before reading record fields
+d70c709 feat(W1/S2): Select matching records in order with strict equality
+8b503a1 feat(W1/S1): Parse line-oriented records with validation and line-numbered errors
+aeb9ca7 docs(shiploop): record in-this-node-js-project-add-f098bc knowledge after step-plan
+75e6bfa Align records fixtures with diagnostic criteria
+65ee3c1 Clarify records implementation and test ownership
+804d27e seed: baseline

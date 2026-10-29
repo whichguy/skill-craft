@@ -107,7 +107,8 @@ still contain usable durable document links and enough rationale to stand alone.
 ## Inner assembly and final return
 
 Each item's step and worker changes are combined **inside the execution
-checkout**, and ShipLoop commits the item there when its `verify` is accepted. It
+checkout**, and ShipLoop commits each step there once its `document` stage and
+that stage's Improve review are accepted ([Step commits](navigator.md#step-commits)). It
 does not merge into the original branch after each item. All remaining items, system tests, outer Improve reviews and
 authorized release work use the same assembled candidate. Recheck any integration-affected
 behavior.

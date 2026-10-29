@@ -1,0 +1,4 @@
+bb262f0 docs(shiploop): record in-this-node-js-project-add-8810e1 knowledge after carry-forward
+cac33f0 feat(W1/S2): Implement record selection
+56f7b76 feat(W1/S1): Implement record parsing
+cf1862c seed: baseline

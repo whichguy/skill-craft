@@ -71,29 +71,33 @@ FIGURE_TONES = ("expected", "saw", "limit")
 
 # Stage -> phase. The phase orders match defaults/expectations.json (phase-<order>); the stage names
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
-# The inner loop's five groups (Plan, Validate existing, Build, Verify, Carry forward) fold into four phases here:
-# step-plan and test-spec plan the item, validate-existing joins Build, verify proves it, and carry-forward ("record
-# lessons, decide the skill, revise the remaining queue") runs once per work item before the next item's step-plan.
+# The 7-stage inner loop (stage model v6) folds into three phases here: step-plan and test-spec plan the item; Build is
+# validate-existing, then each step's implement, test and document (its Improve review and ShipLoop's commit of the step
+# follow document, and the step advances only once that commit lands); carry-forward ("record lessons, decide the skill,
+# revise the remaining queue") runs once per work item before the next item's step-plan. The 8-stage loop's Verify phase is
+# gone with its stage: its gates run inside each step, so carry-forward follows Build.
 PHASES = (
     ("Understand", ("intake", "discovery", "research")),
     ("Specify", ("spec", "test-strategy")),
     ("Plan", ("plan", "prepare", "step-plan", "test-spec")),
     ("Build", ("validate-existing", "implement", "test", "document")),
-    ("Verify", ("verify",)),
     ("Carry forward", ("carry-forward",)),
     ("System test", ("system-test-author", "system-test", "product-acceptance")),
     ("Release", ("release-plan", "release-check", "release", "release-verify", "operations", "handoff")),
 )
-# Which 8-stage stage replaced each removed name: the common bucket for comparing a 17-stage visit with an 8-stage one. A
-# 17-stage run is never rendered through it: it reads with its own catalog, phases and aliases (STAGES_V4 below), so its
-# visits keep the purposes, exit checks and phases the 17-stage engine had. The engine refuses a saved run that carries a
-# removed stage name, so an 8-stage run never needs the table either. The first name of a group is canonical (PHASES lists
-# it); the page's STAGE_ALIASES mirrors it (a test keeps them equal).
+# Which 7-stage stage replaced each removed name: the common bucket for comparing an older run's visit with a 7-stage one.
+# An older run is never rendered through it: a 17-stage or an 8-stage run reads with its own catalog, phases and aliases
+# (STAGES_V4 and STAGES_V5 below), so its visits keep the purposes, exit checks and phases its engine had. The engine refuses a
+# saved run that carries a removed stage name, so a 7-stage run never needs the table either. The first name of a group is
+# canonical (PHASES lists it); the page's STAGE_ALIASES mirrors it (a test keeps them equal).
+# The 8-stage table grouped static-checks, integrate and integration-verify (17-stage names) under verify. Verify is gone and
+# no 7-stage stage does their work (their gates run inside each step's document stage), so they have no bucket here: each is
+# its own name, in no phase, rather than being counted as document or carry-forward work. The page compares two runs by their
+# six whole-run numbers, never stage by stage, so no comparison loses anything by it.
 STAGE_ALIASES = (
     ("step-plan", "get-next-work-item", "select-work"),
     ("validate-existing", "baseline"),
     ("test", "test-author", "test-red", "test-green", "test-refine", "regression"),
-    ("verify", "static-checks", "integrate", "integration-verify"),
     ("carry-forward", "skill-assess", "skill-validate"),
 )
 
@@ -116,44 +120,75 @@ def _with_aliases(table: dict, aliases: tuple = STAGE_ALIASES) -> dict:
 STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages})
 # The inner-loop stages ShipLoop runs after `implement` (shiploop_stage_spec.INNER; a test keeps them equal). A work item
 # that has any of them accepted has left implement.
-AFTER_IMPLEMENT = ("test", "document", "verify", "carry-forward")
+AFTER_IMPLEMENT = ("test", "document", "carry-forward")
 
-# The 17-stage inner loop (ShipLoop state version 4 and earlier), kept as saved data so a saved run reads as its engine
-# described it: defaults/stages-v4.json is 54bcb54d's catalog, phase table, alias and phase-3..5 expectation texts, frozen.
-# A run's stage model is "v4" or "v5" (stage_model); every table that depends on the stage names is looked up per model.
+
+def _frozen_model(name: str) -> tuple[dict, tuple, tuple, dict]:
+    """A frozen stage model's saved file (defaults/<name>) and its phases, aliases and stage -> phase table."""
+    saved = json.loads((DEFAULTS / name).read_text(encoding="utf-8"))
+    phases = tuple((title, tuple(stages)) for title, stages in saved["phases"])
+    aliases = tuple(tuple(group) for group in saved["aliases"])
+    return saved, phases, aliases, _with_aliases({stage: order for order, (_, stages) in enumerate(phases) for stage in stages},
+                                                 aliases)
+
+
+# The older inner loops, kept as saved data so a saved run reads as its engine described it. Neither file is ever regenerated.
+# The 17-stage loop (ShipLoop state version 4 and earlier): defaults/stages-v4.json is 54bcb54d's catalog, phase table, alias
+# and phase-3..5 expectation texts, frozen. The 8-stage loop, the one with verify (state version 5 and later until verify was
+# retired): defaults/stages-v5.json is 3e4c3e0e's catalog, phase table, aliases, stages after implement and phase-3..7
+# expectation texts, frozen. A run's stage model is "v4", "v5" or "v6" (stage_model); every table that depends on the stage
+# names is looked up per model.
 STAGES_V4_FILE = "stages-v4.json"
-STAGES_V4 = json.loads((DEFAULTS / STAGES_V4_FILE).read_text(encoding="utf-8"))
-PHASES_V4 = tuple((name, tuple(stages)) for name, stages in STAGES_V4["phases"])
-STAGE_ALIASES_V4 = tuple(tuple(group) for group in STAGES_V4["aliases"])
-STAGE_PHASE_V4 = _with_aliases({stage: order for order, (_, stages) in enumerate(PHASES_V4) for stage in stages},
-                               STAGE_ALIASES_V4)
+STAGES_V4, PHASES_V4, STAGE_ALIASES_V4, STAGE_PHASE_V4 = _frozen_model(STAGES_V4_FILE)
+STAGES_V5_FILE = "stages-v5.json"
+STAGES_V5, PHASES_V5, STAGE_ALIASES_V5, STAGE_PHASE_V5 = _frozen_model(STAGES_V5_FILE)
+AFTER_IMPLEMENT_V5 = tuple(STAGES_V5["afterImplement"])
+# The config documents that carry them to the page: {stages, phaseTexts} each, always the defaults' (defaults_docs).
+FROZEN_CONFIG = {"stages-v4": STAGES_V4, "stages-v5": STAGES_V5}
+_LATER_NAMES = frozenset(stage for phases in (PHASES_V5, PHASES) for _, stages in phases for stage in stages)
 # The names only a 17-stage run has (the 12 inner stages the 8-stage loop removed, and select-work): one of them in a run's
 # history makes it a v4 run whatever its state says.
-V4_ONLY_STAGES = frozenset(STAGE_PHASE_V4) - frozenset(stage for _, stages in PHASES for stage in stages)
-# The 8-stage names a 17-stage run never has.
-V5_ONLY_STAGES = frozenset(stage for _, stages in PHASES for stage in stages) - frozenset(STAGE_PHASE_V4)
-STAGE_MODELS = {"v4": "the 17-stage inner loop, state version 4 or earlier", "v5": "the 8-stage inner loop, state version 5"}
-PHASES_BY_MODEL = {"v4": PHASES_V4, "v5": PHASES}
-STAGE_PHASE_BY_MODEL = {"v4": STAGE_PHASE_V4, "v5": STAGE_PHASE}
+V4_ONLY_STAGES = frozenset(STAGE_PHASE_V4) - _LATER_NAMES
+# The names the 8- and 7-stage loops have and a 17-stage run never has (validate-existing, test).
+LATER_STAGES = _LATER_NAMES - frozenset(STAGE_PHASE_V4)
+# The names only the 8-stage loop has of the two later ones (verify). A 17-stage run had verify too, but always after names
+# only it had, so with no such name a verify visit marks an 8-stage run.
+V5_ONLY_STAGES = frozenset(stage for _, stages in PHASES_V5 for stage in stages) - frozenset(stage for _, s in PHASES for stage in s)
+# ShipLoop's state version (shiploop_navigator.STATE_VERSION) by stage model: 4 and earlier the 17-stage loop, 5 to 9 the
+# 8-stage loop with verify, 10 and later the 7-stage loop (the engine refuses a version-9 run since verify was retired).
+V6_FIRST_VERSION = 10
+# From state version 11 (design T §9.1 2c-1) the ask-agent route issues one implement packet per step, as the inline route
+# always has; a run saved before it issued one packet for the whole plan, and its visits are tied to no step.
+ONE_PACKET_PER_STEP_FIRST_VERSION = 11
+STAGE_MODELS = {"v4": "the 17-stage inner loop, state version 4 or earlier",
+                "v5": "the 8-stage inner loop with verify",
+                "v6": "the 7-stage inner loop: each step built, tested, documented, reviewed and committed"}
+CURRENT_MODEL = "v6"  # the engine's own: a run whose model is unknown reads with its tables
+PHASES_BY_MODEL = {"v4": PHASES_V4, "v5": PHASES_V5, "v6": PHASES}
+STAGE_PHASE_BY_MODEL = {"v4": STAGE_PHASE_V4, "v5": STAGE_PHASE_V5, "v6": STAGE_PHASE}
 # The inner stages after implement in each model: test-author and test-red ran before implement in the 17-stage loop, so an
-# alias of the 8-stage `test` would be wrong here.
+# alias of the later `test` would be wrong here.
 AFTER_IMPLEMENT_BY_MODEL = {"v4": ("test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
                                    "static-checks", "verify", "integrate", "integration-verify", "carry-forward"),
-                            "v5": AFTER_IMPLEMENT}
+                            "v5": AFTER_IMPLEMENT_V5, "v6": AFTER_IMPLEMENT}
 
 
 def stage_model(state: dict, stages) -> str | None:
-    """The run's stage model: "v4" when any of `stages` (its history's stage names) is a 17-stage-only name or its state
-    version is 4 or less, "v5" when its state version is 5 or more or it has an 8-stage-only name, else None (unknown: the
-    page then reads it with the 8-stage tables, as before the field existed)."""
+    """The run's stage model. "v4" when any of `stages` (its history's stage names and its current stage) is a 17-stage-only
+    name or its state version is 4 or less. Otherwise its state version says: 5 to 9 is "v5" (the 8-stage loop with verify),
+    10 or more "v6" (the 7-stage loop). With no version, the names say: a verify visit (or a run standing at verify) is "v5",
+    and a name only the later loops have without one is "v6". Else None (unknown: the page then reads it with the 7-stage
+    tables)."""
     names = {stage for stage in stages if isinstance(stage, str)}
     version = state.get("version")
     version = version if isinstance(version, int) and not isinstance(version, bool) else None
     if names & V4_ONLY_STAGES or (version is not None and version <= 4):
         return "v4"
-    if (version is not None and version >= 5) or names & V5_ONLY_STAGES:
+    if version is not None:
+        return "v6" if version >= V6_FIRST_VERSION else "v5"
+    if names & V5_ONLY_STAGES:
         return "v5"
-    return None
+    return "v6" if names & LATER_STAGES else None
 
 
 # ShipLoop run status -> the page's run status. A run whose engine says `active` but whose harness record says the host is
@@ -376,8 +411,11 @@ SCHEMA = {
             "origin": (("enum", ("plan", "add-work", "carry-forward")), False),
             "stepPlans": (N, True), "loops": (N, True), "sendBacks": (N, True), "repeats": (N, True),
             "implementVisits": (("map", N), True), "stepsPlanned": (N, False), "stepsExecuted": (N, False),
+            # number, visits and commit: a 7-stage (v6) run's only (SCHEMA.md "Plan and execution")
             "steps": (("items", {"id": (S, True), "task": (S, True), "truncated": (B, False),
-                                 "action": (S, False)}), False)}), False),
+                                 "action": (S, False), "number": (N, False),
+                                 "visits": (("object", {"first": (N, True), "last": (N, True)}), False),
+                                 "commit": (S, False)}), False)}), False),
         "stepsPlanned": (N, False), "stepsExecuted": (N, False),
         "knowledge": (("map", N), False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
@@ -475,14 +513,16 @@ SCHEMA = {
     },
     # config/page and config/prompt share the collection; every field is a string (repoUrl: an https:// URL, see HTTPS_URL).
     # config/stages is the stage catalog (defaults/stages.json, SCHEMA.md "Stage catalog"), a derived replica of the engine's table;
-    # config/stages-v4 is the frozen 17-stage catalog and phase texts (defaults/stages-v4.json) that a 17-stage run reads.
+    # config/stages-v4 is the frozen 17-stage catalog and phase texts (defaults/stages-v4.json) that a 17-stage run reads, and
+    # config/stages-v5 the frozen 8-stage ones (defaults/stages-v5.json) that an 8-stage run reads.
     "config": {"title": (S, False), "artifactUrl": (S, False), "repoUrl": (HTTPS_URL, False), "constraints": (S, False), "closing": (S, False),
                "stages": (("items", {"stage": (S, True), "purpose": (S, True),
                                      "exitCheck": (("enum", EXIT_CHECKS), True),
                                      "completeRuns": (("list", S), False),
                                      "improve": (("enum", ("always", "first-item", "last-item", "item")), False),
                                      "planningChoice": (B, False), "reads": (("list", S), True)}), False),
-               # config/stages-v4 only: the 17-stage phase-3..5 expectation texts (defaults/stages-v4.json), for 17-stage runs
+               # config/stages-v4 and config/stages-v5 only: the frozen expectation texts of the phases an older loop numbered or
+               # described differently (17-stage phase-3..5, 8-stage phase-3..7), for that loop's runs
                "phaseTexts": (("map", ("object", {"title": (S, True), "short": (S, True), "text": (S, True)})), False)},
     # packets/<runKey>--<action>: the text of one visit's packet file, read by the page on demand. Never in the
     # committed review-export.json (megabytes); the run directory is the record.
@@ -707,14 +747,14 @@ def current_stage(state: dict) -> str | None:
     return None if stage == "done" else stage
 
 
-def derive_phases(stage_phases: list[int], current: int | None, status: str | None) -> list[str]:
-    """One state per phase: running, blocked or stopped for the current phase, done for any other phase the run
-    reached (its reached stages are all accepted once the run has moved on), none otherwise. `status` is the ShipLoop
-    status, or "stopped" for a run the harness ended while its engine still read active (build_run): its current phase is
-    `stopped`, not `running` (the run is not going on) and not `blocked` (the engine did not block it)."""
+def derive_phases(stage_phases: list[int], current: int | None, status: str | None, count: int = len(PHASES)) -> list[str]:
+    """One state per phase of the run's stage model (`count` of them): running, blocked or stopped for the current phase, done
+    for any other phase the run reached (its reached stages are all accepted once the run has moved on), none otherwise.
+    `status` is the ShipLoop status, or "stopped" for a run the harness ended while its engine still read active (build_run):
+    its current phase is `stopped`, not `running` (the run is not going on) and not `blocked` (the engine did not block it)."""
     reached = set(stage_phases)
     states = []
-    for order in range(len(PHASES)):
+    for order in range(count):
         if status == "done":
             states.append("done" if order in reached else "none")
         elif order == current:
@@ -2545,21 +2585,29 @@ def _produced(history: list[dict], results: Path, state: dict) -> dict[str, str]
 
 
 def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[str],
-               after_implement: tuple[str, ...] = AFTER_IMPLEMENT) -> tuple[list[dict] | None, dict[str, str], dict[int, dict]]:
+               after_implement: tuple[str, ...] = AFTER_IMPLEMENT, per_step: bool = False,
+               ledgers: dict[str, dict] | None = None) -> tuple[list[dict] | None, dict[str, str], dict[int, dict]]:
     """(the run's work items, the reason for each measure that is unknown, the marks of each history row).
 
     Every number comes from state.md (its work_items queue and history) and the accepted results, never from
     summary text. Per item (SCHEMA.md): `stepPlans` is the item's accepted step-plan visits of any outcome; `loops` is
     the times it went through the steps loop, 1 once it has any visit plus one per accepted `send-back` (each sends it back
     to step-plan); `implementVisits` counts the item's implement visits by outcome. `steps` are the steps of the latest
-    accepted (done) step plan. On the inline route ShipLoop issues one implement packet per step, in order, and only a
-    done visit moves on (shiploop_navigator.implement_progress): so the k-th done implement visit after that plan
-    executed step k, and an unfinished plan leaves the later steps with `action` None. A visit's mark is its work item,
-    its loop and, for an implement visit, the step the packet named (the plan then in force, the steps already done).
-    The records cannot tell which visit ran which step on another route, or when the counts do not line up with one
+    accepted (done) step plan. ShipLoop issues one implement packet per step, in order, and only a done visit moves on
+    (shiploop_navigator.implement_progress): so the k-th done implement visit after that plan executed step k, and an
+    unfinished plan leaves the later steps with `action` None. A visit's mark is its work item, its loop and, for an
+    implement visit, the step the packet named (the plan then in force, the steps already done). That holds on the inline
+    route always and on the ask-agent route from state version 11; an older ask-agent run issued one packet for the whole
+    plan, and the records cannot tell which visit ran which step.  Nor can they when the counts do not line up with one
     packet per step: then the item has no `stepsExecuted` and its steps no `action`, and the reason is under
     `stepsExecuted`. `workItems` is None, with its reason, when the queue or history cannot be read or the plan visit
-    was recorded by the E2E seed (the work items are then the harness's)."""
+    was recorded by the E2E seed (the work items are then the harness's).
+
+    `per_step` (a 7-stage run): each step is built, tested and documented before the next (shiploop_navigator.step_view:
+    at test and document, and while document's Improve review runs, the step is the one just built), so a test, document
+    or improve visit after a done implement visit is that step's too, and only a stage past the steps (carry-forward)
+    means the item left its build. Each step of the latest plan then also carries its `number`, the `visits` it spans
+    under that plan and, from `ledgers[item]` (RUN/iterations/<item>.json, _step_ledger_commit), its `commit`."""
     queue = state.get("work_items")
     if not isinstance(queue, list) or not all(isinstance(q, dict) and isinstance(q.get("id"), str) for q in queue):
         return None, {"workItems": "state.md has no work_items queue of {id, title}"}, {}
@@ -2570,9 +2618,14 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
         return None, {"workItems": "state.md history rows carry no workitem, so visits cannot be assigned to work "
                                    "items"}, {}
     route = state.get("delegation")
-    inline = route == "inline"
-    why_route = ("this run's delegation is ask-agent: ShipLoop issues one implement packet for the whole step plan, so "
-                 "no visit is tied to a step" if route == "ask-agent" else "state.md records no delegation route")
+    version = state.get("version")
+    # One implement packet per step: the inline route always, the ask-agent route from state version 11.
+    inline = route == "inline" or (route == "ask-agent" and isinstance(version, int)
+                                   and version >= ONE_PACKET_PER_STEP_FIRST_VERSION)
+    why_route = ("this run's delegation is ask-agent and it was saved before state version "
+                 + str(ONE_PACKET_PER_STEP_FIRST_VERSION) + ", when ShipLoop issued one implement packet for the whole "
+                 "step plan, so no visit is tied to a step" if route == "ask-agent" else
+                 "state.md records no delegation route")
     produced = _produced(history, results, state)
     rows_of: dict[str, list[tuple[int, dict]]] = {}
     for index, entry in enumerate(history):
@@ -2599,19 +2652,28 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
             doc["origin"] = produced[item_id]
         # Walk the item's visits in order: the plan in force, the implement visits done under it.
         steps, executed, loop, readable, left_implement = None, [], 1, True, False
+        plan_action, spans = None, {}  # per step: the latest plan's action and {step index: [first, last] history index}
         for index, entry in rows:
             mark = {"workitem": item_id, "loop": loop}
             stage, outcome = entry.get("stage"), entry.get("outcome")
             if stage == "step-plan" and outcome == "done":
                 steps = _plan_steps(_result_body(results, state, entry.get("action")))
                 readable, executed, left_implement = steps is not None, [], False
+                plan_action, spans = entry.get("action"), {}
             elif steps is not None:
-                left_implement = left_implement or stage in after_implement
+                left_implement = left_implement or (stage in after_implement and not (per_step and stage in STEP_STAGES))
+                at = None
                 if stage == "implement" and inline:
                     if len(executed) < len(steps):
-                        mark["step"] = steps[len(executed)]["id"]
+                        at = len(executed)
                     if outcome == "done":
                         executed.append(entry.get("action"))
+                elif per_step and inline and stage in STEP_STAGES and 0 < len(executed) <= len(steps):
+                    at = len(executed) - 1  # the step just built
+                if at is not None and (per_step or stage == "implement"):
+                    mark["step"] = steps[at]["id"]
+                    if per_step:
+                        spans.setdefault(at, [index, index])[1] = index
             if outcome == "send-back":
                 loop += 1
             marks[index] = mark
@@ -2636,9 +2698,50 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
                 doc["stepsExecuted"] = len(executed)
             doc["steps"] = [dict(step, **({} if problem else {"action": executed[k] if k < len(executed) else None}))
                             for k, step in enumerate(steps)]
+            if per_step and inline:
+                for k, step in enumerate(doc["steps"]):
+                    step["number"] = k + 1
+                    if k in spans and not problem:  # the visits follow the pairing: unknown with it
+                        step["visits"] = {"first": spans[k][0] + 1, "last": spans[k][1] + 1}
+                    found, commit = _step_ledger_commit((ledgers or {}).get(item_id), plan_action, step["id"])
+                    if found:
+                        step["commit"] = commit
         items.append(doc)
     reasons = {name: "; ".join(why) for name, why in unknown.items() if why}
     return items, reasons, marks
+
+
+# The stages of a 7-stage step's iteration after its build (shiploop_navigator.AFTER_BUILD, and the step's Improve review
+# should it ever be a visit of its own): a visit to one after a done implement visit is the step just built.
+STEP_STAGES = ("test", "document", "improve")
+# The engine's step ledger (shiploop_navigator.ITERATION_LEDGER), run-relative: {"plans": {<step plan action>: {<step>:
+# {"number", "base", "commit"}}}}. `commit` is the step's own commit (its `feat(<item>/<step>)` commit), set once the commit
+# stage lands it; until then the row holds None (and `pending` while it commits).
+ITERATION_LEDGER = "iterations/{item}.json"
+COMMIT_ID = re.compile(r"[0-9a-f]{7,64}")
+
+
+def _iteration_ledgers(run_dir: Path, items) -> dict[str, dict]:
+    """{item: its step ledger} for each work item whose RUN/iterations/<item>.json reads as one; an item without is left out."""
+    found = {}
+    for item in items:
+        ledger = _optional_json(run_dir / ITERATION_LEDGER.format(item=item)) if isinstance(item, str) and "/" not in item else None
+        if isinstance(ledger, dict) and isinstance(ledger.get("plans"), dict):
+            found[item] = ledger
+    return found
+
+
+def _step_ledger_commit(ledger: dict | None, plan: str | None, step: str) -> tuple[bool, str | None]:
+    """(known, commit) of one step from its item's ledger: (True, the commit id) once the commit stage recorded it, (True,
+    None) when the ledger records the step with no commit (not committed, or not yet), (False, None) when the ledger is
+    missing or does not record the step, or records a commit that is not a commit id: unknown, never invented."""
+    row = (((ledger or {}).get("plans") or {}).get(plan) or {}).get(step) if isinstance(plan, str) else None
+    if not isinstance(row, dict):
+        return False, None
+    commit = row.get("commit")
+    if commit in (None, ""):
+        return True, None
+    return (True, commit) if isinstance(commit, str) and COMMIT_ID.fullmatch(commit) else (False, None)
 
 
 # What a producer packet's text carries (the tenet: context is cleared between any two stages, so a packet restates how
@@ -2880,9 +2983,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     if len(hosts) > 1:  # one figure over two hosts' events: not a measure, for any visit either
         visit_context, visit_context_why = [None] * len(history), _hosts_why(hosts)
     # The run's stage model, from its state version and the stage names it has (state.md history, its current stage):
-    # every table that depends on the stage names is that model's. An unknown model reads with the 8-stage tables.
+    # every table that depends on the stage names is that model's. An unknown model reads with the 7-stage tables.
     run_model = stage_model(state, [h.get("stage") for h in history] + [current_stage(state)])
-    tables = run_model or "v5"
+    tables = run_model or CURRENT_MODEL
     phase_of = STAGE_PHASE_BY_MODEL[tables]
     actions, stages, phases_seen = [], [], []
     from_state, unknown, stamped = [], [], []
@@ -2995,8 +3098,11 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             unmeasured[field] = _hosts_why(hosts)
     unmeasured.update(improve_why)
     # A slice's work item is the case's, given by the harness on purpose, and its steps loop is the model's: it is measured.
+    per_step = tables == "v6"  # the 7-stage loop runs each step's build, test, document and review before the next
+    queue = [q.get("id") for q in state.get("work_items") or [] if isinstance(q, dict)]
     items, plan_why, marks = work_items(state, history, results, set() if sliced else seeded_ids,
-                                        AFTER_IMPLEMENT_BY_MODEL[tables])
+                                        AFTER_IMPLEMENT_BY_MODEL[tables], per_step,
+                                        _iteration_ledgers(run_dir, queue) if per_step else None)
     unmeasured.update(plan_why)
     for index, mark in marks.items():  # one stage row per history entry, in order
         stages[index].update(mark)
@@ -3023,7 +3129,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
     run = {"key": key, "name": name, "order": order, "release": release,
-           "phases": derive_phases(phases_seen, current, "stopped" if ended else "done" if finished else raw_status),
+           "phases": derive_phases(phases_seen, current, "stopped" if ended else "done" if finished else raw_status,
+                                   len(PHASES_BY_MODEL[tables])),
            "time": _time_text(status, wall, len(stages), ending),
            "imp": _count(len(children), "child", "children") + (f", {_count(improve['improvePasses'], 'review pass')}"
                                                  if improve.get("improvePasses") else ""),
@@ -3512,7 +3619,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
     knowledge = run["knowledge"]
     largest = next(iter(knowledge.items()), None)
     sliced = run.get("kind") == "slice"
-    seeded_only = _seeded_phases(stages, STAGE_PHASE_BY_MODEL[run.get("stageModel") or "v5"]) if sliced else set()
+    seeded_only = _seeded_phases(stages, STAGE_PHASE_BY_MODEL[run.get("stageModel") or CURRENT_MODEL]) if sliced else set()
     lines = [f"# Run Review facts: {run['key']}", "",
              f"- Run: {'step slice; ' if sliced else ''}ShipLoop status {raw_status or 'unknown'}; "
              f"{_count(len(stages), 'accepted action')}{kinds}; {run.get('wallMin', 'unknown')} min from start to the last accept",
@@ -3520,14 +3627,14 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Driver: {' '.join(run[k] for k in ('host', 'model', 'effort') if k in run) or 'unknown'}; "
              f"case {run.get('case', 'unknown')}; {run['release']}",
              "- Stage model: " + (f"{run['stageModel']} ({STAGE_MODELS[run['stageModel']]})" if run.get("stageModel")
-                                  else "unknown (no state version and no stage name of either model; read as the 8-stage loop)"),
+                                  else "unknown (no state version and no stage name that tells the model; read as the 7-stage loop)"),
              "- Verdicts: " + (", ".join(f"{k} {v['passed']}/{v['total']}" if isinstance(v, dict) else f"{k} {'pass' if v else 'fail'}"
                                          for k, v in run["verdicts"].items())
                                if run.get("verdicts") else "no result.json"),
              "- Slowest stages (min, accept to accept): " + (", ".join(
                  f"{stage} {sum(m):.1f}" + (f" ({len(m)}x)" if len(m) > 1 else "") for stage, m in slowest) or "none"),
              "- Phases: " + ", ".join(f"{title} {_slice_phase(state, order in seeded_only) if sliced else state}"
-                                      for order, ((title, _), state) in enumerate(zip(PHASES_BY_MODEL[run.get('stageModel') or 'v5'],
+                                      for order, ((title, _), state) in enumerate(zip(PHASES_BY_MODEL[run.get('stageModel') or CURRENT_MODEL],
                                                                                       run['phases']))),
              f"- Improve: {run['imp']}" + (f"; most passes in one child: {most}" if most else "")
              + (f"; {run['improveMin']} min bind to receipt" if "improveMin" in run
@@ -3781,8 +3888,9 @@ def defaults_docs() -> dict[str, dict[str, dict]]:
     for doc_id, doc in config.items():
         docs["config"][doc_id] = doc
     docs["config"]["stages"] = {"stages": stages["stages"]}  # the derived catalog, a replica like the expectations
-    # the frozen 17-stage catalog and phase texts, read by the page for a 17-stage run (SCHEMA.md "Stage models")
-    docs["config"]["stages-v4"] = {"stages": STAGES_V4["stages"], "phaseTexts": STAGES_V4["phaseTexts"]}
+    # the frozen 17-stage and 8-stage catalogs and phase texts, read by the page for a run of that loop (SCHEMA.md "Stage models")
+    for doc_id, saved in FROZEN_CONFIG.items():
+        docs["config"][doc_id] = {"stages": saved["stages"], "phaseTexts": saved["phaseTexts"]}
     return docs
 
 
@@ -3794,7 +3902,9 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
     document the defaults do not name are never written, and nothing is deleted. A revision the page holds and the
     defaults lack refuses the whole upgrade (ExportError naming the document): copy the page's text and revs into
     defaults/expectations.json first, so the defaults never overwrite the owner's wording. A page text with no such
-    revision that differs from the defaults is replaced, and a note names it. config/prompt is the defaults'; config/page
+    revision that differs from the defaults is replaced, and a note names it; so does a phase document the defaults no longer
+    name (a phase the engine's loop dropped), which is left as it is. config/prompt, config/stages and the frozen
+    config/stages-v4 and config/stages-v5 are the defaults'; config/page
     holds the page's own URL and is written only when the page has none, or when `page_url` names a URL the page does
     not already hold: then the page's own document is kept and only its artifactUrl is set (a note names a URL it
     replaces)."""
@@ -3815,6 +3925,12 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
                 notes.append(f"expectations/{key}: the page's text, which has no revision of its own, is replaced by the "
                              f"defaults' text")
         docs["expectations"][key] = want
+    # A phase the engine's loop no longer has (phase-7 since the 7-stage loop) is left on the page like any document the
+    # defaults do not name; the page reads a phase only within the run's own loop, so only an older run reads it.
+    notes += [f"expectations/{key}: the defaults no longer name it (the engine's loop has {_count(len(PHASES), 'phase')}); "
+              f"it stays on the page, which reads it only with an older run whose loop had that phase"
+              for key, have in sorted(pages["expectations"].items())
+              if have.get("kind") == "phase" and key not in defaults["expectations"]]
     if refused:
         raise ExportError("the page holds wording the defaults would overwrite:\n  " + "\n  ".join(refused))
     docs["config"]["prompt"] = defaults["config"]["prompt"]
@@ -3823,9 +3939,10 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
     docs["config"]["stages"] = defaults["config"]["stages"]  # derived from the engine's table: always the defaults'
     if pages["config"].get("stages") not in (None, docs["config"]["stages"]):
         notes.append("config/stages: replaced by the defaults (the stage catalog is derived from the engine's stage table)")
-    docs["config"]["stages-v4"] = defaults["config"]["stages-v4"]  # frozen saved data: always the defaults'
-    if pages["config"].get("stages-v4") not in (None, docs["config"]["stages-v4"]):
-        notes.append("config/stages-v4: replaced by the defaults (the frozen 17-stage catalog)")
+    for doc_id, loop in (("stages-v4", "17-stage"), ("stages-v5", "8-stage")):
+        docs["config"][doc_id] = defaults["config"][doc_id]  # frozen saved data: always the defaults'
+        if pages["config"].get(doc_id) not in (None, docs["config"][doc_id]):
+            notes.append(f"config/{doc_id}: replaced by the defaults (the frozen {loop} catalog)")
     have = pages["config"].get("page")
     if page_url is None:
         if have is None:
@@ -3898,7 +4015,10 @@ def _default_clauses() -> set[str]:
 
 
 def _default_keys() -> set[str]:
-    return {entry["key"] for entry in _read_json(DEFAULTS / "expectations.json")}
+    """The expectation keys a finding or a review may name: the defaults' own, and the phases only an older loop numbered
+    (phase-7, the Release of the 17- and 8-stage loops), which a finding of such a run keeps."""
+    return {entry["key"] for entry in _read_json(DEFAULTS / "expectations.json")} | {
+        key for saved in FROZEN_CONFIG.values() for key in saved["phaseTexts"]}
 
 
 def _ends_with_done_when(goal: str) -> bool:

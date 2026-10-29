@@ -1,0 +1,117 @@
+{
+ "threads": 9,
+ "totals": {
+  "input_tokens": 19935986,
+  "cached_input_tokens": 19298176,
+  "output_tokens": 85060,
+  "reasoning_output_tokens": 9471
+ },
+ "workers_spawned_by_the_parent": [
+  {
+   "task_name": "step_plan",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "plan_improve",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "test_spec",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "test_stage",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "document",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "document_improve",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "carry",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "carry_improve",
+   "fork_turns": "none"
+  }
+ ],
+ "per_thread": [
+  {
+   "role": "parent",
+   "tool_calls": 109,
+   "input_tokens": 10568055,
+   "cached_input_tokens": 10424960,
+   "output_tokens": 17353,
+   "reasoning_output_tokens": 703
+  },
+  {
+   "role": "worker",
+   "tool_calls": 34,
+   "input_tokens": 2651977,
+   "cached_input_tokens": 2561664,
+   "output_tokens": 18464,
+   "reasoning_output_tokens": 2844
+  },
+  {
+   "role": "worker",
+   "tool_calls": 15,
+   "input_tokens": 1100613,
+   "cached_input_tokens": 1014144,
+   "output_tokens": 5125,
+   "reasoning_output_tokens": 343
+  },
+  {
+   "role": "worker",
+   "tool_calls": 21,
+   "input_tokens": 1569061,
+   "cached_input_tokens": 1491200,
+   "output_tokens": 7680,
+   "reasoning_output_tokens": 787
+  },
+  {
+   "role": "worker",
+   "tool_calls": 23,
+   "input_tokens": 1296631,
+   "cached_input_tokens": 1225088,
+   "output_tokens": 11171,
+   "reasoning_output_tokens": 2182
+  },
+  {
+   "role": "worker",
+   "tool_calls": 15,
+   "input_tokens": 866470,
+   "cached_input_tokens": 806528,
+   "output_tokens": 7168,
+   "reasoning_output_tokens": 713
+  },
+  {
+   "role": "worker",
+   "tool_calls": 19,
+   "input_tokens": 936894,
+   "cached_input_tokens": 897408,
+   "output_tokens": 6726,
+   "reasoning_output_tokens": 672
+  },
+  {
+   "role": "worker",
+   "tool_calls": 13,
+   "input_tokens": 627460,
+   "cached_input_tokens": 586496,
+   "output_tokens": 6741,
+   "reasoning_output_tokens": 748
+  },
+  {
+   "role": "worker",
+   "tool_calls": 8,
+   "input_tokens": 318825,
+   "cached_input_tokens": 290688,
+   "output_tokens": 4632,
+   "reasoning_output_tokens": 479
+  }
+ ]
+}

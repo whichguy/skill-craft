@@ -74,9 +74,10 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # A stage that finds a command, a platform fact or a decision keeps the file it belongs in: research, step-plan,
 # validate-existing, implement and test find commands and facts (environment.md); test-strategy records the harnesses, suites,
 # ID convention (environment.md) and real-boundary checks (architecture.md); plan, step-plan and implement may add a decision
-# (an AD-<n>); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
+# (an AD-<n>); each step's document reflects on what the step showed in all three (design T §9.1 2b-3, option C:
+# requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
-# differs (D2).  verify reads the architecture and writes nothing, so it has no entry.  A key that is no stage of the graph is
+# differs (D2).  A key that is no stage of the graph is
 # a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
@@ -89,6 +90,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "validate-existing": ("environment.md",),
     "implement": ("environment.md", ARCHITECTURE),
     "test": ("environment.md",),
+    "document": ("spec.md", ARCHITECTURE, "environment.md"),
     "carry-forward": (ARCHITECTURE, "environment.md"),
     "system-test-author": ("environment.md",),
     "release-plan": ("environment.md",),
@@ -104,7 +106,7 @@ _S, _E, _A = "spec.md", "environment.md", ARCHITECTURE
 READS: Dict[str, Tuple[str, ...]] = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
-    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_E, _A), "verify": (_E, _A),
+    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
@@ -445,7 +447,8 @@ def unnamed_commands(state: Mapping[str, Any], commands: Sequence[str]) -> List[
 
 
 def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[str]:
-    """One counted notice line when commands that passed at verify are not named in environment.md (plan row VR-3); else [].
+    """One counted notice line when commands that passed at the test stage of its item are not named in environment.md
+    (plan row VR-3); else [].
 
     Printed when carry-forward is accepted, which it never refuses: ``NOTICE_PREFIX``, the file's absolute path, the count and
     the one heading quoted before the first semicolon (so the heading count of references/project-knowledge.md counts it once),
@@ -456,7 +459,7 @@ def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[s
         return []
     path = Path(str(state["repo"])) / HOME / "environment.md"
     return [NOTICE_PREFIX + str(path) + " does not name " + str(len(unnamed)) + " command"
-            + ("" if len(unnamed) == 1 else "s") + " that passed at verify under 'Commands' (this carry-forward is "
+            + ("" if len(unnamed) == 1 else "s") + " that passed at the test stage of its item under 'Commands' (this carry-forward is "
             "accepted); a later stage that keeps environment.md writes each there, or records why it does not belong: "
             + "; ".join("`" + command + "`" for command in unnamed)]
 
@@ -467,6 +470,9 @@ _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
 # An entry start: optional indentation, then a heading mark, a list marker, an ordered marker or a table pipe, then one
 # emphasis, code or bracket opener, then the ID not followed by a digit (R-1 is not R-10).  A mention inside a line is no start.
 _ENTRY_START = re.compile(r"^\s*(?:#{1,4}\s+|[-*+]\s+|\d+[.)]\s+|\|\s*)?(?:\*\*|__|\*|_|`|\[)?((?:R|AD)-\d+)(?!\d)")
+# A heading or list-item start outranks a table row or a plain line that begins with the same ID (owner decision D8,
+# 2026-10-28): "AD-4 and AD-10 appear under Superseded." or a summary row "| R-1 | ... |" above "### R-1 ..." is no entry.
+_MARKED_START = re.compile(r"^\s*(?:#{1,4}\s+|[-*+]\s+|\d+[.)]\s+)")
 _LIST_ITEM = re.compile(r"^(\s*)(?:[-*+]|\d+[.)])\s+")
 # Where each prefix lives, and the heading an entry moves under when it no longer holds.
 _ENTRY_FILES = {"R": ("spec.md", "retired"), "AD": (ARCHITECTURE, "superseded")}
@@ -504,8 +510,23 @@ def _fenced(lines: Sequence[str]) -> List[bool]:
     return inside
 
 
+def _starts(lines: Sequence[str], fenced: Sequence[bool], prefix: str) -> Dict[str, int]:
+    """The line each ``<prefix>-<n>`` entry starts on, outside fenced code, in file order: the ID's first heading or
+    list-item start (``_MARKED_START``), else its first start of any form."""
+    first: Dict[str, int] = {}
+    marked: Dict[str, int] = {}
+    for index, line in enumerate(lines):
+        match = _ENTRY_START.match(line)
+        if not match or fenced[index] or not match.group(1).startswith(prefix + "-"):
+            continue
+        first.setdefault(match.group(1), index)
+        if _MARKED_START.match(line):
+            marked.setdefault(match.group(1), index)
+    return dict(sorted(((ident, marked.get(ident, index)) for ident, index in first.items()), key=lambda item: item[1]))
+
+
 def _entries(text: str, prefix: str) -> Dict[str, Entry]:
-    """Every ``<prefix>-<n>`` entry of a living file by ID: the first start of each ID, outside fenced code."""
+    """Every ``<prefix>-<n>`` entry of a living file by ID, at its start (``_starts``), outside fenced code."""
     lines = text.splitlines()
     fenced = _fenced(lines)
     outline = _outline(lines)
@@ -517,11 +538,8 @@ def _entries(text: str, prefix: str) -> Dict[str, Entry]:
         match = _ENTRY_START.match(lines[index])
         return bool(match) and not fenced[index] and match.group(1).split("-")[0] == prefix
 
-    for index, line in enumerate(lines):
-        match = _ENTRY_START.match(line)
-        if not match or fenced[index] or not match.group(1).startswith(prefix + "-") or match.group(1) in found:
-            continue
-        ident = match.group(1)
+    for ident, index in _starts(lines, fenced, prefix).items():
+        line = lines[index]
         heading = _HEADING.match(line)
         end = index + 1
         if heading:
@@ -591,14 +609,16 @@ def entries(repo: Path, name: str) -> Dict[str, Entry]:
 
 
 def step_spec_refusal(repo: Path, marker: str) -> str:
-    """Refusal text when an implement step's uncommitted spec.md edit does more than add acceptance lines ('' when it
-    adds only those, or leaves spec.md as HEAD holds it).
+    """Refusal text when an inline step's uncommitted spec.md edit does more than add requirement lines ('' when it
+    adds only those, or leaves spec.md as HEAD holds it).  Implement and document check it at their complete, and the
+    step's review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3).
 
     A step learns what a requirement should say and records it where the next reader of the spec finds it (build plan
     S3.3): a new line inside an existing, current R-<n> entry, ending ``(<marker>)`` (``W1/S2``), so the line names the
-    step that added it and its commit.  Changing or removing a line of the committed spec changes the contract, which
-    is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are committed with their steps, so
-    HEAD is this step's baseline.
+    step that added it and its commit.  Existing means the committed spec holds the entry: an entry the edit adds is a
+    new requirement, not a line inside one.  Changing or removing a line of the committed spec, or adding a requirement,
+    changes the contract, which is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are
+    committed with their steps, so HEAD is this step's baseline.
     """
     path = Path(repo) / HOME / "spec.md"
     old = _committed(Path(repo), "spec.md")
@@ -606,7 +626,9 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     if old == new or not old.strip():
         return ""
     before, after = old.splitlines(), new.splitlines()
-    spans = [entry.text.splitlines() for entry in _entries(new, "R").values() if not entry.retired]
+    held = {ident for ident, entry in _entries(old, "R").items() if not entry.retired}
+    spans = [entry.text.splitlines() for ident, entry in _entries(new, "R").items()
+             if not entry.retired and ident in held]
     changed: List[str] = []
     unmarked: List[str] = []
     outside: List[str] = []
@@ -624,12 +646,13 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     if not (changed or unmarked or outside):
         return ""
     found = [label + ": " + "; ".join(lines) for label, lines in (
-        ("changed or removed", changed), ("without the step's mark", unmarked), ("outside a current R-<n> entry", outside))
+        ("changed or removed", changed), ("without the step's mark", unmarked),
+        ("outside an R-<n> entry the committed spec holds", outside))
         if lines]
-    return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same callback "
-            "again; to change a requirement, report send-back naming it.\n"
-            "At implement, spec.md takes only new acceptance lines inside an existing R-<n> entry, each ending (" + marker
-            + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
+    return ("Restore " + str(path) + " to what HEAD holds plus this step's requirement lines, then run the same "
+            "callback again; to change a requirement, report send-back naming it.\n"
+            "In a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending ("
+            + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 
 
 def entry_text(repo: Path, ident: str) -> Optional[str]:
@@ -655,17 +678,18 @@ def outline(text: str, name: str) -> List[Section]:
     """The table of contents of living file ``name`` (owner decision D1, 2026-10-17): each heading outside fenced code that
     is not an entry, in order, with the entries that start under it.
 
-    The entries are spec.md's R-<n> or architecture.md's AD-<n> (``_ENTRY_FILES``), each at its first start (the
-    ``_entries`` rule).  An entry that is a heading (``### R-3 Export format``) belongs to the section above it, with its heading
+    The entries are spec.md's R-<n> or architecture.md's AD-<n> (``_ENTRY_FILES``), each at its start (the ``_entries``
+    rule).  An entry that is a heading (``### R-3 Export format``) belongs to the section above it, with its heading
     text, and a heading inside its span (``#### Acceptance``) is part of the entry, not a section.  Entries before the
     first heading form a level-0 section; a file with neither gives [].  Text only: no file, no Git.
     """
     prefix = next((key for key, (file, _) in _ENTRY_FILES.items() if file == name), None)
     lines = text.splitlines()
     fenced = _fenced(lines)
+    starts = _starts(lines, fenced, prefix) if prefix else {}
     headings = {index: (level, title) for index, level, title in _outline(lines)}
     sections: List[Section] = []
-    level, title, entries, seen = 0, "", [], set()
+    level, title, entries = 0, "", []
     inside = 0  # the level of the entry heading whose span this line is in; 0 outside one
     for index, line in enumerate(lines):
         found = _ENTRY_START.match(line) if prefix and not fenced[index] else None
@@ -677,16 +701,14 @@ def outline(text: str, name: str) -> List[Section]:
             inside = 0
             if ident is not None:                            # an entry that is a heading
                 inside = mark
-                if ident not in seen:
-                    seen.add(ident)
+                if starts.get(ident) == index:
                     entries.append((ident, headings[index][1]))
                 continue
             if level or entries:
                 sections.append(Section(level, title, tuple(entries)))
             (level, title), entries = headings[index], []
             continue
-        if ident is not None and ident not in seen:
-            seen.add(ident)
+        if ident is not None and starts.get(ident) == index:
             entries.append((ident, ""))
     if level or entries:
         sections.append(Section(level, title, tuple(entries)))

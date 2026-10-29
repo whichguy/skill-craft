@@ -1,0 +1,66 @@
+{
+  "case": "stand-in-parser",
+  "kind": "step-slice",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "delegation": "ask-agent",
+  "plugin_dir": "/Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/build/plugins/skill-craft",
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.22.0"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/build/plugins/skill-craft",
+    "path": "/Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/home/.codex/plugins/cache/whichguy/skill-craft/2.22.0"
+  },
+  "versions": {
+    "plugin_version": "2.22.0",
+    "shiploop_version": "1.21.0",
+    "plugin_sha256": "70ca538c0fcb"
+  },
+  "local_head": "f0127708abc9bef5313ce15c40f788b2a8ddd1fa",
+  "seeded": {
+    "stage": "step-plan",
+    "run_dir": "/Users/dadleet/e2e-runs/20261029/pilot-terra-ask-agent-32f436/.shiploop-runs/seed/run",
+    "start_head": "804d27e35f2ca508a20bdec46cf059a814d0727b",
+    "home": [
+      "docs/shiploop/spec.md",
+      "docs/shiploop/environment.md"
+    ],
+    "skipped": [
+      "intake",
+      "discovery",
+      "research",
+      "spec",
+      "test-strategy",
+      "plan",
+      "prepare"
+    ],
+    "action": "nav-076e3a37f6b549a1b7bde2e7660d2ca8",
+    "delegation": "ask-agent",
+    "item_bases": [
+      "W1"
+    ]
+  },
+  "checks": [
+    "node --test",
+    "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\""
+  ],
+  "expect_paths": [
+    "src/records.js",
+    "test/*.test.js"
+  ],
+  "clear_at": [],
+  "clear_signal": null,
+  "resume_prompt": "names-next",
+  "seed_at": "step-plan",
+  "stop_after": null,
+  "ref": null,
+  "overlay": null,
+  "opening_note": null,
+  "seed_state": null,
+  "fake_sf": null,
+  "planning_review": "stage"
+}

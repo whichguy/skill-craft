@@ -602,6 +602,20 @@ owner-note run and the brownfield runs. Its cost: a run's overlap and contention
 - Unchanged: port leases (`quality.refuse_ports`) are machine-wide by design. A slice started from an older checkout
   holds no lock until it ends.
 
+## 2026-10-29: the `session_end` check's first live reads (firm for the reads; the check cannot pass on a slice yet)
+
+Lane B added a fourth check, `session_end` (`1f0bc835`, `2fa82212`): it passes when a released `session-end` row is followed
+by another session's stop decision that continued its turn within 900 s. Its first live reads, three Sonnet slices on
+2026-10-29 (`docs/shiploop-owed-outcome-journal.md`, "Session-end and takeover: live round"):
+- one slice with a host session end that freed the run: **not exercised**, "1 session end freed the run, but no other
+  session's stop decision followed";
+- two slices with no session end in the trace: **not exercised**.
+
+The fresh sessions of a slice do not end a turn, so a stop decision never follows. That is the check being honest, not
+wrong, and the trace row it reads is correct (`released: true`, reason `other`). The claim file is the direct record, and
+`owner_watch.py` logs it. Follow-up, not built: a claim row in the trace (written where `claim_owner` takes a run) would
+let the check read the next session's claim instead of waiting for a stop decision.
+
 ## Open (exploratory)
 
 - ~~**Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case

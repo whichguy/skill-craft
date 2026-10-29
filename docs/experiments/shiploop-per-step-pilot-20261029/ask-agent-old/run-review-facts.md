@@ -1,0 +1,36 @@
+# Run Review facts: codex-gpt-6.1-terra-2.22.0-slice-stand-in-parser-20261029
+
+- Run: step slice; ShipLoop status active; 14 accepted actions (6 work, 1 recorded by ShipLoop, 7 seeded); 17.3 min from start to the last accept
+- Step slice: work item W1's inner loop; stopped by slice-complete (the slice stop: the harness ended the host at the item boundary, on purpose); the run was advanced to system-test-author; not reached: system tests, release and the report: a slice ends after the item's inner loop; compared only with other step slices
+- Driver: codex gpt-6.1-terra xhigh; case stand-in-parser; skill-craft 2.22.0, ShipLoop 1.21.0
+- Stage model: v6 (the 7-stage inner loop: each step built, tested, documented, reviewed and committed)
+- Verdicts: process pass, inner_loop pass, no_overshoot pass, assembled pass, checks pass
+- Slowest stages (min, accept to accept): step-plan 7.1, carry-forward 3.6, document 3.2, test 1.7, test-spec 1.1
+- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Carry forward done, System test not reached (slice), Release not reached (slice)
+- Improve: 3 children, 6 review passes; most passes in one child: 3; 7.87 min bind to receipt
+- Model calls (main thread only): calls 110; context peak 136,522; window 475,000; compactions 0
+- ShipLoop command failures: 6 (check 4, complete 2); the item's inner loop only, refusals at outer stages not measured (step slice)
+- Model glue: 0 commands
+- Planning documents: 4 files, 7.3 KB in .shiploop-runs/seed/worktree; largest docs/shiploop/records-plan.md 2.5 KB
+- Packets 181.9 KB, results 30.6 KB over 14 accepted actions
+- Work items: 1; 1 step plans; 1 passes through the steps loop (0 send-backs); 1 done implement visits; steps planned 2, executed not measured (W1: this run's delegation is ask-agent and it was saved before state version 11, when ShipLoop issued one implement packet for the whole step plan, so no visit is tied to a step)
+- Packet documents: 10 written, 186.6 KB of packet files, 0 truncated; 0 packet files unreadable (no document written); 3 of the documents are an Improve child's packet
+- Packet text carried (producer packets read 7; 3 visits have a separate Improve packet file; 0 visits (old layout) keep only an Improve child's packet, not read): where 7, purpose 7, operates 7, checked 7, produces 7, recovery 7, inputs 6
+- Planning review option (state.md): stage
+- Backchain passes option (state.md): one
+- Backchain loops: step-plan: graph check only: 1 check, last ok (complete)
+- Run directory: .shiploop-runs/seed/run
+- Script checks (tests/<action>-verifyN.md): 3 records on 3 visits, 3 passed, 0 ran red
+- Tool use: not measured (metrics.json has no tool_use record: the harness reads tool use from a Claude run's tool_use blocks only, and only for a run whose events are all Claude's (host: codex))
+- Planning window: not measured (a planning stage was accepted before the host's first event (the harness records a seeded run's early stages itself), so the window is not the host's work), closed at test-spec
+- Outcome: PASS, step slice: every verdict holds (process, inner_loop, no_overshoot, assembled, checks)
+- Build: plugin 18064215c12b
+- Delivered: not measured (a step slice does not reach the return of the product to the source branch: it runs one work item's inner loop and stops at the item boundary on purpose; not reached: system tests, release and the report: a slice ends after the item's inner loop)
+- Delivered files: not measured (a step slice does not reach the return plan's kept files: it runs one work item's inner loop and stops at the item boundary on purpose; not reached: system tests, release and the report: a slice ends after the item's inner loop)
+- Delivered tests: 7 ran, 0 failed (carry-forward)
+- Delivered skill: assessed: No future work items are pending, so the queue is retained. The README link is an optional maintainer follow-up outside the authorized paths and is due at handoff; system-test owns the final full-suite rerun. The two exact focused commands…
+- Delivered release: not measured (a step slice does not reach the release stages: it runs one work item's inner loop and stops at the item boundary on purpose; not reached: system tests, release and the report: a slice ends after the item's inner loop)
+- Fresh starts: none recorded
+- Quality (recorded after the run, never a verdict): not observed (a step slice does not reach the quality phase, measured after a whole run's release: it runs one work item's inner loop and stops at the item boundary on purpose; not reached: system tests, release and the report: a slice ends after the item's inner loop)
+- Fidelity: not measured (metrics.json has no fidelity block: it was written before the harness recorded how ShipLoop was carried (regrade the run))
+- Improve packets (skill-craft 2.22.0, ShipLoop 1.21.0; read 3; 3 use the compact handoff layout and point to a separate handoff file; those packets do not use the five historical labels): goal 0, done when 0, checked by 0, output 0, recovery 0

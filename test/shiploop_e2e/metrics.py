@@ -22,6 +22,7 @@ import re
 
 import glossary
 import rollouts
+import run_choice
 import run_trace
 import runrecord
 import sessionlog
@@ -29,7 +30,7 @@ import sessionlog
 # The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
 # a test pins the two equal). The narrative reader and fidelity.py both key on it.
 NOT_APPLICABLE = "Not applicable to this item"
-SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
+SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|check|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
 # ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
 # tools, so it means the same thing for every case. A heuristic signal: the
@@ -132,17 +133,22 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # the CLI through head, grep or sed, which hides the exit (all 5 refusals of the round-1 Sonnet Battleship run).
 # The routed verbs lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3) instead;
 # until 2026-10-28 no prefix here matched it, so each was recorded with an empty line (7 lint refusals, bf-ds-*-09c33b).
-REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): ", re.M)
+# A failed `shiploop check` opens with "ShipLoop check: the check says no. " (phase B) and trails "Nothing was accepted or counted."
+REFUSAL_LINE = re.compile(r"^ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
+                          r"check: the check says no\. )", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
+                          r"Nothing was accepted or counted\. |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
 
 # The replies counters.py reads (the `packets` and `commits` blocks): a ShipLoop packet head, or a line ShipLoop printed to announce
-# a commit it made (`improve-commit`, a work item's commit). ToolLog keeps the text of those replies and no other; counters.py
+# a commit it made (`improve-commit`, a work item's commit, an inline step's commit). ToolLog keeps the text of those replies and no other; counters.py
 # holds the patterns that read them, and its test pins that each is covered here.
-# A coarse filter: which replies counters.py reads. The precise patterns (counters.IMPROVE_COMMITTED, counters.ITEM_COMMITTED) stay in
+# A coarse filter: which replies counters.py reads. The precise patterns (counters.IMPROVE_COMMITTED, counters.ITEM_COMMITTED,
+# counters.STEP_COMMITTED) stay in
 # counters.py, so a reworded announcement (release 1.27 reworded the work item's) changes one pattern there, not a second copy here.
-KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s ")
+KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s |"
+                        r"ShipLoop committed step ")
 
 
 # Named ShipLoop refusal gates (run-insights gate_counts), each a regex read against a refusal's own first line --
@@ -166,6 +172,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                      r"Fix the case IDs in \S|Fix the case criteria in \S|Fix case requirements in \S"),
     "handoff_step_notes": re.compile(r"Add (?:learned and decisions|learned|decisions) to \S|Fix learned_from in \S"),
     "handoff_lessons": re.compile(r"Add lessons to \S"),
+    # A step's document result without its knowledge record (design T §9.1 2b-3).
+    "handoff_knowledge": re.compile(r"Add knowledge to \S"),
     # The step plan's or run's written spec diverged from HEAD plus this step's acceptance lines (shiploop_navigator.py).
     "spec_writeback": re.compile(r"Restore \S*spec\.md to what HEAD holds"),
     # A living-file entry (R-<n>/AD-<n>) went missing from docs/shiploop (shiploop_knowledge_home.py:317).
@@ -190,7 +198,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "expectations_gate": re.compile(r"must list expectations: the facts its steps build on|names steps the result "
                                     r"does not list|have no expectation listing them in paths|needs an absent "
                                     r"expectation\.|needs a works or broken expectation\."),
-    # Improve stage misuse: --check-only has no draft to preview there (shiploop_navigator.py).
+    # Improve stage misuse: a check (or --check-only before phase B) has no draft to preview there.
     "improve_checkonly": re.compile(r"the Improve stage has no draft to check"),
     # improve-pass gates: no bound Improve stage, the review loop already ended or is not active, the improve
     # skill was not invoked, or the review file is missing or incomplete (shiploop_navigator.py:8095-8149).
@@ -199,7 +207,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                r"invalid:"),
     # Improve ended on an unchanged trivial pass, but the worktree moved since the review was bound (shiploop_navigator.py:4232).
     "improve_stale_files": re.compile(r"ended on one unchanged trivial pass, but these files changed"),
-    # complete --check-only replays the base run's own refusal (shiploop_navigator.py:4075).
+    # complete --check-only replayed the base run's own refusal in runs before phase B; a check's base refusal is now
+    # base_run_not_done's text.
     "check_only_base_run": re.compile(r"ShipLoop check-only: the base run would refuse this result"),
     # The focused/regression commands on the item's base are not all passing (shiploop_test_loop.py:1751).
     "base_run_not_done": re.compile(r"ShipLoop base run: test is not done"),
@@ -1441,7 +1450,6 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 # The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
 # where the same command assigns them), to compare with what the resume prompt told.
 NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
-RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
 # The ShipLoop verbs whose call can be the one that gets an action accepted. The Improve stage's `complete` (it names the Improve
 # stage's id) accepts the action it reviews; `improve-complete` was the Improve child's finish before the Improve stage was an
 # action of its own, and a saved run still holds it.
@@ -1537,7 +1545,7 @@ def _recovery(tools: "ToolLog", window: list, told: dict | None, heads: dict) ->
     if nexts:
         number, key = nexts[0]
         found = NEXT_CALL.search(tools.calls[key]["expanded"])
-        run_dir = RUN_DIR_ARG.search(found.group("rest")) if found else None
+        run_dir = run_choice.RUN_DIR_ARG.search(found.group("rest")) if found else None
         failed = key in tools.failed
         first = {"call": number, "failed": failed, "exit": tools.failure_of[key]["exit"] if failed else None,
                  "cli": None if told is None else _same_path(told.get("cli"), found.group("cli") if found else None),
@@ -2829,9 +2837,9 @@ def shiploop_invocations(command: str) -> list[dict]:
             continue
         pipe = pipe_of(line)
         before_pipe = line if pipe is None else re.split(r"(?<!\|)\|(?!\|)", line, maxsplit=1)[0]
-        run_dir = RUN_DIR_ARG.search(before_pipe)
+        run_dir = run_choice.RUN_DIR_ARG.search(before_pipe)
         for verb in verbs:
-            found.append({"verb": verb, "check_only": "--check-only" in line, "piped": pipe is not None,
+            found.append({"verb": verb, "check_only": "--check-only" in line or verb == "check", "piped": pipe is not None,
                           "cut": pipe if pipe is not None and pipe["into"] in ("head", "tail", "sed") else None,
                           "variable_built": bool(run_dir and SHELL_VARIABLE_ANY.search(run_dir.group("dir"))),
                           "variable_any": bool(SHELL_VARIABLE_ANY.search(before_pipe)), "hook_visible": visible_to_hook})
@@ -2921,7 +2929,8 @@ def _bucket_table() -> dict:
 
 def run_dir_of(out: Path) -> Path | None:
     """The ShipLoop run directory a harness output folder recorded: a slice's invocation.json (`seeded.run_dir`) or a full
-    run's result.json (`shiploop.run_dir`), else the one `.shiploop-runs/*/run` under the folder; None where none is there."""
+    run's result.json (`shiploop.run_dir`), else the run run_choice.choose picks from the folder (the same one the verdict and
+    the progress monitor name); None where there is none or several that nothing tells apart."""
     out = Path(out)
     for name, keys in (("invocation.json", ("seeded", "run_dir")), ("result.json", ("shiploop", "run_dir"))):
         try:
@@ -2936,8 +2945,8 @@ def run_dir_of(out: Path) -> Path | None:
             for candidate in (local, Path(value)):
                 if (candidate / "state.md").is_file():
                     return candidate
-    found = sorted((out / ".shiploop-runs").glob("*/run/state.md")) if (out / ".shiploop-runs").is_dir() else []
-    return found[0].parent if len(found) == 1 else None
+    chosen = run_choice.choose(out).chosen
+    return Path(chosen["run_dir"]) if chosen else None
 
 
 def _state_block(path: Path) -> dict | None:
@@ -2963,8 +2972,9 @@ def skipped_reason(record: dict) -> str | None:
 
 def skipped_gates(run_dir: Path | None) -> dict:
     """The gates a run's records say did not run, from the run directory alone: the test stage's base run, its mutation check
-    (skipped, or run and found no mutants), the change inventory, and the item commit (which cannot read an item's changes
-    when no base snapshot was captured). Each gate is a row ``{gate, records, skipped, reason}``; ``count`` is the number of
+    (skipped, or run and found no mutants), the change inventory (verify's, in runs recorded before it retired), and the item's
+    commit (the step commits at each accepted document stage, or verify's item commit in an older run; neither can read an
+    item's changes when no base snapshot was captured). Each gate is a row ``{gate, records, skipped, reason}``; ``count`` is the number of
     gates with at least one skipped record. A run that never reached a gate has no row for it."""
     if run_dir is None or not Path(run_dir).is_dir():
         return {"measured": False, "reason": "no run directory", "count": None, "gates": []}
@@ -2975,17 +2985,21 @@ def skipped_gates(run_dir: Path | None) -> dict:
         if records:
             gates.append({"gate": name, "records": len(records), "skipped": len(reasons), "reason": reasons[0] if reasons else None})
 
-    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if (r := _state_block(p))]
+    # A check's own runs (-base-check, -mutation-check, -check-only before phase B) are never counted.
+    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if not p.name.endswith("-base-check.md")
+            and (r := _state_block(p))]
     row("base", base, [reason for r in base if (reason := skipped_reason(r))])
-    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith("-check-only.md")
+    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith(("-check-only.md", "-check.md"))
                 and (r := _state_block(p))]
     row("mutation", mutation, [skipped_reason(r) or "no mutants" for r in mutation
                                if skipped_reason(r) or not r.get("mutants")])
     inventory = [r for p in sorted((run_dir / "lint").glob("*-inventory.md")) if (r := _state_block(p))]
     row("inventory", inventory, [str(r.get("reason") or r.get("status")) for r in inventory if r.get("status") == "unavailable"])
     state = engine_state(run_dir)
+    # The items that reached their commit: an accepted document stage (the commit stage runs then, design T §9.1 2b-4c),
+    # or, in a run recorded before verify retired, an accepted verify.
     items = sorted({e.get("workitem") for e in state.get("history") or [] if isinstance(e, dict)
-                    and e.get("stage") == "verify" and e.get("outcome") == "done" and e.get("workitem")})
+                    and e.get("stage") in ("document", "verify") and e.get("outcome") == "done" and e.get("workitem")})
     row("item_commit", [{"item": i} for i in items],
         [f"no base snapshot for {i} (lint/items/{i}.md): the item's changes cannot be read, so nothing is committed"
          for i in items if not (run_dir / "lint" / "items" / f"{i}.md").is_file()])

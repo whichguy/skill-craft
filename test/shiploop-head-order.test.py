@@ -43,6 +43,7 @@ import shiploop_protocol as protocol  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_status_hook as hook  # noqa: E402
+import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CLI_PATH_LENGTH = 96          # a plugin-cache install: <root>/skills/shiploop/scripts/shiploop
@@ -80,8 +81,8 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
     state = row["state"]
     stage = plans.stage_of(key)
     item = item_of(state)
-    # The exit conditions are worded as the packet words them: the ask-agent route issues one implement action for every
-    # step of a multi-step plan, so its conditions name those steps and their paths (``loops.worded_stage``).
+    # The exit conditions are worded as the packet words them: an implement step's first one ends with its criteria
+    # (``loops.worded_stage``).
     spec = loops.worded_stage(stage, navigator._implement_scope(state, stage))
     p0 = ["ShipLoop navigator | " + stage + " | revision ", prompts.RECOVERY_POINTER_PREFIX, prompts.PACKET_POINTER_PREFIX,
           "Callback for this stage (", " complete --run-dir=", "Goal: ", "Checked by: ", "Keepalive marker: SHIPLOOP-RUN run=",
@@ -124,14 +125,20 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
                "  Skills (use each; the summary says whether you did): "
                + (", ".join(skill["name"] for skill in step["skills"]) or "none"),
                "Lint each implementation step (report-only): "]
+    # A step before any recorded command is due runs none (design T §9.1 2d, the minimum regression and the due cases): its
+    # test packet says so instead of printing the rules for commands, and its document has nothing to rerun.
+    commands = test_loop.stage_commands(state, stage, item)[0] if stage in ("test", "document") else []
     if stage == "test":
-        p1 += ["Pass: exit 0 and at least one test run", "Floor of each focused and regression command: the larger of",
-               "Base run: before the candidate run", "Lint this item's changes (report-only): "]
-    if stage in ("document", "verify"):
+        p1 += (["Pass: exit 0 and at least one test run", "Floor of each focused and regression command: the larger of",
+                "Base run: before the candidate run"] if commands
+               else ["No command to run: no recorded command is due at this step"])
+        p1 += ["Lint this item's changes (report-only): "]
+    if stage == "document":
+        # Document's done reruns what its own edits could affect, out of the commands its step's test stage ran
+        # (design T §8.2, 2b-4b; verify's rerun list moved here when verify retired, 2b-4c).
         p1 += ["Step plan paths: " + ", ".join(plan["paths"])]
-    if stage == "verify":
-        p1 += ["Test rerun: on done, ShipLoop runs every test command",
-               *(f"  {number}. [{command['suite']}] {command['command']}" for number, command in enumerate(plan["test_commands"], 1))]
+        if commands:
+            p1 += ["Test rerun: on done, ShipLoop reruns what your edits since this stage began could affect"]
     if stage == "validate-existing":
         p1 += ["ShipLoop ran each expectation's check", "E2 absent  the helper is not there yet", "DOES NOT MATCH, exit 1"]
     if stage == "carry-forward":
@@ -230,14 +237,6 @@ class PrintedHeadTests(unittest.TestCase):
                                 self.assertLessEqual(text.index(hit) + len(hit), REQUIRED_BOUND, token)
                 self.assertTrue(all(found.values()), found)
 
-    def test_the_lint_mode_line_reaches_the_verify_head_when_lint_is_off(self) -> None:
-        for delegation in ("inline", "ask-agent"):
-            printed = [row["printed"] for key, row in renders(delegation, INSTALL_RUN_DIR, "off").items()
-                       if plans.stage_of(key) == "verify" and row["state"]["status"] == "active"]
-            self.assertTrue(printed)
-            for text in printed:
-                self.assertIn("ShipLoop lint: off (run option lint=off)", text)
-
     def test_grok_view_of_a_print_over_the_cut_holds_every_required_token(self) -> None:
         """Grok drops the middle of a print over 20,000 characters.  Whatever it drops may hold lines the file repeats, never a
         P0 or P1 token: the check at the live install length, where the same stages are 1,400 characters longer."""
@@ -289,8 +288,8 @@ class OrderTests(unittest.TestCase):
 
     def test_the_commands_the_top_block_prints_are_commands_the_status_hook_reads_and_a_planted_pipe_is_not(self) -> None:
         """The callback label asks for the command exactly as printed, because the status display reads the command: the
-        printed callback, its --check-only form, the next command of the first pointer line and the pause command all
-        return a verb from the real hook, and the same commands behind a pipe return nothing."""
+        printed callback, the next command of the first pointer line and the pause command all return a verb from the
+        real hook (the check form prints no packet, so it returns none), and the same commands behind a pipe return nothing."""
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
@@ -305,7 +304,7 @@ class OrderTests(unittest.TestCase):
                     pause = next(line for line in text.splitlines() if line.startswith("Pause without consuming the action: "))
                     pause = pause.split(": ", 1)[1].split(" (only when", 1)[0]
                     self.assertEqual(hook._verb(callback), ("complete", None))
-                    self.assertEqual(hook._verb(callback + " --check-only"), ("complete", None))
+                    self.assertIsNone(hook._verb(packet_view.check_command(callback)))
                     self.assertEqual(hook._verb(following), ("next", None))
                     self.assertEqual(hook._verb(pause), ("pause", None))
                     self.assertIsNone(hook._verb(callback + " | head -5"))
@@ -313,15 +312,16 @@ class OrderTests(unittest.TestCase):
                     self.assertIsNone(hook._verb("R=" + str(Path(following.split("--run-dir=")[1])) + "; " + following))
 
     def test_the_loop_block_sits_between_the_goal_and_the_status_in_a_looped_stage(self) -> None:
-        """An inline implement step is the one exception (implement-step fix plan D4, unit W2-B): its Step block takes
-        that place and its packet, head and file alike, ends with the loop."""
+        """An implement step is the one exception (implement-step fix plan D4, unit W2-B): its Step block takes that
+        place and its packet, head and file alike, ends with the loop.  Both routes issue one implement action per step
+        (design T §9.1 2c-1)."""
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 if plans.stage_of(key) not in loops.STAGES:
                     continue
                 with self.subTest(route=delegation, packet=key):
                     text = row["printed"]
-                    if plans.stage_of(key) == "implement" and delegation == "inline":
+                    if plans.stage_of(key) == "implement":
                         self.assertLess(text.index("\nChecked by: "), text.index("\n" + navigator.STEP_LOOP_LINE))
                         self.assertLess(text.index("\nStep S"), text.index("Keepalive marker: "))
                         for form in (text, row["whole"]):
@@ -381,7 +381,7 @@ class TierTests(unittest.TestCase):
     LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "owner-notes-delivered", "backchain-route"}
     CHROME = {"progress-view", "pause"}
     FILE = {"delegation", "halt", "pass-log", "run-context", "last-accepted", "deltas", "lint-records", "unverified",
-            "change-inventory", "chain", "discovery-links"}
+            "discovery-links"}
 
     def blocks(self, delegation: str, stage: str):
         row = next(row for key, row in renders(delegation, INSTALL_RUN_DIR).items()
@@ -392,7 +392,7 @@ class TierTests(unittest.TestCase):
             return navigator._producer_blocks(None, run_dir, row["state"], None, path=run_dir / "packets" / "p.md")
 
     def test_every_block_is_in_the_tier_the_plan_gives_it(self) -> None:
-        for delegation, stage in (("inline", "implement"), ("inline", "test"), ("inline", "verify"), ("inline", "carry-forward"),
+        for delegation, stage in (("inline", "implement"), ("inline", "test"), ("inline", "document"), ("inline", "carry-forward"),
                                   ("inline", "validate-existing"), ("ask-agent", "step-plan"), ("inline", "step-plan")):
             with self.subTest(route=delegation, stage=stage):
                 tiers = {block.name: block.tier for block in self.blocks(delegation, stage)}
@@ -406,8 +406,14 @@ class TierTests(unittest.TestCase):
                         self.assertIn(name, {"answered", "owner-notes", "work-item", "revisit", "concerns", "step", "commit-scope",
                                              "expectation-results", "queue-rule", "test-rules", "rerun", "observed",
                                              "workspace-return", "delivery", "lint-commands", "improve-lessons"})
+                # Test's and document's Step block names the step just built and the skills the step plan lists for the
+                # stage (design T §8.2c, F9), and document's its spec mark: required, so P0 (design T §9.1 2b-3, 2b-5);
+                # implement's Step block is its stage input, P1.
+                required = {"step"} if stage in ("test", "document") else set()
+                for name in required & set(tiers):
+                    self.assertEqual(tiers[name], navigator.P0, name)
                 self.assertEqual([name for name in tiers if name not in
-                                  self.P0 | self.LOOKUP | self.CHROME | self.FILE | {"quoted"}
+                                  self.P0 | self.LOOKUP | self.CHROME | self.FILE | {"quoted"} | required
                                   and tiers[name] != navigator.P1], [])
 
     def test_the_blocks_are_in_print_order_required_first_then_lookups_chrome_quoted_and_the_rest(self) -> None:

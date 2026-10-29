@@ -3,8 +3,8 @@
 The navigator (shiploop_navigator) owns the graph, the durable cursor and the
 packet for the current step.  This module parses the CLI, holds the run lock,
 refuses saved runs from removed protocols, and hands every verb for a
-protocol 4 run to ``navigator.dispatch``.  Workspace effects and chain
-operations stay in their own modules.
+protocol 4 run to ``navigator.dispatch``.  Workspace effects stay in their own
+module.
 """
 
 from __future__ import annotations
@@ -408,7 +408,7 @@ def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated:
 CALLBACK_ATTEMPTS = "callback-attempts"
 PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-pass",
                           "improve-reconcile"})
-CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-reconcile"})
+CALLBACK_VERBS = frozenset({"complete", "check", "improve-bind", "improve-reconcile"})
 
 
 def _callback_attempts(root: Path) -> int:
@@ -513,7 +513,7 @@ def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path]) 
 
 
 def _argv_run_dir(raw_argv: Sequence[str]) -> Optional[Path]:
-    """The --run-dir value of a chain/lint command line, if given."""
+    """The --run-dir value of a lint/red-check command line, if given."""
     for index, value in enumerate(raw_argv):
         if value == "--run-dir" and index + 1 < len(raw_argv):
             return Path(raw_argv[index + 1]).resolve()
@@ -559,7 +559,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
 def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
     """Append the finished command to its run's trace.  The state after it was captured inside the run lock, so a
     command that ran next is never credited to this one; a refused command saved nothing, so its after is its before.
-    The routed verbs (chain, lint, red-check, backchain-check) are not traced: their views and record-only checks
+    The routed verbs (lint, red-check, backchain-check) are not traced: their views and record-only checks
     must leave the run as it was."""
     import shiploop_trace as trace
 
@@ -601,14 +601,11 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return shiploop_owner_notes.main(raw_argv[1:], trace_record=_TRACE)
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
-    if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
+    if raw_argv and raw_argv[0] in ("lint", "red-check"):
         # Both write run state; a lost grant gets the same repair as next.
         refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
         if refused is not None:
             return refused
-    if raw_argv and raw_argv[0] == "chain":
-        import shiploop_chain
-        return shiploop_chain.main(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "lint":
         import shiploop_lint
         return shiploop_lint.main(core, raw_argv[1:])
@@ -628,7 +625,6 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     subs.add_parser("note", help="the run's owner: leave a note the next packet quotes until a step it was shown in is "
                                  "accepted (--text or --file)")
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
-    subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
     subs.add_parser("red-check", help="the test stage's base run without completing: does any new test pass "
                                       "without this item's change? (never counted, never gates)")
@@ -650,6 +646,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         "report",
         "context",
         "complete",
+        "check",
         "halt",
         "pause",
         "resume",
@@ -694,18 +691,15 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         if name == "improve-pass":
             sub.add_argument("--no-commit", dest="no_commit",
                              help="the user's or repository's instruction not to commit this review's edits")
-        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile"):
+        if name in ("complete", "check", "improve-bind", "improve-start", "improve-commit", "improve-pass",
+                    "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name == "improve-reconcile":
             sub.add_argument("--result", required=True)
-        if name == "complete":
+        if name in ("complete", "check"):
             # Every producer stage reads it; the one path accepted is RUN/inbox/<action>.md, so it may be left out.  An
             # improve stage takes no result (--final-result is its changed result).
             sub.add_argument("--result", help="the result file; default and only accepted path: RUN/inbox/<action>.md")
-        if name == "complete":
-            sub.add_argument("--check-only", dest="check_only", action="store_true",
-                             help="run this stage's script gates on the result and report, without completing the "
-                                  "action (an Until Loop's way to observe its exit conditions before done)")
         if name == "complete":
             sub.add_argument("--notes", metavar="FILE",
                              help="optional: the path of a plain-text file (not the text itself) holding the review's "
@@ -868,6 +862,11 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return 2
     except navigator.NavigatorError as exc:
         _TRACE["error"] = str(exc)
+        if args.command == "check":
+            print(f"ShipLoop check: the check says no. {exc}", file=sys.stderr)
+            print("Nothing was accepted or counted. Fix the cause and run the check again in this turn.",
+                  file=sys.stderr)
+            return 2
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
         print("Read the current packet with next; the rejected request did not advance the graph.",
               file=sys.stderr)

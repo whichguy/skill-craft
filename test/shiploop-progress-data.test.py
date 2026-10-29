@@ -16,7 +16,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_progress_data as progress_data  # noqa: E402
@@ -187,27 +186,6 @@ class ProgressDataTests(unittest.TestCase):
         self.assertTrue(changed)
         self.assertEqual(self.document(unstable, "living-spec")["status"], "withheld")
         self.assertIn("changed while reading", self.document(unstable, "living-spec")["error"])
-
-    def test_chain_activity_changes_snapshot_without_changing_parent_state(self) -> None:
-        state = self.plan_state()
-        while navigator.current_stage(state) != "implement":
-            state = self.accept(state)
-        action_id = navigator.current_action(state)["id"]
-        state["chain_bindings"] = {action_id: "a" * 64}
-        navigator.validate(state)
-        state_bytes = self.save_state(state)
-        before = progress_data.build_snapshot(self.run_root)
-
-        events = self.run_root / "chains" / action_id / "events"
-        chain_ledger.append_event(events, "fixture-one", "contribution_recorded",
-                                  {"summary": "Implementation reported by the child."})
-        after = progress_data.build_snapshot(self.run_root)
-
-        self.assertEqual((self.run_root / "state.md").read_bytes(), state_bytes)
-        self.assertEqual(after["run"]["revision"], before["run"]["revision"])
-        self.assertNotEqual(after["source_fingerprint"], before["source_fingerprint"])
-        self.assertTrue(any(row["stream"] == "chain:" + action_id and row["seq"] == 1
-                            for row in after["activity"]))
 
     def test_inline_step_plan_exposes_declared_branching_dependencies(self) -> None:
         state = self.plan_state()

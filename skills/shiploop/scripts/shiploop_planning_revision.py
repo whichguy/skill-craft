@@ -150,6 +150,26 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     return result
 
 
+def step_actions(state: Mapping[str, Any], workitem: Any, stage: str) -> list[str]:
+    """Every accepted done ``stage`` action of ``workitem`` under its current step plan, in history order: one per step
+    for a stage each step's iteration runs (implement, test, document; design T §9 row 6), where ``current_actions``
+    keeps only the latest.  Current means after the item's latest accepted done step plan and its latest send-back,
+    which replans it (``current_actions`` drops the same results)."""
+    if not isinstance(state, Mapping):
+        return []
+    accepted = state.get("accepted") or {}
+    found: list[str] = []
+    for entry in state.get("history") or ():
+        if not isinstance(entry, Mapping) or entry.get("workitem") != workitem:
+            continue
+        done = entry.get("outcome") == "done" and entry.get("action") in accepted
+        if entry.get("outcome") == "send-back" or (done and entry.get("stage") == "step-plan"):
+            found = []
+        elif done and entry.get("stage") == stage:
+            found.append(str(entry["action"]))
+    return found
+
+
 def validate(state: Mapping[str, Any]) -> None:
     """Validate reconciliation bindings without reading a run directory."""
     _need(isinstance(state, Mapping), "navigator state must be an object")

@@ -12,7 +12,7 @@ included, and start no reviewer, test-runner or executor agent unless the user
 asked for independent review. Pass `--delegation ask-agent` at `workspace start`
 (or direct `init`) to opt in to the delegated route: each Improve checkpoint runs
 the `improve-agent` skill, which starts one fresh native worker that runs
-`/improve`, and implementation uses chains. Every run records the
+`/improve`, and each implement step is built by one fresh worker. Every run records the
 setting; a saved run without it is refused with an error naming the missing
 `delegation` key. An `init` or `workspace start` retry cannot change it. For an
 existing run, use:
@@ -23,7 +23,7 @@ python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline   # or ask-agent
 
 The setting applies from the next issued action: the action pending when you
 switch, including its Improve checkpoint, keeps the route it was issued with
-(the packet says so), so a worker, bound child or chain that may already own it
+(the packet says so), so a worker or bound child that may already own it
 is never re-routed. It is refused on a halted or done run; setting the recorded
 value is a no-op. `graph-dry-run --delegation
 inline|ask-agent` previews either route (inline by default).
@@ -40,22 +40,20 @@ Repository-configured linters run repository code; pre-commit is never run,
 because it may download environments. Nothing is ever installed.
 
 - **Lint gate.** The `complete` that submits `implement` (every step), `test` or
-  `verify` as done (each of them edits code) lints
-  every changed file and applies safe fixes on lines the item changed. It
+  `document` as done (each of them edits code, tests or docs) lints
+  every file that stage changed and applies safe fixes on those lines. It
   refuses that submission once after an auto-fix (rerun the step's checks, then
-  submit again), and while a new finding on a line the item changed has no
+  submit again), and while a new finding on a line that stage changed has no
   entry in the result's `lint_waivers` (`[{"id", "reason"}]`, using the IDs the
   refusal prints). Findings present at the base or elsewhere in a file, missing
   tools, tool errors, timeouts and a pass that cannot run never refuse. At
-  `test` and `verify` the gate runs before ShipLoop's test runs, so the tests
-  cover any auto-fix. The implement and test packets print the report-only
-  `lint` command to run after each edit.
-- **Advisory pass.** The `complete` that enters `verify` lints the item's
-  changes again and, on the item's first entry only, applies safe fixes to later
-  edits; a later entry reruns it report-only.
+  `test` and `document` the gate runs before ShipLoop's test runs, so the tests
+  cover any auto-fix. The step review's import is gated the same way, on the
+  lines the review changed. The implement and test packets print the
+  report-only `lint` command to run after each edit.
 
-`off` stops the linters, the gate and auto-fix only; the item base and the
-change inventory `verify` reads are still recorded. The block follows
+`off` stops the linters, the gate and auto-fix only; the item base is still
+recorded. The block follows
 the packet's callback. It lists every command's exact argv, cwd, exit code and
 complete output, shows auto-fixes as an applied diff plus NOT APPLIED hunks,
 separates new findings from debt already present at the item base, and states
@@ -92,7 +90,7 @@ each result is accepted on ShipLoop's own checks at `complete` (cited files exis
 plan's assumption list, the step plan's commands, criteria and paths, the knowledge
 home's checks), the graph advances, and no Improve review covers it in this run. The
 packets say so: the Improve line, the plan and step-plan duties and the shared handoff
-sentence name only the stages that hand off. The Improve stages after each item's last `implement` step,
+sentence name only the stages that hand off. The Improve stages after each step's `document` stage,
 `system-test-author`, `release-plan` and the last `carry-forward` start in both modes; the
 option does not cover the Backchain loop or the inner stages' Until Loops.
 

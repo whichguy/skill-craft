@@ -564,8 +564,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         result = self.cli("next", "--run-dir", str(root / "run"), code=3)
         self.assertIn(f"{(root / 'run').resolve()}  (run state)", result.stderr)
         self.assertIn("Then rerun: python3", result.stderr)
-        # chain and lint write run state too and are dispatched before next's path.
-        for verb in (("chain", "next"), ("lint",)):
+        # lint writes run state too and is dispatched before next's path.
+        for verb in (("lint",),):
             refused = self.cli(*verb, "--run-dir", str(root / "run"), code=3)
             self.assertIn("SHIPLOOP-GRANT-NEEDED", refused.stderr, verb)
 

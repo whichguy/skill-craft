@@ -1,4 +1,4 @@
-"""ShipLoop's own test runs: the test stage's base and candidate runs, and the reruns at verify and the outer stages.
+"""ShipLoop's own test runs: the test stage's base and candidate runs, and the reruns at document and the outer stages.
 
 The accepted step plan records the work item's test command list (``test_commands``).  Each command may name the test
 IDs it must run (``ids``) and a minimum test count (``min_tests``).  A command that exits 0 but ran no test, too few
@@ -9,9 +9,10 @@ which owns the contract and the terminal check), runs every recorded command and
 ShipLoop runs three things itself, in this order:
 
 - ``base_check``: every focused and regression command in a temporary detached Git worktree at the item's lint base
-  (``shiploop_lint.read_base``), with only this item's test files copied in.  A new test ID (one a focused command
-  lists, not named in the result's ``red_na``) must not pass there: it must fail, or be missing because a file this item
-  adds cannot be loaded.  The run records each command's base count, which sets the floor.
+  (``shiploop_lint.read_base``), with only this item's test files copied in.  A test ID new at this step (``new_ids``,
+  not named in the result's ``red_na``) must not pass there: it must fail, or be missing because a file this item adds
+  cannot be loaded.  An earlier step's cases already pass there, so a command holding only those is counted, not judged.
+  The run records each command's base count, which sets the floor.
 - ``loop_run``: every recorded command (focused, regression, check) on the candidate.  Each must exit 0, show every
   listed ID and run at least its floor: the larger of the base count and the most any earlier run of this action ran,
   less the tests the result's ``retired_tests`` retires that the base run showed.
@@ -50,7 +51,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple
 
+import shiploop_iteration as iteration
 import shiploop_lint as lint
+import shiploop_planning_revision as planning_revision
 import shiploop_prompts as guidance
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -63,6 +66,8 @@ STAGES = stage_spec.with_complete_run("test-loop")
 BASE_STAGES = stage_spec.with_complete_run("test-base")
 # Stages that can edit code after the test stage: on done ShipLoop reruns every recorded command (no loop of its own).
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
+# The inner rerun stage that closes a step: it reruns the step's own commands, not every one the step plan recorded.
+STEP_RERUN_STAGE = "document"
 VERIFY_STAGES = STAGES + RERUN_STAGES
 # The stage whose inline step action runs its step plan's Proof (``step_proof``): implement.
 STEP_PROOF_STAGES = stage_spec.with_complete_run("step-proof")
@@ -72,7 +77,11 @@ SUITES = ("focused", "regression", "check")
 COUNTED_SUITES = ("focused", "regression")
 # ``regression`` (true, on a focused row only) is what a regression row folded into a byte-identical focused one leaves
 # (``normalise_commands``): the drift check at system-test still runs that command as the default suite.
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression", "target"})
+# ``minimum`` (true, on a regression command or a focused row that is also the regression command) marks the minimum
+# regression, which runs at every step; an unmarked regression command runs at the item's last step only (design T §9.1
+# 2d, ``iteration.active_commands``).
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression", "target",
+                          "minimum"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not recognised) is allowed only for a
 # regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -89,6 +98,9 @@ BASE_SCHEMA = "shiploop-test-base/v1"
 # Result fields of the test stage, validated by ``check_result_fields``.
 RED_NA = "red_na"
 RETIRED_TESTS = "retired_tests"
+# A done document result's field (and so its step review's final result's): each test it added after the test stage,
+# by the ID its title starts with and the recorded command that runs it (design T §9.1 step 3).
+ADDED_TESTS = "added_tests"
 
 Runner = Callable[..., Tuple[str, Optional[int], bytes, bytes]]
 
@@ -112,14 +124,19 @@ def base_path(action: str, number: int) -> str:
     return "tests/" + action + "-base" + str(number) + ".md"
 
 
+def base_check_path(action: str) -> str:
+    """The base run a check makes: replaced on each call, never counted; the check's floors come from it."""
+    return "tests/" + action + "-base-check.md"
+
+
 def red_check_path(action: str) -> str:
     """The red-check report: a base run the loop asks for, replaced on each call and never counted."""
     return "tests/" + action + "-red-check.md"
 
 
-def check_only_path(action: str) -> str:
-    """The candidate run ``complete --check-only`` asks for: replaced on each call, never counted, never a floor."""
-    return "tests/" + action + "-check-only.md"
+def check_path(action: str) -> str:
+    """The candidate run a check makes: replaced on each call, never counted, never a floor."""
+    return "tests/" + action + "-check.md"
 
 
 def step_proof_path(action: str, number: int) -> str:
@@ -127,9 +144,9 @@ def step_proof_path(action: str, number: int) -> str:
     return "tests/" + action + "-step-proof" + str(number) + ".md"
 
 
-def step_proof_check_only_path(action: str) -> str:
-    """The Proof run ``complete --check-only`` asks for: replaced on each call, never counted."""
-    return "tests/" + action + "-step-proof-check-only.md"
+def step_proof_check_path(action: str) -> str:
+    """The Proof run a check makes: replaced on each call, never counted."""
+    return "tests/" + action + "-step-proof-check.md"
 
 
 def mutation_path(action: str, number: int) -> str:
@@ -137,9 +154,9 @@ def mutation_path(action: str, number: int) -> str:
     return "tests/" + action + "-mutation" + str(number) + ".md"
 
 
-def mutation_check_only_path(action: str) -> str:
-    """The mutation check ``complete --check-only`` asks for: replaced on each call, never counted."""
-    return "tests/" + action + "-mutation-check-only.md"
+def mutation_check_path(action: str) -> str:
+    """The mutation check a check makes: replaced on each call, never counted."""
+    return "tests/" + action + "-mutation-check.md"
 
 
 # What a one-line refusal adds (the check, the step check and the test command): a live run read three validators'
@@ -183,10 +200,11 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     Each entry is ``{"command": str, "suite": focused|regression|check}`` plus
     optional ``ids`` (test IDs the command must visibly run), ``min_tests``
     (int >= 1), ``criteria`` (the step plan's criterion IDs it confirms),
-    ``target`` (the test-strategy targets row it runs on, F3) and
+    ``target`` (the test-strategy targets row it runs on, F3),
     ``host_dependent`` (true: its cases need a host tool, so no default suite may
-    run them; see ``default_suite_drift``).  A ``check`` is judged by its exit
-    code, so it takes no ids or min_tests.
+    run them; see ``default_suite_drift``) and ``minimum`` (true, on a regression
+    command: the minimum regression, which runs at every step).  A ``check`` is
+    judged by its exit code, so it takes no ids or min_tests.
 
     Rows that record the same command string are folded into the first of them
     when one row can check exactly what they did (``_fold``), so ShipLoop runs
@@ -231,6 +249,11 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
             _need(entry["regression"] is True and row["suite"] == "focused",
                   "a test command's regression is true, on a focused command that is also the regression command")
             row["regression"] = True
+        if "minimum" in entry:
+            _need(entry["minimum"] is True and (row["suite"] == "regression" or row.get("regression") is True),
+                  "a test command's minimum is true, on a regression command (or a focused command that is also the "
+                  "regression command): it marks the minimum regression, which runs at every step")
+            row["minimum"] = True
         if "target" in entry:
             # The test-strategy target the command runs on (run-5 batch F3); the step-plan gate checks the name.
             _need(isinstance(entry["target"], str) and entry["target"].strip() != "" and "\n" not in entry["target"],
@@ -262,7 +285,7 @@ def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str
     come under the base run's rule that a focused ID fails on the base).  The one row keeps ``first``'s place, the union
     of the ids and criteria and the larger min_tests: the same output is judged against both rows' terms.  A check and
     a counted row are judged differently and never fold.  A regression row folded into a focused one leaves
-    ``regression: true``.
+    ``regression: true``, and either row's ``minimum`` stays, so the one command still runs at every step.
     """
     if first["command"] != row["command"] or first.get("host_dependent") != row.get("host_dependent") \
             or first.get("target") != row.get("target"):
@@ -288,6 +311,8 @@ def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str
         merged["target"] = first["target"]  # where it runs decides the base run's remote rule (F3)
     if len(suites) > 1 or first.get("regression") or row.get("regression"):
         merged["regression"] = True
+    if first.get("minimum") or row.get("minimum"):
+        merged["minimum"] = True
     return merged
 
 
@@ -326,14 +351,17 @@ def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, An
     return {}
 
 
-def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, Any]], str]:
+def stage_commands(state: Mapping[str, Any], stage: str, work_item: str,
+                   added: Sequence[Mapping[str, Any]] = ()) -> Tuple[List[Dict[str, Any]], str]:
     """This stage's commands and, when there are none, why.
 
-    The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An inline implement step and its
-    Improve review run only that step's Proof, the step plan's ``check`` for it (``step_command``: the implement-step
-    fix plan's section 4.1); the item's commands stay with the test stage and verify.  Every other item stage, and the
-    ask-agent route's one implement action for every step, runs every command the latest accepted step plan recorded.
-    The base run takes the focused and regression ones (``base_commands``).
+    The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An implement step and its Improve
+    review run only that step's Proof, the step plan's ``proof`` for it (``step_command``: the implement-step fix plan's
+    section 4.1); the item's commands stay with the test stage and document.  Every other item stage runs every command
+    the latest accepted step plan recorded.
+    The base run takes the focused and regression ones (``base_commands``).  At an item stage each command lists, after
+    its own IDs, the tests registered for it (``registered``; ``added`` are the rows of a result not accepted yet), so
+    every run of it from then on must show them.
     """
     if stage in STEP_PROOF_STAGES:
         step = step_command(state, work_item)
@@ -348,20 +376,101 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
     if "test_commands" not in result:
         return [], ""
     commands = [dict(row) for row in result["test_commands"]]
+    # Document reruns the commands its step's test stage ran (design T §8.2, 2b-4b); the navigator narrows them to what
+    # document's own edits could affect.
+    number = step_number(state, work_item) if stage in STAGES or stage == STEP_RERUN_STAGE else None
+    if commands and number is not None:
+        # One iteration per step (design T §8): the test stage runs what this step owes, due cases narrowed per command.
+        commands = iteration.active_commands(commands, _test_cases(state, work_item), _plan_steps(result), number)
+        if not commands:
+            return [], (NONE_DUE + str(_plan_steps(result)[-1].get("id")))
     if commands:
-        return commands, ""
+        return _with_registered(commands, registered(state, work_item, added)), ""
     return [], str(result.get("test_commands_na") or "")
 
 
+def registered(state: Mapping[str, Any], work_item: str,
+               added: Sequence[Mapping[str, Any]] = ()) -> Dict[str, List[str]]:
+    """{command: [test IDs]}: the tests registered for the item under its current step plan, from every step's accepted
+    document result (a step review's final result becomes its document's) and then ``added``.  Astra's §9 row 4: a
+    test a review adds is registered by ID, so the reruns that follow run it, where an old filter would leave it out
+    unseen."""
+    rows: List[Any] = []
+    for action in planning_revision.step_actions(state, work_item, STEP_RERUN_STAGE):
+        result = (state.get("accepted") or {}).get(action)
+        rows += list(result.get(ADDED_TESTS) or ()) if isinstance(result, Mapping) else []
+    found: Dict[str, List[str]] = {}
+    for row in [*rows, *(added or ())]:
+        if isinstance(row, Mapping) and row.get("id") and row.get("command"):
+            ids = found.setdefault(str(row["command"]), [])
+            if str(row["id"]) not in ids:
+                ids.append(str(row["id"]))
+    return found
+
+
+def _with_registered(commands: List[Dict[str, Any]], found: Mapping[str, Sequence[str]]) -> List[Dict[str, Any]]:
+    """``commands``, each listing after its own IDs the registered ones it does not list yet."""
+    merged = []
+    for row in commands:
+        extra = [test_id for test_id in found.get(row["command"], ()) if test_id not in (row.get("ids") or ())]
+        merged.append(dict(row, ids=[*(row.get("ids") or ()), *extra]) if extra else row)
+    return merged
+
+
+# Why a step before the last can have no command to run: its plan marks no minimum regression (minimum_na) and none of
+# its cases or criteria is due yet.
+NONE_DUE = ("no recorded command is due at this step: each runs from the step its cases or criteria are due at, and a "
+            "regression command not marked minimum at the item's last step, ")
+
+
+def held_back(state: Mapping[str, Any], work_item: str) -> Tuple[List[str], str]:
+    """(the full regression commands a step before the last leaves to the item's last step, that step's ID); ([], "")
+    at the last step, off the per-step route, or when every regression command is marked minimum (design T §9.1 2d)."""
+    number = step_number(state, work_item)
+    _action, result = _step_plan(state, work_item)
+    steps = _plan_steps(result)
+    if number is None or number >= len(steps):
+        return [], ""
+    full = [str(row["command"]) for row in result.get("test_commands") or ()
+            if row.get("suite") == "regression" and not row.get("minimum")]
+    return full, (str(steps[-1].get("id")) if full else "")
+
+
+def _plan_steps(plan: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    return [row for row in plan.get("steps") or () if isinstance(row, Mapping)]
+
+
+def _test_cases(state: Mapping[str, Any], work_item: str) -> List[Mapping[str, Any]]:
+    """The item's current test-spec cases: its latest accepted done test-spec result's ``test_cases``."""
+    actions = [row["action"] for row in state.get("history", ())
+               if row.get("stage") == "test-spec" and row.get("workitem") == work_item]
+    for action in reversed(actions):
+        result = state.get("accepted", {}).get(action)
+        if isinstance(result, Mapping) and result.get("outcome") == "done":
+            return [case for case in result.get("test_cases") or () if isinstance(case, Mapping)]
+    return []
+
+
+def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
+    """The step an item's iteration is on once it is built (its test stage, its document and its review): how many steps
+    of the latest step plan have an accepted implement done.  None for a plan without steps, or before the first step is
+    built."""
+    action, plan = _step_plan(state, work_item)
+    steps = _plan_steps(plan) if action else []
+    history = list(state.get("history", ()))
+    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
+    built = sum(1 for row in history[start + 1:]
+                if row.get("stage") == "implement" and row.get("workitem") == work_item and row.get("outcome") == "done")
+    return built if steps and 1 <= built <= len(steps) else None
+
+
 def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
-    """(the step, its Proof as a ``check`` row) for the inline implement step the item is on, or None: another stage or
-    route (the ask-agent action builds every step), no step left, or a step whose plan records no proof."""
+    """(the step, its Proof as a ``check`` row) for the implement step the item is on, or None: another stage, no step
+    left, or a step whose plan records no proof."""
     import shiploop_loops as loops  # imported where used: the loops module imports this one late
 
     found = loops.cursor(state)
     if found is None or found[0] not in STEP_PROOF_STAGES or found[2] != work_item:
-        return None
-    if loops._route(state, found[1]) != guidance.INLINE:
         return None
     step = loops.current_step(state, work_item)
     proof = step.get("proof") if step is not None else None
@@ -376,13 +485,33 @@ def base_commands(state: Mapping[str, Any], work_item: str) -> List[Dict[str, An
 
 
 def new_ids(state: Mapping[str, Any], work_item: str) -> List[str]:
-    """Every test ID a focused command lists: the item's new tests, which must not pass on the base."""
+    """Every test ID a focused command lists that this step adds: the new tests, which must not pass on the base.  At an
+    inline step (design T §8) an earlier step's cases already pass on this step's base, so only the cases due at this
+    step are new (``iteration.new_cases``).  A registered test (``registered``) was added after an earlier test stage
+    and passes on a later base, so it is never new."""
+    number = step_number(state, work_item)
+    cases = _test_cases(state, work_item)
+    earlier: set[str] = {test_id for ids in registered(state, work_item).values() for test_id in ids}
+    if number is not None:
+        due = iteration.due_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number)
+        earlier |= set(due) - set(iteration.new_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number))
     seen: Dict[str, None] = {}
     for row in base_commands(state, work_item):
         if row["suite"] == "focused":
             for test_id in row.get("ids") or ():
-                seen[test_id] = None
+                if test_id not in earlier:
+                    seen[test_id] = None
     return list(seen)
+
+
+def _earlier_step(state: Mapping[str, Any], work_item: str, row: Mapping[str, Any]) -> bool:
+    """Whether the base run at this inline step holds a focused ``row`` only to earlier steps' cases, which already pass
+    on the step's base (``iteration.earlier_command``): it is counted for the floor, not judged."""
+    number = step_number(state, work_item)
+    if number is None or row["suite"] != "focused":
+        return False
+    steps = _plan_steps(_step_plan(state, work_item)[1])
+    return iteration.earlier_command(row, _test_cases(state, work_item), steps, number)
 
 
 def _listing(row: Mapping[str, Any], floor: Optional[int] = None) -> str:
@@ -394,6 +523,8 @@ def _listing(row: Mapping[str, Any], floor: Optional[int] = None) -> str:
         text += " (at least " + str(row["min_tests"]) + " tests)"
     if row.get("regression"):
         text += " (also recorded as regression)"
+    if row.get("minimum"):
+        text += " (minimum regression: every step)"
     if floor:
         text += " (floor: " + str(floor) + " tests)"
     return text
@@ -420,16 +551,20 @@ def _id_records(result: Optional[Mapping[str, Any]], key: str) -> List[Dict[str,
 def check_result_fields(state: Mapping[str, Any], work_item: str, result: Optional[Mapping[str, Any]]) -> None:
     """Refuse a test result whose ``red_na`` or ``retired_tests`` cannot apply to this item's commands.
 
-    ``red_na: [{"id", "reason"}]`` exempts a characterisation test from the base rule: each ID must be one a focused
-    command lists.  ``retired_tests: [{"id", "reason"}]`` lowers a floor for a test this item deliberately removes: its
-    ID must not be one a focused command still lists.  Whether the base run showed each retired test is checked by the
-    base run itself, the only place that can see it.
+    ``red_na: [{"id", "reason"}]`` exempts a characterisation test from the base rule: each ID must be one new at this
+    step (``new_ids``), since the base run judges no other.  ``retired_tests: [{"id", "reason"}]`` lowers a floor for a
+    test this item deliberately removes: its ID must not be one a focused command still lists, an earlier step's
+    included.  Whether the base run showed each retired test is checked by the base run itself, the only place that can
+    see it.
     """
-    listed = new_ids(state, work_item)
-    unknown = [row["id"] for row in _id_records(result, RED_NA) if row["id"] not in listed]
-    _need(not unknown, "red_na names " + ", ".join(unknown) + ", which no focused command lists"
-          + (" (listed: " + ", ".join(listed) + ")" if listed else "") + ". red_na exempts only a listed test ID "
-          "that passes without this item's change (a characterisation test).")
+    new = new_ids(state, work_item)
+    listed = [test_id for row in base_commands(state, work_item) if row["suite"] == "focused"
+              for test_id in row.get("ids") or ()]
+    unknown = [row["id"] for row in _id_records(result, RED_NA) if row["id"] not in new]
+    _need(not unknown, "red_na names " + ", ".join(unknown) + ", which is not a test ID new at this step"
+          + (" (new: " + ", ".join(new) + ")" if new else "") + ". red_na exempts only a new test ID that passes "
+          "without this change (a characterisation test, or a case a step committed before a send-back); the base run "
+          "does not judge an earlier step's IDs.")
     still = [row["id"] for row in _id_records(result, RETIRED_TESTS) if row["id"] in listed]
     _need(not still, "retired_tests names " + ", ".join(still) + ", which a focused command still lists: a retired "
           "test is one this item removes, so it cannot also be a test the item must run.")
@@ -448,11 +583,12 @@ FLOOR_RULE = ("Floor of each focused and regression command: the larger of its c
               "each retired_tests entry the base run showed for it. A test removed or newly skipped to pass is refused; "
               "a test this item deliberately retires goes in retired_tests (shape: duty 6) and must print its name on "
               "the base.")
-BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the item's "
-             "base (a temporary detached worktree, with only this item's test files copied in). No listed test ID "
-             "may pass there: each must fail because the behaviour it asserts is missing, or fail to load the code "
-             "this item adds; a guard that only checks or prints a file's path is not RED. A "
-             "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A command "
+BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the step's "
+             "base (a temporary detached worktree, with only this item's test files copied in). No test ID new at "
+             "this step may pass there: each must fail because the behaviour it asserts is missing, or fail to load "
+             "the code this item adds; a guard that only checks or prints a file's path is not RED. An earlier step's "
+             "IDs already pass there and are not judged. A new test that passes without this change (a "
+             "characterisation test, or a case a step committed before a send-back) goes in red_na (shape: duty 6). A command "
              "the platform card lists under Remote tests is not run there (its target already holds the change). A "
              "refused base run counts toward the same refused runs.")
 # What the reruns after the test stage say about the floor ``accepted_counts`` sets.
@@ -514,6 +650,10 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
                   for number, counted, floor in shown]
     else:
         lines.append(head + "the base run at done sets each floor.")
+    full, last = held_back(state, work_item) if stage in STAGES else ([], "")
+    if full:
+        lines.append("The full regression runs at the item's last step, " + last + ": "
+                     + ", ".join("`" + command + "`" for command in full) + ".")
     if cli:
         lines.append("  red-check: " + cli + " red-check --run-dir=" + str(root) + " --action=" + action
                      + " (runs the base check now; it does not count toward the refused runs)")
@@ -612,7 +752,11 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
         "unknown": "Where they run: the return state cannot be read now, so done is refused without counting until it "
                    "can be; retry done then, or report add-work if it cannot be repaired.",
     }
-    return (["", "Test rerun: on done, ShipLoop runs every test command " + recorded_by + " recorded from "
+    what = ("reruns what your edits since this stage began could affect, out of the commands its step's test stage "
+            "ran (none after no edit, the check commands after a documentation edit, all of them after a code or test "
+            "edit), from " if stage == STEP_RERUN_STAGE else
+            "runs every test command " + recorded_by + " recorded from ")
+    return (["", "Test rerun: on done, ShipLoop " + what
              + _where(observed, state["repo"]) + " and refuses unless each passes (if it keeps refusing, "
              + _remedy_sentence(stage) + "; a command that times out or cannot start refuses the stage without "
              "counting):"]
@@ -882,22 +1026,29 @@ def _next_attempt(root: Path, action: str) -> int:
     return _verify_count(root, action) + _base_count(root, action) + _mutation_count(root, action) + 1
 
 
-def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str) -> Dict[str, int]:
+def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str, *,
+                    earlier_steps: bool = False) -> Dict[str, int]:
     """Per command, the most tests any run ShipLoop accepted for this work item has run since its latest step plan.
 
     Read from the item's ``tests/<action>-verify<N>.md`` records, so no state key holds it: the passed records of the
     actions accepted after the item's latest accepted step plan (the history is append-only, so a revised step plan
     starts the count again), and in them the runs ShipLoop accepted whose output it could count.  Empty for the outer
     stages and the end-of-work review (``work_item`` is empty).  An action ShipLoop has not accepted yet is not in the
-    history, so its record sets no floor here (``action_counts`` reads it).
+    history, so its record sets no floor here (``action_counts`` reads it).  ``earlier_steps`` keeps only the runs of
+    the steps before the inline step being tested: the actions accepted before its build (design T §9.1 step 3).
     """
     plan, _result = _step_plan(state, work_item)
     if not work_item or plan is None:
         return {}
     history = list(state.get("history", ()))
     first = max(i for i, row in enumerate(history) if row.get("action") == plan) + 1
+    last = len(history)
+    if earlier_steps:
+        builds = [i for i, row in enumerate(history[first:], first) if row.get("stage") == "implement"
+                  and row.get("workitem") == work_item and row.get("outcome") == "done"]
+        last = builds[-1] if builds else first
     most: Dict[str, int] = {}
-    for action in dict.fromkeys(row.get("action") for row in history[first:] if row.get("workitem") == work_item):
+    for action in dict.fromkeys(row.get("action") for row in history[first:last] if row.get("workitem") == work_item):
         for number in range(1, _verify_count(root, str(action)) + 1):
             record = store.read_record(Path(root) / verify_path(str(action), number))
             if not isinstance(record, Mapping) or not record.get("passed"):
@@ -927,8 +1078,18 @@ def action_counts(root: Path, action: str) -> Dict[str, int]:
     return most
 
 
+def _check_base(root: Path, action: str) -> Optional[Mapping[str, Any]]:
+    """The base run of this action's latest check (``base_check_path``) when it passed, else None."""
+    path = Path(root) / base_check_path(action)
+    try:
+        record = store.read_record(path) if path.is_file() else None
+    except (OSError, store.StorageError):
+        return None
+    return record if isinstance(record, Mapping) and record.get("passed") else None
+
+
 def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: str,
-                 result: Optional[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
+                 result: Optional[Mapping[str, Any]], *, check: bool = False) -> Dict[str, Dict[str, Any]]:
     """Per focused and regression command, its floor and where it comes from (the test stage's rule).
 
     ``floor = max(base count - retired shown, earlier runs - retired seen)``: the base count is the latest passed base
@@ -937,20 +1098,35 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
     in); the earlier runs are this action's own (``action_counts``) and any run accepted for the item since its step
     plan (``accepted_counts``), less every retired test the base run saw (``retired_seen``), since a candidate record
     cannot say which command ran it.  A command with no number from any source has no floor.
+
+    ``check`` (``shiploop check``) takes the base run that check just made (``base_check_path``), so the check holds
+    its candidate to the floor ``complete`` sets from the same run (F15, owed-outcome journal).
+    At an inline step after the first the floors add up (design T §9.1 step 3): an earlier step's count carries, plus
+    the IDs newly due at this step that the command lists, so a step cannot replace an earlier step's unnamed tests
+    with its own and keep the count.  A new ID in ``red_na`` passes on the step's base, so its test may be in the
+    earlier count already, and is not added.
     """
     root = Path(root)
-    base = _latest_base(root, action, passed=True) or {}
+    base = (_check_base(root, action) if check else _latest_base(root, action, passed=True)) or {}
     base_runs = {run.get("command"): run for run in base.get("runs") or ()}
-    earlier = accepted_counts(root, state, work_item)
-    for command, ran in action_counts(root, action).items():
-        earlier[command] = max(earlier.get(command, 0), ran)
+    every, own = accepted_counts(root, state, work_item), action_counts(root, action)
+    carried = accepted_counts(root, state, work_item, earlier_steps=True) if step_number(state, work_item) else {}
+    exempt = {row["id"] for row in _id_records(result, RED_NA)}
+    new = [test_id for test_id in new_ids(state, work_item) if test_id not in exempt] if carried else []
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
     detail: Dict[str, Dict[str, Any]] = {}
     for row in base_commands(state, work_item):
         command = row["command"]
         run = base_runs.get(command) or {}
         base_ran = (run.get("counts") or {}).get("ran") if isinstance(run.get("counts"), Mapping) else None
-        before = earlier.get(command)
+        owed = [test_id for test_id in row.get("ids") or () if test_id in new] if command in carried else []
+        earlier = [(count, str(count) + " in an earlier run") for count in (every.get(command), own.get(command))
+                   if isinstance(count, int)]
+        if owed:
+            plural = "" if len(owed) == 1 else "s"
+            earlier.append((carried[command] + len(owed), str(carried[command]) + " in an earlier run plus this step's "
+                            + str(len(owed)) + " new ID" + plural + " (" + ", ".join(owed) + ")"))
+        before, said = max(earlier, key=lambda term: term[0], default=(None, ""))
         gone = [test_id for test_id in retired if test_id in (run.get("retired_shown") or ())]
         seen = [test_id for test_id in retired if test_id in (base.get("retired_seen") or ())]
         # The base term drops the retired tests this command showed on the base; the earlier-run term cannot tell
@@ -963,7 +1139,7 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
             if isinstance(base_ran, int):
                 parts.append(str(base_ran) + " on the base")
             if isinstance(before, int):
-                parts.append(str(before) + " in an earlier run")
+                parts.append(said)
             text = "the larger of " + " and ".join(parts) if len(parts) > 1 else parts[0]
             if gone or seen:
                 text += ", less the retired " + ", ".join(dict.fromkeys(gone + seen))
@@ -1128,17 +1304,47 @@ def _tree(root: Path, repo: Path) -> str:
             index.unlink()
 
 
+def working_tree(root: Path, repo: Path) -> str:
+    """The repository's working content as a Git tree, "" when there is none (``_tree``); part of a check's key."""
+    return _tree(root, repo)
+
+
+def check_paths(action: str) -> Tuple[str, ...]:
+    """The run-relative records a check of ``action`` can write, in the order ``complete`` would make them."""
+    return (base_check_path(action), check_path(action), mutation_check_path(action),
+            step_proof_check_path(action))
+
+
+def take_check(root: Path, action: str, records: Sequence[str], answer: str) -> None:
+    """Write each check record a taken yes rests on as this action's next counted record (``complete`` taking a
+    check's matching yes, phase B), ``reused`` naming the check record and the answer; nothing runs."""
+    root = Path(root)
+    counted: Dict[str, Callable[[str, int], str]] = {
+        base_check_path(action): base_path, check_path(action): verify_path,
+        mutation_check_path(action): mutation_path, step_proof_check_path(action): step_proof_path}
+    for relative in records:
+        target = counted.get(relative)
+        if target is None:
+            continue
+        record = dict(store.read_record(root / relative))
+        record.pop("counted", None)
+        record["attempt"] = _next_attempt(root, action)
+        record["reused"] = {"path": relative, "created_at": record.get("created_at"), "answer": answer}
+        number = _count(root, action, target) + 1
+        store.atomic_write_text(root / target(action, number), store.dumps(record, "ShipLoop record taken from a check"))
+
+
 def _reused(root: Path, action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,
             held: Mapping[str, Mapping[str, Any]]) -> Optional[Tuple[List[Dict[str, Any]], Dict[str, Any]]]:
-    """The runs of this action's passed check-only record, held to today's floors, when ``complete`` takes them instead
+    """The runs of this action's passed check record, held to today's floors, when ``complete`` takes them instead
     of running every command again (owner decision D5, 2026-10-17); else None.
 
     It takes them when that record passed at this stage and item, lists exactly ``commands``, and the repository's
-    working content (``_tree``) is now a tree the check-only run started on or left.  A run the floor now refuses is
+    working content (``_tree``) is now a tree the check's run started on or left.  A run the floor now refuses is
     not taken: the commands run again, so a refusal always comes from a run made now.  Returns (runs, the ``reused``
-    entry the counted record carries: which check-only record and the tree).
+    entry the counted record carries: which check record and the tree).
     """
-    path = Path(root) / check_only_path(action)
+    path = Path(root) / check_path(action)
     if not path.is_file():
         return None
     try:
@@ -1162,21 +1368,7 @@ def _reused(root: Path, action: str, stage: str, work_item: str, commands: Seque
             if run.get("status") == "passed" and run.get("counts") and run["counts"]["ran"] < floor["floor"]:
                 return None
         runs.append(run)
-    return runs, {"path": check_only_path(action), "created_at": record.get("created_at"), "tree": tree}
-
-
-def reuse_note(root: Path, action: str) -> str:
-    """What ``complete --check-only`` prints about its test run when the real ``complete`` can take it (``_reused``),
-    else ""."""
-    path = Path(root) / check_only_path(action)
-    try:
-        record = store.read_record(path) if path.is_file() else None
-    except (OSError, store.StorageError):
-        return ""
-    if not (isinstance(record, Mapping) and record.get("passed") is True and record.get("trees")):
-        return ""
-    return ("That complete takes this test run (" + str(path) + ") instead of running the commands again while the "
-            "tree and the recorded commands stay as they are now; any edit makes it run them again.")
+    return runs, {"path": check_path(action), "created_at": record.get("created_at"), "tree": tree}
 
 
 def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str, *,
@@ -1188,17 +1380,17 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     """Run every command of this stage once on the candidate; return (record writes, refusal text).
 
     An empty refusal means every command passed (``judge``).  At the test stage each focused and regression command is
-    also held to its floor (``floor_detail``, which reads ``result``'s retired_tests); at the item's rerun stage (verify)
+    also held to its floor (``floor_detail``, which reads ``result``'s retired_tests); at the item's rerun stage (document)
     to the most any accepted run of it ran since the step plan (``accepted_counts``); the outer stages and the
     end-of-work review to none.  A command that times out or cannot start refuses the stage, but the attempt is
     recorded ``could-not-run`` and does not count in ``refused_runs``.  ``command_timeout`` bounds each command; every
     command runs, with no total time budget.
 
-    ``count=False`` (``complete --check-only``) runs the same commands and judgement and writes ``check_only_path``
+    ``count=False`` (the check) runs the same commands and judgement and writes ``check_path``
     instead of a numbered record, so the run never counts as a refused run or sets a floor.
     Where the commands run in the repository (every stage but release-verify, whose place can change with a return), it
     also records the command list and the working trees the run started on and left; a counted run (``complete``) then
-    takes a passed check-only run whose command list and tree are unchanged instead of running again (``_reused``), and
+    takes a passed check run whose command list and tree are unchanged instead of running again (``_reused``), and
     its record says so under ``reused``.
     """
     root = Path(root)
@@ -1227,7 +1419,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     elif observed and observed["where"] == "unknown":
         failure = str(observed["reason"])
     if stage in STAGES:
-        held = floor_detail(root, state, work_item, action, result)
+        held = floor_detail(root, state, work_item, action, result, check=not count)
     elif stage in OUTER_SOURCES or not work_item:
         held = {}
     else:
@@ -1291,7 +1483,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             record["trees"] = [tree for tree in dict.fromkeys([*trees, _tree(root, repo)]) if tree]
     if observed is not None:
         record["observed"] = observed
-    relative = verify_path(action, number) if count else check_only_path(action)
+    relative = verify_path(action, number) if count else check_path(action)
     writes = {relative: store.dumps(record, "ShipLoop test-loop verification")}
     if record["passed"]:
         return writes, ""
@@ -1312,7 +1504,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         lines.append(_place_reply(stage, refused) + " Full output: " + str(root / relative) + ".")
         return writes, "\n".join(lines)
     if not count:
-        attempts = "This check-only run does not count toward the refused runs."
+        attempts = "This check does not count toward the refused runs."
     elif disposition == "could-not-run":
         attempts = _unavailable_sentence(stage, refused, command_timeout)
     else:
@@ -1347,7 +1539,7 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
 
     Writes ShipLoop's record (``tests/<action>-verify<N>.md``) either way and returns one summary line per command.
     ``result`` is the submitted test result (its ``retired_tests`` lower a floor).  ``count=False`` is the
-    non-counting run ``complete --check-only`` makes: the same judgement, recorded at ``check_only_path`` and never
+    non-counting run a check makes: the same judgement, recorded at ``check_path`` and never
     counted as a refused run (see ``verify``).  ``options`` pass through to ``verify`` (runner, env, clock,
     command_timeout).
     """
@@ -1359,11 +1551,11 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
         number = _verify_count(root, action_id)
         path = verify_path(action_id, number) if number else ""
     else:
-        path = check_only_path(action_id)
+        path = check_path(action_id)
     if path and (Path(root) / path).is_file():
         record = store.read_record(Path(root) / path)
         if record.get("reused"):
-            lines.append("candidate: reused the passed check-only run of " + str(record["reused"]["created_at"])
+            lines.append("candidate: reused the check's passed run of " + str(record["reused"]["created_at"])
                          + " (" + str(record["reused"]["path"]) + "): the tree and the recorded commands are unchanged")
         for run in record.get("runs") or ():
             tally = run.get("counts") or {}
@@ -1377,9 +1569,9 @@ def loop_run(root: Path, state: Mapping[str, Any], work_item: str, action_id: st
 # ---------------------------------------------------------------- the step Proof (inline implement, unit W2-A)
 
 def _proof_records(root: Path, action: str) -> List[Tuple[str, Mapping[str, Any]]]:
-    """(run-relative path, record) of this action's readable Proof records: the check-only one, then the numbered ones."""
+    """(run-relative path, record) of this action's readable Proof records: the check's, then the numbered ones."""
     found: List[Tuple[str, Mapping[str, Any]]] = []
-    paths = [step_proof_check_only_path(action)] + [step_proof_path(action, n)
+    paths = [step_proof_check_path(action)] + [step_proof_path(action, n)
                                                      for n in range(1, _count(root, action, step_proof_path) + 1)]
     for relative in paths:
         try:
@@ -1398,7 +1590,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
 
     The Proof is the step plan's ``check`` for the step (``step_command``), judged as a check (``judge``: exit 0, and a
     runner summary that shows no test ran is no pass), with the test loop's timeout and capture.  Its record
-    (``step_proof_path``, or ``step_proof_check_only_path`` for ``count=False``) is bound to the action, the step, the
+    (``step_proof_path``, or ``step_proof_check_path`` for ``count=False``) is bound to the action, the step, the
     command and the candidate: the working trees the run started on and left (``_tree``).  A passed record of this
     action for the same step and command whose trees include today's is taken instead of running again, so an
     unchanged candidate reuses its receipt; at complete that writes a numbered record that says so, and at the Improve
@@ -1421,7 +1613,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                    None) if count else None
     created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if matched is not None:
-        line = ("step-proof: reused the passed " + ("check-only run" if "check-only" in matched[0] else "run") + " of "
+        line = ("step-proof: reused the passed " + ("check's run" if "-check.md" in matched[0] else "run") + " of "
                 + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
         if phase != "complete":
             return {}, "", [line]
@@ -1445,7 +1637,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
               "runs": [run], "trees": [found_tree for found_tree in dict.fromkeys([tree, _tree(root, repo)]) if found_tree]}
     if not count:
         record["counted"] = False
-    relative = step_proof_path(action, number) if count else step_proof_check_only_path(action)
+    relative = step_proof_path(action, number) if count else step_proof_check_path(action)
     writes = {relative: store.dumps(record, "ShipLoop step proof")}
     summary = ["step-proof: [check] " + row["command"] + " -> " + run["status"]]
     if record["passed"]:
@@ -1635,10 +1827,11 @@ def _added_named(output: str, added: Sequence[str]) -> List[str]:
 
 
 def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt: Sequence[str],
-                retired: Sequence[str], added: Sequence[str]) -> Dict[str, Any]:
+                retired: Sequence[str], added: Sequence[str], earlier_step: bool = False) -> Dict[str, Any]:
     """Classify one base run: a focused command's new IDs must not pass; every command is counted for the floor.
 
-    ``status`` is ``red`` (accepted), ``counted`` (a regression command: only its count matters), ``passes-on-base``
+    ``status`` is ``red`` (accepted), ``counted`` (a regression command, or with ``earlier_step`` a focused command
+    holding only earlier steps' cases, which pass on this step's base: only its count matters), ``passes-on-base``
     (a new ID passed, or a focused command without ids exited 0 with no reporter-recognised failure in its tally),
     ``unread`` (a new ID is named but no line says how it ended) or ``not-run`` (a new ID is missing and no load
     failure names a file the item adds).
@@ -1647,8 +1840,10 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
     verdict: Dict[str, Any] = {"counts": tally}
     if retired:
         verdict["retired_shown"] = counts.named(output, list(retired))["shown"]
-    if row["suite"] != "focused":
+    if row["suite"] != "focused" or earlier_step:
         verdict["status"] = "counted"
+        if earlier_step:
+            verdict["earlier_step"] = True
         return verdict
     ids = [test_id for test_id in row.get("ids") or () if test_id not in exempt]
     if not row.get("ids"):
@@ -1712,8 +1907,8 @@ def _explain_base(run: Mapping[str, Any]) -> str:
         if run.get("ids_passing"):
             return ("passed " + ", ".join(run["ids_passing"]) + " on the item's base, without this item's change: "
                     "such a test does not detect the change. Make it assert the behaviour the test spec defines "
-                    "(which the base lacks); if it is a characterisation test that must pass already, name it in the "
-                    "result's red_na with the reason. A command that names the checkout by an absolute path runs the "
+                    "(which the base lacks); if it must pass already (a characterisation test, or a case a step committed "
+                    "before a send-back), name it in the result's red_na with the reason. A command that names the checkout by an absolute path runs the "
                     "candidate, not the base: use a path relative to the repository.")
         return ("exited 0 on the item's base: no test failed without this item's change. List the case IDs it must run "
                 "so ShipLoop can judge each one, and make the tests assert the behaviour the change adds.")
@@ -1747,10 +1942,18 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
     commands = base_commands(state, work_item)
     exempt = [row["id"] for row in _id_records(result, RED_NA)]
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
+    # RED holds only this step's new cases (design T §9 row 4): an earlier step's cases already pass on this step's base,
+    # which is what they should do, so the base run does not judge them (``new_ids``), and a command holding only those
+    # cases, with or without IDs, is counted (``_earlier_step``).  A test registered after an earlier test stage
+    # (``registered``) is not new either, so it is counted here too (design T §9.1 step 3).
+    new = set(new_ids(state, work_item))
+    earlier = [test_id for row in commands if row["suite"] == "focused" for test_id in row.get("ids") or ()
+               if test_id not in new]
     record: Dict[str, Any] = {
         "schema": BASE_SCHEMA, "action": action, "stage": STAGES[0], "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "red_na": exempt, "retired_tests": retired, "runs": [],
+        **({"earlier_steps": earlier} if earlier else {}),
     }
     base = lint.read_base(root, work_item)
     if base is not None and base_commit:
@@ -1788,7 +1991,8 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
                 fields, output = _run_command(runner, row["command"], cwd, command_timeout, environment, clock)
                 run = {**row, **fields}
                 if "status" not in run:
-                    run.update(_judge_base(row, run["exit"], output, exempt, retired, added))
+                    run.update(_judge_base(row, run["exit"], output, [*exempt, *earlier], retired, added,
+                                           _earlier_step(state, work_item, row)))
                 runs.append(run)
     except (TestLoopError, lint.LintError, OSError) as exc:
         failure = str(exc)
@@ -1829,7 +2033,7 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
 
 
 def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
-               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None,
+               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None, count: bool = True,
                **options: Any) -> List[str]:
     """The test stage's base run at complete; raises ``TestLoopError`` with the refusal.
 
@@ -1840,14 +2044,24 @@ def base_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: 
     record ``tests/<action>-base<N>.md`` holds each command's base count (the floor's base term) and counts in
     ``refused_runs`` with the candidate runs.  Returns one summary line per command.  ``options`` pass through
     (runner, env, clock, command_timeout).
+
+    ``count=False`` (``shiploop check``) runs the same base run and judgement and writes ``base_check_path``
+    instead: never counted, and the floors of that check's candidate run come from it (``floor_detail``).
     """
     root = Path(root)
     check_result_fields(state, work_item, result)
     refused = refused_runs(root, action_id)
     record, refusal = _base_run(root, state, work_item, action_id, result, base_commit=base_commit, **options)
-    record["attempt"] = _next_attempt(root, action_id)
-    relative = base_path(action_id, _base_count(root, action_id) + 1)
+    if count:
+        record["attempt"] = _next_attempt(root, action_id)
+        relative = base_path(action_id, _base_count(root, action_id) + 1)
+    else:
+        record["counted"] = False
+        relative = base_check_path(action_id)
     store.atomic_write_text(root / relative, store.dumps(record, "ShipLoop test base run"))
+    if refusal and not count:
+        raise TestLoopError(refusal + "\nFix the tests (or red_na / retired_tests) and check again. This check does not "
+                            "count toward the refused runs. Full output: " + str(root / relative) + ".")
     if refusal:
         if record["disposition"] == "could-not-run":
             tail = _unavailable_sentence(STAGES[0], refused, options.get("command_timeout", COMMAND_TIMEOUT_SECONDS))
@@ -1865,6 +2079,7 @@ def _base_summary(record: Mapping[str, Any]) -> List[str]:
     for run in record.get("runs") or ():
         tally = run.get("counts") or {}
         lines.append("base: [" + run["suite"] + "] " + run["command"] + " -> " + run["status"]
+                     + (" (earlier steps' cases)" if run.get("earlier_step") else "")
                      + (" (" + str(tally.get("ran")) + " ran)" if tally else ""))
     return lines
 
@@ -1887,7 +2102,7 @@ def red_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: s
     """The loop's own view of the base rule: run the base check now, never counted; return (would pass, report lines).
 
     Writes ``tests/<action>-red-check.md`` (replaced each call).  ``result`` may carry the red_na and retired_tests the
-    model intends to submit; without it, every listed ID must fail on the base.
+    model intends to submit; without it, every test ID new at this step must fail on the base.
     """
     root = Path(root)
     try:
@@ -1915,15 +2130,18 @@ __all__ = (
     "STAGES",
     "STEP_PROOF_STAGES",
     "UNAVAILABLE",
+    "STEP_RERUN_STAGE",
     "VERIFY_STAGES",
     "TestLoopError",
     "accepted_counts",
     "action_counts",
     "base_check",
+    "base_check_path",
     "base_commands",
     "base_path",
     "base_worktree",
-    "check_only_path",
+    "check_path",
+    "check_paths",
     "check_result_fields",
     "default_suite_drift",
     "floor_detail",
@@ -1933,7 +2151,7 @@ __all__ = (
     "loop_lines",
     "loop_run",
     "mutation_check",
-    "mutation_check_only_path",
+    "mutation_check_path",
     "mutation_path",
     "new_ids",
     "normalise_commands",
@@ -1945,13 +2163,14 @@ __all__ = (
     "refused_runs",
     "remedy_open",
     "rerun_lines",
-    "reuse_note",
     "rule_lines",
     "stage_commands",
     "step_command",
     "step_proof",
-    "step_proof_check_only_path",
+    "step_proof_check_path",
     "step_proof_path",
+    "take_check",
     "verify",
     "verify_path",
+    "working_tree",
 )

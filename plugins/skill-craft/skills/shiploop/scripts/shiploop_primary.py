@@ -24,7 +24,7 @@ case named.  The owner widened the wording from "about the tests themselves" on 
 or check can observe a structural requirement no single case does.
 
 Where "ran and saw pass" comes from: ShipLoop's own test records, ``tests/<action>-verify<N>.md``, of the accepted
-inner actions (the test stage's candidate run and verify's rerun).  A record that passed, a run in it whose status is
+inner actions (the test stage's candidate run and document's rerun).  A record that passed, a run in it whose status is
 ``passed``, and the IDs that run lists.  Which requirement a test serves comes from the current test-spec results'
 ``test_cases``.  The outer stages' records (system-test, release-verify) do not count: they observe at the e2e layer.
 """

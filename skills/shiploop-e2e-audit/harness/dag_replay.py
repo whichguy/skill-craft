@@ -55,9 +55,10 @@ _PROTOCOL_VERSION = 4
 _PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
+# verify is retired (design T §9.1 2b-4c): each step's document stage and its review close the step, and the item's
+# carry-forward follows the last one.
 _INNER = (
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
-    "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
 )
 _OUTER = (
     "system-test-author", "system-test", "product-acceptance", "release-plan",
@@ -67,10 +68,11 @@ _OUTER = (
 # of the navigator's own constants, for each run option ``planning_review`` a case
 # declares: the planning/contract producers the option reviews, plus the successful
 # carry-forward that leaves no work item pending, park for Improve. Every other
-# producer result is accepted directly.  Each work item's last accepted (done) implement step
-# also parks for Improve, under either option (rule item, 2026-10-26; every step before it,
-# owner decision 2026-10-10).  The synthetic items here have one step, so it parks each time.
-_STEP_CHECKPOINTS = frozenset(("implement",))
+# producer result is accepted directly.  Each step's accepted (done) document stage also parks
+# for Improve, under either option: the step is built, tested and documented, then reviewed
+# before it is committed (design T section 8, 2026-10-27; owner decision 2026-10-10 reviews every
+# step).  The synthetic items here have one step, so it parks once per item.
+_STEP_CHECKPOINTS = frozenset(("document",))
 # Rule first-item (ShipLoop, 2026-10-19): these planning stages are reviewed only for the run's first work item and for
 # an item that was sent back; a later item follows the reviewed pattern.  Declared here, independent of the engine.
 _FIRST_ITEM_CHECKPOINTS = frozenset(("step-plan",))  # test-spec has no review (2026-10-26)

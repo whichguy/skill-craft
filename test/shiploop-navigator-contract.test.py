@@ -39,6 +39,7 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 sys.path.insert(0, str(ROOT / "test"))
+import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_packet_symbols as symbols  # noqa: E402
@@ -65,9 +66,9 @@ def _normalize_checkout_root_prefix(text: str, checkout_root: Path | str) -> str
 EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
+# Verify retired (design T §9.1 2b-4c): each step's document stage and review close it, and ShipLoop commits it.
 EXPECTED_INNER = (
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
-    "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
 )
 GENERIC_ACCESS_STORE_BOUNDARY = (
     "For identity or access discovery, use supported non-mutating probes and sanitized "
@@ -86,7 +87,7 @@ EXPECTED_STAGES = EXPECTED_PRELUDE + EXPECTED_INNER + EXPECTED_OUTER
 # Keep this route expectation independent from the prompt catalog so a removed
 # test-stage guide route cannot redefine the expected coverage with it.
 TEST_HARNESS_STAGES = (
-    "test-strategy", "step-plan", "test-spec", "validate-existing", "implement", "test", "verify",
+    "test-strategy", "step-plan", "test-spec", "validate-existing", "implement", "test",
     "system-test-author", "system-test",
 )
 REPEATABLE_TEST_SUITE_REFERENCE = (
@@ -498,7 +499,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(tuple(prompts.PRELUDE), EXPECTED_PRELUDE)
         self.assertEqual(tuple(prompts.INNER), EXPECTED_INNER)
         self.assertEqual(tuple(prompts.OUTER), EXPECTED_OUTER)
-        self.assertEqual(len(EXPECTED_STAGES), 24)
+        self.assertEqual(len(EXPECTED_STAGES), 23)
         self.assertTrue(all(prompts.prompt(stage).strip() for stage in EXPECTED_STAGES))
         self.assertTrue(all(prompts.improve_prompt(stage).strip() for stage in EXPECTED_STAGES))
 
@@ -561,13 +562,13 @@ class NavigatorContractTests(unittest.TestCase):
             [entry for entry in observed if entry[1] == "producer"],
             [(stage, "producer", item) for item in (0, 1) for stage in EXPECTED_INNER],
         )
-        # Inner Improve children exist at the first item's step-plan (rule first-item, 2026-10-19), after each item's
-        # last implement step (rule item, 2026-10-26; one step per item here) and at the final carry-forward; test-spec
+        # Inner Improve children exist at the first item's step-plan (rule first-item, 2026-10-19), after each step's
+        # document stage (rule item, design T §8; one step per item here) and at the final carry-forward; test-spec
         # has none.
         self.assertEqual(
             [entry for entry in observed if entry[1] == "improve"],
-            [("step-plan", "improve", 0), ("implement", "improve", 0),
-             ("implement", "improve", 1), ("carry-forward", "improve", 1)],
+            [("step-plan", "improve", 0), ("document", "improve", 0),
+             ("document", "improve", 1), ("carry-forward", "improve", 1)],
         )
         self.assertFalse(navigator.render(None, root, state).startswith(prefix))
 
@@ -686,10 +687,10 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(
             tuple(improved),
             tuple(stage for stage in EXPECTED_STAGES
-                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in ("implement", "carry-forward")),
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in ("document", "carry-forward")),
         )
         self.assertEqual(state["status"], "done")
-        self.assertEqual(len(state["history"]), 24)
+        self.assertEqual(len(state["history"]), 23)
         self.assertIsNone(state["active_improve"])
         self.assertIn("<h2>Work item progress</h2>", navigator._render_report(state))
 
@@ -1295,8 +1296,8 @@ class NavigatorContractTests(unittest.TestCase):
 
         The model applies these rules (no script counts fix attempts), so each route's packet must carry the text.
         Both delegations render the same shared paragraphs.  Since the 8-stage inner loop (2026-10-10) step-plan
-        authors the criteria, implement runs the check loop with its stopping rule, and verify confirms each
-        criterion on the candidate.
+        authors the criteria and implement runs the check loop with its stopping rule; since verify retired (design T
+        §9.1 2b-4c) each step's review confirms, after its last edit, a criterion no passing command confirms.
         """
         authoring = (  # step-plan's numbered duty (2026-10-11 dedupe) says each of these once, in item 2 and item 7
             "`<condition>. Confirm by: <what a command observes>; pass when <expected result>`",
@@ -1319,14 +1320,8 @@ class NavigatorContractTests(unittest.TestCase):
             stage_spec.STUCK_FIX,
             "with existing behaviour kept at the conflict point",
         )
-        parent = (
-            "Stale, skipped, missing or other-candidate, command, configuration or target evidence confirms nothing",
-            "A criterion confirmed `searched` or `inspected` whose condition needs execution: report send-back",
-            # The verify duty keeps the send-back route (its closing item) in the re-cut's wording.
-            "Criterion or check unachievable as planned: report send-back naming it",
-        )
         for delegation in (prompts.ASK_AGENT, prompts.INLINE):
-            for stage, phrases in (("step-plan", authoring), ("implement", loop), ("verify", parent)):
+            for stage, phrases in (("step-plan", authoring), ("implement", loop)):
                 text = " ".join(prompts.prompt(stage, delegation=delegation).split())
                 for phrase in phrases:
                     with self.subTest(delegation=delegation, stage=stage, phrase=phrase):
@@ -1335,27 +1330,25 @@ class NavigatorContractTests(unittest.TestCase):
         # items ({items}: the range counted from the duty text, pinned in shiploop-loops); the exit-condition rule is the
         # loop rule, printed once in the until-loop invoke block.
         import shiploop_loops as loops
-        # The ask-agent route's whole-plan Work and duty (the default route of ``prompt``) are as they were; the inline
-        # step's Work (implement-step fix plan 3.4) points at the duty too, which has no path fence (its D3).
-        for stage, route, work, work_pointer, duty_phrase in (
-                ("implement", prompts.ASK_AGENT, loops.WORK["implement"],
-                 "Do duty items {items} of {run}/packets/{action}.md for {step_change}", "edit its paths to meet its criteria"),
-                ("implement", prompts.ASK_AGENT, loops.WORK["implement"], "Do duty items {items} of {run}/packets/{action}.md",
-                 "changing the work, never the check, its expected result or the command"),
-                ("implement", prompts.INLINE, loops.WORK_STEP,
-                 "Do duty items {items} of {run}/packets/{action}.md. Write no tests",
-                 "meet its criteria, nothing no criterion asks for"),
-                ("implement", prompts.INLINE, loops.WORK_STEP, "Do duty items {items} of {run}/packets/{action}.md",
-                 "changing the work, never the Proof or what it expects"),
-                ("verify", prompts.ASK_AGENT, loops.WORK["verify"], "Do duty items {items} of {run}/packets/{action}.md in order",
-                 "Per criterion name the passing command or inspection that confirms it now")):
-            with self.subTest(work=stage, route=route, phrase=duty_phrase):
-                self.assertIn(work_pointer, " ".join(work.split()))
-                self.assertEqual(" ".join(prompts.prompt(stage, delegation=route).split()).count(duty_phrase), 1)
+        # Both routes issue one implement action per step (design T §9.1 2c-1): the step's Work (implement-step fix plan
+        # 3.4) points at the duty, which has no path fence (its D3).
+        for route in (prompts.ASK_AGENT, prompts.INLINE):
+            for work_pointer, duty_phrase in (
+                    ("Do duty items {items} of {run}/packets/{action}.md. Write no tests",
+                     "meet its criteria, nothing no criterion asks for"),
+                    ("Do duty items {items} of {run}/packets/{action}.md",
+                     "changing the work, never the Proof or what it expects")):
+                with self.subTest(work="implement", route=route, phrase=duty_phrase):
+                    self.assertIn(work_pointer, " ".join(loops.WORK["implement"].split()))
+                    self.assertIs(loops.WORK["implement"], loops.WORK_STEP)
+                    self.assertEqual(" ".join(prompts.prompt("implement", delegation=route).split()).count(duty_phrase), 1)
         self.assertIn("Call an exit condition satisfied only when a command or file shows it after your last edit.",
                       " ".join(loops.LOOP_RULE.split()))
-        for stage in ("implement", "verify"):
-            self.assertNotIn("satisfied only when a command or file shows it", " ".join(prompts.prompt(stage).split()))
+        self.assertNotIn("satisfied only when a command or file shows it", " ".join(prompts.prompt("implement").split()))
+        # The parent check P: each step's review confirms what no passing command does.
+        review = " ".join(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.split())
+        self.assertEqual(review.count("a criterion this step serves that no passing command confirms and that you have "
+                                      "not confirmed by inspection after your last edit"), 1)
         # The stopping rule is implement's: a stage that runs no check loop does not carry it.
         self.assertNotIn("genuine fix", " ".join(prompts.prompt("document").split()))
 
@@ -1378,7 +1371,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("Keep inspection separate from retained assertions", strategy)
 
         # Packet re-cut (2026-10-11): a stage whose duty cites the guide keeps its STAGE_REFERENCES line; the others
-        # (test-spec, validate-existing, implement, verify, system-test) reach it through the one run reference file
+        # (test-spec, validate-existing, implement, system-test) reach it through the one run reference file
         # (#policies), which every packet points at and which lists the guide with the same locator.
         reference = self._reference_text(self.repo / ".shiploop")
         self.assertIn("- Repeatable test-suite guide: ", reference)
@@ -1527,15 +1520,27 @@ class NavigatorContractTests(unittest.TestCase):
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             state = self._produce(state, stage, **extra)
 
-        # test-spec starts no Improve child (2026-10-26): the test stage's own checks bind its cases. The item's
-        # implement review (rule item) is the first inner child after it, and its handoff carries the repeatable-suite
-        # duties; the test stage itself never starts an Improve child.
+        # test-spec starts no Improve child (2026-10-26): the test stage's own checks bind its cases. The step's review
+        # (rule item, after its document stage, design T §8) is the first inner child after it, and its handoff carries
+        # the repeatable-suite duties; the test stage itself never starts an Improve child.
         self.assertIsNone(navigator.apply(state, self._action(state)["id"], result())["active_improve"])
-        while navigator.current_stage(state) != "implement":
+        while navigator.current_stage(state) != "test":
+            state = self._produce(state, navigator.current_stage(state))
+        producer_packet = navigator.render(None, self.repo / ".shiploop", state)
+        # RED is ShipLoop's base run, not a stage of its own: the test packet states the condition it checks, for the
+        # cases new at this step (design T §8: an earlier step's cases already pass on this step's base).
+        self.assertIn(
+            "no test ID new at this step passes on the step's base checkout, unless red_na names it",
+            producer_packet,
+        )
+        self.assertIsNone(
+            navigator.apply(state, self._action(state)["id"], result())["active_improve"]
+        )
+        while navigator.current_stage(state) != "document":
             state = self._produce(state, navigator.current_stage(state))
         action = self._action(state)
         waiting = self._pending(state)
-        self.assertEqual(navigator.current_stage(waiting), "implement")
+        self.assertEqual(navigator.current_stage(waiting), "document")
         self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
         bound = self._bind_synthetic_child(waiting)
 
@@ -1557,22 +1562,11 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(stage="Improve handoff", duty=duty):
                 self.assertIn(duty, handoff)
 
-        state = self._complete_improve(bound, action, "implement")
-        while navigator.current_stage(state) != "test":
-            state = self._produce(state, navigator.current_stage(state))
-        producer_packet = navigator.render(None, self.repo / ".shiploop", state)
-        # RED is now ShipLoop's base run, not a stage of its own: the test packet states the condition it checks.
-        self.assertIn(
-            "no new test ID passes on the item's base checkout, unless red_na names it",
-            producer_packet,
-        )
-        self.assertIsNone(
-            navigator.apply(state, self._action(state)["id"], result())["active_improve"]
-        )
+        self._complete_improve(bound, action, "document")
 
     def test_initial_baseline_guidance_survives_improve_and_cold_step_plan(self) -> None:
         """Initial-baseline evidence stays in ordinary records without new graph state."""
-        self.assertEqual(len(EXPECTED_STAGES), 24)
+        self.assertEqual(len(EXPECTED_STAGES), 23)
         self.assertTrue(self.initial_baseline_guide.is_file())
         initial_baseline = str(self.repo / ".shiploop" / "evidence" / "smoke.log")
         prerequisite_context = (
@@ -1692,11 +1686,9 @@ class NavigatorContractTests(unittest.TestCase):
             str(self.repo), original_request, improve_skill="",
             delegation="ask-agent",
         )
-        reconciliation_stages = {
-            "verify", "integration-verify", "system-test", "product-acceptance",
-            "release-verify", "handoff",
-        }
-        cold_stages = {"verify", "product-acceptance", "handoff"}
+        reconciliation_stages = {"system-test", "product-acceptance", "release-verify", "handoff"}
+        # document: the inner stage that closes a step, since verify retired (design T §9.1 2b-4c).
+        cold_stages = {"document", "product-acceptance", "handoff"}
         runtime_stages = {"discovery", "spec", "test-strategy", "product-acceptance"}
         cold_root = Path(self.temp.name) / "cold-evidence-packets"
         cold_root.mkdir()
@@ -1982,8 +1974,8 @@ class NavigatorContractTests(unittest.TestCase):
             stage = navigator.current_stage(state)
             item_id = state["work_items"][state["work_index"]]["id"]
             action = self._action(state)
-            if item_id == "AUDIT" and stage == "verify" and not blocked:
-                # verify is not a checkpoint stage; a blocked outcome takes
+            if item_id == "AUDIT" and stage == "test" and not blocked:
+                # test is not a checkpoint stage (verify was this probe until it retired); a blocked outcome takes
                 # effect immediately, with no Improve child to complete.
                 blocked_state = navigator.apply(
                     state,
@@ -1991,12 +1983,12 @@ class NavigatorContractTests(unittest.TestCase):
                     blocked_result(summary="Audit target is temporarily unavailable."),
                 )
                 self.assertEqual(blocked_state["status"], "blocked")
-                self.assertEqual(navigator.current_stage(blocked_state), "verify")
+                self.assertEqual(navigator.current_stage(blocked_state), "test")
                 self.assertEqual(blocked_state["work_index"], 2)
                 state = navigator.control(
                     blocked_state, "resume", observed="Audit target became available."
                 )
-                self.assertEqual(navigator.current_stage(state), "verify")
+                self.assertEqual(navigator.current_stage(state), "test")
                 self.assertEqual(state["work_index"], 2)
                 blocked = True
                 continue
@@ -2379,7 +2371,8 @@ class NavigatorContractTests(unittest.TestCase):
         state = self._advance_to_carry_forward(self._planned_queue(rows))
         state = self._produce(state, "carry-forward")
         self.assertEqual(navigator._current_work_item(state), "W2")
-        while navigator.current_stage(state) != "verify":
+        # W2's test stage: an inner stage between two others (verify was this probe until it retired, design T 2b-4c).
+        while navigator.current_stage(state) != "test":
             state = self._produce(state, navigator.current_stage(state))
         before, fields = copy.deepcopy(state), set(state)
         root = (Path(self.temp.name) / "progress-run").resolve()
@@ -2397,7 +2390,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(state, before)
         for line in (
             "Phase: inner | Run status: active",
-            "Current: verify (assigned; execution unproven).",
+            "Current: test (assigned; execution unproven).",
             "Owner: W2.",
             "Preparation stages: 7/7 accepted done.",
             "Outer stages: 0/9 accepted done.",
@@ -2406,9 +2399,10 @@ class NavigatorContractTests(unittest.TestCase):
             "Current work item: W2: Finish the second small capability",
         ):
             self.assertIn(line, progress)
-        self.assertIn("document", self._stages(progress, "Current item stages completed"))
-        self.assertNotIn("verify", self._stages(progress, "Current item stages completed"))
-        self.assertNotIn("verify", self._stages(progress, "Current item stages pending"))
+        self.assertIn("implement", self._stages(progress, "Current item stages completed"))
+        self.assertNotIn("test", self._stages(progress, "Current item stages completed"))
+        self.assertNotIn("test", self._stages(progress, "Current item stages pending"))
+        self.assertIn("document", self._stages(progress, "Current item stages pending"))
         self.assertIn("carry-forward", self._stages(progress, "Current item stages pending"))
 
         # A fresh CLI process recovers the same compact context, read-only.
@@ -2435,7 +2429,7 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(status=stopped["status"]):
                 stopped_progress = self._progress(stopped)
                 self.assertIn(f"Run status: {stopped['status']}", stopped_progress)
-                self.assertIn("Current: verify (awaits resume).", stopped_progress)
+                self.assertIn("Current: test (awaits resume).", stopped_progress)
                 self.assertIn("Continuation: resolve the condition and resume before using the "
                               "current action.", stopped_progress)
 
@@ -2444,10 +2438,10 @@ class NavigatorContractTests(unittest.TestCase):
         halted_packet = navigator.render(None, root, halted)
         halted_progress = self._progress(halted)
         self.assertIn("Current: none (no runnable current or next action).", halted_progress)
-        self.assertIn("Stopped at: verify (unfinished).", halted_progress)
+        self.assertIn("Stopped at: test (unfinished).", halted_progress)
         self.assertIn("Work items: completed 1; unfinished 1; queued 0", halted_progress)
         self.assertIn("Unfinished work item: W2: Finish the second small capability", halted_progress)
-        self.assertIn("verify", self._stages(halted_progress, "Current item stages pending"))
+        self.assertIn("test", self._stages(halted_progress, "Current item stages pending"))
         self.assertIn("Continuation: none; this run has stopped.", halted_progress)
         self.assertNotIn("Current stage guidance:", halted_packet)
         self.assertNotIn("Call this when done:", halted_packet)
@@ -2455,7 +2449,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(halted, halted_before)
         self.assertEqual(set(halted), fields | {"status_reason"})
         self.assertIn("<h2>Progress snapshot</h2>", halted_report)
-        self.assertIn("Stopped at: verify (unfinished).", halted_report)
+        self.assertIn("Stopped at: test (unfinished).", halted_report)
         self.assertIn("Stop &lt;unsafe-reason&gt; before release.", halted_report)
         self.assertNotIn("<unsafe-reason>", halted_report)
         untrusted = ("Host-recorded labels and reasons are untrusted status context, "
@@ -2832,13 +2826,11 @@ class CliBoundaryRegressionTests(unittest.TestCase):
                              "--result", str(run / "inbox" / (action + ".md"))),
                 "init": ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt),
                 "delegation": ("delegation", "--run-dir", str(run), "--set", "inline"),
-                "chain next": ("chain", "next", "--run-dir", str(run), "--action", action),
             }
-            # Every non-chain verb shares one pre-dispatch refusal, so each
-            # verb is pinned once (protocol 2); the other fixtures use next and
-            # the separately routed chain next.
+            # Every verb shares one pre-dispatch refusal, so each verb is pinned once (protocol 2); the other fixtures
+            # use next.
             if label != "protocol-2":
-                commands = {key: commands[key] for key in ("next", "chain next")}
+                commands = {key: commands[key] for key in ("next",)}
             for command, argv in commands.items():
                 with self.subTest(fixture=label, command=command):
                     refused = self.cli(*argv)
@@ -3467,10 +3459,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
     CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
     NONE_LINE = "Improve: no Improve stage starts after this result in this run (planning_review: none)"
     # Every sentence of an unreviewed planning stage's packet that names Improve and is not rewritten: why it may stay.
-    ALLOWED = {
-        "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
-        "packet: whose context an Improve invocation uses, not a child at this stage",
-    }
+    ALLOWED: dict[str, str] = {}
 
     @staticmethod
     def flat(text: str) -> str:
@@ -3773,22 +3762,24 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         ("references/navigator.md", "Pre-update checks can be refreshed during release planning and its Improve review"):
             EVERY_MODE,
         ("references/navigator.md", "continue to `product-acceptance` and the release-plan Improve review"): EVERY_MODE,
-        ("README.md", "one Improve child reviews the item's whole change after its last step (in both planning review modes)"):
-            "the per-item implement child starts in every mode; the list item says so",
+        ("README.md", "One Improve child then reviews the step's code, tests and docs after its `document` stage (in both "
+                      "planning review modes)"):
+            "the per-step review after document starts in every mode; the list item says so",
         ("README.md", "(and, for the last item, its Improve child is imported), the script selects the next item's "
                       "`step-plan`"): EVERY_MODE,
         ("references/carry-forward.md", "I[End-of-work Improve stage, then system-test-author]"): EVERY_MODE,
-        ("references/navigator.md", "each item's implemented change is reviewed by one Improve stage after its last step"):
-            "the per-item implement child starts in every mode (rule item, 2026-10-26); the sentence names "
-            "test-spec only as the source of the tests",
+        ("references/navigator.md", "each step is built, tested and documented and then reviewed by one Improve stage "
+                                    "before the next step starts"):
+            "the per-step review after document starts in every mode (rule item, design T section 8); the sentence "
+            "names the test spec only as the source of the tests",
         ("references/workspace-lifecycle.md", "once no Improve child is active (the end-of-work child and the "
                                                "`release-plan` child have been imported)"): EVERY_MODE,
         # R4 (2026-10-24) names the schedule "Improve stage", so the scan reads that phrase too; these sentences use it.
-        ("references/navigator.md", "The Improve stages after each item's last `implement` step, `system-test-author`, "
+        ("references/navigator.md", "The Improve stages after each step's `document` stage, `system-test-author`, "
                                     "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
-        ("references/run-options.md", "The Improve stages after each item's last `implement` step, `system-test-author`, "
+        ("references/run-options.md", "The Improve stages after each step's `document` stage, `system-test-author`, "
                                       "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
-        ("references/navigator.md", "R -->|Reviewed planning stage, item's last implement step or last carry-forward| I[Improve stage"):
+        ("references/navigator.md", "R -->|Reviewed planning stage, a step's document stage or last carry-forward| I[Improve stage"):
             "a diagram edge taken only by a stage the option reviews ('Reviewed planning stage'); the text after the "
             "diagram states both schedules",
         ("references/planning-experiments.md", "imports it with the Improve stage's `complete`"):
@@ -3802,8 +3793,6 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         ("references/improve-context.md", "for the selected initial Plan Improve child using the bundled ephemeral runtime"):
             PLAN_CHILD,
         ("references/navigator.md", "Its initial Plan Improve child can return a stopped"): PLAN_CHILD,
-        ("references/parallel-chain.md", "If the graph is first created or materially changed after that planning review"):
-            "follows the paragraph that states both schedules; says what a graph changed later needs before it is bound",
         ("references/planning-experiments.md", "This planning-specific duty applies only to the initial bound Plan Improve child"):
             PLAN_CHILD,
         ("references/planning-experiments.md", "A plan-local finding stays in the current Improve child."): PLAN_CHILD,
@@ -3885,14 +3874,13 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "references/navigator.md": ("`stage` or `none`", "starts no Improve stage",
                                         "a `--planning-review none` run is refused without `--improve-skill`"),
             "references/state-files.md": ("`stage` or `none`",
-                                          "holds only the records of each `implement` step, `system-test-author`"),
+                                          "holds only the records of each step's `document` stage, `system-test-author`"),
             "references/graph-dry-run.md": ("--planning-review none", "`--planning-review stage|none`"),
             "references/planning-experiments.md": ("`planning_review: none`", "no Plan Improve child"),
             "references/improve-context.md": ("a `none` run has no Plan Improve child",),
             "references/research-loop.md": ("`planning_review: none`",),
             "references/execution-planning.md": ("a `none` run has no such review",),
             "references/backchain-planning.md": ("`planning_review: none`",),
-            "references/parallel-chain.md": ("`planning_review: none`", "`backchain-check`"),
             "references/testing-and-documentation.md": ("Under `none` no Improve review follows them",),
         }
         for name, needles in pins.items():
@@ -3922,7 +3910,6 @@ class BackchainGateDocumentsTest(unittest.TestCase):
     # Mentions that are not a Backchain gate statement, each with its reason.
     NOT_A_GATE = {
         "skills/backchain/references/harness.md": "says direct harness commands do not perform the reviews; no gate",
-        "skills/shiploop/references/parallel-chain.md": "Improve's own gate; Backchain only informs that review",
     }
 
     @staticmethod
@@ -4144,12 +4131,12 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                    "SHIPLOOP_KEEPALIVE": "off"},
                               cwd=self.base, text=True, capture_output=True, timeout=120)
 
-    def submit(self, result: dict, *, check_only: bool = False, loop: bool = True) -> subprocess.CompletedProcess:
+    def submit(self, result: dict, *, check: bool = False, loop: bool = True) -> subprocess.CompletedProcess:
         """Write ``result`` to the inbox and run `shiploop complete`; an inner stage's loop runs first."""
         state = self.state()
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]
-        if loop and not check_only and stage in EXPECTED_INNER and result.get("outcome") != "blocked":
+        if loop and not check and stage in EXPECTED_INNER and result.get("outcome") != "blocked":
             receipt = self.loop_support.finish_loop(
                 self.run_dir, outcome="done" if result.get("outcome") == "done" else "blocked")
             result = self.loop_support.with_receipt(result, receipt)
@@ -4169,14 +4156,16 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 result = {**inner_fixture.fixture_primary(state), **result}    # run-5 batch F6
             if stage == "test-strategy":
                 result = {**inner_fixture.fixture_test_layers(), **result}     # run-5 batch F1, F3
-            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
-                         "release-verify"):
+            if stage in assumptions.OPEN_ITEM_STAGES:
                 result.setdefault("assumptions", [])
+            if stage == "document":
+                result.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))
-        argv = ["complete", "--run-dir", str(self.run_dir), "--action", action, "--result", str(path)]
-        return self.cli(*argv, *(["--check-only"] if check_only else []))
+        argv = ["check" if check else "complete", "--run-dir", str(self.run_dir), "--action", action, "--result",
+                str(path)]
+        return self.cli(*argv)
 
     def accept(self, result: dict, **options: Any) -> None:
         if navigator.current_stage(self.state()) == "implement" and result.get("outcome") == "done":
@@ -4193,6 +4182,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         updated, writes, payload = navigator._transition(self.core, self.run_dir, state, updated)
         navigator.save(self.run_dir, updated, writes)
         navigator._lint_finish(self.run_dir, payload)
+        navigator._iteration_entry(self.run_dir, state, updated)
 
     def step_plan(self, expectations: list[dict]) -> dict:
         return {
@@ -4307,7 +4297,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(self.settle(), "implement")
         (self.repo / "notes.md").write_text("# Notes\n")
         self.accept(result(summary="Wrote notes.md."))
-        self.assertEqual(self.settle(), "verify")
+        self.assertEqual(self.settle(), "carry-forward")  # the last step's document closes the item (verify retired)
         outcomes = self.item_stage_outcomes()
         self.assertTrue(outcomes["document"].startswith(item_scope.NOT_APPLICABLE), outcomes["document"])
         self.assertIn("touch no code or test path: notes.md", outcomes["document"])
@@ -4315,28 +4305,36 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         # The documentation-only item also has no test command, so the test stage is recorded the same way.
         self.assertTrue(outcomes["test"].startswith(item_scope.NOT_APPLICABLE), outcomes["test"])
 
-    def test_an_accepted_inline_step_is_committed_with_its_notes_before_its_improve_stage(self) -> None:
-        # Build plan S3.2: each accepted inline step is its own commit, made at the producer's complete (the Improve
-        # stage after it has not started), with the Key learnings, Key decisions, Evidence and Related commits sections.
+    def test_a_steps_iteration_is_one_commit_made_after_its_document_stage_and_review(self) -> None:
+        # Design T §8 (owner 2026-10-27: "We should commit on every iteration right after the documentation"): an inline
+        # step is built, tested, documented and reviewed before ShipLoop commits it, as one commit with the Key learnings,
+        # Key decisions, Evidence and Related commits sections of its build's result (build plan S3.2's message).
         self.start()
         self.to_validate_existing([dict(self.ABSENT_NOTES)])
         self.assertEqual(self.settle(), "implement")
         base = self.git("rev-parse", "HEAD").strip()
+        action = navigator.current_action(self.state())["id"]
         (self.repo / "notes.md").write_text("# Notes\n")
         self.accept(result(summary="Wrote notes.md.", headline="Add the notes file.",
                            learned=["The notes file needs no build step."],
                            decisions=["Plain Markdown, no front matter: nothing reads metadata."], learned_from=[base]))
-        subject, body = self.git("log", "-1", "--format=%s%x00%b").split("\0")
-        self.assertEqual(subject, "feat(W1/S1): Add the notes file")
+        self.assertNotIn("notes.md", self.git("log", "--format=", "--name-only", base + "..HEAD").split(),
+                         "the step is not committed at its build")
+        # Its test stage is left out (no test command, documentation-only paths) and so is its document stage (no code or
+        # test path changed); the left-out document still owns the step's review (design T §9 row 2).
+        child = self.state()["active_improve"]
+        self.assertEqual(child["stage"], "document")
+        self.settle()
+        commits = [line.split("\0") for line in self.git("log", "--format=%H%x00%s", base + "..HEAD").splitlines()]
+        steps = [sha for sha, subject in commits if subject == "feat(W1/S1): Add the notes file"]
+        self.assertEqual(len(steps), 1, commits)
+        body = self.git("log", "-1", "--format=%b", steps[0])
         for line in ("Wrote notes.md.", "Key learnings:\n- The notes file needs no build step.",
                      "Key decisions:\n- Plain Markdown, no front matter: nothing reads metadata.", "Evidence:\n- ",
                      "Related commits:\n- " + base):
             self.assertIn(line, body)
-        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), ["notes.md"])
-        # The step's Improve stage is pending: the commit came first, so the review's diff is its own.
-        child = self.state()["active_improve"]
-        self.assertEqual(child["stage"], "implement")
-        self.assertEqual(navigator.step_commit(self.run_dir, child["action_id"]), self.git("rev-parse", "HEAD").strip())
+        self.assertEqual(self.git("show", "--name-only", "--format=", steps[0]).split(), ["notes.md"])
+        self.assertEqual(navigator.step_commit(self.run_dir, action), steps[0])
 
     THREE_STEP_PATHS = ("notes.md", "todo.md", "log.md")
 
@@ -4355,6 +4353,41 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                              for n, path in enumerate(paths, 1)],
         }
 
+    def test_each_step_records_its_iteration_and_starts_from_the_commit_its_entry_left(self) -> None:
+        # Design T §9.1 step 2b-1 (owner 2026-10-28, "Start 2b"): the per-step iteration's identity (shiploop_iteration:
+        # item, plan revision, step, base commit) is recorded as each step begins, from the commit the call that entered it
+        # left, so every later stage of the step names the same base. A base is a commit, never a dirty snapshot.
+        import shiploop_iteration as iteration
+        import shiploop_test_loop as test_loop
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan(one_group=True))
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        plan = test_loop._step_plan(self.state(), "W1")[0]
+        bases, commits = [], []
+        for number, path in enumerate(self.THREE_STEP_PATHS, 1):
+            state = self.state()
+            self.assertEqual(navigator.current_stage(state), "implement")
+            head = self.git("rev-parse", "HEAD").strip()
+            self.assertEqual(navigator.current_iteration(self.run_dir, state),
+                             iteration.Iteration("W1", plan, "S" + str(number), number, head))
+            if commits:
+                self.assertEqual(subprocess.run(["git", "-C", str(self.repo), "merge-base", "--is-ancestor",
+                                                 commits[-1], head]).returncode, 0,
+                                 "S" + str(number) + " starts from a commit that holds the step before it")
+            bases.append(head)
+            action = navigator.current_action(state)["id"]
+            (self.repo / path).write_text("# " + path + "\n")
+            self.accept(result(summary="Wrote " + path + "."))
+            self.settle()   # the step's test and document are left out; its review runs, then its commit
+            commits.append(navigator.step_commit(self.run_dir, action))
+            self.assertTrue(commits[-1], "S" + str(number) + " was committed")
+        ledger = json.loads((self.run_dir / "iterations" / "W1.json").read_text(encoding="utf-8"))
+        self.assertEqual(ledger, {"plans": {plan: {
+            "S" + str(number): {"number": number, "base": base, "commit": commit}
+            for number, (base, commit) in enumerate(zip(bases, commits), 1)}}})
+
     def test_a_test_spec_result_starts_no_improve_stage(self) -> None:
         # Owner 2026-10-26 (design 560c396f, P0): the test-spec review is dropped. Over seven runs it made 2 real catches in
         # 14 reviews, and the test stage's own checks (RED on the base, the candidate run, the mutation check) bind its cases.
@@ -4367,76 +4400,229 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertIsNone(state["active_improve"], "a test-spec result starts no Improve stage")
         self.assertEqual(navigator.current_stage(state), "implement")
 
-    def test_a_three_step_item_starts_one_improve_stage_after_its_last_step_over_the_whole_item(self) -> None:
-        # Owner 2026-10-26 (design 560c396f, P0): one implement review per work item, after its last step, instead of one
-        # per step. DeepSeek battleship ran 12 step reviews in 28 minutes for 3 real code fixes; 8 of 40 step reviews over
-        # seven runs changed no code. The review takes the item's whole change, so the tests written next cover its fixes.
-        # Its steps share their paths (one group): an item whose steps work on separate paths is wide (next test).
+    def test_each_step_is_built_tested_documented_and_reviewed_before_the_next_starts(self) -> None:
+        # Design T §8 (owner 2026-10-27: "build one step, then test, improve, and document, and then build step number
+        # two"; 2026-10-28: Improve "should come after document"): each step runs implement, test and document, and its
+        # one review follows its document stage over the step's code, tests and docs, before the next step is built.
         self.start()
         self.drive_to_step_plan()
-        self.accept(self.three_step_plan(one_group=True))
+        self.accept(self.three_step_plan())
         self.assertEqual(self.settle(), "test-spec")
         self.accept(result())
-        bases = []
+        import shiploop_lint as lint
         for number, path in enumerate(self.THREE_STEP_PATHS, 1):
             state = self.state()
             self.assertEqual((navigator.current_stage(state), state["active_improve"]), ("implement", None))
-            bases.append(navigator.current_action(state).get("base"))
             (self.repo / path).write_text("# " + path + "\n")
             self.accept(result(summary="Wrote " + path + "."))
             child = self.state()["active_improve"]
-            if number < len(self.THREE_STEP_PATHS):
-                self.assertIsNone(child, "S" + str(number) + " is not the item's last step: no review yet")
-                self.assertEqual(navigator.current_stage(self.state()), "implement")
-            else:
-                self.assertEqual(child["stage"], "implement")
-        self.assertTrue(bases[0], "the first step's entry tree is recorded")
-        handoff = navigator.improve_handoff_text(self.core, self.run_dir, self.state())
-        self.assertIn("This result is steps S1 to S3 of the item's step", handoff)
-        self.assertIn("Review base (the item's change since its first step began", handoff)
-        self.assertIn(" diff " + str(bases[0]) + " ", handoff, "the diff starts at S1's entry tree, not S3's")
-        self.settle()
+            self.assertEqual(child and child["stage"], "document", "S" + str(number) + " is reviewed after its document")
+            handoff = navigator.improve_handoff_text(self.core, self.run_dir, self.state())
+            self.assertIn("Step S" + str(number) + " (" + str(number) + " of 3), the only work for this packet", handoff)
+            self.assertIn("This result is one step of the item's step", handoff)
+            self.assertIn("Review base (the step's change since it began: its code, its tests and its docs", handoff)
+            base = lint.read_base(self.run_dir, "W1")["tree"]
+            self.assertIn(" diff " + str(base) + " ", handoff, "the diff starts at this step's own base")
+            self.assertIn("Leave your edits uncommitted", " ".join(handoff.split()))
+            self.settle()
         state = self.state()
-        steps = [row["action"] for row in state["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
-        self.assertEqual(len(steps), 3)
-        self.assertEqual([action for action in steps if action in state["improve_results"]], [steps[-1]],
-                         "one implement review for the item, recorded on its last step")
+        stages = [row["stage"] for row in state["history"]
+                  if row["workitem"] == "W1" and row["stage"] in ("implement", "test", "document")]
+        self.assertEqual(stages, ["implement", "test", "document"] * 3)
+        documents = [row["action"] for row in state["history"] if row["stage"] == "document" and row["workitem"] == "W1"]
+        self.assertEqual([action for action in documents if action in state["improve_results"]], documents)
+        self.assertEqual(navigator.current_stage(state), "carry-forward")  # the last step's document closes the item
 
-    def test_a_wide_item_starts_an_improve_stage_after_each_step_over_that_steps_own_change(self) -> None:
-        # Owner 2026-10-27 (design 8e9d2d55, B): an item whose steps work on separate paths (more than one path group)
-        # keeps one review per step. Sonnet makes one finding pass per review (19 of 19 Improve stages), so its one review
-        # of battleship 491d9a's three-component item missed the three defects its per-step baseline 01b9b3 fixed.
+    def test_each_step_is_committed_alone_and_the_next_step_starts_from_its_commit(self) -> None:
+        # Design T §8: one commit per iteration, holding only its step's change; the next step's base is recaptured after
+        # it (``_iteration_base``), so the following commit holds only the next step's files.
         self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        for path in self.THREE_STEP_PATHS:
+            action = navigator.current_action(self.state())["id"]
+            (self.repo / path).write_text("# " + path + "\n")
+            self.accept(result(summary="Wrote " + path + "."))
+            self.settle()
+            commit = navigator.step_commit(self.run_dir, action)
+            self.assertTrue(commit, path)
+            self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), [path])
+
+    def test_an_ask_agent_run_builds_commits_and_advances_one_step_at_a_time_as_an_inline_run_does(self) -> None:
+        # Design T §9.1 2c-1 (owner G1, 2026-10-29: "Adopt (a2)"): the ask-agent route drops the chain. Its implement is
+        # issued once per planned step, built by a fresh worker in the execution checkout, and each step is tested,
+        # documented, reviewed and committed by ShipLoop before the next one starts, exactly as on the inline route.
+        self.start(delegation="ask-agent")
         self.drive_to_step_plan()
         self.accept(self.three_step_plan())
         self.assertEqual(self.settle(), "test-spec")
         self.accept(result())
         for number, path in enumerate(self.THREE_STEP_PATHS, 1):
             state = self.state()
-            self.assertEqual((navigator.current_stage(state), state["active_improve"]), ("implement", None))
-            base = navigator.current_action(state).get("base")
-            self.assertTrue(base, "S" + str(number) + "'s entry tree is recorded")
+            self.assertEqual(navigator.current_stage(state), "implement", "S" + str(number) + " is built next")
+            view = navigator.step_view(state, "W1")
+            self.assertIsNotNone(view, "an ask-agent step is a step of the iteration")
+            self.assertEqual((view.step["id"], view.number), ("S" + str(number), number))
+            action = navigator.current_action(state)["id"]
             (self.repo / path).write_text("# " + path + "\n")
             self.accept(result(summary="Wrote " + path + "."))
-            child = self.state()["active_improve"]
-            self.assertEqual(child and child["stage"], "implement", "S" + str(number) + " is reviewed on its own")
-            handoff = navigator.improve_handoff_text(self.core, self.run_dir, self.state())
-            self.assertIn("Step S" + str(number) + " (" + str(number) + " of 3), the only work for this packet", handoff)
-            self.assertIn("This result is one step of the item's step", handoff)
-            self.assertNotIn("Steps this review covers", handoff)
-            self.assertIn("Review base (the step's change since it began", handoff)
-            self.assertIn(" diff " + str(base) + " ", handoff, "the diff starts at this step's own entry tree")
+            self.assertEqual(self.state()["active_improve"]["stage"], "document", "S" + str(number) + " is reviewed")
             self.settle()
-        state = self.state()
-        self.assertNotEqual(navigator.current_stage(state), "implement")
-        steps = [row["action"] for row in state["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
-        self.assertEqual(len(steps), 3)
-        self.assertEqual([action for action in steps if action in state["improve_results"]], steps,
-                         "a wide item's steps are each reviewed")
+            commit = navigator.step_commit(self.run_dir, action)
+            self.assertTrue(commit, "S" + str(number) + " was committed by ShipLoop")
+            self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), [path])
+            self.assertEqual(self.git("log", "-1", "--format=%s", commit),
+                             "feat(W1/S" + str(number) + "): Write " + path + "\n")
+        implements = [row for row in self.state()["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
+        self.assertEqual(len(implements), 3, "one implement action per step")
 
-    def test_a_wide_items_step_that_changed_no_file_starts_no_improve_stage(self) -> None:
-        # Design 8e9d2d55: a wide item's step whose own change is empty gets no review, as P4 skips an item none of whose
-        # steps changed a file (DeepSeek battleship 759a03 W3: its S2 and S3 changed nothing, so it keeps one review).
+    def to_first_step_review(self) -> tuple[str, str]:
+        """Build S1 of the three-step plan (it writes notes.md) up to its review; returns (the iteration's base, S1's
+        implement action)."""
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        base = self.git("rev-parse", "HEAD").strip()
+        action = navigator.current_action(self.state())["id"]
+        (self.repo / "notes.md").write_text("# notes.md\n")
+        self.accept(result(summary="Wrote notes.md."))
+        self.assertEqual(self.state()["active_improve"]["stage"], "document")
+        return base, action
+
+    def assert_step_one_committed_once_on(self, base: str, action: str) -> None:
+        commit = navigator.step_commit(self.run_dir, action)
+        self.assertEqual(self.git("rev-list", base + "..HEAD").split(), [commit], "one commit, the step's")
+        self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), ["notes.md"])
+        plans = json.loads((self.run_dir / "iterations" / "W1.json").read_text(encoding="utf-8"))["plans"]
+        self.assertEqual(next(iter(plans.values()))["S1"], {"number": 1, "base": base, "commit": commit})
+        self.assertEqual(navigator.current_stage(self.state()), "implement", "S2 is next")
+
+    def test_a_step_whose_commit_cannot_land_does_not_advance_and_the_same_call_commits_it_once_fixed(self) -> None:
+        # Design T §9 row 3 (Astra, 2026-10-27): the commit is a recoverable gate, and the step advances only on its
+        # success. Git refusing the commit (here a held index lock) refuses the call that would close the step, so
+        # nothing is saved and the change stays in the checkout; the same call, made again, commits it.
+        base, action = self.to_first_step_review()
+        before = self.state()
+        lock = self.repo / ".git" / "index.lock"
+        lock.write_text("")
+        with self.assertRaises(navigator.NavigatorError) as refused:
+            self.finish_improve()
+        self.assertIn("index.lock", str(refused.exception))
+        self.assertIn("run the same callback again", str(refused.exception))
+        self.assertEqual(self.state(), before, "the step stays at its review")
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), base)
+        lock.unlink()
+        self.settle()
+        self.assert_step_one_committed_once_on(base, action)
+
+    def stops_before_the_state_is_saved(self, *, after_targets: int | None = None):
+        """A ``store.transaction`` that stops the call carrying the step's state, as a process killed there would: with
+        ``after_targets`` None before the transaction writes anything; else once that many of its files are written,
+        which leaves the journal for the next run's ``store.recover``."""
+        real = store.transaction
+
+        def transaction(root: Path, writes: dict, *args: Any, **options: Any) -> None:
+            if "state.md" not in writes:
+                return real(root, writes, *args, **options)
+            if after_targets is None:
+                raise OSError("the call stopped after Git committed and before the state was saved")
+
+            def stop(kind: str, index: int) -> None:
+                if index >= after_targets:
+                    raise OSError("the call stopped part way through the save")
+            return real(root, writes, *args, fault=stop, **options)
+
+        return patch.object(store, "transaction", transaction)
+
+    def test_a_step_commit_that_landed_before_shiploop_saved_it_is_recognised_on_retry_not_made_again(self) -> None:
+        # Design T §9 row 3: the commit stage writes a pending record (the iteration, its parent, the tree to commit)
+        # before it commits, so a call that stops after Git's commit and before ShipLoop saves it is retried without a
+        # second commit (``iteration.commit_decision``'s "done").  Astra's finding 2 (design T §9.1 2c-0): the record
+        # that the commit happened and the state it advances must be saved together.  Before, the call recorded the
+        # commit in the ledger and dropped ``pending`` first, so a retry after this stop found HEAD on its own commit with
+        # no pending record and refused it.
+        base, action = self.to_first_step_review()
+        with self.stops_before_the_state_is_saved(), self.assertRaises(OSError):
+            self.finish_improve()
+        self.assertEqual(self.git("rev-parse", "HEAD^").strip(), base, "Git committed the step")
+        self.assertEqual(navigator.current_stage(self.state()), "document", "the state was not saved")
+        self.settle()
+        self.assert_step_one_committed_once_on(base, action)
+
+    def test_a_save_cut_part_way_rolls_the_step_commit_forward_with_the_state_and_the_next_step_is_committed(self) -> None:
+        # The same stop with the save under way (Astra's finding 2): the journal holds the ledger row, the commit file and
+        # the state together, and the next `shiploop` run completes all of it before anything reads either.  The call also
+        # never reached the next step's entry, so the run's next call records that step's base (finding 2's second
+        # window); S2 is then built, tested, documented and committed on S1's commit.
+        base, action = self.to_first_step_review()
+        with self.stops_before_the_state_is_saved(after_targets=1), self.assertRaises(OSError):
+            self.finish_improve()
+        self.assertEqual(navigator.current_stage(self.state()), "document", "the state is still the old one")
+        shown = self.cli("next", "--run-dir", str(self.run_dir))
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assert_step_one_committed_once_on(base, action)
+        self.assert_next_step_committed_on_the_step_before(action)
+
+    def assert_next_step_committed_on_the_step_before(self, previous_action: str) -> None:
+        """S2 of the three-step plan has a base row on S1's commit, and is built and committed on it."""
+        first = navigator.step_commit(self.run_dir, previous_action)
+        state = self.state()
+        self.assertEqual(navigator.current_stage(state), "implement")
+        current = navigator.current_iteration(self.run_dir, state)
+        self.assertIsNotNone(current, "the next step has an iteration record")
+        self.assertEqual((current.step, current.base), ("S2", first))
+        action = navigator.current_action(state)["id"]
+        (self.repo / "todo.md").write_text("# todo.md\n")
+        self.accept(result(summary="Wrote todo.md."))
+        self.settle()
+        commit = navigator.step_commit(self.run_dir, action)
+        self.assertTrue(commit, "S2 was committed")
+        self.assertEqual(self.git("rev-list", first + ".." + commit).split(), [commit])
+        self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), ["todo.md"])
+
+    def test_a_step_entered_by_a_call_that_stopped_before_recording_its_base_gets_one_from_the_next_call(self) -> None:
+        # Astra's finding 2, second window (design T §9.1 2c-0): ``_iteration_entry`` runs after the save, so a call killed
+        # between them leaves the next step current with no ledger row, and ``_commit_stage`` skipped a step without one:
+        # S2 was never committed.  The next call to any command records the base from HEAD, as the entry would have.
+        _base, action = self.to_first_step_review()
+        with patch.object(navigator, "_iteration_entry", side_effect=OSError("the call stopped after the save")), \
+                self.assertRaises(OSError):
+            self.finish_improve()
+        self.assertEqual(navigator.current_stage(self.state()), "implement", "the state was saved")
+        self.assertIsNone(navigator.current_iteration(self.run_dir, self.state()), "and the entry did not run")
+        shown = self.cli("next", "--run-dir", str(self.run_dir))
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assert_next_step_committed_on_the_step_before(action)
+
+    def test_a_commit_made_inside_a_step_by_anything_but_the_commit_stage_is_refused(self) -> None:
+        # Design T §9 row 3: inside an iteration only the commit stage commits. A commit made during the step (here by
+        # hand) leaves HEAD off the iteration's base, so the step's commit is refused, with the way back named.
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        base = self.git("rev-parse", "HEAD").strip()
+        action = navigator.current_action(self.state())["id"]
+        (self.repo / "notes.md").write_text("# notes.md\n")
+        self.git("add", "notes.md")
+        self.git("commit", "-qm", "notes, by hand")
+        self.accept(result(summary="Wrote notes.md."))
+        with self.assertRaises(navigator.NavigatorError) as refused:
+            self.finish_improve()
+        self.assertIn("only the commit stage commits inside an iteration", str(refused.exception))
+        self.assertIn("git reset --soft " + base, str(refused.exception))
+        self.git("reset", "-q", "--soft", base)
+        self.settle()
+        self.assert_step_one_committed_once_on(base, action)
+
+    def test_a_step_that_changed_no_file_starts_no_review(self) -> None:
+        # Panel P4 (2026-10-25), per step: a step whose change is empty gets no review (DeepSeek battleship 759a03 W3:
+        # its S2 and S3 changed nothing). Its document entry records the step's change as empty (``_document_entry``).
         self.start()
         self.drive_to_step_plan()
         self.accept(self.three_step_plan())
@@ -4446,21 +4632,21 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         (self.repo / notes).write_text("# " + notes + "\n")
         (self.repo / todo).write_text("# " + todo + "\n")  # S1 also writes S2's file, so S2 has nothing left to change
         self.accept(result(summary="Wrote " + notes + " and " + todo + "."))
-        self.assertEqual(self.state()["active_improve"]["stage"], "implement")
+        self.assertEqual(self.state()["active_improve"]["stage"], "document")
         self.assertEqual(self.settle(), "implement")
-        unchanged = navigator.current_action(self.state())["id"]
         self.accept(result(summary=todo + " was already written by S1: nothing left to change."))
         state = self.state()
         self.assertIsNone(state["active_improve"], "S2 changed no file: no review")
         self.assertEqual(navigator.current_stage(state), "implement")
         (self.repo / log).write_text("# " + log + "\n")
         self.accept(result(summary="Wrote " + log + "."))
-        self.assertEqual(self.state()["active_improve"]["stage"], "implement", "S3 changed a file: reviewed")
+        self.assertEqual(self.state()["active_improve"]["stage"], "document", "S3 changed a file: reviewed")
         self.settle()
         state = self.state()
-        steps = [row["action"] for row in state["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
-        self.assertEqual([action for action in steps if action in state["improve_results"]],
-                         [action for action in steps if action != unchanged])
+        documents = [row["action"] for row in state["history"] if row["stage"] == "document" and row["workitem"] == "W1"]
+        self.assertEqual(len(documents), 3)
+        self.assertEqual([action for action in documents if action in state["improve_results"]],
+                         [documents[0], documents[2]])
 
     def test_step_notes_are_required_and_learned_from_must_be_reachable(self) -> None:
         self.start()
@@ -4493,10 +4679,13 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             "R-1: Synthetic requirement.\n",
             "R-1: Synthetic requirement.\n  Acceptance: notes.md opens with a level-one title. (W1/S1)\n"))
         (self.repo / "notes.md").write_text("# Notes\n")
+        action = navigator.current_action(self.state())["id"]
         self.accept(result(summary="Wrote notes.md."))
-        self.assertEqual(sorted(self.git("show", "--name-only", "--format=", "HEAD").split()),
+        self.settle()
+        commit = navigator.step_commit(self.run_dir, action)
+        self.assertEqual(sorted(self.git("show", "--name-only", "--format=", commit).split()),
                          ["docs/shiploop/spec.md", "notes.md"])
-        self.assertIn("(W1/S1)", self.git("show", "HEAD:docs/shiploop/spec.md"))
+        self.assertIn("(W1/S1)", self.git("show", commit + ":docs/shiploop/spec.md"))
 
     def test_a_changed_requirement_at_implement_is_refused_and_send_back_is_the_accepted_exit(self) -> None:
         self.start()
@@ -4518,6 +4707,23 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         # The named exit goes through the real gate.
         self.accept(result(outcome="send-back", summary="R-1 must name the notes title; the step plan should say so."))
         self.assertEqual(navigator.current_stage(self.state()), "step-plan")
+
+    def test_a_requirement_a_step_adds_is_refused_and_send_back_is_the_exit(self) -> None:
+        """Astra's review of 2026-10-28, a probe: a marked line counted as inside an R-<n> entry when that entry was new in
+        the edited spec, so a step could add a requirement, a contract change that is the step plan's to decide.  Only
+        an entry the committed spec holds takes a step's lines."""
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        spec = self.spec_path()
+        spec.write_text(spec.read_text().replace(
+            "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\nR-2: notes.md lists every run. (W1/S1)\n"))
+        (self.repo / "notes.md").write_text("# Notes\n")
+        refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
+        self.assertNotEqual(refused.returncode, 0)
+        text = refused.stdout + refused.stderr
+        self.assertIn("outside an R-<n> entry the committed spec holds: R-2: notes.md lists every run. (W1/S1)", text)
+        self.assertIn("to change a requirement, report send-back naming it", text)
 
     def test_the_look_back_quotes_the_last_two_commits_that_are_not_shiploop_records(self) -> None:
         self.start()
@@ -4554,26 +4760,26 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         block = navigator._producer_blocks(self.core, self.run_dir, state, None, path=self.run_dir / "packets" / "x.md")
         self.assertEqual(next(b.tier for b in block if b.name == "look-back"), navigator.P1)
 
-    def test_complete_check_only_runs_the_gates_and_accepts_nothing(self) -> None:
+    def test_the_check_runs_the_gates_and_accepts_nothing(self) -> None:
         self.start()
         self.drive_to_step_plan()
         before = (self.run_dir / "state.md").read_bytes()
         action = navigator.current_action(self.state())["id"]
         draft = self.step_plan([dict(self.ABSENT_NOTES)])
         del draft["expectations"]
-        refused = self.submit(draft, check_only=True)
+        refused = self.submit(draft, check=True)
         self.assertNotEqual(refused.returncode, 0, refused.stdout)
         self.assertIn("each with a check ShipLoop runs at validate-existing", refused.stdout + refused.stderr)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
-        checked = self.submit(self.step_plan([dict(self.ABSENT_NOTES)]), check_only=True)
+        checked = self.submit(self.step_plan([dict(self.ABSENT_NOTES)]), check=True)
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-        self.assertIn("ShipLoop check-only: every script gate for step-plan accepts this result", checked.stdout)
+        self.assertIn("ShipLoop check: the check says yes for step-plan: every script gate accepts this result", checked.stdout)
         # Nothing accepted: same state, same action, and no loop receipt was needed or written.
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
         self.assertEqual(navigator.current_action(self.state())["id"], action)
         self.assertFalse((self.run_dir / "loops" / (action + "-terminal.json")).exists())
-        # The same result without --check-only, its loop run, is accepted.
+        # The same result through complete, its loop run, is accepted.
         self.accept(self.step_plan([dict(self.ABSENT_NOTES)]))
         self.assertEqual(self.state()["active_improve"]["action_id"], action)  # accepted; its child is pending
 
@@ -4591,7 +4797,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                               refused.stdout + refused.stderr)
                 self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
-    def test_a_version_4_state_is_refused_with_the_eight_stage_reason(self) -> None:
+    def test_a_version_4_state_is_refused_with_the_current_stage_count(self) -> None:
+        # The refusal names the inner loop's stage count from the stage table: seven since verify retired (design T §9.1
+        # 2b-4c).
         saved = dict(navigator.new_state(str(self.repo), "Saved by the seventeen-stage loop."), version=4)
         store.write_record(self.run_dir / "state.md", saved, title="Saved ShipLoop state")
         before = sorted((path.name, path.read_bytes()) for path in self.run_dir.rglob("*") if path.is_file())
@@ -4602,15 +4810,15 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 self.assertEqual(refused.returncode, 2, output)
                 self.assertNotIn("Traceback", output)
                 self.assertIn("seventeen-stage inner loop (state version 4)", output)
-                self.assertIn("the inner loop now has eight stages and cannot resume it", output)
+                self.assertIn("the inner loop now has seven stages and cannot resume it", output)
                 self.assertIn("fresh --run-dir", output)
         after = sorted((path.name, path.read_bytes()) for path in self.run_dir.rglob("*")
                        if path.is_file() and path.name != ".lock")
         self.assertEqual(after, [row for row in before if row[0] != ".lock"])
 
-    def test_the_items_last_implement_step_starts_its_improve_child_in_both_planning_review_modes(self) -> None:
-        # Rule item (owner, 2026-10-26, design 560c396f P0; it was one child per step, owner decision 5 of 2026-10-10):
-        # S1 starts none, S2 (the item's last) starts the item's review in both modes; test-spec starts none.
+    def test_each_steps_document_starts_its_review_in_both_planning_review_modes(self) -> None:
+        # Rule item (design T §8): each step's review follows its document stage, whatever the planning review option;
+        # the step plan's review follows the option, and test-spec starts none (2026-10-26).
         for mode in ("stage", "none"):
             with self.subTest(planning_review=mode):
                 self.setUp()
@@ -4620,30 +4828,119 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                                        {"id": "E3", "state": "absent", "statement": "more.md is new",
                                         "steps": ["S2"], "paths": ["more.md"], "check": "test ! -e more.md"}])
                 plan["paths"] = ["notes.md", "more.md"]
-                # Both steps declare the item's two files: one path group (a wide item reviews each step, design 8e9d2d55).
-                plan["steps"][0]["paths"] = list(plan["paths"])
                 plan["steps"].append({"id": "S2", "task": "Write more.md.", "deps": ["S1"], "criteria": [],
-                                      "proof": "test -f more.md", "paths": list(plan["paths"]), "skills": []})
+                                      "proof": "test -f more.md", "paths": ["more.md"], "skills": []})
                 self.accept(plan)
                 child = self.state().get("active_improve")
                 self.assertEqual(child is not None and child["stage"] == "step-plan", mode == "stage")
                 self.settle()
                 self.accept(result())  # test-spec
                 self.assertIsNone(self.state().get("active_improve"), "a test-spec result starts no Improve stage")
-                for number, path in enumerate(("notes.md", "more.md"), 1):
+                for path in ("notes.md", "more.md"):
                     self.assertEqual(navigator.current_stage(self.state()), "implement")
-                    implement = navigator.current_action(self.state())["id"]
                     (self.repo / path).write_text("# " + path + "\n")
                     self.accept(result(summary="Wrote " + path + "."))
                     child = self.state()["active_improve"]
-                    if number == 1:
-                        self.assertIsNone(child, path)  # not the item's last step
-                        continue
-                    self.assertIsNotNone(child, path)  # the item's last step, in both modes
-                    self.assertEqual((child["stage"], child["action_id"]), ("implement", implement))
+                    self.assertIsNotNone(child, path)
+                    self.assertEqual(child["stage"], "document")
+                    document = child["action_id"]
                     self.finish_improve()
-                    self.assertIn(implement, self.state()["improve_results"])
-                self.assertEqual(self.settle(), "verify")
+                    self.assertIn(document, self.state()["improve_results"])
+                self.assertEqual(self.settle(), "carry-forward")
+
+class StepReflectionCliTests(inner_fixture.RunDriver):
+    """Design T §9.1 2b-3, option C (owner 2026-10-28, "Go with C"): no knowledge stage.  Each step's document stage is
+    its one place to reflect: it records in the knowledge home what the step showed, names each living file with what it
+    changed or why nothing, and records work found outside the item as an open item due at the item's carry-forward.
+    Its spec gate runs at its complete and again at its review's import, so the step's commit holds the tree a gate ran
+    on (Astra's review, 2026-10-28: the review's edits are part of that tree)."""
+
+    SPEC_LINE = "R-1: Synthetic requirement.\n"
+    RECORD = {"spec": "R-1 gains how entry() treats its argument (W1/S1).",
+              "architecture": "none: entry() follows the existing module layout",
+              "environment": "none: the step ran no new command"}
+
+    def spec(self) -> Path:
+        return self.repo / "docs" / "shiploop" / "spec.md"
+
+    def refused(self, result: dict) -> str:
+        """The refusal of ``result`` at the current inner stage, its loop run first and no fixture field added."""
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            self.complete(inner_fixture.loop(self.run_dir, self.state(), result), prepare_inner=False)
+        return str(caught.exception)
+
+    def step_commit_sha(self) -> str:
+        """The commit ShipLoop made for step W1/S1, found by its subject."""
+        subjects = inner_fixture.git(self.repo, "log", "--format=%H%x00%s").splitlines()
+        return next(line.split("\0")[0] for line in subjects if line.split("\0")[1].startswith("feat(W1/S1): "))
+
+    def test_a_document_without_its_knowledge_record_is_refused_and_the_record_reaches_the_step_commit(self) -> None:
+        self.start()
+        self.drive_to("document")
+        done = dict(inner_fixture.DONE, summary="Documented entry().")
+        refusal = self.refused(done)
+        self.assertIn("Add knowledge to", refusal.splitlines()[0])
+        self.assertIn('"spec"', refusal)
+        self.assertIn("why it needed no change", refusal)
+        # Work found outside the item is an open item due at the item's carry-forward; an inner stage is not a due stage.
+        stray = self.refused(dict(done, knowledge=dict(self.RECORD), assumptions=[{
+            "id": "F1", "assumption": "entry() needs a caller-side check.", "disposition": "open",
+            "settle": "add the check where entry() is called", "reason": "outside this item", "due_stage": "implement"}]))
+        self.assertIn("F1 names 'implement'", stray)
+        self.assertIn("carry-forward", stray)
+        follow_up = {"id": "F1", "assumption": "entry() needs a caller-side check.", "disposition": "open",
+                     "settle": "add the check where entry() is called", "reason": "outside this item",
+                     "due_stage": "carry-forward"}
+        self.complete(inner_fixture.loop(self.run_dir, self.state(),
+                                         dict(done, knowledge=dict(self.RECORD), assumptions=[follow_up])),
+                      prepare_inner=False)
+        self.assertEqual(self.state()["active_improve"]["stage"], "document")
+        self.finish_improve()
+        found = [(item.stage, item.row["id"], item.row["due_stage"]) for item in assumptions.open_items(self.state())]
+        self.assertIn(("document", "F1", "carry-forward"), found)
+        body = inner_fixture.git(self.repo, "log", "-1", "--format=%b", self.step_commit_sha())
+        self.assertIn("Knowledge home:\n- spec: R-1 gains how entry() treats its argument (W1/S1).\n"
+                      "- architecture: none: entry() follows the existing module layout\n"
+                      "- environment: none: the step ran no new command", body)
+
+    def test_a_spec_line_document_adds_is_held_to_the_steps_mark_and_committed_with_the_step(self) -> None:
+        self.start()
+        self.drive_to("document")
+        spec = self.spec()
+        committed = spec.read_text()
+        self.assertIn(self.SPEC_LINE, committed)
+        spec.write_text(committed.replace(self.SPEC_LINE, self.SPEC_LINE + "  Clarified: unmarked.\n"))
+        refusal = self.refused(dict(inner_fixture.DONE, knowledge=dict(self.RECORD), assumptions=[]))
+        self.assertIn("without the step's mark: Clarified: unmarked.", refusal)
+        self.assertIn("each ending (W1/S1)", refusal)
+        self.assertIn("to change a requirement, report send-back naming it", refusal)
+        marked = "  Clarified: entry() returns its argument unchanged. (W1/S1)\n"
+        spec.write_text(committed.replace(self.SPEC_LINE, self.SPEC_LINE + marked))
+        self.complete(inner_fixture.loop(self.run_dir, self.state(),
+                                         dict(inner_fixture.DONE, knowledge=dict(self.RECORD), assumptions=[])),
+                      prepare_inner=False)
+        self.finish_improve()
+        sha = self.step_commit_sha()
+        self.assertIn("docs/shiploop/spec.md", inner_fixture.git(self.repo, "show", "--name-only", "--format=", sha).split())
+        self.assertIn(marked, inner_fixture.git(self.repo, "show", sha + ":docs/shiploop/spec.md"))
+
+    def test_the_document_packet_names_the_step_its_mark_and_the_reflection(self) -> None:
+        self.start()
+        state = self.drive_to("document")
+        packet = navigator.render(inner_fixture.CORE, self.run_dir, state)
+        self.assertIn("Step S1 (1 of 1), built and tested: Make the planned change. A line this step adds to "
+                      "KNOWLEDGE/spec.md ends (W1/S1).", packet)
+        duties = " ".join(prompts.DUTIES["document"].split())
+        for phrase in ("**Reflect.**", "a vague clause this step made precise", "the files and test file that now meet it",
+                       "a new AD-<n>", "## Commands", "report send-back naming the R-<n>",
+                       "work a later step already holds: leave it to that step",
+                       "work outside this item: an open item in `assumptions` due at carry-forward",
+                       "In `knowledge` give `spec`, `architecture` and `environment`"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, duties)
+        row = stage_spec.stage("document")
+        self.assertIn("the knowledge home records what this step showed, and `knowledge` names each living file with "
+                      "what changed in it or why nothing did", row.done_when)
 
 
 class ProducerBoundTests(unittest.TestCase):

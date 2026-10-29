@@ -3,7 +3,7 @@
 2026-10-26, docs/shiploop-owner-notes-design-2026-10.md).
 
 Real ShipLoop runs in temporary directories, driven through the CLI: `note`, `next`, a held and a resubmitted
-`complete`, `--check-only`, pause and resume, halt, and an unloadable run.  The head bounds use the head-order suite's
+`complete`, `check`, pause and resume, halt, and an unloadable run.  The head bounds use the head-order suite's
 two-item fixture at the normal install (83-character run directory, 96-character CLI path).  No host CLI or model is
 started.
 """
@@ -76,9 +76,9 @@ class CliRun(unittest.TestCase):
     def action(self) -> str:
         return navigator.current_action(self.state())["id"]
 
-    def submit(self, action: str, result: str, *flags: str) -> subprocess.CompletedProcess:
+    def submit(self, action: str, result: str, *flags: str, verb: str = "complete") -> subprocess.CompletedProcess:
         (self.run / "inbox" / f"{action}.md").write_text(result, encoding="utf-8")
-        return self.cli("complete", "--action", action, *flags)
+        return self.cli(verb, "--action", action, *flags)
 
     def events(self) -> list[dict]:
         return [json.loads(line) for line in (self.run / trace.TRACE_FILE).read_text(encoding="utf-8").splitlines()]
@@ -141,12 +141,12 @@ class DeliveryTests(CliRun):
                          [("N1", "shown", [intake])])
         self.assertIn("held for owner note N1", self.ok("trace").stdout)
 
-    def test_check_only_prints_a_waiting_note_and_the_real_callback_is_not_held_for_it(self) -> None:
+    def test_a_check_prints_a_waiting_note_and_the_callback_is_not_held_for_it(self) -> None:
         intake = self.action()
         self.ok("note", "--text", "Keep it to one file.")  # before any print of the intake packet after init's
-        checked = self.submit(intake, intake_result(), "--check-only")
+        checked = self.submit(intake, intake_result(), verb="check")
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-        self.assertIn("ShipLoop check-only: an owner note this action's packet did not print in full", checked.stdout)
+        self.assertIn("ShipLoop check: an owner note this action's packet did not print in full", checked.stdout)
         self.assertIn("Keep it to one file.", checked.stdout)
         accepted = self.cli("complete", "--action", intake)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)

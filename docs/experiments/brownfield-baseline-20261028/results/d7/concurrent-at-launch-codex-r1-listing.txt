@@ -1,0 +1,1 @@
+ 00:39 --case ticket-assignment --output /Users/dadleet/e2e-runs-brownfield/20261029/bf-codex-r1-ticket-assignment

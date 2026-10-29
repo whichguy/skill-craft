@@ -45,7 +45,7 @@ import shiploop_test_loop as test_loop  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import LoopBlock, finish_loop, with_receipt  # noqa: E402
-from shiploop_packet_view import callback_argv, callback_line, callback_result_path  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_line, callback_result_path, check_command  # noqa: E402
 import shiploop_inner_fixture as inner_fixture  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
@@ -58,7 +58,7 @@ BLOCKED_REPORT = {"classification": "unresolved", "exit_assessment": "unknown", 
 # The public graph, declared here and not read from the navigator, so a changed graph updates this test deliberately.
 EXPECTED_STAGES = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
     "system-test-author", "system-test", "product-acceptance", "release-plan", "release-check", "release",
     "release-verify", "operations", "handoff",
 )
@@ -94,7 +94,9 @@ RESULTS = {
     "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
     # An inline step's notes (build plan S3.2): ShipLoop writes them into the step's commit.
     "implement": {"learned": ["none"], "decisions": ["none"]},
-    "verify": {"assumptions": []},
+    # A step's reflection (design T §9.1 2b-3): what it changed in each living file, and the open items it found.
+    "document": {"knowledge": {"spec": "none: no clause changed", "architecture": "none: no decision",
+                               "environment": "none: no new command"}, "assumptions": []},
     "carry-forward": {"skill": SKILL_NONE, "assumptions": []},
     "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}], "assumptions": []},
     "system-test": {"assumptions": []},
@@ -473,7 +475,8 @@ class RefusalRouteTests(RealCliCase):
              lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],
                                                 "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []},
                                                {"id": "S2", "task": "second", "deps": [], "criteria": ["C1"],
-                                                "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []}]},
+                                                "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []}],
+                            "minimum_na": "The fixture's one regression command is its whole suite."},
              "step deps must name earlier steps"),
             ("no system_commands list", "system-test-author",
              lambda block: {k: v for k, v in block.items() if k != "system_commands"},
@@ -1293,8 +1296,8 @@ class StepSizingRouteTests(RealCliCase):
                 self.accepted(step_command)
                 self.assertEqual(nav.current_stage(self.state(run)), "step-plan")
 
-    def test_a_refusal_names_the_first_fault_only_so_check_only_is_repeated_until_it_accepts(self) -> None:
-        """The Checked-by line says `complete --check-only` prints the first refusal and to repeat it (U11, SPEC-7): a
+    def test_a_refusal_names_the_first_fault_only_so_check_is_repeated_until_it_accepts(self) -> None:
+        """The Checked-by line says the check prints the first refusal and to repeat it (U11, SPEC-7): a
         gate raises at the first fault, so a result with two faults is refused twice, one fault per run."""
         run, head = self.new_run("step-plan")
         command, path, _ = printed_callback(head)
@@ -1303,16 +1306,16 @@ class StepSizingRouteTests(RealCliCase):
         bare = {key: value for key, value in step.items() if key not in ("proof", "criteria")}
         two_faults = {**good, "steps": [dict(bare, criteria=["C1", "C9"])]}   # no proof, and a criterion nobody lists
         write_block(path, two_faults)
-        first = self.refused(command + " --check-only", run)
+        first = self.refused(check_command(command), run)
         self.assertIn("step S1 must record its proof", first)
         self.assertNotIn("C9", first)                       # the second fault is not reported yet
         write_block(path, {**good, "steps": [dict(bare, proof=step["proof"], criteria=["C1", "C9"])]})
-        second = self.refused(command + " --check-only", run)
+        second = self.refused(check_command(command), run)
         self.assertIn("step S1 names criteria the result does not list: C9", second)
         self.assertNotIn("must record its proof", second)
         write_block(path, good)
-        self.assertIn("ShipLoop check-only: every script gate for step-plan accepts this result",
-                      self.accepted(command + " --check-only"))
+        self.assertIn("ShipLoop check: the check says yes for step-plan: every script gate accepts this result",
+                      self.accepted(check_command(command)))
 
     def test_a_long_list_of_test_ids_is_not_refused_for_its_size(self) -> None:
         """The step-plan duty once said "a list too large for the loop contract is refused: shorten IDs, drop duplicates
@@ -1749,12 +1752,13 @@ class LoopRefusalRouteTests(RealCliCase):
         return Path(re.search(r"no receipt exists at (\S+)\.", reply).group(1))
 
     def test_done_before_the_loop_ran_is_told_the_start_command_and_following_it_is_accepted(self) -> None:
-        # test-green and static-checks are folded into test and verify (8-stage loop, 2026-10-10).
-        for stage, following in (("test", ("document", "verify")), ("verify", ("carry-forward",))):
+        # test-green is folded into test (8-stage loop, 2026-10-10), and verify, which took static-checks, is retired
+        # (design T §9.1 2b-4c): document, the step's last model stage, is the other loop this route covers.
+        for stage, following in (("test", ("document",)), ("document", ("document", "carry-forward"))):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage, entered=True)
                 command, path, action = printed_callback(head)
-                block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
+                block = {**self.done_fields(), **RESULTS.get(stage, {})}
                 write_block(path, block, loop=False)
                 reply = self.refused(command, run)
                 self.assertIn(f"the {stage} loop has not run: no receipt exists at", reply)
@@ -1792,7 +1796,7 @@ class LoopRefusalRouteTests(RealCliCase):
         self.assertEqual(nav.current_stage(self.state(run)), "step-plan")
 
     def test_citing_a_receipt_nobody_wrote_is_still_refused(self) -> None:
-        for stage in ("test", "verify"):
+        for stage in ("test", "document"):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage, entered=True)
                 command, path, _ = printed_callback(head)
@@ -1818,7 +1822,7 @@ class PathHandlingRouteTests(RealCliCase):
         self.assertEqual(path, run / "inbox" / (action + ".md"))  # the label names the one path to write
         import shiploop_status_hook as status_hook
         self.assertEqual(status_hook._verb(command), ("complete", None))                 # the hook still reads the verb
-        self.assertEqual(status_hook._verb(command + " --check-only"), ("complete", None))
+        self.assertIsNone(status_hook._verb(check_command(command)))   # a check prints no packet
         write_block(path, self.done_fields())
         self.assertIn("| discovery |", self.accepted(command))
         self.assertIn(action, self.state(run)["accepted"])
@@ -1881,12 +1885,12 @@ class PathHandlingRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["assumptions"][0]["evidence"], [str(run / "notes" / "probe.txt")])
 
     def test_a_result_without_the_loop_receipt_is_accepted_once_the_receipt_is_complete_and_lists_it(self) -> None:
-        for stage in ("test", "verify"):
+        for stage in ("test", "document"):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage, entered=True)
                 command, path, action = printed_callback(head)
                 receipt = finish_loop(run, outcome="done")
-                block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
+                block = {**self.done_fields(), **RESULTS.get(stage, {})}
                 self.assertNotIn(str(receipt), block["evidence_refs"])
                 write_block(path, block, loop=False)
                 self.accepted(command)
@@ -1896,12 +1900,12 @@ class PathHandlingRouteTests(RealCliCase):
 
     def test_a_replay_of_a_result_that_left_the_receipt_out_is_idempotent_and_a_changed_one_is_refused(self) -> None:
         """The run records the result with the receipt ShipLoop listed; the same file submitted again is the same result."""
-        for stage in ("test", "verify"):
+        for stage in ("test", "document"):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage, entered=True)
                 command, path, action = printed_callback(head)
                 finish_loop(run, outcome="done")
-                block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
+                block = {**self.done_fields(), **RESULTS.get(stage, {})}
                 write_block(path, block, loop=False)
                 self.accepted(command)
                 recorded = self.state(run)
@@ -1909,7 +1913,11 @@ class PathHandlingRouteTests(RealCliCase):
                 self.assertEqual(again.returncode, 0, again.stdout + again.stderr)          # the replay is accepted ...
                 self.assertEqual(self.state(run), recorded)                                  # ... and changes nothing
                 write_block(path, {**block, "summary": "A different summary."}, loop=False)
-                self.assertIn("conflicting producer replay", self.refused(command, run))     # a changed result is not a replay
+                # A changed result is not a replay.  Document's accepted result waits for its step review (design T §8),
+                # so the refusal there names that stage before any replay comparison.
+                self.assertIn("conflicting producer replay" if stage == "test" else "step awaits its Improve stage",
+                              self.refused(command, run))
+                self.assertEqual(self.state(run), recorded)
 
     def test_a_result_that_lists_the_receipt_keeps_one_entry_of_it(self) -> None:
         run, head = self.new_run("test", entered=True)
@@ -2066,6 +2074,37 @@ class InnerGateRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["check_na"],
                          "No lint, type or build command applies to a text file.")
 
+    @staticmethod
+    def two_steps(good: dict) -> dict:
+        """``good`` split into two steps that both serve its criterion, so a minimum regression has a step to run at."""
+        first = dict(good["steps"][0], id="S1")
+        return {**good, "steps": [first, dict(first, id="S2", task="Finish built.txt", deps=["S1"])]}
+
+    def test_a_plan_of_two_steps_marks_a_minimum_regression_or_gives_minimum_na(self) -> None:
+        """Design T §9.1 2d (owner 2026-10-28: "gradations of test suites to be run"): a step before the last runs only a
+        regression command marked minimum, so a plan of two or more steps marks one or says why it has none; the
+        refusal names both routes, and each is accepted."""
+        run, command, path, action, good = self.step_plan()
+        two = self.two_steps(good)
+        write_block(path, two)
+        reply = self.refused(command, run)
+        self.assertIn('marks no regression command "minimum": true', reply)
+        self.assertIn('Mark the fast regression command that shows nothing basic broke "minimum": true', reply)
+        self.assertIn("or give minimum_na with the reason there is none", reply)
+        write_block(path, {**two, "minimum_na": " "})
+        self.assertIn("minimum_na must be nonblank text", self.refused(command, run))
+        marked = [dict(row, minimum=True) if row["suite"] == "regression" else row for row in two["test_commands"]]
+        write_block(path, {**two, "test_commands": marked, "minimum_na": "No fast suite."})
+        self.assertIn('a regression command is marked "minimum": true, so drop minimum_na', self.refused(command, run))
+        write_block(path, {**two, "minimum_na": "The only retained suite is the whole one; it is fast."})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["minimum_na"], "The only retained suite is the whole one; it is fast.")
+        run, command, path, action, good = self.step_plan()
+        write_block(path, {**two, "test_commands": marked})
+        self.accepted(command)
+        self.assertEqual([row.get("minimum") for row in self.recorded(run, action)["test_commands"]],
+                         [None, True, None])
+
     def test_an_expectation_without_a_check_is_refused_and_the_one_with_its_check_is_accepted(self) -> None:
         run, command, path, action, good = self.step_plan()
         unchecked = [{key: value for key, value in good["expectations"][0].items() if key != "check"}]
@@ -2163,7 +2202,7 @@ class InnerGateRouteTests(RealCliCase):
 
 # Stages whose accepted result starts an Improve child (the planning reviews, the item's last implement step and the
 # last item's carry-forward), declared here and not read from the navigator.  test-spec starts none (2026-10-26).
-CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "implement", "carry-forward",
+CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "document", "carry-forward",
                "system-test-author", "release-plan")
 # Stages ShipLoop records by script when its own checks leave nothing to do (every expectation matches; the item's diff
 # touches no code or test path); a walk sees their history row, not a packet.
@@ -2212,7 +2251,18 @@ class EveryStageRouteTests(RealCliCase):
         for stage in EXPECTED_STAGES:
             header = next(row for row in head.splitlines() if row.startswith("ShipLoop navigator | "))
             if stage in SCRIPT_RECORDED and not header.startswith(f"ShipLoop navigator | {stage} | "):
-                self.assertIn(stage, [row["stage"] for row in self.state(run)["history"]])
+                state = self.state(run)
+                self.assertIn(stage, [row["stage"] for row in state["history"]])
+                if stage in CHECKPOINTS:
+                    # A left-out document still owns its step's review (design T section 9 row 2): the recorded result
+                    # started it, and the previous stage's callback printed its packet.
+                    self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX, head)
+                    state = nav.finish_improve(state, state["active_improve"]["action_id"],
+                                               {"summary": "Synthetic receipt; no review claim."})
+                    nav.save(run, state)
+                    result = self.cli("next", "--run-dir", str(run))
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    head = result.stdout
                 continue
             self.assertTrue(header.startswith(f"ShipLoop navigator | {stage} | "), header)
             command, path, action = printed_callback(head)
@@ -2301,10 +2351,11 @@ class EveryStageRouteTests(RealCliCase):
                              stage)
             self.assertNotIn("<", printed_callback(head)[0], stage)
             pairs += [(stage, outcome) for outcome in sorted(printed_shapes(head))]
-        # 24 stages * blocked, + send-back on the 6 INNER stages and on system-test and release-verify (S1.5), + add-work
-        # on the 9 OUTER stages = 41 (repeat is retired everywhere, which dropped it from every stage's default outcomes;
-        # was 55 over the 8-stage inner loop with repeat still counted, 70 over 34 stages before that).
-        self.assertEqual(len(pairs), 41)
+        # 23 stages * blocked, + send-back on the 5 INNER stages from test-spec to document and on system-test and
+        # release-verify (S1.5), + add-work on the 9 OUTER stages = 39 (41 before verify retired, design T §9.1 2b-4c;
+        # repeat is retired everywhere, which dropped it from every stage's default outcomes; was 55 over the 8-stage
+        # inner loop with repeat still counted, 70 over 34 stages before that).
+        self.assertEqual(len(pairs), 39)
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             problems = [p for p in pool.map(lambda pair: self.one_outcome(*pair), pairs) if p]
         self.assertEqual(problems, [])
@@ -2358,42 +2409,40 @@ class PacketReviewRefusalRouteTests(RealCliCase):
         self.assertEqual((authority["target"], authority["operation"]),
                          (DELIVERY_FIELDS["target"], DELIVERY_FIELDS["operation"]))
 
-    def test_check_only_without_a_result_names_the_file_and_the_verify_duty_writes_it_first(self) -> None:
+    def test_check_without_a_result_names_the_file_and_the_template(self) -> None:
         # Refusal 5: after a compaction the model ran verify's check-only before writing any result, met "navigator result
-        # is unavailable" and read ShipLoop's scripts for 55 s to learn why (reviewer D, D-8/D-9).
-        run, head = self.new_run("verify", entered=True)
+        # is unavailable" and read ShipLoop's scripts for 55 s to learn why (reviewer D, D-8/D-9).  Verify, whose duty
+        # item 1 said to write the result first, is retired (design T §9.1 2b-4c); the refusal stays at every stage.
+        run, head = self.new_run("document", entered=True)
         command, path, _ = printed_callback(head)
-        duty = " ".join(head.split())
-        one = duty[duty.index("1. **Run.**"):duty.index("2. **Confirm.**")]
-        self.assertIn("write the result (the Result template below) to RUN/inbox/<action>.md", one)
-        self.assertLess(one.index("write the result"), one.index("--check-only"))
         self.assertFalse(path.exists())
-        reply = self.refused(command + " --check-only", run)
+        reply = self.refused(check_command(command), run)
         self.assertIn("no result file at " + str(path), reply)
         self.assertIn("the packet's Result template, filled in", reply)
         write_block(path, self.fill_done(head))
-        self.assertIn("ShipLoop check-only: every script gate for verify accepts this result",
-                      self.accepted(command + " --check-only"))
+        self.assertIn("ShipLoop check: the check says yes for document: every script gate accepts this result",
+                      self.accepted(check_command(command)))
 
-    def test_a_failing_recorded_command_refuses_verify_and_check_only_reports_it_first(self) -> None:
-        # Refusal 2 was a real defect: a recorded command failed.  The packet routes it through check-only (duty 1, the
-        # result written first) and names the rerun on its Checked-by line, so the refusal comes before done is claimed.
-        run, head = self.new_run("verify", entered=True)
+    def test_a_failing_recorded_command_refuses_document_after_its_code_edit_and_check_reports_it_first(self) -> None:
+        # Refusal 2 was a real defect: a recorded command failed.  Verify's rerun is retired (design T §9.1 2b-4c);
+        # document's done reruns what its own edits could affect, and its Checked-by line names that rerun, so a code
+        # edit at document that breaks a command is refused at the check before done is claimed.
+        run, head = self.new_run("document", entered=True)
         command, path, _ = printed_callback(head)
         checked = next(row for row in head.splitlines() if row.startswith("Checked by: "))
-        self.assertIn("reruns every recorded test command and refuses done unless each passes", checked)
-        duty = " ".join(head.split())
-        self.assertIn("then run the callback with `--check-only`, which reads that file", duty)
+        self.assertIn("reruns what this stage's edits could affect", checked)
+        self.assertIn("refuses done unless each passes", checked)
+        self.assertIn("in place of `complete`", checked)
         built = self.repo_of(run) / "built.txt"
-        built.unlink()
+        built.unlink()                                   # a code path edited after document began: every command reruns
         write_block(path, self.fill_done(head))
-        for submitted in (command + " --check-only", command):
+        for submitted in (check_command(command), command):
             with self.subTest(submitted=submitted[-12:]):
                 reply = self.refused(submitted, run)
-                self.assertIn("ShipLoop test run: verify is not done", reply)
+                self.assertIn("ShipLoop test run: document is not done", reply)
                 self.assertIn("did not pass", reply)
         built.write_text("hello\n")
-        self.assertIn("accepts this result", self.accepted(command + " --check-only"))
+        self.assertIn("accepts this result", self.accepted(check_command(command)))
         self.accepted(command)
 
     def write_knowledge(self, run: Path) -> None:

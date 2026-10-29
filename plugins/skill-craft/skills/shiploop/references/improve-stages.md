@@ -30,17 +30,18 @@ Three kinds of result start an Improve stage:
   expected results a weaker stand-in would pass, documented commands that don't
   run what they claim, and required IDs or cases that were dropped. The review
   does not replay facts already on record.
-- Each work item's last accepted `implement` step, under either planning review
-  option (rule `item`, 2026-10-26; it was every step). Its handoff carries the
-  implement review focus (`IMPLEMENT_STEP_REVIEW_FOCUS` in
-  `scripts/shiploop_prompts.py`, with the *Code craft* rubric), worded for the
-  item's steps, and its review base is the tree the item's first step began
-  from, so the review covers the item's whole change before the test stage
-  writes the tests. A wide item, whose steps work on separate paths (more than
-  one group when steps sharing a declared path are joined), has each step that
-  changed a file reviewed instead, over that step's own change with the one-step
-  focus (2026-10-27: Sonnet makes one finding pass per review, so one review of a
-  three-part item missed the defects three step reviews had fixed).
+- Each step's accepted `document` stage, under either planning review option
+  (rule `item`; design T section 8, 2026-10-27). The step is built, tested and
+  documented first, so one review covers its code, its tests, its docs and what
+  its document stage recorded in the knowledge home together, and corrects that
+  record in place. Its handoff carries the step review focus
+  (`IMPLEMENT_STEP_REVIEW_FOCUS` in `scripts/shiploop_prompts.py`, with the
+  *Code craft* rubric) and its review base is the tree the step began from. The
+  review leaves its edits uncommitted: when it changed a file, ShipLoop reruns
+  the step's focused command at import, and checks its spec edit as at
+  document's complete; once the review is accepted ShipLoop commits the step. A step that changed no file starts no review. (2026-10-27:
+  Sonnet makes one finding pass per review, so one review of a three-part item
+  missed the defects three step reviews had fixed.)
 - The successful `carry-forward` that leaves no work item pending. This
   end-of-work Improve review covers every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.

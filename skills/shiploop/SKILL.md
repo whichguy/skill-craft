@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.20.0
+version: 1.22.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -35,7 +35,7 @@ and returns the prompt for the current step together with the one callback that
 completes it. The host is a library call: it performs that one step and runs the
 printed callback, then follows the packet the callback returns. It never chooses
 a successor itself. Navigator protocol 4 is the only protocol. At a planning
-stage the run's `planning_review` option reviews, after each item's last `implement` step, or at the last carry-forward, the script parks that
+stage the run's `planning_review` option reviews, after each step's `document` stage, or at the last carry-forward, the script parks that
 same parent action while the selected actual Improve skill runs its own bound Until Loop
 cycle. `state.md` owns SDLC traversal; the Improve child owns its iterations and runtime
 state. The host follows one current owner at a time. The initial plan child (a `stage` run;
@@ -55,8 +55,6 @@ purpose files; open one when its trigger holds, read it whole, once:
 - [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart its child.
 - [The inner loop](references/inner-loop.md): an inner stage's rule, its Until Loop, expectations, `send-back`.
 - [Test loop and confirmation](references/test-loop.md): test commands, base and candidate runs, floors, criteria.
-- [Chains: route and binding](references/chain-route.md) and [navigation](references/chain-navigation.md): a
-  `delegation: ask-agent` run at `implement`, or any `chain` command.
 
 ## Start or resume
 
@@ -200,9 +198,9 @@ Run options are recorded at `workspace start` or `init` and refused on a saved r
 
 ## Inner stages
 
-Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement` (one action per step), `test`,
-`document`, `verify` and `carry-forward`, each inside one Until Loop started with the packet's literal
-command; the packet prints its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
+Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement`, `test` and `document` (once per step)
+and `carry-forward`, each inside one Until Loop started with the packet's literal command; the packet prints
+its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
 [test loop and confirmation](references/test-loop.md).
 
 ## Durable handoff
@@ -223,8 +221,8 @@ invocation itself (see step 3 below) and never clears for it.
 
 On the opt-in `delegation: ask-agent` route, active INNER **producer**
 packets begin with "Execute the prompt in a fresh context." The Improve route file instead says "Keep the invoking parent
-alive": never clear, replace or wrap the live parent for Improve. Before an `implement` producer or a delegated worker on
-that route, read [chains: route and binding](references/chain-route.md).
+alive": never clear, replace or wrap the live parent for Improve. An `implement` packet on that route is one step, built by
+one fresh worker in the shared checkout, which makes no commit and runs no callback: the parent submits it.
 
 On either route, ShipLoop never pauses for a context clear. No packet, script or
 hook output can clear a host conversation: literal `/clear` in returned text is
@@ -257,7 +255,7 @@ absolute paths, because hooks and the loop runtime read them. An inner stage's
 block adds its **consult** note (the files and headings it reads, and what for),
 and an active packet adds **Results this stage builds on**: each earlier stage's
 results and durable products this stage depends on, labelled `<item> <stage>
-<product>` (for example `W1 test base run`, `W1 implement S1 Improve review`)
+<product>` (for example `W1 test base run`, `W1 document S1 Improve review`)
 with the same label and path in every packet. Under its header every producer packet carries two
 pointer lines, then the callback and the **owner rule**: the `next` command to run when you lost
 context or are unsure of anything, and the packet file (`Full packet: <path>`), which holds the
@@ -339,13 +337,13 @@ question about the loop is not a stop: answer it and continue the packet.
    already present, fix the work rather than the check, rerun every check in one
    pass after the last edit, and stop only when all are confirmed, one is proven
    unachievable (route to planning), or the same check keeps failing in the same way after a genuine fix
-   ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
+   ([stage Until Loops](references/inner-loop.md#stage-until-loops)).
    At every INNER stage, do the stage's work inside the packet's
    [Until Loop](references/inner-loop.md#stage-until-loops), started with the printed start command; its
    `--receipt` makes the runtime keep its receipt there, so do not write that
    file yourself. At `test`, the packet's [test loop](references/test-loop.md#test-loop) lists the
    commands ShipLoop will run.
-   A ShipLoop lint block printed after a `verify` callback is
+   A ShipLoop lint block printed after a gate stage's callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](references/run-options.md#script-owned-lint)).
    Record outcomes and limitations honestly. Do not weaken tests to obtain a pass.
@@ -364,7 +362,7 @@ question about the loop is not a stop: answer it and continue the packet.
    diagnostics, safe failure context,
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
-3. When this result is a planning result, an `implement` step or the last carry-forward (see
+3. When this result is a planning result, a step's `document` stage or the last carry-forward (see
    [When Improve runs](references/improve-stages.md#when-improve-runs)), the script moves to the `improve` stage: it enters
    `active_improve` for that same action and issues the Improve stage its own action id. Otherwise
    the result is accepted and the next producer packet follows. At an Improve stage, and before
@@ -429,13 +427,6 @@ consumer delivery. The host remains responsible
 for evidence, authorized commits/merges, scope, meaningful review and validation.
 A packet grants no new permission to deploy, install tools, change credentials,
 send messages or overwrite unrelated work. Do not put secrets in results.
-
-## Parallel implementation chains
-
-Chains are the opt-in `delegation: ask-agent` route for the current `implement` action; under `delegation:
-inline` the `implement` packets run each step in this conversation, in order. Read [chains: route and
-binding](references/chain-route.md) before any `chain` command and [chains: navigation](references/chain-navigation.md)
-once a chain is bound.
 
 ## Saved runs the current code cannot load
 

@@ -18,7 +18,7 @@ Hook events per host:
   ``SessionEnd``, Cursor ``sessionEnd``: a ``/clear``, an exit).  Release the run
   the session owned and drop its binding, so the next session takes it at once.
 
-Several agents can touch one run: a parallel-chain worker, a second terminal,
+Several agents can touch one run: an implement or review worker, a second terminal,
 consecutive driver sessions.  Only one session, the run's owner, is ever kept
 alive.  The first session to bind a free run owns it; ownership is released when
 the owner's turn ends normally, when the host ends the owner's session
@@ -176,10 +176,14 @@ def host_process() -> dict | None:
 
 def owner_process_alive(process: Any) -> bool | None:
     """Whether a recorded owner's host process still runs: the same pid with the same start time (a reused pid is
-    another process).  None when nothing was recorded, so only time can tell."""
+    another process).  None when nothing was recorded or ``ps`` could not list processes (an empty table says nothing
+    about this one), so only time can tell."""
     if not isinstance(process, Mapping) or not isinstance(process.get("pid"), int):
         return None
-    row = _processes().get(process["pid"])
+    table = _processes()
+    if not table:
+        return None
+    row = table.get(process["pid"])
     return row is not None and row["start"] == process.get("start")
 
 
@@ -192,23 +196,29 @@ def claim_owner(run_dir: str, host: str, session: str) -> bool:
         owner = _load_owner(run_dir)
         now = time.time()
         ours = owner.get("owner") in (None, my_owner_id)
-        alive = owner_process_alive(owner.get("process")) if owner.get("process") else None
+        recorded = owner.get("process")
+        alive = owner_process_alive(recorded)
         if not ours and now - owner.get("seen", 0) < OWNER_STALE_SECONDS and alive is not False:
             return False
-        # Our own record keeps its live process; a new claim, a record with none yet, or a session resumed in another
-        # process looks it up.
-        process = owner["process"] if ours and alive else host_process()
+        # Our own record keeps its process unless that process is known to be gone (a hook that cannot read the process
+        # table keeps it too); a new claim, a record with none yet, or a session resumed in another process looks it up.
+        kept = ours and alive is not False and isinstance(recorded, Mapping) and isinstance(recorded.get("pid"), int)
+        process = recorded if kept else host_process()
         _write_json(path, {"run_dir": run_dir, "owner": my_owner_id, "seen": now, "process": process})
         return True
 
 
-def release_owner(run_dir: str, host: str | None = None, session: str | None = None) -> None:
-    """Release the run; with a session given, only if that session owns it."""
+def release_owner(run_dir: str, host: str | None = None, session: str | None = None) -> bool:
+    """Release the run; with a session given, only if that session owns it.  True when a claim was removed: False for a
+    run no one owned, one already released, or one another session owns."""
     path = _owner_path(run_dir)
     with _locked(path):
         owner = _load_owner(run_dir)
+        existed = path.exists()
         if session is None or owner.get("owner") == _owner_id(host or "", session):
             path.unlink(missing_ok=True)
+            return existed
+        return False
 
 
 def load_binding(host: str, session: str) -> dict | None:
@@ -304,7 +314,7 @@ def _strings(value: Any) -> Iterator[str]:
 # Only commands that drive the run bind; a read-only query (hook-status, status,
 # report, context) from another session must never claim someone else's run.
 COMMAND_RUN_DIR = re.compile(
-    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
+    r"\bshiploop\s+(?:init|next|resume|complete|check|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
     r"[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
 
 
@@ -616,9 +626,11 @@ def _log_error(event: str, host: str, exc: BaseException) -> None:
         pass
 
 
-def session_end(host: str, payload: Mapping[str, Any]) -> str | None:
+def session_end(host: str, payload: Mapping[str, Any]) -> dict | None:
     """The host ended this session (a ``/clear``, an exit): drop its binding and release the run if it owned it, so the
-    next session takes the run at once instead of waiting OWNER_STALE_SECONDS.  Returns the run's directory, or None."""
+    next session takes the run at once instead of waiting OWNER_STALE_SECONDS.  Returns the bound run's ``run_dir``, the
+    ``host`` it was bound under and whether the claim was ``released`` (False when the stop hook had already released it,
+    or another session owns the run), or None for a session bound to no run."""
     session = session_of(payload)
     if session is None or _is_subagent(payload):
         return None
@@ -632,8 +644,8 @@ def session_end(host: str, payload: Mapping[str, Any]) -> str | None:
             binding = load_binding(bound_host, session)
             path.unlink(missing_ok=True)
         if binding is not None:
-            release_owner(binding["run_dir"], bound_host, session)  # only this session's own claim
-            return binding["run_dir"]
+            released = release_owner(binding["run_dir"], bound_host, session)  # only this session's own claim
+            return {"run_dir": binding["run_dir"], "host": bound_host, "released": released}
     return None
 
 
@@ -658,8 +670,13 @@ def run_hook(event: str, host: str, raw: str) -> str:
             skill_call(host, payload)
             return ""
         if event == "session-end":
-            if session_end(host, payload):
+            ended = session_end(host, payload)
+            if ended:
                 _log_decision(host, payload, {"decision": "release", "why": "the host ended the session"})
+                session = session_of(payload)
+                reason = payload.get("reason")
+                trace.record_session_end(ended["run_dir"], ended["host"], hashlib.sha256(session.encode()).hexdigest()[:12],
+                                         released=ended["released"], reason=reason if isinstance(reason, str) else None)
             return ""
         decision = stop(host, payload)
         _log_decision(host, payload, decision)

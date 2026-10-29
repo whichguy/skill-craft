@@ -28,6 +28,7 @@ from typing import Any, NamedTuple
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
+import shiploop_check
 import shiploop_concerns as concerns
 import shiploop_primary as primary
 import shiploop_test_layers as layers
@@ -35,10 +36,10 @@ import shiploop_unverified as unverified
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
-import shiploop_quality as quality
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
 import shiploop_git as shiploop_git
+import shiploop_iteration as iteration
 import shiploop_lessons as commit_lessons
 import shiploop_knowledge_home as knowledge
 import shiploop_loop_contract as loop_contract
@@ -59,7 +60,12 @@ import shiploop_trace as trace
 
 # 5 since 2026-10-10: the inner loop has eight stages (stage_spec); a version-4 run is refused by retired_run_reason.
 # 6 since 2026-10-11: consumer contract hand-off fields (follows, test_cases, not_covered, lessons, open items).
-STATE_VERSION = 9
+# 10 since 2026-10-28 (design T §9.1 2b-4): each step is built, tested, documented, reviewed and committed in turn, and
+# the inner loop has no verify stage; a version-9 run is refused with V9_REASON.
+# 11 since 2026-10-29 (design T §9.1 2c-1): the ask-agent route issues one implement action per step, as the inline route
+# does, and has no chain; a version-10 run is refused with V10_REASON, since an ask-agent run's one implement action
+# built every step and would be read as the first.
+STATE_VERSION = 11
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -72,9 +78,10 @@ _RESULT_KEYS = frozenset((
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
-    "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
+    "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions", "suite_requirements",
+    "knowledge", "added_tests",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -84,7 +91,7 @@ CONSUMES: dict[str, tuple[str, ...]] = {
     "plan": ("spec_diff",), "prepare": (), "step-plan": ("assumptions",),
     "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
     "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
-    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    "document": ("follows", "test_cases", "spec_diff"),
     "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
     "system-test": ("system_commands", "assumptions"),
     "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
@@ -122,7 +129,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "suite_requirements",
+    "mutant_dispositions", "suite_requirements", "knowledge", "added_tests",
 )
 _STATE_KEYS = frozenset(
     (
@@ -148,7 +155,6 @@ _STATE_KEYS = frozenset(
         "improve_skill",
         "active_improve",
         "improve_results",
-        "chain_bindings",
         "delegation",
         "delegation_hold",
         "planning_reconciliations",
@@ -186,6 +192,12 @@ FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work w
 # plans have none, implement now runs one at done, and ShipLoop never makes one up for an old run.
 V6_REASON = ("this run was saved before each implementation step recorded its Proof (state version 6): its step plans "
              "name no check for implement to run at done, and ShipLoop does not make one up. " + FRESH_RUN_HINT)
+V10_REASON = ("this run was saved with state version 10, whose ask-agent route issued one implement action for every step of "
+              "the plan and built them with a chain; ShipLoop now issues one implement action per step on both routes, "
+              "has no chain, and cannot resume it. " + FRESH_RUN_HINT)
+V9_REASON = ("this run was saved with state version 9, whose inner loop closed each item at a verify stage; ShipLoop "
+             "now builds, tests, documents, reviews and commits each step in turn, with no verify stage, and cannot "
+             "resume it. " + FRESH_RUN_HINT)
 # One term per concept (run-5 batch R1, 2026-10-24): a step's command is its `proof` and an open item's or unverified
 # outcome's way to settle is `settle`; a version-8 run's step plans and open items still use `check` for both.
 V8_REASON = ("this run was saved with state version 8, whose step plans call each step's command `check` and whose open "
@@ -252,8 +264,6 @@ def lint_mode(state: Mapping[str, Any]) -> str:
 def lint_view(state: Mapping[str, Any]) -> dict[str, Any]:
     """Project the few cursor facts the lint hook reads; no validation, no effects."""
     stage, action, workitem = _active_cursor(state)
-    static = [entry["action"] for entry in state.get("history", ())
-              if entry.get("stage") == "verify" and entry.get("workitem") == workitem]
     return {
         "mode": lint_mode(state),
         "status": state.get("status"),
@@ -261,7 +271,6 @@ def lint_view(state: Mapping[str, Any]) -> dict[str, Any]:
         "action": action["id"] if isinstance(action, Mapping) else None,
         "workitem": workitem,
         "items": sorted(state.get("inner_loops", {}) or {}),
-        "static_entries": len(static),
         "repo": state.get("repo"),
         "execution_mode": state.get("execution_mode"),
     }
@@ -299,7 +308,7 @@ def retired_run_reason(state: Any) -> str | None:
             return DURABLE_IMPROVE_REASON
         if state.get("version") == 4:
             return ("this run was saved with ShipLoop's seventeen-stage inner loop (state version 4); the inner loop "
-                    "now has eight stages and cannot resume it. " + FRESH_RUN_HINT)
+                    "now has seven stages and cannot resume it. " + FRESH_RUN_HINT)
         if state.get("version") == 6:
             return V6_REASON
         for old, new in _RENAMED_STAGES.items():
@@ -480,24 +489,14 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
         if stage in stage_spec.with_improve("first-item"):
             return _first_item_review(state, _current_work_item(state), state["history"])
         return True
-    # Rule item (owner, 2026-10-26, design 560c396f P0): one implement review per work item, after its last accepted
-    # step, over the item's whole change, whatever the planning review option. The ask-agent route's one action builds
-    # every step, so its result is the item's last. Except (advisors panel 2026-10-25, P4) a round of steps that changed
-    # no file: live runs 3 and 5b reviewed such reissued steps after a send-back three times, each a single trivial pass.
-    # A wide item (its steps on separate paths, ``_wide_item``) reviews each step that changed a file instead (owner,
-    # 2026-10-27, design 8e9d2d55: Sonnet's one review of a three-part item missed the three defects its step reviews fixed).
+    # Rule item (owner, 2026-10-27/28, design T §8): each step's one review, after its document stage, over the step's
+    # code, tests and docs, whatever the planning review option. Except (advisors panel 2026-10-25, P4) a step that
+    # changed no file:
+    # live runs 3 and 5b reviewed such reissued steps after a send-back three times, each a single trivial pass. The
+    # document entry records whether the step changed a file (``_document_entry``); unknown is reviewed.
     if stage in stage_spec.with_improve("item"):
-        view = step_view(state, _current_work_item(state))
         action = _active_cursor(state)[1]
-        unchanged = (isinstance(action, Mapping) and bool(action.get("base"))
-                     and action.get("after") == action.get("base"))
-        if view is not None and _wide_item(view):
-            return not unchanged and result["outcome"] == "done"
-        if view is not None and view.number < len(view.steps):
-            return False
-        if unchanged and action.get("round_changed") is False:
-            return False
-        return result["outcome"] == "done"
+        return not (isinstance(action, Mapping) and action.get("changed") is False)
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
     if "work_items" in result:
@@ -663,7 +662,7 @@ def _normalise_awaiting(value: Any) -> dict[str, Any]:
 
 def _check_submitted_delivery(state: Mapping[str, Any], action_id: str, stage: str, result: Any) -> None:
     """A marked run's release-plan done that leaves the delivery contract unsettled, refused at the stage's own complete
-    and check-only (``consumer_delivery.validate_settled``), not only when its Improve review is imported."""
+    and its check (``consumer_delivery.validate_settled``), not only when its Improve review is imported."""
     try:
         consumer_delivery.validate_settled(state, action_id, stage, result)
     except consumer_delivery.ConsumerDeliveryError as exc:
@@ -1040,7 +1039,7 @@ def _canonical_result(
     if outcome in ("send-back", "add-work"):
         _need(outcome in stage_spec.stage(stage).outcomes,
               (outcome + " sends a result back to the stage that wrote the wrong record and is allowed only at the "
-               "INNER stages from test-spec to verify (to " + stage_spec.SEND_BACK_TO + "), at system-test (to "
+               "INNER stages from test-spec to document (to " + stage_spec.SEND_BACK_TO + "), at system-test (to "
                "system-test-author) and at release-verify (to release-plan)" if outcome == "send-back" else
                outcome + " adds corrective work items and is allowed only at the OUTER stages")
               + "; report " + " or ".join(stage_spec.stage(stage).outcomes) + " instead")
@@ -1164,9 +1163,18 @@ def _canonical_result(
             result["failed_expectations"] = expectations.normalise_failed_expectations(value["failed_expectations"])
         except expectations.ExpectationError as exc:
             raise NavigatorError(str(exc)) from exc
-    if "check_na" in value:
-        _need(stage == "step-plan" and outcome == "done", "check_na is allowed only on a done step-plan result")
-        result["check_na"] = _text(value["check_na"], "check_na")
+    if test_loop.ADDED_TESTS in value:
+        # Shape only; the CLI gate checks each command is one the step plan recorded (``_check_added_tests``).
+        _need(stage == item_scope.DOCUMENT_STAGE and outcome == "done",
+              "added_tests is allowed only on a done document result")
+        rows = _records(value[test_loop.ADDED_TESTS], test_loop.ADDED_TESTS, ("id", "command"))
+        _need(all("\n" not in row["id"] for row in rows), "an added_tests id is one line: the start of the test's "
+              "printed title, for example TC-3 (a)")
+        result[test_loop.ADDED_TESTS] = [{"id": row["id"].strip(), "command": row["command"].strip()} for row in rows]
+    for key in ("check_na", "minimum_na"):
+        if key in value:
+            _need(stage == "step-plan" and outcome == "done", key + " is allowed only on a done step-plan result")
+            result[key] = _text(value[key], key)
     if "skill" in value:
         _need(stage == "carry-forward" and outcome == "done", "skill is allowed only on a done carry-forward result")
         _need(isinstance(value["skill"], Mapping) and value["skill"].get("decision") in _SKILL_DECISIONS,
@@ -1261,7 +1269,11 @@ def _canonical_result(
 # Each new key's one producing stage (a done result only: _DONE_ONLY_FIELDS).
 HANDOFF_FIELDS = {"follows": "step-plan", "test_cases": "test-spec", "not_covered": "implement",
                   "lessons": "release-verify", "learned": "implement", "decisions": "implement",
-                  "learned_from": "implement"}
+                  "learned_from": "implement", "knowledge": "document"}
+# Document's reflection record (design T §9.1 2b-3, option C, owner 2026-10-28): one key per living file it may write
+# (spec.md, architecture.md, environment.md), with what the step changed in it or why nothing, in the order the step
+# commit's "Knowledge home" section prints them.
+KNOWLEDGE_RECORD = ("spec", "architecture", "environment")
 # Implement's hand-off fields that are optional at done: the template leaves them out (``_handoff_shape_lines``).
 _OPTIONAL_HANDOFF = ("not_covered", "learned_from")
 # The step commit's own sections (build plan S3.2): each a list of nonblank lines, ["none"] when there is nothing to say,
@@ -1303,6 +1315,16 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
             _need(isinstance(lessons[key], str) and bool(lessons[key].strip()),
                   "lessons." + key + " must be nonblank text (\"none\" only when true)" + _SHAPE_TAIL)
         result["lessons"] = {key: lessons[key] for key in names}
+    if "knowledge" in value:
+        record = value["knowledge"]
+        _need(isinstance(record, Mapping) and set(record) == set(KNOWLEDGE_RECORD),
+              "knowledge has exactly " + ", ".join(KNOWLEDGE_RECORD) + ': {"spec": "...", "architecture": "...", '
+              '"environment": "..."}, one per living file' + _SHAPE_TAIL)
+        for key in KNOWLEDGE_RECORD:
+            _need(isinstance(record[key], str) and bool(record[key].strip()),
+                  "knowledge." + key + " must be nonblank text: what this step changed in it, or why nothing"
+                  + _SHAPE_TAIL)
+        result["knowledge"] = {key: " ".join(record[key].split()) for key in KNOWLEDGE_RECORD}
     if "not_covered" in value:
         rows = value["not_covered"]
         _need(isinstance(rows, list) and all(
@@ -1454,17 +1476,16 @@ def new_state(
 
 
 def _validate_action(action: Any, stage: str, label: str) -> str:
-    # An implement action may carry the tree its step began from (``_step_entry``), the tree it ended at when its result
-    # was submitted (``_step_after``), and, for the item's review (rule item), the tree the round's first step began from
-    # with whether an earlier step of the round changed a file (``item_base``, ``round_changed``: both or neither).
-    trees = {"base", "after", "item_base"} & set(action) if isinstance(action, Mapping) else set()
-    _need(isinstance(action, Mapping) and (set(action) == {"id", "stage"} or (
-        stage == "implement" and "base" in action
-        and set(action) - {"id", "stage"} <= {"base", "after", "item_base", "round_changed"}
-        and ("item_base" in action) == ("round_changed" in action)
-        and isinstance(action.get("round_changed", False), bool)
-        and all(isinstance(action.get(key), str) and re.fullmatch(r"[0-9a-f]{40,64}", action[key]) is not None
-                for key in trees))),
+    # An implement action may carry the tree its step began from (``_step_entry``); a document action whether the step
+    # changed a file since its base, which the step review's no-change skip reads, and the tree document began from,
+    # which its lint gate and rerun measure its own edits against (``_document_entry``).
+    def tree(value: Any) -> bool:
+        return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40,64}", value) is not None
+    extra = set(action) - {"id", "stage"} if isinstance(action, Mapping) else set()
+    _need(isinstance(action, Mapping) and {"id", "stage"} <= set(action) and (not extra or (
+        stage == "implement" and extra == {"base"} and tree(action.get("base"))) or (
+        stage == "document" and extra <= {"changed", "entry"} and isinstance(action.get("changed", False), bool)
+        and ("entry" not in action or tree(action["entry"])))),
           f"{label} is invalid")
     action_id = action.get("id")
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
@@ -1483,12 +1504,13 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     _need("delegation" in keys,
           "navigator state has no recorded delegation; it was saved by an older ShipLoop that "
           "routed such runs through ask-agent. " + FRESH_RUN_HINT)
+    # Refused before the key check: a version-10 run may carry the retired chain_bindings key, and its reason is this one.
+    _need(state.get("version") != 10, V10_REASON)
     unexpected = sorted(keys - allowed)
     _need("lint" in keys,
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
           + FRESH_RUN_HINT)
-    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "chain_bindings",
-                                "delegation_hold", "owner_notes"} - keys)
+    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "delegation_hold", "owner_notes"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
@@ -1497,6 +1519,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           + "); a run saved by an older ShipLoop cannot be loaded. " + FRESH_RUN_HINT)
     _need(state.get("version") != 6, V6_REASON)
     _need(state.get("version") != 8, V8_REASON)
+    _need(state.get("version") != 9, V9_REASON)
     _need(state.get("version") == STATE_VERSION,
           "navigator state version " + repr(state.get("version")) + " is not the supported version "
           + str(STATE_VERSION) + ". " + FRESH_RUN_HINT)
@@ -1631,16 +1654,6 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
 
-    bindings = state.get("chain_bindings", {})
-    _need(isinstance(bindings, Mapping), "chain bindings must be an object")
-    chain_actions = {entry["action"] for entry in history if entry["stage"] == "implement"}
-    if _active_cursor(state)[0] == "implement":
-        chain_actions.add(effective_action_id)
-    for action_id, digest in bindings.items():
-        _need(isinstance(action_id, str) and action_id in chain_actions,
-              "chain binding must belong to an implementation action")
-        _need(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) is not None,
-              "chain binding digest is invalid")
     _need(state["delegation"] in DELEGATIONS,
           "unsupported delegation setting; expected inline or ask-agent")
     hold = state.get("delegation_hold")
@@ -1809,7 +1822,7 @@ def _record_not_applicable(state: dict[str, Any], stage: str) -> str:
                        "running it.",
             "evidence_refs": [],
         })
-        stage = _next_stage(stage, state)
+        stage = _inner_successor(state, stage)
     return stage
 
 
@@ -2253,7 +2266,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
-    if stage == "verify" and workitem is not None or stage == "product-acceptance":
+    if stage == "product-acceptance":
         blocks.append(_Block("red-unobserved", P1, _red_unobserved_lines(root, state, stage, workitem)))
     if stage == "carry-forward":
         blocks.append(_Block("queue-rule", P1, _queue_lines(root, state, stage)))
@@ -2316,8 +2329,12 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     step = _step_lines(state, stage, workitem)
     if step:
         blocks.append(_Block("step", P1, [*step, ""]))
-    elif loop:
-        blocks.append(_Block("loop", P0, [*loop, ""]))
+    else:
+        mark = _document_step_lines(state, stage, workitem)
+        if mark:
+            blocks.append(_Block("step", P0, [*mark, ""]))
+        if loop:
+            blocks.append(_Block("loop", P0, [*loop, ""]))
     blocks.append(_Block("status", P0, [
         # Keepalive hooks bind a host session to this run from this exact line.
         f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
@@ -2365,9 +2382,6 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("unverified", FILE_ONLY, _unverified_lines(state, stage)))
     context = _run_context_lines(core, root, state, stage, workitem, stage_text, producer=True)
     blocks.append(_Block("run-context", FILE_ONLY, context))
-    if state.get("chain_bindings"):
-        import shiploop_chain
-        blocks.append(_Block("chain", FILE_ONLY, shiploop_chain.orientation(core, root, state)))
     blocks.append(_Block("last-accepted", FILE_ONLY, _last_accepted_lines(state, root)))
     if guidance.ENVIRONMENT_DISCOVERY_REQUIREMENTS.get(stage) is not None:
         # The requirement and the shared investigation allowance are in the stage's duty (packet re-cut, 2026-10-11);
@@ -2379,8 +2393,6 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("deltas", FILE_ONLY, [
         *_replan_delta_lines(root, state, stage), *_knowledge_lines(root, state, stage)]))
     blocks.append(_Block("lint-records", FILE_ONLY, _lint_lines(core, root, state, stage, action_id, commands=False)))
-    if stage == quality.STAGE:
-        blocks.append(_Block("change-inventory", FILE_ONLY, quality.inventory_lines(root, state, workitem or "", action_id)))
     if step and loop:
         blocks.append(_Block("loop", P0, loop))  # its leading blank line parts it from the block before
     return [block._replace(
@@ -2511,8 +2523,12 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     # An Improve stage's packets are never milestones: the step it reviews is accepted only when it completes, so the last
     # accepted step is still the one the producer packet before it showed (8 of 11 Improve packets of a live run repeated
     # that narrative, packet review F6, 2026-10-17).  A stopped run is one, child or not.
+    # A step's document ends the Build group only after the item's last step: between steps the next step's build
+    # follows it within the group (design T §8), so the packet shows the status line, not the narrative.
+    group_end = last is not None and last["stage"] in _GROUP_ENDS and not (
+        last["stage"] == "document" and _is_inner_root(state) and _between_steps(state))
     milestone = status != "active" or (state.get("active_improve") is None and (
-        last is None or last["stage"] in prelude or last["stage"] in outer or last["stage"] in _GROUP_ENDS))
+        last is None or last["stage"] in prelude or last["stage"] in outer or group_end))
     return {
         "goal": _status_text(_title_from_prompt(state["prompt"]), 90),
         "phases": phases,
@@ -2633,7 +2649,7 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     route each step is its own ``implement`` action; a step that does not depend on the one before it is
     simply the next entry. ``criteria`` and ``proof`` (the step's Proof, which implement runs at done) are
     required for a new step plan by the submit gate (``_check_step_sizing``); here they are shape-checked when
-    present.  ``paths`` is optional: the ask-agent chain reads it, the inline route never does.
+    present.  ``paths`` is optional, and nothing reads it.
     """
     _need(isinstance(value, list) and value, "steps must be a nonempty list; one step is fine")
     rows = []
@@ -2750,6 +2766,23 @@ def _earlier_focused_ids(state: Mapping[str, Any], work_item: str | None) -> dic
     return found
 
 
+def _check_added_tests(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a done document result (or its step review's final result) whose ``added_tests`` names a command the
+    item's step plan did not record as focused or regression: only a recorded command reruns, so only it can run the
+    test."""
+    if stage != item_scope.DOCUMENT_STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    _action, plan = test_loop._step_plan(state, _current_work_item(state))
+    recorded = [str(row.get("command")) for row in plan.get("test_commands") or ()
+                if isinstance(row, Mapping) and row.get("suite") in test_loop.COUNTED_SUITES]
+    for row in result.get(test_loop.ADDED_TESTS) or ():
+        command = str(row.get("command")) if isinstance(row, Mapping) else ""
+        _need(command in recorded, "added_tests names `" + command + "`, which is not a focused or regression command "
+              "this item's step plan recorded (" + ", ".join("`" + name + "`" for name in recorded)
+              + "). Name the recorded command that runs the test; a test no recorded command runs needs a send-back so "
+              "the step plan records its command.")
+
+
 def _check_focused_ids_new(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """Refuse a done step plan whose focused command tests only an earlier item's behaviour (CLI gate).
 
@@ -2776,9 +2809,8 @@ def _check_focused_ids_new(state: Mapping[str, Any], stage: str, result: Any) ->
 
 def _red_unobserved_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
     """The focused commands whose RED no base run saw, because each tests a deployed target (run-5 batch I2); [] when
-    none.  Verify prints its item's; product-acceptance every item's."""
-    items = [str(workitem)] if stage == "verify" else [str(row.get("id")) for row in state.get("work_items") or ()
-                                                     if isinstance(row, Mapping)]
+    none.  Product-acceptance prints every item's."""
+    items = [str(row.get("id")) for row in state.get("work_items") or () if isinstance(row, Mapping)]
     found = test_loop.red_unobserved(Path(root), state, items)
     if not found:
         return []
@@ -2811,8 +2843,8 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
 
     Every step names the criteria it satisfies and its ``proof``, the command that proves them (implement-step fix
     plan section 4.1); every criterion is satisfied by some step; a step's optional paths are a subset of the item's;
-    and no step only changes test files, unless the whole item is tests (the test stage writes the tests after the
-    last implement step, so a test-only step would be a no-op).
+    and no step only changes test files, unless the whole item is tests (the test stage writes the tests for the
+    behaviour the steps build: each step's own, design T §8, so a test-only step's implement would build nothing).
     """
     steps = result.get("steps") or []
     known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
@@ -2844,8 +2876,8 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
         test_only = [str(step.get("id")) for step in steps if isinstance(step, Mapping) and step.get("paths")
                      and all(item_scope.classify(path) == "test" for path in step["paths"])]
         _need(not test_only, "step " + ", ".join(test_only) + " only changes test files. Tests are not a step: "
-              "the test stage writes them after the last implement step. Merge that work into the step whose behaviour the test "
-              "proves, or drop it if a test-spec case already covers it.")
+              "the test stage writes the tests for the behaviour the steps build. Merge that work into the step whose "
+              "behaviour the test proves, or drop it if a test-spec case already covers it.")
 
 
 # Fields a stage's send-back must carry (its gate refuses a send-back without them).
@@ -2891,6 +2923,16 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
           + ". Create the entry's source files before the release plan, or correct the paths.")
 
 
+def _step_spec_refusal(state: Mapping[str, Any], item: str | None) -> str:
+    """The spec write-back refusal of the inline step ``item`` is on ('' outside one): what its spec.md edit may add
+    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement and document check it at their complete and the step's
+    review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
+    view = step_view(state, item) if item else None
+    if view is None:
+        return ""
+    return knowledge.step_spec_refusal(Path(str(state["repo"])), str(item) + "/" + str(view.step.get("id")))
+
+
 def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any, command: str = "complete") -> None:
     """Refuse a close stage's done while the repository knowledge home is incomplete or drops an ID."""
     if isinstance(result, Mapping) and result.get("outcome") == "done":
@@ -2898,31 +2940,117 @@ def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any, command: 
         _need(not refusal, refusal)
 
 
-def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
-    """Commit an item's changes (``item_scope.commit_scope``) once its verify stage is accepted done."""
-    rows = after["history"][len(before["history"]):]
-    for row in rows:
-        if row["stage"] != "verify" or row["outcome"] != "done" or not row.get("workitem"):
-            continue
-        message = ("feat: " + str(row.get("workitem")) + " " + _item_title(after, row["workitem"])
-                   + "\n\n" + str(row.get("summary") or "").strip())
-        try:
-            commit, undeclared = item_scope.commit_item(root, after, row["workitem"], message.strip())
-        except item_scope.ItemScopeError as exc:
-            print("ShipLoop verify: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
-            continue
-        if commit:
-            print("ShipLoop committed " + str(row["workitem"]) + "'s changes (its declared paths and documentation) as "
-                  + commit[:12] + ".")
-        if undeclared:
-            mode = str(after.get("execution_mode"))
-            print("Not committed (changed, but not in the step plan's paths and not documentation"
-                  + (", or excluded from the return" if mode == "navigator-worktree" else "") + "): "
-                  + ", ".join(undeclared) + ". " + stage_spec.item_left(mode))
-
-
-# Run-relative file holding an inline implement step's commit (``_step_commit``): a revisit of the step names it.
+# Run-relative file holding an inline implement step's commit (``_commit_stage``): a revisit of the step names it.
 STEP_COMMIT = "commits/{action}.txt"
+# Run-relative file holding a work item's per-step iterations (design T §9.1 step 2b-1): {"plans": {<step plan action>:
+# {<step>: {"number", "base", "commit"}}}}.  ``base`` is the commit the step's entry left (``_iteration_entry``, or
+# ``_iteration_recover`` when the call that entered the step stopped first), ``commit`` the step's own commit
+# (``_commit_stage``); ``current_iteration`` reads it.  While the commit stage is committing, the step's row also holds
+# ``pending`` (``iteration.pending_record``), which a retry reads.  The commit stage writes ``pending`` before Git commits,
+# and records ``commit`` and drops ``pending`` in the state's own save (``_commit_records``), so the ledger and the state
+# a step advances never disagree.
+ITERATION_LEDGER = "iterations/{item}.json"
+
+
+def _iteration_ledger(root: Path, item: str) -> dict[str, Any]:
+    path = Path(root) / ITERATION_LEDGER.format(item=item)
+    try:
+        ledger = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"plans": {}}
+    return ledger if isinstance(ledger, dict) and isinstance(ledger.get("plans"), dict) else {"plans": {}}
+
+
+def _iteration_ledger_text(root: Path, item: str, plan: str, step: str, drop: tuple[str, ...],
+                           fields: Mapping[str, Any]) -> str:
+    """The item's ledger with ``fields`` set on the step's row and ``drop`` removed from it; nothing is written."""
+    ledger = _iteration_ledger(root, item)
+    row = ledger["plans"].setdefault(plan, {}).setdefault(step, {})
+    row.update(fields)
+    for name in drop:
+        row.pop(name, None)
+    return json.dumps(ledger, indent=2, sort_keys=True) + "\n"
+
+
+def _iteration_record(root: Path, item: str, plan: str, step: str, *, drop: tuple[str, ...] = (), **fields: Any) -> None:
+    store.atomic_write_text(Path(root) / ITERATION_LEDGER.format(item=item),
+                            _iteration_ledger_text(root, item, plan, step, drop, fields))
+
+
+def _commit_records(root: Path, item: str, view: StepView, action_id: str | None, commit: str) -> dict[str, str]:
+    """The records that say a step is committed, for the save of the state that advances past it: its ledger row with
+    ``commit`` set and ``pending`` dropped (just ``pending`` dropped when ``commit`` is empty), and the commit file.  The
+    save is one journaled transaction, so a call that stops anywhere leaves either the old state with ``pending`` still
+    in the ledger, which a retry recognises as a commit already made, or all of it (design T §9.1 2c-0, Astra's finding 2)."""
+    step = str(view.step.get("id"))
+    records = {ITERATION_LEDGER.format(item=item): _iteration_ledger_text(
+        root, item, view.plan_action, step, ("pending",), {"commit": commit} if commit else {})}
+    if commit and action_id:
+        records[STEP_COMMIT.format(action=action_id)] = commit + "\n"
+    return records
+
+
+def _head(repo: Path) -> str | None:
+    """The checkout's HEAD commit, or None outside Git or before its first commit."""
+    found = shiploop_git.git(Path(repo), "rev-parse", "--verify", "-q", "HEAD")
+    try:
+        return iteration.commit_id(found.stdout.strip()) if not found.returncode else None
+    except ValueError:
+        return None
+
+
+def _iteration_entry(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+    """Record the iteration of an implement step this call entered, once every commit the call makes has landed
+    (step, preparatory, skill and knowledge commits all run before this), so its base is the commit its later stages
+    build on.  Nothing is recorded outside Git or when no step is current."""
+    stage, action, item = _active_cursor(after)
+    if stage != "implement" or after.get("status") != "active" or not isinstance(action, Mapping):
+        return
+    prior = _active_cursor(before)[1] if before.get("status") == "active" else None
+    view = step_view(after, item)
+    if view is None or (isinstance(prior, Mapping) and prior.get("id") == action.get("id")):
+        return
+    head = _head(Path(after["repo"]))
+    if head is not None:
+        _iteration_record(root, str(item), view.plan_action, str(view.step.get("id")),
+                          number=view.number, base=head, commit=None, drop=("pending",))
+
+
+def _iteration_recover(root: Path, state: Mapping[str, Any]) -> None:
+    """Record the base of the inline step the run stands in when its row is missing: the call that entered the step saved
+    the state and stopped before ``_iteration_entry`` ran (design T §9.1 2c-0, Astra's finding 2).  The row is what the
+    step's commit stage, base run, mutation check and review read; without it the step was left uncommitted.  Inside an
+    iteration only the commit stage commits, so HEAD is still the commit the entry would have recorded.  Nothing is
+    recorded outside Git, before the step's build, or when the row exists."""
+    stage, _action, item = _active_cursor(state)
+    if state.get("status") != "active" or item is None or stage not in ("implement", *AFTER_BUILD):
+        return
+    view = step_view(state, item)
+    if view is None:
+        return
+    step = str(view.step.get("id"))
+    row = _iteration_ledger(root, str(item))["plans"].get(view.plan_action, {}).get(step)
+    head = _head(Path(state["repo"]))
+    if head is None or (isinstance(row, Mapping) and row.get("base")):
+        return
+    _iteration_record(root, str(item), view.plan_action, step, number=view.number, base=head, commit=None,
+                      drop=("pending",))
+    print("ShipLoop recorded step " + str(item) + "/" + step + "'s base (" + head[:12] + "): the call that entered the "
+          "step stopped before it did.", file=sys.stderr)
+
+
+def current_iteration(root: Path, state: Mapping[str, Any]) -> iteration.Iteration | None:
+    """The current inline step's iteration as its entry recorded it (``_iteration_entry``), or None."""
+    item = _current_work_item(state)
+    view = step_view(state, item)
+    if view is None:
+        return None
+    step = str(view.step.get("id"))
+    row = _iteration_ledger(root, str(item))["plans"].get(view.plan_action, {}).get(step)
+    if not isinstance(row, Mapping) or not row.get("base"):
+        return None
+    return iteration.Iteration(str(item), view.plan_action, step, int(row.get("number") or view.number),
+                               iteration.commit_id(row["base"]))
 # The subjects of ShipLoop's own record commits (knowledge, leftovers): the look-back skips them, they carry no learning.
 BOOKKEEPING_SUBJECTS = ("docs(shiploop): ", "chore(shiploop): ")
 # How many commits the look-back quotes, and how much of each: its subject and its Key learnings, one line per commit.
@@ -2933,9 +3061,11 @@ LOOK_BACK_SUBJECT = 100
 _LEARNINGS_HEAD = "Key learnings:"
 
 
-def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping[str, Any]) -> str:
-    """The commit message of one accepted inline implement step (build plan S3.2): a ``feat(<item>/<step>)`` subject and
-    the Key learnings, Key decisions, Evidence and Related commits sections, from the step's result."""
+def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping[str, Any],
+                        record: Mapping[str, Any] | None = None) -> str:
+    """The commit message of one accepted inline step (build plan S3.2): a ``feat(<item>/<step>)`` subject and the Key
+    learnings, Key decisions, Evidence and Related commits sections, from the step's implement result, then the Knowledge
+    home section: ``record``, its document stage's reflection (``KNOWLEDGE_RECORD``), when it ran (design T §9.1 2b-3)."""
     headline = str(result.get("headline") or "").strip() or re.split(r"(?<=[.;:])\s", str(step.get("task") or ""))[0]
     subject = "feat(" + work_item + "/" + str(step.get("id")) + "): " + " ".join(headline.split()).rstrip(".")
     def section(title: str, rows: Any) -> list[str]:
@@ -2943,36 +3073,108 @@ def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping
     body = [str(result.get("summary") or "").strip(), "",
             *section("Key learnings", result.get("learned")), *section("Key decisions", result.get("decisions")),
             *section("Evidence", result.get("evidence_refs")), *section("Related commits", result.get("learned_from"))]
+    if isinstance(record, Mapping) and record:
+        body += section("Knowledge home", [name + ": " + str(record[name]) for name in KNOWLEDGE_RECORD if name in record])
     return _status_text(subject, HEADLINE_LIMIT) + "\n\n" + "\n".join(body).strip()
 
 
-def _step_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str, result: Any) -> None:
-    """Commit an inline implement step's changes when its done is accepted, before its Improve stage edits anything
-    (build plan S3.2): each step is its own commit, so the review's diff, a revisit and the next step's look-back each
-    name one step's change.  The paths are the item's commit scope (``item_scope.commit_item``); verify's item commit
-    takes what remains.  A failure leaves the change in the checkout for that commit, as the preparatory fix does."""
-    if not isinstance(result, Mapping) or result.get("outcome") != "done" or before.get("status") != "active":
-        return
-    stage, action, item = _active_cursor(before)
-    if (stage != "implement" or item is None or not isinstance(action, Mapping) or action.get("id") != action_id
-            or delegation(before) != guidance.INLINE or action_id in before["accepted"]):
-        return
+# What the step review is told about committing, and what its receipt records in place of the commit it does not make.
+STEP_REVIEW_NO_COMMIT = ("design T §8: the step's iteration commit, made once this review is accepted, commits the "
+                         "review's edits with the step's code, tests and docs")
+_RETRY = "run the same callback again"
+
+
+def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, str]:
+    """The iteration's commit stage (design T §8, §9 row 3; owner 2026-10-27: "We should commit on every iteration right
+    after the documentation"), run when a step's document stage is accepted, after its review: ShipLoop commits
+    the step's code, tests, docs, knowledge home and the review's edits as one commit on the iteration's base, so the
+    next step starts from it and its look-back names one step's change.  The paths are the item's commit scope
+    (``item_scope.commit_scope``) since the step's base (``_iteration_base``).
+
+    It runs in the call whose gates accepted that last stage (document's complete, or its review's import), and nothing
+    writes the checkout between them, so the commit holds the tree those gates ran on.  It writes a pending record
+    before it commits, and ``iteration.commit_decision`` decides: commit on the base, recognise the commit a call that
+    stopped before recording it made, or refuse a HEAD something else moved.  A refusal, or a commit Git refuses,
+    refuses the call: nothing is saved, the step does not advance with its change uncommitted, and the same callback
+    retries it.  A step whose changes cannot be read (no base was captured) is not committed and not held, as the gates
+    that need the base are skipped.  Every changed file the commit leaves is named (``_left_notice``).
+
+    It returns the records that say the step is committed (``_commit_records``), for the save of the state that advances
+    past it, and writes only ``pending``, before Git commits.  So a call that stops after Git commits and before that save
+    leaves ``pending`` in the ledger and the old state, and its retry recognises the commit (``commit_decision``'s
+    "done"); the save is one journaled transaction, which the next run completes (design T §9.1 2c-0)."""
+    if before.get("status") != "active":
+        return {}
+    item = _current_work_item(before)
+    rows = after["history"][len(before["history"]):]
+    if item is None or not any(row["stage"] == "document" and row["outcome"] == "done" and row["workitem"] == item
+                               for row in rows):
+        return {}
     view = step_view(before, item)
     if view is None:
-        return
-    try:
-        commit, _left = item_scope.commit_item(root, after, item, step_commit_message(item, view.step, result))
-    except item_scope.ItemScopeError as exc:
-        print("ShipLoop implement: step " + str(view.step.get("id")) + " was not committed (" + str(exc) + "); its "
-              "change stays in the checkout and verify's item commit includes it.", file=sys.stderr)
-        return
+        return {}
+    step = str(view.step.get("id"))
+    current = current_iteration(root, before)
+    if current is None:
+        print("ShipLoop document: step " + item + "/" + step + " has no iteration record (its run has no commit to start "
+              "from), so ShipLoop does not commit it.", file=sys.stderr)
+        return {}
+    repo = Path(after["repo"])
+    row = _iteration_ledger(root, item)["plans"].get(view.plan_action, {}).get(step) or {}
+    head = _head(repo)
+    found = {name: shiploop_git.git(repo, "rev-parse", "--verify", "-q", "HEAD" + suffix).stdout.strip() or None
+             for name, suffix in (("parent", "^"), ("tree", "^{tree}"))} if head else {"parent": None, "tree": None}
+    decision = iteration.commit_decision(current, head=head, head_parent=found["parent"], head_tree=found["tree"],
+                                         pending=row.get("pending"))
+    if decision.action == "refuse":
+        raise NavigatorError("ShipLoop could not commit step " + item + "/" + step + ": " + decision.reason + ". "
+                             + ("If that commit holds this step's work, undo it and keep its changes (git reset --soft "
+                                + current.base + "), then " + _RETRY + "; otherwise report blocked and say what "
+                                "committed." if head != current.base else "Report blocked and quote this refusal."))
+    implement = [entry["action"] for entry in before["history"]
+                 if entry["stage"] == "implement" and entry["workitem"] == item and entry["outcome"] == "done"]
+    action_id = implement[-1] if implement else None
+    commit = head if decision.action == "done" else ""
+    if decision.action == "commit":
+        changed, why = item_scope.changed_paths_or_reason(root, item)
+        if changed is None:
+            # No retry can read them (the base was never captured), so the step is not held: like the base run and
+            # the mutation check, the commit is skipped and says why.
+            print("ShipLoop document: step " + item + "/" + step + " is not committed: its changes cannot be read ("
+                  + why + ").", file=sys.stderr)
+            return {}
+        chosen, left = item_scope.commit_scope(changed, item_scope.declared(after, item),
+                                               item_scope.withheld(root, after))
+        _left_notice(after, left)
+        if chosen:
+            document = next(entry["action"] for entry in rows
+                            if entry["stage"] == "document" and entry["outcome"] == "done" and entry["workitem"] == item)
+            message = step_commit_message(item, view.step, before["accepted"].get(action_id, {}) if action_id else {},
+                                          (after["accepted"].get(document) or {}).get("knowledge"))
+            _iteration_record(root, item, view.plan_action, step,
+                              pending=iteration.pending_record(current, shiploop_git.planned_tree(repo, chosen)))
+            try:
+                commit = shiploop_git.commit_paths(repo, chosen, message).commit
+            except shiploop_git.CommitError as exc:
+                raise NavigatorError("ShipLoop could not commit step " + item + "/" + step + " (" + str(exc) + "). Its "
+                                     "change stays in the checkout, and the step advances only once its commit lands: "
+                                     "fix the cause, then " + _RETRY + ".") from exc
     if commit:
-        store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
-        print("ShipLoop committed step " + item + "/" + str(view.step.get("id")) + " as " + commit[:12] + ".")
+        print("ShipLoop committed step " + item + "/" + step + " as " + commit[:12] + ".", file=sys.stderr)
+    return _commit_records(root, item, view, action_id, commit)
+
+
+def _left_notice(state: Mapping[str, Any], left: Sequence[str]) -> None:
+    """Name the changed files the commit stage leaves (``item_scope.commit_scope``) and what happens to them."""
+    if left:
+        mode = str(state.get("execution_mode"))
+        print("Not committed (changed, but not in the step plan's paths and not documentation"
+              + (", or excluded from the return" if mode == "navigator-worktree" else "") + "): "
+              + ", ".join(left) + ". " + stage_spec.item_left(mode))
 
 
 def step_commit(root: Path, action_id: str) -> str | None:
-    """The commit ``_step_commit`` recorded for ``action_id``, or None."""
+    """The commit ``_commit_stage`` recorded for ``action_id``, or None."""
     path = Path(root) / STEP_COMMIT.format(action=action_id)
     return path.read_text(encoding="utf-8").strip() or None if path.is_file() else None
 
@@ -2993,13 +3195,13 @@ def _commit_learnings(body: str) -> str:
 
 
 def look_back_lines(state: Mapping[str, Any], stage: str) -> list[str]:
-    """An inline implement packet's look-back (build plan S3.2): the last ``LOOK_BACK_COMMITS`` commits of the checkout
+    """An implement packet's look-back (build plan S3.2): the last ``LOOK_BACK_COMMITS`` commits of the checkout
     that are not ShipLoop bookkeeping, newest first, one line each (subject and Key learnings, cut to ``LOOK_BACK_TEXT``).
     Required head text, so a printed head always carries it: a live run (2026-10-20) had it in all four packet files and in none of
     the nine printed implement heads, where it was the last optional block, and no step cited an earlier commit.  [] on
-    another stage or route (the ask-agent action makes no step commits) and outside a checkout."""
+    another stage and outside a checkout."""
     repo = Path(str(state.get("repo") or ""))
-    if stage != "implement" or _ask_agent(state) or not (repo / ".git").exists():
+    if stage != "implement" or not (repo / ".git").exists():
         return []
     shown = shiploop_git.git(repo, "log", "-20", "--format=%h%x1f%s%x1f%b%x00")
     rows = [entry.strip("\n").split("\x1f", 2) for entry in shown.stdout.split("\0") if entry.strip()] \
@@ -3025,6 +3227,18 @@ def preparatory_base(root: Path, work_item: str) -> str | None:
     return expectations.preparatory_commit(root, work_item)
 
 
+def test_base_commit(root: Path, work_item: str) -> str | None:
+    """The commit the test gate's base runs (the base run, the mutation check, red-check) move the item's base to:
+    validate-existing's preparatory fix while the base predates it, that is at the first step; None once a later step's
+    base holds it (design T §9.1 step 3: each step's base callers share its base), or when there was no fix."""
+    commit = preparatory_base(root, work_item)
+    base = lint.read_base(Path(root), work_item) if commit else None
+    if not commit or not base or not base.get("head") or not base.get("toplevel"):
+        return commit
+    held = shiploop_git.git(Path(str(base["toplevel"])), "merge-base", "--is-ancestor", commit, str(base["head"]))
+    return None if held.returncode == 0 else commit
+
+
 def _preparatory_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str,
                         paths: list[str]) -> None:
     """Commit validate-existing's preparatory fix on its accepted done (owner decision 2026-10-10): ShipLoop commits,
@@ -3039,7 +3253,7 @@ def _preparatory_commit(root: Path, before: Mapping[str, Any], after: Mapping[st
                                            + (", ".join(ids) or "the plan's expectations") + " (" + str(item) + ")")
     except Exception as exc:  # noqa: BLE001 - the fix stays in the checkout; the item commit picks it up
         print("ShipLoop validate-existing: the preparatory fix was not committed (" + str(exc) + "); it stays in the "
-              "checkout and verify's item commit includes it.", file=sys.stderr)
+              "checkout and the step's commit includes it.", file=sys.stderr)
         return
     if commit[0]:
         # The test stage's base run starts from here, so a test of the fixed behaviour is not red for the wrong reason.
@@ -3048,7 +3262,8 @@ def _preparatory_commit(root: Path, before: Mapping[str, Any], after: Mapping[st
 
 
 def _skill_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str) -> None:
-    """Commit a skill carry-forward created or updated (owner decision 2026-10-10): the item commit ran at verify."""
+    """Commit a skill carry-forward created or updated (owner decision 2026-10-10): the item's commits ran at its
+    document stages."""
     result = after["accepted"].get(action_id)
     if action_id in before["accepted"] or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
@@ -3117,6 +3332,12 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
     if not stages:
         return
+    if (stages[-1] in ("implement", "test") and "stage" in after
+            and step_view(after, _current_work_item(after)) is not None):
+        # Inside an inline step's iteration the step's one commit, after its document stage and review, takes the
+        # knowledge home with the step's code, tests and docs (design T §8); a commit here would split it.  A state
+        # with no navigator cursor is in no iteration.
+        return
     try:
         committed = knowledge.commit(after, stages[-1],
                                      _lessons_open_items(after) if stages[-1] == "release-verify" else ())
@@ -3132,13 +3353,13 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
     for line in knowledge.section_notices(after, close):
         print(line)
-    # An accepted carry-forward: one counted line when a command that passed at its item's verify is still not named in
+    # An accepted carry-forward: one counted line when a command that passed at its item's test stage is still not named in
     # environment.md (plan row VR-3); never a refusal.
     if root is not None:
         for row in rows:
             if row["stage"] == "carry-forward" and row["outcome"] == "done" and row.get("workitem"):
                 for line in knowledge.command_notices(
-                        after, _verify_passed_commands(root, after, str(row["workitem"])) or ()):
+                        after, _passed_commands(root, after, str(row["workitem"])) or ()):
                     print(line)
     if (root is not None and after.get("execution_mode") == "navigator-worktree"
             and (committed.commit or terminal)):
@@ -3173,7 +3394,7 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, check_only: bool = False) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, count: bool = True) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -3184,7 +3405,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
 
     ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
     keep it before the loop wrote it (the loop checks accept blocked without a receipt), and so may a
-    ``--check-only`` run made from inside the still-running loop; done still needs it, through the loop's own terminal
+    check (``count`` False) made from inside the still-running loop; done still needs it, through the loop's own terminal
     check.  The live hello run on 13d278dd (2026-10-11) was told "Write the file" for it, an invitation to forge it.
     """
     if not isinstance(result, Mapping):
@@ -3195,8 +3416,8 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
             continue
         path = Path(_EVIDENCE_SUFFIX.sub("", ref))
         # The prefilled receipt is the runtime's to write, never the model's: before the loop ends (any outcome but
-        # done, or a --check-only run from inside the loop) it may not exist yet.
-        if (own_receipt is not None and (result.get("outcome") != "done" or check_only)
+        # done, or a check from inside the loop) it may not exist yet.
+        if (own_receipt is not None and (result.get("outcome") != "done" or not count)
                 and str(path) == str(own_receipt)):
             continue
         if not path.exists():
@@ -3481,7 +3702,7 @@ def _placeholders(result: Mapping[str, Any]) -> list[str]:
             for index, item in enumerate(value):
                 walk(item, where + "[" + str(index) + "]")
 
-    for key in ("follows", "test_cases", "not_covered", "lessons", *STEP_NOTES):
+    for key in ("follows", "test_cases", "not_covered", "lessons", "knowledge", *STEP_NOTES):
         if key in result:
             walk(result[key], key)
     return found
@@ -3505,7 +3726,7 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         if "follows" not in result:
             return _Fault("Add follows to {result}", "adds follows",
                           ['Shape: "follows": ["R-3", "AD-2"]: the R-<n> this item implements and the AD-<n> it follows; '
-                           "[] only when it serves none. This item's test-spec, implement, test, document and verify "
+                           "[] only when it serves none. This item's test-spec, implement, test and document "
                            "packets quote each entry."])
         known = {**knowledge.entries(repo, "spec.md"), **knowledge.entries(repo, knowledge.ARCHITECTURE)}
         absent = [ident for ident in result["follows"] if ident not in known]
@@ -3524,8 +3745,8 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         wrong = assumptions.wrong_due_stages(result["assumptions"], stage)
         if wrong:
             return _Fault("Fix the due stages in {result}", "fixes due stages",
-                          ["Name a later outer stage (or carry-forward, from test-spec or verify) as each open item's "
-                           "due_stage; work for a later item goes in carry-forward's work_items.",
+                          ["Name a later outer stage (or carry-forward, from " + _carry_forward_producers() + ") as each "
+                           "open item's due_stage; work for a later item goes in carry-forward's work_items.",
                            "; ".join(ident + " names '" + due_stage + "'" for ident, due_stage in wrong)
                            + "; the allowed due stages are " + ", ".join(assumptions.allowed_due_stages(stage)) + "."])
         try:
@@ -3539,7 +3760,7 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         if found is not None:
             return _Fault(*found)
     if stage == "implement":
-        missing = [key for key in STEP_NOTES if key not in result and not _ask_agent(state)]
+        missing = [key for key in STEP_NOTES if key not in result]
         if missing:
             return _Fault("Add " + " and ".join(missing) + " to {result}", "adds " + " and ".join(missing),
                           ['Shape: "learned": ["<what this step taught, for the steps after it>"], "decisions": ["<a '
@@ -3550,6 +3771,11 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
             return _Fault("Fix learned_from in {result}", "fixes learned_from",
                           ["Name only commits reachable from HEAD in " + str(repo) + " (the look-back lists the latest): "
                            "drop each other ID.", "Not reachable from HEAD: " + ", ".join(unreachable) + "."])
+    if stage == "document" and "knowledge" not in result:
+        return _Fault("Add knowledge to {result}", "adds knowledge",
+                      ['Shape: {"spec": "...", "architecture": "...", "environment": "..."}: for each living file '
+                       "(KNOWLEDGE/spec.md, architecture.md, environment.md), what this step changed in it or why it "
+                       "needed no change. ShipLoop writes it into this step's commit."])
     if stage == "release-verify" and "lessons" not in result:
         return _Fault("Add lessons to {result}", "adds lessons",
                       ['Shape: {"learned": "...", "considerations": "...", "open_next": "..."}, each written in detail '
@@ -3558,9 +3784,10 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
     return None
 
 
-def _ask_agent(state: Mapping[str, Any] | None) -> bool:
-    """Whether the run builds an item's steps in one ask-agent action (no step commits, so no required step notes)."""
-    return state is not None and "delegation" in state and delegation(state) != guidance.INLINE
+def _carry_forward_producers() -> str:
+    """The stages whose open item may be due at its own item's carry-forward, as prose: "test-spec or document"."""
+    names = list(assumptions.CARRY_FORWARD_PRODUCERS)
+    return (", ".join(names[:-1]) + " or " + names[-1]) if len(names) > 1 else names[0]
 
 
 def _reachable(repo: Path, commit: str) -> bool:
@@ -3574,7 +3801,7 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
                   next_step: NextStep) -> None:
     """Refuse a done result whose hand-off fields its consumers cannot use (consumer contract, slice 4a).
 
-    Runs on complete (``--check-only`` too, and on an Improve stage), right after ``_knowledge_gate``, on the result those
+    Runs on complete (and its check, and on an Improve stage), right after ``_knowledge_gate``, on the result those
     gates check.  It canonicalises first (X5), so a wrong type is the shape refusal ``apply`` would give, never a
     TypeError.  A refusal's line 1 is the fix, one absolute path (the result file) and ``next_step``; line 2 the shape and
     who quotes it; the failing IDs follow in full.  Checks: step-plan's follows exist as entries; test-spec's cases
@@ -3617,12 +3844,11 @@ class StepScope(NamedTuple):
 
 
 def step_scope(state: Mapping[str, Any], stage: str) -> StepScope | None:
-    """The scope an inline implement step's hand-off is cut to, or None for the item's whole set (efficiency plan U17).
+    """The scope an implement step's hand-off is cut to, or None for the item's whole set (efficiency plan U17).
 
     The step quotes the criteria it lists, the test cases whose criterion is one of them, and the follows entries its
-    task, those criteria and those cases name (R-<n>), with every AD-<n> kept.  None (the item set) on any other stage, on
-    the ask-agent route (one action builds every step), when the step lists no criterion the plan defines or lists them
-    all, and the follows cut alone falls back to the item's list when the scope names none of its R-<n>.  It fails
+    task, those criteria and those cases name (R-<n>), with every AD-<n> kept.  None (the item set) on any other stage,
+    when the step lists no criterion the plan defines or lists them all, and the follows cut alone falls back to the item's list when the scope names none of its R-<n>.  It fails
     toward more text.  Reads state only.
     """
     if stage != "implement":
@@ -3630,9 +3856,9 @@ def step_scope(state: Mapping[str, Any], stage: str) -> StepScope | None:
     found = loops.cursor(state)
     if found is None or found[0] != "implement":
         return None
-    _stage, action_id, item = found
-    step = loops.implement_scope(state, item, action_id)
-    if not isinstance(step, Mapping) or step.get("all_steps"):
+    _stage, _action_id, item = found
+    step = loops.current_step(state, item)
+    if not isinstance(step, Mapping):
         return None
     plan_action, plan = test_loop._step_plan(state, item)
     rows = [row for row in plan.get("criteria") or () if isinstance(row, Mapping)]
@@ -3710,13 +3936,17 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
                 if scope is not None and isinstance(value, list):
                     value = [case for case in value if isinstance(case, Mapping)
                              and str(case.get("criterion")) in scope.criteria]
+                number = test_loop.step_number(state, str(owner)) if stage in ("test", "document") and owner else None
+                if number is not None and isinstance(value, list):
+                    # A step's test stage builds out the cases due by its step, and its document stage (whose review
+                    # judges the step) reads the same ones (design T §8): earlier steps' cases still run.
+                    due = set(iteration.due_cases(value, test_loop._plan_steps(test_loop._step_plan(state, str(owner))[1]),
+                                                  number))
+                    value = [case for case in value if isinstance(case, Mapping) and str(case.get("id")) in due]
                 sources.append(Source(key, "test-spec", action, owner, value))
         elif key == "not_covered":
             plan_action, _plan = test_loop._step_plan(state, item) if item else (None, {})
-            history = list(state.get("history") or ())
-            start = max((position for position, row in enumerate(history) if row.get("action") == plan_action), default=-1)
-            done = [row["action"] for row in history[start + 1:] if plan_action and row.get("stage") == "implement"
-                    and row.get("workitem") == item and row.get("outcome") == "done"]
+            done = planning_revision.step_actions(state, item, "implement") if plan_action else []
             for action in done or [None]:
                 found = accepted.get(action) if action else None
                 sources.append(Source(key, "implement", action, item,
@@ -3828,13 +4058,11 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
         validate(updated)
         return updated
 
-    if _is_inner_root(updated) and stage == "implement" and delegation(state) == guidance.INLINE:
-        # One implement action per step: the script, not the host, walks the step plan.
-        done, steps = implement_progress(updated, _current_work_item(updated))
-        if done < len(steps):
-            _replace_inner_action(updated, "implement")
-            validate(updated)
-            return updated
+    if _is_inner_root(updated) and _next_step_follows(updated, stage):
+        # One iteration per step (design T §8): the script, not the host, walks the step plan.
+        _replace_inner_action(updated, "implement")
+        validate(updated)
+        return updated
 
     if _is_inner_root(updated):
         next_stage = _next_stage(stage, updated)
@@ -3979,7 +4207,7 @@ def _reconciliation_permitted(state: Mapping[str, Any], action_id: str) -> Mappi
     _need(state["status"] == "active", "parent must be active to reconcile Improve")
     _need(state["stage"] == "plan" and state.get("work_index") == 0
           and not state.get("completed_work_items") and not state.get("inner_loops")
-          and not state.get("chain_bindings"),
+,
           "reconciliation is allowed only before prepare or work execution")
     child = state.get("active_improve")
     _need(isinstance(child, Mapping) and child.get("action_id") == action_id
@@ -4169,6 +4397,10 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     after, writes = _validate_existing_entry(root, before, after)
     after = _document_entry(root, after)
     after = _step_entry(root, before, after)
+    # The step's commit stage runs against its own base, before the next step's base replaces it.  Its records are saved
+    # with the state they advance.
+    writes = {**writes, **_commit_stage(root, before, after)}
+    writes = {**writes, **_iteration_base(root, before, after)}
     after, bind_writes = _improve_entry(root, after)
     writes = {**writes, **bind_writes}
     for relative, text in bind_writes.items():
@@ -4179,16 +4411,38 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     return after, {**writes, **lint_writes}, payload
 
 
+def _iteration_base(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, str]:
+    """Recapture the item's base (``lint.capture_base``) when the run advances from a step's document stage to the next
+    step's build, so every later reader of the base (the lint gate, the mutation check, the base test run, document's
+    left-out rule, the commit scope and the step review's diff) reads this step's change alone (design T §8).
+
+    The record is written at once, because this transition's own lint pass reads it, and returned for the save.  The
+    first step keeps the base captured when the item began; a step entered again after a send-back keeps its base, so
+    edits the send-back left stay that step's change instead of vanishing into its base (design T §9 row 5)."""
+    stage, action, item = _active_cursor(after)
+    if (stage != "implement" or item is None or after.get("status") != "active" or before.get("status") != "active"
+            or not _is_inner_root(before)):
+        return {}
+    prior_stage, prior, prior_item = _active_cursor(before)
+    if prior_item != item or prior_stage != "document" or (isinstance(prior, Mapping) and isinstance(action, Mapping)
+                                                            and prior.get("id") == action.get("id")):
+        return {}
+    writes = lint.capture_base(root, Path(after["repo"]), str(item))
+    for relative, text in writes.items():
+        store.atomic_write_text(Path(root) / relative, text)
+    return writes
+
+
 def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) -> dict[str, Any]:
-    """Record the tree an inline implement step begins from in its action record (``base``), when the run newly enters
+    """Record the tree an implement step begins from in its action record (``base``), when the run newly enters
     the step: the diff base its Improve review names (``_review_base_line``; implement-step fix plan section 2.2).
 
     The tree is the working content, untracked files included (``improve_changes.snapshot_tree``, the bind snapshot's
-    own reader), because the item's earlier steps stay uncommitted until verify.  Outside a Git checkout, or when the
+    own reader), so a step's review diffs its own change, untracked files included.  Outside a Git checkout, or when the
     snapshot fails, nothing is recorded and the hand-off says so."""
     stage, action, workitem = _active_cursor(after)
     if (stage != "implement" or not isinstance(action, Mapping) or "base" in action or after.get("active_improve")
-            or after.get("status") != "active" or delegation(after) != guidance.INLINE):
+            or after.get("status") != "active"):
         return after
     prior = _active_cursor(before)[1] if before.get("status") == "active" else None
     if isinstance(prior, Mapping) and prior.get("id") == action["id"]:
@@ -4196,37 +4450,9 @@ def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
     tree = improve_changes.snapshot_tree(Path(root), Path(after["repo"]))
     if not tree:
         return after
-    record = {**action, "base": tree}
-    # The item's review (rule item) takes the change since the round's first step began, and is skipped when no step of
-    # the round changed a file: the first step records its own entry tree, and each later one carries it on with whether
-    # an earlier step changed a file. A step that cannot carry it on (its predecessor recorded none) records neither,
-    # and the review then names its base as not recorded.
-    if not implement_progress(after, workitem)[0]:
-        record.update(item_base=tree, round_changed=False)
-    elif isinstance(prior, Mapping) and prior.get("item_base"):
-        record.update(item_base=prior["item_base"],
-                      round_changed=bool(prior.get("round_changed")) or prior.get("after") != prior.get("base"))
     advanced = deepcopy(after)
-    advanced["inner_loops"][workitem]["action"] = record
+    advanced["inner_loops"][workitem]["action"] = {**action, "base": tree}
     return advanced
-
-
-def _step_after(root: Path, state: Mapping[str, Any]) -> Mapping[str, Any]:
-    """Record the tree an inline implement step ends at (``after``) beside the tree it began from (``base``), just before
-    its result is applied, so the Improve checkpoint can tell a step that changed no file (panel P4, 2026-10-25).
-
-    Nothing is recorded on the ask-agent route (no ``base``), outside Git, or when the snapshot fails: the step is
-    reviewed as before."""
-    stage, action, workitem = _active_cursor(state)
-    if (stage != "implement" or not isinstance(action, Mapping) or not action.get("base") or "after" in action
-            or state.get("active_improve")):
-        return state
-    tree = improve_changes.snapshot_tree(Path(root), Path(state["repo"]))
-    if not tree:
-        return state
-    stamped = deepcopy(dict(state))
-    stamped["inner_loops"][workitem]["action"] = {**action, "after": tree}
-    return stamped
 
 
 def _improve_stage_start(core: Any, root: Path, after: Mapping[str, Any]) -> None:
@@ -4304,26 +4530,31 @@ def _validate_existing_entry(root: Path, before: Mapping[str, Any],
 
 
 def _document_entry(root: Path, after: dict[str, Any]) -> dict[str, Any]:
-    """Record document as not applicable when the item's real diff touches no code or test path (owner decision
-    2026-10-10, ``item_scope.no_document_item``); ``apply`` cannot read the diff, so it issues document and this
-    hook, which has the run directory, records it instead."""
+    """When the run enters a step's document stage, record in its action whether the step changed a file since its base
+    (the step review's no-change skip reads it, ``_improve_checkpoint``) and the tree it begins from (its lint gate and
+    rerun measure its own edits against it, ``_stage_base``), and record document as not applicable when that
+    change touches no code or test path (owner decision 2026-10-10, ``item_scope.no_document_item``).  ``apply`` cannot
+    read the diff, so it issues document and this hook, which has the run directory, records it.  A left-out document
+    still owns the step's review (design T §9 row 2), so its result goes through ``apply`` and the same checkpoint."""
     stage, action, workitem = _active_cursor(after)
     if stage != item_scope.DOCUMENT_STAGE or not isinstance(action, Mapping) or after.get("active_improve"):
         return after
-    if action["id"] in after["accepted"] or not workitem:
-        return after
-    reason = item_scope.no_document_item(root, workitem)
-    if not reason:
+    if action["id"] in after["accepted"] or not workitem or "changed" in action or "entry" in action:
         return after
     advanced = deepcopy(after)
-    _record_acceptance(advanced, action["id"], stage, {
+    changed = item_scope.changed_paths(root, workitem)
+    entry = improve_changes.snapshot_tree(Path(root), Path(after["repo"]))
+    recorded = {**({"changed": bool(changed)} if changed is not None else {}), **({"entry": entry} if entry else {})}
+    if recorded:
+        advanced["inner_loops"][workitem]["action"] = {**action, **recorded}
+    reason = item_scope.no_document_item(root, workitem)
+    if not reason:
+        return advanced
+    return apply(advanced, action["id"], {
         "outcome": "done",
         "summary": item_scope.NOT_APPLICABLE + ": " + reason + ". ShipLoop recorded this stage without running it.",
         "evidence_refs": [],
     })
-    nxt = _record_not_applicable(advanced, _next_stage(stage, advanced))
-    advanced["inner_loops"][workitem] = {"stage": nxt, "action": _new_action(nxt)}
-    return advanced
 
 
 # Failures a transition hook may hit in a normal run (a missing contract, an unreadable record, a tool that
@@ -4340,17 +4571,17 @@ def _hook_failed(hook: str, error: Exception) -> None:
 
 def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
                      after: Mapping[str, Any]) -> tuple[dict[str, str], Any]:
-    """Transition hooks: advisory lint, the change inventory and the new inner action's Until Loop contract.
+    """Transition hooks: the item's lint base and the new inner action's Until Loop contract.
 
     None of them can change or fail the transition: a hook failure leaves its
     record absent or ``unavailable`` and the packet says so.
     """
+    payload = None
     try:
-        writes, payload = lint.on_transition(root, lint_view(before), lint_view(after),
-                                             command=_command(core), reference_dir=_reference_dir(core))
+        writes = lint.on_transition(root, lint_view(before), lint_view(after))
     except Exception as exc:
         _hook_failed("lint", exc)
-        writes, payload = {}, None
+        writes = {}
     if loops.cursor(after) is not None and loops.cursor(after) != loops.cursor(before):
         try:
             writes = {**writes, **loops.contract_writes(root, after)}
@@ -4360,11 +4591,11 @@ def _lint_transition(core: Any, root: Path, before: Mapping[str, Any],
 
 
 def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: Any, *,
-                 check_only: bool = False) -> list[str]:
+                 count: bool = True) -> list[str]:
     """The inner stages' own gates (owner decisions 2026-10-10); returns validate-existing's paths to commit.
 
-    ``check_only`` (``complete --check-only``) saves validate-existing's rerun outputs under a check-only tag; the
-    caller commits nothing on that path."""
+    ``count`` False (the check) saves validate-existing's rerun outputs under a check tag; the caller commits
+    nothing on that path."""
     if not isinstance(submitted, Mapping):
         return []
     outcome = submitted.get("outcome")
@@ -4373,7 +4604,7 @@ def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: An
             expectations.check_step_plan(root, state, submitted)
         elif stage == "validate-existing" and outcome in ("done", "send-back"):
             return expectations.check_complete(root, state, submitted,
-                                               tag="check-only" if check_only else "complete")
+                                               tag="complete" if count else "check")
         elif stage == "carry-forward" and outcome == "done":
             _check_skill_decision(state, submitted.get("skill"))
     except expectations.ExpectationError as exc:
@@ -4406,7 +4637,7 @@ def _check_skill_decision(state: Mapping[str, Any], skill: Any) -> None:
 
 
 def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-                    workitem: str | None, submitted: Any, *, check_only: bool = False) -> list[str]:
+                    workitem: str | None, submitted: Any, *, count: bool = True) -> list[str]:
     """Accept the test stage's done only after ShipLoop's own two runs and its mutation check (owner decisions
     2026-10-10 and 2026-10-11); return what the three gates found, one ``Gates:`` line each.
 
@@ -4415,8 +4646,9 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
     floor.  Each run writes its own record and counts in the refused-run tally.  A send-back is accepted without a
     loop packet when ``test_loop.remedy_open`` says the latest run could not run.
 
-    ``check_only`` (``complete --check-only``) changes nothing the run counts: the base rule runs as ``red_check`` and
-    the candidate run with ``count=False``; neither counts in the refused-run tally nor sets a floor.
+    ``count`` False (the check) changes nothing the run counts: each of the three runs writes its check record
+    (``count=False``), and the check's candidate run is held to the floor its own base run sets, as ``complete``'s is
+    (F15); none counts in the refused-run tally.
 
     The lines are the gates' own summaries (``base: skipped (...)`` is a gate that did nothing, which the record says
     too): ``complete`` prints them after what it accepted, so a green result never hides a gate that did not run.
@@ -4424,40 +4656,30 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return []
     try:
-        if check_only:
-            ok, lines = test_loop.red_check(root, state, workitem or "", action_id, submitted,
-                                            base_commit=preparatory_base(root, workitem or ""))
-            _need(ok, "\n".join(["ShipLoop check-only: the base run would refuse this result:"] + lines))
-            found = [line for line in lines if line.startswith("base: ")]
-            found += test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=False)
-            found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=False,
-                                              base_commit=preparatory_base(root, workitem or ""))
-            return ["Gates: " + line for line in found]
         found = test_loop.base_check(root, state, workitem or "", action_id, submitted,
-                                     base_commit=preparatory_base(root, workitem or ""))
-        found += test_loop.loop_run(root, state, workitem or "", action_id, submitted)
+                                     base_commit=test_base_commit(root, workitem or ""), count=count)
+        found += test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=count)
         # On new code the base run can only see a load failure (RED by rule); the mutation check is what proves the
         # tests assert real behaviour (owner decision 2026-10-11).
-        found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted,
-                                          base_commit=preparatory_base(root, workitem or ""))
+        found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=count,
+                                          base_commit=test_base_commit(root, workitem or ""))
         return ["Gates: " + line for line in found]
     except test_loop.TestLoopError as exc:
         raise NavigatorError(str(exc)) from exc
 
 
 def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, workitem: str | None,
-                     submitted: Any, *, check_only: bool = False) -> list[str]:
-    """Accept an inline implement step's done only after ShipLoop runs the step's Proof on the candidate (implement-step
-    fix plan section 4.1, unit W2-A); return its ``Gates:`` line.
+                     submitted: Any, *, count: bool = True) -> list[str]:
+    """Accept an implement step's done only after ShipLoop runs the step's Proof on the candidate (implement-step fix
+    plan section 4.1, unit W2-A); return its ``Gates:`` line.
 
-    The whole-plan ask-agent action is not gated (its chain runs the steps and the item's checks stay its own).  A
-    refusal names both routes through the loop with its literal start command: fix the work and report done, or, when
-    the Proof cannot assess the step as planned, stop the loop blocked and report send-back.  ``check_only`` runs the Proof
-    without counting it (``test_loop.step_proof(count=False)``)."""
+    A refusal names both routes through the loop with its literal start command: fix the work and report done, or, when
+    the Proof cannot assess the step as planned, stop the loop blocked and report send-back.  ``count`` False (the check)
+    runs the Proof without counting it (``test_loop.step_proof(count=False)``)."""
     if (not isinstance(submitted, Mapping) or submitted.get("outcome") != "done"
             or step_view(state, workitem) is None):
         return []
-    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=not check_only)
+    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=count)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     if refusal:
@@ -4476,14 +4698,42 @@ def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id:
     return ["Gates: " + line for line in lines]
 
 
-def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-                     workitem: str | None, submitted: Any, *, check_only: bool = False) -> None:
-    """Accept done at a stage that can edit code only after ShipLoop reruns every recorded test command.
+def _stage_base(state: Mapping[str, Any]) -> dict[str, str] | None:
+    """The tree the current document action began from (``_document_entry``), as a lint base, or None."""
+    action = _active_cursor(state)[1]
+    entry = action.get("entry") if isinstance(action, Mapping) else None
+    return {"status": "ok", "tree": entry, "label": "the tree this stage began from, " + entry[:12]} if entry else None
 
-    ``check_only`` makes the rerun non-counting (``test_loop.verify(count=False)``)."""
+
+def _document_rerun(root: Path, state: Mapping[str, Any], workitem: str,
+                    submitted: Any = None) -> list[dict[str, Any]]:
+    """The commands document's done reruns (design T §8.2, 2b-4b): those its step's test stage ran, narrowed to what
+    document's own edits since it began could affect.  None runs after no edit, the check commands (the doc checks among
+    them) after edits to no code or test path, and every one after a code or test edit, or when the edits cannot be
+    read.  The tests ``submitted`` registers are listed with their commands."""
+    added = (submitted.get(test_loop.ADDED_TESTS) or ()) if isinstance(submitted, Mapping) else ()
+    commands = test_loop.stage_commands(state, test_loop.STEP_RERUN_STAGE, workitem, added)[0]
+    base = _stage_base(state)
+    changed = improve_changes.paths_since(root, Path(state["repo"]), base["tree"]) if base else None
+    if changed is None or item_scope.behavioural_paths(changed):
+        return commands
+    return [row for row in commands if changed and row.get("suite") == "check"]
+
+
+def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str,
+                     workitem: str | None, submitted: Any, *, count: bool = True) -> None:
+    """Accept done at a stage that can edit code only after ShipLoop reruns every recorded test command; document reruns
+    what its own edits could affect (``_document_rerun``).
+
+    ``count`` False (the check) makes the rerun non-counting (``test_loop.verify(count=False)``)."""
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return
-    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage, count=not check_only)
+    commands = (_document_rerun(root, state, workitem or "", submitted)
+                if stage == test_loop.STEP_RERUN_STAGE and workitem else None)
+    if commands == []:
+        return
+    writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage, count=count,
+                                       commands=commands)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _need(not refusal, refusal)
@@ -4549,7 +4799,8 @@ def _derived_improve_receipt(child: Mapping[str, Any], args: Any, root: Path | N
         record = store.read_record(Path(str(final)))
         receipt["final_result"] = record if state is None else expand_result_roots(
             record, root, state, core, improve_opening_path(child).parent if child.get("skill") is not None else None)
-    no_commit = getattr(args, "no_commit", None)
+    no_commit = getattr(args, "no_commit", None) or (
+        STEP_REVIEW_NO_COMMIT if child.get("stage") in stage_spec.with_improve("item") else None)
     if no_commit:
         receipt["no_commit"] = str(no_commit)
     return receipt
@@ -4590,20 +4841,22 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
                              + _callback(core, root, "improve-start", action=improve_id(state))
                              + " --restart-stopped, run the improve skill on it, then run: "
                              + _callback(core, root, "complete", action=improve_id(state)))
-    if child.get("stage") == "implement" and step_view(state, _current_work_item(state)) is not None:
-        # The step's Proof passed at implement's done; a review that changed the candidate must pass it again before
-        # the step is accepted, and an unchanged candidate reuses that record (implement-step fix plan section 2.1).
-        writes, refusal, _lines = test_loop.step_proof(root, state, _current_work_item(state) or "", action_id,
-                                                       phase="improve-import")
-        for relative, text in writes.items():
-            store.atomic_write_text(root / relative, text)
-        if refusal:
-            message_path = improve_commit_message_path(child)
-            raise NavigatorError(
-                refusal + "\nFix it within the review's scope, commit the fix (write the message to " + str(message_path)
-                + " with a file tool, then run: " + _callback(core, root, "improve-commit", action=improve_id(state),
-                                                               message=str(message_path))
-                + "), then run the callback again: " + _callback(core, root, "complete", action=improve_id(state)))
+    if child.get("stage") in stage_spec.with_improve("item"):
+        # The step review's import gate (design T §8.2): a review that changed the step must leave its own lines free of
+        # new lint findings and every command the step's test stage ran passing, so the iteration commit takes a clean,
+        # green step.  An unchanged review has nothing to lint or rerun.
+        item = _current_work_item(state) or ""
+        if changes is not None and changes[0]:
+            _review_lint_gate(core, root, state, action_id, item, receipt)
+        final = receipt.get("final_result") if isinstance(receipt, Mapping) else None
+        added = (final.get(test_loop.ADDED_TESTS) or ()) if isinstance(final, Mapping) else ()
+        commands = test_loop.stage_commands(state, "test", item, added)[0] if item else []
+        if commands and (changes is None or changes[0]):
+            writes, refusal = test_loop.verify(root, state, item, action_id, "step review", commands=commands)
+            for relative, text in writes.items():
+                store.atomic_write_text(root / relative, text)
+            _need(not refusal, refusal + "\nFix it within the review's scope, then run the callback again: "
+                  + _callback(core, root, "complete", action=improve_id(state)))
         return
     if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
         return
@@ -4614,32 +4867,69 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
     _need(not refusal, refusal)
 
 
+def _review_lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, item: str,
+                      receipt: Any) -> None:
+    """Refuse a step review's import while a line the review changed (since its bind snapshot) has a new unwaived lint
+    finding (design T §8.2a, 2b-4b); the waivers are its final result's, else the reviewed result's."""
+    mode = lint_mode(state)
+    try:
+        bound = store.read_record(root / improve_changes.bind_path(action_id))
+    except (OSError, store.StorageError):
+        bound = None
+    if mode not in ("fix", "report") or not isinstance(bound, Mapping) or not bound.get("tree"):
+        return
+    result = (receipt.get("final_result") if isinstance(receipt, Mapping) else None) \
+        or (state.get("active_improve") or {}).get("seed_result") or {}
+    waivers = {entry["id"]: entry["reason"] for entry in _normalise_lint_waivers(result.get("lint_waivers") or [])}
+    base = {"status": "ok", "tree": str(bound["tree"]), "label": "the tree the review began from, "
+            + str(bound["tree"])[:12]}
+    writes, payload, refusal = lint.gate(
+        Path(state["repo"]), root, action=action_id, work_item=item, run_option=mode, base=base, waivers=waivers,
+        command=_command(core), stage="step review", reference_dir=_reference_dir(core),
+        execution_mode=str(state.get("execution_mode", "navigator")), changed_by="this review")
+    for relative, text in writes.items():
+        store.atomic_write_text(root / relative, text)
+    _lint_finish(root, payload)
+    _need(not refusal, refusal + "\nFix it within the review's scope, then run the callback again: "
+          + _callback(core, root, "complete", action=improve_id(state)))
+
+
 def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str,
-               workitem: str | None, submitted: Any, *, check_only: bool = False) -> None:
+               workitem: str | None, submitted: Any, *, count: bool = True) -> None:
     """Refuse a gate stage's done (``lint.GATE_STAGES``) while the lint gate reports an unwaived new finding.
 
     Runs only for a done submission on a run whose lint option is fix or
     report.  The record is written whether or not the submission is refused;
-    a pass that cannot run never refuses (see ``lint.gate``).  ``check_only``
-    runs it report-only: it never auto-fixes a file.
+    a pass that cannot run never refuses (see ``lint.gate``).  ``count``
+    False (the check) runs it report-only: it never auto-fixes a file, and its refusal names ``shiploop lint --fix``.
     """
     result = _canonical_result(submitted, stage=stage,
                                delivery_contract="delivery_contract_version" in state)
     mode = lint_mode(state)
     if result["outcome"] != "done" or mode not in ("fix", "report"):
         return
-    if check_only:
+    fixing = mode == "fix"
+    if not count:
         mode = "report"
     # Owner decision 2026-10-10: every implement step is gated (each is followed by its own Improve review and names
     # its own paths); before, earlier steps only reported and the item's last step gated.
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
+    # Document is gated on its own edits (design T §8.2a, 2b-4b): a finding an earlier stage of the step waived is not
+    # document's to waive again.  An inline step's implement and test are gated from the step's base, so their refusal
+    # names the step's lines.
+    own = stage == item_scope.DOCUMENT_STAGE
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
-        base=lint.read_base(root, workitem), waivers=waivers, command=_command(core), stage=stage,
-        reference_dir=_reference_dir(core), execution_mode=str(state.get("execution_mode", "navigator")))
+        base=_stage_base(state) if own else lint.read_base(root, workitem), waivers=waivers, command=_command(core),
+        stage=stage, reference_dir=_reference_dir(core), execution_mode=str(state.get("execution_mode", "navigator")),
+        changed_by="the document stage" if own else "this step" if step_view(state, workitem) is not None
+        else "this work item")
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _lint_finish(root, payload)
+    if refusal and fixing and not count:
+        refusal += ("\nThis run's lint option is fix: to let ShipLoop apply its own fixes on the lines this item "
+                    "changed, run " + lint.fix_command(_command(core), root, action_id) + ", then check again.")
     _need(not refusal, refusal)
 
 
@@ -4755,11 +5045,17 @@ _REASON_PLACEHOLDER = "<why no test case covers it>"
 _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
-_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or document>"
+# Document's reflection record, one line per living file (``KNOWLEDGE_RECORD``).
+_KNOWLEDGE_PLACEHOLDERS = {"spec": "<the lines this step added inside its R-<n> entries, or why none>",
+                           "architecture": "<the AD-<n> this step added or refined, or why none>",
+                           "environment": "<the commands, harnesses and facts this step proved, or why none>"}
 _STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
                            "decisions": "<choice made and why, or none>"}
-HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
-                        *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values())
+HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), *expectations.MOCK_PLACEHOLDERS.values(),
+                        _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
+                        *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values(),
+                        *_KNOWLEDGE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
 # field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
 # result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
@@ -4771,6 +5067,7 @@ HANDOFF_SHAPES: dict[str, Any] = {
     "learned": [_STEP_NOTE_PLACEHOLDERS["learned"]],
     "decisions": [_STEP_NOTE_PLACEHOLDERS["decisions"]],
     "learned_from": ["<commit ID whose learnings this step used>"],
+    "knowledge": dict(_KNOWLEDGE_PLACEHOLDERS),
     "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "settle": "...", "reason": "...",
                      "due_stage": _DUE_STAGE_PLACEHOLDER, "owner": "<who must act, when a person must>"}],
 }
@@ -4811,13 +5108,10 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
                                       "owner_stage": "step-plan"}]}
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
-        # A step's paths are for the ask-agent chain only (implement-step fix plan D3): the inline template asks none.
-        step_paths = ({"paths": ["<repository-relative file this step changes>"]}
-                      if "delegation" in state and delegation(state) != guidance.INLINE else {})
         result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "proof": STEP_PROOF_PLACEHOLDER,
-                            **step_paths, "skills": [{"name": "<helper skill>", "why": "<its use in this step>"}]},
+                            "skills": [{"name": "<helper skill>", "why": "<its use in this step>"}]},
                            {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"], "proof": "<the command that proves C2>",
-                            **step_paths, "skills": []}]
+                            "skills": []}]
         result["expectations"] = [
             {"id": "E1", "state": "works", "statement": "<what exists and works today>", "steps": ["S1"],
              "paths": ["<existing file a step changes>"],
@@ -4828,7 +5122,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
                               {"id": "C2", "text": CRITERION_PLACEHOLDER, "confirm": "executed"}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
-                                   {"command": "...", "suite": "regression"}]
+                                   {"command": "...", "suite": "regression", "minimum": True}]
         if test_loop.stateful_targets(state):
             # F3: with a target that keeps state, the template asks where each focused or regression command runs.
             for row in result["test_commands"]:
@@ -4848,7 +5142,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["consumer_entry"] = {"how": "<how a person reaches the result>",
                                     "sources": ["<repository-relative file that creates that entry>"]}
     # The hand-off fields (consumer contract): step-plan's template already holds done-only fields, and the OUTER stages
-    # run no Until Loop; test-spec, implement, verify and carry-forward take theirs from HANDOFF_SHAPES in the packet's
+    # run no Until Loop; test-spec, implement, document and carry-forward take theirs from HANDOFF_SHAPES in the packet's
     # result-shape block, so a blocked result copied from their template stays acceptable.
     if stage == "step-plan":
         result["follows"] = list(HANDOFF_SHAPES["follows"])
@@ -4892,10 +5186,9 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
 
 
 def _required_handoff_keys(stage: str, state: Mapping[str, Any] | None = None) -> list[str]:
-    """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3).  The step notes only on
-    the inline route, whose steps ShipLoop commits one by one (``_step_commit``); ``state`` None reads as inline."""
-    keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key not in _OPTIONAL_HANDOFF
-            and (key not in STEP_NOTES or not _ask_agent(state))]
+    """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3), the step notes among
+    them: ShipLoop commits the steps one by one (``_commit_stage``)."""
+    keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key not in _OPTIONAL_HANDOFF]
     if stage in assumptions.OPEN_ITEM_STAGES and stage != "plan":
         keys.append("assumptions")
     return keys
@@ -5317,8 +5610,11 @@ def status_block(state: Mapping[str, Any]) -> str:
         groups = []
         for name, stages in guidance.INNER_GROUPS:
             state_marks = [mark(node, owner) for node in stages]
-            symbol = (_STATUS_MARK["done"] if all(state_mark == _STATUS_MARK["done"] for state_mark in state_marks)
-                      else _STATUS_MARK["current"] if stage in stages else _STATUS_MARK["pending"])
+            # The group that holds the current stage is current even when each of its stages has a done row: a step's
+            # iteration repeats Build's stages for every step (design T §8).
+            symbol = (_STATUS_MARK["current"] if stage in stages
+                      else _STATUS_MARK["done"] if all(state_mark == _STATUS_MARK["done"] for state_mark in state_marks)
+                      else _STATUS_MARK["pending"])
             groups.append(f"{name} {symbol}")
         lines.append("Item:      " + " | ".join(groups))
     elif phase != "complete":
@@ -5443,12 +5739,11 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     if queued:
         lines.append("Queued work items: " + item_labels(queued))
 
-    # Inline implement is issued once per planned step: a done row for an earlier step is not the stage's completion,
+    # Implement is issued once per planned step: a done row for an earlier step is not the stage's completion,
     # and the snapshot that listed implement as accepted-done beside "Current: implement" could send a cleared model
     # past the remaining steps (packet review 2026-10-10, P-implement-1).
     steps_accepted = steps_planned = 0
-    if (stage == "implement" and owner is not None and status in ("active", "paused", "blocked")
-            and delegation(state) == guidance.INLINE):
+    if stage == "implement" and owner is not None and status in ("active", "paused", "blocked"):
         steps_accepted, plan_steps = implement_progress(state, owner)
         steps_planned = len(plan_steps)
     implement_open = steps_planned > steps_accepted
@@ -5482,12 +5777,9 @@ def _stage_guide_lines(core: Any, state: Mapping[str, Any], stage: str, named: s
     """The stage's guides (``STAGE_REFERENCES``), each as ``<label>: <path>``: those whose label the text ``named``
     names, or every one (``named`` None)."""
     reference_dir = _reference_dir(core)
-    route = delegation(state)
     return [label + ": " + str(reference_dir / reference)
             for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
-            # Inline runs execute reviewed steps directly and never bind a chain.
-            if not (route == guidance.INLINE and label == "Parallel-chain guide")
-            and (named is None or label in named)]
+            if named is None or label in named]
 
 
 class CitedGuides(NamedTuple):
@@ -5624,7 +5916,7 @@ def _workspace_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str
             "Return plan: " + str(workspace_root / "return-plan.md"),
             *_workspace_return_packet_lines(root, state),
             "All product work happens in the execution checkout. Keep run state, "
-            "results and reports outside it. Each item is built here and committed at verify, not "
+            "results and reports outside it. Each item is built and committed here, step by step, not "
             "back into the original branch. Read the workspace policy before return.",
             "To review the final candidate for return:",
             shlex.join(["python3", _command(core), "workspace", "plan-return",
@@ -5749,9 +6041,6 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             ]
         )
         return "\n".join(lines) + "\n"
-    if state.get("chain_bindings"):
-        import shiploop_chain
-        lines.extend(shiploop_chain.orientation(core, root, state))
     if state["status"] == "halted":
         lines.extend(
             [
@@ -5875,7 +6164,7 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
     lines = loops.invoke_lines(root, state)
     if stage in test_loop.STAGES:
         # With the CLI, the list ends with the red-check command (a base check that does not count); the loop's work
-        # reaches it through the callback's --check-only, which also runs the candidate and mutation checks.
+        # reaches every gate through the check command, which also runs the candidate and mutation checks.
         cli = shlex.join(["python3", str(Path(__file__).resolve().parent / "shiploop")])
         lines += test_loop.loop_lines(root, state, work_item or "", action_id, stage, cli=cli)
     return lines
@@ -6006,7 +6295,11 @@ _CHECK_TEXT = {
     "step-proof": ("runs the step's Proof on the candidate and refuses done unless it exits 0 having run what it "
                    "asserts; it runs it again before importing a review that changed the step"),
 }
-# What a rerun adds at an inner stage (verify), which is held to the item's floors; the outer reruns are not.
+# Document's rerun (``_document_rerun``): what its own edits could affect, out of the commands its step's test stage ran.
+_DOCUMENT_RERUN_TEXT = ("reruns what this stage's edits could affect (none after no edit, the check commands of its "
+                        "step after a documentation edit, every command its test stage ran after a code or test edit) "
+                        "and refuses done unless each passes")
+# What a rerun adds at an inner stage (document), which is held to the item's floors; the outer reruns are not.
 _INNER_RERUN_TEXT = (", runs every listed ID and reaches its floor; ShipLoop's run record is the evidence, so a "
                      "criterion is confirmed by its passing command, not by the result's summary")
 
@@ -6026,6 +6319,8 @@ def _check_text(run: str, stage: str, state: Mapping[str, Any] | None = None) ->
             return "reruns the commands in " + where + ": none recorded, so none runs"
         return ("reruns the " + str(count) + " command" + ("s" if count > 1 else "") + " in " + where
                 + " and refuses done unless each passes")
+    if run == "test-rerun" and stage == test_loop.STEP_RERUN_STAGE:
+        return _DOCUMENT_RERUN_TEXT + _INNER_RERUN_TEXT
     return _CHECK_TEXT[run] + (_INNER_RERUN_TEXT if run == "test-rerun" and stage in stage_spec.INNER else "")
 
 
@@ -6058,6 +6353,9 @@ _INNER_GATES = {
                   "or test path or to a path the step plan did not declare",),
     "validate-existing": ("a send-back without failed_expectations naming each expectation and what is actually true",),
     "test": ("a red_na or retired_tests entry without an ID and a reason",),
+    "document": ("a missing knowledge record (spec, architecture and environment, each with what this step changed in "
+                 "that living file or why nothing), or a KNOWLEDGE/spec.md edit that changes a committed line or adds one "
+                 "without this step's mark or outside an R-<n> the committed spec holds",),
     "carry-forward": ("a missing skill decision (none, reuse, update or create), or a created or updated skill whose "
                       "SKILL.md is missing or lacks name and description",),
 }
@@ -6450,6 +6748,10 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
                 lines += ["- " + str(case.get("id")) + " (criterion " + str(case.get("criterion")) + ", requirement "
                           + str(case.get("requirement")) + ")",
                           *(QUOTE + field + ": " + _one_line(case.get(field)) for field in ("oracle", "red", "green"))]
+                mock = case.get("mock")
+                if isinstance(mock, Mapping):   # the mock the test stage builds before this case's test (F5)
+                    lines.append(QUOTE + "mock: " + _one_line(mock.get("simulates")) + " | plays: "
+                                 + _one_line(mock.get("plays")))
         return lines
     if source.key == "not_covered":
         return [label + ":", *_not_covered_rows(value)]
@@ -6546,21 +6848,6 @@ def _preparatory(root: Path, state: Mapping[str, Any], item: str, action: str) -
     return "commit " + commit[:12] + " in WORKTREE" if commit else None
 
 
-def _item_commit_product(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
-    """The item commit verify's accept made (``_item_commit``), named by its subject, or None when the
-    WORKTREE log has no ``feat: <item> `` subject (verify committed nothing, or the commit failed).  An item without a
-    base snapshot has no commit (``item_scope.commit_item`` raises), so the log is not read for it."""
-    if not lint.read_base(Path(root), item):
-        return None
-    subject = "feat: " + item
-    found = shiploop_git.git(Path(str(state.get("repo") or root)), "log", "--max-count=50", "--format=%s",
-                             "--fixed-strings", "--grep=" + subject)
-    if found.returncode or not any(line == subject or line.startswith(subject + " ")
-                                   for line in found.stdout.splitlines()):
-        return None
-    return "the WORKTREE commit whose subject starts '" + subject + " '"
-
-
 def _improve_receipt(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
     return "RUN/improve/" + action + "/receipt.md" if action in state.get("improve_results", {}) else None
 
@@ -6575,20 +6862,23 @@ _PRODUCTS: dict[str, tuple[tuple[str, Any, str], ...]] = {
                            "each expectation's check and whether it matched"),
                           ("preparatory commit", _preparatory, "the fix the test stage's base run starts from")),
     "implement": (("lint gate", _run_latest(lambda a, n: "lint/" + a + ".gate" + str(n) + ".md"),
-                   "the step's lint findings and waivers"),
-                  ("Improve review", _improve_receipt, "the review's findings, edits and lessons")),
+                   "the step's lint findings and waivers"),),
+    # The step's review follows its document stage (design T section 8), so its receipt is document's product, and so
+    # is its rerun (2b-4c).
+    "document": (("Improve review", _improve_receipt, "the review's findings, edits and lessons"),
+                 ("rerun record", _run_latest(test_loop.verify_path), "what reran after this stage's own edits")),
     "test": (("base run", _run_latest(test_loop.base_path), "each command's count on the item's base"),
              ("candidate run", _run_latest(test_loop.verify_path), "each command's result and count"),
              ("mutation run", _run_latest(test_loop.mutation_path), "the mutants and which tests caught them"),
              ("loop receipt", _run_file(loops.terminal_path("{action}")), "")),
-    "verify": (("change inventory", _run_file(lint.inventory_path("{action}")), "the files the item changed"),
-               ("rerun record", _run_latest(test_loop.verify_path), "each recorded command's rerun"),
-               ("item commit", _item_commit_product, "the item's committed change")),
 }
 # What a stage's accepted result is for, when the stage names it.
 _RESULT_USE = {"step-plan": "the steps, criteria, test commands, expectations and paths",
                "implement": "what the step changed and its evidence"}
 _PER_STEP = frozenset(stage for stage in stage_spec.INNER if "step-proof" in stage_spec.stage(stage).complete_runs)
+# Stages that reconcile a whole item read every step's results of the stages each step's iteration runs, not only the
+# last step's (design T §9 row 6; §9.1 step 3).
+_EVERY_STEP_READERS = frozenset(("carry-forward", "system-test-author"))
 # Outer stages whose duty names each completed item's test-decision records (row VR-4): {stage: ((item stage, the
 # _PRODUCTS labels listed beside its result), ...)}.  Listed per completed item, so a cleared model need not search
 # state.md's history for the records in force.
@@ -6601,19 +6891,23 @@ def _product(label: str, path: str, use: str) -> str:
     return "- " + label + ": " + path + (" (" + use + ")" if use else "")
 
 
-def _item_actions(state: Mapping[str, Any], item: str, stage: str, current: Mapping[Any, str]) -> list[tuple[str, str]]:
-    """``[(label, action)]``: the item's current action of ``stage``, or, for a per-step stage, each accepted step's."""
-    if stage not in _PER_STEP:
+def _item_actions(state: Mapping[str, Any], item: str, stage: str, current: Mapping[Any, str],
+                  reader: str = "") -> list[tuple[str, str]]:
+    """``[(label, action)]`` for the item's ``stage`` results a packet of ``reader`` builds on.
+
+    A stage each step's iteration runs (implement, test, document) has one result per step
+    (``planning_revision.step_actions``).  A step's result is labelled with its step, in every packet, so an artifact
+    keeps one label across the run.  A reader lists every step's result when the stage is a per-step stage or the reader
+    reconciles the whole item (``_EVERY_STEP_READERS``), else only the latest."""
+    if stage not in iteration.MODEL_STAGES:
         action = current.get((item, stage))
         return [(item + " " + stage, action)] if action else []
     plan_action, plan = test_loop._step_plan(state, item)
     steps = list(plan.get("steps") or ()) if plan_action else []
-    history = list(state.get("history", ()))
-    start = max((position for position, row in enumerate(history) if row.get("action") == plan_action), default=-1)
-    done = [row["action"] for row in history[start + 1:]
-            if row.get("stage") == stage and row.get("workitem") == item and row.get("outcome") == "done"]
+    done = planning_revision.step_actions(state, item, stage)
+    first = 0 if stage in _PER_STEP or reader in _EVERY_STEP_READERS else max(len(done) - 1, 0)
     return [(item + " " + stage + " " + str(steps[number]["id"] if number < len(steps) else "step " + str(number + 1)),
-             action) for number, action in enumerate(done)]
+             action) for number, action in enumerate(done) if number >= first]
 
 
 def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
@@ -6631,7 +6925,7 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
         if workitem is None:
             continue
         read = name[5:]
-        for label, action in _item_actions(state, workitem, read, current):
+        for label, action in _item_actions(state, workitem, read, current, stage):
             lines.append(_product(label + " result", "RUN/results/" + action + ".md", _RESULT_USE.get(read, "")))
             for product, locate, use in _PRODUCTS.get(read, ()):
                 path = locate(root, state, workitem, action)
@@ -6639,14 +6933,12 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
                     lines.append(_product(label + " " + product, path, use))
     for item in state.get("completed_work_items") or () if stage in _ITEM_RECORDS else ():
         for read, products in _ITEM_RECORDS[stage]:
-            action = current.get((item, read))
-            if not action:
-                continue
-            lines.append(_product(str(item) + " " + read + " result", "RUN/results/" + action + ".md", ""))
-            for product, locate, use in _PRODUCTS.get(read, ()):
-                path = locate(root, state, item, action) if product in products else None
-                if path:
-                    lines.append(_product(str(item) + " " + read + " " + product, path, use))
+            for label, action in _item_actions(state, str(item), read, current, stage):
+                lines.append(_product(label + " result", "RUN/results/" + action + ".md", ""))
+                for product, locate, use in _PRODUCTS.get(read, ()):
+                    path = locate(root, state, item, action) if product in products else None
+                    if path:
+                        lines.append(_product(label + " " + product, path, use))
     return [BUILDS_ON_HEAD, *lines] if lines else []
 
 
@@ -6750,7 +7042,7 @@ def _improve_rerun_clause(stage: str) -> str:
     if stage in stage_spec.with_improve("last-item"):
         return "ShipLoop reruns every completed item's recorded commands over it."
     if stage in stage_spec.with_improve("item"):
-        return "the item's test stage, after its last step, runs over it."
+        return "ShipLoop lints the lines it changed and reruns the step's recorded commands over it when it imports it."
     return "no command reruns over it here, so check it yourself before importing."
 
 
@@ -6758,18 +7050,19 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work.
 
     One line (aggressive re-cut, 2026-10-11): what ShipLoop runs at done, then only the refusals that go beyond the
-    exit conditions; `complete --check-only` runs the same gates on a draft and prints the first refusal's fix (a gate
-    raises at the first fault it finds, so a result with two faults needs two runs).
+    exit conditions.  At an inner stage the callback with `check` in place of `complete` (``guidance.CHECK_HOW``) runs
+    the same gates on a draft and prints the first refusal's fix (a gate raises at the first fault it finds, so a
+    result with two faults needs two runs); an outer stage's callback is its own check (decision D3, phases B and C plan).
     """
     extra = _stage_gates(row.name, state)
-    # The step Proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
     runs = "; then ".join(_check_text(run, row.name, state) for run in row.complete_runs
                           if run != "step-proof" or step_view(state, _current_work_item(state)) is not None)
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
             + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
-            "and run the same command again; `complete --check-only` prints the first refusal without accepting, so "
-            "repeat it until it accepts.")
+            "and run the same command again" + ("; " + guidance.CHECK_HOW + " prints the first refusal without "
+                                                 "accepting, so repeat it until the check says yes."
+                                                 if row.name in loops.STAGES else "."))
 
 
 # An inner stage's done-when: its conditions are the numbered exit conditions of the Until Loop argument.
@@ -6781,21 +7074,19 @@ DONE_WHEN_LOOP_PACKETS = ("Done when: every exit condition the Until Loop states
 
 
 def _implement_scope(state: Mapping[str, Any], stage: str) -> Mapping[str, Any] | None:
-    """The steps one implement action builds (``loops.implement_scope``): the current step inline, every step on the
-    ask-agent route.  None for any other stage, or when the item has no step left."""
+    """The step an implement packet's goal is worded for (``loops.worded_stage``): the item's current step at implement.
+    None for any other stage, or when the item has no step left."""
     if stage != "implement":
         return None
     work_item = _current_work_item(state)
-    return loops.implement_scope(state, work_item, current_action(state)["id"]) if work_item is not None else None
+    return loops.current_step(state, work_item) if work_item is not None else None
 
 
 def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
     """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations."""
     if state["status"] != "active":
         return []
-    named = _item_steps(state, stage)  # an item review (rule item) judges the item's steps together
-    row = (stage_spec.for_steps(stage_spec.stage(stage), *named) if named
-           else loops.worded_stage(stage, _implement_scope(state, stage)))
+    row = loops.worded_stage(stage, _implement_scope(state, stage))
     if state.get("active_improve"):
         # The parent packet a cleared model re-reads while the child runs: what the review judges the result against.
         # The result is returned, not accepted (the parent step stays pending), and may be blocked, so the
@@ -6876,11 +7167,16 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 CHANGED_SINCE_BASE = "Changed since the item base (script-derived): "
 
 
-def _verify_passed_commands(root: Path, state: Mapping[str, Any], work_item: str | None) -> list[str] | None:
-    """The commands ShipLoop's latest verify rerun of ``work_item`` ran that passed, in run order; None without a record."""
+# Carry-forward's line of the commands that passed and environment.md does not name.
+PASSED_UNNAMED = "Commands that passed at the item's test stage and are not named in KNOWLEDGE/environment.md: "
+
+
+def _passed_commands(root: Path, state: Mapping[str, Any], work_item: str | None) -> list[str] | None:
+    """The commands ShipLoop's latest run at ``work_item``'s test stage ran that passed, in run order: at its last step
+    every command is active; None without a record."""
     if not work_item:
         return None
-    action = planning_revision.current_actions(state).get((work_item, "verify"))
+    action = planning_revision.current_actions(state).get((work_item, "test"))
     found = _latest_record(root, test_loop.verify_path, action) if action else None
     if not found:
         return None
@@ -6893,51 +7189,40 @@ def _verify_passed_commands(root: Path, state: Mapping[str, Any], work_item: str
 
 
 def _unnamed_command_lines(root: Path, state: Mapping[str, Any], work_item: str | None) -> list[str]:
-    """Carry-forward's line of the commands that passed at verify and KNOWLEDGE/environment.md does not name (plan row VR-3)."""
+    """Carry-forward's line of the commands that passed at the item's test stage and KNOWLEDGE/environment.md does not
+    name (plan row VR-3)."""
     if state["status"] != "active" or state.get("active_improve"):
         return []
-    passed = _verify_passed_commands(root, state, work_item)
+    passed = _passed_commands(root, state, work_item)
     if passed is None:
         return []
     unnamed = knowledge.unnamed_commands(state, passed)
     if not unnamed:
-        return ["Commands that passed at verify and are not named in KNOWLEDGE/environment.md: none."]
-    return ["Commands that passed at verify and are not named in KNOWLEDGE/environment.md: "
+        return [PASSED_UNNAMED + "none."]
+    return [PASSED_UNNAMED
             + "; ".join("`" + command + "`" for command in unnamed)
             + ". Write each under ## Commands, or say in the summary why one does not belong."]
 
 
 def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """The item's declared paths and its changed paths (``CHANGED_SINCE_BASE``) at document, and at verify what ShipLoop
-    will and will not commit.
+    """At document, the item's declared paths, its changed paths (``CHANGED_SINCE_BASE``), which duty 1 lists behaviours
+    from (plan row TD-8), and any changed file the commit stage will leave.
 
     The lists come from ``item_scope.commit_scope``, the rule ``commit_item`` applies, so the packet names the
     files before the commit and the notice after it names the same ones.  Unknown changes print nothing.
     """
-    if state["status"] != "active" or state.get("active_improve") or work_item is None:
-        return []
-    if stage not in ("document", "verify"):
+    if state["status"] != "active" or state.get("active_improve") or work_item is None or stage != "document":
         return []
     allowed = item_scope.declared(state, work_item)
     lines = ["Step plan paths: " + (", ".join(allowed) or "none declared")]
-    if stage == "document":
-        # The inventory document's duty 1 lists behaviours from (plan row TD-8): the change inventory exists only at verify.
-        changed, why = item_scope.changed_paths_or_reason(root, work_item)
-        return lines + [CHANGED_SINCE_BASE + (("not computed: " + why) if changed is None
-                                               else _against_plan(changed, allowed))]
-    if stage != "verify":
-        return lines
-    changed = item_scope.changed_paths(root, work_item)
-    if changed is None:
-        return lines
+    changed, why = item_scope.changed_paths_or_reason(root, work_item)
+    lines.append(CHANGED_SINCE_BASE + (("not computed: " + why) if changed is None else _against_plan(changed, allowed)))
     if not changed:
-        return lines + ["Changed since this item's base: nothing."]
+        return lines
     try:
-        committed, left = item_scope.commit_scope(changed, allowed, item_scope.withheld(root, state))
+        _committed, left = item_scope.commit_scope(changed, allowed, item_scope.withheld(root, state))
     except item_scope.ItemScopeError:
         return lines  # the workspace manifest is unreadable: name nothing rather than guess
-    if committed:
-        lines.append("Changed, ShipLoop will commit: " + _against_plan(committed, allowed))
     if left:
         lines.append("Changed, ShipLoop will not commit: " + _against_plan(left, allowed))
     return lines
@@ -6966,21 +7251,50 @@ class StepView(NamedTuple):
     accepted: list[tuple[Mapping[str, Any], Mapping[str, Any]]]   # (earlier step, its accepted implement history row)
 
 
+# The stages of a step's iteration after its build (design T §8): the step they are on is the one just built.
+AFTER_BUILD = ("test", "document")
+
+
 def step_view(state: Mapping[str, Any], work_item: str | None) -> StepView | None:
-    """The inline implement step ``work_item`` is on, or None: another route (the ask-agent action builds every step),
-    no step plan, or no step left.  Read from state alone, so the packet, its head and the step's Improve hand-off name
-    the same step: while the child runs the step's result is not yet accepted, so the step under review is still the
-    current one."""
-    if work_item is None or delegation(state) != guidance.INLINE:
+    """The step ``work_item``'s iteration is on, or None: no step plan, or no step left.  At implement it is the step to build; at test and document, and while document's
+    Improve review runs, it is the step just built (design T §8: each step is built, tested, documented and reviewed
+    before the next).  Read from state alone, so the packet, its head and the step's Improve hand-off name the same step."""
+    if work_item is None:
         return None
     done, steps = implement_progress(state, work_item)
     plan_action, plan = test_loop._step_plan(state, work_item)
-    if plan_action is None or done >= len(steps):
+    if plan_action is None:
+        return None
+    stage = _active_cursor(state)[0] if _is_inner_root(state) and state["work_items"] else None
+    index = done - 1 if stage in AFTER_BUILD and done else done
+    if index >= len(steps):
         return None
     history = [row for row in state["history"]
                if row.get("stage") == "implement" and row.get("workitem") == work_item
                and row.get("outcome") == "done"][-done:] if done else []
-    return StepView(steps[done], done + 1, steps, plan_action, plan, list(zip(steps[:done], history)))
+    return StepView(steps[index], index + 1, steps, plan_action, plan, list(zip(steps[:index], history[:index])))
+
+
+def _next_step_follows(state: Mapping[str, Any], stage: str) -> bool:
+    """Whether a step's document (its iteration's last model stage) is followed by the next step's build."""
+    if stage != "document" or not _is_inner_root(state):
+        return False
+    done, steps = implement_progress(state, _current_work_item(state))
+    return 0 < done < len(steps)
+
+
+def _between_steps(state: Mapping[str, Any]) -> bool:
+    """Whether the item's current stage is a later step's build that follows an earlier step's document (design T §8)."""
+    if _active_cursor(state)[0] != "implement":
+        return False
+    done, steps = implement_progress(state, _current_work_item(state))
+    return 0 < done < len(steps)
+
+
+def _inner_successor(state: Mapping[str, Any], stage: str) -> str:
+    """The inner stage after ``stage``: the next step's implement after an inline step's document while steps remain,
+    else the graph's next stage."""
+    return "implement" if _next_step_follows(state, stage) else _next_stage(stage, state)
 
 
 STEP_LOOP_LINE = ("Do this stage inside the /until-loop invocation at the end of this packet; everything between is its "
@@ -7021,8 +7335,7 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
              ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + proof) if proof else
              "  Proof: none recorded in the step plan; report send-back so the step plan records the step's proof.",
              "  Skills (use each; the summary says whether you did): "
-             + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
-                or "none")]
+             + (", ".join(str(skill["name"]) for skill in step_skills(step, "implement")) or "none")]
     for earlier, row in view.accepted:
         lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
     later = view.steps[view.number:]
@@ -7035,8 +7348,7 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
 
 def _without_step_criteria(lines: list[str], state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
     """A quoted block with the step's criteria hand-off named by ID where the Step block prints them by value: one home
-    per surface (the producer's quoted hand-offs, the Improve hand-off's reviewed inputs).  An item review (rule item)
-    prints every step's criteria (``_item_review_lines``), so it names them all."""
+    per surface (the producer's quoted hand-offs, the Improve hand-off's reviewed inputs)."""
     view = step_view(state, work_item) if stage == "implement" else None
     label = "criteria (" + str(work_item) + " step-plan):"
     if view is None or label not in lines:
@@ -7045,29 +7357,9 @@ def _without_step_criteria(lines: list[str], state: Mapping[str, Any], stage: st
     end += 1
     while end < len(lines) and lines[end].startswith("- "):
         end += 1
-    item = _item_steps(state, stage) is not None
-    rows = [row for row in view.steps if isinstance(row, Mapping)] if item else [view.step]
-    printed = [str(ident) for row in rows for ident in row.get("criteria") or ()]
-    return [*lines[:start], label[:-1] + ": " + (", ".join(printed) or "none")
-            + (" (printed in the steps this review covers, above)" if item else " (printed in the Step block above)"),
+    printed = [str(ident) for ident in view.step.get("criteria") or ()]
+    return [*lines[:start], label[:-1] + ": " + (", ".join(printed) or "none") + " (printed in the Step block above)",
             *lines[end:]]
-
-
-def _item_review_lines(state: Mapping[str, Any], work_item: str | None) -> list[str]:
-    """The steps an item review (rule item) covers, each with the criteria it serves by value: the Step block above it
-    prints only the last step's.  [] outside that review."""
-    if _item_steps(state, "implement") is None:
-        return []
-    view = step_view(state, work_item)
-    texts = {str(row.get("id")): (layers.criterion_label(row), _one_line(row.get("text")))
-             for row in view.plan.get("criteria") or () if isinstance(row, Mapping)}
-    lines = ["Steps this review covers (the item's whole change since its first step began):"]
-    for row in view.steps:
-        if isinstance(row, Mapping):
-            lines.append("- " + str(row.get("id")) + ": " + _first_sentence(row.get("task"), 200).rstrip("."))
-            lines.extend("    " + ident + ": " + text for ident, text in
-                         (texts[str(c)] for c in row.get("criteria") or () if str(c) in texts))
-    return lines
 
 
 def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
@@ -7078,35 +7370,65 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
     return [STEP_LOOP_LINE, *block] if block else []
 
 
-def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
-    """The step-entry diff base the step's Improve review starts from: the tree the transition recorded in the action
-    record (``_step_entry``) and the tree ShipLoop snapshotted when it bound this review, as one runnable diff."""
-    if child.get("stage") != "implement" or step_view(state, _current_work_item(state)) is None:
+def step_skills(step: Mapping[str, Any], stage: str) -> list[Mapping[str, Any]]:
+    """The step plan's skills for ``step`` that ``stage`` uses (their ``stages``; implement's when they name none)."""
+    return [skill for skill in step.get("skills") or ()
+            if isinstance(skill, Mapping) and stage in (skill.get("stages") or ("implement",))]
+
+
+def _skills_line(step: Mapping[str, Any], stage: str, label: str) -> str:
+    """One line naming the step's skills for ``stage`` (design T §8.2c, F9): each with its use and locator, or none, and
+    where the repository records the rest."""
+    named = ["%s (%s%s)" % (skill["name"], skill.get("why"), "; " + str(skill["locator"]) if skill.get("locator") else "")
+             for skill in step_skills(step, stage)]
+    return (label + " (use each; the summary says whether you did): " + ("; ".join(named) if named else
+            "none listed; KNOWLEDGE/environment.md ## Skills names the repository's own") + ".")
+
+
+def _document_step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """An inline step's test and document packets name the step just built and the skills the step plan lists for the
+    stage (design T §8.2c, F9); document's also names the mark that ends a spec.md line it adds (design T §9.1 2b-3,
+    option C: document records what the step showed in the knowledge home); [] elsewhere."""
+    if stage not in AFTER_BUILD or state["status"] != "active" or state.get("active_improve"):
         return []
-    action = current_action(state)
-    base = action.get("base") if isinstance(action, Mapping) else None
+    view = step_view(state, work_item)
+    if view is None:
+        return []
+    head = f"Step {view.step['id']} ({view.number} of {len(view.steps)}), built"
+    lines = [head + (": " + _first_sentence(view.step.get("task"), 200) if stage == "test" else
+                     " and tested: " + _first_sentence(view.step.get("task"), 200)
+                     + " A line this step adds to KNOWLEDGE/spec.md ends (" + str(work_item) + "/"
+                     + str(view.step["id"]) + ").")]
+    return lines + [_skills_line(view.step, stage, "Skills for this stage")]
+
+
+def _review_skills_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """A step review's line of the skills the step plan lists for the review (``improve``, F9); [] elsewhere."""
+    view = step_view(state, work_item) if stage in stage_spec.with_improve("item") else None
+    return [_skills_line(view.step, "improve", "Skills for this review")] if view is not None else []
+
+
+def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
+    """The diff base a step review starts from: the step's base (``lint.read_base``, recaptured when the step began,
+    ``_iteration_base``) and the tree ShipLoop snapshotted when it bound this review, as one runnable diff.  Both trees
+    come from ``lint.snapshot_tree`` over the same checkout, so they compare."""
+    if child.get("stage") not in stage_spec.with_improve("item"):
+        return []
+    item = _current_work_item(state)
+    base = (lint.read_base(Path(root), item) or {}).get("tree") if item else None
     bound = None
     try:
         record = store.read_record(Path(root) / improve_changes.bind_path(child["action_id"]))
         bound = record.get("tree") if isinstance(record, Mapping) else None
     except (OSError, store.StorageError):
         bound = None
-    if _item_steps(state, "implement") is not None:
-        # The item's review (rule item) covers its steps since the round's first step began (``_step_entry``).
-        first = action.get("item_base") if isinstance(action, Mapping) else None
-        if not first or not bound:
-            return ["Review base: not recorded when the item's first step began (outside a Git checkout, or its snapshot "
-                    "failed): review the change the steps' results name against the Accepted step lines above."]
-        return ["Review base (the item's change since its first step began, untracked files included): git -C "
-                + str(state["repo"]) + " diff " + str(first) + " " + str(bound) + " (" + str(first)[:12] + ": the "
-                "working tree when the item's first step began; " + str(bound)[:12] + ": when this review was bound; "
-                "your own edits since then show in git status)."]
     if not base or not bound:
         return ["Review base: not recorded when the step began (outside a Git checkout, or its snapshot failed): review "
-                "the change the step's result names against the Accepted step lines above."]
-    return ["Review base (the step's change since it began, untracked files included): git -C " + str(state["repo"])
-            + " diff " + str(base) + " " + str(bound) + " (" + str(base)[:12] + ": the working tree when the step "
-            "began; " + str(bound)[:12] + ": when this review was bound; your own edits since then show in git status)."]
+                "the change the step's results name against the Step block above."]
+    return ["Review base (the step's change since it began: its code, its tests and its docs, untracked files "
+            "included): git -C " + str(state["repo"]) + " diff " + str(base) + " " + str(bound) + " ("
+            + str(base)[:12] + ": the working tree when the step began; " + str(bound)[:12] + ": when this review was "
+            "bound; your own edits since then show in git status)."]
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -7235,15 +7557,14 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
            "Work item context: " + str(state["work_items"][state["work_index"]].get("context", ""))]
           if workitem is not None else []),
         # The step under review: the producer's own Step block, word for word, and the diff base it began from (W2-B).
-        *(step_block(state, workitem) if stage == "implement" else []),
-        *(_item_review_lines(state, workitem) if stage == "implement" else []),
+        *(step_block(state, workitem) if stage in stage_spec.with_improve("item") else []),
+        *_review_skills_lines(state, stage, workitem),
         *_review_base_line(root, state, child),
         *_test_context_lines(state, root),
         *_reviewed_input_lines(root, state, stage, workitem),
         # An Improve review never mentions Backchain (owner, 2026-10-11), so its guides are left out here.
-        *(label + ": " + str(reference_dir / reference) for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
-          if "backchain" not in (label + reference).lower()
-          and not (route == guidance.INLINE and label == "Parallel-chain guide")),
+        *(label + ": " + str(reference_dir / reference) for label, reference in _review_references(stage)
+          if "backchain" not in (label + reference).lower()),
         *_run_rules(core, root, state, named),
         *_queue_lines(root, state, stage),
     ]
@@ -7254,8 +7575,8 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         # (the route file holds the policy that is the same in every review; efficiency plan U18).
         focus, craft = _improve_focus(state, child)
         head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
-                 "## Commit", *_improve_commit_lines(core, root, state, child), "",
-                 *(["## Code craft", *craft, ""] if craft else [])]
+                 "## Commit", *_improve_commit_lines(core, root, state, child), *_improve_lint_lines(core, root, state),
+                 "", *(["## Code craft", *craft, ""] if craft else [])]
     head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
 
@@ -7313,6 +7634,8 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
     child = state["active_improve"]
     inline = delegation(state) == guidance.INLINE
     done = _callback(core, root, "complete", action=improve_id(state))
+    # A step's review writes no commit message: its edits wait for the step's commit (design T §8).
+    writes = ("" if child["stage"] in stage_spec.with_improve("item") else "CHILD/commit-message.md, ")
     return [
         IMPROVE_READ_SENTENCE,
         CHILD_SYMBOL + " = " + str(standalone.receipt_path(child).parent) + " · ROUTE = " + str(improve_route_path(child))
@@ -7320,8 +7643,8 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
         # Each pass ends with improve-pass (unit U19); its line follows the commit command under Commit, because the
         # improve-commit line must end inside the first 4,500 characters of the longest implement handoff.
         "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime "
-        "returns complete (ShipLoop started it: start nothing). You write CHILD/commit-message.md, "
-        "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json.",
+        "returns complete (ShipLoop started it: start nothing). You write " + writes
+        + "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json.",
         ("When the runtime returns complete (its final receipt saved at CHILD/packet.json), run: " if inline else
          "Parent only, after the worker's result is collected and CHILD/packet.json verified (the worker never runs it): ")
         + done,
@@ -7342,13 +7665,22 @@ def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[
     if stage == "carry-forward":
         return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]
     if stage in stage_spec.with_improve("item"):
-        return (_numbered_focus(_several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), state, stage), state,
-                                child), [guidance.CODE_CRAFT.rstrip()])
+        return (_numbered_focus(guidance.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), state, child),
+                [guidance.CODE_CRAFT.rstrip()])
     return [], []
 
 
+# What a step's review is told in place of the improve-commit command (design T §8): any other commit inside the step
+# is refused by its commit stage (``iteration.commit_decision``).
+STEP_REVIEW_COMMIT_LINE = ("Commit nothing: once this review is imported, ShipLoop commits its edits with the step's "
+                           "code, tests and docs as the step's one commit, and a commit made inside the step is refused.")
+
+
 def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
-    """How a review iteration's changes are committed: the message file, its one required line and the command."""
+    """How a review iteration's changes are committed: the message file, its one required line and the command; a step's
+    review commits nothing (``STEP_REVIEW_COMMIT_LINE``)."""
+    if child["stage"] in stage_spec.with_improve("item"):
+        return [STEP_REVIEW_COMMIT_LINE, _improve_pass_line(core, root, state)]
     if child["stage"] == "plan":
         # The planning child prints no improve-commit command here; its start writes it and the message rules to parent-return.md.
         return ["To commit a review iteration's changes, run the improve-commit command in CHILD/parent-return.md; its "
@@ -7356,14 +7688,28 @@ def _improve_commit_lines(core: Any, root: Path, state: Mapping[str, Any], child
                 "commit yourself.", _improve_pass_line(core, root, state)]
     # The full message rules are under "The commit message" (in the facts below the review); this line keeps the
     # Key learnings format improve-commit enforces (P-improve-1) and ends with its command inside the first 4,500
-    # characters of the longest implement handoff (U18, with U19's focus bullet: 6 characters to spare at install
-    # lengths). improve-pass follows it: each pass ends with it, and it commits what the pass left uncommitted (U19).
+    # characters of every review's handoff but the step review's, which commits nothing (U18). improve-pass follows it:
+    # each pass ends with it, and it commits what the pass left uncommitted (U19).
     return ["To commit a review iteration's changes, write the commit message to CHILD/commit-message.md with a "
             "file-writing tool (a subject, then `Key learnings: <lesson>` or `Key learnings: none` in column 1; rules "
             "below). Then run: "
             + _callback(core, root, "improve-commit", action=improve_id(state),
                         message=str(improve_commit_message_path(child))),
             _improve_pass_line(core, root, state)]
+
+
+def _improve_lint_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
+    """The lint command a review runs after its last edit, when the run lints, as a producer packet prints its own.
+
+    ``shiploop lint`` lints the current action, which stays the reviewed one while its Improve stage runs, so this
+    command names the reviewed action's id where every other Improve command names the stage's own; the verb refuses
+    the stage's id (E2E 2026-10-28: all 6 lint calls of two DeepSeek runs, which had no printed command, used it).  It
+    follows the commit lines, which must end inside the first 4,500 characters."""
+    if lint_mode(state) not in ("fix", "report"):
+        return []
+    child = state["active_improve"]
+    return ["Lint after your last edit (report-only; its --action is the reviewed " + child["stage"] + " action, not "
+            "this Improve stage): " + _callback(core, root, "lint", action=child["action_id"])]
 
 
 def _regression_clause(stage: str) -> str:
@@ -7457,34 +7803,16 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
     return "\n".join(lines) + "\n"
 
 
-def _several_steps(text: str, state: Mapping[str, Any], stage: str) -> str:
-    """``text`` worded for the several steps one implement review covers: the steps one action built (the ask-agent
-    route), or the item's steps at its last inline step (rule item); else as is."""
-    named = loops.several_steps(_implement_scope(state, stage)) or _item_steps(state, stage)
-    return guidance.for_steps(text, *named) if named else text
-
-
-def _wide_item(view: StepView) -> bool:
-    """Whether an inline item's steps work on separate paths (``loops.step_path_groups`` > 1): each of its steps that
-    changed a file is reviewed on its own, with the one-step hand-off, instead of one review after its last step."""
-    return loops.step_path_groups(view.steps, [str(path) for path in view.plan.get("paths") or ()]) > 1
-
-
-def _item_steps(state: Mapping[str, Any], stage: str) -> tuple[str, str] | None:
-    """(the steps' name, their paths) while the review rule item starts after an inline item's last step is the active
-    Improve stage, when the item has several steps on one path group; None otherwise (a producer packet among them, or a
-    wide item's step review).  Its paths follow ``loops.implement_scope``: the steps' own, else the item's."""
-    child = state.get("active_improve")
-    if stage != "implement" or not isinstance(child, Mapping) or child.get("stage") != "implement":
-        return None
-    view = step_view(state, _current_work_item(state))
-    if view is None or len(view.steps) < 2 or view.number < len(view.steps) or _wide_item(view):
-        return None
-    rows = [row for row in view.steps if isinstance(row, Mapping)]
-    paths = list(dict.fromkeys(str(path) for row in rows for path in (row.get("paths") or ()))) \
-        or [str(path) for path in view.plan.get("paths") or ()]
-    return loops.several_steps({"id": str(rows[0].get("id")) + " to " + str(rows[-1].get("id")), "paths": paths,
-                                "count": len(rows)})
+def _review_references(stage: str) -> tuple[tuple[str, str], ...]:
+    """The guides an Improve review of ``stage`` names: the stage's own, and for a step review (rule item) those of every
+    stage of the step it reviews (implement, test and document, design T §8), each once and in that order, since the
+    review judges the step's code and tests as well as its docs."""
+    stages = ("implement", "test", stage) if stage in stage_spec.with_improve("item") else (stage,)
+    found: dict[str, tuple[str, str]] = {}
+    for name in stages:
+        for label, reference in guidance.STAGE_REFERENCES.get(name, ()):
+            found.setdefault(label, (label, reference))
+    return tuple(found.values())
 
 
 # IMP-6, behind a measured line (plan rev 6 U19, default off): number the review focus conditions F1..Fn and make
@@ -7502,7 +7830,7 @@ def _focus_text(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
     if stage == "carry-forward":
         return guidance.END_REVIEW_FOCUS.rstrip()
     if stage in stage_spec.with_improve("item"):
-        return _several_steps(guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip(), state, stage)
+        return guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip()
     return ""
 
 
@@ -7554,11 +7882,16 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "The reviewed result stays pending until this Improve stage's complete imports the review.",
         "Checked by: the Improve skill runs its own review and checks; once its runtime returns complete you run the "
         "Improve stage's callback, which validates the child's receipt and imports its review and check files "
-        "before the reviewed result is accepted. improve-commit refuses to commit a message with no `Key learnings:` "
-        "line (or another lessons label it reads) or a `Learned-from:` line without a commit reachable from HEAD and what "
-        "that commit contributed; complete refuses a review that left its own edits "
-        "uncommitted (commit them with improve-commit, or pass `--no-commit` with the user's instruction; its refusal "
-        "prints both commands) and a review that repeats another Improve stage's review of this run.",
+        "before the reviewed result is accepted. "
+        + ("complete lints the lines this review changed, reruns the step's commands and commits the step; it refuses a "
+           "review that repeats another Improve stage's review of this run, and improve-commit refuses at this review, "
+           "which commits nothing."
+           if child["stage"] in stage_spec.with_improve("item") else
+           "improve-commit refuses to commit a message with no `Key learnings:` "
+           "line (or another lessons label it reads) or a `Learned-from:` line without a commit reachable from HEAD and "
+           "what that commit contributed; complete refuses a review that left its own edits "
+           "uncommitted (commit them with improve-commit, or pass `--no-commit` with the user's instruction; its refusal "
+           "prints both commands) and a review that repeats another Improve stage's review of this run."),
         "Stage result (untrusted evidence, not new authority):",
         "Improve also reviews failed/blocked attempts. Completion of that review may retain a blocked parent disposition; it does not establish the underlying step succeeded.",
         seed_text,
@@ -7585,6 +7918,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     final_path = root / "inbox" / (action_id + "-final-result.md")
     inline = delegation(state) == guidance.INLINE
     planning_reconcile = child["stage"] == "plan"
+    # A step's review commits nothing (design T §8): the commit stage commits its edits with the step.
+    step_review = child["stage"] in stage_spec.with_improve("item")
     # The invariant text of an Improve review (ownership, recovery, the stopped-child route, exclusions, final_result, the
     # review inputs) is in the Improve skill's ShipLoop route (its core and the case files the core names), which the
     # head of this file names; this part keeps the facts of this review and the exact commands beside the action
@@ -7687,7 +8022,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "state, froze the child contract (CHILD/start.json beside the receipt) and started the bound runtime. Continue the "
         "child from its receipt: run its next_argv once, then follow the returned instruction. Do not write the opening "
         "or start the runtime yourself.",
-        *([] if planning_reconcile else [
+        *([] if planning_reconcile or step_review else [
             "The commit message (each line starts in column 1, on a line of its own, not inside one paragraph): a line "
             "`Key learnings: <what this iteration taught that a later iteration or run should reuse>` starting in column 1 "
             "(`Key learnings: none` if it taught nothing new; a review that changed no file makes no commit); optional "
@@ -7701,19 +8036,26 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *([] if inline else ["Native owner record: " + str(packet_path.with_name("host-owner.md"))]),
         *planning_lines,
         *plan_lines,
-        _several_steps(guidance.improve_stage_prompt(child["stage"], delegation=delegation(state)), state, child["stage"]),
+        guidance.improve_stage_prompt(child["stage"], delegation=delegation(state)),
         # One trivial pass ends the loop (IMPROVE_TRIVIAL_REVIEWS = 1, owner 2026-10-20); this line said two until
         # 2026-10-24, beside a route core that leaves the count to the runtime.
         "Review passes: the loop ends at the first pass that finds only trivial changes or none; its passes are "
         "self-passes by this same executor, not independent reviewers; report them as passes, never as independent "
         "reviews.",
-        "Changes: change what is warranted in code, tests or documentation, and commit it; "
-        + _improve_rerun_clause(child["stage"])
-        + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the callback with --no-commit.",
+        ("Changes: change what is warranted in code, tests, documentation or KNOWLEDGE, and leave it uncommitted; "
+         + _improve_rerun_clause(child["stage"]) + " ShipLoop then commits it with the step."
+         if step_review else
+         "Changes: change what is warranted in code, tests or documentation, and commit it; "
+         + _improve_rerun_clause(child["stage"])
+         + " The import is refused while files this review changed are still uncommitted (work that was uncommitted before the review is not counted). If the user or repository said not to commit, pass that instruction to the callback with --no-commit."),
         "Evidence: write each review pass to " + str(evidence_root / "review-<n>.md") + " (n = the pass "
         "number: review-1.md, review-2.md, ...) with a file-writing tool, in this form: " + REVIEW_FORM + ". improve-pass, not you, writes the runtime's "
-        "report for each pass: it refuses until the improve skill's call is recorded, commits this pass's edits with the message in " + str(improve_commit_message_path(child))
-        + " (a subject, `Key learnings:`, optional `Learned-from:`), writes " + str(evidence_root / "checks.md")
+        "report for each pass: it refuses until the improve skill's call is recorded, "
+        + ("leaves this pass's edits uncommitted for the step's commit"
+           if step_review else
+           "commits this pass's edits with the message in " + str(improve_commit_message_path(child))
+           + " (a subject, `Key learnings:`, optional `Learned-from:`)")
+        + ", writes " + str(evidence_root / "checks.md")
         + " itself when the tree is unchanged since the bind (after an edit, write the output of the checks you ran "
         "there first: one older than the last edit is refused), and prints the runtime's done command for this pass "
         "and this stage's callback, literal; run them as printed. The callback imports the last two "
@@ -7739,11 +8081,9 @@ def _leftovers(root: Path | None, state: Mapping[str, Any]) -> dict[str, Any] | 
         return None
     try:
         import shiploop_workspace as workspace
-        import shiploop_chain
     except ImportError:  # pragma: no cover - supports package-style local imports.
         from . import shiploop_workspace as workspace  # type: ignore
-        from . import shiploop_chain  # type: ignore
-    found = workspace.leftovers(Path(root).parent, shiploop_chain.attempt_branches(Path(root), state))
+    found = workspace.leftovers(Path(root).parent)
     return found if found and found["items"] else None
 
 
@@ -8085,7 +8425,7 @@ def red_check_command(core: Any, argv: list[str]) -> int:
                   "red-check runs only for the current test action")
             draft = _submitted_result(root, args, state=state, core=core) if args.result else None
             ok, lines = test_loop.red_check(root, state, workitem or "", args.action, draft,
-                                            base_commit=preparatory_base(root, workitem or ""))
+                                            base_commit=test_base_commit(root, workitem or ""))
         except (NavigatorError, test_loop.TestLoopError) as exc:
             print("ShipLoop red-check could not run: " + str(exc), file=sys.stderr)
             return 3
@@ -8179,7 +8519,7 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "", state: Mapping
         metadata = path.lstat()
     except OSError as exc:
         # Name the file and the fix: the bare "navigator result is unavailable" cost a run 17 calls of reading ShipLoop's
-        # scripts to learn that --check-only needs the result written first (packet review 2026-10-17, D-8/D-9).
+        # scripts to learn that the check needs the result written first (packet review 2026-10-17, D-8/D-9).
         raise NavigatorError("no result file at " + str(expected) + ": write the result there (the packet's Result "
                              "template, filled in) with a file tool, then run the same command again") from exc
     _need(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
@@ -8476,6 +8816,9 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
     _need(state["status"] == "active" and child is not None and child["skill"] is not None,
           "no bound current Improve stage with this action (it may already be imported); to read the current "
           "packet run: " + _callback(core, root, "next"))
+    _need(child["stage"] not in stage_spec.with_improve("item"),
+          "This step review commits nothing. " + STEP_REVIEW_COMMIT_LINE + " Leave the edits uncommitted and end the "
+          "pass with: " + _callback(core, root, "improve-pass", action=improve_id(state)))
     action_id = child["action_id"]
     message_path = improve_commit_message_path(child)
     remote = bool(getattr(args, "remote_change", False))
@@ -8665,6 +9008,8 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     command = _callback(core, root, "improve-pass", action=improve_id(state))
     no_commit = str(getattr(args, "no_commit", None) or "").strip()
     command_again = command + (" --no-commit " + shlex.quote(no_commit) if no_commit else "")
+    if not no_commit and child["stage"] in stage_spec.with_improve("item"):
+        no_commit = STEP_REVIEW_NO_COMMIT   # the step's iteration commit takes the pass's edits (design T §8)
     complete = _callback(core, root, "complete", action=improve_id(state))
     receipt = standalone.receipt_path(child)
     try:
@@ -9062,6 +9407,71 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
     return 0
 
 
+def _answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str | None, workitem: str | None,
+                draft: Path) -> dict[str, Any]:
+    """The check's key for this action now (``shiploop_check.answer_key``, with the run's lint option)."""
+    return shiploop_check.answer_key(root, state, action_id, stage, workitem, draft, lint_option=lint_mode(state))
+
+
+def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str | None,
+              workitem: str | None, submitted: Any, *, count: bool) -> tuple[list[str], list[str]]:
+    """Would ShipLoop accept this result now?  The one question ``complete`` acts on and its check asks (phases B and
+    C plan, 2026-10-28): every script gate in order, raising ``NavigatorError`` with the first refusal.  Returns the
+    gates' ``Gates:`` lines and validate-existing's preparatory paths to commit.
+
+    ``count`` False is the check: each gate writes its check record and nothing counts (report-only lint, a base run
+    whose floors hold the check's own candidate run, non-counting candidate, mutation and Proof runs, no send-back
+    marker).  An inner stage's allowed outcomes are asked here as well as in ``loops.check_terminal``, because the
+    check runs before the loop's receipt exists (P9).
+    """
+    if stage in loops.STAGES:
+        try:
+            loops.check_outcome(stage, submitted)
+        except loops.LoopError as exc:
+            raise NavigatorError(str(exc)) from exc
+    current = current_stage(state)
+    gate_lines: list[str] = []
+    _check_submitted_evidence(submitted, _loop_receipt(root, state, stage, action_id, workitem), count=count)
+    _check_submitted_assumptions(state, current, submitted)
+    _check_producer_bounds(current, submitted)
+    _check_submitted_concerns(state, current, submitted)
+    _check_submitted_layers(state, current, submitted)
+    _check_submitted_unverified(state, current, submitted)
+    _check_submitted_primary(root, state, current, submitted)
+    _check_submitted_test_commands(current, submitted)
+    _check_focused_ids_new(state, current, submitted)
+    _check_focused_guards(current, submitted)
+    _check_added_tests(state, current, submitted)
+    _check_submitted_consumer_entry(state["repo"], current, submitted)
+    _check_submitted_recorded_commands(current, submitted)
+    _check_submitted_awaiting(submitted)
+    _check_submitted_delivery(state, action_id, current, submitted)
+    _knowledge_gate(state, current, submitted)
+    _handoff_gate(root, state, current, submitted, "complete", next_step=_next_step(root, action_id, "complete"))
+    _check_submitted_coverage(state, current, submitted)
+    _check_submitted_request(state, current, submitted)
+    preparatory = _inner_gates(root, state, stage, submitted, count=count)
+    # Lint first, so the tests run on any code the lint gate auto-fixed.
+    if stage in lint.GATE_STAGES:
+        _lint_gate(core, root, state, action_id, stage, workitem, submitted, count=count)
+    if stage in test_loop.STAGES:
+        gate_lines = _test_loop_gate(root, state, action_id, stage, workitem, submitted, count=count)
+    elif stage in test_loop.RERUN_STAGES:
+        _test_rerun_gate(root, state, action_id, stage, workitem, submitted, count=count)
+    if stage in test_loop.STEP_PROOF_STAGES:
+        gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, workitem, submitted,
+                                                   count=count)
+    if (stage in ("implement", "document") and workitem and isinstance(submitted, Mapping)
+            and submitted.get("outcome") == "done"):
+        refusal = item_scope.scope_refusal(root, state, workitem) if stage == "implement" else ""
+        refusal = refusal or _step_spec_refusal(state, workitem)
+        if refusal and count:
+            # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
+            loops.open_send_back(root, action_id, refusal)
+        _need(not refusal, refusal)
+    return gate_lines, preparatory
+
+
 def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
              *, completion_guard: Any = None) -> int:
     """Execute one navigator CLI verb; callers hold the run lock."""
@@ -9070,7 +9480,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     terminal_knowledge_closed = False
     gate_lines: list[str] = []  # the test stage's gate outcomes, printed after the packet
     _need(command in {
-        "init", "next", "status", "context", "report", "complete", "pause", "resume", "halt",
+        "init", "next", "status", "context", "report", "complete", "check", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile", "delegation",
         "lint-mode"
     }, f"navigator does not support command {command!r}")
@@ -9080,17 +9490,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         planning_revision.validate_archives(state, root)
     except planning_revision.PlanningRevisionError as exc:
         raise NavigatorError(str(exc)) from exc
+    if command not in ("status", "report"):
+        _iteration_recover(root, state)
     # `complete` on an Improve stage imports its review (owner, 2026-10-11: Improve is a stage of its own).
     improve_import = command == "complete" and _reviewed_action(state, getattr(args, "action", None)) is not None
-    if command in ("complete", "halt") and state.get("chain_bindings"):
-        import shiploop_chain
-        try:
-            guarded_action = (current_action(state)["id"] if command == "halt"
-                              else _reviewed_action(state, getattr(args, "action", None))
-                              or getattr(args, "action", None))
-            shiploop_chain.guard_completion(root, state, guarded_action)
-        except ValueError as exc:
-            raise NavigatorError(str(exc)) from exc
     if command == "init":
         emit(core, root, state)
         return 0
@@ -9115,13 +9518,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         return _improve_commit(core, root, state, args)
     if command == "improve-pass":
         return _improve_pass(core, root, state, args)
+    if command == "check" and _reviewed_action(state, getattr(args, "action", None)) is not None:
+        raise NavigatorError("`shiploop check` asks about a producer stage's draft result; the Improve stage has no "
+                             "draft to check, and its complete imports the finished review. Run it after the improve "
+                             "skill has completed: " + _callback(core, root, "complete",
+                                                                     action=getattr(args, "action", None)))
     if command in ("improve-bind", "improve-reconcile") or improve_import:
         import shiploop_standalone_improve as standalone
         stage_action = getattr(args, "action", None)
-        _need(not (improve_import and getattr(args, "check_only", False)),
-              "--check-only previews a producer stage's draft result; the Improve stage has no draft to check, and its "
-              "complete imports the finished review. Run it without --check-only after the improve skill has completed: "
-              + _callback(core, root, "complete", action=stage_action))
         action_id = _reviewed_action(state, stage_action)
         _need(action_id is not None,
               f"action {stage_action!r} is not this run's Improve stage; to read the current packet run: "
@@ -9174,6 +9578,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_guards(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_added_tests(state, child["stage"], final_result)
                     _check_submitted_layers(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_primary(
@@ -9186,6 +9591,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
                                     child["seed_result"] if final_result is None else final_result, "improve")
+                    if child["stage"] == "document":    # the review's edits are part of the step's commit
+                        refusal = _step_spec_refusal(state, _current_work_item(state))
+                        _need(not refusal, refusal)
                     _handoff_gate(root, state, child["stage"],
                                   child["seed_result"] if final_result is None else final_result, "improve",
                                   next_step=_next_step(root, action_id, "improve",
@@ -9241,6 +9649,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 # The last item's carry-forward is accepted only when its end review completes: commit its skill here.
                 _skill_commit(root, state, updated, action_id)
                 _knowledge_close(state, updated, root)
+                _iteration_entry(root, state, updated)
             if not_enforced is not None:
                 import shiploop_skill_calls as skill_calls
                 skill_calls.note_not_enforced(root, improve_id(state), not_enforced)
@@ -9248,7 +9657,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             return 0
         except standalone.StandaloneImproveError as exc:
             raise NavigatorError(str(exc)) from exc
-    if command == "complete":
+    if command in ("complete", "check"):
         action_id = getattr(args, "action", None)
         if state["status"] == "active" and action_id not in state["accepted"]:
             # Name a wrong action before path/format checks can misdescribe it.
@@ -9261,82 +9670,63 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             submitted = _replay_with_receipt(root, state, action_id, submitted)
         cursor_stage, _, cursor_item = _active_cursor(state)
         preparatory: list[str] = []
-        # Owner decision 2026-10-10: --check-only runs the stage's script gates on a draft without completing, and
-        # changes nothing the run counts (report-only lint, red-check, a non-counting candidate run, no commit).  It
-        # runs inside the stage's own loop, whose receipt is still active, so the receipt check waits for the real
-        # complete.
-        check_only = bool(getattr(args, "check_only", False))
+        # `shiploop check` (phases B and C plan, 2026-10-28): the same gates on a draft, recorded as one answer, with
+        # nothing accepted, counted or committed.  It runs inside the stage's own loop, whose receipt is still
+        # active, so the receipt check waits for complete.
+        checking = command == "check"
         if state["status"] == "active" and action_id not in state["accepted"]:
             # An owner note this action's packet did not print whole holds the callback once, before any gate runs
             # (owner decision D2, 2026-10-26): the model sees it before this step is committed.
             held = owner_notes.to_hold(root, state, action_id)
             if held and owner_notes.mark_held(root, action_id, held):
-                if not check_only:
+                if not checking:
                     raise NotesHeld(owner_notes.hold_text(held), [note["id"] for note in held])
-                print(owner_notes.hold_text(held, check_only=True))
+                print(owner_notes.hold_text(held, check=True))
         if (state["status"] == "active" and action_id not in state["accepted"]
-                and cursor_stage in loops.STAGES and not check_only):
+                and cursor_stage in loops.STAGES and not checking):
             # Every inner stage runs one Until Loop (owner decision 2026-10-10): its receipt is checked first.
             try:
                 submitted = loops.cite_receipt(submitted, loops.check_terminal(root, state, submitted))
             except loops.LoopError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
-            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
-                                      check_only=check_only)
-            _check_submitted_assumptions(state, current_stage(state), submitted)
-            _check_producer_bounds(current_stage(state), submitted)
-            _check_submitted_concerns(state, current_stage(state), submitted)
-            _check_submitted_layers(state, current_stage(state), submitted)
-            _check_submitted_unverified(state, current_stage(state), submitted)
-            _check_submitted_primary(root, state, current_stage(state), submitted)
-            _check_submitted_test_commands(current_stage(state), submitted)
-            _check_focused_ids_new(state, current_stage(state), submitted)
-            _check_focused_guards(current_stage(state), submitted)
-            _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
-            _check_submitted_recorded_commands(current_stage(state), submitted)
-            _check_submitted_awaiting(submitted)
-            _check_submitted_delivery(state, action_id, current_stage(state), submitted)
-            _knowledge_gate(state, current_stage(state), submitted)
-            _handoff_gate(root, state, current_stage(state), submitted, "complete",
-                          next_step=_next_step(root, action_id, "complete"))
-            _check_submitted_coverage(state, current_stage(state), submitted)
-            _check_submitted_request(state, current_stage(state), submitted)
-            preparatory = _inner_gates(root, state, cursor_stage, submitted, check_only=check_only)
-            # Lint first, so the tests run on any code the lint gate auto-fixed.
-            if cursor_stage in lint.GATE_STAGES:
-                _lint_gate(core, root, state, action_id, cursor_stage, cursor_item, submitted, check_only=check_only)
-            if cursor_stage in test_loop.STAGES:
-                gate_lines = _test_loop_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
-                                             check_only=check_only)
-            elif cursor_stage in test_loop.RERUN_STAGES:
-                _test_rerun_gate(root, state, action_id, cursor_stage, cursor_item, submitted,
-                                 check_only=check_only)
-            if cursor_stage in test_loop.STEP_PROOF_STAGES:
-                gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, cursor_item, submitted,
-                                                           check_only=check_only)
-            if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
-                    and submitted.get("outcome") == "done"):
-                refusal = item_scope.scope_refusal(root, state, cursor_item)
-                view = step_view(state, cursor_item)
-                if not refusal and view is not None:  # an inline step's spec write-back (build plan S3.3)
-                    refusal = knowledge.step_spec_refusal(Path(str(state["repo"])),
-                                                          cursor_item + "/" + str(view.step.get("id")))
-                if refusal and not check_only:
-                    # Both refusals name send-back as a fix; the step's loop has completed, so open that route.
-                    loops.open_send_back(root, action_id, refusal)
-                _need(not refusal, refusal)
-        if check_only:
-            # The gates above ran in check-only form; nothing is accepted, saved or committed.
-            # Owner decision D5 (2026-10-17): the real complete takes this test run while nothing changes.
-            reuse = test_loop.reuse_note(root, str(action_id)) if cursor_stage in test_loop.VERIFY_STAGES else ""
-            if cursor_stage in test_loop.STEP_PROOF_STAGES and any("step-proof:" in line for line in gate_lines):
-                reuse = ("That complete takes this Proof run while the candidate stays as it is now; any edit makes it "
-                         "run the Proof again.")
-            print("ShipLoop check-only: every script gate for " + str(cursor_stage) + " accepts this result (the "
-                  "Until Loop receipt is checked only on the real complete). The action is not completed; once the Until "
-                  "Loop's receipt says complete or stopped, run the same callback without --check-only to "
-                  "submit it." + (" " + reuse if reuse else ""))
+            draft = _result_input_path(root, action_id)
+            if checking:
+                # The check: the same gates, recorded as one answer complete can take (phases B and C plan).
+                started = datetime.now(timezone.utc).timestamp()
+                try:
+                    gate_lines, preparatory = _evaluate(core, root, state, action_id, cursor_stage, cursor_item,
+                                                        submitted, count=False)
+                except NavigatorError as exc:
+                    shiploop_check.record_answer(root, action_id, cursor_stage, _answer_key(root, state, action_id,
+                                                 cursor_stage, cursor_item, draft), yes=False, reason=str(exc))
+                    raise
+                shiploop_check.record_answer(
+                    root, action_id, cursor_stage, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft),
+                    yes=True, gate_lines=gate_lines, preparatory=preparatory,
+                    records=shiploop_check.written_since(root, action_id, started))
+            else:
+                taken = shiploop_check.matching_yes(
+                    root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft))
+                if taken is not None:
+                    # Nothing the gates read changed since the check said yes: take its answer, run nothing again.
+                    test_loop.take_check(root, action_id, taken["records"], shiploop_check.answer_path(action_id))
+                    gate_lines = (["Gates: taken from the check of " + str(taken["created_at"]) + " ("
+                                   + shiploop_check.answer_path(action_id) + "), which said yes on these same files"]
+                                  + list(taken["gate_lines"]))
+                    preparatory = list(taken["preparatory"])
+                else:
+                    gate_lines, preparatory = _evaluate(core, root, state, action_id, cursor_stage, cursor_item,
+                                                        submitted, count=True)
+        if checking:
+            # The gates above ran as a check; nothing is accepted, counted or committed.
+            print("ShipLoop check: the check says yes for " + str(cursor_stage) + ": every script gate accepts this "
+                  "result now. Nothing was accepted, counted or committed"
+                  + ("; the Until Loop receipt is checked by the callback, once the loop says complete or stopped"
+                     if cursor_stage in loops.STAGES else "")
+                  + ". The callback takes this answer (" + str(root / shiploop_check.answer_path(action_id))
+                  + ") instead of running the gates again while the result and the files stay as they are now; any "
+                  "change makes it run them again.")
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.
@@ -9345,8 +9735,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             for line in gate_lines:
                 print(line)
             return 0
-        if cursor_stage == "implement":
-            state = _step_after(root, state)
         updated = apply(state, action_id, submitted)
         if updated != state:
             # The owner notes this action's packet showed are delivered by its accepted step, in the same save.
@@ -9373,21 +9761,19 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             store.atomic_write_text(root / decision_path(blocked_action),
                                     store.dumps(decision, "ShipLoop user decision"))
     if updated != state:
-        # Only ``complete`` enters static-checks or verify (neither follows a
-        # planning stage, so no Improve completion reaches them).
+        # Only ``complete`` advances the graph here; an Improve import runs its own transition above.
         if command == "complete":
             updated, lint_writes, lint_payload = _transition(core, root, state, updated)
         else:
             lint_writes, lint_payload = {}, None
         save(root, updated, lint_writes)
         _lint_finish(root, lint_payload)
-        _item_commit(root, state, updated)
         if command == "complete":
-            _step_commit(root, state, updated, action_id, submitted)
             _preparatory_commit(root, state, updated, action_id, preparatory)
             _skill_commit(root, state, updated, action_id)
         if not terminal_knowledge_closed:
             _knowledge_close(state, updated, root)
+        _iteration_entry(root, state, updated)
     emit(core, root, updated)
     # After the packet, not before it: the status display reads a print that starts at the packet's header.
     for line in gate_lines:

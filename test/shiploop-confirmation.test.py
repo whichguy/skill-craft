@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Confirmation by passing commands: criteria, check commands, system and consumer checks.
 
-A criterion is confirmed only by a command ShipLoop runs.  verify, system-test
-and release-verify rerun the commands their planning stage recorded and refuse
-done unless each passes.  No real command runs here: a fake runner stands in.
+A criterion is confirmed only by a command ShipLoop runs.  Each step's document
+stage reruns the commands its step's test stage ran (narrowed by the navigator to
+what document's own edits could affect), and system-test and release-verify rerun
+the commands their planning stage recorded; each refuses done unless every one
+passes.  No real command runs here: a fake runner stands in.
 """
 
 from __future__ import annotations
@@ -85,7 +87,7 @@ class CommandShapeTests(unittest.TestCase):
                 nav._canonical_result({"outcome": "done", "summary": "s", field: [
                     {"command": "pytest -q", "suite": "regression", "criteria": ["NOPE-9"]}]}, stage=stage)
         with self.assertRaisesRegex(nav.NavigatorError, "criteria are allowed only on a done step-plan"):
-            nav._canonical_result({"outcome": "done", "summary": "x", "criteria": CRITERIA}, stage="verify")
+            nav._canonical_result({"outcome": "done", "summary": "x", "criteria": CRITERIA}, stage="document")
 
     def test_cli_gates_require_criteria_and_the_outer_command_lists(self) -> None:
         plan = step_plan()
@@ -125,12 +127,14 @@ class ScriptRunTests(unittest.TestCase):
                 writes, refusal = test_loop.verify(root, state, "", action, stage, runner=runner({}))
                 self.assertEqual(refusal, "")
 
-    def test_verify_reruns_every_step_plan_command_with_its_criteria(self) -> None:
-        state = drive("verify", {"step-plan": step_plan()})
-        commands, _ = test_loop.stage_commands(state, "verify", "W1")
+    def test_document_reruns_its_steps_commands_with_their_criteria(self) -> None:
+        # Verify is retired (design T §9.1 2b-4): the rerun after the step's tests is document's, over the commands its
+        # step's test stage ran; the step plan's only step owes both here.
+        state = drive("document", {"step-plan": step_plan()})
+        commands, _ = test_loop.stage_commands(state, test_loop.STEP_RERUN_STAGE, "W1")
         self.assertEqual([row.get("criteria") for row in commands], [["C1"], ["C2"]])
         with tempfile.TemporaryDirectory() as temporary:
-            _, refusal = test_loop.verify(Path(temporary), state, "W1", nav.current_action(state)["id"], "verify",
+            _, refusal = test_loop.verify(Path(temporary), state, "W1", nav.current_action(state)["id"], "document",
                                           runner=runner({"grep -q -- '--greeting' README.md": 1}))
             self.assertIn("grep -q -- '--greeting' README.md", refusal)
 

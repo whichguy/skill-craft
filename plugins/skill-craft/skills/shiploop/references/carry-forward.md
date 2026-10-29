@@ -1,7 +1,8 @@
 # Carry-forward checkpoint
 
-`carry-forward` is the last INNER stage of each work item, after `verify` (whose
-acceptance commits the item). Like every inner stage, its work runs inside one
+`carry-forward` is the last INNER stage of each work item, after the last step's
+`document` stage (whose acceptance, together with its review, commits the step).
+Like every inner stage, its work runs inside one
 Until Loop started by the packet's command, with a ShipLoop-written contract. It records what the
 item learned, decides on a reusable skill and revises the future work queue
 before the script selects the next item's `step-plan`, or returns ownership to
@@ -10,7 +11,7 @@ and callback; there is no separate ledger or command.
 
 ```mermaid
 flowchart TD
-    V[Item verified and committed] --> C[carry-forward result with skill decision]
+    V[Last step documented, reviewed and committed] --> C[carry-forward result with skill decision]
     C --> Q{Future queue}
     Q -->|omitted| K[Every future item kept]
     Q -->|work_items supplied| R[Entire future queue replaced]

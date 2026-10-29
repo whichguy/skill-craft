@@ -29,13 +29,6 @@ Optional commands (never part of default CI):
   shiploop-e2e-iterate [--case NAME] [--iterations N] [iterate.py options]
                     Run, review, improve and rerun ShipLoop in a dedicated
                     worktree until clean or capped. Publishes nothing.
-  current-dispatcher --dispatcher-skill /absolute/SKILL.md --output /new/absolute/dir
-                    Qualify the offline native-pilot composition against a
-                    clean, explicitly selected current Dispatcher checkout.
-
-current-dispatcher is local-only: it neither fetches a dependency nor launches
-a model or native agent. Its output directory must be new and outside both
-source checkouts.
 EOF
 }
 
@@ -67,10 +60,6 @@ case "${1:-list}" in
   shiploop-e2e-iterate)
     shift
     exec python3 -B "$root/test/shiploop_e2e/iterate.py" "$@"
-    ;;
-  current-dispatcher)
-    shift
-    exec python3 -B "$root/test/current_dispatcher.py" "$@"
     ;;
   backchain-chunks)
     shift

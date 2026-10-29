@@ -253,9 +253,10 @@ class RunReviewTest(unittest.TestCase):
         _, target = self.export(make_run(self.tmp))
         run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["phases"], ["done", "done", "done", "running", "none", "none", "none", "none"])
-        self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked"), ["done", "done", "blocked"] + ["none"] * 5)
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked"), ["done", "done", "blocked"] + ["none"] * 4)
         self.assertEqual(export.derive_phases([0, 1, 2, 3, 2], 2, "active")[:4], ["done", "done", "running", "done"])
-        self.assertEqual(export.derive_phases(list(range(8)), None, "done"), ["done"] * 8)
+        self.assertEqual(export.derive_phases(list(range(7)), None, "done"), ["done"] * 7)
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked", 8), ["done", "done", "blocked"] + ["none"] * 5)  # an older loop's eight
 
     def test_an_unknown_stage_takes_the_previous_phase_and_is_listed(self):
         accepts = [*ACCEPTS, ("extra", "brand-new-stage", 150, "done")]
@@ -362,11 +363,13 @@ class RunReviewTest(unittest.TestCase):
             self.assertEqual(json.loads((target / "docs" / "config" / f"{doc_id}.json").read_text()), config[doc_id])
         stages = json.loads((SKILL_ROOT / "defaults" / "stages.json").read_text())["stages"]
         self.assertEqual(json.loads((target / "docs" / "config" / "stages.json").read_text()), {"stages": stages})
-        frozen = json.loads((SKILL_ROOT / "defaults" / "stages-v4.json").read_text())
-        self.assertEqual(json.loads((target / "docs" / "config" / "stages-v4.json").read_text()),
-                         {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]})
+        for frozen_id in ("stages-v4", "stages-v5"):
+            frozen = json.loads((SKILL_ROOT / "defaults" / f"{frozen_id}.json").read_text())
+            self.assertEqual(json.loads((target / "docs" / "config" / f"{frozen_id}.json").read_text()),
+                             {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]})
         writes = json.loads((target / "writes.json").read_text())
-        self.assertEqual(len(writes), len(entries) + 4)  # the expectations, config/page, config/prompt, config/stages and config/stages-v4
+        # the expectations, config/page, config/prompt, config/stages, config/stages-v4 and config/stages-v5
+        self.assertEqual(len(writes), len(entries) + 5)
         self.assertTrue(all(set(w) == {"op", "collection", "doc_id", "file_path"} and w["op"] == "set" for w in writes))
 
     def test_writes_json_lists_every_document_in_a_stable_order_with_absolute_paths(self):
@@ -1254,6 +1257,23 @@ class PlanAndExecutionTest(unittest.TestCase):
         s1, s2 = run["workItems"][0]["steps"]
         self.assertEqual((len(s1["task"]), s1["truncated"], len(s2["task"]), "truncated" in s2), (200, True, 200, False))
 
+    def test_a_run_on_the_ask_agent_route_saved_at_state_version_11_pairs_its_steps_as_an_inline_run_does(self):
+        # Design T §9.1 2c-1: from state version 11 the ask-agent route issues one implement packet per step, so its
+        # visits are tied to steps exactly as the inline route's are.
+        inline, _ = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
+        out = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
+        set_state(out, version=11)
+        run, _facts = self.build(out)
+        self.assertEqual(run["workItems"], inline["workItems"])
+        self.assertEqual(run["stages"], inline["stages"])
+        self.assertNotIn("stepsExecuted", run.get("unmeasured", {}))
+        # and the older ask-agent run keeps its reading: one packet for the whole plan, no visit tied to a step
+        older = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
+        set_state(older, version=10)
+        run10, _facts = self.build(older)
+        self.assertIn("state version 11", run10["unmeasured"]["stepsExecuted"])
+        self.assertTrue(all("action" not in s for item in run10["workItems"] for s in item["steps"]))
+
     def test_a_run_on_the_ask_agent_route_has_steps_but_no_pairing(self):
         out = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
         run, facts = self.build(out)
@@ -1773,7 +1793,8 @@ class PageShellTests(unittest.TestCase):
 
     def test_the_page_reads_and_writes_no_iterations_and_the_contract_no_longer_documents_them(self) -> None:
         self.assertNotIn("iterations", script_text())
-        self.assertNotIn("iterations/", SCHEMA_MD.read_text(encoding="utf-8"))
+        # the retired page collection; the engine's step ledger in the run directory (RUN/iterations/<item>.json) is a run record
+        self.assertNotIn("iterations/", SCHEMA_MD.read_text(encoding="utf-8").replace("RUN/iterations/<item>.json", ""))
         self.assertNotIn("iterations", export.SCHEMA)
 
     def test_one_step_shows_at_a_time_and_the_stepper_carries_live_counts(self) -> None:
@@ -1874,7 +1895,7 @@ def luna_run() -> dict:
 
 def phases_of(rows: list[dict]) -> list[int]:
     """The phase of each visit as the exporter's table of the rows' stage model gives it; an unknown stage takes the visit before it."""
-    table = export.STAGE_PHASE_BY_MODEL[export.stage_model({}, [row["stage"] for row in rows]) or "v5"]
+    table = export.STAGE_PHASE_BY_MODEL[export.stage_model({}, [row["stage"] for row in rows]) or "v6"]
     previous, out = -1, []
     for row in rows:
         previous = table.get(row["stage"], previous)
@@ -2612,27 +2633,37 @@ class DefaultsUpgradeTests(unittest.TestCase):
         stages = json.loads((DEFAULTS_DIR / "stages.json").read_text(encoding="utf-8"))["stages"]
         frozen = json.loads((DEFAULTS_DIR / "stages-v4.json").read_text(encoding="utf-8"))
         v4 = {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]}
+        frozen_v5 = json.loads((DEFAULTS_DIR / "stages-v5.json").read_text(encoding="utf-8"))
+        v5 = {"stages": frozen_v5["stages"], "phaseTexts": frozen_v5["phaseTexts"]}
         # config/page holds the page's URL, kept, and gains the defaults' repoUrl when it has none (R23 E: repo references become links);
-        # config/stages is the derived catalog, always the defaults'; config/stages-v4 the frozen 17-stage one, likewise
-        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages}, "stages-v4": v4,
+        # config/stages is the derived catalog, always the defaults'; config/stages-v4 and config/stages-v5 the frozen 17-stage
+        # and 8-stage ones, likewise
+        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages}, "stages-v4": v4, "stages-v5": v5,
                                           "page": {**self.live["config"]["page"], "repoUrl": cfg["page"]["repoUrl"]}})
         self.assertEqual(set(docs["expectations"]), set(self.defaults))
         self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
         self.assertEqual(set(docs), {"expectations", "config"})
         self.assertEqual(notes, [
             "expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text",
-            # phases 3-5 describe the 8-stage inner loop (Build, Verify, Carry forward) since 2026-10-10. The page's texts they
-            # replace are the 17-stage loop's (Build, Prove, Integrate), which a 17-stage run reads from config/stages-v4.phaseTexts
+            # phases 3-6 describe the 7-stage inner loop (Build, Carry forward, System test, Release). The page's texts they
+            # replace are the 17-stage loop's (Build, Prove, Integrate, System test), which a 17-stage run reads from
+            # config/stages-v4.phaseTexts and, for phase-6, config/stages-v5.phaseTexts
             *(f"expectations/phase-{n}: the page's text, which has no revision of its own, is replaced by the defaults' text"
-              for n in (3, 4, 5)),
+              for n in (3, 4, 5, 6)),
             "expectations/group-principles: the page's text, which has no revision of its own, is replaced by the "
             "defaults' text",
+            # the 7-stage loop has seven phases: the page's phase-7 (Release) is left as it is, for its older runs
+            "expectations/phase-7: the defaults no longer name it (the engine's loop has 7 phases); it stays on the page, "
+            "which reads it only with an older run whose loop had that phase",
             "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)",
             f"config/page: repoUrl {cfg['page']['repoUrl']} is added (repo references in the review text become links)"])
         bare = {"expectations": {}, "config": {}}
-        self.assertEqual(export.upgrade_docs(bare)[0]["config"], {**cfg, "stages": {"stages": stages}, "stages-v4": v4})  # a page with no settings gets all four
+        self.assertEqual(export.upgrade_docs(bare)[0]["config"],  # a page with no settings gets all five
+                         {**cfg, "stages": {"stages": stages}, "stages-v4": v4, "stages-v5": v5})
         for key in ("phase-3", "phase-4", "phase-5"):  # the texts the upgrade replaces are the frozen 17-stage ones, word for word
             self.assertEqual({f: self.live["expectations"][key][f] for f in ("title", "short", "text")}, frozen["phaseTexts"][key], key)
+        for key in ("phase-6", "phase-7"):  # and the 17-stage loop's System test and Release are the frozen 8-stage ones
+            self.assertEqual({f: self.live["expectations"][key][f] for f in ("title", "short", "text")}, frozen_v5["phaseTexts"][key], key)
 
     def test_a_page_revision_the_defaults_lack_refuses_the_upgrade_and_names_each_document(self):
         live = copy.deepcopy(self.live)
@@ -2654,7 +2685,8 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertIn("note: expectations/group-principles", out.getvalue())
         writes = json.loads((self.tmp / "up" / "writes.json").read_text())
         self.assertEqual(sorted((w["collection"], w["doc_id"]) for w in writes),
-                         sorted([("config", "page"), ("config", "prompt"), ("config", "stages"), ("config", "stages-v4")]
+                         sorted([("config", "page"), ("config", "prompt"), ("config", "stages"), ("config", "stages-v4"),
+                                 ("config", "stages-v5")]
                                 + [("expectations", k) for k in self.defaults]))
         bad = self.tmp / "bad.json"
         bad.write_text(json.dumps({"docs": {"expectations": {"P1": {"text": "a bare document, not a row"}}}}))
@@ -5140,6 +5172,7 @@ class RoundRunFindingsTests(unittest.TestCase):
 
 STAGES_JSON = DEFAULTS_DIR / "stages.json"
 STAGES_V4_JSON = DEFAULTS_DIR / "stages-v4.json"  # the frozen 17-stage catalog a 17-stage run reads
+STAGES_V5_JSON = DEFAULTS_DIR / "stages-v5.json"  # the frozen 8-stage catalog an 8-stage run (one with verify) reads
 FIXTURES = ROOT / "test" / "fixtures" / "run-review"
 ENGINE_SPEC_PATH = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
 CARD_FIELDS = ("summary", "summaryTruncated", "resultFile", "carried", "packetImprove")
@@ -5192,9 +5225,9 @@ class StageCatalogTests(unittest.TestCase):
 
     def test_each_exit_check_class_has_a_real_stage_and_the_rule_reads_only_the_rows_own_fields(self):
         self.assertEqual({n: self.entry(n)["exitCheck"] for n in
-                          ("implement", "test", "verify", "intake", "prepare", "document", "release",
+                          ("implement", "test", "intake", "prepare", "document", "release",
                            "spec", "plan", "step-plan", "carry-forward", "release-plan")},
-                         {"implement": "script-run", "test": "script-run", "verify": "script-run",
+                         {"implement": "script-run", "test": "script-run",
                           "intake": "model judgement", "prepare": "model judgement", "document": "script-run",
                           "release": "model judgement", "spec": "review loop", "plan": "review loop",
                           "step-plan": "script-run", "carry-forward": "script-run", "release-plan": "review loop"})
@@ -5210,7 +5243,7 @@ class StageCatalogTests(unittest.TestCase):
         # Every inner stage has both (its Until Loop's terminal check and, for three of them, an Improve child): the rule
         # gives script-run, the stronger check.
         both = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs and self.spec.STAGE_SPEC[s].improve}
-        self.assertEqual(both, {"step-plan", "implement", "carry-forward"})
+        self.assertEqual(both, {"step-plan", "document", "carry-forward"})   # the step review follows document (T §8)
         self.assertEqual({self.by_name[s]["exitCheck"] for s in both}, {"script-run"})
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
@@ -5271,8 +5304,12 @@ class StageAliasTests(unittest.TestCase):
             ("step-plan", "get-next-work-item", "select-work"),
             ("validate-existing", "baseline"),
             ("test", "test-author", "test-red", "test-green", "test-refine", "regression"),
-            ("verify", "static-checks", "integrate", "integration-verify"),
             ("carry-forward", "skill-assess", "skill-validate")))
+        # verify is gone, and nothing of the 7-stage loop does what static-checks, integrate and integration-verify did:
+        # each is its own name, in no phase (the 8-stage table bucketed them under verify; STAGE_ALIASES_V5 still does)
+        for old in ("static-checks", "integrate", "integration-verify", "verify"):
+            self.assertEqual((export.stage_names(old), export.STAGE_PHASE.get(old)), ((old,), None), old)
+        self.assertIn(("verify", "static-checks", "integrate", "integration-verify"), export.STAGE_ALIASES_V5)
         phased = [stage for _, stages in export.PHASES for stage in stages]
         for group in export.STAGE_ALIASES:
             with self.subTest(group=group[0]):
@@ -5579,16 +5616,18 @@ CARD_RUN = {
 
 
 def model_of(run: dict) -> str:
-    """A run document's stage model as the page reads it: its stageModel, else the one its stage names give, else v5."""
-    return run.get("stageModel") or export.stage_model({}, [r.get("stage") for r in run.get("stages") or []]) or "v5"
+    """A run document's stage model as the page reads it: its stageModel, else the one its stage names give, else v6."""
+    return run.get("stageModel") or export.stage_model({}, [r.get("stage") for r in run.get("stages") or []]) or "v6"
 
 
-def catalog_of(model: str = "v5") -> list:
-    """The committed catalog of a stage model: defaults/stages.json (v5) or the frozen defaults/stages-v4.json (v4)."""
-    return json.loads((STAGES_V4_JSON if model == "v4" else STAGES_JSON).read_text(encoding="utf-8"))["stages"]
+def catalog_of(model: str = "v6") -> list:
+    """The committed catalog of a stage model: defaults/stages.json (v6), or the frozen defaults/stages-v5.json (v5) or
+    defaults/stages-v4.json (v4)."""
+    path = {"v4": STAGES_V4_JSON, "v5": STAGES_V5_JSON}.get(model, STAGES_JSON)
+    return json.loads(path.read_text(encoding="utf-8"))["stages"]
 
 
-def readers_text(stage: str, model: str = "v5") -> str:
+def readers_text(stage: str, model: str = "v6") -> str:
     """The card's 'Read by' text for a stage, worked out in Python from the committed catalog of the model (the inverse of every `reads`)."""
     catalog = catalog_of(model)
     run = [e["stage"] for e in catalog if stage in e["reads"]]
@@ -5599,13 +5638,14 @@ def readers_text(stage: str, model: str = "v5") -> str:
     return "; ".join(parts) or "no stage declares reading it"
 
 
-def catalog_json(model: str = "v5") -> str:
+def catalog_json(model: str = "v6") -> str:
     return json.dumps(catalog_of(model))
 
 
 def cfg_catalogs() -> str:
-    """The page's config with both catalogs, as --defaults writes them: the page picks the run's."""
-    return "data.cfg={stages:{stages:" + catalog_json() + "},\"stages-v4\":{stages:" + catalog_json("v4") + "}};"
+    """The page's config with every catalog, as --defaults writes them: the page picks the run's."""
+    return ("data.cfg={stages:{stages:" + catalog_json() + "},\"stages-v5\":{stages:" + catalog_json("v5") + "},"
+            "\"stages-v4\":{stages:" + catalog_json("v4") + "}};")
 
 
 def card_setup(run: dict = CARD_RUN, extra: str = "", catalog: bool = True) -> str:
@@ -5649,7 +5689,8 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertEqual(written["Read by (declared by the stage spec)"], readers_text("implement", "v4"))
         self.assertEqual(readers_text("implement", "v4"), "test-green, test-refine, document, static-checks, verify "
                          "(each reads this work item's result)")
-        self.assertEqual(readers_text("implement"), "test, document, verify (each reads this work item's result)")  # an 8-stage run's
+        self.assertEqual(readers_text("implement", "v5"), "test, document, verify (each reads this work item's result)")  # an 8-stage run's
+        self.assertEqual(readers_text("implement"), "test, document (each reads this work item's result)")  # a 7-stage run's
 
     def test_readers_read_as_run_level_stages_then_those_that_read_this_work_items_result(self):
         text = run_logic('[readersText([]),readersText(null),readersText([{stage:"a",item:false},{stage:"b",item:false}]),'
@@ -6550,11 +6591,11 @@ class RunEndingExportTests(unittest.TestCase):
         self.assertEqual(run["wallMin"], 140.0)  # the accepted work only: the tail is not in it
 
     def test_the_phase_map_pins_stopped_apart_from_running_and_blocked(self):
-        self.assertEqual(export.derive_phases([0, 1, 2], 2, "stopped"), ["done", "done", "stopped"] + ["none"] * 5)
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "stopped"), ["done", "done", "stopped"] + ["none"] * 4)
         self.assertEqual(export.derive_phases([0, 1, 2], 2, "active")[2], "running")
         self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked")[2], "blocked")
         self.assertEqual(export.derive_phases([0, 1, 2], 2, "halted")[2], "blocked")
-        self.assertEqual(export.derive_phases(list(range(8)), None, "done"), ["done"] * 8)
+        self.assertEqual(export.derive_phases(list(range(7)), None, "done"), ["done"] * 7)
         self.assertIn("stopped", export.PHASE_STATES)
         self.assertEqual(export.validate_doc("runs", {"key": "k", "name": "n", "order": 1, "release": "r", "time": "t",
                                                        "imp": "i", "phases": ["stopped"], "status": "stopped"}), [])
@@ -10005,7 +10046,7 @@ class StaticCopyTests(unittest.TestCase):
         self.assertIn("&lt;/script&gt;", html.split("<title>")[1].split("</title>")[0])
         defaults = export.defaults_docs()
         self.assertEqual(set(data["expectations"]), set(defaults["expectations"]))
-        self.assertEqual(set(data["config"]), {"page", "prompt", "stages", "stages-v4"})  # both catalogs: the run reads its model's
+        self.assertEqual(set(data["config"]), {"page", "prompt", "stages", "stages-v4", "stages-v5"})  # every catalog: the run reads its model's
         self.assertEqual(data["expectations"].keys(), defaults["expectations"].keys())
 
     def test_line_separators_in_a_document_are_escaped_in_the_data(self):
@@ -10084,6 +10125,17 @@ SM_V4_INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test
                "integration-verify", "carry-forward")
 SM_V5_INNER = ("step-plan", "test-spec", "validate-existing", "implement", "implement", "test", "document", "verify",
                "carry-forward")
+# The 7-stage inner loop: each of two steps is built, tested and documented (its review and commit follow document), then
+# carry-forward once for the item. No verify.
+SM_V6_INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "implement", "test", "document",
+               "carry-forward")
+SM_INNER = {"v4": SM_V4_INNER, "v5": SM_V5_INNER, "v6": SM_V6_INNER}
+# sha256 of json.dumps(stages, sort_keys=True) of 3e4c3e0e's defaults/stages.json (the last Run Review catalog of the 8-stage
+# inner loop, unchanged through ba60a88a), and of the phase-3 to phase-7 expectations (title, short, text) of that commit's
+# defaults/expectations.json: defaults/stages-v5.json is them, frozen. Recompute from `git show 3e4c3e0e:<path>`.
+V5_CATALOG_SHA256 = "a7fa80f9a342201a01dd3f821a3e7069919785cd57036b2b061cb65a479a93d2"
+V5_PHASE_TEXTS_SHA256 = "665ea270ec230f3c7bd0ffe929c465148d787493578ee1c16d87bcae6c06e358"
+V5_FROZEN_FROM = "3e4c3e0e"
 SM_SAID = {"skill-assess": "Decision: no new skill; rules.js is the reusable unit.",
            "skill-validate": "N/A: no skill was created, so nothing to validate.",
            "carry-forward": "Lessons: the quality loop found a crash worth a regression test. Queue unchanged."}
@@ -10093,12 +10145,14 @@ def stage_model_run(root: Path, model: str) -> Path:
     """A run of one stage model with distinct accepted summaries. v4 (state version 4): work item W1 goes through all 17 inner
     stages (its carry-forward records lessons), W2 stops at static-checks after skill-assess and skill-validate, with a red
     test-red record as the last counted test run. v5 (state version 5): W1 goes through the 8 stages (two implement steps;
-    carry-forward records the skill decision) and the run is at system-test-author."""
+    carry-forward records the skill decision) and the run is at system-test-author. v6 (state version 10, the engine's): W1's
+    two steps are each built, tested and documented, then carry-forward (the skill decision), with no verify visit, and the run
+    is at system-test-author."""
     visits = [(None, s) for s in SM_OUTER]
     if model == "v4":
         visits += [("W1", s) for s in SM_V4_INNER] + [("W2", s) for s in SM_V4_INNER[:SM_V4_INNER.index("skill-validate") + 1]]
     else:
-        visits += [("W1", s) for s in SM_V5_INNER]
+        visits += [("W1", s) for s in SM_INNER[model]]
     accepts, rows = [], []
     for n, (item, stage) in enumerate(visits):
         name = f"sm-{model}-{n:02d}-{stage}"
@@ -10117,7 +10171,7 @@ def stage_model_run(root: Path, model: str) -> Path:
         state.update(version=4, work_index=1, stage="inner-loop",
                      inner_loops={"W2": {"stage": "static-checks", "action": {"id": "nav-x", "stage": "static-checks"}}})
     else:
-        state.update(version=5, work_index=0, stage="system-test-author", inner_loops={})
+        state.update(version=5 if model == "v5" else 10, work_index=0, stage="system-test-author", inner_loops={})
     record(run_dir / "state.md", state)
     if model == "v4":
         last_red = [name for name, stage, _, _ in accepts if stage == "test-red"][-1]
@@ -10128,11 +10182,11 @@ def stage_model_run(root: Path, model: str) -> Path:
 def stage_model_view(out: Path, catalog: list | None = None) -> dict:
     """What a reader sees of a stage-model run: the exported document's stage model, skill and phases, the facts' phase line,
     and, from the page, each visit's phase name and stage card and the Tests row of the delivered card. `catalog` is the one the
-    page passes to the card (None: the page's own choice from config/stages and config/stages-v4)."""
+    page passes to the card (None: the page's own choice from config/stages, config/stages-v5 and config/stages-v4)."""
     docs, facts = export.build_run(out)
     run = json.loads(json.dumps(next(iter(docs["runs"].values()))))
     cfg = export.defaults_docs()["config"]
-    page = run_logic("(function(run,cfg,given){var m=stageModel(run),cat=given||(m===\"v4\"?cfg[\"stages-v4\"].stages:cfg.stages.stages),"
+    page = run_logic("(function(run,cfg,given){var m=stageModel(run),cat=given||cfg[m===\"v4\"?\"stages-v4\":m===\"v5\"?\"stages-v5\":\"stages\"].stages,"
                      "flow=stageFlow(m),prev=-1;return {phases:flow.map(function(p){return p[0];}),"
                      "cards:run.stages.map(function(r,i){prev=phaseOfStage(r.stage,prev,m);var c=stageCard(run,i,cat);"
                      "return {stage:c.stage,phase:flow[prev][0],purpose:c.purpose,check:c.check,readers:c.written.readers};}),"
@@ -10225,12 +10279,12 @@ class StageModelTests(unittest.TestCase):
         run = next(iter(export.build_run(out)[0]["runs"].values()))
         run.pop("stageModel")
         self.assertEqual(run_logic("[stageModel(%s),stageModel({stages:[{stage:'test'}]}),stageModel({stages:[]})]" % json.dumps(run)),
-                         ["v4", "v5", ""])
+                         ["v4", "v6", ""])
 
     def test_an_8_stage_run_exports_and_renders_with_the_8_stage_catalog(self):
         view = stage_model_view(stage_model_run(self.tmp, "v5"))
         self.assertEqual(view["stageModel"], "v5")
-        self.assertEqual(view["modelFact"], "- Stage model: v5 (the 8-stage inner loop, state version 5)")
+        self.assertEqual(view["modelFact"], "- Stage model: v5 (the 8-stage inner loop with verify)")
         self.assertEqual(view["skill"], {"assessed": "Decision: reuse; no new skill. " + SM_SAID["carry-forward"]})
         self.assertEqual(view["phases"], ["Understand", "Specify", "Plan", "Build", "Verify", "Carry forward", "System test", "Release"])
         self.assertEqual(view["phasesFact"], "- Phases: Understand done, Specify done, Plan done, Build done, Verify done, "
@@ -10238,46 +10292,66 @@ class StageModelTests(unittest.TestCase):
         cards = {c["stage"]: c for c in view["cards"]}
         self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("test-spec", "validate-existing", "verify")],
                          ["Plan", "Build", "Verify"])
-        self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the catalog is the engine's table
-        # N2: a script-run row that also has an Improve child says so
+        frozen = {e["stage"]: e for e in json.loads(STAGES_V5_JSON.read_text(encoding="utf-8"))["stages"]}
+        self.assertEqual(cards["implement"]["purpose"], frozen["implement"]["purpose"])  # the catalog is the frozen 8-stage one
+        # N2: a script-run row that also has an Improve child says so (the step review follows document, design T section 8)
         self.assertEqual(cards["implement"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal, lint-gate, step-proof "
-                         "before it accepts done, and one Improve child per work item reviews its whole change after its last step "
-                         "(each changed step of a wide item, whose steps work on separate paths)."})
+                         "before it accepts done."})
+        self.assertEqual(cards["document"]["check"], {"kind": "script-run", "why": "ShipLoop runs loop-terminal before it accepts "
+                         "done, and one Improve child reviews each step's code, tests and docs after this stage, before ShipLoop "
+                         "commits the step."})
         self.assertIn("only the last work item's carry-forward", cards["carry-forward"]["check"]["why"])
         self.assertEqual(cards["verify"]["check"]["why"], "ShipLoop runs loop-terminal, lint-gate, test-rerun before it accepts done.")
         self.assertNotIn("meant to fail", view["tests"])
 
-    def test_the_page_names_the_model_and_shows_a_17_stage_runs_own_phases_and_expectation(self):
+    def test_the_page_names_the_model_and_shows_an_older_runs_own_phases_and_expectation(self):
         docs = {m: next(iter(export.build_run(stage_model_run(Path(tempfile.mkdtemp(dir=self.tmp)), m))[0]["runs"].values()))
-                for m in ("v4", "v5")}
+                for m in ("v4", "v5", "v6")}
         docs["v5"] = dict(docs["v5"], key="k5", order=docs["v4"]["order"] + 1)
+        docs["v6"] = dict(docs["v6"], key="k6", order=docs["v4"]["order"] + 2)
         defaults = export.defaults_docs()
-        setup = ("data.runs=" + json.dumps([docs["v4"], docs["v5"]]) + ";data.bc=[];data.exp=" + json.dumps(defaults["expectations"])
-                 + ";data.cfg=" + json.dumps(defaults["config"]) + ";Object.keys(loaded).forEach(function(k){loaded[k]=true;});")
+        setup = ("data.runs=" + json.dumps([docs["v4"], docs["v5"], docs["v6"]]) + ";data.bc=[];data.exp="
+                 + json.dumps(defaults["expectations"]) + ";data.cfg=" + json.dumps(defaults["config"])
+                 + ";Object.keys(loaded).forEach(function(k){loaded[k]=true;});")
         probe = ('[textOf("runfacts"),byClass("flow","exp").map(function(c){return c.children[0].textContent;}),'
-                 '(pickPhase(4),textOf("phasepanel"))]')
+                 '(pickPhase(4),textOf("phasepanel")),(pickPhase(7),textOf("phasepanel"))]')
         v4 = page_probe(probe, setup=setup + "L.run=%s;renderAll();" % json.dumps(docs["v4"]["key"]))
         v5 = page_probe(probe, setup=setup + "L.run='k5';renderAll();")
+        v6 = page_probe(probe, setup=setup + "L.run='k6';renderAll();")
         self.assertIn("skill-craft 1.16.1, ShipLoop 0.48.1 (17-stage run) |", v4[0])
         self.assertIn("(8-stage run) |", v5[0])
-        self.assertEqual(v4[1][3:6], ["Build", "Prove", "Integrate"])
-        self.assertEqual(v5[1][3:6], ["Build", "Verify", "Carry forward"])
-        frozen = json.loads(STAGES_V4_JSON.read_text(encoding="utf-8"))["phaseTexts"]
+        self.assertIn("(7-stage run) |", v6[0])
+        # each run's flow has its own loop's phases, Release last: the 7-stage page has no phase-7 document of its own
+        self.assertEqual(v4[1], ["Understand", "Specify", "Plan", "Build", "Prove", "Integrate", "System test", "Release"])
+        self.assertEqual(v5[1], ["Understand", "Specify", "Plan", "Build", "Verify", "Carry forward", "System test", "Release"])
+        self.assertEqual(v6[1], ["Understand", "Specify", "Plan", "Build", "Carry forward", "System test", "Release"])
+        v4_texts = json.loads(STAGES_V4_JSON.read_text(encoding="utf-8"))["phaseTexts"]
+        v5_texts = json.loads(STAGES_V5_JSON.read_text(encoding="utf-8"))["phaseTexts"]
         self.assertIn("Prove: what we expect", v4[2])
-        self.assertIn(frozen["phase-4"]["text"], v4[2])
-        self.assertIn("describes the 8-stage loop", v4[2])
-        self.assertIn(defaults["expectations"]["phase-4"]["text"], v5[2])
-        self.assertNotIn(frozen["phase-4"]["text"], v5[2])
+        self.assertIn(v4_texts["phase-4"]["text"], v4[2])
+        self.assertIn("the 17-stage inner loop this run used", v4[2])
+        self.assertIn("describes the 7-stage loop", v4[2])
+        self.assertIn("Verify: what we expect", v5[2])
+        self.assertIn(v5_texts["phase-4"]["text"], v5[2])
+        self.assertIn("the 8-stage inner loop this run used", v5[2])
+        self.assertIn("Carry forward: what we expect", v6[2])
+        self.assertIn(defaults["expectations"]["phase-4"]["text"], v6[2])
+        self.assertNotIn("describes the 7-stage loop", v6[2])
+        for older in (v4, v5):  # phase-7, Release, is the frozen 8-stage text (System test and Release are the same in both loops)
+            self.assertIn("Release: what we expect", older[3])
+            self.assertIn(v5_texts["phase-7"]["text"], older[3])
+        self.assertIn("Select a stage", v6[3])  # the 7-stage run has no eighth phase
 
     def test_the_stage_model_comes_from_the_state_version_and_the_stage_names(self):
         model = export.stage_model
         self.assertEqual([model({"version": 4}, []), model({"version": 5}, []), model({"version": 3}, ["spec"]),
                           model({}, ["intake", "get-next-work-item"]), model({"version": 5}, ["test-green"]),
                           model({}, ["intake", "test"]), model({}, ["intake", "spec"]), model({"version": "x"}, [])],
-                         ["v4", "v5", "v4", "v4", "v4", "v5", None, None])
+                         ["v4", "v5", "v4", "v4", "v4", "v6", None, None])
         self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v4"], ("test-green", "test-refine", "regression", "document", "skill-assess",
                          "skill-validate", "static-checks", "verify", "integrate", "integration-verify", "carry-forward"))
-        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v5"], export.AFTER_IMPLEMENT)
+        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v5"], export.AFTER_IMPLEMENT_V5)
+        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v6"], export.AFTER_IMPLEMENT)
 
     def test_the_17_stage_catalog_is_the_frozen_54bcb54d_one_and_the_page_flow_matches_it(self):
         frozen = json.loads(STAGES_V4_JSON.read_text(encoding="utf-8"))
@@ -10290,6 +10364,307 @@ class StageModelTests(unittest.TestCase):
                          {"phase-3": "Build", "phase-4": "Prove", "phase-5": "Integrate"})
         self.assertEqual(export.defaults_docs()["config"]["stages-v4"], {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]})
         self.assertEqual(export.validate_doc("config", export.defaults_docs()["config"]["stages-v4"]), [])
+
+    def test_the_8_stage_catalog_is_the_frozen_one_and_the_exporter_and_page_tables_match_it(self):
+        frozen = json.loads(STAGES_V5_JSON.read_text(encoding="utf-8"))
+        digest = lambda value: hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+        self.assertEqual(digest(frozen["stages"]), V5_CATALOG_SHA256)  # the 8-stage catalog, word for word
+        self.assertEqual(digest(frozen["phaseTexts"]), V5_PHASE_TEXTS_SHA256)  # its phase-3 to phase-7 expectations
+        # Where the commit is in the checkout's history, the frozen file is that commit's catalog and expectations themselves.
+        shown = subprocess.run(["git", "-C", str(ROOT), "show", f"{V5_FROZEN_FROM}:skills/shiploop-run-review/defaults/stages.json"],
+                               capture_output=True, text=True)
+        if shown.returncode == 0:
+            self.assertEqual(frozen["stages"], json.loads(shown.stdout)["stages"])
+        self.assertEqual(len(frozen["stages"]), 24)
+        self.assertIn("verify", [e["stage"] for e in frozen["stages"]])
+        self.assertEqual(frozen["phases"], [
+            ["Understand", ["intake", "discovery", "research"]], ["Specify", ["spec", "test-strategy"]],
+            ["Plan", ["plan", "prepare", "step-plan", "test-spec"]], ["Build", ["validate-existing", "implement", "test", "document"]],
+            ["Verify", ["verify"]], ["Carry forward", ["carry-forward"]],
+            ["System test", ["system-test-author", "system-test", "product-acceptance"]],
+            ["Release", ["release-plan", "release-check", "release", "release-verify", "operations", "handoff"]]])
+        self.assertEqual(frozen["aliases"], [
+            ["step-plan", "get-next-work-item", "select-work"], ["validate-existing", "baseline"],
+            ["test", "test-author", "test-red", "test-green", "test-refine", "regression"],
+            ["verify", "static-checks", "integrate", "integration-verify"], ["carry-forward", "skill-assess", "skill-validate"]])
+        self.assertEqual(frozen["afterImplement"], ["test", "document", "verify", "carry-forward"])
+        self.assertEqual({k: v["title"] for k, v in frozen["phaseTexts"].items()},
+                         {"phase-3": "Build", "phase-4": "Verify", "phase-5": "Carry forward", "phase-6": "System test",
+                          "phase-7": "Release"})
+        self.assertEqual([[name, list(stages)] for name, stages in export.PHASES_V5], frozen["phases"])
+        self.assertEqual([list(g) for g in export.STAGE_ALIASES_V5], frozen["aliases"])
+        self.assertEqual(export.AFTER_IMPLEMENT_V5, tuple(frozen["afterImplement"]))
+        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v5"], export.AFTER_IMPLEMENT_V5)
+        self.assertEqual(run_logic("[STAGE_FLOW_V5,STAGE_ALIASES_V5]"), [frozen["phases"], frozen["aliases"]])
+        self.assertEqual(export.defaults_docs()["config"]["stages-v5"], {"stages": frozen["stages"], "phaseTexts": frozen["phaseTexts"]})
+        self.assertEqual(export.validate_doc("config", export.defaults_docs()["config"]["stages-v5"]), [])
+        # the 7-stage engine's own catalog has no verify: an 8-stage run's verify card reads only from the frozen one
+        self.assertNotIn("verify", [e["stage"] for e in json.loads(STAGES_JSON.read_text(encoding="utf-8"))["stages"]])
+
+    def test_a_run_with_a_verify_visit_reads_as_the_8_stage_loop_with_its_frozen_catalog_and_phases(self):
+        frozen = json.loads(STAGES_V5_JSON.read_text(encoding="utf-8"))
+        out = stage_model_run(self.tmp, "v5")
+        view = stage_model_view(out)
+        self.assertEqual(view["stageModel"], "v5")
+        self.assertEqual(view["modelFact"], "- Stage model: v5 (the 8-stage inner loop with verify)")
+        self.assertEqual(view["phases"], [name for name, _ in frozen["phases"]])
+        self.assertEqual(view["phasesFact"], "- Phases: Understand done, Specify done, Plan done, Build done, Verify done, "
+                                             "Carry forward done, System test running, Release none")
+        by_name = {e["stage"]: e for e in frozen["stages"]}
+        cards = {c["stage"]: c for c in view["cards"]}
+        for stage in ("implement", "document", "verify", "carry-forward"):  # each card's purpose is the frozen catalog's
+            self.assertEqual(cards[stage]["purpose"], by_name[stage]["purpose"][0].upper() + by_name[stage]["purpose"][1:], stage)
+        self.assertEqual(cards["verify"]["phase"], "Verify")
+        self.assertEqual(cards["verify"]["check"]["kind"], "script-run")
+        self.assertEqual(view["cards"], stage_model_view(out, frozen["stages"])["cards"])  # the page picks it by itself
+        # state versions 5 to 9 are the 8-stage loop, with or without a verify visit yet; with no version, a verify visit says so
+        model = export.stage_model
+        self.assertEqual([model({"version": 9}, ["intake", "test", "verify"]), model({"version": 5}, []),
+                          model({"version": 9}, ["intake", "test"]), model({}, ["intake", "test", "verify"]),
+                          model({}, ["intake", "verify"])], ["v5"] * 5)
+
+    def test_a_run_of_state_version_10_or_later_reads_as_the_7_stage_loop(self):
+        view = stage_model_view(stage_model_run(self.tmp, "v6"))
+        self.assertEqual(view["stageModel"], "v6")
+        self.assertEqual(view["modelFact"], "- Stage model: v6 (the 7-stage inner loop: each step built, tested, documented, "
+                                            "reviewed and committed)")
+        self.assertEqual(view["phases"], ["Understand", "Specify", "Plan", "Build", "Carry forward", "System test", "Release"])
+        self.assertEqual(view["phasesFact"], "- Phases: Understand done, Specify done, Plan done, Build done, Carry forward done, "
+                                             "System test running, Release none")
+        self.assertEqual(len(view["phaseStates"]), 7)
+        self.assertEqual(view["skill"], {"assessed": "Decision: reuse; no new skill. " + SM_SAID["carry-forward"]})
+        cards = {c["stage"]: c for c in view["cards"]}
+        self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the engine's own catalog
+        self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("validate-existing", "document", "carry-forward")],
+                         ["Build", "Build", "Build", "Carry forward"])
+        # ShipLoop's state version 10 is the 7-stage loop; with no version, a name only the later loops have and no verify visit
+        model = export.stage_model
+        self.assertEqual([model({"version": 10}, []), model({"version": 11}, ["intake", "test", "document"]),
+                          model({}, ["intake", "test"]), model({}, ["intake", "spec"]), model({"version": 4}, ["test"]),
+                          model({"version": 10}, ["get-next-work-item"])],
+                         ["v6", "v6", "v6", None, "v4", "v4"])
+        self.assertEqual(export.AFTER_IMPLEMENT, ("test", "document", "carry-forward"))
+        self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v6"], export.AFTER_IMPLEMENT)
+        # the page's own reading of a document exported before stageModel existed agrees
+        self.assertEqual(run_logic("[stageModel({stages:[{stage:'test'},{stage:'verify'}]}),stageModel({stages:[{stage:'test'}]}),"
+                                   "stageModel({stages:[{stage:'test'}],ending:{stage:'verify'}}),stageModel({stageModel:'v6',stages:[]}),"
+                                   "stageModel({stages:[{stage:'intake'},{stage:'verify'}]}),stageModel({stages:[{stage:'intake'}]}),"
+                                   "stageModelText('v6'),stageModelText('v5'),stageModelText('v4')]"),
+                         ["v5", "v6", "v5", "v6", "v5", "", "7-stage run", "8-stage run", "17-stage run"])
+
+    def test_a_findings_phase_criterion_reads_with_the_phases_of_its_runs_stage_model(self):
+        # o35 (a 17-stage run's finding) names phase-6, System test in that loop and in the 8-stage one; the 7-stage page's
+        # phase-6 is Release. A phase key the page no longer holds (phase-7) is still a known expectation key for --check.
+        defaults = export.defaults_docs()
+        docs = {m: next(iter(export.build_run(stage_model_run(Path(tempfile.mkdtemp(dir=self.tmp)), m))[0]["runs"].values()))
+                for m in ("v4", "v5", "v6")}
+        setup = ("data.runs=%s;data.exp=%s;data.cfg=%s;" % (json.dumps([dict(docs[m], key=m) for m in ("v4", "v5", "v6")]),
+                                                           json.dumps(defaults["expectations"]), json.dumps(defaults["config"])))
+        titles = page_probe("data.runs.map(function(r){return [critOf({criterion:'phase-6',run:r.key}).title,"
+                            "critOf({criterion:'phase-4',run:r.key}).title,critOf({criterion:'P1',run:r.key}).title];})", setup=setup)
+        principle = defaults["expectations"]["P1"]["title"]
+        self.assertEqual(titles, [["System test", "Prove", principle], ["System test", "Verify", principle],
+                                  ["Release", "Carry forward", principle]])
+        self.assertNotIn("phase-7", defaults["expectations"])
+        self.assertIn("phase-7", export._default_keys())
+
+
+# Two commits ShipLoop's commit stage recorded, as RUN/iterations/<item>.json holds them (full ids).
+STEP_COMMITS = {"S1": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "S2": "2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e"}
+STEP_BASE = "0" * 40
+
+
+def step_run(root: Path, inner: list[tuple[str, str]], version: int = 10) -> Path:
+    """A run of work item W1 on the inline route: the outer stages, then `inner` ((stage, outcome) in order; every step
+    plan lists S1 and S2), at state version `version` (10: the 7-stage loop). Each done document visit has its step's
+    Improve review (improve/<document action>/, the child the review stage records)."""
+    visits = [(None, s, "done") for s in SM_OUTER] + [("W1", s, o) for s, o in inner]
+    accepts = []
+    for n, (_, stage, outcome) in enumerate(visits):
+        name = f"st-{version}-{len(inner)}-{n:02d}-{stage}-{outcome}"
+        IDS.setdefault(name, "nav-" + hashlib.sha256(name.encode()).hexdigest()[:32])
+        accepts.append((name, stage, 5 * (n + 1), outcome))
+    out = make_run(root, accepts=accepts, loops=False)
+    run_dir = run_dir_of(out)
+    state = export._record(run_dir / "state.md")
+    for row, (item, _, _) in zip(state["history"], visits):
+        row["workitem"] = item
+        if row["stage"] == "document" and row["outcome"] == "done":
+            make_improve_child(run_dir, row["action"])
+    state.update(version=version, work_index=0, stage="system-test-author", inner_loops={})
+    record(run_dir / "state.md", state)
+    return out
+
+
+def step_plans(out: Path) -> list[str]:
+    """The action ids of the run's done step-plan visits, in order."""
+    return [h["action"] for h in export._record(run_dir_of(out) / "state.md")["history"]
+            if h["stage"] == "step-plan" and h["outcome"] == "done"]
+
+
+def write_ledger(out: Path, plans: dict) -> None:
+    """RUN/iterations/W1.json as the engine writes it: {plans: {<step plan action>: {<step>: {number, base, commit}}}}."""
+    write_json(run_dir_of(out) / "iterations" / "W1.json", {"plans": plans})
+
+
+TWO_STEPS = [("step-plan", "done"), ("test-spec", "done"), ("validate-existing", "done"),
+             ("implement", "done"), ("test", "done"), ("document", "done"),
+             ("implement", "done"), ("test", "done"), ("document", "done"), ("carry-forward", "done")]
+
+
+class StepIterationExportTests(unittest.TestCase):
+    """Design T section 9 row 8: a 7-stage run is read per step. Each inner visit from an item's implement through its
+    last step's review names its step, and the item's steps carry their number, visits and the commit ShipLoop recorded."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def run_doc(self, out: Path) -> dict:
+        return next(iter(export.build_run(out)[0]["runs"].values()))
+
+    def test_each_visit_of_a_step_names_it_and_the_items_steps_carry_their_visits_and_commits(self):
+        out = step_run(self.tmp, TWO_STEPS)
+        plan = step_plans(out)[0]
+        write_ledger(out, {plan: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]},
+                                  "S2": {"number": 2, "base": STEP_COMMITS["S1"], "commit": None}}})
+        run = self.run_doc(out)
+        self.assertEqual(run["stageModel"], "v6")
+        # visits 8 to 10 plan the item, 11 to 13 build, test and document S1, 14 to 16 S2, 17 carries forward
+        self.assertEqual([(i + 1, r["stage"], r.get("step")) for i, r in enumerate(run["stages"]) if r.get("workitem") == "W1"],
+                         [(8, "step-plan", None), (9, "test-spec", None), (10, "validate-existing", None),
+                          (11, "implement", "S1"), (12, "test", "S1"), (13, "document", "S1"),
+                          (14, "implement", "S2"), (15, "test", "S2"), (16, "document", "S2"), (17, "carry-forward", None)])
+        implement = [r["action"] for r in run["stages"] if r["stage"] == "implement"]
+        item = run["workItems"][0]
+        self.assertEqual(item["steps"], [
+            {"id": "S1", "task": "Write the rules module", "action": implement[0], "number": 1,
+             "visits": {"first": 11, "last": 13}, "commit": STEP_COMMITS["S1"]},
+            {"id": "S2", "task": "Write the server", "action": implement[1], "number": 2,
+             "visits": {"first": 14, "last": 16}, "commit": None}])  # the ledger records S2 with no commit: not committed
+        self.assertEqual((item["stepsPlanned"], item["stepsExecuted"]), (2, 2))
+        self.assertEqual(export.validate_doc("runs", run), [])
+
+    def test_with_no_iterations_ledger_a_steps_commit_is_unknown_never_invented(self):
+        run = self.run_doc(step_run(self.tmp, TWO_STEPS))
+        steps = run["workItems"][0]["steps"]
+        self.assertEqual([(s["id"], s["visits"]) for s in steps], [("S1", {"first": 11, "last": 13}), ("S2", {"first": 14, "last": 16})])
+        self.assertFalse([s for s in steps if "commit" in s])
+        # a ledger that does not record a step, or records something that is not a commit id, says nothing about it either
+        out = step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS)
+        write_ledger(out, {step_plans(out)[0]: {"S1": {"number": 1, "base": STEP_BASE, "commit": "not a commit"}}})
+        self.assertFalse([s for s in self.run_doc(out)["workItems"][0]["steps"] if "commit" in s])
+
+    def test_an_item_mid_step_has_its_steps_so_far_and_is_not_read_as_past_implement(self):
+        # at S2's test: S1 is done, S2 is being tested; test and document between steps do not end the build
+        run = self.run_doc(step_run(self.tmp, TWO_STEPS[:8]))
+        item = run["workItems"][0]
+        self.assertEqual((item["stepsPlanned"], item["stepsExecuted"]), (2, 2))
+        self.assertEqual([(s["id"], s.get("visits")) for s in item["steps"]],
+                         [("S1", {"first": 11, "last": 13}), ("S2", {"first": 14, "last": 15})])
+        self.assertNotIn("stepsExecuted", run["unmeasured"])
+        # an item that reaches carry-forward with a step never built did not run one packet per step
+        early = self.run_doc(step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS[:6] + [("carry-forward", "done")]))
+        self.assertIn("moved past", early["unmeasured"]["stepsExecuted"])
+
+    def test_a_send_back_restarts_the_step_numbering_under_the_new_step_plan(self):
+        inner = [("step-plan", "done"), ("test-spec", "done"), ("validate-existing", "done"),
+                 ("implement", "done"), ("test", "send-back"),
+                 ("step-plan", "done"), ("implement", "done"), ("test", "done"), ("document", "done"),
+                 ("implement", "done"), ("test", "done"), ("document", "done"), ("carry-forward", "done")]
+        out = step_run(self.tmp, inner)
+        first, second = step_plans(out)
+        write_ledger(out, {first: {"S1": {"number": 1, "base": STEP_BASE, "commit": None}},
+                           second: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]},
+                                    "S2": {"number": 2, "base": STEP_COMMITS["S1"], "commit": STEP_COMMITS["S2"]}}})
+        run = self.run_doc(out)
+        rows = [(i + 1, r["stage"], r.get("loop"), r.get("step")) for i, r in enumerate(run["stages"]) if r.get("workitem") == "W1"]
+        self.assertEqual(rows, [(8, "step-plan", 1, None), (9, "test-spec", 1, None), (10, "validate-existing", 1, None),
+                                (11, "implement", 1, "S1"), (12, "test", 1, "S1"),
+                                (13, "step-plan", 2, None), (14, "implement", 2, "S1"), (15, "test", 2, "S1"),
+                                (16, "document", 2, "S1"), (17, "implement", 2, "S2"), (18, "test", 2, "S2"),
+                                (19, "document", 2, "S2"), (20, "carry-forward", 2, None)])
+        # the item's steps are the latest plan's: S1 again from visit 14, with that plan's commits
+        self.assertEqual([(s["id"], s["number"], s["visits"], s["commit"]) for s in run["workItems"][0]["steps"]],
+                         [("S1", 1, {"first": 14, "last": 16}, STEP_COMMITS["S1"]),
+                          ("S2", 2, {"first": 17, "last": 19}, STEP_COMMITS["S2"])])
+
+    def test_an_8_stage_or_17_stage_run_gets_no_step_fields_beyond_its_implement_visits(self):
+        for model in ("v5", "v4"):
+            with self.subTest(model=model):
+                out = stage_model_run(Path(tempfile.mkdtemp(dir=self.tmp)), model)
+                write_ledger(out, {step_plans(out)[0]: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]}}})
+                run = self.run_doc(out)
+                self.assertEqual(run["stageModel"], model)
+                # the implement visit names its step as before; no other visit does, and the steps carry no new field
+                self.assertEqual({r["stage"] for r in run["stages"] if "step" in r}, {"implement"})
+                for item in run["workItems"]:
+                    for step in item.get("steps") or []:
+                        self.assertEqual(set(step) - {"id", "task", "truncated", "action"}, set(), step)
+        # an 8-stage run at state version 9 shaped like a 7-stage one is still read the 8-stage way
+        run = self.run_doc(step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS, version=9))
+        self.assertEqual(run["stageModel"], "v5")
+        self.assertEqual({r["stage"] for r in run["stages"] if "step" in r}, {"implement"})
+
+    def test_schema_md_defines_the_step_fields(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`steps[].number`", "`steps[].visits`", "`steps[].commit`", "RUN/iterations/<item>.json",
+                       "`feat(<item>/<step>)`"):
+            self.assertIn(phrase, schema, phrase)
+
+
+class StepGroupPageTests(unittest.TestCase):
+    """The page groups a 7-stage run's inner visits under one header per step, in the stage cards and the visits table; an
+    older run renders as before."""
+
+    @classmethod
+    def setUpClass(cls):
+        tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        out = step_run(root / "v6", TWO_STEPS)
+        write_ledger(out, {step_plans(out)[0]: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]},
+                                                "S2": {"number": 2, "base": STEP_COMMITS["S1"], "commit": None}}})
+        cls.v6 = next(iter(export.build_run(out)[0]["runs"].values()))
+        cls.v5 = next(iter(export.build_run(stage_model_run(root / "v5", "v5"))[0]["runs"].values()))
+        cls.v4 = next(iter(export.build_run(stage_model_run(root / "v4", "v4"))[0]["runs"].values()))
+
+    PROBE = ('[byClass("sclist","sc-step").map(function(e){return e.textContent;}),'
+             'byClass("seqtable","vt-step").map(function(e){return e.textContent;}),'
+             'walk(REG.seqtable,function(e){return e.tagName==="tr";}).length,byClass("sclist","sc-row").length]')
+
+    def view(self, run: dict):
+        return page_probe(self.PROBE, setup=card_setup(dict(run, key="k", order=1)))
+
+    def test_a_7_stage_runs_visits_are_grouped_under_one_header_per_step(self):
+        headers = ["Step S1 · implement → test → document → review · commit 1a2b3c4",
+                   "Step S2 · implement → test → document → review · not committed"]
+        cards, table, rows, card_rows = self.view(self.v6)
+        self.assertEqual((cards, table), (headers, headers))
+        self.assertEqual(rows, 1 + len(self.v6["stages"]) + 2)  # the head row, one row per visit, one header row per step
+        self.assertEqual(card_rows, len(self.v6["stages"]))
+        # the groups, as the logic block works them out: where each starts and ends, and the step's own record
+        groups = run_logic("stepGroups(%s)" % json.dumps(self.v6))
+        self.assertEqual([(g["at"], g["last"], g["step"]) for g in groups], [(10, 12, "S1"), (13, 15, "S2")])
+
+    def test_a_step_with_no_review_or_no_recorded_commit_says_only_what_is_known(self):
+        run = json.loads(json.dumps(self.v6))
+        for row in run["stages"]:
+            row.pop("improve", None)
+            row.pop("improvePacketBytes", None)
+        for step in run["workItems"][0]["steps"]:
+            step.pop("commit", None)
+        self.assertEqual(run_logic("stepGroups(%s).map(function(g){return g.text;})" % json.dumps(run)),
+                         ["Step S1 · implement → test → document", "Step S2 · implement → test → document"])
+
+    def test_an_8_stage_or_17_stage_run_renders_as_before_with_no_step_headers(self):
+        for run in (self.v5, self.v4):
+            with self.subTest(model=run["stageModel"]):
+                cards, table, rows, card_rows = self.view(run)
+                self.assertEqual((cards, table), ([], []))
+                self.assertEqual(rows, 1 + len(run["stages"]))
+                self.assertEqual(run_logic("stepGroups(%s)" % json.dumps(run)), [])
 
 
 SLICE_NOT_REACHED = "system tests, release and the report: a slice ends after the item's inner loop"

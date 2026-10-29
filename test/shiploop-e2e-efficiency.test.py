@@ -436,6 +436,22 @@ class SkippedGateTests(unittest.TestCase):
         self.assertEqual([(g["gate"], g["skipped"], g["reason"]) for g in found["gates"] if g["skipped"]],
                          [("base", 1, "no reason recorded"), ("mutation", 1, "no reason recorded")])
 
+    def test_a_current_runs_item_commit_gate_is_its_accepted_document_stage(self) -> None:
+        """Verify retired (design T §9.1 2b-4c): ShipLoop commits a step once its document stage and review are accepted, so an
+        accepted document is where the commit gate stands; a run recorded before still reads it at verify (the fixtures above)."""
+        fence = lambda record: "```shiploop-state\n" + json.dumps(record) + "\n```\n"  # noqa: E731
+        for base, skipped in ((False, 1), (True, 0)):
+            with self.subTest(base=base), tempfile.TemporaryDirectory() as temp:
+                run = Path(temp) / "run"
+                (run / "lint").mkdir(parents=True)
+                (run / "state.md").write_text(fence({"history": [{"stage": "document", "outcome": "done", "workitem": "W1"},
+                                                                 {"stage": "carry-forward", "outcome": "done", "workitem": "W1"}]}))
+                if base:
+                    (run / "lint" / "items").mkdir()
+                    (run / "lint" / "items" / "W1.md").write_text(fence({"tree": "t"}))
+                (gate,) = [g for g in metrics.skipped_gates(run)["gates"] if g["gate"] == "item_commit"]
+            self.assertEqual((gate["records"], gate["skipped"]), (1, skipped))
+
     def test_no_run_directory_is_not_measured(self) -> None:
         self.assertEqual(metrics.skipped_gates(None)["count"], None)
         self.assertFalse(metrics.skipped_gates(Path("/nonexistent/run"))["measured"])
@@ -725,8 +741,9 @@ class HomeFixtureTests(unittest.TestCase):
         """Packets list the knowledge files by contents (owner decision D1, 2026-10-17): a 36 KB home adds its tables of
         contents, not its text (the walk's packet files were 2.1 times the empty home's while they quoted it whole)."""
         empty, small, long = (home_fixtures.sizes(kind) for kind in ("empty", "small", "long"))
-        # 33 packets until test-spec stopped starting an Improve child (2026-10-26).
-        self.assertEqual(empty["packets"], 32)
+        # 33 packets until test-spec stopped starting an Improve child (2026-10-26); 32 until verify retired (design T
+        # §9.1 2b-4c).
+        self.assertEqual(empty["packets"], 31)
         self.assertGreater(long["file_chars"], empty["file_chars"])
         self.assertLess(long["file_chars"], 1.1 * empty["file_chars"])
         self.assertLess(small["file_chars"], 1.1 * empty["file_chars"])
@@ -745,7 +762,7 @@ class AuditProbeTests(unittest.TestCase):
                 # Only an upper bound: the efficiency units cut these figures (U22 entry card 79,647 -> ~30,000; U18 bound handoffs
                 # 276,270 -> ~157,000), so a smaller figure is the intended saving, never a regression.
                 self.assertTrue(0 < value / audit_probes.AUDITED[name] < 1.5, value)
-        self.assertEqual(found["delivery"]["packets"], 32)
+        self.assertEqual(found["delivery"]["packets"], 31)  # 32 with verify's packet (retired, design T §9.1 2b-4c)
         self.assertEqual(found["handoffs"]["handoffs"], 8)  # 9 with the test-spec review
 
     def test_the_audited_figures_reproduce_exactly_at_the_audited_commit(self) -> None:

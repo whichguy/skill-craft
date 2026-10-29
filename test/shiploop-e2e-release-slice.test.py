@@ -8,7 +8,7 @@ the build. These checks cover, in order:
   SeedTest          the seed on the checkout's own ShipLoop CLI: the run stands at release-plan, every earlier stage accepted in graph
                     order, the case's product committed in the worktree after the item's base, the case's own knowledge home, the
                     records the skipped stages leave, and the input gates of release-plan (its packet quotes them; a model-shaped
-                    result passes `complete --check-only`)
+                    result passes `shiploop check`)
   CaseKeysTest      the case's seed_product, seed_home and seed_release keys, and the checks that wait for the return
   GradeTest         the release verdict on run folders made by hand: stages accepted, where the run stopped and why, and whether the
                     deploy fell in the release stage (guard-log time against stage acceptance)
@@ -216,11 +216,11 @@ class SeedTest(unittest.TestCase):
 
         def submit(value: dict) -> subprocess.CompletedProcess:
             inbox.write_text("```shiploop-state\n" + json.dumps(value, indent=2) + "\n```\n")
-            return shiploop("complete", f"--run-dir={self.slice.run_dir}", f"--action={action}", "--check-only", check=False)
+            return shiploop("check", f"--run-dir={self.slice.run_dir}", f"--action={action}", check=False)
 
         accepted = submit(result)
         self.assertEqual(accepted.returncode, 0, accepted.stderr + accepted.stdout)
-        self.assertIn("every script gate for release-plan accepts this result", accepted.stdout)
+        self.assertIn("the check says yes for release-plan: every script gate accepts this result", accepted.stdout)
         refused = submit({key: value for key, value in result.items() if key != "consumer_checks"})
         self.assertNotEqual(refused.returncode, 0)
         self.assertIn("consumer_checks", refused.stderr + refused.stdout)
@@ -759,7 +759,7 @@ class Rehearsal(unittest.TestCase):
         self.assertEqual(release["skipped_checks"], [])  # the product was returned, so the source check ran
         self.assertEqual([c["command"] for c in result["checks"]][0], "test -f sfdx-project.json && echo project")
         self.assertTrue(all(check["pass"] for check in result["checks"]))
-        self.assertIsNone(result["chain"])  # a release slice has no implementation chain to grade
+        self.assertNotIn("chain", result)  # no run is graded on an implementation chain any more (2c-2)
         self.assertEqual(result["seeded"]["stage"], "release-plan")
         self.assertEqual(result["seeded"]["product"]["files"], len(PRODUCT_FILES))
         self.assertEqual(result["seeded"]["delegation"], "inline")

@@ -35,10 +35,10 @@
      "anchors": ["Three kinds of result start an Improve stage", "refuses until it holds a call to the improve skill", "it completes at the first pass that finds only trivial"]},
     {"id": "improve-child", "obligation": "how ShipLoop sets the child up, who runs it on each route, its completion and restart", "old": "## Follow the current packet (step 3)", "home": "improve-child.md", "section": "## Running the child", "trigger": "references/improve-child.md",
      "anchors": ["run `complete --action=<improve id>`", "--restart-stopped", "ShipLoop imports only a receipt the runtime wrote"]},
-    {"id": "inner-loop", "obligation": "the eight inner stages and what each records", "old": "### The inner loop", "home": "inner-loop.md", "section": "# The inner loop", "trigger": "references/inner-loop.md",
-     "anchors": ["8 stages in 5 phases", "`document` is issued only when"]},
+    {"id": "inner-loop", "obligation": "the seven inner stages and what each records", "old": "### The inner loop", "home": "inner-loop.md", "section": "# The inner loop", "trigger": "references/inner-loop.md",
+     "anchors": ["7 stages in 4 phases", "`document` is issued only when"]},
     {"id": "stage-until-loops", "obligation": "the loop contract, the start command, the receipt and its check at complete", "old": "### Stage Until Loops", "home": "inner-loop.md", "section": "## Stage Until Loops", "trigger": "references/inner-loop.md",
-     "anchors": ["RUN the Until Loop now, once, before any work", "Never write or edit the receipt", "complete --check-only"]},
+     "anchors": ["RUN the Until Loop now, once, before any work", "Never write or edit the receipt", "shiploop check"]},
     {"id": "expectations", "obligation": "expectations, their checks and validate-existing", "old": "### Expectations and validate-existing", "home": "inner-loop.md", "section": "## Expectations and validate-existing", "trigger": "references/inner-loop.md",
      "anchors": ["`works`, an existing thing works today", "failed_expectations"]},
     {"id": "carry-forward-skill", "obligation": "the carry-forward skill decision and its checks", "old": "### Carry-forward skill decision", "home": "inner-loop.md", "section": "## Carry-forward skill decision", "trigger": "references/inner-loop.md",
@@ -56,12 +56,6 @@
     {"id": "backchain-passes-option", "obligation": "the backchain_passes option and what each value prints", "old": "### Backchain passes option", "home": "backchain-route.md", "section": "## Backchain passes option", "trigger": "references/backchain-route.md",
      "anchors": ["--backchain-passes one|converge|none", "no whole `plan`/`draft` is requested"]},
     {"id": "backchain-selection", "obligation": "the only Backchain route, its binding, the plan-only child and the graph check", "old": "## Source-aware Backchain selection", "home": "backchain-route.md", "section": "## Source-aware Backchain selection", "trigger": "references/backchain-route.md",
-     "anchors": ["`source-aware-native` is the only Backchain route", "backchain-check --run-dir", "The Until Loop child is plan-only"]},
-    {"id": "ask-agent-boundary", "obligation": "on ask-agent: the chain route first, one fresh worker at a time, the parent alone submits", "old": "## Durable handoff", "home": "chain-route.md", "section": "## Ask-agent context boundary", "trigger": "references/chain-route.md",
-     "anchors": ["select the packet's chain route first", "only one owner writes to the candidate"]},
-    {"id": "chain-binding", "obligation": "the inline step order, chain review, capacity, planning inputs and the launch", "old": "## Parallel implementation chains", "home": "chain-route.md", "section": "## Parallel implementation chains", "trigger": "references/chain-route.md",
-     "anchors": ["`chain bind` refuses a fresh binding on an inline run", "chain planning-inputs", "Bind `--capacity`"]},
-    {"id": "chain-navigation", "obligation": "the navigation packet, serial mode, the ledger, schema v6 and settlement", "old": "## Parallel implementation chains", "home": "chain-navigation.md", "section": "## Navigation and settlement", "trigger": "references/chain-navigation.md",
-     "anchors": ["`navigation.complete` marks chain completion", "Only binding schema v6 is supported", "chain bind --mode serial"]}
+     "anchors": ["`source-aware-native` is the only Backchain route", "backchain-check --run-dir", "The Until Loop child is plan-only"]}
   ]
 }

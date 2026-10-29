@@ -76,7 +76,6 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-navigator-contract.test.py",
     "test/shiploop-navigator-v4.test.py",
     "test/shiploop-stopped-improve.test.py",
-    "test/shiploop-v4-consumers.test.py",
     "test/shiploop-standalone-improve.test.py",
     "test/shiploop-actual-improve-cli.test.py",
     "test/shiploop-packet-bounds.test.py",
@@ -97,23 +96,13 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-progress-render.test.py",
     "test/shiploop-stage-spec.test.py",
     "test/shiploop-send-back.test.py",
+    "test/shiploop-step-edges.test.py",
     "test/shiploop-rehydration.test.py",
     "test/shiploop-confirmation.test.py",
     "test/shiploop-auth-readiness.test.py",
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
     "test/shiploop-return-review.test.py",
-    "test/shiploop-chain-ledger.test.py",
-    "test/shiploop-chain-git.test.py",
-    "test/shiploop-chain.test.py",
-    "test/shiploop-chain-handoff.test.py",
-    "test/shiploop-chain-lifecycle.test.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-planning-context.test.py",
-    "test/shiploop-chain-planning-context.test.py",
-    "test/experiments/shiploop_chain/test_trace.py",
-    "test/experiments/shiploop_chain/test_grok_trace.py",
-    "test/experiments/shiploop_chain/test_native_pilot.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
     "test/shiploop-delegation.test.py",
@@ -121,6 +110,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-lint.test.py",
     "test/shiploop-quality.test.py",
     "test/shiploop-loops.test.py",
+    "test/shiploop-iteration.test.py",
     "test/shiploop-test-loop.test.py",
     "test/shiploop-test-counts.test.py",
     "test/shiploop-backchain-check.test.py",
@@ -196,10 +186,12 @@ _DURATION_SECONDS = {
     "test/plan-dispatcher-scenarios.test.js": 50.0,
     "test/shiploop-stage-spec.test.py": 1.0,
     "test/shiploop-send-back.test.py": 1.0,
+    # measured locally 2026-10-28: 4 tests through the real complete CLI (design T §9.1 step 4's edges), 51 s while three
+    # other sessions ran their tiers.
+    "test/shiploop-step-edges.test.py": 51.0,
     "test/shiploop-rehydration.test.py": 2.0,
     "test/shiploop-confirmation.test.py": 1.0,
     "test/shiploop-navigator-contract.test.py": 2.793,
-    "test/shiploop-v4-consumers.test.py": 1.048,
     "test/shiploop-packet-bounds.test.py": 0.167,
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
@@ -225,9 +217,6 @@ _DURATION_SECONDS = {
     # load average 4.7 to 6.8 for 77 tests). Still above QUICK_MAX_SECONDS, so the quick tier does not select it.
     "test/shiploop-workspace.test.py": 191.2,
     "test/shiploop-return-review.test.py": 85.9,  # measured alone 2026-10-08 at load average 4.6 to 5.1: 23 tests, 85.9 s (81.5 s at 20, 65.5 s at 17, 36.8 s at 11)
-    "test/shiploop-chain.test.py": 191.262,
-    "test/shiploop-chain-async.test.py": 35.083,
-    "test/experiments/shiploop_chain/test_trace.py": 0.701,
     "test/shiploop-consumer-delivery.test.py": 1.165,
     "test/experiments/shiploop_delivery/fake_deployment.test.py": 0.0,
     "test/shiploop-literal-transport.test.py": 2.548,
@@ -244,10 +233,6 @@ _DURATION_SECONDS = {
     # reads every bind command of every scenario under both delegations.  Under QUICK_MAX_SECONDS.
     "test/shiploop-navigator-dry-run.test.py": 12.7,
     "test/shiploop-cross-run.test.py": 20.313,
-    "test/shiploop-chain-git.test.py": 27.248,
-    "test/shiploop-chain-lifecycle.test.py": 803.023,
-    "test/shiploop-chain-planning-context.test.py": 118.442,
-    "test/experiments/shiploop_chain/test_native_pilot.py": 72.521,
     "test/shiploop-store.test.py": 0.015,
     "test/shiploop-discovery.test.py": 10.128,
     "test/shiploop-generalized-discovery.test.py": 23.84,
@@ -259,10 +244,6 @@ _DURATION_SECONDS = {
     "test/shiploop-standalone-improve.test.py": 2.811,
     "test/shiploop-guidance.test.py": 4.581,
     "test/shiploop-full-runtime.test.py": 156.431,
-    "test/shiploop-chain-ledger.test.py": 0.34,
-    "test/shiploop-chain-handoff.test.py": 0.758,
-    "test/shiploop-planning-context.test.py": 0.976,
-    "test/experiments/shiploop_chain/test_grok_trace.py": 0.178,
     "test/shiploop-consumer-delivery-cli.test.py": 4.374,
     "test/shiploop-delegation.test.py": 3.445,
     # 0.2 was written at a handful of tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
@@ -274,6 +255,9 @@ _DURATION_SECONDS = {
     # New 2026-10-10 (the Until Loop every inner stage runs).  Local wall seconds, one serial run at load average 11 to
     # 13 (other suites running): 24 tests, 18 s; the navigator classes walk a run to verify through the real runtime.
     "test/shiploop-loops.test.py": 18.0,
+    # New 2026-10-28 (the per-step iteration's contract, design T §9.1 step 1): pure functions, 24 tests in under
+    # 0.1 s locally.
+    "test/shiploop-iteration.test.py": 0.2,
     # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, one serial run at load
     # average 3.7 to 5.3 (batch 1010 G6, after the whole-word and count-floor tests and their review): 115 tests, 94.0 s (user
     # plus system CPU 81.2 s); the 79.0 s before was 67 tests at a higher load.  Under QUICK_MAX_SECONDS.
@@ -417,40 +401,27 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-navigator-contract.test.py",
     "test/shiploop-navigator-v4.test.py",
     "test/shiploop-stopped-improve.test.py",
-    "test/shiploop-v4-consumers.test.py",
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
     "test/shiploop-narrative.test.py",
-    "test/shiploop-chain-async.test.py",
     "test/shiploop-planning-handoff.test.py",
 })
 
 # Current Ask-Agent checks.  The adapter rows exercise the ShipLoop consumers
 # that make the current helper contract material.
 _ASK_AGENT_PATHS = frozenset({
-    "test/experiments/shiploop_chain/test_native_pilot.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-chain-handoff.test.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
 })
 
 _COMPOSITION_PATHS = frozenset({
     "test/shiploop-actual-improve-cli.test.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-chain-git.test.py",
-    "test/shiploop-chain-handoff.test.py",
-    "test/shiploop-chain-ledger.test.py",
-    "test/shiploop-chain-lifecycle.test.py",
-    "test/shiploop-chain-planning-context.test.py",
-    "test/shiploop-chain.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-delegation.test.py",
     "test/shiploop-full-runtime.test.py",
     "test/shiploop-improve-schedule.test.py",
-    "test/shiploop-planning-context.test.py",
     "test/shiploop-standalone-improve.test.py",
     "test/shiploop-stopped-improve.test.py",
 })
@@ -879,7 +850,7 @@ def targeted(changed: Iterable[str]) -> set[str]:
     """Suite ids that a set of changed repository paths points at.
 
     A changed suite runs itself.  A changed file selects the suites named after
-    it (shiploop_chain.py selects the shiploop-chain suites).  A change under
+    it (shiploop_navigator.py selects its consumers).  A change under
     skills/<leaf>/, agents/<leaf>.md or changes/<leaf>/ selects the core suites
     named after the leaf, except ShipLoop's, whose leaf name prefixes every
     one of its suites.  A changed file also

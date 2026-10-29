@@ -311,14 +311,20 @@ def build_advisors(run: Path, now: datetime | None = None) -> tuple[dict, dict]:
 
 
 def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
-    """An E2E case run: the ShipLoop run's stages by item (from its state), host restarts, refusals and the result."""
+    """An E2E case run: the ShipLoop run's stages by item (from its state), host restarts, refusals and the result.
+
+    The run is the one the verdict, the measurements and the monitor name (run_choice.choose): a first run the model paused
+    and replaced is not drawn. Where several runs tie and nothing tells them apart, no stage is drawn and the card says so."""
     import metrics  # the harness's own record reader, and its path to ShipLoop's stage table
+    import run_choice  # the rule that names the run, shared with the verdict, the measurements and the monitor
     if str(metrics.SCRIPTS) not in sys.path:
         sys.path.insert(0, str(metrics.SCRIPTS))
     import shiploop_stage_spec as stage_spec
     now = now or datetime.now().astimezone()
-    states = sorted(folder.glob(".shiploop-runs/*/run/state.md"))
-    state = (metrics._state_block(states[0]) if states else None) or {}
+    picked = run_choice.choose(folder)
+    run_dir = Path(picked.chosen["run_dir"]) if picked.chosen else None
+    ambiguous = run_choice.ambiguity(picked.tied) if picked.tied else None
+    state = (metrics._state_block(run_dir / "state.md") if run_dir else None) or {}
     history = [entry for entry in state.get("history") or () if isinstance(entry, dict)]
     items = [entry.get("id") for entry in state.get("work_items") or () if isinstance(entry, dict)]
     index = state.get("work_index") if isinstance(state.get("work_index"), int) else 0
@@ -360,6 +366,8 @@ def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
               else "pending"} for item in items]
     plan += [{"step": "Outer", "state": "done" if cursor == "done" else "running" if outer else "pending"},
              {"step": "Result", "state": "done" if result.exists() else "pending"}]
+    if ambiguous:  # a run nobody can name has no cursor: drawing one run's stages would be a guess
+        rows, plan = [], []
     slots = [slot for entry in rows for slot in entry["cells"][0]["slots"]]
     done = sum(slot["state"] == "pass" for slot in slots)
     minutes = (now.timestamp() - _started(folder)) / 60
@@ -375,25 +383,28 @@ def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
     events = [{"at": _iso(now), "kind": kinds.get(str(entry.get("outcome")), "info"),
                "text": str(entry.get("outcome")) + ": " + str(entry.get("stage")) + " ("
                + str(entry.get("workitem") or "run") + ")"} for entry in reversed(history[-EVENTS:])]
+    if ambiguous:
+        events.insert(0, {"at": _iso(now), "kind": "warn", "text": ambiguous})
     status = "done" if result.exists() else "failed" if state.get("status") == "blocked" else "running"
     model = {"plan": plan, "progress": progress, "columns": ["stages"], "rows": rows,
              "legend": {"pass": "done (a number: times run)", "running": "current (I: Improve review)",
-                        "pending": "not yet run", "note": "a finished part shows only the stages it ran"}}
+                        "pending": "not yet run", "note": ambiguous or "a finished part shows only the stages it ran"}}
     # The run's own pages, run level first (E2E, 2026-10-26): Run Review answers how the run went, the flow viewer
     # what the model saw and did at each action.
     links = [{"label": label, "href": str(path)} for label, path in (
         ("Run Review", folder / "review-export" / "run-review.html"), ("flow", folder / "flow.html")) if path.exists()]
     if links:
         model["links"] = links
-    line = _timeline(states[0].parent / "trace.jsonl", current[0], stage_spec) if states else None
+    line = _timeline(run_dir / "trace.jsonl", current[0], stage_spec) if run_dir else None
     if line:
         model["timeline"] = line
-    checks = _check_tiles(states[0].parent) if states else []
+    checks = _check_tiles(run_dir) if run_dir else []
     if line or checks:
         model["tiles"] = (_e2e_tiles(line, progress) if line else []) + checks
     return model, {"title": "E2E " + folder.name, "subtitle": str(round(minutes)) + " min · "
                    + ("refusals not read" if refusals is None else str(refusals) + " refusals") + " · "
-                   + str(restarts) + " host restarts", "status": status, "events": events, "eta_at": eta}
+                   + str(restarts) + " host restarts" + (" · " + ambiguous if ambiguous else ""),
+                   "status": status, "events": events, "eta_at": eta}
 
 
 def _trace_rows(path: Path) -> list[dict]:
@@ -411,8 +422,8 @@ def _trace_rows(path: Path) -> list[dict]:
 def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
     """The run on one time axis, from ShipLoop's run trace (RUN/trace.jsonl, shiploop 1.12.0 and later): each accepted
     callback closes the span of the stage it finished and opens the next; an Improve review is its own span (kind
-    `improve`) in the lane of the stage it reviews; each refused callback is a mark (`check` when it was a --check-only
-    check). Lanes are Prelude, each work item, Outer. Times are epoch seconds; the stage the run is on has end None.
+    `improve`) in the lane of the stage it reviews; each refused callback is a mark (`check` when it was a failed
+    `shiploop check`, or a `complete --check-only` in a run before it). Lanes are Prelude, each work item, Outer. Times are epoch seconds; the stage the run is on has end None.
     None when the run has no trace."""
     rows = _trace_rows(trace) if trace.is_file() else []
     if not rows:
@@ -440,14 +451,16 @@ def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
         if row.get("kind") == "packet":
             printed = row.get("action") or printed
         stage = row.get("stage") if isinstance(row.get("stage"), list) and len(row["stage"]) == 2 else None
-        if row.get("kind") != "command" or row.get("verb") != "complete" or not stage:
+        if row.get("kind") != "command" or row.get("verb") not in ("complete", "check") or not stage:
             continue
         at = round(row["ts"], 1)
+        # A check is the verb `check` (phase B) or, in a run before it, `complete` with check_only: it moves nothing.
+        is_check = row.get("verb") == "check" or bool(row.get("check_only"))
         if row.get("exit") not in (0, None):
-            marks.append({"at": at, "kind": "check" if row.get("check_only") else "refusal",
+            marks.append({"at": at, "kind": "check" if is_check else "refusal",
                           "lane": lane(stage[0], row.get("action")), "stage": stage[0], "text": str(row.get("error") or "")})
             continue
-        if row.get("check_only"):
+        if is_check:
             continue
         name = reviewed[1] if stage[0] == "improve" else stage[0]
         span = {"lane": lane(stage[0], row.get("action")), "stage": name, "action": row.get("action"),
@@ -478,10 +491,11 @@ def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
             {"label": "Stages", "value": f'{progress.get("done", 0)} of {progress.get("total", 0)}'},
             {"label": "Improve reviews", "value": str(len(reviews)), "sub": f"{minutes:.1f} min"},
             {"label": "Refusals", "value": str(len(line["marks"])),
-             "sub": f'{checks} a --check-only check' if checks == 1 else f"{checks} --check-only checks"}]
+             "sub": f'{checks} a failed check' if checks == 1 else f"{checks} failed checks"}]
 
 
-CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_copies": "Packet copies", "owner_note": "Owner note"}
+CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_copies": "Packet copies", "owner_note": "Owner note",
+                "session_end": "Session end"}
 CHECK_TONES = {"pass": "ok", "fail": "bad", "open": "warn"}
 CHECK_SUB = 90  # characters of a check's evidence a tile shows; metrics.json keeps it whole
 
@@ -613,14 +627,22 @@ def action_documents(flow_doc: dict, reviews) -> tuple[list[dict], dict[str, dic
     return index, docs, material
 
 
+def _worktree(folder: Path) -> Path:
+    """The product worktree beside the run the folder holds (the run run_choice.choose names, as build_e2e draws), else the
+    folder: a first run the model paused and replaced keeps its worktree, and its reviews are not the live run's."""
+    import run_choice
+    chosen = run_choice.choose(folder).chosen
+    beside = Path(chosen["run_dir"]).parent / "worktree" if chosen else None
+    return beside if beside is not None and beside.is_dir() else folder
+
+
 def build_e2e_actions(folder: Path, out_dir: Path) -> dict:
     """Write one action document per action to OUT_DIR/<action>.json and return {index, material, changed}: changed are
     the actions whose document differs from the last call's (OUT_DIR/manifest.json), the ones to write to the card."""
     import hashlib
 
     import flow  # the harness's per-action reader of the host stream and the run trace
-    worktrees = sorted(folder.glob(".shiploop-runs/*/worktree"))
-    worktree = worktrees[0] if worktrees else folder
+    worktree = _worktree(folder)
     index, docs, material = action_documents(flow.build(folder), lambda stage, reviewed: review_passes(worktree, stage, reviewed))
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / "manifest.json"

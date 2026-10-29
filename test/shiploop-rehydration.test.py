@@ -87,10 +87,13 @@ class IndexTests(unittest.TestCase):
         text = context_index.render(state, Path("/tmp/run"), nav.current_stage(state))
         self.assertIn("W1 has gone back to step-plan 1 time", text)
 
-    def test_verify_and_handoff_read_the_evidence_they_judge(self) -> None:
-        # test absorbed test-green and regression; verify itself now runs static-checks' review loop.
+    def test_document_carry_forward_and_handoff_read_the_evidence_they_judge(self) -> None:
+        # Verify is retired (design T §9.1 2b-4c): each step's document stage closes the step on the step's plan, cases,
+        # build and tests, and carry-forward closes the item on the last test result and every step's reflection.
         self.assertTrue({"item:step-plan", "item:test-spec", "item:implement", "item:test"}
-                        <= set(context_index.STAGE_READS["verify"]))
+                        <= set(context_index.STAGE_READS["document"]))
+        self.assertTrue({"item:test", "item:document"} <= set(context_index.STAGE_READS["carry-forward"]))
+        self.assertNotIn("verify", context_index.STAGE_READS)
         self.assertTrue({"product-acceptance", "operations"} <= set(context_index.STAGE_READS["handoff"]))
 
 
@@ -102,7 +105,7 @@ class MasterIndexTests(unittest.TestCase):
     # "about 3 KB" of map (3,500 until U17 added the RUN/request.md row; 3,600 until decision 19 renamed HOME to KNOWLEDGE,
     # +20 over four uses; 3,650 until the step commits added the RUN/commits/ row, +26; 3,700 until the run trace added the
     # RUN/trace.jsonl row, packets/sent/ and trace.html, +96); paths take the rest
-    MAP_LIMIT = 3_850
+    MAP_LIMIT = 4_100  # 3,850 + the RUN/checks/ row (phase B: the latest `shiploop check` answer per action)
 
     @staticmethod
     def map_text(text: str) -> str:
@@ -185,8 +188,10 @@ class MasterIndexTests(unittest.TestCase):
                     named.add(first + "/" if "/" in name else first)
         named |= {"packets/", "scratch/", "reference.md", "context-index.md", "timeline.json", "backchain/", "chains/",
                   "transaction.md", ".lock", "callback-attempts", "run-baseline.txt"}
-        self.assertTrue({"state.md", "decisions/", "loops/", "tests/", "lint/", "expectations/", "quality/", "improve/",
+        # quality/ (verify's Code craft rubric) retired with verify (design T §9.1 2b-4c).
+        self.assertTrue({"state.md", "decisions/", "loops/", "tests/", "lint/", "expectations/", "improve/",
                          "report.html", "progress.html"} <= named, named)
+        self.assertNotIn("quality/", named)
         for entry in sorted(entries | named):
             with self.subTest(entry=entry):
                 self.assertIn(entry.rstrip("/"), index, f"the master index does not list {entry}")

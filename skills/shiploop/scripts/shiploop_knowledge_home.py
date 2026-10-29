@@ -74,9 +74,10 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # A stage that finds a command, a platform fact or a decision keeps the file it belongs in: research, step-plan,
 # validate-existing, implement and test find commands and facts (environment.md); test-strategy records the harnesses, suites,
 # ID convention (environment.md) and real-boundary checks (architecture.md); plan, step-plan and implement may add a decision
-# (an AD-<n>); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
+# (an AD-<n>); each step's document reflects on what the step showed in all three (design T §9.1 2b-3, option C:
+# requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
-# differs (D2).  verify reads the architecture and writes nothing, so it has no entry.  A key that is no stage of the graph is
+# differs (D2).  A key that is no stage of the graph is
 # a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
@@ -89,6 +90,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "validate-existing": ("environment.md",),
     "implement": ("environment.md", ARCHITECTURE),
     "test": ("environment.md",),
+    "document": ("spec.md", ARCHITECTURE, "environment.md"),
     "carry-forward": (ARCHITECTURE, "environment.md"),
     "system-test-author": ("environment.md",),
     "release-plan": ("environment.md",),
@@ -104,7 +106,7 @@ _S, _E, _A = "spec.md", "environment.md", ARCHITECTURE
 READS: Dict[str, Tuple[str, ...]] = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
-    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_E, _A), "verify": (_E, _A),
+    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
@@ -445,7 +447,8 @@ def unnamed_commands(state: Mapping[str, Any], commands: Sequence[str]) -> List[
 
 
 def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[str]:
-    """One counted notice line when commands that passed at verify are not named in environment.md (plan row VR-3); else [].
+    """One counted notice line when commands that passed at the test stage of its item are not named in environment.md
+    (plan row VR-3); else [].
 
     Printed when carry-forward is accepted, which it never refuses: ``NOTICE_PREFIX``, the file's absolute path, the count and
     the one heading quoted before the first semicolon (so the heading count of references/project-knowledge.md counts it once),
@@ -456,7 +459,7 @@ def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[s
         return []
     path = Path(str(state["repo"])) / HOME / "environment.md"
     return [NOTICE_PREFIX + str(path) + " does not name " + str(len(unnamed)) + " command"
-            + ("" if len(unnamed) == 1 else "s") + " that passed at verify under 'Commands' (this carry-forward is "
+            + ("" if len(unnamed) == 1 else "s") + " that passed at the test stage of its item under 'Commands' (this carry-forward is "
             "accepted); a later stage that keeps environment.md writes each there, or records why it does not belong: "
             + "; ".join("`" + command + "`" for command in unnamed)]
 
@@ -606,14 +609,16 @@ def entries(repo: Path, name: str) -> Dict[str, Entry]:
 
 
 def step_spec_refusal(repo: Path, marker: str) -> str:
-    """Refusal text when an implement step's uncommitted spec.md edit does more than add acceptance lines ('' when it
-    adds only those, or leaves spec.md as HEAD holds it).
+    """Refusal text when an inline step's uncommitted spec.md edit does more than add requirement lines ('' when it
+    adds only those, or leaves spec.md as HEAD holds it).  Implement and document check it at their complete, and the
+    step's review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3).
 
     A step learns what a requirement should say and records it where the next reader of the spec finds it (build plan
     S3.3): a new line inside an existing, current R-<n> entry, ending ``(<marker>)`` (``W1/S2``), so the line names the
-    step that added it and its commit.  Changing or removing a line of the committed spec changes the contract, which
-    is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are committed with their steps, so
-    HEAD is this step's baseline.
+    step that added it and its commit.  Existing means the committed spec holds the entry: an entry the edit adds is a
+    new requirement, not a line inside one.  Changing or removing a line of the committed spec, or adding a requirement,
+    changes the contract, which is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are
+    committed with their steps, so HEAD is this step's baseline.
     """
     path = Path(repo) / HOME / "spec.md"
     old = _committed(Path(repo), "spec.md")
@@ -621,7 +626,9 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     if old == new or not old.strip():
         return ""
     before, after = old.splitlines(), new.splitlines()
-    spans = [entry.text.splitlines() for entry in _entries(new, "R").values() if not entry.retired]
+    held = {ident for ident, entry in _entries(old, "R").items() if not entry.retired}
+    spans = [entry.text.splitlines() for ident, entry in _entries(new, "R").items()
+             if not entry.retired and ident in held]
     changed: List[str] = []
     unmarked: List[str] = []
     outside: List[str] = []
@@ -639,12 +646,13 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     if not (changed or unmarked or outside):
         return ""
     found = [label + ": " + "; ".join(lines) for label, lines in (
-        ("changed or removed", changed), ("without the step's mark", unmarked), ("outside a current R-<n> entry", outside))
+        ("changed or removed", changed), ("without the step's mark", unmarked),
+        ("outside an R-<n> entry the committed spec holds", outside))
         if lines]
-    return ("Restore " + str(path) + " to what HEAD holds plus this step's acceptance lines, then run the same callback "
-            "again; to change a requirement, report send-back naming it.\n"
-            "At implement, spec.md takes only new acceptance lines inside an existing R-<n> entry, each ending (" + marker
-            + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
+    return ("Restore " + str(path) + " to what HEAD holds plus this step's requirement lines, then run the same "
+            "callback again; to change a requirement, report send-back naming it.\n"
+            "In a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending ("
+            + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 
 
 def entry_text(repo: Path, ident: str) -> Optional[str]:

@@ -531,7 +531,9 @@ ID (the base is the last commit, so a drop a review already committed through
 (`docs(shiploop): record <run> knowledge at <stage>`). After any other accepted
 stage that changed `docs/shiploop/`, ShipLoop applies the same ID check
 (refusing that stage's `done` on a failure) and commits it
-(`... knowledge after <stage>`); the model never commits the home itself. The last close is at
+(`... knowledge after <stage>`); the model never commits the home itself. On the inline route a step's
+edits to the home go into that step's one commit instead, after its `document` stage, which reflects on what the step
+showed in all three files, and its review ([navigator.md](navigator.md#step-commits)). The last close is at
 `release-verify` so the commit returns with the workspace. The return plan keeps
 `docs/shiploop/**`. Files an earlier run wrote in older homes
 (`docs/requirements.md`, `docs/current-system.md`, ShipLoop-authored only) move
@@ -566,9 +568,9 @@ semicolon: `grep -o 'ShipLoop knowledge notice: [^;]*' events.jsonl | grep -o "'
 call: `awk '{n=gsub(/ShipLoop knowledge notice: /,"&")} n{print NR": "n}' events.jsonl` prints
 the files reported in each event, and `sed -n '<N>p' events.jsonl` in front of the heading
 command counts one event's headings. An accepted carry-forward prints one more line of the
-same prefix when commands that passed at its item's verify are not named under environment.md's
-`## Commands` (`knowledge.command_notices`): `... does not name <n> commands that passed at verify
-under 'Commands' (this carry-forward is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
+same prefix when commands that passed at its item's test stage are not named under environment.md's
+`## Commands` (`knowledge.command_notices`): `... does not name <n> commands that passed at the test
+stage of its item under 'Commands' (this carry-forward is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
 run that shows packets which quote the headings get them written.
 
 **Lessons commit and read-back.** release-verify's result carries `lessons`: `learned`,

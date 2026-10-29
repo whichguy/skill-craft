@@ -177,6 +177,18 @@ def review_changes(run_dir: Path, repo: Path, action: str) -> Optional[Tuple[Lis
     return changed, [path for path in changed if path in dirty]
 
 
+def paths_since(run_dir: Path, repo: Path, tree: str) -> Optional[List[str]]:
+    """The paths whose working content differs from the snapshot ``tree`` (``snapshot_tree``'s), ShipLoop's runtime
+    files left out; ``None`` when unknown (outside Git, or a tree Git cannot diff)."""
+    now = _snapshot(Path(run_dir), Path(repo))
+    if now is None or not tree:
+        return None
+    try:
+        return [path for path in _diff(Path(now["toplevel"]), tree, now["tree"]) if not lint._runtime_path(path)]
+    except lint.LintError:
+        return None
+
+
 def uncommitted(changes: Optional[Tuple[List[str], List[str]]], receipt: Mapping[str, Any]) -> List[str]:
     """The files the review changed and left uncommitted ([] when none, when unknown, or when the receipt says not to)."""
     if changes is None or str(receipt.get("no_commit") or "").strip():
@@ -213,5 +225,6 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return list(seen.values())
 
 
-__all__ = ("bind_path", "bind_result_path", "bind_writes", "changed_lines", "commit_refusal", "rerun_commands",
+__all__ = ("bind_path", "bind_result_path", "bind_writes", "changed_lines", "commit_refusal", "paths_since",
+           "rerun_commands",
            "result_identity", "result_lines", "result_text", "review_changes", "snapshot_tree", "uncommitted")

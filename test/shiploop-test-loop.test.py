@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hermetic tests for ShipLoop's script-enforced test runs at the test stage and the rerun stages (verify and outer).
+"""Hermetic tests for ShipLoop's script-enforced test runs at the test stage and the rerun stages (document and outer).
 
 The run binds the repository's source Improve card, so each loop uses the real
 bundled Until Loop runtime, and ShipLoop really runs the recorded commands
@@ -27,6 +27,7 @@ PACKAGE = ROOT / "skills/shiploop"
 IMPROVE_CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_check  # noqa: E402
 import shiploop_inner_fixture as inner  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
@@ -35,7 +36,6 @@ import shiploop_mutation as mutation  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_packet_view as packet_view  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
-import shiploop_quality as quality  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -176,9 +176,9 @@ class TestLoopTests(unittest.TestCase):
 
     # -- driving -----------------------------------------------------------------
 
-    def start(self, improve_skill: str = str(IMPROVE_CARD)) -> None:
+    def start(self, improve_skill: str = str(IMPROVE_CARD), delegation: str = "inline") -> None:
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=improve_skill,
-                                             lint_option="off"))
+                                             lint_option="off", delegation=delegation))
 
     def state(self) -> dict:
         return store.read_record(self.run_dir / "state.md")
@@ -189,7 +189,7 @@ class TestLoopTests(unittest.TestCase):
     def packet(self) -> str:
         return nav.render(CORE, self.run_dir, self.state())
 
-    def complete(self, result: dict, *, loop: bool | None = None, fill: bool = True, check_only: bool = False) -> str:
+    def complete(self, result: dict, *, loop: bool | None = None, fill: bool = True, check: bool = False) -> str:
         """Submit ``result`` through the real ``complete``.
 
         At an inner stage the result is filled with the fields its gates need (``inner_fixture.fill``) and, unless it
@@ -235,7 +235,7 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state,
-                         types.SimpleNamespace(command="complete", action=action, result=str(path), check_only=check_only))
+                         types.SimpleNamespace(command="check" if check else "complete", action=action, result=str(path)))
         return buffer.getvalue()
 
     def finish_improve(self) -> None:
@@ -356,9 +356,9 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn(loops.INVOKE_LINE, packet)
         self.assertIn(" " + str(ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py") + " start ", packet)
         self.assert_refused(DONE, "the test loop has not run: no receipt exists")
-        self.drive_to("verify")
+        self.drive_with_change("document")
         self.assertIn(loops.INVOKE_LINE, self.packet())
-        self.assert_refused(dict(DONE, evidence_refs=[]), "the verify loop has not run: no receipt exists")
+        self.assert_refused(dict(DONE, evidence_refs=[]), "the document loop has not run: no receipt exists")
 
     def test_a_started_loop_packet_says_to_continue_from_its_receipt(self):
         """X10 (e9_loop_recovery.py): after context loss mid-loop the packet gave no way back but Start."""
@@ -518,17 +518,29 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
         self.assertFalse((self.run_dir / test_loop.verify_path(action, 1)).exists())
 
-    def test_verify_commits_the_items_declared_changes_and_names_the_rest(self):
-        """Committing is mechanical: ShipLoop does it when verify (which took over integrate's commit) is accepted."""
-        self.start()
-        self.drive_to("verify")
-        (self.repo / "a.py").write_text("x = 2\n")
-        (self.repo / "server.log").write_text("listening 3000\n")
-        before = git(self.repo, "rev-parse", "HEAD").strip()
+    def document_then_commit(self, edit=None) -> str:
+        """Drive to document (implement changes a.py, so document is issued), apply ``edit`` as document's own work,
+        submit done and import the step's review: the commit stage runs in that import (design T §9.1 2b-4a, 2b-4c).
+        Returns what the complete and the import printed."""
+        self.drive_with_change("document")
+        if edit is not None:
+            edit()
         output = self.complete(DONE)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.settle()
+        return output + out.getvalue() + err.getvalue()
+
+    def test_the_commit_stage_commits_the_items_declared_changes_and_names_the_rest(self):
+        """Committing is mechanical: ShipLoop's commit stage does it when the step's document stage and review are
+        accepted (verify, which took over integrate's commit, is retired)."""
+        self.start()
+        before = git(self.repo, "rev-parse", "HEAD").strip()
+        output = self.document_then_commit(lambda: ((self.repo / "a.py").write_text("x = 2\n"),
+                                                    (self.repo / "server.log").write_text("listening 3000\n")))
         head = git(self.repo, "rev-parse", "HEAD").strip()
         self.assertNotEqual(head, before)
-        self.assertIn("ShipLoop committed W1's changes (its declared paths and documentation) as " + head[:12], output)
+        self.assertIn("ShipLoop committed step W1/S1 as " + head[:12], output)
         self.assertIn("a.py", git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
         undeclared = next(line for line in output.splitlines() if line.startswith("Not committed"))
         self.assertIn("server.log", undeclared)
@@ -536,15 +548,14 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("?? server.log", git(self.repo, "status", "--porcelain"))
         self.assertNotIn(" M a.py", git(self.repo, "status", "--porcelain"))
 
-    def test_verify_commits_a_declared_file_and_a_document_whose_text_looks_like_a_credential(self):
-        """Owner decision 2026-10-16: no credential-pattern skip. The item commit takes a file by its path and class,
-        never by what its text resembles, so nothing is left uncommitted for the return to carry."""
+    def test_the_commit_stage_commits_a_declared_file_and_a_document_whose_text_looks_like_a_credential(self):
+        """Owner decision 2026-10-16: no credential-pattern skip. The commit takes a file by its path and class, never
+        by what its text resembles, so nothing is left uncommitted for the return to carry."""
         self.start()
-        self.drive_to("verify")
-        (self.repo / "a.py").write_text("AUTH = 'Auth: sf login (alias de)'\nPASSWORD = os.environ['PASSWORD']\n"
-                                        "TOKEN = 'ghp_" + "A" * 36 + "'\n")
-        (self.repo / "README.md").write_text("# Notes\n\nAuthorization: Bearer 0123456789abcdefghij\n")
-        output = self.complete(DONE)
+        output = self.document_then_commit(lambda: (
+            (self.repo / "a.py").write_text("AUTH = 'Auth: sf login (alias de)'\nPASSWORD = os.environ['PASSWORD']\n"
+                                            "TOKEN = 'ghp_" + "A" * 36 + "'\n"),
+            (self.repo / "README.md").write_text("# Notes\n\nAuthorization: Bearer 0123456789abcdefghij\n")))
         self.assertEqual(sorted(git(self.repo, "show", "--name-only", "--format=", "HEAD").split()),
                          ["README.md", "a.py"])
         self.assertNotIn("look like they hold a credential", output)
@@ -556,7 +567,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("a.py", status)
         self.assertNotIn("README.md", status)
 
-    def test_verify_also_commits_changed_documentation_the_step_plan_did_not_declare(self):
+    def test_the_commit_stage_also_commits_changed_documentation_the_step_plan_did_not_declare(self):
         """P-document-1: a README the document stage adds is committed by ShipLoop, so the model never commits it.
 
         Four hand commits of an undeclared README/AGENTS.md in 16 recorded runs broke SPEC S-4/S-5.  Documentation is
@@ -564,13 +575,14 @@ class TestLoopTests(unittest.TestCase):
         for plan-return, which commits files left uncommitted at the return.
         """
         self.start()
-        self.drive_to("verify")
-        (self.repo / "a.py").write_text("x = 2\n")
-        (self.repo / "README.md").write_text("# Notes\n")
-        (self.repo / "docs").mkdir(exist_ok=True)
-        (self.repo / "docs" / "guide.md").write_text("guide\n")
-        (self.repo / "server.log").write_text("listening 3000\n")
-        output = self.complete(DONE)
+
+        def edit():
+            (self.repo / "a.py").write_text("x = 2\n")
+            (self.repo / "README.md").write_text("# Notes\n")
+            (self.repo / "docs").mkdir(exist_ok=True)
+            (self.repo / "docs" / "guide.md").write_text("guide\n")
+            (self.repo / "server.log").write_text("listening 3000\n")
+        output = self.document_then_commit(edit)
         committed = git(self.repo, "show", "--name-only", "--format=", "HEAD").split()
         self.assertEqual(sorted(committed), ["README.md", "a.py", "docs/guide.md"])
         notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
@@ -579,17 +591,16 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("README.md", git(self.repo, "status", "--porcelain"))
         self.assertIn("?? server.log", git(self.repo, "status", "--porcelain"))
 
-    def test_the_verify_packet_lists_what_shiploop_will_commit_and_what_it_leaves_with_one_sentence(self):
-        """P-integrate-1/-3: the lists come from the script; the undeclared-file sentence is the Return route's."""
+    def test_the_document_packet_names_what_the_commit_stage_will_leave_with_one_sentence(self):
+        """P-integrate-1/-3: the list comes from the script; the undeclared-file sentence is the in-place one.  The
+        commit stage follows document's review, so document's packet names any changed file it will leave."""
         self.start()
-        self.drive_to("verify")
-        (self.repo / "a.py").write_text("x = 2\n")
+        self.drive_with_change("document")
         (self.repo / "README.md").write_text("# Notes\n")
         (self.repo / "server.log").write_text("listening 3000\n")
         packet = self.packet()
         lines = packet.splitlines()
-        will = next(line for line in lines if line.startswith("Changed, ShipLoop will commit: "))
-        self.assertEqual(will, "Changed, ShipLoop will commit: README.md, a.py")
+        self.assertFalse(any(line.startswith("Changed, ShipLoop will commit: ") for line in lines))
         left = next(line for line in lines if line.startswith("Changed, ShipLoop will not commit: "))
         self.assertIn("server.log", left.split(": ", 1)[1].split(", "))  # the driver's own scratch files are listed too
         self.assertNotIn("README.md", left)
@@ -601,7 +612,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("plan-return", packet)
         self.assertNotIn("working branch", packet)
 
-    # -- efficiency plan U16: document, verify and carry-forward (rows TD-8, VR-2, VR-3, VR-5, VR-7) -------------------
+    # -- efficiency plan U16: document and carry-forward (rows TD-8, VR-2, VR-3, VR-7) ----------------------------------
 
     def drive_with_change(self, stage: str) -> dict:
         """``drive_to`` with a code change made at implement, so the item's diff touches code and document is issued."""
@@ -622,10 +633,129 @@ class TestLoopTests(unittest.TestCase):
         with mock.patch.object(item_scope.lint, "read_base", return_value=None):
             self.assertIn(nav.CHANGED_SINCE_BASE + "not computed: " + item_scope.NO_BASE, self.packet())
 
-    def test_commit_item_raises_when_the_items_changes_cannot_be_read(self):
-        """VR-7: an unknown change is no 'nothing to commit'; verify's notice names why."""
+    DOC_CHECK = {"command": "! grep -qs BROKEN README.md", "suite": "check"}
+
+    def document_rerun(self, edit=None) -> tuple[str, dict]:
+        """A fresh run on the base commit, driven to document with a code change made at implement and a docs check
+        recorded; ``edit`` is document's own edit.  Returns (the document action, the done result citing its loop)."""
+        root = git(self.repo, "rev-list", "--max-parents=0", "HEAD").split()[0]
+        git(self.repo, "reset", "-q", "--hard", root)
+        git(self.repo, "clean", "-fdq")
+        self.restart()
+
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        recorded = {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:], self.DOC_CHECK],
+                    "paths": ["a.py", "README.md"], "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
+        self.drive_to("document", step_plan=recorded, each=change)
+        action = self.action()
+        if edit is not None:
+            edit()
+        self.run_loop([TRIVIAL])
+        return action, dict(DONE, evidence_refs=[str(self.terminal())])
+
+    def rerun_commands_of(self, action: str) -> list[str]:
+        path = self.run_dir / test_loop.verify_path(action, 1)
+        return [run["command"] for run in store.read_record(path)["runs"]] if path.is_file() else []
+
+    SKILLED_PLAN = {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:]], "paths": ["a.py"],
+                    "criteria": [{"id": "C1", "text": "The item's focused check passes."}],
+                    "steps": [{"id": "S1", "task": "Make the planned change.", "paths": ["a.py"], "proof": "true",
+                               "criteria": ["C1"],
+                               "skills": [{"name": "scaffolder", "why": "lay out the module"},
+                                          {"name": "prober", "why": "drive the focused check",
+                                           "stages": ["test", "improve"]},
+                                          {"name": "writer", "why": "phrase the README section", "stages": ["document"]}]}]}
+
+    def test_each_stage_of_a_step_lists_the_skills_the_step_plan_names_for_it(self):
+        """Design T §8.2c, F9 (owner 2026-10-27: "make sure that we had the prompt template reference any skills that might
+        exist that could help us execute in the build stage or test stage"): a step's skill names the stages that use it
+        (`stages`: implement, test, document or improve; implement when absent), and each of those stages lists it."""
         self.start()
-        state = self.drive_to("verify")
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        self.drive_to("implement", step_plan=self.SKILLED_PLAN)
+        implement = self.packet()
+        self.assertIn("Skills (use each; the summary says whether you did): scaffolder", implement)
+        self.assertNotIn("prober", implement)
+        self.drive_to("test", step_plan=self.SKILLED_PLAN, each=change)
+        test = self.packet()
+        self.assertIn("Skills for this stage (use each; the summary says whether you did): prober (drive the focused "
+                      "check)", test)
+        self.assertNotIn("scaffolder", test)
+        self.drive_to("document", step_plan=self.SKILLED_PLAN, each=change)
+        document = self.packet()
+        self.assertIn("Skills for this stage (use each; the summary says whether you did): writer (phrase the README "
+                      "section)", document)
+        self.assertNotIn("prober", document)
+        self.run_loop([TRIVIAL])
+        self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        handoff = nav.improve_handoff_text(CORE, self.run_dir, self.state())
+        self.assertIn("Skills for this review (use each; the summary says whether you did): prober (drive the focused "
+                      "check)", handoff)
+
+    FULL = {"command": "test -f check.sh", "suite": "regression"}
+    GRADED_PLAN = {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), dict(COMMANDS[1], minimum=True), FULL,
+                                     {"command": "true", "suite": "check", "criteria": ["C2"]}],
+                   "paths": ["a.py"],
+                   "criteria": [{"id": "C1", "text": "The item's focused check passes."},
+                                {"id": "C2", "text": "The item's last check passes."}],
+                   "steps": [{"id": "S1", "task": "Make the first change.", "paths": ["a.py"], "proof": "true",
+                              "criteria": ["C1"]},
+                             {"id": "S2", "task": "Make the second change.", "paths": ["a.py"], "proof": "true",
+                              "criteria": ["C2"], "deps": ["S1"]}]}
+
+    def test_a_step_before_the_last_runs_the_minimum_regression_and_its_packet_asks_where_each_new_test_belongs(self):
+        """Design T §9.1 2d (owner 2026-10-28: "a prompt that determines whether this is a new test suite, whether it
+        enhances the minimum test suite, or whether it can always add tests to all of the suites as needed"; "We should
+        not be afraid to use MCP servers, skills, or anything of that nature if needed to test the newly added code in
+        detail"): S1's test stage runs its focused command and the minimum regression, names the full regression it
+        leaves to the last step, and asks where each new test belongs."""
+        self.start()
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        state = self.drive_to("test", step_plan=self.GRADED_PLAN, each=change)
+        self.assertEqual([row["command"] for row in test_loop.stage_commands(state, "test", "W1")[0]],
+                         [COMMANDS[0]["command"], COMMANDS[1]["command"]])
+        packet = self.packet()
+        flat = " ".join(packet.split())
+        self.assertIn(COMMANDS[1]["command"] + " (minimum regression: every step)", packet)
+        self.assertIn("The full regression runs at the item's last step, S2: `" + self.FULL["command"] + "`", flat)
+        self.assertIn("Decide where each new test belongs: a new suite (a recorded command must run it), the minimum "
+                      "suite (it runs at every step) or the full suites", flat)
+        self.assertIn("unit and mock tests first, then any MCP server or skill this host offers", flat)
+
+    def test_a_step_skill_naming_an_unknown_stage_is_refused(self):
+        self.start()
+        self.drive_to("step-plan")
+        plan = json.loads(json.dumps(self.SKILLED_PLAN))
+        plan["steps"][0]["skills"][1]["stages"] = ["test", "verify"]
+        self.assert_refused(dict(DONE, **plan), r"stages must list only implement, test, document or improve", loop=True)
+
+    def test_document_reruns_what_its_own_edits_could_affect(self):
+        """Design T §8.2 (2b-4b): verify's rerun of every recorded command moves to each step's document stage, which
+        reruns what its own edits since it began could affect: nothing after no edit, the step's check commands after a
+        documentation edit (its doc checks), and every command the test stage ran after a code or test edit."""
+        action, done = self.document_rerun()
+        self.complete(done)
+        self.assertEqual(self.rerun_commands_of(action), [], "document changed nothing: nothing reruns")
+        action, done = self.document_rerun(lambda: (self.repo / "README.md").write_text("# Notes\n\nBROKEN example.\n"))
+        self.assert_refused(done, re.escape(self.DOC_CHECK["command"]))
+        self.assertEqual(self.rerun_commands_of(action), [self.DOC_CHECK["command"]], "a docs edit reruns the doc checks")
+        (self.repo / "README.md").write_text("# Notes\n\nA working example.\n")
+        self.complete(done)
+        action, done = self.document_rerun(lambda: (self.repo / "a.py").write_text("import os\nimport sys\n"))
+        self.complete(done)
+        self.assertEqual(self.rerun_commands_of(action), [row["command"] for row in [*COMMANDS, self.DOC_CHECK]],
+                         "a code edit reruns every command the step's test stage ran")
+
+    def test_commit_item_raises_when_the_items_changes_cannot_be_read(self):
+        """VR-7: an unknown change is no 'nothing to commit'; the commit's notice names why."""
+        self.start()
+        state = self.drive_with_change("document")
         with mock.patch.object(item_scope.lint, "read_base", return_value=None):
             with self.assertRaisesRegex(item_scope.ItemScopeError, r"^the item's changes cannot be read "
                                         r"\(no base snapshot was captured when it started\)$"):
@@ -634,19 +764,17 @@ class TestLoopTests(unittest.TestCase):
             with self.assertRaisesRegex(item_scope.ItemScopeError, item_scope.UNREADABLE):
                 item_scope.commit_item(self.run_dir, state, "W1", "feat: W1")
 
-    def test_the_item_commit_locator_names_the_commit_only_when_the_log_has_its_subject(self):
-        """VR-7: the carry-forward reference 'W1 verify item commit' printed even when verify committed nothing."""
+    def test_no_stage_lists_an_item_commit_since_every_route_commits_step_by_step(self):
+        """VR-7 (the carry-forward reference 'W1 verify item commit' printed even when nothing was committed) came from the
+        ask-agent route's single ``feat: <item> <title>`` commit.  Design T §9.1 2c-1 retired it: every route commits
+        each step under ``feat(<item>/<step>)``, which no document product names, and nothing builds the locator."""
+        self.assertFalse(hasattr(nav, "_item_commit_product"))
+        self.assertFalse(hasattr(nav, "_item_commit_stage"))
+        self.assertNotIn("item commit", [name for name, _locator, _purpose in nav._PRODUCTS["document"]])
         self.start()
-        state = self.drive_to("verify")
-        verify = self.action()
-        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W1", verify))
-        (self.repo / "a.py").write_text("x = 2\n")
-        self.complete(DONE)
-        state = self.drive_to("carry-forward")
-        self.assertEqual(nav._item_commit_product(self.run_dir, state, "W1", verify),
-                         "the WORKTREE commit whose subject starts 'feat: W1 '")
-        self.assertIn("- W1 verify item commit: the WORKTREE commit whose subject starts 'feat: W1 '", self.packet())
-        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W", verify))  # 'feat: W1' is not item W's
+        self.drive_with_change("document")
+        self.drive_to("carry-forward")
+        self.assertNotIn("item commit", self.packet())
 
     def test_a_one_step_one_item_carry_forward_prints_the_short_queue_and_skill_duties(self):
         """VR-2: one step in one item and no pending item, proved from state: the short duties, the path-only queue
@@ -668,20 +796,19 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(work, loops.WORK_ONE_STEP.replace("{items}", "1-4").replace("{run}", str(self.run_dir))
                          .replace("{action}", self.action()))
 
-    def test_carry_forward_names_the_verify_commands_environment_md_lacks_and_its_notice_never_refuses(self):
-        """VR-3: the commands that passed at verify and KNOWLEDGE/environment.md does not name, in the packet, and one counted
-        notice when carry-forward is accepted."""
+    def test_carry_forward_names_the_passed_commands_environment_md_lacks_and_its_notice_never_refuses(self):
+        """VR-3: the commands that passed at the item's test stage (its last step runs every command) and
+        KNOWLEDGE/environment.md does not name, in the packet, and one counted notice when carry-forward is accepted."""
         self.start()
         state = self.drive_to("carry-forward")
         environment = self.repo / "docs/shiploop/environment.md"
         environment.parent.mkdir(parents=True, exist_ok=True)
         environment.write_text("# Environment\n\n## Commands\n\n- `sh check.sh fixed.txt`\n")
-        self.assertEqual(nav._verify_passed_commands(self.run_dir, state, "W1"),
+        self.assertEqual(nav._passed_commands(self.run_dir, state, "W1"),
                          ["sh check.sh fixed.txt", "test -f retained.txt"])
-        line = next(row for row in self.packet().splitlines() if row.startswith("Commands that passed at verify"))
-        self.assertEqual(line, "Commands that passed at verify and are not named in KNOWLEDGE/environment.md: "
-                               "`test -f retained.txt`. Write each under ## Commands, or say in the summary why one "
-                               "does not belong.")
+        line = next(row for row in self.packet().splitlines() if row.startswith(nav.PASSED_UNNAMED))
+        self.assertEqual(line, nav.PASSED_UNNAMED + "`test -f retained.txt`. Write each under ## Commands, or say in "
+                               "the summary why one does not belong.")
         self.complete(DONE)
         after = self.settle()  # the carry-forward row is recorded when its Improve child finishes
         self.assertNotEqual(nav.current_stage(after), "carry-forward")  # accepted: a notice, not a refusal
@@ -689,22 +816,10 @@ class TestLoopTests(unittest.TestCase):
         with contextlib.redirect_stdout(buffer):  # what the CLI's Improve-stage complete prints after it saves
             nav._knowledge_close(state, after, self.run_dir)
         notices = [row for row in buffer.getvalue().splitlines()
-                   if row.startswith(knowledge_support.knowledge.NOTICE_PREFIX) and "passed at verify" in row]
+                   if row.startswith(knowledge_support.knowledge.NOTICE_PREFIX)
+                   and "passed at the test stage of its item" in row]
         self.assertEqual(len(notices), 1)
         self.assertTrue(notices[0].endswith("`test -f retained.txt`"))
-
-    def test_the_verify_duty_runs_check_only_and_keeps_the_assembly_item_on_the_ask_agent_route(self):
-        """VR-5: duty 1 points at the check-only record ShipLoop writes, duty 11 asks for no exit codes; item 8 stays
-        on the ask-agent route only."""
-        for route in prompts.DELEGATIONS:
-            duty = prompts.duty("verify", delegation=route)
-            # The result is written first: check-only reads it (packet review 2026-10-17, D-8).
-            self.assertIn("1. **Run.** After your last edit, write the result (the Result template below) to "
-                          "RUN/inbox/<action>.md, then run the callback with `--check-only`", " ".join(duty.split()))
-            self.assertIn("RUN/" + test_loop.check_only_path("<action>"), duty)
-            summary = next(row for row in duty.splitlines() if row.startswith("11. **Summary:**"))
-            self.assertNotIn("exit code", summary)
-            self.assertEqual("8. **Assembly.**" in duty, route == prompts.ASK_AGENT)
 
     def test_the_carry_forward_duty_is_unchanged_without_the_one_step_item(self):
         """VR-2: multi-step, multi-item and pending-item runs keep today's text byte for byte."""
@@ -714,17 +829,19 @@ class TestLoopTests(unittest.TestCase):
             self.assertIn("2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items`",
                           prompts.duty("carry-forward", delegation=route))
             self.assertIn("item 3.7", prompts.duty("carry-forward", delegation=route))
-        self.assertEqual(prompts.duty("verify", one_step_item="W1"), prompts.duty("verify"))
 
-    def test_the_commit_lists_are_absent_when_the_changes_are_unknown_and_say_nothing_changed_when_none(self):
+    def test_the_commit_lists_are_absent_when_the_changes_are_unknown_and_say_none_changed_when_none(self):
         self.start()
-        self.drive_to("verify")
-        with mock.patch.object(item_scope, "changed_paths", return_value=None):
+        self.drive_with_change("document")
+        with mock.patch.object(item_scope, "changed_since", return_value=None):
             packet = self.packet()
         self.assertIn("Step plan paths: a.py", packet)
-        self.assertNotIn("ShipLoop will commit: ", packet)
-        with mock.patch.object(item_scope, "changed_paths", return_value=[]):
-            self.assertIn("Changed since this item's base: nothing.", self.packet())
+        self.assertIn(nav.CHANGED_SINCE_BASE + "not computed: " + item_scope.UNREADABLE, packet)
+        self.assertNotIn("ShipLoop will not commit: ", packet)
+        with mock.patch.object(item_scope, "changed_since", return_value=[]):
+            packet = self.packet()
+        self.assertIn(nav.CHANGED_SINCE_BASE + "none", packet)
+        self.assertNotIn("ShipLoop will not commit: ", packet)
 
     def test_a_case_that_cannot_run_is_submitted_as_an_open_item_and_the_run_continues(self):
         """P-sta-2, SPEC S-14: the route the system-test-author packet names goes through the real complete gate.
@@ -765,30 +882,32 @@ class TestLoopTests(unittest.TestCase):
         """F1/#3 of the 2026-10-10 review (repro_inplace.py): an in-place run has no workspace and no plan-return, yet
         the integrate packet and notice said plan-return commits the leftovers, and helper.py stayed untracked."""
         self.start()
-        self.drive_to("verify")
-        self.assertEqual(self.state()["execution_mode"], "navigator")
-        (self.repo / "helper.py").write_text("y = \"helper\"\n")
-        packet = self.packet()
-        self.assertIn(IN_PLACE_LEFT, " ".join(packet.split()))
-        self.assertNotIn("plan-return", packet)
-        output = self.complete(DONE)
+
+        def edit():
+            self.assertEqual(self.state()["execution_mode"], "navigator")
+            (self.repo / "helper.py").write_text("y = \"helper\"\n")
+            packet = self.packet()
+            self.assertIn(IN_PLACE_LEFT, " ".join(packet.split()))
+            self.assertNotIn("plan-return", packet)
+        output = self.document_then_commit(edit)
         notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
         self.assertIn("helper.py", notice)
         self.assertIn(IN_PLACE_LEFT, notice)
         self.assertNotIn("plan-return", output)
         self.assertIn("?? helper.py", git(self.repo, "status", "--porcelain"))
 
-    def test_in_place_send_back_declares_the_file_and_the_next_verify_commits_it(self):
+    def test_in_place_send_back_declares_the_file_and_the_next_commit_takes_it(self):
         """GUARD (green before and after): the in-place route the sentence names goes through the real gates: send-back
-        at verify is accepted, the redone step plan declares the file, and the next verify commits it."""
+        at document is accepted, the redone step plan declares the file, and the step's next commit takes it."""
         self.start()
-        self.drive_to("verify")
+        self.drive_with_change("document")
         (self.repo / "helper.py").write_text("y = \"helper\"\n")
         self.complete(dict(DONE, outcome="send-back", summary="helper.py is product code the step plan did not declare."))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
         (self.repo / "fixed.txt").unlink()  # the redone item's test stage runs its base check again
-        self.drive_to("verify", step_plan={"test_commands": COMMANDS, "paths": ["a.py", "helper.py"]})
+        self.drive_to("document", step_plan={"test_commands": COMMANDS, "paths": ["a.py", "helper.py"]})
         self.complete(DONE)
+        self.settle()
         self.assertIn("helper.py", git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
         self.assertNotIn("helper.py", git(self.repo, "status", "--porcelain"))
 
@@ -913,7 +1032,7 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "docs" / "fleet.md").write_text("# Fleet\n")
         self.complete(DONE)
         state = self.settle()
-        self.assertEqual(nav.current_stage(state), "verify")
+        self.assertEqual(nav.current_stage(state), "carry-forward")
         row = next(row for row in state["history"] if row["stage"] == "document")
         self.assertTrue(row["summary"].startswith(NOT_APPLICABLE), row["summary"])
 
@@ -993,7 +1112,13 @@ class TestLoopTests(unittest.TestCase):
         for stage in test_loop.RERUN_STAGES:
             with self.subTest(stage=stage):
                 self.drive_to(stage)
-                self.assertIn("Test rerun: on done, ShipLoop runs every test command", self.packet())
+                if stage == test_loop.STEP_RERUN_STAGE:
+                    # Document reruns what its own edits could affect (design T §8.2, 2b-4b): a code edit, every command.
+                    self.assertIn("Test rerun: on done, ShipLoop reruns what your edits since this stage began could "
+                                  "affect", self.packet())
+                    (self.repo / "a.py").write_text("x = 3\n")
+                else:
+                    self.assertIn("Test rerun: on done, ShipLoop runs every test command", self.packet())
                 (self.repo / "retained.txt").unlink()  # this stage broke a regression test
                 self.assert_refused(DONE, r"(?s)" + stage + r" is not done.*\[regression\] test -f retained.txt"
                                     r" -> exit 1.*Fix the code so every command passes", loop=True)
@@ -1108,29 +1233,31 @@ class TestLoopTests(unittest.TestCase):
         self.assert_refused(done, r"Refused runs for this action so far: 1 \(base")  # fixed.txt missing: a real failure
         self.assert_refused(dict(done, outcome="send-back"), "a complete test loop reports outcome done")
 
-    def test_send_back_and_blocked_are_accepted_at_verify_after_a_could_not_run_attempt(self):
-        """verify took over static-checks' review loop: its rerun's refusal names send-back, so the gate must accept
-        send-back (and blocked) once ShipLoop's latest run could not run, as the quality gate did."""
+    def test_send_back_and_blocked_are_accepted_at_document_after_a_could_not_run_attempt(self):
+        """Document's rerun (design T §8.2, 2b-4b: verify's, moved into the step) names send-back in its refusal, so the
+        gate must accept send-back (and blocked) once ShipLoop's latest run could not run, as verify's did."""
         for outcome in ("send-back", "blocked"):
             with self.subTest(outcome=outcome):
                 self.restart()
-                self.drive_to("verify")
+                self.drive_to("document")
+                (self.repo / "a.py").write_text("x = " + repr(outcome) + "\n")  # code: every command reruns
                 self.run_loop([TRIVIAL])
                 done = dict(DONE, evidence_refs=[str(self.terminal())])
                 chosen = dict(done, outcome=outcome, **({"awaiting": SERVICE_WAIT} if outcome == "blocked" else {}))
-                self.assert_refused(chosen, "a complete verify loop reports outcome done")  # no record yet
+                self.assert_refused(chosen, "a complete document loop reports outcome done")  # no record yet
                 self.refuse_unrunnable(done, attempts=2)
                 self.complete(chosen)
                 if outcome == "send-back":
-                    self.assertNotEqual(nav.current_stage(self.settle()), "verify")
+                    self.assertNotEqual(nav.current_stage(self.settle()), "document")
                 else:
                     self.assertEqual(self.state()["status"], "blocked")
 
-    def test_send_back_is_accepted_at_verify_after_twelve_refused_runs(self):
-        """No count of refused runs closes verify's gate (owner 2026-10-24): after twelve, done is still judged and
-        send-back, the remedy the tally names, is accepted."""
+    def test_send_back_is_accepted_at_document_after_twelve_refused_runs(self):
+        """No count of refused runs closes document's rerun gate (owner 2026-10-24): after twelve, done is still judged
+        and send-back, the remedy the tally names, is accepted."""
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
+        (self.repo / "a.py").write_text("x = 3\n")  # document's own code edit: its rerun runs every command
         self.run_loop([TRIVIAL])
         done = dict(DONE, evidence_refs=[str(self.terminal())])
         (self.repo / "retained.txt").unlink()  # a regression command fails on every run
@@ -1138,7 +1265,7 @@ class TestLoopTests(unittest.TestCase):
             self.assert_refused(done, "Refused runs for this action so far: " + str(attempt) + r" \(base, candidate and mutation")
         self.assert_refused(done, r"Refused runs for this action so far: 13 \(base")  # still run, still judged
         self.complete(dict(done, outcome="send-back"))  # the route the tally names
-        self.assertNotEqual(nav.current_stage(self.settle()), "verify")
+        self.assertNotEqual(nav.current_stage(self.settle()), "document")
 
     def test_the_remedy_outcome_is_accepted_at_every_outer_stage_after_a_could_not_run_attempt(self):
         """Guard: the outer rerun stages have no loop packet; their remedy is add-work with work_items."""
@@ -1156,6 +1283,8 @@ class TestLoopTests(unittest.TestCase):
         the refusal text)``.  An inner stage ends its Until Loop first; an outer one has none."""
         self.restart()
         self.drive_to(stage)
+        if stage == test_loop.STEP_RERUN_STAGE:
+            (self.repo / "a.py").write_text("x = 3\n")  # document's own code edit: its rerun runs every command
         done = DONE
         if loops.cursor(self.state()) is not None:
             self.run_loop([TRIVIAL])
@@ -1272,7 +1401,7 @@ class TestLoopTests(unittest.TestCase):
         self.complete(dict(DONE, red_na=[{"id": "TC-1", "reason": "Characterises the widget that already exists."}]))
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
         with self.assertRaisesRegex(nav.NavigatorError, "red_na"):
-            nav._canonical_result(dict(DONE, red_na=[{"id": "TC-1", "reason": "x"}]), stage="verify")
+            nav._canonical_result(dict(DONE, red_na=[{"id": "TC-1", "reason": "x"}]), stage="document")
 
     def test_a_new_test_that_fails_on_the_base_is_accepted_once_it_passes_on_the_candidate(self):
         self.start()
@@ -1527,7 +1656,7 @@ class TestLoopTests(unittest.TestCase):
         self.complete(dict(done, retired_tests=[{"id": "OLD-1", "reason": "R-2 replaced the legacy behaviour."}]))
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
 
-    def test_a_verify_rerun_is_held_to_the_count_the_test_stage_accepted(self):
+    def test_a_document_rerun_is_held_to_the_count_the_test_stage_accepted(self):
         """The rerun stages hold the ratchet: no fewer tests than ShipLoop accepted for this item since its latest step
         plan; a revised step plan starts the count again."""
         self.start()
@@ -1535,35 +1664,37 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("test", step_plan=self.floor_item())
         self.ran_here(5)
         self.complete(self.loop_done())
-        self.drive_to("verify")
+        self.drive_to("document")
         self.assertIn(" ".join(test_loop.RATCHET_RULE.split()), " ".join(self.packet().split()))
         action = self.action()
         self.ran_here(4)
+        (self.repo / "a.py").write_text("x = 4\n")  # document's own code edit: its rerun runs every command
         self.run_loop([TRIVIAL])
         done = dict(DONE, evidence_refs=[str(self.terminal())])
-        self.assert_refused(done, r"(?s)verify is not done.*ran fewer tests than its floor \(at least 5: an earlier run "
-                                  r"of this command that ShipLoop accepted for this item\)")
+        self.assert_refused(done, r"(?s)document is not done.*ran fewer tests than its floor \(at least 5: an earlier "
+                                  r"run of this command that ShipLoop accepted for this item\)")
         self.assertEqual(store.read_record(self.run_dir / test_loop.verify_path(action, 1))["runs"][0]["accepted_ran"],
                          5)
         self.ran_here(5)
         self.complete(done)
-        self.assertNotEqual(nav.current_stage(self.settle()), "verify")
+        self.assertNotEqual(nav.current_stage(self.settle()), "document")
 
-    def test_the_send_back_a_verify_floor_refusal_names_is_accepted(self):
-        """The verify rerun's floor refusal says "report send-back naming what was removed and why"; that route must
-        pass verify's real gate (owner rule: test the route, not the wording)."""
+    def test_the_send_back_a_document_floor_refusal_names_is_accepted(self):
+        """Document's rerun floor refusal says "report send-back naming what was removed and why"; that route must
+        pass document's real gate (owner rule: test the route, not the wording)."""
         self.start()
         self.ran(3)
         self.drive_to("test", step_plan=self.floor_item())
         self.ran_here(5)
         self.complete(self.loop_done())
-        self.drive_to("verify")
+        self.drive_to("document")
         self.ran_here(4)
+        (self.repo / "a.py").write_text("x = 4\n")  # document's own code edit: its rerun runs every command
         self.run_loop([TRIVIAL])
         done = dict(DONE, evidence_refs=[str(self.terminal())])
         self.assert_refused(done, "report send-back naming what was removed and why")
         self.complete(dict(done, outcome="send-back", summary="The plan changed: one case was removed with R-3."))
-        self.assertNotEqual(nav.current_stage(self.settle()), "verify")
+        self.assertNotEqual(nav.current_stage(self.settle()), "document")
 
     # -- the mutation check (owner decision 2026-10-11: tests after the build must catch something) ----------------
 
@@ -1654,8 +1785,9 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(record["mutants"], [])
 
     def test_a_remote_focused_command_left_out_of_the_base_run_is_named_red_unobserved(self):
-        """Run-5 batch I2: verify and product-acceptance name each focused command whose RED no base run saw, because
-        it tests a deployed target; nothing is printed when every focused command ran on the base."""
+        """Run-5 batch I2: product-acceptance names each focused command whose RED no base run saw, because it tests a
+        deployed target; nothing is printed when every focused command ran on the base.  (Verify printed its own item's
+        too; it is retired, design T §9.1 2b-4c.)"""
         with tempfile.TemporaryDirectory() as temp:
             run = Path(temp)
             state = {"history": [{"action": "t1", "stage": "test", "workitem": "W1"},
@@ -1671,7 +1803,9 @@ class TestLoopTests(unittest.TestCase):
             lines = nav._red_unobserved_lines(run, state, "product-acceptance", None)
             self.assertTrue(lines[0].startswith("RED unobserved: the base run left these remote commands out"))
             self.assertEqual(lines[1:], ["- W1: `sf apex run test --class-names A`"])
-            self.assertEqual(nav._red_unobserved_lines(run, state, "verify", "W2"), [])
+            state["history"] = state["history"][1:]  # W2 alone: its focused command ran on the base
+            state["work_items"] = state["work_items"][1:]
+            self.assertEqual(nav._red_unobserved_lines(run, state, "product-acceptance", None), [])
 
     def test_the_salesforce_card_lists_its_remote_test_commands_and_a_local_one_still_runs(self):
         commands = mutation.remote_test_commands()
@@ -1753,6 +1887,29 @@ class TestLoopTests(unittest.TestCase):
             {"command": "./run-tests.sh", "suite": "focused", "ids": ["TC-1"], "target": "shared"},
             {"command": "./run-tests.sh", "suite": "regression", "ids": ["TC-1"]}])
         self.assertEqual(len(apart), 2)
+
+    def test_minimum_marks_a_regression_command_and_survives_a_fold(self):
+        """Design T §9.1 2d: a regression command marked ``minimum`` runs at every step (``iteration.active_commands``);
+        the mark is true, on a regression command or on a focused row that is also the regression command, and a fold
+        keeps it, so the one row still runs at every step."""
+        smoke = {"command": "make smoke", "suite": "regression", "minimum": True}
+        self.assertEqual(test_loop.normalise_commands([smoke]), [smoke])
+        for bad in ({"command": "make smoke", "suite": "focused", "ids": ["TC-1"], "minimum": True},
+                    {"command": "make lint", "suite": "check", "minimum": True},
+                    {"command": "make smoke", "suite": "regression", "minimum": False},
+                    {"command": "make smoke", "suite": "regression", "minimum": "yes"}):
+            with self.subTest(row=bad), self.assertRaisesRegex(
+                    test_loop.TestLoopError, "minimum is true, on a regression command"):
+                test_loop.normalise_commands([bad])
+        folded = test_loop.normalise_commands([{"command": "npm test", "suite": "focused", "ids": ["TC-1"]},
+                                               {"command": "npm test", "suite": "regression", "minimum": True}])
+        self.assertEqual(folded, [{"command": "npm test", "suite": "focused", "ids": ["TC-1"], "regression": True,
+                                   "minimum": True}])
+        self.assertEqual(test_loop.normalise_commands(folded), folded, "the folded row is canonical")
+        self.assertEqual(test_loop.normalise_commands([{"command": "npm test", "suite": "regression"}, dict(smoke,
+                                                       command="npm test")]),
+                         [{"command": "npm test", "suite": "regression", "minimum": True}])
+        self.assertIn("(minimum regression: every step)", test_loop._listing(smoke))
 
     def test_a_command_on_a_target_that_keeps_state_is_left_out_of_the_base_and_the_mutant_runs(self):
         """Run-5 batch F3: on any platform, a command naming a test-strategy target that keeps state is remote, so the
@@ -1839,18 +1996,18 @@ class TestLoopTests(unittest.TestCase):
             test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
         self.assertEqual(self.tree_bytes(), before)
 
-    def test_check_only_runs_the_mutation_check_without_counting(self):
+    def test_check_runs_the_mutation_check_without_counting(self):
         self.calc_item(self.EMPTY_TEST)
         action = self.action()
         done = self.loop_done()
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(inner.fill(self.state(), "test", done, self.run_dir), "result"))
-        with self.assertRaisesRegex(nav.NavigatorError, r"(?s)mutation check: test is not done.*This check-only run "
-                                                        r"does not count toward the refused runs"):
+        with self.assertRaisesRegex(nav.NavigatorError, r"(?s)mutation check: test is not done.*This check does not "
+                                                        r"count toward the refused runs"):
             nav.dispatch(CORE, self.run_dir, self.state(), types.SimpleNamespace(
-                command="complete", action=action, result=str(path), check_only=True))
-        self.assertTrue((self.run_dir / test_loop.mutation_check_only_path(action)).is_file())
+                command="check", action=action, result=str(path)))
+        self.assertTrue((self.run_dir / test_loop.mutation_check_path(action)).is_file())
         self.assertFalse((self.run_dir / test_loop.mutation_path(action, 1)).exists())
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
 
@@ -1904,7 +2061,7 @@ class TestLoopTests(unittest.TestCase):
 
     def test_a_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template(self):
         self.start()
-        for stage in ("test", "verify"):
+        for stage in ("test", "document"):
             with self.subTest(stage=stage):
                 self.drive_to(stage)
                 head = self.head()
@@ -1919,8 +2076,6 @@ class TestLoopTests(unittest.TestCase):
                 self.assertLess(full.index("\n" + self.START), full.index(shown))
                 # a status hook reads only the first WINDOW bytes (16,000; 8000 before 2026-10-10)
                 self.assertLess(head.index(shown) + len(shown), status_hook.WINDOW)
-                if stage == "verify":
-                    self.assertGreater(full.index("Change inventory for"), full.index("\n" + self.START))
                 (self.repo / "fixed.txt").write_text("fixed\n")
                 (self.repo / "retained.txt").write_text("retained\n")
                 self.run_loop([TRIVIAL])
@@ -1929,14 +2084,16 @@ class TestLoopTests(unittest.TestCase):
                 filled = dict(self.template_of(head), headline="The loop ran clean.", summary="Every command passed.")
                 if "assumptions" in filled:
                     filled["assumptions"] = []
+                if "knowledge" in filled:   # document's record of the living files (design T §9.1 2b-3)
+                    filled["knowledge"] = dict(inner.KNOWLEDGE_NONE)
                 self.complete(filled)
                 self.assertNotEqual(nav.current_stage(self.settle()), stage)
 
     def test_a_blocked_result_before_the_loop_ran_may_keep_the_prefilled_receipt_and_done_may_not(self):
         """The template prefills evidence_refs with the loop receipt and the head says keep it; blocked before the
         loop ran must not be refused for citing that unwritten file.  Through the real complete gate, at the test stage
-        and at verify."""
-        for stage in ("test", "verify"):
+        and at document."""
+        for stage in ("test", "document"):
             with self.subTest(stage=stage):
                 self.restart()
                 self.drive_to(stage)
@@ -1949,7 +2106,7 @@ class TestLoopTests(unittest.TestCase):
                               summary="The runner the loop needs is not installed in this environment.")
                 # done without the receipt is still refused, by the loop's own check.
                 self.assert_refused(filled, "terminal|receipt|loop")
-                self.complete(dict({k: v for k, v in filled.items() if k != "assumptions"},  # hand-off keys are done-only
+                self.complete(dict({k: v for k, v in filled.items() if k not in ("assumptions", "knowledge")},  # done-only
                                    outcome="blocked", awaiting=PRESENT_WAIT))
                 self.assertEqual(self.state()["status"], "blocked")
                 self.assertEqual(nav.current_stage(self.state()), stage)
@@ -2011,7 +2168,9 @@ class TestLoopTests(unittest.TestCase):
         done = " ".join(stage_spec.stage("test").done_when)
         self.assertNotIn("nothing that passed at baseline fails now", done)
         self.assertIn("every recorded command", done)
-        self.assertIn("no new test ID passes on the item's base checkout, unless red_na names it", done)
+        # Design T section 8: RED applies to the cases new at this step, on the step's base (its iteration's start).
+        self.assertIn("no test ID new at this step passes on the step's base checkout, unless red_na names it", done)
+        self.assertIn("every case quoted for this step is a test the focused command runs", done)
 
     # -- the test stage prints what the gate judges -------------------------------------------------------------------
 
@@ -2122,8 +2281,8 @@ class TestLoopTests(unittest.TestCase):
 
     # -- the gates' outcomes are printed (TD-3) and the refused-run tally shows no cap (TD-10) -------------------------
 
-    def complete_output(self, result: dict, *, check_only: bool = False) -> str:
-        """The stdout of the real ``complete`` (or ``complete --check-only``) for the current action."""
+    def complete_output(self, result: dict, *, check: bool = False) -> str:
+        """The stdout of the real ``complete`` (or ``check``) for the current action."""
         state = self.state()
         action = nav.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
@@ -2132,7 +2291,7 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="complete", action=action, result=str(path), **({"check_only": True} if check_only else {})))
+                command="check" if check else "complete", action=action, result=str(path)))
         return buffer.getvalue()
 
     def status_display_reads(self, output: str) -> bool:
@@ -2209,14 +2368,14 @@ class TestLoopTests(unittest.TestCase):
             self.assertEqual(record["disposition"], "passed")
             self.assertNotIn("skipped", record)
 
-    def test_check_only_prints_the_gates_after_its_sentence_and_nothing_is_counted(self):
+    def test_check_prints_the_gates_after_its_sentence_and_nothing_is_counted(self):
         self.calc_item(self.REAL_TEST)
         action = self.action()
-        output = self.complete_output(self.loop_done(), check_only=True)
+        output = self.complete_output(self.loop_done(), check=True)
         lines = output.rstrip().splitlines()
-        self.assertTrue(lines[0].startswith("ShipLoop check-only: every script gate for test accepts this result"))
-        self.assertIn("once the Until Loop's receipt says complete or stopped, run the same callback without "
-                      "--check-only to submit it.", lines[0])
+        self.assertTrue(lines[0].startswith("ShipLoop check: the check says yes for test: every script gate accepts"))
+        self.assertIn("the Until Loop receipt is checked by the callback, once the loop says complete or stopped",
+                      lines[0])
         self.assertEqual([line.split(" ")[1] for line in lines[1:]], ["base:", "base:", "candidate:", "candidate:", "mutation:"])
         self.assertTrue(all(line.startswith("Gates: ") for line in lines[1:]))
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
@@ -2235,8 +2394,8 @@ class TestLoopTests(unittest.TestCase):
             return real(argv, cwd, timeout, **kw)
         return run
 
-    def dispatch(self, result: dict, *, check_only: bool = False) -> str:
-        """The stdout of the real ``complete`` (``--check-only`` too) for ``result`` as it stands."""
+    def dispatch(self, result: dict, *, check: bool = False) -> str:
+        """The stdout of the real ``complete`` (or ``check``) for ``result`` as it stands."""
         state = self.state()
         action = nav.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
@@ -2245,115 +2404,173 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="complete", action=action, result=str(path), **({"check_only": True} if check_only else {})))
+                command="check" if check else "complete", action=action, result=str(path)))
         return buffer.getvalue()
 
-    def verify_checked(self) -> tuple:
-        """At verify, the loop ended and a passing ``complete --check-only``: (action, done result, its output)."""
+    def document_checked(self) -> tuple:
+        """At document, after its own code edit (so its rerun runs every command), the loop ended and a passing
+        check: (action, done result, its output)."""
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         action = self.action()
+        (self.repo / "a.py").write_text("x = 3\n")
         self.run_loop([TRIVIAL])
-        done = inner.fill(self.state(), "verify", dict(DONE, evidence_refs=[str(self.terminal())]), self.run_dir)
-        output = self.dispatch(done, check_only=True)
-        self.assertTrue((self.run_dir / test_loop.check_only_path(action)).is_file())
+        done = inner.fill(self.state(), "document", dict(DONE, evidence_refs=[str(self.terminal())]), self.run_dir)
+        output = self.dispatch(done, check=True)
+        self.assertTrue((self.run_dir / test_loop.check_path(action)).is_file())
         return action, done, output
 
     def test_a_command_recorded_twice_is_one_row_and_runs_once_per_run(self):
         """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every
-        run deployed and ran them twice.  A regression row that repeats a focused row folds into it, and verify runs it
-        once."""
+        run deployed and ran them twice.  A regression row that repeats a focused row folds into it, and document's
+        rerun runs it once."""
         twice = [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"]},
                  {"command": "test -f retained.txt", "suite": "regression"},
                  {"command": "sh check.sh fixed.txt", "suite": "regression"}]
         self.start()
-        self.drive_to("verify", step_plan={"test_commands": twice, "paths": ["a.py"],
-                                           "criteria": [{"id": "C1", "text": "The item's focused check passes."}]})
-        self.assertEqual(test_loop.stage_commands(self.state(), "verify", self.item())[0],
+        self.drive_to("document", step_plan={"test_commands": twice, "paths": ["a.py"],
+                                             "criteria": [{"id": "C1", "text": "The item's focused check passes."}]})
+        self.assertEqual(test_loop.stage_commands(self.state(), "document", self.item())[0],
                          [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"], "regression": True},
                           {"command": "test -f retained.txt", "suite": "regression"}])
         self.assertIn("1. [focused] sh check.sh fixed.txt (also recorded as regression)", self.packet())
         calls: list = []
+        (self.repo / "a.py").write_text("x = 3\n")  # document's own code edit: its rerun runs every command
         self.run_loop([TRIVIAL])
         with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
             self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
         self.assertEqual(calls, ["sh check.sh fixed.txt", "test -f retained.txt"])
 
-    def test_complete_after_a_passing_check_only_on_an_unchanged_tree_takes_that_run_and_says_so(self):
+    def test_complete_after_a_passing_check_on_an_unchanged_tree_takes_that_run_and_says_so(self):
         """D5 (D-11b): after a passing check-only the real complete reran all ten org commands (about 104 s) on a tree
-        that had not changed.  It now takes the check-only run, and its counted record names which one."""
-        action, done, output = self.verify_checked()
-        self.assertIn("That complete takes this test run (" + str(self.run_dir / test_loop.check_only_path(action))
-                      + ") instead of running the commands again", " ".join(output.split()))
-        checked = store.read_record(self.run_dir / test_loop.check_only_path(action))
+        that had not changed.  It now takes the check's yes, and its counted record names the check record."""
+        action, done, output = self.document_checked()
+        self.assertIn("The callback takes this answer (" + str(self.run_dir / shiploop_check.answer_path(action))
+                      + ") instead of running the gates again", " ".join(output.split()))
+        checked = store.read_record(self.run_dir / test_loop.check_path(action))
         with mock.patch.object(test_loop.lint, "run_argv") as runner:
             self.complete(done, loop=False)
             runner.assert_not_called()
         record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
         self.assertEqual((record["passed"], record["disposition"]), (True, "passed"))
-        self.assertEqual(record["reused"]["path"], test_loop.check_only_path(action))
+        self.assertEqual(record["reused"]["path"], test_loop.check_path(action))
         self.assertEqual(record["reused"]["created_at"], checked["created_at"])
-        self.assertIn(record["reused"]["tree"], checked["trees"])
+        self.assertEqual(record["reused"]["answer"], shiploop_check.answer_path(action))
         self.assertEqual([run["command"] for run in record["runs"]], [run["command"] for run in checked["runs"]])
-        self.assertNotEqual(nav.current_stage(self.settle()), "verify")
+        self.assertNotEqual(nav.current_stage(self.settle()), "document")
 
-    def test_a_one_byte_edit_or_another_command_list_after_check_only_runs_the_commands_again(self):
-        for change in ("tree", "commands"):
+    def test_a_one_byte_edit_after_the_check_runs_the_commands_again(self):
+        """The rerun stage's side of the key: a one-byte edit since the check's yes runs every command again (the test
+        stage's side, with the draft, counted runs and revision: test_each_change_to_what_the_gates_read_...)."""
+        for change in ("tree",):
             with self.subTest(change=change):
                 self.restart()
-                action, done, _output = self.verify_checked()
-                if change == "tree":
-                    (self.repo / "a.py").write_text("x = 2\n")  # one byte
-                else:
-                    path = self.run_dir / test_loop.check_only_path(action)
-                    record = store.read_record(path)
-                    record["commands"] = record["commands"][:1]
-                    path.write_text(store.dumps(record, "ShipLoop test-loop verification"))
+                action, done, _output = self.document_checked()
+                (self.repo / "a.py").write_text("x = 2\n")  # one byte
                 calls: list = []
                 with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
                     self.complete(done, loop=False)
                 self.assertEqual(calls, ["sh check.sh fixed.txt", "test -f retained.txt"])
                 self.assertNotIn("reused", store.read_record(self.run_dir / test_loop.verify_path(action, 1)))
 
-    def test_the_test_stage_takes_a_passing_check_only_candidate_run_held_to_the_new_base_floor(self):
-        """At the test stage the base run and the mutation check still run at complete; the candidate run is the
-        check-only one, held to the floor the base run sets then, and a Gates line says so."""
+    def test_complete_takes_the_checks_matching_yes_and_runs_nothing_again(self):
+        """Phase B: the check's candidate run is held to the floor its own base run sets; complete then takes the yes
+        whole (no base run, candidate run or mutation check runs again) and writes each check record as the next counted
+        one, naming the check record and the answer."""
         self.start()
         self.ran(3)
         self.drive_to("test", step_plan=self.floor_item())
         action = self.action()
         self.ran_here(3)
         done = self.loop_done()
-        self.complete_output(done, check_only=True)
-        self.assertNotIn("accepted_ran", store.read_record(self.run_dir / test_loop.check_only_path(action))["runs"][0])
-        calls: list = []
-        with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
+        self.complete_output(done, check=True)
+        checked = store.read_record(self.run_dir / test_loop.check_path(action))
+        self.assertEqual((checked["runs"][0]["accepted_ran"], checked["runs"][0]["floor_from"]), (3, "3 on the base"))
+        answer = store.read_record(self.run_dir / shiploop_check.answer_path(action))
+        self.assertEqual(answer["answer"], "yes")
+        self.assertEqual(answer["records"], [test_loop.base_check_path(action), test_loop.check_path(action),
+                                             test_loop.mutation_check_path(action)])
+        with mock.patch.object(test_loop.lint, "run_argv") as runner, \
+                mock.patch.object(test_loop, "_base_run") as base_run:
             output = self.complete_output(done)
-        self.assertEqual(calls, [])
+            runner.assert_not_called()
+            base_run.assert_not_called()
         lines = self.gate_lines_of(output)
-        self.assertTrue(lines[2].startswith("Gates: candidate: reused the passed check-only run of "), lines)
-        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
-        self.assertEqual(record["reused"]["path"], test_loop.check_only_path(action))
-        self.assertEqual((record["runs"][0]["accepted_ran"], record["runs"][0]["floor_from"]), (3, "3 on the base"))
-        self.assertTrue((self.run_dir / test_loop.base_path(action, 1)).is_file())
-        self.assertTrue((self.run_dir / test_loop.mutation_path(action, 1)).is_file())
+        self.assertTrue(lines[0].startswith("Gates: taken from the check of "), lines)
+        self.assertEqual(lines[1:], answer["gate_lines"])
+        for counted, check in ((test_loop.base_path(action, 1), test_loop.base_check_path(action)),
+                               (test_loop.verify_path(action, 1), test_loop.check_path(action)),
+                               (test_loop.mutation_path(action, 1), test_loop.mutation_check_path(action))):
+            record = store.read_record(self.run_dir / counted)
+            self.assertEqual(record["reused"]["path"], check, counted)
+            self.assertEqual(record["reused"]["answer"], shiploop_check.answer_path(action))
+            self.assertNotIn("counted", record)
+        self.assertEqual(test_loop.floors(self.run_dir, self.state(), self.item(), action, None)
+                         .get(self.floor_item()["test_commands"][0]["command"]), 3)
+        self.assertNotEqual(nav.current_stage(self.settle()), "test")
 
-    def test_a_check_only_run_below_the_floor_the_base_run_sets_at_complete_is_run_again_not_taken(self):
-        """A refusal always comes from a run made now: the check-only run of 2 tests passed before any base run set a
-        floor; at complete the base run counts 3, so the candidate commands run again and that run is refused."""
+    def test_each_change_to_what_the_gates_read_makes_complete_run_them_again(self):
+        """A yes is taken only while its key holds: an edit to the files, the draft, the run's counted runs or its
+        state makes complete run every gate again on the current files."""
+        for change in ("tree", "draft", "counted run", "revision"):
+            with self.subTest(change=change):
+                self.restart()
+                self.start()
+                self.ran(3)
+                self.drive_to("test", step_plan=self.floor_item())
+                action = self.action()
+                self.ran_here(3)
+                done = self.loop_done()
+                self.complete_output(done, check=True)
+                if change == "tree":
+                    (self.repo / "a.py").write_text("x = 2\n")
+                elif change == "draft":
+                    done = dict(done, summary=done["summary"] + " Edited after the check.")
+                elif change == "counted run":
+                    path = self.run_dir / test_loop.verify_path(action, 1)
+                    path.parent.mkdir(exist_ok=True)
+                    command = self.floor_item()["test_commands"][0]["command"]
+                    run = {"command": command, "status": "passed", "counts": {"ran": 4}}
+                    path.write_text(store.dumps({"action": action, "stage": "test", "passed": False, "runs": [run]},
+                                                "ShipLoop test-loop verification"))  # an earlier run raised a floor
+                else:
+                    answer = self.run_dir / shiploop_check.answer_path(action)
+                    record = store.read_record(answer)
+                    record["key"]["revision"] -= 1
+                    answer.write_text(store.dumps(record, "ShipLoop check answer"))
+                with mock.patch.object(test_loop, "_base_run", wraps=test_loop._base_run) as base_run:
+                    try:
+                        self.complete_output(done)
+                    except nav.NavigatorError:
+                        pass  # the gates ran again; whether they accept the change is not this test's question
+                    base_run.assert_called_once()
+
+    def test_the_check_and_complete_agree_on_the_floor_the_base_run_sets(self):
+        """F15 (owed-outcome journal): the check held its candidate run of 2 tests to no floor, because its base run set
+        none, and said yes; complete's base run then counted 3 and refused.  The check's floor now comes from its own base
+        run, so both say no, and the check counts nothing."""
         self.start()
         self.ran(3)
         self.drive_to("test", step_plan=self.floor_item())
         action = self.action()
         self.ran_here(2)
         done = self.loop_done()
-        self.complete_output(done, check_only=True)
-        calls: list = []
-        with mock.patch.object(test_loop.lint, "run_argv", side_effect=self.counting_runner(calls)):
-            with self.assertRaisesRegex(nav.NavigatorError, r"ran fewer tests than its floor \(at least 3: 3 on the base\)"):
-                self.complete(done, loop=False)
-        self.assertEqual(len(calls), 2)
-        self.assertNotIn("reused", store.read_record(self.run_dir / test_loop.verify_path(action, 1)))
+        floor = r"ran fewer tests than its floor \(at least 3: 3 on the base\)"
+        with self.assertRaisesRegex(nav.NavigatorError, floor):
+            self.complete_output(done, check=True)
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
+        self.assertFalse((self.run_dir / test_loop.base_path(action, 1)).exists())
+        with self.assertRaisesRegex(nav.NavigatorError, floor):
+            self.complete(done, loop=False)
+
+    def test_the_check_refuses_an_outcome_the_stage_does_not_allow(self):
+        """P9 (phases B and C plan): in arm B owed 1 a dry run passed at test-spec and complete refused 15 s later with
+        "test-spec accepts only done, blocked, send-back", a rule the receipt check held and the dry run skipped."""
+        self.start()
+        self.drive_to("test-spec")
+        corrective = [{"id": "W2", "title": "Another item"}]
+        with self.assertRaisesRegex(nav.NavigatorError, r"test-spec accepts only done, blocked, send-back"):
+            self.dispatch(dict(DONE, outcome="add-work", work_items=corrective), check=True)
 
     def test_the_test_packet_prints_the_refused_runs_only_above_zero(self):
         self.start()
@@ -2377,8 +2594,9 @@ class TestLoopTests(unittest.TestCase):
                      "any test changed to pass a run and its independent reason", "ShipLoop's records hold the counts"):
             self.assertIn(need, summary)
         self.restart()
-        self.drive_to("verify")  # another looped stage has its own placeholder (U25: what its duty 11 used to list)
-        self.assertEqual(self.template_of(self.head())["summary"], prompts.summary_placeholder("verify"))
+        self.drive_to("test-spec")  # another looped stage has its own placeholder (U25)
+        self.assertEqual(self.template_of(self.head())["summary"], prompts.summary_placeholder("test-spec"))
+        self.assertNotEqual(prompts.summary_placeholder("test-spec"), prompts.SUMMARY_PLACEHOLDER)
 
     # -- the step Proof (implement-step fix plan section 4.1, unit W2-A) -------------------------------------------
 
@@ -2429,7 +2647,8 @@ class TestLoopTests(unittest.TestCase):
         second = store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))
         self.assertTrue(second["passed"])
         self.assertIn(test_loop._tree(self.run_dir, self.repo), second["trees"])   # bound to the accepted candidate
-        self.assertEqual(self.state()["active_improve"]["action_id"], action)     # the step's Improve child started
+        self.assertIsNone(self.state()["active_improve"])         # the step's review follows its document stage
+        self.assertEqual(nav.current_stage(self.state()), "test")
 
     def test_a_proof_that_runs_no_test_is_refused(self):
         """T27 (skipped assertions): a Proof that exits 0 having run no test proves nothing and is refused."""
@@ -2439,16 +2658,16 @@ class TestLoopTests(unittest.TestCase):
             self.complete(DONE)
         self.assertIn("ran no tests", str(caught.exception))
 
-    def test_complete_takes_a_passed_check_only_proof_only_while_the_candidate_is_unchanged(self):
-        """T27 (candidate binding): a passed --check-only Proof is taken at complete on the same tree; after an edit the
+    def test_complete_takes_a_passed_check_proof_only_while_the_candidate_is_unchanged(self):
+        """T27 (candidate binding): a passed check Proof is taken at complete on the same tree; after an edit the
         Proof runs again, on the final candidate, and its record says which tree it judged."""
         self.start()
         self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
         action = self.action()
         (self.repo / "proof.txt").write_text("proved\n")
-        printed = self.complete(DONE, check_only=True)
+        printed = self.complete(DONE, check=True)
         self.assertIn("step-proof: [check] " + self.PROOF + " -> passed", printed)
-        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_check_only_path(action))["passed"])
+        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_check_path(action))["passed"])
         (self.repo / "proof.txt").unlink()          # the candidate changes after the check-only run
         with self.assertRaises(nav.NavigatorError) as caught:
             self.complete(DONE)
@@ -2458,24 +2677,23 @@ class TestLoopTests(unittest.TestCase):
         self.restart_loop(str(caught.exception))
         out = self.complete(DONE)
         record = store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))
-        self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_only_path(action))
-        self.assertIn("reused the passed check-only run", out)
+        self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_path(action))
+        self.assertIn("Gates: taken from the check of ", out)   # the check's yes holds again on this same tree
 
-    def test_a_review_that_breaks_the_proof_is_refused_at_import_and_an_unchanged_candidate_reuses_its_record(self):
-        """T33: the step's Improve import reruns the Proof when the review changed the candidate and refuses a failure; an
-        unchanged candidate reuses the accepted record without running it again.  The transition also captured the step's
-        entry base in its action record, which the hand-off names."""
+    def test_a_review_that_breaks_the_steps_tests_is_refused_at_import_and_an_unchanged_candidate_runs_nothing(self):
+        """T33, per step (design T section 8.2): the step's review follows its document stage.  When the review changed
+        the candidate, its import reruns every command the step's test stage ran and refuses a failure; an unchanged
+        candidate runs nothing.  The review leaves its edits uncommitted (the step's one commit takes them), and its
+        hand-off names the step's change since the step began."""
         self.start()
-        self.drive_to("implement", step_plan=self.proof_plan("grep -q fixed a.py"))
-        action = self.action()
-        base = nav.current_action(self.state())["base"]
-        self.assertRegex(base, r"^[0-9a-f]{40,64}$")
-        (self.repo / "a.py").write_text("fixed = 1\n")
+        self.drive_to("document")
         self.complete(DONE)
         state = self.state()
         child = state["active_improve"]
-        handoff = nav.improve_handoff_text(CORE, self.run_dir, state)
-        self.assertIn("git -C " + str(self.repo) + " diff " + base + " ", handoff)
+        action = child["action_id"]
+        self.assertEqual(child["stage"], "document")
+        self.assertIn("Review base (the step's change since it began", nav.improve_handoff_text(CORE, self.run_dir, state))
+        receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT}
         calls = []
         real = test_loop._run_command
 
@@ -2484,34 +2702,180 @@ class TestLoopTests(unittest.TestCase):
             return real(*args, **kwargs)
 
         with mock.patch.object(test_loop, "_run_command", counting):
-            nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
         self.assertEqual(calls, [])                                       # unchanged: no extra run
-        self.assertFalse((self.run_dir / test_loop.step_proof_path(action, 2)).exists())
-        (self.repo / "a.py").write_text("x = 2\n")                       # the review breaks the step and commits it
-        git(self.repo, "commit", "-qam", "review edit")
+        (self.repo / "fixed.txt").unlink()                               # the review breaks the step's focused test
         with self.assertRaises(nav.NavigatorError) as caught:
-            nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
-        self.assertIn("the review changed step S1 and its Proof did not pass", str(caught.exception))
-        self.assertIn("grep -q fixed a.py -> exit 1", str(caught.exception))
-        self.assertIn("improve-commit", str(caught.exception))
-        self.assertFalse(store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))["passed"])
-        (self.repo / "a.py").write_text("fixed = 2\n")                   # the route: fix it, commit, complete again
-        git(self.repo, "commit", "-qam", "review fix")
-        nav._improve_change_gate(CORE, self.run_dir, state, action, child, {})
-        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_path(action, 3))["passed"])
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
+        self.assertIn("sh check.sh fixed.txt", str(caught.exception))
+        self.assertIn("Fix it within the review's scope", str(caught.exception))
+        (self.repo / "fixed.txt").write_text("fixed again\n")           # the route: fix it, complete again
+        nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
 
-    def test_an_ask_agent_implement_action_runs_no_step_proof(self):
-        """T31: the whole-plan action keeps its acceptance: no single-step Proof gate (a failing check is not run)."""
+    REGISTERED = "sh check.sh fixed.txt; cat names.txt 2>/dev/null; true"
+
+    def test_a_test_the_step_review_adds_is_registered_by_id_and_every_later_rerun_must_show_it(self):
+        """Design T §9.1 step 3 (Astra's §9 row 4: "Register review-added test identities too: `_test_rerun_gate` cannot
+        detect a new test excluded by an old filter"): the step review names each test it adds in its final result's
+        `added_tests`, and from its own import on every rerun of that command must show it.  A registered test is no
+        new case, so the RED rule never asks it to fail on a base."""
+        self.start()
+        plan = {"test_commands": [{"command": self.REGISTERED, "suite": "focused", "criteria": ["C1"]}, COMMANDS[1]],
+                "paths": ["a.py"], "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        self.drive_to("document", step_plan=plan, each=change)
+        self.complete(DONE)
+        state = self.state()
+        child = state["active_improve"]
+        action = child["action_id"]
+        final = dict(child["seed_result"], added_tests=[{"id": "TC-1 (a)", "command": self.REGISTERED}])
+        receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT, "final_result": final}
+        (self.repo / "a.py").write_text("import os\nimport sys\n")       # the review's fix; its test is not run yet
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
+        self.assertIn("TC-1 (a)", str(caught.exception))
+        (self.repo / "names.txt").write_text("ok - TC-1 (a) rejects an empty name\n")
+        nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
+        after = nav.finish_improve(state, action, {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"],
+                                                   "check_refs": ["synthetic://c"]}, final_result=final)
+        row = next(row for row in test_loop.stage_commands(after, "test", "W1")[0] if row["command"] == self.REGISTERED)
+        self.assertEqual(row["ids"], ["TC-1 (a)"])
+        self.assertNotIn("TC-1 (a)", test_loop.new_ids(after, "W1"))
+        with self.assertRaisesRegex(nav.NavigatorError, "added_tests is allowed only on a done document result"):
+            nav._canonical_result(dict(DONE, added_tests=final["added_tests"]), stage="test")
+        with self.assertRaisesRegex(nav.NavigatorError, 'added_tests entries each need id, command'):
+            nav._canonical_result(dict(DONE, added_tests=[{"id": "TC-1 (a)"}]), stage="document")
+        with self.assertRaisesRegex(nav.NavigatorError, "added_tests names `make test`, which is not a focused or "
+                                    "regression command this item's step plan recorded"):
+            nav._check_added_tests(state, "document", dict(DONE, added_tests=[{"id": "TC-1 (a)", "command": "make test"}]))
+
+    # One test per tests/<ID>.case file, which names the product file its case needs; unittest-style lines and summary.
+    CASES = ('n=0; f=0; for t in tests/*.case; do [ -f "$t" ] || continue; id=$(basename "$t" .case); n=$((n+1)); '
+             'if [ -f "$(cat "$t")" ]; then echo "$id ... ok"; else echo "$id ... FAIL"; f=$((f+1)); fi; done; '
+             'echo "Ran $n tests in 0.001s"; if [ "$f" = 0 ]; then echo OK; else echo "FAILED (failures=$f)"; exit 1; fi\n')
+    CASE_PLAN = {"test_commands": [{"command": "sh cases.sh", "suite": "focused", "ids": ["TC-1", "TC-2"],
+                                    "criteria": ["C1", "C2"]}],
+                 "minimum_na": "The focused suite is the item's only suite.",
+                 "paths": ["one.txt", "two.txt", "tests/*.case"],
+                 "criteria": [{"id": "C1", "text": "one.txt exists."}, {"id": "C2", "text": "two.txt exists."}],
+                 "steps": [{"id": "S1", "task": "Add one.txt.", "paths": ["one.txt"], "proof": "test -f one.txt",
+                            "criteria": ["C1"]},
+                           {"id": "S2", "task": "Add two.txt.", "paths": ["two.txt"], "proof": "test -f two.txt",
+                            "criteria": ["C2"], "deps": ["S1"]}]}
+
+    def test_a_later_steps_base_run_holds_only_its_new_cases_to_red(self):
+        """Design T §9.1 step 3 (Astra's §9 row 4: "S2's base check would reject already-green S1 cases"): S2's base is S1's
+        commit, where S1's case already passes.  The base run judged every ID a command lists as new, and red_na may name
+        only a new ID, so S2's test stage could not be accepted at all; only the IDs due at this step must fail there."""
+        (self.repo / "cases.sh").write_text(self.CASES)
+        (self.repo / "tests").mkdir()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the case runner")
+        self.start()
+        self.drive_to("test-spec", step_plan=self.CASE_PLAN)
+        self.complete(dict(DONE, test_cases=[
+            {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "one.txt exists", "red": "it is missing",
+             "green": "it exists"},
+            {"id": "TC-2", "criterion": "C2", "requirement": "R-1", "oracle": "two.txt exists", "red": "it is missing",
+             "green": "it exists"}]))
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                name = "two.txt" if (self.repo / "one.txt").exists() else "one.txt"
+                (self.repo / name).write_text(name + "\n")
+        self.drive_to("test", step_plan=self.CASE_PLAN, each=build)
+        (self.repo / "tests" / "TC-1.case").write_text("one.txt")
+        self.pass_loop()
+        state = self.drive_to("test", step_plan=self.CASE_PLAN, each=build)
+        self.assertEqual(test_loop.step_number(state, "W1"), 2)
+        self.assertEqual(test_loop.new_ids(state, "W1"), ["TC-2"])
+        (self.repo / "tests" / "TC-2.case").write_text("two.txt")
+        self.pass_loop()                                    # refused before: TC-1 passes on S2's base
+        record = store.read_record(self.run_dir / test_loop.base_path(self.action_of("test", 2), 1))
+        self.assertTrue(record["passed"], record)
+        self.assertEqual(record["runs"][0]["id_outcomes"], {"TC-2": "failed"})
+
+    def action_of(self, stage: str, number: int) -> str:
+        """The ``number``-th accepted ``stage`` action of W1, from 1."""
+        return [row["action"] for row in self.state()["history"]
+                if row["stage"] == stage and row["workitem"] == "W1" and row["outcome"] == "done"][number - 1]
+
+    def test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit(self):
+        """Design T §9.1 step 3, shared baselines (the main session's item 3): validate-existing's preparatory fix moved
+        the base of every step's base run to its commit, which predates S1.  At S2 a test that already passes on S2's
+        base, where S1's work is, then looked RED there (the S1 work is missing from the older tree) and was accepted
+        without red_na.  Only S1's base moves to the fix; S2's base is the commit S1 made."""
+        self.red_holds_at_a_later_step_with_a_preparatory_commit("inline")
+
+    def test_red_at_a_later_step_holds_with_a_preparatory_commit_on_the_ask_agent_route_too(self):
+        """Design T §9.1 2c-0 part 2 (Astra's finding 3), checked on the route 2c-1 gave steps: the same lifecycle, so the
+        same bases."""
+        self.red_holds_at_a_later_step_with_a_preparatory_commit("ask-agent")
+
+    def red_holds_at_a_later_step_with_a_preparatory_commit(self, delegation):
+        (self.repo / "cases.sh").write_text(self.CASES)
+        (self.repo / "tests").mkdir()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the case runner")
+        plan = dict(self.CASE_PLAN, paths=[*self.CASE_PLAN["paths"], "prep.txt"])
+        self.start(delegation=delegation)
+        self.drive_to("test-spec", step_plan=plan)
+        # validate-existing's preparatory fix, committed and recorded as ShipLoop does, after the item's base was
+        # captured and before S1's iteration starts (which takes HEAD as its base).
+        (self.repo / "prep.txt").write_text("prepared\n")
+        git(self.repo, "add", "prep.txt")
+        git(self.repo, "commit", "-qm", "fix: preparatory fix for W1")
+        fix = [git(self.repo, "rev-parse", "HEAD").strip()]
+        record = self.run_dir / "expectations" / "W1-preparatory-commit.txt"
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(fix[0] + "\n")
+        self.complete(dict(DONE, test_cases=[
+            {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "one.txt exists", "red": "it is missing",
+             "green": "it exists"},
+            {"id": "TC-2", "criterion": "C2", "requirement": "R-1", "oracle": "two.txt exists", "red": "it is missing",
+             "green": "it exists"}]))
+
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                name = "two.txt" if (self.repo / "one.txt").exists() else "one.txt"
+                (self.repo / name).write_text(name + "\n")
+        self.drive_to("test", step_plan=plan, each=build)
+        (self.repo / "tests" / "TC-1.case").write_text("one.txt")
+        self.pass_loop()
+        first = store.read_record(self.run_dir / test_loop.base_path(self.action_of("test", 1), 1))
+        self.assertEqual(first["base_commit"], fix[0], "S1's base run starts from the preparatory fix")
+        self.drive_to("test", step_plan=plan, each=build)
+        self.assertEqual(test_loop.step_number(self.state(), "W1"), 2)
+        first_commit = git(self.repo, "rev-parse", "HEAD").strip()   # S1's commit; S2's build is uncommitted
+        (self.repo / "tests" / "TC-2.case").write_text("one.txt")   # already true on S2's base: S1 built one.txt
+        self.run_loop([TRIVIAL])
+        self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
+                            r"passed TC-2 on the item's base, without this item's change")
+        (self.repo / "tests" / "TC-2.case").write_text("two.txt")   # S2's own behaviour: missing on its base
+        self.run_loop([TRIVIAL])
+        self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        last = store.read_record(self.run_dir / test_loop.base_path(self.action_of("test", 2), 1))
+        self.assertEqual((last["base_head"], last["base_commit"]), (first_commit, None),
+                         "S2's base run starts from the commit S1 made, not from the preparatory fix")
+
+    def test_an_ask_agent_implement_action_runs_its_steps_proof_as_the_inline_one_does(self):
+        """Design T §9.1 2c-1 (T31 before it): the ask-agent route issues one implement action per step, so complete runs
+        the step's Proof there too, and refuses while it fails (a failing check is run)."""
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=str(IMPROVE_CARD),
                                              lint_option="off", delegation="ask-agent"))
-        self.drive_to("implement", step_plan=self.proof_plan("false", delegation_steps=2))
-        action = self.action()
-        self.assertEqual(test_loop.stage_commands(self.state(), "implement", "W1")[0], test_loop.stage_commands(
-            self.state(), "verify", "W1")[0])                              # the item's commands, as before
-        self.complete(DONE)
-        self.assertEqual(sorted((self.run_dir / "tests").glob(action + "-step-proof*")) if (self.run_dir / "tests").is_dir()
-                         else [], [])
-        self.assertEqual(self.state()["active_improve"]["action_id"], action)   # accepted: its Improve child started
+        self.drive_to("implement", step_plan=self.proof_plan(self.PROOF, delegation_steps=2))
+        self.assertEqual(test_loop.stage_commands(self.state(), "implement", "W1")[0],
+                         [{"command": self.PROOF, "suite": "check"}])    # the step's Proof, not the item's commands
+        before = (self.run_dir / "state.md").read_bytes()
+        with self.assertRaises(nav.NavigatorError) as caught:
+            self.complete(DONE)
+        self.assertIn("step S1's Proof did not pass", str(caught.exception))
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        (self.repo / "proof.txt").write_text("proved\n")
+        self.restart_loop(str(caught.exception))
+        self.assertIn("Gates: step-proof: [check] " + self.PROOF + " -> passed", self.complete(DONE))
+        self.assertEqual(nav.current_stage(self.state()), "test")
 
 
 class ItemScopePathClassTests(unittest.TestCase):
@@ -2526,6 +2890,51 @@ class ItemScopePathClassTests(unittest.TestCase):
         self.assertEqual(catalog["order"], ["test", "metadata-nav", "docs", "config"])
         self.assertEqual(catalog["non_behavioural"], ["metadata-nav", "docs", "config"])
         self.assertEqual(sorted(catalog["classes"]), ["config", "docs", "metadata-nav", "test"])
+
+
+class SharedBaseTests(unittest.TestCase):
+    """Design T §9.1 step 3 (Astra's §9 row 4: "Baseline callers still use the item/preparatory base"): the base run, the
+    mutation check and red-check read the item's lint base, which each step after the first recaptures from its own
+    base commit (``navigator._iteration_base``).  validate-existing's preparatory fix moved that base to its commit at
+    every step, so from S2 on those three ran on the tree before S1."""
+
+    def setUp(self) -> None:
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-shared-base-")
+        self.addCleanup(temp.cleanup)
+        self.repo, self.run_dir = Path(temp.name) / "repo", Path(temp.name) / "run"
+        self.repo.mkdir()
+        self.run_dir.mkdir()
+        git(self.repo, "init", "-q")
+        git(self.repo, "config", "user.email", "t@example.com")
+        git(self.repo, "config", "user.name", "T")
+        self.commit("status.txt", "fail\n")
+
+    def commit(self, name: str, text: str) -> str:
+        (self.repo / name).write_text(text)
+        git(self.repo, "add", name)
+        git(self.repo, "commit", "-qm", name)
+        return git(self.repo, "rev-parse", "HEAD").strip()
+
+    def capture(self) -> None:
+        import shiploop_lint as lint
+        for relative, text in lint.capture_base(self.run_dir, self.repo, "W1").items():
+            store.atomic_write_text(self.run_dir / relative, text)
+
+    def test_the_preparatory_fix_moves_the_first_steps_base_and_no_later_ones(self):
+        import shiploop_expectations as expectations
+        self.capture()                                    # the item's base, captured before validate-existing's fix
+        fix = self.commit("status.txt", "ok\n")
+        record = self.run_dir / expectations.PREPARATORY_COMMIT.format(item="W1")
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(fix + "\n")
+        self.assertEqual(nav.test_base_commit(self.run_dir, "W1"), fix)
+        self.commit("a.py", "import os\n")              # S1's commit
+        self.capture()                                    # S2's base: _iteration_base recaptures it after S1's commit
+        self.assertIsNone(nav.test_base_commit(self.run_dir, "W1"), "S2's base already holds the fix")
+        self.assertEqual(nav.preparatory_base(self.run_dir, "W1"), fix, "the commit itself is still the item's record")
 
 
 class ReleaseVerifyReturnedResultTests(unittest.TestCase):
@@ -2645,8 +3054,9 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
 
 
 class WorktreeItemCommitTests(unittest.TestCase):
-    """What a worktree run says and does about the files the item commit leaves (F1, F2 and #5 of the 2026-10-10 review;
-    the commit moved from integrate to verify on 2026-10-10).
+    """What a worktree run says and does about the files the commit stage leaves (F1, F2 and #5 of the 2026-10-10
+    review; the commit moved from integrate to verify on 2026-10-10, and to each step's commit stage after its document
+    stage and review when verify retired, design T §9.1 2b-4c).
 
     The run is a real workspace prepared with ``--exclude notes.md`` (a transient file the caller declared), driven by
     real ``dispatch`` calls; the driver is borrowed from ``TestLoopTests``.
@@ -2691,16 +3101,24 @@ class WorktreeItemCommitTests(unittest.TestCase):
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Item-commit fixture.", worktree=True,
                                              improve_skill=str(IMPROVE_CARD), lint_option="off"))
 
-    def test_the_verify_packet_and_notice_print_plan_returns_rule_from_the_return_routes_one_constant(self):
+    def committed_output(self) -> str:
+        """Submit document's done and import the step's review, where the commit stage runs: what both printed."""
+        output = self.complete(DONE)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.settle()
+        return output + out.getvalue() + err.getvalue()
+
+    def test_the_document_packet_and_notice_print_plan_returns_rule_from_the_return_routes_one_constant(self):
         """F2 (S-12): the item sentence and the Return route line describe the same commit_leftovers with one text."""
-        self.drive_to("verify")
+        self.drive_to("document")
         self.assertEqual(self.state()["execution_mode"], "navigator-worktree")
         (self.repo / "server.log").write_text("listening 3000\n")
         packet = self.packet()
         # The "Considerations" list (with its Develop line) is gone from packets; the rule prints once, in the packet.
         self.assertEqual(" ".join(packet.split()).count(" ".join(stage_spec.RETURN_LEFTOVERS.split())), 1)
         self.assertIn(stage_spec.RETURN_LEFTOVERS, workspace.route_sentence(self.root))
-        output = self.complete(DONE)
+        output = self.committed_output()
         notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
         self.assertIn("server.log", notice)
         self.assertIn(stage_spec.RETURN_LEFTOVERS, notice)
@@ -2708,13 +3126,13 @@ class WorktreeItemCommitTests(unittest.TestCase):
     def test_the_item_commit_never_commits_a_path_the_workspace_excludes(self):
         """#5: commit_leftovers honours the caller's --exclude and the protected paths; the item commit did not, so a
         transient notes.md (documentation class) was committed at integrate and reached the return."""
-        self.drive_to("verify")
+        self.drive_to("document")
         (self.repo / "a.py").write_text("x = 2\n")
         (self.repo / "README.md").write_text("# Notes\n")
         (self.repo / "notes.md").write_text("scratch\n")
         left = next(line for line in self.packet().splitlines() if line.startswith("Changed, ShipLoop will not commit: "))
         self.assertIn("notes.md", left.split(": ", 1)[1].split(", "))
-        self.complete(DONE)
+        self.committed_output()
         committed = git(self.repo, "show", "--name-only", "--format=", "HEAD").split()
         self.assertIn("README.md", committed)
         self.assertIn("a.py", committed)
@@ -2841,7 +3259,7 @@ class WholeWordIdTests(unittest.TestCase):
                 # The head carries loop_lines and the full packet's tail rule_lines.
                 "test commands and rules": "\n".join(test_loop.loop_lines(root, state, "W1", "A1", "test")
                                                      + test_loop.rule_lines(state, "W1", "test")),
-                "verify rerun": "\n".join(test_loop.rerun_lines(root, state, "W1", "verify")),
+                "document rerun": "\n".join(test_loop.rerun_lines(root, state, "W1", "document")),
             }
         for name, text in parts.items():
             with self.subTest(part=name):
@@ -2879,25 +3297,63 @@ class CountFloorTests(unittest.TestCase):
 
     def test_the_highest_accepted_count_is_the_floor_and_both_numbers_are_in_the_refusal(self):
         self.assertEqual(self.run_stage("A1", "test", 5), "")
-        self.assertEqual(self.run_stage("A2", "verify", 7), "")  # growth raises the floor
-        refusal = self.run_stage("A3", "verify", 6)
+        self.assertEqual(self.run_stage("A2", "document", 7), "")  # growth raises the floor
+        refusal = self.run_stage("A3", "document", 6)
         self.assertIn("ran fewer tests than its floor (at least 7: an earlier run of this command that ShipLoop "
                       "accepted for this item) (unittest reported 6 run, 0 failed).", refusal)
         run = self.record("A3")["runs"][0]
         self.assertEqual((run["status"], run["accepted_ran"], run["counts"]["ran"]), ("too-few-tests", 7, 6))
         self.assertEqual(test_loop.refused_runs(self.root, "A3"), 1)
-        self.assertEqual(self.run_stage("A3", "verify", 7), "")  # the same action, restored
+        self.assertEqual(self.run_stage("A3", "document", 7), "")  # the same action, restored
         self.assertEqual(self.record("A3", 2)["runs"][0]["accepted_ran"], 7)  # a floor that held is recorded too
+
+    NAMED = 'echo "Ran $(cat n.txt) tests in 0.001s"; cat names.txt; echo OK'
+
+    def two_steps(self) -> None:
+        """An inline item of two steps whose one focused command runs TC-1 (due at S1) and TC-2 (due at S2), with S1
+        built."""
+        self.state = {"repo": str(self.root), "delegation": "inline", "accepted": {
+            "P1": dict(DONE, test_commands=[{"command": self.NAMED, "suite": "focused", "ids": ["TC-1", "TC-2"]}],
+                       steps=[{"id": "S1", "criteria": ["C1"]}, {"id": "S2", "criteria": ["C2"]}]),
+            "T1": dict(DONE, test_cases=[{"id": "TC-1", "criterion": "C1"}, {"id": "TC-2", "criterion": "C2"}]),
+            "I1": dict(DONE), "I2": dict(DONE)},
+            "history": [{"stage": "step-plan", "workitem": "W1", "action": "P1", "outcome": "done"},
+                        {"stage": "test-spec", "workitem": "W1", "action": "T1", "outcome": "done"},
+                        {"stage": "implement", "workitem": "W1", "action": "I1", "outcome": "done"}]}
+
+    def named(self, *names: str) -> None:
+        (self.root / "names.txt").write_text("".join("ok - " + name + " works\n" for name in names))
+
+    def test_a_later_step_owes_the_earlier_steps_count_plus_its_own_new_cases(self):
+        """Design T §9.1 step 3 (cumulative floors): S1 accepted TC-1 and two unnamed tests.  S2 may not drop those two and
+        land on the same count with its new TC-2: its floor is S1's 3 plus TC-2, the one ID newly due at S2."""
+        self.two_steps()
+        self.named("TC-1", "TC-1 (a)", "TC-1 (b)")
+        self.assertEqual(self.run_stage("A1", "test", 3), "")
+        self.state["history"].append({"stage": "implement", "workitem": "W1", "action": "I2", "outcome": "done"})
+        self.named("TC-1", "TC-2", "TC-2 (a)")
+        refusal = self.run_stage("A2", "test", 3)
+        self.assertIn("at least 4: 3 in an earlier run plus this step's 1 new ID (TC-2)", refusal)
+        self.named("TC-1", "TC-1 (a)", "TC-1 (b)", "TC-2")
+        self.assertEqual(self.run_stage("A2", "test", 4), "")
+        # A new ID in red_na passes on the step's base, so its test may already be in S1's count: it is not added.
+        detail = test_loop.floor_detail(self.root, self.state, "W1", "A3",
+                                        {"red_na": [{"id": "TC-2", "reason": "characterises the old behaviour"}]})
+        self.assertEqual(detail[self.NAMED]["floor"], 4, "A2's own accepted 4, with nothing added on top")
+        self.state["history"] = [row for row in self.state["history"] if row["action"] != "A2"]
+        detail = test_loop.floor_detail(self.root, self.state, "W1", "A3",
+                                        {"red_na": [{"id": "TC-2", "reason": "characterises the old behaviour"}]})
+        self.assertEqual((detail[self.NAMED]["floor"], detail[self.NAMED]["from"]), (3, "3 in an earlier run"))
 
     def test_the_equal_count_is_accepted(self):
         """GUARD (passes on the unchanged tree; kills a floor that also refuses the count it is)."""
         self.assertEqual(self.run_stage("A1", "test", 5), "")
-        self.assertEqual(self.run_stage("A2", "verify", 5), "")
+        self.assertEqual(self.run_stage("A2", "document", 5), "")
 
     def test_a_redone_step_plan_starts_the_count_again_and_another_item_has_its_own(self):
         self.assertEqual(self.run_stage("A1", "test", 5), "")
-        self.assertIn("at least 5", self.run_stage("A2", "verify", 3))
-        self.state["history"] += [{"stage": "verify", "workitem": "W1", "action": "A2", "outcome": "send-back"},
+        self.assertIn("at least 5", self.run_stage("A2", "document", 3))
+        self.state["history"] += [{"stage": "document", "workitem": "W1", "action": "A2", "outcome": "send-back"},
                                   {"stage": "step-plan", "workitem": "W1", "action": "P2", "outcome": "done"}]
         self.state["accepted"]["P2"] = dict(DONE, test_commands=self.state["accepted"]["P1"]["test_commands"])
         self.assertEqual(self.run_stage("A4", "test", 3), "")  # the 5 is before W1's latest step plan
@@ -2910,11 +3366,11 @@ class CountFloorTests(unittest.TestCase):
         passes only when every command did."""
         both = [{"command": self.COMMAND, "suite": "focused"}, {"command": "test -f ok.txt", "suite": "regression"}]
         self.state["accepted"]["P1"] = dict(DONE, test_commands=both)
-        self.assertIn("test -f ok.txt -> exit 1", self.run_stage("A1", "verify", 9))
+        self.assertIn("test -f ok.txt -> exit 1", self.run_stage("A1", "document", 9))
         self.assertFalse(self.record("A1")["passed"])
         (self.root / "ok.txt").write_text("ok\n")
-        self.assertEqual(self.run_stage("A1", "verify", 4), "")  # the retry: the 9 sat in a refused record
-        self.assertEqual(self.run_stage("A2", "verify", 4), "")  # and A1, now accepted, still leaves the floor at 4
+        self.assertEqual(self.run_stage("A1", "document", 4), "")  # the retry: the 9 sat in a refused record
+        self.assertEqual(self.run_stage("A2", "document", 4), "")  # and A1, now accepted, still leaves the floor at 4
 
     def test_a_pass_whose_action_ShipLoop_has_not_accepted_sets_no_floor(self):
         """GUARD (passes on the unchanged tree): the record passed, but a later gate refused the same done, so the action
@@ -2931,7 +3387,7 @@ class CountFloorTests(unittest.TestCase):
         self.state["accepted"]["Q1"] = self.state["accepted"]["P1"]
         self.state["history"] += [{"stage": "step-plan", "workitem": "W2", "action": "Q1", "outcome": "done"}]
         self.assertEqual(self.run_stage("B1", "test", 9, item="W2"), "")
-        self.assertEqual(self.run_stage("A2", "verify", 2), "")  # W1 is held to its own 2, not to W2's 9
+        self.assertEqual(self.run_stage("A2", "document", 2), "")  # W1 is held to its own 2, not to W2's 9
 
     def test_a_run_refused_for_another_reason_keeps_that_reason(self):
         """GUARD (passes on the unchanged tree): a run no accepted run precedes has no floor, so its own refusal stands."""
@@ -2949,7 +3405,7 @@ class CountFloorTests(unittest.TestCase):
         self.assertNotIn("earlier run of this command", refusal)
         self.assertNotIn("accepted_ran", self.record("A1")["runs"][0])
         self.assertEqual(self.run_stage("A1", "test", 9), "")  # accepted at 9 against a minimum of 8
-        refusal = self.run_stage("A2", "verify", 8)  # now the accepted 9 is the floor, above the plan's 8
+        refusal = self.run_stage("A2", "document", 8)  # now the accepted 9 is the floor, above the plan's 8
         self.assertIn("(at least 9: an earlier run of this command", refusal)
 
     def test_the_outer_stages_and_the_end_of_work_review_are_not_held_to_a_floor(self):
@@ -2971,7 +3427,7 @@ class CountFloorTests(unittest.TestCase):
         self.state["accepted"]["P1"]["test_commands"] = [
             {"command": "echo ok", "suite": "regression"},
             {"command": 'echo "TC-1 ok"', "suite": "focused", "ids": ["TC-1"]}]
-        self.assertEqual(self.run_stage("A1", "verify", 0), "")  # every command runs here
+        self.assertEqual(self.run_stage("A1", "document", 0), "")  # every command runs here
         self.assertEqual([run["status"] for run in self.record("A1")["runs"]], ["passed-uncounted", "passed"])
         self.assertIsNone(self.record("A1")["runs"][1]["counts"])
         self.assertEqual(test_loop.accepted_counts(self.root, self.state, "W1"), {})
@@ -2984,7 +3440,7 @@ class CountFloorTests(unittest.TestCase):
         self.assertEqual(self.run_stage("A1", "test", 0), "")
         self.assertEqual(self.record("A1")["runs"][0]["counts"]["ran"], 5)
         (self.root / "quiet.txt").write_text("")
-        self.assertEqual(self.run_stage("A2", "verify", 0), "")
+        self.assertEqual(self.run_stage("A2", "document", 0), "")
         run = self.record("A2")["runs"][0]
         self.assertEqual((run["status"], run["counts"], run["accepted_ran"]), ("passed", None, 5))
 
@@ -2995,13 +3451,13 @@ class CountFloorTests(unittest.TestCase):
         self.assertIn("Restore the tests that were removed or now skip.", flat)
         self.assertNotIn("report send-back", flat)  # the test stage's exit for a deliberate removal is retired_tests
         self.assertIn("goes in the result's retired_tests with its reason", flat)
-        flat = " ".join(test_loop._explain(run, "verify").split())
+        flat = " ".join(test_loop._explain(run, "document").split())
         self.assertIn("Restore the tests that were removed or now skip.", flat)
         self.assertIn("report send-back naming what was removed and why, and the redone step plan starts the "
                       "count again", flat)
 
     def test_the_item_stage_packets_state_the_floor_and_the_rest_do_not(self):
-        self.assertIn(test_loop.RATCHET_RULE, test_loop.rerun_lines(self.root, self.state, "W1", "verify"))
+        self.assertIn(test_loop.RATCHET_RULE, test_loop.rerun_lines(self.root, self.state, "W1", "document"))
         self.state["accepted"]["S2"] = dict(DONE, system_commands=[{"command": "true", "suite": "regression"}])
         self.state["history"].append({"stage": "system-test-author", "workitem": None, "action": "S2", "outcome": "done"})
         outer = test_loop.rerun_lines(self.root, self.state, "", "system-test")
@@ -3183,7 +3639,7 @@ class UnavailableExecutionTests(unittest.TestCase):
                     self.assertNotIn("Fix the code so every command passes", refusal)
                     self.assertIn("Report add-work as named above, not done", refusal)
             # A stage that does not take commands from an outer recorder keeps the ids-and-flag reply, plus check.
-            for stage in ("test", "verify", "end-of-work review"):
+            for stage in ("test", "document", "end-of-work review"):
                 with self.subTest(stage=stage):
                     _writes, refusal = test_loop.verify(root, self.state(root, "true"), "", "A-" + stage, stage,
                                                         commands=pipeline)
@@ -3203,7 +3659,7 @@ class UnavailableExecutionTests(unittest.TestCase):
             root = Path(temp)
             state = self.state(root, "true")
             self.assertIn("the item goes back to its step plan (send-back)",
-                          "\n".join(test_loop.rerun_lines(root, state, "W1", "verify")))
+                          "\n".join(test_loop.rerun_lines(root, state, "W1", "document")))
             outer = "\n".join(test_loop.rerun_lines(root, state, "W1", "system-test"))
             self.assertIn("the outer loop takes corrective work items (add-work)", outer)
             self.assertNotIn("step plan (send-back)", outer)
@@ -3212,11 +3668,14 @@ class UnavailableExecutionTests(unittest.TestCase):
         """The outer stages have no step plan: their commands come from system-test-author and release-plan."""
         with tempfile.TemporaryDirectory() as temp:
             state = self.state(Path(temp), "true")
-            for stage, source in (("verify", "the step plan"),
-                                  ("system-test", "system-test-author"), ("release-verify", "release-plan")):
+            for stage, source in (("system-test", "system-test-author"), ("release-verify", "release-plan")):
                 with self.subTest(stage=stage):
                     packet = "\n".join(test_loop.rerun_lines(Path(temp), state, "W1", stage))
                     self.assertIn("runs every test command " + source + " recorded from", packet)
+            # Document reruns what its own edits could affect, out of the commands its step's test stage ran (2b-4b).
+            packet = "\n".join(test_loop.rerun_lines(Path(temp), state, "W1", "document"))
+            self.assertIn("reruns what your edits since this stage began could affect, out of the commands its step's "
+                          "test stage ran", packet)
             self.assertNotIn("the step plan recorded",
                              "\n".join(test_loop.rerun_lines(Path(temp), state, "W1", "system-test")))
 
@@ -3248,11 +3707,11 @@ class UnavailableExecutionTests(unittest.TestCase):
             inplace = self.state(Path(temp), "true")
             self.assertIn("recorded from " + temp + " and refuses", "\n".join(
                 test_loop.rerun_lines(root, inplace, "", "release-verify")))
-            for stage in ("system-test", "verify"):
+            for stage in ("system-test", "document"):
                 with mock.patch.object(test_loop.workspace, "returned_result", return_value=returned) as read:
                     text = "\n".join(test_loop.rerun_lines(root, dict(state, execution_mode="navigator-worktree"),
                                                               "W1", stage))
-                self.assertIn("recorded from " + temp + " and refuses", text)
+                self.assertIn(" from " + temp + " and refuses", text)
                 read.assert_not_called()
 
     def test_release_verify_in_place_run_still_runs_in_the_checkout_and_records_it(self):
@@ -3532,7 +3991,7 @@ class RefusedRunTallyTests(unittest.TestCase):
                 self.seed(root, refused)
                 state = self.state(root, "true")
                 packet = "\n".join(test_loop.loop_lines(root, state, "W1", "A1", "test", cli="shiploop"))
-                reruns = "\n".join(test_loop.rerun_lines(root, state, "W1", "verify")
+                reruns = "\n".join(test_loop.rerun_lines(root, state, "W1", "document")
                                    + test_loop.rerun_lines(root, state, "", "system-test"))
                 texts = {"test packet": packet, "rerun list": reruns, **self.refusal_texts(root, refused)}
                 for name, text in texts.items():

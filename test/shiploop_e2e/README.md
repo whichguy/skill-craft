@@ -140,10 +140,25 @@ pre-created. It grades five verdicts into `result.json`:
   its `report.html`. Which run that is, is recorded in `shiploop-run.json` (added
   2026-10-16): the runs already in the folder when it was created (a follow-on's copy can
   bring one) are never candidates, and the run itself is the one seeded by the harness,
-  else the only new run, else the only new run the host's `--run-dir` commands named.
-  A resume and a regrade grade that same run. Several runs that nothing tells apart are
-  `ambiguous` (the result lists them) and fail; an unrelated finished run is never
-  preferred;
+  else the only new run. A model that abandons its first run and starts a second leaves
+  several; then the runs it did not pause or halt are the candidates (a finished or blocked
+  run is still in play), one candidate is the run, and several are told apart only by the
+  one the host's `--run-dir` commands named. When every run was paused or halted, the run
+  whose `state.md` changed last is the run if it changed strictly after the others.
+  The runs not chosen are listed as `other_runs`. A resume and a regrade grade the
+  recorded run again; a choice that follows the runs' statuses is made again at every
+  grade and is not recorded, because a model can resume the run it paused. Several runs
+  that nothing tells apart (two live runs, or a finished run beside a live one) are
+  `ambiguous` (the result lists them) and fail; a run that was already there when the
+  invocation started is never a candidate. The same rule (`run_choice.py`) names the run for each of these readers:
+  the verdict, every measurement that reads the run's files (`metrics.run_dir_of`), the
+  live monitor (`progress.py`), the Live Run Card (`status_card.py build e2e`, and the
+  worktree its action inspector reads reviews from) and the reader behind the flow
+  viewer, the packet report and the owner page (`packets.find_run_dir`, which exits
+  saying `ambiguous` where the verdict would). The Run Review exporter
+  (`skills/shiploop-run-review/scripts/export.py`) may not import from `test/`: it takes
+  the run `result.json` names, which the verdict wrote from this rule, else the newest
+  `state.md`;
 - **committed**: the source checkout ends committed: HEAD moved past where the
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),
@@ -328,13 +343,23 @@ compound command), the exit for the four the model piped, and the stage the run 
 before reading a refusal difference between a run before 1.12.0 and a later one.
 
 **Live checks** (`run_trace.checks`, in `metrics.json` as `run_trace.checks` and printed as the run's `trace checks` line).
-Three behaviours the fixtures prove; each first passed on a real run on 2026-10-28, and every run reads them:
+Four behaviours the fixtures prove; the first three first passed on a real run on 2026-10-28, and every run reads them:
 - `keepalive_text`: each keepalive stop decision that continued a turn recorded the text it put into the turn;
 - `packet_copies`: each printed packet names a kept copy (`packets/sent/<sha>.md`) whose text has that hash, the
   copy the Run Review page reads; reprints are counted. It was `packet_reprint` until 2026-10-28 and read identical
   reprints only, which the reprint a fresh session gets from `next` never is;
 - `owner_note`: each owner note was delivered, that is, a step was accepted after its packet quoted the note. The
   evidence names the step, the action whose `complete` was held to show it, and whether the step's summary cites it.
+- `session_end`: the host's session-end hook freed the run, and the next session took it at once. The trace holds each
+  session end the host reported (`hook=session-end`, `released`, `reason`; from the release after 1.20.0). `released` is true
+  when the hook removed that session's claim, false when the stop hook had already freed the run (a normal exit) or another
+  session owned it. The next session's claim is its first stop decision after the release, which continued its turn (only
+  the owner's does). `pass`: a released row, and that decision within `run_trace.CLAIM_WITHIN_SECONDS` (900 s, half of
+  the keepalive's 30-minute stale window: a later claim is indistinguishable from the stale path). `fail`: the next
+  session's first decision let the host stop ("another session owns this run") or came later than that.
+  `not exercised`, never a pass: no session end in the trace, none that freed a claim, or no other session's stop decision
+  after the release. Only a clear ended with `slice.py --clear-signal` (above) exercises it in a slice; a full run's
+  sessions end through the driver, which releases the owner itself.
 
 Each verdict is `pass`, `fail`, `not exercised` (the run never did it, which is not a pass) or, for a note the run had not
 delivered when it stopped short of done, `open`. The Live Run Card shows them while the run is going: `status_card.py build
@@ -757,7 +782,7 @@ suites (one style) and the `breadth` suite (one case of each style in its `style
 `web-service`, `cli-files` and `stateful-service`). Breadth names the styles it
 leaves out in `not_covered`: `smoke` (hello covers it in the smoke suite and as the
 batch gate), `parallel-graph` (no qualified passing baseline; its cases run only
-with `--case`), `hosted-platform` (its cases deploy to a real hosted org and need
+with `--case`; since 2026-10-29 they are graded on nothing parallel, see "The chain cases, retired" below), `hosted-platform` (its cases deploy to a real hosted org and need
 the owner's go for each deploy) and `brownfield` (its one case, `user-listing`, has not run live). Every suite's `styles` must equal the styles of its cases, and SPEC
 and this README must name the same styles; `SuiteTest` pins all three. `--suite`
 runs the cases into one directory, each in its own folder; independent chains
@@ -1634,8 +1659,9 @@ share a suite directory, and `.../batch-sonnet/battleship` is also a prefix of `
 ## Step slices: one work item's inner loop
 
 A full run spends most of its time planning and releasing. A step slice exercises only one work item's inner loop:
-step-plan, test-spec, validate-existing, implement, test, document, verify and carry-forward, with the Improve child
-after each implement step and the last item's carry-forward Improve. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
+step-plan, test-spec, validate-existing, then implement, test and document for each step (the Improve child after each
+step's document stage, then ShipLoop's commit of the step), then carry-forward with the last item's carry-forward
+Improve. Verify retired on 2026-10-28 (design T §9.1 2b-4c); slices recorded before then show it after document. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
 cost, and repeat that after each skill edit.
 
 There are three tiers, cheapest first.
@@ -1681,11 +1707,11 @@ dependency-free Node project whose tests use `node --test`, with a deliberate `p
 **The seed** (`run.seed_run` with `fixture`, `work_item` and `delegation`) copies the fixture into a new git
 repository and commits it. It starts a run with that delegation (inline by default: one session, every packet in
 the main context). It then records every stage before step-plan without doing it, on the plugin's own navigator.
-So the gates the test stage and verify run on an item find what they read, the seed also records what the skipped
+So the gates the test and document stages run on an item find what they read, the seed also records what the skipped
 stages would have left (X-2, TD-5, SP-7a):
 - **the item base.** When the plan's item enters its inner loop the seed writes `lint/items/<item>.md`, the snapshot
   `shiploop_lint.on_transition` takes on a real run, in the same transaction as the state. The base run, the mutation
-  check, the change inventory and the item commit read it; without it each recorded `skipped: no item base was
+  check and the step commits read it (the change inventory did too, until verify retired); without it each recorded `skipped: no item base was
   recorded` and did nothing, so every earlier slice baseline covers fewer gates than it claims. `seeded.item_bases`
   names the items recorded;
 - **a neutral knowledge home**, committed into the seed repository before the baseline commit (so the worktree starts
@@ -1727,7 +1753,7 @@ given, one per session, and each is measured from its own stop, so a redo after 
 
 ```sh
 python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --clear-at implement \
-  --clear-at implement:inside --clear-at test --clear-at verify --clear-at carry-forward --clear-at improve \
+  --clear-at implement:inside --clear-at test --clear-at document --clear-at carry-forward --clear-at improve \
   --resume-prompt withheld
 ```
 
@@ -1744,6 +1770,19 @@ python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --cl
   clear fired). `invocation.json` holds `clear_at` and `resume_prompt`, and the `told` of each session in `sessions.jsonl`
   is null when nothing was named. A position that cannot fire (out of the run's order, a stage the slice never reaches)
   blocks the ones after it. An older run's single-record `clear.json` is refused, not read as empty.
+- `--clear-signal SIGTERM|SIGINT|SIGHUP|SIGKILL` (default: none) says how a clear ends the host. Without it the harness
+  kills the host's process group with SIGKILL and frees the run's keepalive owner itself (`release_keepalive_owner`, as the
+  driver does between sessions). With it the harness sends that signal to the host's process, waits until the host's group
+  has gone (at most `run.SESSION_END_SECONDS`, 15 s: the keepalive registers its session-end hook with a 10 s timeout),
+  ends the group, and releases nothing. The host's own SessionEnd hook then frees the run, and the run trace holds the
+  proof: a `hook` row `session-end` with `released: true`, which the `session_end` check (below) reads together with the
+  next session's continued turn. Each clear's record in `clear.json` names the signal (`end_signal`), and `invocation.json`
+  holds `clear_signal`. Which signal runs a session-end hook is a host fact: for Claude Code 2.1.312 SIGTERM, SIGINT and SIGHUP
+  do, in under a second, also through the `caffeinate` wrapper, and SIGKILL never does
+  (`docs/shiploop-owed-outcome-evidence/session_end_probe.out`); Grok, Codex and Cursor are unprobed, so on them the check
+  reads `released: false` (not exercised) where the hook did not run. `--clear-signal SIGKILL` is the same switch for a
+  host that dies without a hook: the dead owner's claim stays in place, and the next session takes the run only through the
+  keepalive's process check (the takeover evidence).
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
@@ -1879,6 +1918,29 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 
 The two saved-run extracts the tests read are `test/fixtures/efficiency/` (`extract.py` there says how they were cut).
 
+## The chain cases, retired (2026-10-29, design T §9.1 2c-2)
+
+ShipLoop's implementation chain is gone: the ask-agent route builds one step per implement action, as the inline route does
+(owner decision G1, 2026-10-29: "Adopt (a2)"). So the harness lost what only the chain made measurable, and this is said
+openly, not counted as unchanged coverage:
+
+- **The `chain` grade is retired.** `run.py` no longer computes `chain_facts` (every step accepted, at least `min_in_flight`
+  workers together, the dependency depth, each merge once) or the `recovery` grade (`--interrupt-at chain-launched`: kill the
+  host while a chain worker is in flight and let a fresh session finish the chain). The `chain` and `recovery` keys are
+  gone from `result.json`, the four cases' `chain` expectations are gone from `cases.json`, and so are the tests of both.
+- **The four `parallel-graph` cases stay** (`temperature-report`, `unit-converter`, `word-report`, `temperature-plain`) as
+  ordinary cases: their products still build and their checks still run. What they were chosen for, independent modules
+  built in parallel, is no longer asked or graded, so the style name is a label for history. Whether to rename or drop
+  the style is the owner's.
+- **A step slice seeded at `step-plan` keeps its default route, ask-agent**, which the chain cases needed. Changing it
+  would break comparability with earlier evidence, so it is the owner's call.
+- **Not replaced yet:** a check that a lost implement worker is shown stopped before another starts (the open question of
+  design T §9.1 2c) has no harness support. The pilot Astra listed (the lifecycle's order and commits, the bases after a
+  preparatory fix and a send-back, crash recovery at four points, a killed implement worker, context fidelity, quality and
+  cost per stage, Run Review's per-step view) has not been run; it is proposed in the design doc.
+- **Old runs** keep their chain ledgers and worktrees on disk. The commit counters still read the chain's merge subject and
+  the item commit subject for them.
+
 ## The release slice: deployment tested from a built product
 
 A full run of a hosted-platform case spends most of its time building the app; the question "does ShipLoop release it into my org
@@ -1921,7 +1983,7 @@ folders under `fixtures/`; `run.py` and `release_slice.py` hold no Salesforce wo
 | system-test, product-acceptance | a done record that says nothing ran | `seed_home/records.json` |
 
 The gates the release stages read are the real ones: `shiploop next` prints the release-plan packet with the system commands and
-A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `complete --check-only`
+A1 quoted and the three knowledge files listed, and a model-shaped release-plan result passes `shiploop check`
 (`test/shiploop-e2e-release-slice.test.py`). No delivery contract is declared (an unmarked run, as the first live run was).
 
 **The org, by mode** (`--platform-existing`, default `fresh`; the case lists `update` in `platform.existing`, and a case that does not
@@ -1955,7 +2017,7 @@ bypassed), the case's checks, and a new one, `release_slice` in `result.json`:
   been returned to it (any file of the product folder is there, committed or not: the return puts them all there at once). Before that there is nothing for them to read, so
   they are left out and named, and a run that never returned the product shows it in `committed` and in the stages, not as a
   second failure. The other checks (`deployed`, `tests`, `access`, `rules`) read the org and always run.
-- No `chain` verdict: a release slice has no implementation chain, so the one a step-plan seed is graded on is not computed.
+- No `chain` verdict: no run is graded on an implementation chain any more (see "The chain cases, retired" below).
 
 The run prints `release   PASS|FAIL  <n>/6 stages accepted ...` with the stop and deploy lines, and a failing verdict is listed in
 `mismatch.md` as `release_slice`. A seeded run writes no baseline row.

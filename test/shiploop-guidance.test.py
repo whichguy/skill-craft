@@ -68,7 +68,8 @@ LOCAL_SKILL_GUIDE_ROUTE = (
     "Repository-local skill guidance: "
     + str(REFERENCES / "testing-and-documentation.md#reusable-product-skills")
 )
-CODING_GUIDE_STAGES = ("step-plan", "implement", "verify")
+# Verify carried it too until it retired (design T §9.1 2b-4c); each step's review applies the coding rubric verbatim.
+CODING_GUIDE_STAGES = ("step-plan", "implement")
 CODING_GUIDE_ROUTE = (
     "Coding decision guide: " + str(REFERENCES / "coding-guidance.md#select-guidance")
 )
@@ -93,7 +94,6 @@ SERVICE_DISCOVERY_STAGE_ANCHORS = {
     "plan": "development-handoff",
     "step-plan": "development-handoff",
     "implement": "development-handoff",
-    "verify": "verification",
     "operations": "observability-coverage",
     "handoff": "development-handoff",
 }
@@ -155,7 +155,8 @@ HOUSE_STYLE_GUIDE = "house-style.md"
 HOUSE_STYLE_GUIDANCE_LABEL = "House-style guidance"
 # Deliberately independent of the prompt catalog: extract at discovery, contract
 # at step planning, reread while building, retain at carry-forward.  Packet re-cut (2026-10-11): test code follows Code
-# craft rule 1 and verify checks the diff against the step plan's contract, so those two stages dropped the label.
+# craft rule 1 and the diff check against the step plan's contract was verify's (retired, design T §9.1 2b-4c), so
+# neither stage carries the label.
 HOUSE_STYLE_STAGE_ANCHORS = {
     "discovery": "extract-the-house-style",
     "step-plan": "write-the-match-contract",
@@ -166,6 +167,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_context_index as context_index  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -426,7 +428,7 @@ class GuidanceTests(unittest.TestCase):
 
     def test_match_contract_reaches_every_stage_that_builds_or_checks_the_item(self) -> None:
         """The contract lives in the step-plan result; work items take context only at plan."""
-        for stage in ("implement", "test", "verify", "document"):
+        for stage in ("implement", "test", "document"):
             with self.subTest(stage=stage):
                 self.assertIn("item:step-plan", context_index.STAGE_READS[stage])
 
@@ -580,8 +582,8 @@ class GuidanceTests(unittest.TestCase):
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
         # Packet re-cut: test-strategy, plan and step-plan dropped the baseline guide label, so only the stages that still
-        # cite it and park an Improve child are observed.
-        self.assertEqual(tuple(observed), ("spec", "carry-forward"))
+        # cite it and park an Improve child are observed: document cites it and, since design T §8, parks the step review.
+        self.assertEqual(tuple(observed), ("spec", "document", "carry-forward"))
 
     def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
         """A compact requirement survives planning and due-stage reconciliation.
@@ -596,12 +598,13 @@ class GuidanceTests(unittest.TestCase):
             "test": "Each case ends as:",
             "step-plan": "Confirm by: <what a command observes>; pass when <expected result>",
             "implement": "Each iteration edits first.",
-            "verify": "Criterion or check unachievable as planned: report send-back naming it.",
+            "document": "Plan or criterion wrong as observed: report send-back naming it.",
             "product-acceptance": "pending release verification",
             "release-verify": "the consumer entry reached after authentication",
         }
-        reconciles = {"verify", "system-test",
-                      "product-acceptance", "release-verify", "handoff"}
+        # Verify reconciled the item's cases until it retired (design T §9.1 2b-4c); each step's test stage ends every
+        # due case in an end state, and its gate checks every ID ran.
+        reconciles = {"system-test", "product-acceptance", "release-verify", "handoff"}
         locator = str(REFERENCES / "testing-and-documentation.md#stage-readiness-and-completion")
         state = self.state()
         clause = "docs/requirements.md#capture: observe capture in the deployed UI; due release-verify"
@@ -634,7 +637,7 @@ class GuidanceTests(unittest.TestCase):
                 extra["work_items"] = [{"id": "W1", "title": "Capture behavior", "context": clause}]
             state, _ = self.complete_stage(state, **extra)
             visited.add(stage)
-        self.assertEqual(len(visited), 24)
+        self.assertEqual(len(visited), 23)
 
     def test_quality_guidance_keeps_planning_review_and_product_review_distinct(self) -> None:
         for stage in ("spec", "test-spec", "validate-existing", "release-verify"):
@@ -822,7 +825,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(
             tuple(improved),
             tuple(stage for stage in prompts.STAGES
-                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"implement", "carry-forward"}),
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"document", "carry-forward"}),
         )
 
     def test_the_procedure_condition_reaches_where_procedures_originate_and_every_planning_review(self) -> None:
@@ -881,13 +884,14 @@ class GuidanceTests(unittest.TestCase):
     def test_a_procedure_locator_reaches_every_stage_that_consumes_its_case_or_open_item(self) -> None:
         """W2-C (implement-step fix plan T26, T29): a procedure is carried by its locator, not copied.  The case's
         `oracle` and an open item's `settle` name it; every stage that quotes the case (implement and its Improve, test,
-        verify, system-test-author) or the open item (its consumer) is given that locator cold, and the later-owned
+        document, system-test-author) or the open item (its consumer) is given that locator cold, and the later-owned
         procedure stays an open item, its observer unresolved, until its consumer stage.  The observing outer stages
         say a changed setup voids an earlier observation (their own duty text: the consumer's half of the rule).  This
         is the data a cleared model is given, not proof that it runs the procedure."""
         sys.path.insert(0, str(ROOT / "test"))
         import shiploop_assumptions as assumptions
         import shiploop_head_plans as plans
+        import shiploop_test_loop as test_loop
         case_locator = "HOME/architecture.md ## Real-boundary checks RB-1"
         open_locator = "HOME/architecture.md ## Real-boundary checks RB-2"
         cases = [dict(plans.TEST_CASES[0], oracle="Procedure " + case_locator + ", through the public call"),
@@ -898,7 +902,7 @@ class GuidanceTests(unittest.TestCase):
                  "reason": "no route to that surface from this host"}
         extras = {"plan": {"work_items": [plans.CASE["work_item"]]}, "step-plan": plans.PLAN,
                   "test-spec": {"test_cases": cases, "assumptions": [later]}}
-        quotes_case = ("implement", "test", "verify", "system-test-author")
+        quotes_case = ("implement", "test", "document", "system-test-author")
         voids = {"system-test": "rerun the affected observations",
                  "release-check": "invalidates the observations it affects",
                  "release-verify": "invalidates the observations it affects"}
@@ -911,7 +915,12 @@ class GuidanceTests(unittest.TestCase):
                 recovered, packet = self.cold_packet(state)
                 with self.subTest(route=route, stage=stage):
                     open_ids = [found.row["id"] for found in assumptions.open_items(recovered)]
-                    if stage in quotes_case:
+                    # A step's test stage quotes the cases due by its step (design T §8): this plan's TC-1 serves C1,
+                    # which S2 lists too, so it is due at S2 and S1's test stage quotes no case.
+                    number = (test_loop.step_number(recovered, plans.CASE["work_item"]["id"])
+                              if stage in ("test", "document") else None)
+                    due = number is None or number >= 2
+                    if stage in quotes_case and due:
                         self.assertIn(case_locator, packet)
                         self.assertIn("A1", open_ids)
                         seen.append(stage)
@@ -927,17 +936,18 @@ class GuidanceTests(unittest.TestCase):
                     state = waiting
                     continue
                 pending, packet = self.cold_packet(waiting)
-                if stage == "implement":
-                    with self.subTest(route=route, stage="implement Improve"):
-                        # The step's review reads the case where the producer's packet quotes it (by file since U2).
+                if stage == "document":
+                    with self.subTest(route=route, stage="step review"):
+                        # The step's review (after its document stage, design T §8) reads the case where the reviewed
+                        # packet quotes it (by file since U2).
                         self.assertIn("its packet RUN/packets/" + producer + ".md", packet)
                         quoted = next(line for line in packet.splitlines()
                                       if line.startswith("- Hand-offs, quoted there by value: "))
                         self.assertIn("test_cases", quoted)
-                        seen.append("implement-improve")
+                        seen.append("step-review")
                 state = navigator.finish_improve(pending, action["id"], receipt(stage))
             with self.subTest(route=route, check="every consumer reached"):
-                self.assertEqual(set(seen), set(quotes_case) | set(voids) | {"implement-improve"})
+                self.assertEqual(set(seen), set(quotes_case) | set(voids) | {"step-review"})
 
     def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
         """Fresh producer and pending-child packets retain the local skill route.
@@ -1836,9 +1846,12 @@ class GuidanceTests(unittest.TestCase):
         current = planning_revision.current_actions(state)
         for owner in ("W1", "W2"):
             for read in ("step-plan", "test-spec", "test"):
-                row = "- " + owner + " " + read + " result: RUN/results/" + current[(owner, read)] + ".md"
-                self.assertIn(row, packet)
-                self.assertGreater(packet.index(row), packet.index("Results this stage builds on"))
+                # A step's result carries its step in the label (design T §9.1 2c-1: every route runs per step); a plan
+                # this fixture leaves without steps numbers it.
+                found = re.search("- " + owner + " " + read + r"(?: S\d+| step \d+)? result: RUN/results/"
+                                  + current[(owner, read)] + r"\.md", packet)
+                self.assertIsNotNone(found, owner + " " + read)
+                self.assertGreater(found.start(), packet.index("Results this stage builds on"))
             self.assertEqual(current[(owner, "test")], decision_actions[owner])
         # Neither current-item context nor an item-local projection leaks into
         # root-owned outer planning. The handshake directs a bounded history lookup.
@@ -1949,7 +1962,7 @@ class GuidanceTests(unittest.TestCase):
         packet = normalized(packet)
         self.assertIn(label + ": " + str(REFERENCES / locator), packet)
         self.assertIn("The records in force are the ones listed under \"Results this stage builds on\"", packet)
-        self.assertIn("- W3 test result: RUN/results/" + decision_actions["W3"] + ".md", packet)
+        self.assertIn("- W3 test step 1 result: RUN/results/" + decision_actions["W3"] + ".md", packet)
         self.assertNotIn("W3 new target fixture.", packet)
         # 2026-10-11 dedupe: the trailing "If this action depends on earlier accepted context..."
         # sentence is gone; the lists of sources and the "Results this stage builds on" block carry it.
@@ -2348,14 +2361,16 @@ class GuidanceTests(unittest.TestCase):
                 continue
             pending, pending_packet = self.cold_packet(waiting)
             self.assertEqual(navigator.current_stage(pending), stage)
-            assert_packet(stage, pending_packet)
-            if stage in SERVICE_DISCOVERY_ROUTES:
+            # The step review (after document, design T §8) names the guides of the step's implement, test and document.
+            reviewed = "implement" if stage in stage_spec.with_improve("item") else stage
+            assert_packet(reviewed, pending_packet)
+            if reviewed in SERVICE_DISCOVERY_ROUTES:
                 improved.append(stage)
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
         self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
-        # implement's Improve child reviews every accepted step (owner decision 2026-10-10).
-        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan", "implement"])
+        # Each step's review, after its document stage, reviews the step's code (design T §8).
+        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan", "document"])
 
 
     def test_service_discovery_guide_sections_and_links_survive_package_relocation(self) -> None:
@@ -2792,12 +2807,19 @@ class UnattendedWordingTests(unittest.TestCase):
         self.assertIn("a recorded default", rows["intake"])
         self.assertIn("none exists and that is recorded as missing coverage", rows["discovery"])
 
-    def test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_binds_no_chain_inline(self) -> None:
+    def test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_reviews_the_assembled_steps_on_the_ask_agent_route(
+            self) -> None:
+        """Integrate folded into verify, which retired (design T §9.1 2b-4c): document's duty leaves the commit to
+        ShipLoop on both routes, and only a review of several steps built at once (the ask-agent route's) checks how the
+        steps fit together; an inline step's review has no other step to assemble."""
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                text = normalized(prompts.prompt("verify", delegation=route))  # integrate folded into verify
+                text = normalized(prompts.prompt("document", delegation=route))
                 self.assertNotIn("assemble or commit", text)  # the stage row says ShipLoop commits; the duty does not ask
-                self.assertEqual("bound a chain" in text, route == "ask-agent")  # a chain exists only when delegation is ask-agent
+                self.assertIn("Commit nothing yourself.", text)
+        interfaces = "two steps that conflict, or disagree at an interface they share"
+        self.assertNotIn(interfaces, normalized(prompts.IMPLEMENT_STEP_REVIEW_FOCUS))
+        self.assertIn(interfaces, normalized(prompts.for_steps(prompts.IMPLEMENT_STEP_REVIEW_FOCUS, "S1 to S2", "a.py")))
 
     def test_the_improve_packet_never_calls_its_own_review_independent(self) -> None:
         # The same packet says the trivial passes are self-passes, not independent reviewers.

@@ -1,0 +1,177 @@
+{
+ "threads": 14,
+ "totals": {
+  "input_tokens": 23111233,
+  "cached_input_tokens": 22226048,
+  "output_tokens": 105162,
+  "reasoning_output_tokens": 7367
+ },
+ "workers_spawned_by_the_parent": [
+  {
+   "task_name": "step_plan",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "plan_improve",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "test_spec",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "implement_parse",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "test_parse",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "document_parse",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "parser_improve",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "implement_select",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "test_select",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "document_select",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "selector_improve",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "carry_forward",
+   "fork_turns": "none"
+  },
+  {
+   "task_name": "final_improve",
+   "fork_turns": "none"
+  }
+ ],
+ "per_thread": [
+  {
+   "role": "parent",
+   "tool_calls": 123,
+   "input_tokens": 11631127,
+   "cached_input_tokens": 11485056,
+   "output_tokens": 17507,
+   "reasoning_output_tokens": 560
+  },
+  {
+   "role": "worker",
+   "tool_calls": 19,
+   "input_tokens": 1273700,
+   "cached_input_tokens": 1199744,
+   "output_tokens": 8570,
+   "reasoning_output_tokens": 611
+  },
+  {
+   "role": "worker",
+   "tool_calls": 22,
+   "input_tokens": 1599217,
+   "cached_input_tokens": 1521792,
+   "output_tokens": 8985,
+   "reasoning_output_tokens": 781
+  },
+  {
+   "role": "worker",
+   "tool_calls": 15,
+   "input_tokens": 1001908,
+   "cached_input_tokens": 910464,
+   "output_tokens": 7273,
+   "reasoning_output_tokens": 487
+  },
+  {
+   "role": "worker",
+   "tool_calls": 25,
+   "input_tokens": 1814804,
+   "cached_input_tokens": 1743232,
+   "output_tokens": 12999,
+   "reasoning_output_tokens": 1039
+  },
+  {
+   "role": "worker",
+   "tool_calls": 14,
+   "input_tokens": 787081,
+   "cached_input_tokens": 724480,
+   "output_tokens": 5015,
+   "reasoning_output_tokens": 373
+  },
+  {
+   "role": "worker",
+   "tool_calls": 19,
+   "input_tokens": 1035922,
+   "cached_input_tokens": 986112,
+   "output_tokens": 7501,
+   "reasoning_output_tokens": 706
+  },
+  {
+   "role": "worker",
+   "tool_calls": 18,
+   "input_tokens": 835415,
+   "cached_input_tokens": 731136,
+   "output_tokens": 8771,
+   "reasoning_output_tokens": 1085
+  },
+  {
+   "role": "worker",
+   "tool_calls": 11,
+   "input_tokens": 496084,
+   "cached_input_tokens": 459392,
+   "output_tokens": 5111,
+   "reasoning_output_tokens": 273
+  },
+  {
+   "role": "worker",
+   "tool_calls": 10,
+   "input_tokens": 464922,
+   "cached_input_tokens": 425984,
+   "output_tokens": 4573,
+   "reasoning_output_tokens": 289
+  },
+  {
+   "role": "worker",
+   "tool_calls": 14,
+   "input_tokens": 604809,
+   "cached_input_tokens": 569344,
+   "output_tokens": 4332,
+   "reasoning_output_tokens": 318
+  },
+  {
+   "role": "worker",
+   "tool_calls": 14,
+   "input_tokens": 601953,
+   "cached_input_tokens": 567680,
+   "output_tokens": 5221,
+   "reasoning_output_tokens": 287
+  },
+  {
+   "role": "worker",
+   "tool_calls": 11,
+   "input_tokens": 459456,
+   "cached_input_tokens": 427264,
+   "output_tokens": 4883,
+   "reasoning_output_tokens": 293
+  },
+  {
+   "role": "worker",
+   "tool_calls": 13,
+   "input_tokens": 504835,
+   "cached_input_tokens": 474368,
+   "output_tokens": 4421,
+   "reasoning_output_tokens": 265
+  }
+ ]
+}

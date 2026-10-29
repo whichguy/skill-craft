@@ -85,10 +85,11 @@ class ImproveScheduleTests(unittest.TestCase):
         state, reviewed = walk(self.new(), plan_items=items)
         self.assertEqual(reviewed, [
             ("spec", None), ("test-strategy", None), ("plan", None),
-            ("step-plan", "W1"), ("implement", "W1"),
-            ("implement", "W2"), ("carry-forward", "W2"),
+            ("step-plan", "W1"), ("document", "W1"),
+            ("document", "W2"), ("carry-forward", "W2"),
             ("system-test-author", None), ("release-plan", None),
-        ])  # W2's step-plan follows W1's reviewed pattern (rule first-item, owner 2026-10-19); test-spec has none
+        ])  # W2's step-plan follows W1's reviewed pattern (rule first-item, owner 2026-10-19); test-spec has none; each
+        # one-step item's review follows its document stage (rule item, design T §8)
         self.assertEqual(state["status"], "done")
 
     def test_end_review_that_adds_work_moves_to_the_new_last_item(self):
@@ -227,7 +228,7 @@ class ImproveScheduleTests(unittest.TestCase):
     def test_forged_improve_child_at_a_non_checkpoint_stage_is_refused(self):
         # apply() never parks a child here; a saved run that has one was forged.
         items = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
-        for target in ("verify", "carry-forward"):
+        for target in ("test", "carry-forward"):
             with self.subTest(stage=target):
                 state = advance_to(self.new(), "plan")
                 state = nav.finish_improve(
@@ -252,12 +253,12 @@ class ImproveScheduleTests(unittest.TestCase):
 
     def test_improve_record_at_a_non_planning_step_is_refused(self):
         state, _ = walk(self.new())
-        action = next(e["action"] for e in state["history"] if e["stage"] == "verify")
+        action = next(e["action"] for e in state["history"] if e["stage"] == "test")
         broken = copy.deepcopy(state)
-        broken["improve_results"][action] = receipt("verify")
+        broken["improve_results"][action] = receipt("test")
         with self.assertRaisesRegex(
                 nav.NavigatorError,
-                "Improve result " + action + " is at verify, a stage that never starts"):
+                "Improve result " + action + " is at test, a stage that never starts"):
             nav.validate(broken)
 
     def test_saved_improve_cadence_key_is_refused_with_a_named_error(self):
@@ -368,12 +369,12 @@ ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
 # The validator's refusal of a missing planning record names the option that decides which records exist.
 SCHEDULED_RECORDS = r"every planning-stage result this run's planning_review option reviews"
 # Declared here, independently of stage_spec: the children a two-item run starts, by planning_review.
-# implement's Improve runs once per item, after its last step, in both modes (rule item, owner 2026-10-26; it ran per
-# step, owner decisions 5 and 6, 2026-10-10). step-plan is reviewed for the first item only (rule first-item, owner
-# 2026-10-19, chess run 3); test-spec is not reviewed (2026-10-26).
-STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"), ("implement", "W1"),
-                  ("implement", "W2"), ("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
-NONE_CHILDREN = [("implement", "W1"), ("implement", "W2"), ("carry-forward", "W2"), ("system-test-author", None),
+# Each step's review follows its document stage, in both modes (rule item, design T §8, owner 2026-10-27/28: it followed
+# the item's last implement step from 2026-10-26, and every implement step before that). step-plan is reviewed for the
+# first item only (rule first-item, owner 2026-10-19, chess run 3); test-spec is not reviewed (2026-10-26).
+STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"), ("document", "W1"),
+                  ("document", "W2"), ("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
+NONE_CHILDREN = [("document", "W1"), ("document", "W2"), ("carry-forward", "W2"), ("system-test-author", None),
                  ("release-plan", None)]
 PLANNING_CHOICE = ("spec", "test-strategy", "plan", "step-plan")
 
@@ -851,8 +852,8 @@ class FirstItemReviewTests(unittest.TestCase):
         state, reviewed = walk(self.new(), plan_items=self.ITEMS)
         planned = [entry for entry in reviewed if entry[0] in ("step-plan", "test-spec")]
         self.assertEqual(planned, [("step-plan", "W1")])
-        self.assertEqual([entry for entry in reviewed if entry[0] == "implement"],
-                         [("implement", "W1"), ("implement", "W2"), ("implement", "W3")])
+        self.assertEqual([entry for entry in reviewed if entry[0] == "document"],
+                         [("document", "W1"), ("document", "W2"), ("document", "W3")])
         nav.validate(state)  # no Improve record is required for a later item's step plan or any test spec
 
     def test_a_sent_back_items_redone_step_plan_is_reviewed_and_its_test_spec_is_not(self):

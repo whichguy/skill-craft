@@ -57,6 +57,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import fidelity  # noqa: E402
 import metrics  # noqa: E402
+import run_choice
 import run_trace  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -114,18 +115,16 @@ def packet_owner(key: str, links: dict[str, str]) -> tuple[str, str]:
 
 
 def find_run_dir(out: Path) -> Path | None:
-    """The ShipLoop run directory under an output directory (the throwaway home and plugin build are not searched)."""
-    for state_path in sorted(out.rglob("state.md")):
-        parts = state_path.relative_to(out).parts
-        if parts[0] in ("home", "build", "export", ARCHIVE):
-            continue
-        try:
-            state = store.read_record(state_path)
-        except store.StorageError:
-            continue
-        if isinstance(state, dict) and "status" in state:
-            return state_path.parent
-    return None
+    """The ShipLoop run directory under an output directory: the run the verdict, the measurements, the monitor and the Live
+    Run Card name (metrics.run_dir_of, which asks run_choice.choose; the throwaway home and plugin build are not searched).
+    None where the folder holds no run. Where it holds several that nothing tells apart this exits saying so: a report built
+    on the first of them would describe a run the model may have abandoned."""
+    found = metrics.run_dir_of(out)
+    if found is None:
+        tied = run_choice.choose(Path(out)).tied
+        if tied:
+            raise SystemExit(f"{run_choice.ambiguity(tied)} under {out}")
+    return found
 
 
 def archive_packets(run_dir: Path, out: Path) -> int:

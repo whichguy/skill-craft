@@ -638,7 +638,7 @@ def validate_settled(state: Mapping[str, Any], action_id: str, stage: str, resul
 
     release-plan is an Improve checkpoint, so ``validate_transition`` runs only when its Improve review is imported; the
     necessity and authority are the stage's decision, not the review's, so they are refused here, before a review of a
-    result that cannot be accepted (and ``complete --check-only`` reports them).  Pre-update observations stay at the
+    result that cannot be accepted (and ``shiploop check`` reports them).  Pre-update observations stay at the
     import: the review may refresh them.  No-op for a run without the delivery guard and for any other stage or outcome.
     """
     if (stage != "release-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done"

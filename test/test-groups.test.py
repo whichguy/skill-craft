@@ -112,9 +112,10 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 111)
+        # Current main's 97 ShipLoop suites plus four learning-loop contract suites.
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 101)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 166)
+        self.assertEqual(len(suite_catalog.SUITES), 156)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -143,10 +144,11 @@ class TestGroupTests(unittest.TestCase):
         self.assertTrue({
             "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
             "ask-agent-parallel", "ask-agent-task",
-            "experiments-shiploop-chain-native-pilot", "shiploop-chain-handoff",
-            "shiploop-chain-async", "shiploop-consumer-delivery",
+            "shiploop-consumer-delivery",
             "shiploop-consumer-delivery-cli",
         } <= names)
+        # Design T §9.1 2c-2 retired ShipLoop's chain, so no chain suite or native pilot is in the group.
+        self.assertFalse({name for name in names if "shiploop-chain" in name or "native-pilot" in name})
         self.assertNotIn("experiments", suite_catalog.GROUPS)
         with self.assertRaises(ValueError):
             suite_catalog.select(("experiments",))
@@ -254,8 +256,7 @@ class TestGroupTests(unittest.TestCase):
             self.assertLessEqual(suite_catalog._DURATION_SECONDS.get(suite.path, 0.0),
                                  suite_catalog.QUICK_MAX_SECONDS, suite.id)
         ids = {suite.id for suite in selected}
-        self.assertNotIn("shiploop-chain-lifecycle", ids)
-        self.assertIn("shiploop-chain-git", ids)
+        self.assertFalse({name for name in ids if "shiploop-chain" in name})
         self.assertIn("shiploop-mock-replay", ids)
 
     def test_changed_from_lists_quick_suites_and_is_refused_for_other_groups(self) -> None:
@@ -307,9 +308,10 @@ class TestGroupTests(unittest.TestCase):
         for shard in shards:
             members = set(shard)
             self.assertEqual(shard, tuple(suite for suite in canonical if suite in members))
-        self.assertEqual(sum(
-            sum(suite.id == "shiploop-chain-lifecycle" for suite in shard) for shard in shards
-        ), 1)
+        # The slowest suites are spread, not stacked: no shard holds two of the three longest.
+        longest = sorted(canonical, key=lambda suite: suite_catalog._DURATION_SECONDS.get(suite.path, 0.0))[-3:]
+        self.assertTrue(all(sum(suite in shard for suite in longest) <= 1 for shard in shards)
+                        or len(shards) < 3)
 
     def test_list_help_and_invalid_arguments_do_not_execute(self) -> None:
         root, env = self.list_fixture()
@@ -752,7 +754,6 @@ class QuickSelectionNameCollisionTest(unittest.TestCase):
         cases = {
             "test/shiploop_e2e/run.py": {"shiploop-e2e"},
             "test/shiploop_e2e/review.py": {"shiploop-e2e"},
-            "skills/shiploop/scripts/shiploop_chain.py": {"shiploop-chain"},
             "skills/plan-dispatcher/SKILL.md": self.PLAN_DISPATCHER,
             "skills/rubric-eval/SPEC.md": {"rubric-eval"},
             "skills/rubric-eval/suites/architecture-v4/frames/review.txt": {"rubric-eval"},
@@ -844,15 +845,13 @@ class SelectionByReaderTest(unittest.TestCase):
     catalog estimate, its readers of the journal 100 s and of the baseline data 200 s).  Row 3: `shiploop_workspace.py` is
     named by nine suites, one more than HUB_REFERENCE_LIMIT, so the hub set ran in their place and none of the suites that
     drive the module.  Row 4: four guidance documents were named by the 118 s chain-planning-context suite, which the 0.7 s
-    anchor test of shiploop-reference-routing makes redundant for them (the chain suites and the release tier still check
-    that a worker packet carries the routes).
+    anchor test of shiploop-reference-routing made redundant for them (the suite is retired with the chain, 2c-2).
     """
 
     LEARNINGS = "test/shiploop_e2e/LEARNINGS.md"
     BASELINES = "test/shiploop_e2e/baselines.jsonl"
     WORKSPACE = "skills/shiploop/scripts/shiploop_workspace.py"
     GUIDANCE_DOCS = ("coding-guidance.md", "house-style.md", "service-discovery.md", "repeatable-test-suites.md")
-    CHAIN_CARRIAGE = "shiploop-chain-planning-context"
 
     def test_the_e2e_journal_selects_the_two_suites_that_read_it(self) -> None:
         self.assertEqual(suite_catalog.targeted([self.LEARNINGS]), {"shiploop-e2e", "release-preflight"})
@@ -891,17 +890,12 @@ class SelectionByReaderTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertGreaterEqual(suite_catalog.targeted([path]), set(suite_catalog._HUB_SUITE_IDS))
 
-    def test_a_guidance_document_selects_the_anchor_test_and_not_the_chain_carriage_suite(self) -> None:
+    def test_a_guidance_document_selects_the_anchor_test(self) -> None:
         for name in self.GUIDANCE_DOCS:
             path = "skills/shiploop/references/" + name
             with self.subTest(path=path):
                 selected = suite_catalog.targeted([path])
-                self.assertNotIn(self.CHAIN_CARRIAGE, selected)
                 self.assertGreaterEqual(selected, {"shiploop-reference-routing", "shiploop-guidance"})
-
-    def test_the_chain_carriage_suite_is_still_selected_by_the_chain_it_checks(self) -> None:
-        self.assertIn(self.CHAIN_CARRIAGE, suite_catalog.targeted(["skills/shiploop/scripts/shiploop_chain.py"]))
-        self.assertIn(self.CHAIN_CARRIAGE, suite_catalog.targeted(["test/shiploop-chain-planning-context.test.py"]))
 
 
 if __name__ == "__main__":

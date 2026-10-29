@@ -1,5 +1,8 @@
 """Arm B continuation metrics for one slice folder: what the fresh session was told, its first commands, and how long it
-took to report the loop iteration and get the cleared action accepted. Usage: arm_b_metrics.py SLICE_DIR [...] [--json]"""
+took to report the loop iteration and get the cleared action accepted. Usage: arm_b_metrics.py SLICE_DIR [...] [--json]
+
+With --per-stage: commands to accept every action of each slice and the medians per stage (phases B and C plan,
+docs/shiploop-check-phases-bc-plan-2026-10-28.md, "Measure of success")."""
 import json
 import re
 import sys
@@ -83,8 +86,98 @@ def measure(out: Path) -> dict:
     return row
 
 
+_SHIPLOOP_VERB = re.compile(r"\bshiploop\s+([a-z][a-z-]*)\b")
+_LOOP_VERB = re.compile(r"until_loop_ephemeral\.py\s+(start|next|done|record)\b")
+
+
+def _kind(command):
+    """What one host command was, for the per-stage counts: a dry run is `complete --check-only` before phase B and
+    `shiploop check` after it; the loop's verify_script pipes into the runtime's `record`."""
+    loop = _LOOP_VERB.search(command)
+    if loop and loop[1] == "record":
+        return "verify_script"
+    verb = _SHIPLOOP_VERB.search(command)
+    if verb and verb[1] == "complete":
+        return "dry_run" if "--check-only" in command else "complete"
+    if verb and verb[1] == "check":
+        return "dry_run"
+    if loop:
+        return "loop_" + loop[1]
+    if verb and verb[1] in ("next", "red-check", "lint", "improve-pass", "improve-commit", "improve-start"):
+        return verb[1]
+    return "other"
+
+
+def _run_trace(out: Path):
+    found = sorted(out.glob(".shiploop-runs/*/run/trace.jsonl"))
+    return [json.loads(x) for x in found[0].read_text().splitlines() if x.strip()] if found else []
+
+
+def per_stage(out: Path) -> dict:
+    """Commands to accept each action of one slice: the host's shell commands split at each accepted `complete` in
+    the run trace, so a segment runs from the previous acceptance to this one (the first from the slice's start).
+
+    Per segment: the stage and action accepted, its commands by kind, the trace's dry runs (yes and no) and refused
+    `complete`s, the seconds it took and the accepted `complete`'s own duration (`ms`)."""
+    trace = _run_trace(out)
+    accepted = [e for e in trace if e.get("kind") == "command" and e.get("verb") == "complete" and e.get("exit") == 0
+                and not e.get("check_only")]
+    calls = []
+    for line in (out / "events.jsonl").read_text().splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        for _, cmd in _commands(e):
+            calls.append((_ts(e), cmd))
+    rows, start = [], None
+    for event in accepted:
+        end = event["ts"]
+        mine = [c for t, c in calls if t is not None and (start is None or t > start) and t <= end]
+        traced = [e for e in trace if e.get("kind") == "command" and e.get("verb") in ("complete", "check")
+                  and (start is None or e["ts"] > start) and e["ts"] < end]
+        kinds = {}
+        for c in mine:
+            kinds[_kind(c)] = kinds.get(_kind(c), 0) + 1
+        stage = event.get("stage") or [None, None]
+        dry = [e for e in traced if e.get("check_only") or e.get("verb") == "check"]
+        rows.append({"stage": stage[0], "next": stage[1], "action": event.get("action"), "commands": len(mine),
+                     "kinds": kinds, "dry_runs_yes": sum(e.get("exit") == 0 for e in dry),
+                     "dry_runs_no": sum(e.get("exit") != 0 for e in dry),
+                     "refused_completes": sum(e.get("exit") != 0 and e not in dry for e in traced),
+                     "seconds": round(end - start, 1) if start is not None else None, "complete_ms": event.get("ms")})
+        start = end
+    return {"slice": out.name, "segments": rows}
+
+
+def _median(values):
+    values = sorted(v for v in values if v is not None)
+    if not values:
+        return None
+    middle = len(values) // 2
+    return round(values[middle] if len(values) % 2 else (values[middle - 1] + values[middle]) / 2, 1)
+
+
+def per_stage_summary(slices) -> dict:
+    """Median commands, dry runs, refusals, seconds and `complete` ms per stage over several slices' segments."""
+    by_stage = {}
+    for one in slices:
+        for row in one["segments"]:
+            by_stage.setdefault(row["stage"], []).append(row)
+    return {stage: {"n": len(rows), "commands": _median([r["commands"] for r in rows]),
+                    "dry_runs": _median([r["dry_runs_yes"] + r["dry_runs_no"] for r in rows]),
+                    "refused_completes": sum(r["refused_completes"] for r in rows),
+                    "seconds": _median([r["seconds"] for r in rows]),
+                    "complete_ms": _median([r["complete_ms"] for r in rows])}
+            for stage, rows in by_stage.items()}
+
+
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if "--per-stage" in sys.argv:
+        slices = [per_stage(Path(a)) for a in args]
+        print(json.dumps({"slices": slices, "by_stage": per_stage_summary(slices)}, indent=1))
+        sys.exit(0)
     rows = [measure(Path(a)) for a in args]
     if "--json" in sys.argv:
         print(json.dumps(rows, indent=1))

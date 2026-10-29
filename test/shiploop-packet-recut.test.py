@@ -379,7 +379,9 @@ class OwnerLinesTests(unittest.TestCase):
                     with self.subTest(delegation=delegation, printed=printed, packet=key):
                         self.check(text, key, self.kind_of(key))
                         seen += 1
-        self.assertGreater(seen, 40)  # inner producers and Improve packets, both routes, whole and printed
+        # Inner producers and Improve packets, both routes, whole and printed: 40 since verify's packet retired (design T
+        # §9.1 2b-4c), 44 before.
+        self.assertGreaterEqual(seen, 40)
 
     def test_the_constants_are_defined_once_and_the_pointers_take_the_command_and_the_path(self) -> None:
         self.assertEqual(prompts.OWNER_RULE,
@@ -495,7 +497,8 @@ class TopBlockHelperTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         found = packets.offline_packets(CASES["node-fix-bug"])
-        cls.lines = found["07-test"].splitlines()  # 08-test until test-spec lost its Improve packet (2026-10-26)
+        # 08-test until test-spec lost its Improve packet (2026-10-26); 07-test until implement lost its (design T §8).
+        cls.lines = found["06-test"].splitlines()
 
     def fails(self, lines, expect: str, **kwargs):
         """The helper raises on ``lines`` and its message names ``expect``."""

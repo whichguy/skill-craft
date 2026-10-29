@@ -6,8 +6,7 @@ Read this file only when the handoff's `Route:` line is `ask-agent`, beside [the
 
 Keep the invoking parent alive and follow Improve's selected context ownership.
 
-Chain precedence ends at producer completion, even when the historical chain
-binding remains. The fresh-context boundary belongs to the whole Improve
+The fresh-context boundary belongs to the whole Improve
 executor invocation, not the invoking parent and not individual review iterations.
 Prefer the selected fresh native executor route; the parent retains collection,
 verification and the exact parent-only continuation. Do not clear, replace or

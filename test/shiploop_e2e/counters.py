@@ -31,7 +31,10 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                          the 38 saved runs, carry none of its six ``Label:`` lines, and a model commit can carry all six.
                script    ShipLoop's other commits: the work item's commit, named by ShipLoop's reply ("ShipLoop committed W1's
                          changes (its declared paths and documentation) as <sha>") or by its subject ``feat: <work item id> <title>`` with an id of the run's
-                         state.md, and the ones whose subject is ShipLoop's own and nothing else writes (the knowledge home's
+                         state.md; an inline step's commit, named by its reply ("ShipLoop committed step W1/S1 as <sha>") or by
+                         its subject ``feat(<work item id>/<step>): ...`` with an id of the run's state.md (counted as ``other``
+                         before 2026-10-28: 97 step commits in 30 saved runs from 2026-10-20 on, in 26 of them every one of the
+                         run's ``other`` commits); and the ones whose subject is ShipLoop's own and nothing else writes (the knowledge home's
                          ``docs(shiploop): record <run> knowledge at|after <stage>``, the retire commit an earlier version made
                          at handoff, ``docs(shiploop): retire <feature> spec: ...`` (``RETIRE_SUBJECT``; consumer contract 4c removed
                          the retire, and saved runs still hold it), the empty baseline, the leftovers commit, a chain's prepared
@@ -209,6 +212,8 @@ IMPROVE_COMMITTED = re.compile(r"Committed this review's changes as (?P<sha>[0-9
 # "changes (its declared paths and documentation)" (from release 1.27, when an item's documentation rode in its commit).
 ITEM_COMMITTED = re.compile(
     r"ShipLoop committed \S+'s (?:declared changes|changes \(its declared paths and documentation\)) as (?P<sha>[0-9a-f]{7,40})")
+# ShipLoop's announcement of an inline step's commit (its commit stage, shiploop_navigator._commit_stage).
+STEP_COMMITTED = re.compile(r"ShipLoop committed step \S+/\S+ as (?P<sha>[0-9a-f]{7,40})")
 KNOWLEDGE_SUBJECT = re.compile(r"^docs\(shiploop\): record \S+ knowledge (?:at|after) \S+$")
 BASELINE_SUBJECT = "Empty baseline for the first ShipLoop run"
 # The handoff retire commit of a run made before consumer contract 4c (2026-10-11), which removed the retire: saved runs keep
@@ -282,11 +287,19 @@ def _objects(work: Path, ids: list[str]) -> dict[str, dict]:
 
 def _item_prefixes(run_dir: Path | None) -> tuple[str, ...]:
     """The subject starts of the commits ShipLoop makes for the run's work items (``feat: <id> <title>``), from state.md's
-    ``work_items``; empty when the run has no ledger. The verify stage's reply names the commit too, but the model's pipe can
-    cut that reply; the id is the run's own, so a model commit that starts ``feat:`` and names no work item is not matched."""
+    ``work_items``; empty when the run has no ledger. ShipLoop's reply names the commit too (verify's, until it retired;
+    the ask-agent route's commit stage's since), but the model's pipe can cut that reply; the id is the run's own, so a
+    model commit that starts ``feat:`` and names no work item is not matched."""
     items = metrics.engine_state(Path(run_dir) if run_dir else None).get("work_items")
     return tuple(f"feat: {item['id']} " for item in items if isinstance(item, dict) and isinstance(item.get("id"), str)
                  and item["id"]) if isinstance(items, list) else ()
+
+
+def _step_prefixes(run_dir: Path | None) -> tuple[str, ...]:
+    """The subject starts of the inline steps' commits ShipLoop makes for the run's work items (``feat(<id>/<step>): ...``,
+    shiploop_navigator.step_commit_message), from state.md's ``work_items``; empty when the run has no ledger. A model commit
+    with a conventional-commit scope (``feat(ui): ...``) or another run's item names no work item of this run."""
+    return tuple(prefix.replace("feat: ", "feat(", 1).rstrip() + "/" for prefix in _item_prefixes(run_dir))
 
 
 def history(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
@@ -315,7 +328,8 @@ def history(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
     for reply in tools.replies:
         named["improve"].update(found.group("sha") for found in IMPROVE_COMMITTED.finditer(reply["text"]))
         named["item"].update(found.group("sha") for found in ITEM_COMMITTED.finditer(reply["text"]))
-    items = _item_prefixes(run_dir)
+        named["item"].update(found.group("sha") for found in STEP_COMMITTED.finditer(reply["text"]))
+    items = _item_prefixes(run_dir) + _step_prefixes(run_dir)
     rows = []
     for commit_id in ids:
         found = objects.get(commit_id, {"author": "", "message": ""})

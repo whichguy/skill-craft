@@ -69,8 +69,8 @@ do not copy this table into every work item or create a second acceptance ledger
 | validate-existing | Step plan's expectations and the unchanged checkout | Each works, absent or broken expectation observed by its check; a known small fix to a broken works expectation committed separately; missing coverage/setup failure is not a passing product check |
 | implement | Ready item, independent expectations and edit authority | Scoped candidate supplied one reviewed step at a time; accepted criteria are preserved |
 | test, system-test-author | Independent cases, the current candidate and permitted test scope | Executable checks bound to clauses; at `test` each new test fails on the item's base (unless `red_na` names it) and every recorded command passes on the candidate at its floor; removed or narrowed cases are declared with an independent basis (`retired_tests`); required coverage cannot disappear |
-| document | Current artifacts and relevant documentation criteria | Documentation recorded from observed behaviour, or the stage recorded not applicable on proof; it does not substitute for product verification |
-| verify, system-test | Candidate at the assigned boundary and cases due there | Due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
+| document | Current artifacts and relevant documentation criteria | Documentation recorded from observed behaviour, or the stage recorded not applicable on proof; it does not substitute for product verification; due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
+| system-test | Candidate at the assigned boundary and cases due there | Due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
 | carry-forward | Verified, committed item and next-consumer requirements | Remaining obligations retained with owner, phase and locators; the skill decision recorded; the item commit is not deployment |
 | product-acceptance | Original outcome and whole-product evidence | All due criteria may establish pre-release readiness; distinguish corrective or blocked work from release-only behaviors that remain pending and are not yet observed |
 | release-plan, release-check | Current candidate, authority and pending delivery cases | Release route and readiness established with post-release checks and recovery; no implied external operation |
@@ -94,7 +94,7 @@ move them.
 ## How ShipLoop runs the recorded commands
 
 The card's [test loop](test-loop.md#test-loop) says what ShipLoop runs at `test`
-and `verify`. This section holds the detailed rules: how a run is read, the
+and each step's `document`. This section holds the detailed rules: how a run is read, the
 floors and their known limits, stages recorded as not applicable, the outer
 reruns and runs that reached no verdict.
 
@@ -112,10 +112,49 @@ an ID that no line holds that way keeps the select-and-print remedy. A focused c
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
 
+### What each step runs
+
+On the inline route each step's `test` stage runs only what the step owes, in
+three tiers (owner, 2026-10-28: "we don't do exhaustive regressions on every
+iteration"):
+
+- **The new code in detail:** the step's own test-spec cases, through the
+  focused commands that list them, unit and mock tests first. A case is due at
+  the last step whose `criteria` list its criterion (the plan's last step when
+  none does), and only the cases due at this step must fail on its base (RED).
+- **The earlier steps' cases:** a focused command runs from the first step one of
+  its IDs is due at, narrowed to the IDs due by then, so every earlier case must
+  still pass.
+- **A minimum regression:** the regression command marked `"minimum": true`, a
+  fast suite that shows nothing basic broke, at every step.
+
+The full regression (every unmarked regression command), and a check whose
+criteria a later step serves, run at the item's last step only. A plan of two or
+more steps marks a minimum command or gives `minimum_na`, and a step before the
+last that owes nothing runs no command. The test packet names the full
+regression it leaves to the last step and asks where each new test belongs: a
+new suite (a recorded command must run it), the minimum suite or the full
+suites. MCP servers and skills may test the new code in more detail beside the
+unit and mock tests. The step's `document` and its review rerun what its test
+stage ran; the ask-agent route's one test stage runs every recorded command.
+
 ### Floors and their known limits
 
+Floors add up across an inline item's steps. A step's test stage may not run fewer tests than an earlier step's accepted
+run of the same command plus the IDs newly due at this step that the command lists, so a step cannot replace an earlier
+step's unnamed tests (sub-cases, entry-point cases, a review's tests) with its own and keep the count. A new ID in
+`red_na` passes on the step's base, so its test may already be in the earlier count, and it is not added. A command
+whose IDs a step narrows is held to its `min_tests` only from the step at which all of them are due.
+
+A test the step's `document` stage or its review adds after the test stage is registered in the result's
+`added_tests: [{"id": "<the start of its printed title, for example TC-3 (a)>", "command": "<a recorded focused or
+regression command>"}]` (the review lists it in its final result). From then on every run of that command must show it:
+the review's import, the document rerun, and each later step's test stage, document and review. A registered test is
+never a new ID, so it is never held to RED. A test no recorded command runs needs a send-back, so the step plan records
+its command.
+
 `min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the
-`test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
+`test` stage, each step's `document` rerun may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
 because the plan changed is a plan change: report `send-back` with the reason, and the redone step plan starts the count again.
 Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` when its latest attempt could
@@ -146,9 +185,12 @@ short of that proof issues the stage.
 
 ### Reruns after the test stage
 
-`verify` reruns the test commands too: on `done` ShipLoop runs every recorded
-command and refuses unless each passes. The outer `system-test` and
-`release-verify` rerun their own recorded commands the same way, from
+Each step's `document` reruns the test commands too: on `done` it reruns what its
+own edits could affect (nothing after no edit, the check commands of its step after
+a documentation-only edit, or every command the step's `test` stage ran after a
+code or test edit) and refuses unless each passes; a refused rerun opens
+send-back. The outer `system-test` and
+`release-verify` rerun their own recorded commands unconditionally, from
 `system-test-author` and `release-plan`. There is no test loop at those stages;
 the packet lists the commands. At
 `release-verify` of an isolated run the commands run in a clean copy of the result
@@ -264,6 +306,17 @@ accessibility, and other risks when the behavior makes them relevant; do not
 generate irrelevant cases to fill a checklist. A bug fix should have a regression
 case that distinguishes broken from intended behavior where feasible.
 
+**Mocks before system tests.** A case whose code calls a dependency (the
+network, the clock, randomness, storage, a child process, a browser API)
+names the mock it runs against in its `mock` field: `simulates`, what the
+mock stands in for, and `plays`, the slow, failing or out-of-order behaviour
+it plays (for example a `fetch` that holds a reply until the test releases
+it). The test stage builds each named mock before that case's test, and the
+mock's own header states what it stands in for and what it plays, because a
+mock proves the code only against the behaviour it simulates. The real
+boundary stays a system or real-boundary check
+([layers and real boundaries](#layers-and-real-boundaries)).
+
 Example, not a universal requirement:
 
 | Case | Given / when | Expected | Layer / runner | Observed |
@@ -284,7 +337,7 @@ rationale and evidence that it covers the criterion; do not manufacture a
 no-op edit. New observations can refine stimuli or assertions, but do not
 silently rewrite accepted behavior.
 
-Run current required checks at `test` and `verify`; preserve failures and explain test changes. Include documentation/example checks where applicable. A
+Run current required checks at `test` and `document`; preserve failures and explain test changes. Include documentation/example checks where applicable. A
 test correction records its reason, the before/after oracle, an independent
 requirement/contract source, and coverage retained or added. Do not change
 expected outcomes or remove assertions merely to match a bug. A requirement
@@ -544,9 +597,9 @@ issued only when the item's diff touches a code or test path. `carry-forward`
 records the reusable-skill decision (`none`, `reuse`, `update` or `create`) with
 its reason and repeat evidence, and runs a created or updated skill once on the
 run's real procedure. A decision is required; needless edits or skill creation
-are not. Each step's helper `skills` are chosen at `step-plan`, and `implement`
-reports whether each was used. Update or explicitly assess relevant README and
-interface documentation before `verify`.
+are not. Each step's helper `skills` are chosen at `step-plan`, each with the
+stages that use it, and each of those stages reports whether it was used. Update or explicitly assess relevant README and
+interface documentation before the step's commit stage.
 
 Read the actual code/test diff, accepted step plan and relevant repo docs.
 Prefer colocated concise contracts/comments for non-obvious behavior;
@@ -561,8 +614,12 @@ the existing appropriate index instead of duplicating it.
 ### Reusable product skills
 
 Two stages own skill decisions. `step-plan` lists each step's helper `skills`
-(`[{"name", "why", "locator"}]`, an existing locator, or an empty list), which
-the implement packet prints; `implement` reports whether each was used.
+(`[{"name", "why", "locator", "stages"}]`, an existing locator, or an empty list).
+`stages` names the stages of the step's iteration that use the skill
+(`implement`, `test`, `document`, `improve`; `implement` when absent), and each of
+those prints it: implement's Step block, the "Skills for this stage" line of the
+test and document packets, and the step review's "Skills for this review" line
+(design T §8.2c, F9). Each stage reports whether it used each skill it lists.
 `carry-forward` records the reusable-skill decision in its result's `skill`
 (`none`, `reuse`, `update` or `create`, with its reason and repeat evidence; see
 the [carry-forward contract](carry-forward.md)). For `update` and `create`
@@ -714,7 +771,7 @@ in the existing plan and review notes. The rules below and the
    Private helpers need a comment only when non-obvious. Delete comments that
    restate names or code. Document changed public/non-obvious contracts as
    specified in [Documentation](#documentation). The packets carry these rules
-   as the *Code craft* rubric, which each work item's implement Improve review and `verify` apply.
+   as the *Code craft* rubric, which each step's Improve review (after its document stage) applies.
 5. **Evidence before polish.** Plan tests first; inspect code before refining
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.
@@ -758,8 +815,8 @@ second scheduler.
 | `validate-existing` | Observe the item's starting state through the expectation checks; change no product file except a known small fix to a broken works expectation. |
 | `implement` | Write the planned code one step at a time; inspect the actual diff and learnings. Write no tests here. |
 | `test` | Author executable tests from the independent cases; ShipLoop's base run requires each new test to fail without the item's change, then every recorded command must pass. Refine cases from the code actually written only with an independent basis. Required failed, blocked or unrun checks remain unfinished. |
-| `document` | Required docs/README, with safe paths, reasons and intended readers. Make documentation edits before fresh verification, not after it. |
-| `verify` | Run required lint/tests and relevant examples/links; trace changed entry points; review the whole diff; diagnose failures. A source edit after documentation needs its affected checks rerun. A test-oracle change needs independent justification. ShipLoop commits the item on accept; that commit is not deployment. |
+| `document` | Required docs/README, with safe paths, reasons and intended readers; record what the step showed in the knowledge home. On done, lint the lines it changed and rerun what those edits could affect. Make documentation edits before the step's commit ([Step commits](navigator.md#step-commits)), not after it. |
+| step's Improve review (after `document`) | Run required lint/tests and relevant examples/links; trace each changed entry point with a valid, a boundary and an invalid input; review the whole diff; diagnose failures. A source edit after documentation needs its affected checks rerun. A test-oracle change needs independent justification. ShipLoop commits the step on accept ([Step commits](navigator.md#step-commits)); that commit is not deployment. |
 | `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations, the future queue and the skill decision. The last carry-forward's Improve review covers every executed step together. |
 
 Keep case IDs, independent sources, environment, observed outcomes and evidence
