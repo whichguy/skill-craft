@@ -34,7 +34,6 @@ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import counters  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_git  # noqa: E402
-import shiploop_item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_navigator  # noqa: E402
@@ -758,32 +757,23 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn("work item, before the return", workspace)
         navigator = (scripts / "shiploop_navigator.py").read_text()
         self.assertIn("\"Committed this review's changes as \" + head[:12]", navigator)
-        self.assertIn("\"'s changes (its declared paths and documentation) as \"", navigator)
-        self.assertIn("\"ShipLoop committed \"", navigator)
+        # The item commit's announcement is gone from the source (design T §9.1 2c-1: every route commits step by step);
+        # counters.py still matches it, for the runs that were saved with it.
+        self.assertNotIn("\"'s changes (its declared paths and documentation) as \"", navigator)
+        self.assertIn("\"ShipLoop committed step \"", navigator)
         self.assertTrue(counters.LEFTOVERS_SUBJECT.startswith("chore(shiploop): commit files written after the last work item"))
 
-    def test_the_work_item_subject_counters_matches_is_the_one_the_item_commit_stage_writes(self):
-        # The ask-agent route's commit stage commits the item whole when its document stage and review are accepted (verify,
-        # which made this commit, is retired: design T §9.1 2b-4c). The model's pipe can cut ShipLoop's reply, and then only
-        # the subject tells the script's commit from the model's. The message is built in
-        # shiploop_navigator._item_commit_stage: call it with the commit itself replaced and read the message it hands over,
-        # so a reworded subject turns the matched work item commits into `other` here and not silently in a run.
-        rows = [{"stage": "document", "outcome": "done", "workitem": "W1", "action": "A-document"}]
-        before = {"history": [{"stage": "implement", "outcome": "done", "workitem": "W1", "action": "A-implement"}],
-                  "accepted": {"A-implement": {"summary": "What it did."}}}
-        after = {"history": before["history"] + rows, "accepted": {"A-document": {}},
-                 "work_items": [{"id": "W1", "title": "Add the grid"}], "execution_mode": "navigator"}
-        with mock.patch.object(shiploop_item_scope, "changed_paths_or_reason", return_value=(["a.py"], "")), \
-                mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [])) as made:
-            shiploop_navigator._item_commit_stage(Path("."), before, after, "W1", rows)
-        self.assertEqual(made.call_count, 1, "the item's accepted document stage makes one item commit")
-        message = made.call_args.args[3]
+    def test_the_work_item_subject_counters_matches_is_no_longer_written_by_any_route(self):
+        # The ask-agent route's commit stage committed the item whole under ``feat: <item> <title>``. Design T §9.1 2c-1
+        # retired it: every route commits each step under ``feat(<item>/<step>)``. counters.py keeps the item subject for
+        # the historical runs that carry it, so it is still read, and ShipLoop's source writes it nowhere.
+        self.assertFalse(hasattr(shiploop_navigator, "_item_commit_stage"))
+        source = (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py").read_text()
+        self.assertNotIn('"feat: " + item', source)
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '
                                                 '"title": "Add the grid"}]}\n```\n')
-            prefixes = counters._item_prefixes(Path(tmp))
-        self.assertEqual(prefixes, ("feat: W1 ",))
-        self.assertTrue(message.startswith(prefixes), f"counters matches {prefixes} and ShipLoop wrote {message.splitlines()[0]!r}")
+            self.assertEqual(counters._item_prefixes(Path(tmp)), ("feat: W1 ",))
 
     def test_the_step_subject_and_announcement_counters_match_are_the_ones_the_commit_stage_writes(self):
         # The inline route's commit stage (shiploop_navigator._commit_stage) commits each step with step_commit_message and

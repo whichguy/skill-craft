@@ -81,8 +81,8 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
     state = row["state"]
     stage = plans.stage_of(key)
     item = item_of(state)
-    # The exit conditions are worded as the packet words them: the ask-agent route issues one implement action for every
-    # step of a multi-step plan, so its conditions name those steps and their paths (``loops.worded_stage``).
+    # The exit conditions are worded as the packet words them: an implement step's first one ends with its criteria
+    # (``loops.worded_stage``).
     spec = loops.worded_stage(stage, navigator._implement_scope(state, stage))
     p0 = ["ShipLoop navigator | " + stage + " | revision ", prompts.RECOVERY_POINTER_PREFIX, prompts.PACKET_POINTER_PREFIX,
           "Callback for this stage (", " complete --run-dir=", "Goal: ", "Checked by: ", "Keepalive marker: SHIPLOOP-RUN run=",
@@ -312,15 +312,16 @@ class OrderTests(unittest.TestCase):
                     self.assertIsNone(hook._verb("R=" + str(Path(following.split("--run-dir=")[1])) + "; " + following))
 
     def test_the_loop_block_sits_between_the_goal_and_the_status_in_a_looped_stage(self) -> None:
-        """An inline implement step is the one exception (implement-step fix plan D4, unit W2-B): its Step block takes
-        that place and its packet, head and file alike, ends with the loop."""
+        """An implement step is the one exception (implement-step fix plan D4, unit W2-B): its Step block takes that
+        place and its packet, head and file alike, ends with the loop.  Both routes issue one implement action per step
+        (design T §9.1 2c-1)."""
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 if plans.stage_of(key) not in loops.STAGES:
                     continue
                 with self.subTest(route=delegation, packet=key):
                     text = row["printed"]
-                    if plans.stage_of(key) == "implement" and delegation == "inline":
+                    if plans.stage_of(key) == "implement":
                         self.assertLess(text.index("\nChecked by: "), text.index("\n" + navigator.STEP_LOOP_LINE))
                         self.assertLess(text.index("\nStep S"), text.index("Keepalive marker: "))
                         for form in (text, row["whole"]):

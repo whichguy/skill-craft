@@ -795,14 +795,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                             "Continue in this context and execute the prompt. Delegation: inline"),
                         cold,
                     )
-                    self.assertNotIn(chain_guide, cold)
-                    self.assertNotIn("bind the default parallel mode", cold)
-                    # The inline "one step per packet" statement is the Step line (re-cut 2026-10-11).
-                    self.assertIn("the only work for this packet:", cold)
-                else:
-                    self.assertIn(chain_guide, cold)
-                    self.assertIn("bind the default parallel mode", cold)
-                    self.assertIn("when the Plan Dispatcher and Ask-Agent contracts are compatible", cold)
+                # Every route issues one implement action per step (design T §9.1 2c-1): no chain guide, no chain to bind.
+                self.assertNotIn(chain_guide, cold)
+                self.assertNotIn("bind the default parallel mode", cold)
+                # The "one step per packet" statement is the Step line (re-cut 2026-10-11).
+                self.assertIn("the only work for this packet:", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         """Cumulative report transport, not proof of model review or summarization."""

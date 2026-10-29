@@ -1846,9 +1846,12 @@ class GuidanceTests(unittest.TestCase):
         current = planning_revision.current_actions(state)
         for owner in ("W1", "W2"):
             for read in ("step-plan", "test-spec", "test"):
-                row = "- " + owner + " " + read + " result: RUN/results/" + current[(owner, read)] + ".md"
-                self.assertIn(row, packet)
-                self.assertGreater(packet.index(row), packet.index("Results this stage builds on"))
+                # A step's result carries its step in the label (design T §9.1 2c-1: every route runs per step); a plan
+                # this fixture leaves without steps numbers it.
+                found = re.search("- " + owner + " " + read + r"(?: S\d+| step \d+)? result: RUN/results/"
+                                  + current[(owner, read)] + r"\.md", packet)
+                self.assertIsNotNone(found, owner + " " + read)
+                self.assertGreater(found.start(), packet.index("Results this stage builds on"))
             self.assertEqual(current[(owner, "test")], decision_actions[owner])
         # Neither current-item context nor an item-local projection leaks into
         # root-owned outer planning. The handshake directs a bounded history lookup.
@@ -1959,7 +1962,7 @@ class GuidanceTests(unittest.TestCase):
         packet = normalized(packet)
         self.assertIn(label + ": " + str(REFERENCES / locator), packet)
         self.assertIn("The records in force are the ones listed under \"Results this stage builds on\"", packet)
-        self.assertIn("- W3 test result: RUN/results/" + decision_actions["W3"] + ".md", packet)
+        self.assertIn("- W3 test step 1 result: RUN/results/" + decision_actions["W3"] + ".md", packet)
         self.assertNotIn("W3 new target fixture.", packet)
         # 2026-10-11 dedupe: the trailing "If this action depends on earlier accepted context..."
         # sentence is gone; the lists of sources and the "Results this stage builds on" block carry it.

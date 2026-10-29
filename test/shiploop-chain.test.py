@@ -30,7 +30,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_navigator as nav
-import shiploop_packet_symbols as symbols
 import shiploop_store as store
 import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
@@ -162,29 +161,6 @@ class ChainIntegrationTests(ChainFixture):
         self.assert_completion(pending, ["A"], [])
         self.assertEqual(self.run_bytes(), before)
 
-    def test_history_survives_child_drift_and_views_allow_indexed_past_actions(self):
-        self.complete_single_chain()
-        self.parent_complete(ok=True)
-        # The producer result is accepted and nothing is parked on the action: the item's review follows its document
-        # stage (design T §8), so the chain's action is a past action from here on.
-        state = store.read_record(self.run / "state.md")
-        self.assertIsNone(state["active_improve"])
-        self.assertEqual(state["accepted"][self.action]["outcome"], "done")
-        self.assertNotEqual(nav.current_action(state)["id"], self.action)
-        before = self.run_bytes()
-        history = self.call("history")
-        self.assertTrue(history["shiploop_chain"]["finished"])
-        self.assertEqual(self.call("pending")["pending"], [])
-        self.call("claim", {"steps": ["A"]}, ok=False)
-        self.assertEqual(self.run_bytes(), before)
-        with (self.dispatcher / "scripts/dispatch.js").open("a") as handle:
-            handle.write("\nthrow new Error('Query must not execute drifted child');\n")
-        self.child_state_path().unlink()
-        before = self.run_bytes()
-        self.assertEqual(self.call("history"), history)
-        self.call("pending", ok=False)
-        self.assertEqual(self.run_bytes(), before)
-
     def test_views_refuse_corrupt_ledger_and_never_repair_private_links(self):
         self.bind()
         directory = self.run / "chains" / self.action / "events"
@@ -305,66 +281,6 @@ class ChainIntegrationTests(ChainFixture):
         self.assertNotIn("Chain recovery:", cold.stdout)
         return state
 
-    def test_serial_managed_full_diamond_executes_in_main_context_before_finish(self):
-        self.select_dispatcher(SERIAL_FIXTURE)
-        bound = self.bind(capacity=None, mode="serial")
-        self.assert_completion(bound, [], ["A", "B", "C", "J"])
-        binding = store.read_record(self.run / "chains" / self.action / "binding.md")
-        self.assertEqual(binding["mode"], "serial")
-        self.assertEqual(binding["capacity"], 1)
-        accepted = []
-
-        for step in ("A", "B", "C", "J"):
-            before = self.call("next")
-            self.assert_completion(before, accepted, [name for name in ("A", "B", "C", "J")
-                                                     if name not in accepted])
-            self.assertEqual(before["ready"][0], step)
-            attempt = self.claim([step])[step]
-            self.assertLessEqual(len(self.call("next")["active"]), 1)
-            started = self.serial_start(
-                step, attempt, base=self.git(self.target, "rev-parse", "HEAD"),
-                integration=step == "J",
-            )
-            record = self.child_record(attempt)
-            self.assertEqual(record["status"], "running")
-            self.assertIsNone(record["handle"])
-            self.assertEqual(record["executor"], started["packet"]["executor"])
-            self.assertEqual(record["executor"]["kind"], "main-context")
-            self.assertIsInstance(record["executor"]["id"], str)
-            self.assertTrue(record["executor"]["id"])
-            self.assertNotIn("native_handle", started["packet"])
-            self.assertLessEqual(len(self.call("next")["active"]), 1)
-            self.parent_complete()  # Child work is not a parent terminal result.
-            settled = self.call("done", self.contribute(step, integration=step == "J"))
-            accepted.append(step)
-            self.assertEqual(settled["outcome"], "accepted")
-            self.assert_completion(settled, accepted, [name for name in ("A", "B", "C", "J")
-                                                        if name not in accepted])
-            self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits[step])
-
-        self.assertTrue(self.call("next")["complete"])
-        self.parent_complete()  # All child acceptance still cannot complete the navigator action.
-        self.assertFalse(any(row["event"]["kind"].startswith("launched_")
-                             for row in chain_ledger.read_events(
-                                 self.run / "chains" / self.action / "events")))
-        records = self.child_state()["attempts"]
-        self.assertEqual({record["status"] for record in records.values()}, {"accepted"})
-        self.assertTrue(all(record["handle"] is None for record in records.values()))
-
-        proof = self.write("serial-combined.json", {"passed": True, "commit": self.commits["J"]})
-        finish = {"commit": self.commits["J"], "confirmed_stopped": True,
-                  "verification": {"path": str(proof), "sha256": digest(proof)}}
-        self.cleanup_accepted_workers()
-        self.call("finish", finish)
-        self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits["J"])
-        self.assertEqual(self.git(self.primary, "rev-parse", "HEAD"), self.initial)
-        for packet in self.packets.values():
-            workspace = Path(packet["context"]["workspace"]).resolve()
-            self.assertNotIn(self.target, workspace.parents)
-            self.assertTrue(workspace.is_relative_to(self.parent.resolve()))
-        self.parent_complete(ok=True)
-        self.assert_producer_advanced_past_finished_chain()
-
     def test_legacy_serial_helper_refuses_fresh_context_bind_before_writes(self):
         initial_state = (self.run / "state.md").read_bytes()
         # A dispatcher package without the planning-context helper is an old release.
@@ -399,20 +315,6 @@ class ChainIntegrationTests(ChainFixture):
             self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
         self.assertEqual((state_path.read_bytes(), binding_path.read_bytes()), before)
 
-    def test_current_binding_defaults_to_parallel(self):
-        self.bind(capacity=None)
-        binding_path = self.run / "chains" / self.action / "binding.md"
-        binding = store.read_record(binding_path)
-        self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
-        self.assertEqual(binding["mode"], "parallel")
-        self.assertEqual(binding["capacity"], 2)
-        self.assertIn("planning_context", binding)
-
-        recovered = self.call("next")
-        self.assertEqual(recovered["shiploop_chain"]["mode"], "parallel")
-        self.assert_completion(recovered, [], ["A", "B", "C", "J"])
-        self.assert_context_boundary_preserves_chain_mode("parallel")
-
     def test_replay_without_mode_keeps_the_recorded_serial_mode(self):
         self.bind(capacity=1, mode="serial")
         binding_path = self.run / "chains" / self.action / "binding.md"
@@ -444,39 +346,6 @@ class ChainIntegrationTests(ChainFixture):
         self.call("launched", {"attempt": a, "handle": {"host": "synthetic", "id": "A"}}, ok=False)
         self.assertEqual(self.child_state_path().read_bytes(), before_child)
         self.assertEqual(self.ledger_bytes(), before_ledger)
-
-    def test_serial_start_replay_and_cold_recover_keep_the_executor_without_a_handle(self):
-        self.select_dispatcher(SERIAL_FIXTURE)
-        self.bind(capacity=None, mode="serial")
-        a = self.claim(["A"])["A"]
-        value = self.start_value("A", a)
-        first = self.call("start", value)
-        self.assertEqual(first["action"], "execute")
-        self.packets["A"] = first["packet"]
-        record = self.child_record(a)
-        self.assertIsNone(record["handle"])
-        self.assertEqual(record["executor"], first["packet"]["executor"])
-        before_state = self.child_state_path().read_bytes()
-        replay = self.call("start", value)
-        self.assertEqual(replay["action"], "reconcile")
-        self.assertEqual(replay["packet"]["attempt"], a)
-        self.assertEqual(self.child_state_path().read_bytes(), before_state)
-        start_results = [row["event"] for row in chain_ledger.read_events(
-            self.run / "chains" / self.action / "events")
-            if row["event"]["kind"] == "start_result"
-            and row["event"]["data"].get("attempt") == a]
-        self.assertEqual([event["data"]["action"] for event in start_results], ["execute", "reconcile"])
-        after_replay_ledger = self.ledger_bytes()
-
-        recovered = self.call("next")
-        self.assert_completion(recovered, [], ["A", "B", "C", "J"])
-        active = [action for action in recovered["navigation"]["actions"]
-                  if action.get("attempt") == a]
-        self.assertEqual([action["action"] for action in active], ["resume"])
-        self.assertEqual(self.child_state_path().read_bytes(), before_state)
-        self.assertEqual(self.ledger_bytes(), after_replay_ledger)
-        self.assertIsNone(self.child_record(a)["handle"])
-        self.assert_context_boundary_preserves_chain_mode("serial")
 
     def test_serial_done_reconciles_once_and_preserves_terminal_history(self):
         self.select_dispatcher(SERIAL_FIXTURE)
@@ -550,48 +419,6 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(self.child_state_path().read_bytes(), before_state)
         self.assertEqual(self.child_record(a3)["status"], "running")
         self.assert_completion(self.call("next"), [], ["A", "B", "C", "J"])
-
-    def test_fanout_eager_successor_join_verified_return_and_parent_guard(self):
-        self.assertEqual(set(self.bind()["ready"]), {"A", "B"})
-        saved = (self.run / "state.md").read_bytes()
-        self.parent_complete()
-        self.parent_complete("send-back")
-        self.assertEqual((self.run / "state.md").read_bytes(), saved)
-        claims = self.claim(["A", "B"])
-        self.start("A", claims["A"])
-        self.start("B", claims["B"])
-        self.assertEqual(len(self.call("next")["active"]), 2)
-        verification = self.contribute("A")
-        self.assertNotIn("C", self.call("next")["ready"])
-        self.call("done", verification)
-        now = self.call("next")
-        self.assertIn("C", now["ready"])
-        self.assertNotIn("J", now["ready"])
-        self.assertTrue(any(a["step"] == "B" for a in now["active"]))
-        c = self.claim(["C"])["C"]
-        self.start("C", c, self.commits["A"])
-        self.call("done", self.contribute("C"))
-        self.call("done", self.contribute("B"))
-        j = self.claim(["J"])["J"]
-        self.start("J", j, self.git(self.target, "rev-parse", "HEAD"), integration=True)
-        self.call("done", self.contribute("J", integration=True))
-        self.assertTrue(self.call("next")["complete"])
-        self.parent_complete()  # Child graph completion alone is insufficient.
-        proof = self.write("combined-verification.json", {"commit": self.commits["J"], "passed": True,
-                           "checks": ["A, B and C contents and exact commit ancestry"]})
-        finish = {"commit": self.commits["J"], "confirmed_stopped": True,
-                  "verification": {"path": str(proof), "sha256": digest(proof)}}
-        self.cleanup_accepted_workers()
-        self.call("finish", finish)
-        self.call("finish", finish)
-        self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits["J"])
-        self.assertEqual(self.git(self.primary, "rev-parse", "HEAD"), self.initial)
-        for step, packet in self.packets.items():
-            path = Path(packet["context"]["workspace"]).resolve()
-            self.assertNotIn(self.target, path.parents)
-            self.assertTrue(path.is_relative_to(self.parent.resolve()))
-        self.parent_complete(ok=True)
-        self.assert_producer_advanced_past_finished_chain()
 
     def test_missing_binding_and_stale_action_fail_closed(self):
         self.bind()
@@ -788,28 +615,6 @@ class ChainIntegrationTests(ChainFixture):
         self.assertNotIn("C", state["ready"])
         self.assertTrue(any(row["attempt"] == a for row in state["active"]))
 
-    def test_failed_and_wrong_commit_finish_proof_preserves_accepted_target(self):
-        self.graph = self.write("graph.json", {"version": 1, "steps": [{"id": "A", "deps": [],
-            "contract": {"task": "Implement A", "ready": [], "done": ["A verified"]}}]})
-        self.bind()
-        a = self.claim(["A"])["A"]
-        self.start("A", a)
-        self.call("done", self.contribute("A"))
-        accepted_target = self.git(self.target, "rev-parse", "HEAD")
-        self.assertEqual(accepted_target, self.commits["A"])
-        for contents in ({"passed": False, "commit": self.commits["A"]},
-                         {"passed": True, "commit": self.initial}, {}):
-            proof = self.write("failed-combined.json", contents)
-            self.call("finish", {"commit": self.commits["A"], "confirmed_stopped": True,
-                "verification": {"path": str(proof), "sha256": digest(proof)}}, ok=False)
-            self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), accepted_target)
-        proof = self.write("combined.json", {"passed": True, "commit": self.commits["A"]})
-        value = {"commit": self.commits["A"], "confirmed_stopped": True,
-                 "verification": {"path": str(proof), "sha256": digest(proof)}}
-        self.cleanup_accepted_workers()
-        self.call("finish", value)
-        self.parent_complete(ok=True)
-
     def test_shared_external_resource_stays_reserved_until_verified_stoppage(self):
         self.bind()
         claims = self.claim(["A", "B"])
@@ -857,31 +662,6 @@ class ChainIntegrationTests(ChainFixture):
             ))
         self.assertEqual((self.run / "state.md").read_bytes(), original)
         self.assertFalse((self.run / "chains").exists())
-
-    def test_cold_implementation_packet_requires_eligible_parallel_route(self):
-        cold = store.read_record(self.run / "state.md")
-        before = (self.run / "state.md").read_bytes()
-        packet = nav.render(None, self.run, cold)
-        self.assertIn(str(SCRIPTS.parent / "references/parallel-chain.md"), symbols.guides_expanded(packet))
-        self.assertIn("Parallel-chain guide", packet)
-        self.assertIn("default parallel", packet)
-        self.assertIn("native slots are observed free", " ".join(packet.split()))   # was "observed native slots" (re-cut)
-        parallel_chain = " ".join((SCRIPTS.parent / "references/parallel-chain.md").read_text().split())
-        self.assertIn(
-            "use this parallel route by default when selected compatible native capacity is available",
-            parallel_chain,
-        )
-        self.assertIn("Serial mode remains an explicit user or host-limit choice", parallel_chain)
-        self.assertIn(
-            "set `--capacity` from the observed user or host native-slot limit for this run",
-            parallel_chain,
-        )
-        self.assertIn("The CLI default of `2` is a fallback, not proof", parallel_chain)
-        self.assertIn(
-            "a concrete compatibility, readiness, or resource blocker retains the ordinary parent route",
-            parallel_chain,
-        )
-        self.assertEqual((self.run / "state.md").read_bytes(), before)
 
 
     def verify_instruction(self, result, attempt):

@@ -63,6 +63,14 @@ _NO_LIMIT = "there is no iteration limit."
 # names the callback with its verb changed (``prompts.CHECK_HOW``); the contract names no install path, so no command.
 _CHECK = "run " + prompts.CHECK_HOW + " and fix each refusal until the check says yes"
 
+# The implement step's Work (implement-step fix plan section 3.4, the owner's D4 words): the step is anchored in
+# its criteria, the R-<n> they serve and the item's AD-<n>, read from state (``step_anchors``) so the contract rebuilt
+# at complete is the one written at entry.  Every route issues one implement action per step (design T §9.1 2c-1).
+WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the criteria that have been stated "
+             "({criteria}{serving}) and the design directions that have been applied ({decisions}), until each "
+             "criterion assigned to this step is satisfied and none of the others is broken. Do duty items {items} "
+             "of {run}/packets/{action}.md. Write no tests and start no later step.")
+
 WORK: Mapping[str, str] = {
     "step-plan": (
         "Do duty items {items} of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then "
@@ -72,8 +80,7 @@ WORK: Mapping[str, str] = {
     "validate-existing": (
         "Take the first expectation whose check does not match its state and do duty items {items} of "
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
-    "implement": (
-        "Do duty items {items} of {run}/packets/{action}.md for {step_change}. Write no tests and start no later step."),
+    "implement": WORK_STEP,
     "test": (
         "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet until every case "
         "is a passing test the focused command runs; write each test change's independent reason in "
@@ -89,13 +96,16 @@ WORK: Mapping[str, str] = {
 # The carry-forward Work of a one-step one-item run (``one_step_run``): its duty item 3 names the trial file itself.
 WORK_ONE_STEP = "Do duty items {items} of {run}/packets/{action}.md."
 
-# The inline implement step's Work (implement-step fix plan section 3.4, the owner's D4 words): the step is anchored in
-# its criteria, the R-<n> they serve and the item's AD-<n>, read from state (``step_anchors``) so the contract rebuilt
-# at complete is the one written at entry.  WORK["implement"] stays the ask-agent route's whole-plan Work (its T31).
-WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the criteria that have been stated "
-             "({criteria}{serving}) and the design directions that have been applied ({decisions}), until each "
-             "criterion assigned to this step is satisfied and none of the others is broken. Do duty items {items} "
-             "of {run}/packets/{action}.md. Write no tests and start no later step.")
+# The implement step's repeat rule (implement-step fix plan section 3.4): it continues while an exit condition is
+# unmet and a justified investigation or fix remains.  Otherwise it reports blocked when a person or an outside service
+# must act, and send-back, with the attempts made, when the step cannot be done as planned (E3, plan 8.5).
+REPEAT_STEP = (
+    "Repeat while an exit condition is unmet (the Proof fails, a new lint finding stands on a changed line, a criterion "
+    "is not yet shown) and a justified investigation or fix remains; " + _NO_LIMIT + " Stop blocked when none "
+    "remains: report blocked when a person or an outside service must act (access, authority, a decision); report "
+    "send-back, with the blocker and the attempts made, when the step is proven unachievable as planned (it contradicts "
+    "a requirement, a decision, the item or a protected file; it needs a tool that is absent; or it would exceed the "
+    "item), or when " + stage_spec.STUCK_FIX + ". " + _NEVER_CANCEL)
 
 REPEAT: Mapping[str, str] = {
     "step-plan": (
@@ -109,13 +119,7 @@ REPEAT: Mapping[str, str] = {
         "Repeat while an expectation is mismatched and the latest iteration fixed the environment or a known "
         "defect; " + _NO_LIMIT + " Otherwise stop blocked: the stage reports send-back for a wrong check, an unknown "
         "fix or a fact that changes the plan, and blocked for a fix outside this run. " + _NEVER_CANCEL),
-    "implement": (
-        "Repeat while a check command fails or the lint command reports a new finding on a changed line and the "
-        "latest iteration changed code to fix it; " + _NO_LIMIT + " Stop blocked when none remains: the stage "
-        "reports blocked when a person or an outside service must act (access, authority, a decision), and "
-        "send-back when the plan is proven unachievable as planned (a criterion contradicts another criterion, the "
-        "item or a protected file; it needs a tool that is absent; or it would exceed the item), or when "
-        + stage_spec.STUCK_FIX + ". " + _NEVER_CANCEL),
+    "implement": REPEAT_STEP,
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
         "below the floor, a new ID passing on the base, a lint finding or a refusal from the check, and changed code or "
@@ -133,44 +137,15 @@ REPEAT: Mapping[str, str] = {
         "not a queue edit. " + _NEVER_CANCEL),
 }
 
-# The inline implement step's repeat rule (implement-step fix plan section 3.4): it continues while an exit condition is
-# unmet and a justified investigation or fix remains.  Otherwise it reports blocked when a person or an outside service
-# must act, and send-back, with the attempts made, when the step cannot be done as planned (E3, plan 8.5).
-# REPEAT["implement"] stays the ask-agent route's whole-plan rule, as its Work does (the fix plan's T31).
-REPEAT_STEP = (
-    "Repeat while an exit condition is unmet (the Proof fails, a new lint finding stands on a changed line, a criterion "
-    "is not yet shown) and a justified investigation or fix remains; " + _NO_LIMIT + " Stop blocked when none "
-    "remains: report blocked when a person or an outside service must act (access, authority, a decision); report "
-    "send-back, with the blocker and the attempts made, when the step is proven unachievable as planned (it contradicts "
-    "a requirement, a decision, the item or a protected file; it needs a tool that is absent; or it would exceed the "
-    "item), or when " + stage_spec.STUCK_FIX + ". " + _NEVER_CANCEL)
 
-
-
-def several_steps(scope: Optional[Mapping[str, Any]]) -> Optional[tuple[str, str]]:
-    """(the steps' name, their paths) when ``scope`` (``implement_scope``) is one action that builds several steps, as the
-    ask-agent route issues it; None for one step."""
-    if scope is None or scope.get("count", 1) <= 1:
-        return None
-    return str(scope["id"]), _paths_text(scope.get("paths") or ())
-
-
-# The stages that judge what one implement action built: implement itself, and the step's test and document stages.
-BUILT_STAGES = ("implement", "test", "document")
 
 
 def worded_stage(stage: str, scope: Optional[Mapping[str, Any]] = None) -> stage_spec.Stage:
-    """The stage row as the packet and the loop contract word it.  Implement on a route that builds several steps in one
-    action names those steps and their paths; an inline step's first condition ends with the criteria assigned to it
-    (T11 of the implement-step fix plan); every other case is the row itself."""
+    """The stage row as the packet and the loop contract word it.  An implement step's first condition ends with the
+    criteria assigned to it (T11 of the implement-step fix plan); every other case is the row itself."""
     row = stage_spec.stage(stage)
-    # The ask-agent route's one implement action builds every step, so its test and document stages, and the step
-    # review that follows document, cover them all and are worded for them too (design T §8).
-    named = several_steps(scope) if stage in BUILT_STAGES else None
-    if named:
-        return stage_spec.for_steps(row, *named)
     criteria = [str(ident) for ident in (scope or {}).get("criteria") or ()] \
-        if stage == "implement" and scope is not None and not scope.get("all_steps") else []
+        if stage == "implement" and scope is not None else []
     if criteria:
         return replace(row, done_when=(row.done_when[0] + " (assigned: " + ", ".join(criteria) + ")",
                                        *row.done_when[1:]))
@@ -375,34 +350,26 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
            commands: Sequence[Mapping[str, Any]] = (), route: str = prompts.INLINE,
            one_step: bool = False, anchors: Optional[Mapping[str, str]] = None,
-           item_paths: Sequence[Any] = (), built: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
+           item_paths: Sequence[Any] = ()) -> dict[str, Any]:
     """One stage's contract from plain values; ``contract`` supplies them from state (``route``: the delegation the
     action was issued with, which decides which duty items its packet prints; ``one_step``: the run is ``one_step_run``,
     so carry-forward's Work is ``WORK_ONE_STEP``; ``anchors``: an inline step's ``step_anchors``; ``item_paths``: the
-    item's declared paths, which bound an inline step's scope instead of a path fence of its own)."""
+    item's declared paths, which bound a step's scope instead of a path fence of its own)."""
     values = {"run": str(root), "action": action_id, "repo": repo, "items": _duty_items(stage, route)}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
         _need(step is not None, f"work item {item} has no implement step left in its accepted step plan")
         values["step"] = str(step.get("id"))
-        if step.get("all_steps"):
-            # The ask-agent route issues one implement action for the whole plan (its chain runs the steps).
-            values["step_change"] = "the change of every step, " + str(step.get("id")) + ", in order"
-            scope = (f"Workspace {repo}. Every step of work item {item} ({step.get('id')}): only their paths: "
-                     f"{_paths_text(step.get('paths') or ())}. Preserve every other change.")
-        else:
-            values.update(anchors or step_anchors({}, step))
-            scope = (f"Workspace {repo}. Step {step.get('id')} of work item {item}: its assigned criteria, within the "
-                     f"item's declared paths ({_paths_text(item_paths) or 'none declared'}). No later step's work. "
-                     "Preserve every other change.")
+        values.update(anchors or step_anchors({}, step))
+        scope = (f"Workspace {repo}. Step {step.get('id')} of work item {item}: its assigned criteria, within the "
+                 f"item's declared paths ({_paths_text(item_paths) or 'none declared'}). No later step's work. "
+                 "Preserve every other change.")
     elif stage == "step-plan":
         scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft and "
                  "docs/shiploop/. Change no product file.")
     text = WORK_ONE_STEP if one_step and stage == "carry-forward" else WORK[stage]
     repeat = REPEAT[stage]
-    if stage == "implement" and not step.get("all_steps"):
-        text, repeat = WORK_STEP, REPEAT_STEP
     work = _fill(text, values)
     if stage == "test" and commands:
         work += "\n" + COMMANDS_HEAD + "\n" + command_listing(commands)
@@ -432,7 +399,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
     return loop_contract.contract(
         workspace=repo,
         work=work,
-        exit_condition=exit_condition(stage, step if step is not None else built),
+        exit_condition=exit_condition(stage, step),
         repeat_condition=repeat,
         # Every inner stage completes on its first iteration whose exit assessment is satisfied.
         required_trivial_reviews=0,
@@ -461,12 +428,11 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
-    step = implement_scope(state, item, action_id) if stage == "implement" else None
-    built = implement_scope(state, item, action_id) if stage in BUILT_STAGES[1:] else None
-    anchors = step_anchors(plan, step) if step is not None and not step.get("all_steps") else None
+    step = current_step(state, item) if stage == "implement" else None
+    anchors = step_anchors(plan, step) if step is not None else None
     return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=step, commands=commands, route=_route(state, action_id), one_step=one_step_run(state) is not None,
-                  anchors=anchors, item_paths=list(plan.get("paths") or ()), built=built)
+                  anchors=anchors, item_paths=list(plan.get("paths") or ()))
 
 
 def _route(state: Mapping[str, Any], action_id: str) -> str:
@@ -475,24 +441,6 @@ def _route(state: Mapping[str, Any], action_id: str) -> str:
     if isinstance(hold, Mapping) and hold.get("action") == action_id and state.get("status") not in ("halted", "done"):
         return str(hold.get("route"))
     return str(state.get("delegation"))
-
-
-def implement_scope(state: Mapping[str, Any], item: str, action_id: str) -> Optional[Mapping[str, Any]]:
-    """implement's scope: the current step on the inline route (one action per step), or every step of the plan on the
-    ask-agent route, which issues one implement action whose chain runs them all (``all_steps``; ``count`` is how many,
-    ``id`` names them, "S1 to S2")."""
-    if _route(state, action_id) != "ask-agent":
-        return current_step(state, item)
-    _action, plan = _step_plan(state, item)
-    steps = [row for row in (plan.get("steps") or ()) if isinstance(row, Mapping)] if _action else []
-    if not steps:
-        return None
-    # A step's paths are optional (the inline route never reads them): steps that declare none are named by the item's.
-    paths = list(dict.fromkeys(str(path) for row in steps for path in (row.get("paths") or ()))) \
-        or [str(path) for path in plan.get("paths") or ()]
-    ids = [str(row.get("id")) for row in steps]
-    return {"id": ids[0] if len(ids) == 1 else ids[0] + " to " + ids[-1], "paths": paths, "all_steps": True,
-            "count": len(ids)}
 
 
 def contract_writes(root: Path, state: Mapping[str, Any]) -> dict[str, str]:

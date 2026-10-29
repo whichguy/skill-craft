@@ -321,14 +321,16 @@ Every number is counted from `state.md` history and the accepted results (`resul
   not yet), and absent when the run has no ledger for the item, the ledger does not record the step or its commit is not a
   commit id. It is never taken from summary text, and the exporter reads no git log.
 
-*The pairing.* On the inline route ShipLoop issues one implement packet per step, in order, and only a `done` implement
+*The pairing.* ShipLoop issues one implement packet per step (the inline route always; the ask-agent route from state
+version 11), in order, and only a `done` implement
 visit moves to the next step (`implement_progress` and `_step_lines` in `shiploop_navigator.py`: the step is
 `steps[done]`, where `done` counts the item's done implement visits since its latest accepted step plan). So the k-th
 done implement visit after the latest accepted step plan executed step k, and a `repeat` visit is another attempt at the
 same step. In a 7-stage run a test or document visit after a done implement visit belongs to the step it built, so only a
 stage past the steps (carry-forward) means the item moved past implement. The export follows that rule exactly. It does not guess elsewhere: the item gets no `stepsExecuted` and its steps no
-`action`, with the reason under `unmeasured.stepsExecuted`, when the run's recorded `delegation` is not `inline` (ask-agent
-issues one implement packet for the whole plan; a run whose route was switched mid-run is read by its final route), when
+`action`, with the reason under `unmeasured.stepsExecuted`, when the run's recorded `delegation` is `ask-agent` and its
+state `version` is below 11 (that route then issued one implement packet for the whole plan; a run whose route was
+switched mid-run is read by its final route), when
 more done implement visits follow a plan than it has steps, or when the item moved past implement with fewer done implement
 visits than steps: in each the one-packet-per-step rule did not hold. `workItems` itself is absent, with its reason in
 `unmeasured.workItems`, when `state.md` has no `work_items` queue or its history rows carry no `workitem`, or when the

@@ -157,6 +157,9 @@ V5_ONLY_STAGES = frozenset(stage for _, stages in PHASES_V5 for stage in stages)
 # ShipLoop's state version (shiploop_navigator.STATE_VERSION) by stage model: 4 and earlier the 17-stage loop, 5 to 9 the
 # 8-stage loop with verify, 10 and later the 7-stage loop (the engine refuses a version-9 run since verify was retired).
 V6_FIRST_VERSION = 10
+# From state version 11 (design T §9.1 2c-1) the ask-agent route issues one implement packet per step, as the inline route
+# always has; a run saved before it issued one packet for the whole plan, and its visits are tied to no step.
+ONE_PACKET_PER_STEP_FIRST_VERSION = 11
 STAGE_MODELS = {"v4": "the 17-stage inner loop, state version 4 or earlier",
                 "v5": "the 8-stage inner loop with verify",
                 "v6": "the 7-stage inner loop: each step built, tested, documented, reviewed and committed"}
@@ -2590,11 +2593,12 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
     summary text. Per item (SCHEMA.md): `stepPlans` is the item's accepted step-plan visits of any outcome; `loops` is
     the times it went through the steps loop, 1 once it has any visit plus one per accepted `send-back` (each sends it back
     to step-plan); `implementVisits` counts the item's implement visits by outcome. `steps` are the steps of the latest
-    accepted (done) step plan. On the inline route ShipLoop issues one implement packet per step, in order, and only a
-    done visit moves on (shiploop_navigator.implement_progress): so the k-th done implement visit after that plan
-    executed step k, and an unfinished plan leaves the later steps with `action` None. A visit's mark is its work item,
-    its loop and, for an implement visit, the step the packet named (the plan then in force, the steps already done).
-    The records cannot tell which visit ran which step on another route, or when the counts do not line up with one
+    accepted (done) step plan. ShipLoop issues one implement packet per step, in order, and only a done visit moves on
+    (shiploop_navigator.implement_progress): so the k-th done implement visit after that plan executed step k, and an
+    unfinished plan leaves the later steps with `action` None. A visit's mark is its work item, its loop and, for an
+    implement visit, the step the packet named (the plan then in force, the steps already done). That holds on the inline
+    route always and on the ask-agent route from state version 11; an older ask-agent run issued one packet for the whole
+    plan, and the records cannot tell which visit ran which step.  Nor can they when the counts do not line up with one
     packet per step: then the item has no `stepsExecuted` and its steps no `action`, and the reason is under
     `stepsExecuted`. `workItems` is None, with its reason, when the queue or history cannot be read or the plan visit
     was recorded by the E2E seed (the work items are then the harness's).
@@ -2614,9 +2618,14 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
         return None, {"workItems": "state.md history rows carry no workitem, so visits cannot be assigned to work "
                                    "items"}, {}
     route = state.get("delegation")
-    inline = route == "inline"
-    why_route = ("this run's delegation is ask-agent: ShipLoop issues one implement packet for the whole step plan, so "
-                 "no visit is tied to a step" if route == "ask-agent" else "state.md records no delegation route")
+    version = state.get("version")
+    # One implement packet per step: the inline route always, the ask-agent route from state version 11.
+    inline = route == "inline" or (route == "ask-agent" and isinstance(version, int)
+                                   and version >= ONE_PACKET_PER_STEP_FIRST_VERSION)
+    why_route = ("this run's delegation is ask-agent and it was saved before state version "
+                 + str(ONE_PACKET_PER_STEP_FIRST_VERSION) + ", when ShipLoop issued one implement packet for the whole "
+                 "step plan, so no visit is tied to a step" if route == "ask-agent" else
+                 "state.md records no delegation route")
     produced = _produced(history, results, state)
     rows_of: dict[str, list[tuple[int, dict]]] = {}
     for index, entry in enumerate(history):

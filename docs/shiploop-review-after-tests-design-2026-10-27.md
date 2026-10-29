@@ -1315,6 +1315,56 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
         the skill record uncommitted, and the retry does not run them again, since a repeated `complete` of an accepted
         action changes nothing. They are not part of a step's commit stage; they need their own record before they can
         recover.
+    - **2c-1: the route (done 2026-10-29; the chain's code stays until 2c-2).** The ask-agent route issues one implement
+      action per step, as the inline route does.
+      - *What changed.*
+        - `loops.implement_scope` and `several_steps` are gone, so the scope of an implement action is
+          `loops.current_step`. `WORK["implement"]` and `REPEAT["implement"]` are now `WORK_STEP` and `REPEAT_STEP`.
+        - The route checks in `step_view`, `_next_step_follows`, `_between_steps`, `_iteration_base`, `_step_entry`,
+          `look_back_lines`, `test_loop.step_number`, `test_loop.step_command` and the Improve hand-off are removed.
+        - `_item_commit_stage`, `_item_commit_product`, `_ask_agent`, `stage_spec.for_steps`, the rows' `steps_goal` and
+          `steps_done_when`, and `prompts.for_steps` are removed too. The step notes `learned` and `decisions` are
+          required on both routes, and the step plan's template asks no per-step `paths`.
+        - The implement duty is one text. Its item 7 is the only paragraph that names who does the step: the inline
+          paragraph is unchanged, and the new worker paragraph (349 characters, in place of the 1,627-character chain
+          paragraph) says the worker makes no commit, runs no callback, starts no later step and leaves no delegate
+          writing. The step-plan duty's item 11 says "Record none" on both routes.
+        - The context policy loses its "select the chain route first" paragraph, and so does the Improve route file that
+          mirrors it (`skills/improve/references/shiploop-route-ask-agent.md`, a patch note for `improve`).
+      - *Decisions, routine under AGENTS.md "Decisions".*
+        - State version 10 to 11, with `V10_REASON`. Version 10 was never released, but development runs saved at it
+          (the E2E cases seeded at `step-plan`) hold an ask-agent implement action that built every step; a narrower
+          refusal cannot tell that action from step 1 of a per-step run until the item passes its document stage. All
+          version-10 runs are refused, inline ones too.
+        - Run Review keeps its "no visit is tied to a step" reading for an ask-agent run saved before version 11. The
+          brief listed it among the branches to remove; removing it would read an old run's single implement visit as step
+          1 and report the later steps unexecuted. Receipts and ledgers of old runs are kept (the owner's G1 text).
+        - The `backchain-graph` verb (`shiploop_backchain_graph`) is not on the 2c-2 list and is left alone: it has no
+          caller but the chain's reviewed graph. The owner may want it retired with the chain.
+      - *Evidence.*
+        - New, seen failing before the code (`'an ask-agent step is a step of the iteration'` was None):
+          `test_an_ask_agent_run_builds_commits_and_advances_one_step_at_a_time_as_an_inline_run_does`, through the real
+          CLI: three steps, three `feat(W1/Sn)` commits, one implement action each.
+        - Rewritten or replaced (the old ones pinned the item-level route): in shiploop-delegation (the step plan
+          records no graph; implement is issued once per step; the aggregate-wording class), shiploop-loops (the ask-agent
+          contract is the inline one byte for byte), shiploop-test-loop (the step Proof runs on the ask-agent route; the
+          item-commit locator is gone), shiploop-stage-spec, shiploop-head-order, shiploop-actual-improve-cli,
+          shiploop-guidance (a step's result label), shiploop-handoff (the state version; the hand-off is cut to the
+          step), shiploop-e2e-commit-counters (the item subject is read for old runs and written by none),
+          shiploop-run-review (a version-11 ask-agent run pairs its steps; a version-10 one does not), improve-route
+          (the ask-agent step review is worded for one step; its hand-off is 22,575 bytes against inline's 21,553, so
+          its bound is 23,000 and inline keeps pilot A's 22,000) and shiploop-send-back (the supported state version).
+        - Seven tests in `ChainIntegrationTests` (`test/shiploop-chain.test.py`) are removed, not rewritten: they drove a
+          chain through the navigator's implement packet and `complete`, which no longer binds one. The rest of the
+          chain's tests stay (36 pass) until 2c-2 deletes the chain.
+        - Run on the tree after this change: the quick group and the whole shiploop group (119 suites, `--jobs 3`).
+          Three suites failed (improve-route, shiploop-send-back, shiploop-chain: the tests above); each passes after its
+          fix, run alone.
+        - `test/shiploop_e2e/head_table.json`: ask-agent implement head 18,307 to 17,135, step-plan 19,486 to 18,801;
+          test and carry-forward rise by 7 and 21 (their cause is not traced); the reasons are in its `_comment`.
+      - *Not done, on purpose.* 2c-0 part 2 (the preparatory base at every step) is lane B's `test_base_commit`; the
+        inline test `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit` should now hold on the
+        ask-agent route too, which has steps. It is run in 2c-3 with the E2E cases.
   - **Found on the way** (reference text, not changed here). chain-route.md's inline paragraph still says "An Improve
     stage reviews each accepted step, and the callback after the last step's review moves to `test`".
     parallel-chain.md's diagram still ends in "The item's Improve stage, then the test stage". Both predate 2b-2.

@@ -46,6 +46,10 @@ import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 
 PILOT_A_BYTES = 22_000          # plan U18 exit 3: the step review's handoff against pilot A's 22 KB
+# The ask-agent route's step review hand-off, measured 22,575 bytes on 2026-10-29 (inline 21,553): since design T §9.1 2c-1
+# it prints the step's own block, as the inline one does, where the aggregate wording of "steps S1 to S2" printed none, and
+# its route adds the native-owner lines.
+ASK_AGENT_STEP_REVIEW_BYTES = 23_000
 READ_LIMIT = 2_000              # plan U18 exit 2: the first 2,000 characters are self-sufficient
 FOCUS_LIMIT = 4_500             # ... the focus ends, and the commit and complete lines sit, inside the first 4,500
 # The step review (document's, rule item, design T §8) reviews the step's code, tests, docs and knowledge together, so its
@@ -476,13 +480,17 @@ class HandoffTests(unittest.TestCase):
     def test_the_step_review_handoff_is_within_pilot_a(self):
         for route, handoffs in self.walks.items():
             with self.subTest(route=route):
-                self.assertLessEqual(len(handoffs[STEP_REVIEW_STAGE].encode()), PILOT_A_BYTES)
+                self.assertLessEqual(len(handoffs[STEP_REVIEW_STAGE].encode()),
+                                     ASK_AGENT_STEP_REVIEW_BYTES if route == prompts.ASK_AGENT else PILOT_A_BYTES)
                 self.assertLess(len(handoffs[STEP_REVIEW_STAGE]), 0.7 * 33_329)  # was 33,329 on the same walk (inline)
 
-    def test_the_ask_agent_walk_reviews_the_aggregate_steps(self):
-        text = self.walks[prompts.ASK_AGENT][STEP_REVIEW_STAGE]
-        self.assertIn("steps S1 to S2", text)               # so the bounds above hold for the longest focus
-        self.assertNotIn("steps S1 to S2", self.walks[prompts.INLINE][STEP_REVIEW_STAGE])
+    def test_the_ask_agent_walk_reviews_one_step_as_the_inline_walk_does(self):
+        # Design T §9.1 2c-1: one implement action per step on both routes, so neither review is worded for several steps.
+        for route in (prompts.ASK_AGENT, prompts.INLINE):
+            with self.subTest(route=route):
+                text = " ".join(self.walks[route][STEP_REVIEW_STAGE].split())
+                self.assertIn("one step of the item's step plan", text)
+                self.assertNotIn("steps S1 to S2", text)
 
     def test_the_review_directory_is_short_and_per_action(self):
         # the Improve packet prints the handoff path; the child directory in it is the stage and 8 characters

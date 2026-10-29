@@ -7,7 +7,6 @@ change to a stage's behaviour has to change both the table and this suite.
 
 from __future__ import annotations
 
-import dataclasses
 from pathlib import Path
 import sys
 import unittest
@@ -63,25 +62,18 @@ class StageTableTest(unittest.TestCase):
         knowledge layout moved to HOME (consumer contract 4b), and ShipLoop derives the changes from the spec diff."""
         for name, row in spec.STAGE_SPEC.items():
             with self.subTest(stage=name):
-                for text in (row.goal, *row.done_when, row.steps_goal or "", *row.steps_done_when):
+                for text in (row.goal, *row.done_when):
                     self.assertNotIn("FEATURE", text)
         self.assertIn("ShipLoop derives this run's ID changes from the spec diff", spec.stage("spec").goal)
 
-    def test_the_several_steps_wording_is_a_pair_of_the_goal_and_each_condition_of_one_row(self) -> None:
-        """implement, and the test and document stages that follow it, word themselves for the steps one ask-agent action
-        builds (design T section 8: each step is built, tested and documented); a condition keeps the row's rules."""
-        self.assertEqual([name for name, row in spec.STAGE_SPEC.items() if row.steps_goal is not None],
-                         ["implement", "test", "document"])
-        row = spec.stage("implement")
-        worded = spec.for_steps(row, "S1 to S2", "a.py, b.py")
-        self.assertEqual(len(worded.done_when), len(row.done_when))
-        self.assertTrue(worded.goal.rstrip().endswith("."))
-        self.assertTrue(all(";" not in item for item in worded.done_when))   # the Improve contract joins them with "; "
-        self.assertIn("S1 to S2", worded.goal)
-        self.assertIn("S1 to S2", worded.done_when[0])
-        self.assertEqual(worded.done_when[1], row.done_when[1])               # shared conditions are word for word
-        with self.assertRaises(ValueError):                                   # a goal without one condition per entry
-            dataclasses.replace(row, steps_done_when=row.steps_done_when[:2])
+    def test_no_stage_row_has_wording_for_an_action_that_builds_several_steps(self) -> None:
+        """Design T section 9.1 2c-1: every route issues one implement action per step, so a row has one goal and one
+        list of conditions, and nothing words itself for 'S1 to S2'."""
+        for name, row in spec.STAGE_SPEC.items():
+            with self.subTest(stage=name):
+                self.assertFalse(hasattr(row, "steps_goal"))
+                self.assertFalse(hasattr(row, "steps_done_when"))
+        self.assertFalse(hasattr(spec, "for_steps"))
 
     def test_improve_rules(self) -> None:
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({

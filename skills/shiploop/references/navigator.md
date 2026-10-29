@@ -741,7 +741,7 @@ by one Improve stage before the next step starts, the tests are written from
 the test spec and must fail on the step's base and pass on the candidate,
 documentation follows observed behaviour, and each step's review traces every
 changed entry point with justified fixes and rechecks. ShipLoop's step commits
-after each step's review (the item's one commit on the ask-agent route) are
+after each step's review are
 authorized Git work in the execution checkout; they do not assert a merge, push,
 or deployment. `carry-forward`
 reviews broad scope, dependencies, future system-test requirements, and the
@@ -892,7 +892,7 @@ and cannot prove that the host performed the checks or wrote good documentation.
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
 | Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-spec`, `test` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
-| Own delegated work | `step-plan`, `implement`, the item's review (ask-agent route) | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
+| Own delegated work | `step-plan`, `implement`, each step's review (ask-agent route) | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
 | Diagnose persistent failure | `test`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
 | Select relevant operational checks | `step-plan`, `document` (later checks as open items) | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
 | Review the resulting candidate | Improve campaigns (each step's review) | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |

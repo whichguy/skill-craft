@@ -59,17 +59,21 @@ DELEGATED_ROUTE_TEXT = (
     "ask-agent/consumer-owned-workspace/v1",
     "Workspace route: consumer-owned",
     "Native owner record:",
+)
+# Design T §9.1 2c-1 retired the chain: no packet of either route binds one, so its phrases are tested absent below
+# (``test_no_packet_of_either_route_names_a_chain``), not as ask-agent-only wording.
+RETIRED_CHAIN_TEXT = (
     "bind the default parallel mode",
     "Parallel-chain guide:",
     "so the parallel chain can run them together",
     "its own step (`deps` [])",
+    "parallel or serial execution graph",
 )
 # Delegated wording that only bound Improve packets or duties can carry.
 BOUND_DELEGATED_TEXT = DELEGATED_ROUTE_TEXT + (
     "dispatch step",
     "every worker",
     "source-bound parent update",
-    "parallel or serial execution graph",
 )
 
 
@@ -198,14 +202,23 @@ class DelegationStateTests(unittest.TestCase):
                 self.assertIn("never clear or hand it off", packet.split("\n\n", 1)[0])
                 self.assertNotIn("Execute the prompt in a fresh context", packet)
 
-    def test_ask_agent_step_plan_splits_independent_changes_into_separate_steps(self):
-        # Live 2026-10-04 (p1-temperature-plain): without this rule the model put two modules
-        # that do not use each other into one step, so the chain had nothing to run in parallel.
-        packet = self.render(advance(self.state("ask-agent"), "step-plan"))
-        # Duty 11 (Execution graph) of the re-cut step-plan states the rule once.
-        flat = " ".join(packet.split())
-        self.assertIn("Give each change that needs no other its own step (`deps` [])", flat)
-        self.assertIn("joined by a later step that needs both", flat)
+    def test_the_step_plan_records_no_execution_graph_on_either_route(self):
+        # Design T §9.1 2c-1: the chain is retired, so no route asks the step plan for a graph a chain could run in
+        # parallel (live 2026-10-04 had asked for independent changes in separate steps for that).
+        for delegation in ("ask-agent", "inline"):
+            with self.subTest(delegation=delegation):
+                flat = " ".join(self.render(advance(self.state(delegation), "step-plan")).split())
+                self.assertIn("11. **Execution graph.** Record none: the steps are issued one at a time.", flat)
+                for text in RETIRED_CHAIN_TEXT:
+                    self.assertNotIn(text, flat)
+
+    def test_no_packet_of_either_route_names_a_chain(self):
+        for delegation in ("ask-agent", "inline"):
+            for stage in ("step-plan", "implement"):
+                with self.subTest(delegation=delegation, stage=stage):
+                    packet = self.render(advance(self.state(delegation), stage))
+                    for text in RETIRED_CHAIN_TEXT:
+                        self.assertNotIn(text, packet)
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
@@ -441,11 +454,20 @@ class StepTests(DelegationStateTests):
         self.assertIn("Step S1 (1 of 1)", self.render(state))
         self.assertNotEqual(nav.current_stage(self.done(state, "Changed.")), "implement")
 
-    def test_ask_agent_implement_stays_one_action(self):
-        # The chain executes every step inside the one implement action.
+    def test_ask_agent_implement_is_issued_once_per_step(self):
+        # Design T §9.1 2c-1 (owner G1, 2026-10-29): the ask-agent route builds one step per implement action, in a fresh
+        # worker in the shared checkout, and ShipLoop commits each step before the next one starts.
         state = self.at_implement("ask-agent")
-        self.assertNotIn("Step S1", self.render(state))
-        self.assertNotEqual(nav.current_stage(self.done(state, "Chain finished.")), "implement")
+        packet = self.render(state)
+        self.assertIn("Step S1 (1 of 2)", packet)
+        self.assertTrue(packet.startswith("Execute the prompt in a fresh context."))
+        flat = " ".join(packet.split())
+        self.assertIn("**Worker.** You are the one step's worker in the shared execution checkout.", flat)
+        self.assertNotIn("**Inline.**", flat)
+        # The step is built, tested and documented before the next one's implement.
+        later = self.done(self.done(self.done(state, "Built S1."), "Tested S1."), "Documented S1.")
+        self.assertEqual(nav.current_stage(later), "implement")
+        self.assertIn("Step S2 (2 of 2)", self.render(later))
 
     def test_a_sent_back_step_plan_restarts_its_steps(self):
         state = self.done(self.at_implement(), "divide() added.")
@@ -1157,17 +1179,6 @@ class AggregateImplementWordingTests(unittest.TestCase):
     def flat(self, text):
         return " ".join(text.split())
 
-    def test_a_two_step_ask_agent_handoff_names_the_steps_and_both_paths(self):
-        text = self.flat(self.handoff(self.at_implement("ask-agent")))
-        self.assertIn("steps S1 to S2", text)
-        self.assertIn("(a.py, pkg/b.py)", text)
-        for stale in ("one step", "the step's paths", "this step's change", "since the step began"):
-            self.assertNotIn(stale, text)
-        self.assertIn("Implementation step review focus.", text)
-        # the Code craft rubric that ends the focus is verbatim, and the shared bullets are untouched
-        self.assertIn(self.flat(prompts.CODE_CRAFT), text)
-        self.assertIn("a recorded check command that fails, or a new lint finding on a changed line with no waiver", text)
-
     def test_a_one_step_inline_handoff_keeps_the_per_step_wording_byte_for_byte(self):
         text = self.handoff(self.at_implement("inline", self.STEPS[:1]))
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), text)    # the focus, then the Code craft rubric
@@ -1186,39 +1197,25 @@ class AggregateImplementWordingTests(unittest.TestCase):
         self.assertIn("Step S1 (1 of 2), the only work for this packet", text)
         self.assertNotIn("S1 to S2", text)
 
-    def test_a_one_step_ask_agent_plan_keeps_the_per_step_wording(self):
-        text = self.handoff(self.at_implement("ask-agent", self.STEPS[:1]))
-        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), text)
-        self.assertNotIn(" to S1", text)
+    def test_an_ask_agent_step_review_names_its_one_step_as_the_inline_one_does(self):
+        text = self.flat(self.handoff(self.at_implement("ask-agent", list(self.STEPS))))
+        self.assertIn("This result is one step of the item's step plan", text)
+        self.assertIn("Step S1 (1 of 2), the only work for this packet", text)
+        self.assertNotIn("S1 to S2", text)
+        self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip().split("\n")[0], text)
 
-    def test_the_packet_goal_and_the_loop_contract_say_the_same_steps(self):
-        state = self.at_implement("ask-agent")
-        action = nav.current_action(state)["id"]
-        packet = self.flat(self.render(state))
-        self.assertIn("Goal: Make the change of steps S1 to S2 on their paths (a.py, pkg/b.py) in WORKTREE", packet)
-        contract = loops.contract(self.run, state, action)
-        first = contract["exit_condition"].splitlines()[0]
-        self.assertEqual(first, "1. only the paths of steps S1 to S2 (a.py, pkg/b.py) changed since the first of them "
-                                "began, and no work outside those steps is in them")
-        # Decision 20 (owner 2026-10-18): implement is outside loops.ARGUMENT_STAGES, so the packet no longer prints
-        # the contract's exit condition; it is checked above via ``contract`` instead (the loop's own packets state
-        # it once the loop starts, pinned in shiploop-loops.test.py).
-        self.assertNotIn("1. only the paths of steps S1 to S2", packet)
-        self.assertNotIn("the step's paths", packet.split("Current stage guidance:", 1)[0])
-        # the loop's work says it once, as a list, with no stray comma before the sentence stop
-        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", contract["work"])
-        cold = self.at_implement("inline")
-        inline = loops.contract(self.run, cold, nav.current_action(cold)["id"])
-        self.assertEqual(inline["exit_condition"].splitlines()[0],
-                         "1. " + stage_spec.stage("implement").done_when[0])
-
-    def test_the_stage_row_words_itself_only_where_it_has_aggregate_wording(self):
-        for name in stage_spec.STAGES:
-            row = stage_spec.stage(name)
-            self.assertIs(stage_spec.for_steps(row, "S1 to S2", "a.py") is row, row.steps_goal is None, name)
-        worded = stage_spec.for_steps(stage_spec.stage("implement"), "S1 to S2", "a.py, b.py")
-        self.assertEqual(len(worded.done_when), len(stage_spec.stage("implement").done_when))
-        self.assertEqual(worded.name, "implement")
+    def test_the_packet_goal_and_the_loop_contract_say_one_step_on_both_routes(self):
+        for delegation in ("ask-agent", "inline"):
+            with self.subTest(delegation=delegation):
+                state = self.at_implement(delegation)
+                action = nav.current_action(state)["id"]
+                contract = loops.contract(self.run, state, action)
+                # The first condition is the row's own, ending with the criteria assigned to the step (T11).
+                self.assertTrue(contract["exit_condition"].splitlines()[0].startswith(
+                    "1. " + stage_spec.stage("implement").done_when[0]))
+                self.assertNotIn("S1 to S2", self.flat(self.render(state)))
+                self.assertNotIn("for the change of every step", contract["work"])
+                self.assertTrue(contract["work"].startswith("Implement all of step S1 of this item's plan"))
 
 
 class DelegationCliTests(unittest.TestCase):

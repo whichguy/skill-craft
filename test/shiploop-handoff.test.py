@@ -445,9 +445,9 @@ class HandoffShapeTests(unittest.TestCase):
             canonical(value, stage)
         return str(caught.exception)
 
-    def test_the_state_version_is_ten_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
-        self.assertEqual(navigator.STATE_VERSION, 10)
-        for version in (5, 6, 7, 8, 9):
+    def test_the_state_version_is_eleven_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
+        self.assertEqual(navigator.STATE_VERSION, 11)
+        for version in (5, 6, 7, 8, 9, 10):
             state = navigator.new_state("/tmp/repo", "add hello")
             state["version"] = version
             with self.subTest(version=version), self.assertRaises(navigator.NavigatorError) as caught:
@@ -457,6 +457,8 @@ class HandoffShapeTests(unittest.TestCase):
                 self.assertIn("now names them `proof` and `settle`", str(caught.exception))
             if version == 9:  # design T §9.1 2b-4c: verify is retired, so a version-9 run cannot resume
                 self.assertIn("closed each item at a verify stage", str(caught.exception))
+            if version == 10:  # design T §9.1 2c-1: an ask-agent run's one implement action built every step
+                self.assertIn("issued one implement action for every step", str(caught.exception))
 
     def test_each_key_is_accepted_only_on_a_done_result_of_its_stage(self) -> None:
         for key, (stage, value) in GOOD.items():
@@ -2952,11 +2954,16 @@ class StepScopeTests(RepoCase):
         every = [dict(TWO_STEPS[0], criteria=["C" + str(n) for n in range(1, STEP_CRITERIA + 1)])]
         bare = [dict(TWO_STEPS[0], criteria=[]), TWO_STEPS[1]]
         for name, state in (("unknown criterion", self.step_state(unknown)), ("one step serves all", self.step_state(every)),
-                            ("no criteria", self.step_state(bare)), ("ask-agent", self.step_state(TWO_STEPS, route="ask-agent"))):
+                            ("no criteria", self.step_state(bare))):
             with self.subTest(name):
                 self.assertIsNone(navigator.step_scope(state, "implement"))
                 self.assertEqual(self.block(state), self.item_set(state))
                 self.assertFalse([line for line in self.block(state) if line.startswith("Cut to step")])
+        # The ask-agent route issues one implement action per step too, so its hand-off is cut to the step (design T §9.1
+        # 2c-1; before, one action built every step and the whole item set was quoted).
+        ask = self.step_state(TWO_STEPS, route="ask-agent")
+        self.assertEqual(navigator.step_scope(ask, "implement"), navigator.step_scope(self.step_state(TWO_STEPS), "implement"))
+        self.assertTrue([line for line in self.block(ask) if line.startswith("Cut to step S1")])
         # The follows cut alone falls back when the step's scope names none of the item's R-<n>.
         state = self.step_state(TWO_STEPS, follows=["R-30", "AD-1"])
         scope = navigator.step_scope(state, "implement")
@@ -3014,11 +3021,11 @@ class ItemRecordsTests(RepoCase):
         self.assertEqual([line for line in lines if line.startswith("- W")], [
             "- W1 step-plan result: RUN/results/W1-sp2.md",                     # the latest done step plan only
             "- W1 test-spec result: RUN/results/W1-ts.md",
-            "- W1 test result: RUN/results/W1-te.md",
-            "- W1 test candidate run: RUN/tests/W1-te-verify2.md (each command's result and count)",
+            "- W1 test step 1 result: RUN/results/W1-te.md",
+            "- W1 test step 1 candidate run: RUN/tests/W1-te-verify2.md (each command's result and count)",
             "- W2 step-plan result: RUN/results/W2-sp2.md",
             "- W2 test-spec result: RUN/results/W2-ts.md",
-            "- W2 test result: RUN/results/W2-te.md"])                             # no candidate run recorded
+            "- W2 test step 1 result: RUN/results/W2-te.md"])                      # no candidate run recorded
         self.assertFalse([line for line in navigator._builds_on_lines(self.root, dict(state, stage="system-test"),
                                                                       "system-test", None) if line.startswith("- W")])
         duty = " ".join(stage_spec_duty("system-test-author").split())

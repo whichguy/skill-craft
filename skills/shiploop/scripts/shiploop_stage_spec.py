@@ -81,12 +81,12 @@ OUTER_SEND_BACK_TO: Mapping[str, str] = MappingProxyType({"system-test": "system
 def send_back_target(stage: str) -> str:
     """The stage a send-back from ``stage`` reruns: an OUTER stage's plan writer, else the item's step plan."""
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
-# The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
+# The implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
 STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
                            "by a command or file after the last edit, and no later step's work is in the change")
-# Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
-# is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
+# Implement's second exit condition on every route: the step's Proof is its step plan `proof`.  ShipLoop runs it at done
+# (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10, owner decision 2026-10-10; a criterion, not a count, since the owner
 # chose it on 2026-10-28 in place of the old seven-attempt count): a genuine fix that leaves the same check failing the
@@ -118,8 +118,6 @@ class Stage:
     outcomes: tuple[str, ...] = ("done", "blocked")
     short_goal: str = ""                   # what a status line shows ("specify this item's tests"); default: goal up to its first colon
     cases: bool = False                    # the test text ends with case_end_states (added once outcomes are final)
-    steps_goal: str | None = None          # the goal for an action that builds several steps at once ({steps}, {paths})
-    steps_done_when: tuple[str, ...] = ()  # the done-when conditions for that action, one per condition above
 
     def __post_init__(self) -> None:
         if self.phase not in PHASES:
@@ -136,9 +134,6 @@ class Stage:
                 raise ValueError(f"{self.name}: unknown {label} {sorted(unknown)}")
         if self.improve not in (None, *IMPROVE_RULES):
             raise ValueError(f"{self.name}: unknown improve rule {self.improve!r}")
-        if (self.steps_goal is None) != (not self.steps_done_when) or (
-                self.steps_goal is not None and len(self.steps_done_when) != len(self.done_when)):
-            raise ValueError(f"{self.name}: the several-steps wording needs a goal and one condition per done-when")
         if not set(self.outcomes) <= OUTCOMES or "done" not in self.outcomes:
             raise ValueError(f"{self.name}: outcomes must include done and use known outcomes")
 
@@ -193,7 +188,7 @@ ITEM_COMMIT_STAGES = ("document",)
 ITEM_COMMITS = (
     "When the document stage and its review are accepted, ShipLoop commits the changed files the step plan's paths "
     "declare, the changed documentation files (for example README.md or files under docs/) and docs/shiploop/, as one "
-    "commit for the step (on the ask-agent route, for the item), and the step advances only once that commit lands."
+    "commit for the step, and the step advances only once that commit lands."
 )
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
                     + " Delete generated output the product does not need.")
@@ -214,15 +209,6 @@ def develop(name: str, execution_mode: str) -> str | None:
         return text
     rule = ITEM_COMMITS + " " + item_left(execution_mode)
     return text + " " + rule if text else rule
-
-
-def for_steps(row: Stage, steps: str, paths: str) -> Stage:
-    """``row`` worded for an action that builds several steps of the plan at once, named ``steps`` (for example "S1 to
-    S2") with their ``paths``; a row without that wording is returned as it is."""
-    if row.steps_goal is None:
-        return row
-    return replace(row, goal=row.steps_goal.format(steps=steps, paths=paths),
-                   done_when=tuple(text.format(steps=steps, paths=paths) for text in row.steps_done_when))
 
 
 _ROWS = (
@@ -425,25 +411,12 @@ _ROWS = (
             "the result lists each behaviour the change added that no test-spec case covers (or none), and whether "
             "each of the step's skills was used",
         ),
-        # The ask-agent route issues one implement action for every step of the plan, so a plan of several steps is
-        # worded for those steps and their paths (``for_steps``); the inline route keeps the per-step wording above.
-        steps_goal="Make the change of steps {steps} on their paths ({paths}) in WORKTREE; exit codes go to "
-                   "RUN/notes/<action>.md, uncovered behaviour to `not_covered`.",
-        steps_done_when=(
-            "only the paths of steps {steps} ({paths}) changed since the first of them began, and no work outside "
-            "those steps is in them",
-            STEP_PROOF_CONDITION,
-            "after the last edit, the lint gate reports no unwaived new finding on a line these steps changed",
-            "the result lists each behaviour the changes added that no test-spec case covers (or none), and whether "
-            "each step's skills were used",
-        ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
         test="After each meaningful change, run the step's Proof; change the work, never the Proof or what it "
              "expects. Tests are written in the test stage.",
         tools="Run `shiploop lint --action` after each edit; the lint gate runs at complete, on every step.",
         edits=frozenset({"code"}),
         entry_runs=("loop-contract",),
-        # step-proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
         complete_runs=("loop-terminal", "lint-gate", "step-proof"),
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),
@@ -456,15 +429,6 @@ _ROWS = (
         done_when=(
             "every case quoted for this step is a test the focused command runs, with its ID in the name",
             "no test ID new at this step passes on the step's base checkout, unless red_na names it",
-            "one complete iteration after the last edit ran every recorded command, each exiting 0, running every "
-            "listed ID and at least the floor of tests",
-            "every test change made to pass a run has a recorded independent reason",
-        ),
-        # The ask-agent route's one implement action builds every step, so its test stage covers them all.
-        steps_goal="Build out the test spec for steps {steps}: a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.",
-        steps_done_when=(
-            "every case quoted for steps {steps} is a test the focused command runs, with its ID in the name",
-            "no test ID new at these steps passes on their base checkout, unless red_na names it",
             "one complete iteration after the last edit ran every recorded command, each exiting 0, running every "
             "listed ID and at least the floor of tests",
             "every test change made to pass a run has a recorded independent reason",
@@ -489,13 +453,6 @@ _ROWS = (
             "each changed document was reread after the last edit",
             # Design T §9.1 2b-3, option C (owner 2026-10-28): document is the step's one place to reflect.
             "the knowledge home records what this step showed, and `knowledge` names each living file with what "
-            "changed in it or why nothing did",
-        ),
-        steps_goal="Update the docs the change of steps {steps} ({paths}) affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.",
-        steps_done_when=(
-            "each changed public behaviour is documented where users and maintainers look",
-            "each changed document was reread after the last edit",
-            "the knowledge home records what these steps showed, and `knowledge` names each living file with what "
             "changed in it or why nothing did",
         ),
         develop="Update code, API, user and operator documentation from observed behaviour.",

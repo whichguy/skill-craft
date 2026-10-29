@@ -157,8 +157,8 @@ class ContractTests(Synthetic):
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
                 # Verify's review loop, the one stage that needed a trivial review, is retired (design T §9.1 2b-4c).
                 self.assertEqual(value["required_trivial_reviews"], 0)
-                # an inline implement step's first condition ends with the criteria assigned to it (fix plan T11)
-                scope = loops.implement_scope(state, "W1", action) if stage == "implement" else None
+                # an implement step's first condition ends with the criteria assigned to it (fix plan T11)
+                scope = loops.current_step(state, "W1") if stage == "implement" else None
                 self.assertEqual(value["exit_condition"], loops.exit_condition(stage, scope))
                 self.assertEqual(value["exit_condition"].splitlines(),
                                  [f"{n}. {c}" for n, c in enumerate(loops.worded_stage(stage, scope).done_when, 1)])
@@ -176,28 +176,23 @@ class ContractTests(Synthetic):
                                   value["context"]))
                 self.assertEqual(json.loads(receipt.read_text())["status"], "active")
 
-    def test_the_ask_agent_implement_contract_names_every_step_and_the_runtime_starts_from_it(self):
-        """One implement action builds both steps of the plan on the ask-agent route: the exit conditions, the work and the
-        scope all say so, in the runtime's own schema (U11); a one-step plan and the inline route keep the per-step words."""
+    def test_the_ask_agent_implement_contract_names_one_step_as_the_inline_one_does_and_the_runtime_starts_from_it(self):
+        """Design T §9.1 2c-1: the ask-agent route issues one implement action per step, so its contract is the inline
+        route's, byte for byte, in the runtime's own schema."""
         validate = _runtime_module()._validate_contract
-        state = dict(self.state_for("implement"), delegation="ask-agent")
+        inline = self.state_for("implement")
+        state = dict(inline, delegation="ask-agent")
         writes = self.write(state)
         value = loops.contract(self.root, state, "A-implement")
         # The runtime normalises the optional list a stage loop does not write (exit_checks): it comes back empty.
         self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
-        lines = value["exit_condition"].splitlines()
-        self.assertEqual(len(lines), len(stage_spec.stage("implement").done_when))
-        self.assertEqual(lines[0], "1. only the paths of steps S1 to S2 (src/a.py, src/b.py, src/c.py) changed since the "
-                                   "first of them began, and no work outside those steps is in them")
-        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", value["work"])
-        self.assertIn("src/a.py, src/b.py, src/c.py", value["context"]["scope"])
+        self.assertEqual(value, loops.contract(self.root, inline, "A-implement"))
+        self.assertEqual(len(value["exit_condition"].splitlines()), len(stage_spec.stage("implement").done_when))
+        self.assertTrue(value["exit_condition"].startswith("1. " + stage_spec.stage("implement").done_when[0]))
+        self.assertNotIn("S1 to S2", json.dumps(value))
         receipt = loops.receipt_path(self.root, "A-implement")
         packet = self.runtime(["start", "--receipt", str(receipt)], writes[loops.contract_path("A-implement")])
         self.assertEqual((packet["status"], packet["conditions"]["exit"]), ("active", value["exit_condition"]))
-        one = dict(state)
-        one["accepted"] = {"A-sp": dict(state["accepted"]["A-sp"], steps=state["accepted"]["A-sp"]["steps"][:1])}
-        self.assertEqual(loops.contract(self.root, one, "A-implement")["exit_condition"].splitlines()[0],
-                         "1. " + stage_spec.stage("implement").done_when[0])
 
     def test_the_step_contract_binds_its_anchors_and_rebuilds_the_same_after_the_living_files_change(self):
         """T12: the inline step's Work names its criteria, the R-<n> they name and the item's AD-<n>; the contract rebuilt
@@ -216,15 +211,17 @@ class ContractTests(Synthetic):
             self.assertIn(token, written["work"])
         self.assertNotRegex(written["work"], r"\bR-1\b")   # a criterion names R-2, so the item's R-1 is not this step's
 
-    def test_the_ask_agent_work_sentence_is_unchanged_and_names_no_step_proof(self):
-        """T31: the whole-plan action keeps today's Work word for word (the chain runs the steps; no single-step gate)."""
+    def test_the_ask_agent_work_sentence_is_the_steps_and_its_repeat_rule_is_the_steps(self):
+        """Design T §9.1 2c-1: one Work and one repeat rule for implement on every route (before, the ask-agent route kept
+        the whole-plan sentence word for word, since its chain ran the steps)."""
         state = dict(self.state_for("implement"), delegation="ask-agent")
         value = loops.contract(self.root, state, "A-implement")
-        self.assertEqual(value["work"], "Do duty items 1-7 of " + str(self.root) + "/packets/A-implement.md for the change "
-                                        "of every step, S1 to S2, in order. Write no tests and start no later step.")
-        # its exits keep the steps' wording, and no step-proof gate applies to it (shiploop-test-loop, T31's gate test)
-        self.assertTrue(value["exit_condition"].startswith("1. only the paths of steps S1 to S2"))
+        self.assertTrue(value["work"].startswith("Implement all of step S1 of this item's plan"))
+        self.assertIn("Do duty items 1-7 of " + str(self.root) + "/packets/A-implement.md. Write no tests and start no "
+                      "later step.", value["work"])
+        self.assertIs(loops.WORK["implement"], loops.WORK_STEP)
         self.assertEqual(value["repeat_condition"], loops.REPEAT["implement"])
+        self.assertIs(loops.REPEAT["implement"], loops.REPEAT_STEP)
 
     def test_the_repeat_texts_route_a_person_or_a_service_to_blocked_and_an_unachievable_plan_to_send_back(self):
         """Run-insights plan N5 (E3): when no further iteration helps, blocked is only for a person's or a service's action
@@ -443,7 +440,7 @@ class InvokeLinesTests(Synthetic):
         self.assertIn("next_argv", loops.RESUME_RESULT_LINE)
 
     def test_the_ask_agent_implement_block_has_the_same_shape_and_one_command(self):
-        """The whole-plan implement action of the ask-agent route prints the same block: command first, no argument
+        """The ask-agent route's implement action prints the same block as the inline route's: command first, no argument
         after (decision 20: implement is outside ARGUMENT_STAGES, so the Contract file carries the per-step work that
         the loop's own packets state, not a line in this packet)."""
         state = dict(self.state_for("implement"), delegation="ask-agent")
@@ -456,7 +453,7 @@ class InvokeLinesTests(Synthetic):
                                      loops.NO_ARGUMENT_FOLLOW])
         self.assertEqual(lines[5], "Contract: " + str(contract_file) + " · Receipt: " + str(receipt))
         contract = json.loads(contract_file.read_text())
-        self.assertIn("for the change of every step, S1 to S2, in order. Write no tests", contract["work"])
+        self.assertIn("Implement all of step S1 of this item's plan", contract["work"])
         self.assertNotIn(loops.ARGUMENT_BEGIN, lines)
 
     def test_a_missing_contract_says_blocked(self):

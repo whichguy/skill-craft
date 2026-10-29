@@ -1257,6 +1257,23 @@ class PlanAndExecutionTest(unittest.TestCase):
         s1, s2 = run["workItems"][0]["steps"]
         self.assertEqual((len(s1["task"]), s1["truncated"], len(s2["task"]), "truncated" in s2), (200, True, 200, False))
 
+    def test_a_run_on_the_ask_agent_route_saved_at_state_version_11_pairs_its_steps_as_an_inline_run_does(self):
+        # Design T §9.1 2c-1: from state version 11 the ask-agent route issues one implement packet per step, so its
+        # visits are tied to steps exactly as the inline route's are.
+        inline, _ = self.build(make_plan_run(self.fresh(), PLAN_ROWS))
+        out = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
+        set_state(out, version=11)
+        run, _facts = self.build(out)
+        self.assertEqual(run["workItems"], inline["workItems"])
+        self.assertEqual(run["stages"], inline["stages"])
+        self.assertNotIn("stepsExecuted", run.get("unmeasured", {}))
+        # and the older ask-agent run keeps its reading: one packet for the whole plan, no visit tied to a step
+        older = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
+        set_state(older, version=10)
+        run10, _facts = self.build(older)
+        self.assertIn("state version 11", run10["unmeasured"]["stepsExecuted"])
+        self.assertTrue(all("action" not in s for item in run10["workItems"] for s in item["steps"]))
+
     def test_a_run_on_the_ask_agent_route_has_steps_but_no_pairing(self):
         out = make_plan_run(self.fresh(), PLAN_ROWS, delegation="ask-agent")
         run, facts = self.build(out)

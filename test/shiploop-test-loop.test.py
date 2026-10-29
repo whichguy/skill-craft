@@ -176,9 +176,9 @@ class TestLoopTests(unittest.TestCase):
 
     # -- driving -----------------------------------------------------------------
 
-    def start(self, improve_skill: str = str(IMPROVE_CARD)) -> None:
+    def start(self, improve_skill: str = str(IMPROVE_CARD), delegation: str = "inline") -> None:
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=improve_skill,
-                                             lint_option="off"))
+                                             lint_option="off", delegation=delegation))
 
     def state(self) -> dict:
         return store.read_record(self.run_dir / "state.md")
@@ -764,21 +764,17 @@ class TestLoopTests(unittest.TestCase):
             with self.assertRaisesRegex(item_scope.ItemScopeError, item_scope.UNREADABLE):
                 item_scope.commit_item(self.run_dir, state, "W1", "feat: W1")
 
-    def test_the_item_commit_locator_names_the_commit_only_when_the_log_has_its_subject(self):
-        """VR-7: the carry-forward reference 'W1 verify item commit' printed even when nothing was committed.  The item
-        commit is the ask-agent route's ``feat: <item> <title>`` (``_item_commit_stage``), document's product; the
-        inline route commits step by step under ``feat(<item>/<step>)``, which the locator does not name."""
+    def test_no_stage_lists_an_item_commit_since_every_route_commits_step_by_step(self):
+        """VR-7 (the carry-forward reference 'W1 verify item commit' printed even when nothing was committed) came from the
+        ask-agent route's single ``feat: <item> <title>`` commit.  Design T §9.1 2c-1 retired it: every route commits
+        each step under ``feat(<item>/<step>)``, which no document product names, and nothing builds the locator."""
+        self.assertFalse(hasattr(nav, "_item_commit_product"))
+        self.assertFalse(hasattr(nav, "_item_commit_stage"))
+        self.assertNotIn("item commit", [name for name, _locator, _purpose in nav._PRODUCTS["document"]])
         self.start()
-        state = self.drive_with_change("document")
-        document = self.action()
-        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W1", document))
-        state = self.drive_to("carry-forward")
-        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W1", document), "step commits only")
-        git(self.repo, "commit", "-q", "--allow-empty", "-m", "feat: W1 Synthetic item commit")
-        self.assertEqual(nav._item_commit_product(self.run_dir, state, "W1", document),
-                         "the WORKTREE commit whose subject starts 'feat: W1 '")
-        self.assertIn("- W1 document S1 item commit: the WORKTREE commit whose subject starts 'feat: W1 '", self.packet())
-        self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W", document))  # 'feat: W1' is not item W's
+        self.drive_with_change("document")
+        self.drive_to("carry-forward")
+        self.assertNotIn("item commit", self.packet())
 
     def test_a_one_step_one_item_carry_forward_prints_the_short_queue_and_skill_duties(self):
         """VR-2: one step in one item and no pending item, proved from state: the short duties, the path-only queue
@@ -2810,12 +2806,20 @@ class TestLoopTests(unittest.TestCase):
         the base of every step's base run to its commit, which predates S1.  At S2 a test that already passes on S2's
         base, where S1's work is, then looked RED there (the S1 work is missing from the older tree) and was accepted
         without red_na.  Only S1's base moves to the fix; S2's base is the commit S1 made."""
+        self.red_holds_at_a_later_step_with_a_preparatory_commit("inline")
+
+    def test_red_at_a_later_step_holds_with_a_preparatory_commit_on_the_ask_agent_route_too(self):
+        """Design T §9.1 2c-0 part 2 (Astra's finding 3), checked on the route 2c-1 gave steps: the same lifecycle, so the
+        same bases."""
+        self.red_holds_at_a_later_step_with_a_preparatory_commit("ask-agent")
+
+    def red_holds_at_a_later_step_with_a_preparatory_commit(self, delegation):
         (self.repo / "cases.sh").write_text(self.CASES)
         (self.repo / "tests").mkdir()
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "the case runner")
         plan = dict(self.CASE_PLAN, paths=[*self.CASE_PLAN["paths"], "prep.txt"])
-        self.start()
+        self.start(delegation=delegation)
         self.drive_to("test-spec", step_plan=plan)
         # validate-existing's preparatory fix, committed and recorded as ShipLoop does, after the item's base was
         # captured and before S1's iteration starts (which takes HEAD as its base).
@@ -2855,18 +2859,22 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual((last["base_head"], last["base_commit"]), (first_commit, None),
                          "S2's base run starts from the commit S1 made, not from the preparatory fix")
 
-    def test_an_ask_agent_implement_action_runs_no_step_proof(self):
-        """T31: the whole-plan action keeps its acceptance: no single-step Proof gate (a failing check is not run)."""
+    def test_an_ask_agent_implement_action_runs_its_steps_proof_as_the_inline_one_does(self):
+        """Design T §9.1 2c-1 (T31 before it): the ask-agent route issues one implement action per step, so complete runs
+        the step's Proof there too, and refuses while it fails (a failing check is run)."""
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=str(IMPROVE_CARD),
                                              lint_option="off", delegation="ask-agent"))
-        self.drive_to("implement", step_plan=self.proof_plan("false", delegation_steps=2))
-        action = self.action()
-        self.assertEqual(test_loop.stage_commands(self.state(), "implement", "W1")[0], test_loop.stage_commands(
-            self.state(), "carry-forward", "W1")[0])                       # the item's commands, as before
-        self.complete(DONE)
-        self.assertEqual(sorted((self.run_dir / "tests").glob(action + "-step-proof*")) if (self.run_dir / "tests").is_dir()
-                         else [], [])
-        self.assertIsNone(self.state()["active_improve"])         # accepted: the review follows document
+        self.drive_to("implement", step_plan=self.proof_plan(self.PROOF, delegation_steps=2))
+        self.assertEqual(test_loop.stage_commands(self.state(), "implement", "W1")[0],
+                         [{"command": self.PROOF, "suite": "check"}])    # the step's Proof, not the item's commands
+        before = (self.run_dir / "state.md").read_bytes()
+        with self.assertRaises(nav.NavigatorError) as caught:
+            self.complete(DONE)
+        self.assertIn("step S1's Proof did not pass", str(caught.exception))
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        (self.repo / "proof.txt").write_text("proved\n")
+        self.restart_loop(str(caught.exception))
+        self.assertIn("Gates: step-proof: [check] " + self.PROOF + " -> passed", self.complete(DONE))
         self.assertEqual(nav.current_stage(self.state()), "test")
 
 

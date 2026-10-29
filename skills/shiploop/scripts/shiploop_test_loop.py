@@ -355,10 +355,10 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str,
                    added: Sequence[Mapping[str, Any]] = ()) -> Tuple[List[Dict[str, Any]], str]:
     """This stage's commands and, when there are none, why.
 
-    The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An inline implement step and its
-    Improve review run only that step's Proof, the step plan's ``check`` for it (``step_command``: the implement-step
-    fix plan's section 4.1); the item's commands stay with the test stage and document.  Every other item stage, and the
-    ask-agent route's one implement action for every step, runs every command the latest accepted step plan recorded.
+    The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An implement step and its Improve
+    review run only that step's Proof, the step plan's ``proof`` for it (``step_command``: the implement-step fix plan's
+    section 4.1); the item's commands stay with the test stage and document.  Every other item stage runs every command
+    the latest accepted step plan recorded.
     The base run takes the focused and regression ones (``base_commands``).  At an item stage each command lists, after
     its own IDs, the tests registered for it (``registered``; ``added`` are the rows of a result not accepted yet), so
     every run of it from then on must show them.
@@ -452,11 +452,9 @@ def _test_cases(state: Mapping[str, Any], work_item: str) -> List[Mapping[str, A
 
 
 def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
-    """The step an inline item's iteration is on once it is built (its test stage, its document and its review): how
-    many steps of the latest step plan have an accepted implement done.  None on the ask-agent route (its one implement
-    action builds every step), for a plan without steps, or before the first step is built."""
-    if state.get("delegation") != guidance.INLINE:
-        return None
+    """The step an item's iteration is on once it is built (its test stage, its document and its review): how many steps
+    of the latest step plan have an accepted implement done.  None for a plan without steps, or before the first step is
+    built."""
     action, plan = _step_plan(state, work_item)
     steps = _plan_steps(plan) if action else []
     history = list(state.get("history", ()))
@@ -467,14 +465,12 @@ def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
 
 
 def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
-    """(the step, its Proof as a ``check`` row) for the inline implement step the item is on, or None: another stage or
-    route (the ask-agent action builds every step), no step left, or a step whose plan records no proof."""
+    """(the step, its Proof as a ``check`` row) for the implement step the item is on, or None: another stage, no step
+    left, or a step whose plan records no proof."""
     import shiploop_loops as loops  # imported where used: the loops module imports this one late
 
     found = loops.cursor(state)
     if found is None or found[0] not in STEP_PROOF_STAGES or found[2] != work_item:
-        return None
-    if loops._route(state, found[1]) != guidance.INLINE:
         return None
     step = loops.current_step(state, work_item)
     proof = step.get("proof") if step is not None else None

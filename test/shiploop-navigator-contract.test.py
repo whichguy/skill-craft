@@ -1330,21 +1330,18 @@ class NavigatorContractTests(unittest.TestCase):
         # items ({items}: the range counted from the duty text, pinned in shiploop-loops); the exit-condition rule is the
         # loop rule, printed once in the until-loop invoke block.
         import shiploop_loops as loops
-        # The ask-agent route's whole-plan Work and duty (the default route of ``prompt``) are as they were; the inline
-        # step's Work (implement-step fix plan 3.4) points at the duty too, which has no path fence (its D3).
-        for stage, route, work, work_pointer, duty_phrase in (
-                ("implement", prompts.ASK_AGENT, loops.WORK["implement"],
-                 "Do duty items {items} of {run}/packets/{action}.md for {step_change}", "edit its paths to meet its criteria"),
-                ("implement", prompts.ASK_AGENT, loops.WORK["implement"], "Do duty items {items} of {run}/packets/{action}.md",
-                 "changing the work, never the check, its expected result or the command"),
-                ("implement", prompts.INLINE, loops.WORK_STEP,
-                 "Do duty items {items} of {run}/packets/{action}.md. Write no tests",
-                 "meet its criteria, nothing no criterion asks for"),
-                ("implement", prompts.INLINE, loops.WORK_STEP, "Do duty items {items} of {run}/packets/{action}.md",
-                 "changing the work, never the Proof or what it expects")):
-            with self.subTest(work=stage, route=route, phrase=duty_phrase):
-                self.assertIn(work_pointer, " ".join(work.split()))
-                self.assertEqual(" ".join(prompts.prompt(stage, delegation=route).split()).count(duty_phrase), 1)
+        # Both routes issue one implement action per step (design T §9.1 2c-1): the step's Work (implement-step fix plan
+        # 3.4) points at the duty, which has no path fence (its D3).
+        for route in (prompts.ASK_AGENT, prompts.INLINE):
+            for work_pointer, duty_phrase in (
+                    ("Do duty items {items} of {run}/packets/{action}.md. Write no tests",
+                     "meet its criteria, nothing no criterion asks for"),
+                    ("Do duty items {items} of {run}/packets/{action}.md",
+                     "changing the work, never the Proof or what it expects")):
+                with self.subTest(work="implement", route=route, phrase=duty_phrase):
+                    self.assertIn(work_pointer, " ".join(loops.WORK["implement"].split()))
+                    self.assertIs(loops.WORK["implement"], loops.WORK_STEP)
+                    self.assertEqual(" ".join(prompts.prompt("implement", delegation=route).split()).count(duty_phrase), 1)
         self.assertIn("Call an exit condition satisfied only when a command or file shows it after your last edit.",
                       " ".join(loops.LOOP_RULE.split()))
         self.assertNotIn("satisfied only when a command or file shows it", " ".join(prompts.prompt("implement").split()))
@@ -3464,10 +3461,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
     CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
     NONE_LINE = "Improve: no Improve stage starts after this result in this run (planning_review: none)"
     # Every sentence of an unreviewed planning stage's packet that names Improve and is not rewritten: why it may stay.
-    ALLOWED = {
-        "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
-        "packet: whose context an Improve invocation uses, not a child at this stage",
-    }
+    ALLOWED: dict[str, str] = {}
 
     @staticmethod
     def flat(text: str) -> str:
@@ -4461,6 +4455,34 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
             commit = navigator.step_commit(self.run_dir, action)
             self.assertTrue(commit, path)
             self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), [path])
+
+    def test_an_ask_agent_run_builds_commits_and_advances_one_step_at_a_time_as_an_inline_run_does(self) -> None:
+        # Design T §9.1 2c-1 (owner G1, 2026-10-29: "Adopt (a2)"): the ask-agent route drops the chain. Its implement is
+        # issued once per planned step, built by a fresh worker in the execution checkout, and each step is tested,
+        # documented, reviewed and committed by ShipLoop before the next one starts, exactly as on the inline route.
+        self.start(delegation="ask-agent")
+        self.drive_to_step_plan()
+        self.accept(self.three_step_plan())
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        for number, path in enumerate(self.THREE_STEP_PATHS, 1):
+            state = self.state()
+            self.assertEqual(navigator.current_stage(state), "implement", "S" + str(number) + " is built next")
+            view = navigator.step_view(state, "W1")
+            self.assertIsNotNone(view, "an ask-agent step is a step of the iteration")
+            self.assertEqual((view.step["id"], view.number), ("S" + str(number), number))
+            action = navigator.current_action(state)["id"]
+            (self.repo / path).write_text("# " + path + "\n")
+            self.accept(result(summary="Wrote " + path + "."))
+            self.assertEqual(self.state()["active_improve"]["stage"], "document", "S" + str(number) + " is reviewed")
+            self.settle()
+            commit = navigator.step_commit(self.run_dir, action)
+            self.assertTrue(commit, "S" + str(number) + " was committed by ShipLoop")
+            self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), [path])
+            self.assertEqual(self.git("log", "-1", "--format=%s", commit),
+                             "feat(W1/S" + str(number) + "): Write " + path + "\n")
+        implements = [row for row in self.state()["history"] if row["stage"] == "implement" and row["workitem"] == "W1"]
+        self.assertEqual(len(implements), 3, "one implement action per step")
 
     def to_first_step_review(self) -> tuple[str, str]:
         """Build S1 of the three-step plan (it writes notes.md) up to its review; returns (the iteration's base, S1's

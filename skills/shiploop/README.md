@@ -237,9 +237,9 @@ would accept a draft result now, without completing it; `complete` takes its yes
   earlier steps' commits. The redone plan starts from the last commit and counts
   its steps afresh, so a case an earlier plan committed is new again at its first
   step and goes in `red_na`.
-- On the ask-agent route one `implement` action builds every step, then the
-  item's `test`, `document` and review run once and ShipLoop commits the item.
-  Its per-step boundaries are the pending 2c build (see the status below).
+- The ask-agent route has the same step boundaries: one `implement` action per step, built by a fresh worker in the
+  shared execution checkout, which makes no commit and advances no callback; the parent submits it and ShipLoop commits
+  the step. Only who executes each stage differs from the inline route.
 - `carry-forward` records a skill decision (`none`, `reuse`, `update` or
   `create`); ShipLoop commits a created or updated skill.
 
@@ -249,9 +249,9 @@ from the graph. `test` and `document` are recorded as not applicable to an item
 only on the script's proof. Release and verification never replay an uncertain
 external operation merely to make traversal continue.
 
-A run saved by an earlier inner loop (state version 9 or older, which closed each
-item at a `verify` stage) is refused with a reason; start the request again in a
-fresh run directory.
+A run saved by an earlier inner loop (state version 10 or older: version 9 closed each
+item at a `verify` stage, version 10 built every step of an ask-agent run in one action) is refused with a reason; start
+the request again in a fresh run directory.
 
 [Reusable product skills](references/testing-and-documentation.md#reusable-product-skills)
 stay in the product repository. `discovery` inspects the local index before
@@ -302,7 +302,7 @@ the selected Until Loop runtime remains child-execution authority.
 ### Status: building the per-step iteration
 
 The lifecycle above is design T (`docs/shiploop-review-after-tests-design-2026-10-27.md`, section 8; the build order
-is section 9.1). Saved runs from before it are refused (state version 10).
+is section 9.1). Saved runs from before it are refused (state version 11).
 
 **Plan.** The build order, in the design's numbering:
 1. The iteration contract: identity, producer ownership, retry invalidation and the final-tree commit invariant.
@@ -325,9 +325,9 @@ is section 9.1). Saved runs from before it are refused (state version 10).
 - F5 (a test case names its mock, built first) and F6 (every lint result says how each file was covered).
 
 **In progress.** 2c: the ask-agent route runs one implement action per step in a fresh worker, and ShipLoop's chain is
-retired (owner decision G1, "adopt a2"). Its first part fixes two defects found in already-built code, on both routes:
-the commit stage drops its pending record before the state is saved, and the base run and mutation check read the
-preparatory base.
+retired (owner decision G1, "adopt a2"). Done so far: the commit stage saves its record with the state (a call that stops
+anywhere is retried), and the route issues one implement action per step. Still to come: removing the chain's code, its
+commands and its guides, and the evidence.
 
 **Pending.**
 - The two pilots decide what is still unproven: the net cost, how faithful the mocks are, and whether the review and

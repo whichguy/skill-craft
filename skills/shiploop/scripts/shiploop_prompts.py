@@ -18,14 +18,7 @@ import shiploop_stage_spec as stage_spec
 SERIAL_INNER_CONTEXT = """\
 Execute the prompt in a fresh context.
 
-For an implement producer, select the chain route before choosing a context route.
-While executing that producer, its bound mode and executor take precedence: parallel
-chains retain their capacity and bypass this serial context boundary; serial
-chains execute in the main context without spawning workers. Do not wrap a chain
-in an extra worker. Both modes recover the existing attempt, never rerun start.
-Chain precedence ends at producer completion. Improve follows its own selected
-context and ownership policy even when the historical chain binding remains.
-For other serial INNER assignments where delegation is permitted, begin
+For a serial INNER assignment where delegation is permitted, begin
 in a fresh context. Retain the
 CLI, repository, run-directory locators and exact Recovery command below in
 durable host handoff material. Prefer a native fresh worker with no inherited
@@ -44,8 +37,7 @@ and the host's own compaction manages its context.
 IMPROVE_INNER_CONTEXT = """\
 Keep the invoking parent alive and follow Improve's selected context ownership.
 
-Chain precedence ends at producer completion, even when the historical chain
-binding remains. The fresh-context boundary belongs to the whole Improve
+The fresh-context boundary belongs to the whole Improve
 executor invocation, not the invoking parent and not individual review iterations.
 Prefer the selected fresh native executor route; the parent retains collection,
 verification and the exact parent-only continuation. Do not clear, replace or
@@ -260,7 +252,6 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
-        ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "test-spec": (
@@ -277,7 +268,6 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("House-style guidance", "house-style.md#match-while-building"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
-        ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
     ),
     "test": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -669,59 +659,16 @@ file cold with no run history. Every rule serves that reader.
 
 
 
-# Delegation-specific paragraphs: the ask-agent text is in DUTIES; _INLINE_DUTY_PARAGRAPHS swaps in the inline one.
-_STEP_PLAN_GRAPH = """\
-11. **Execution graph.** Give each change that needs no other its own step (`deps` []), joined by a later step that
-    needs both, so the parallel chain can run them together (serial only on an explicit user or host limit). For
-    independent steps write the graph now, even behind a serial prefix: direct dependencies, readiness and completion
-    criteria, shared-resource exclusions, integration node. Its path and content digest go in the summary and
-    evidence_refs. Late creation or revision: Parallel-chain guide. Planning never starts the dispatcher.
+# The step-plan and implement duties are one text for both routes: every route issues one implement action per step
+# (design T §9.1 2c-1), and the step plan records no execution graph.  Implement's item 7 is the one paragraph that names
+# who does the step; DUTIES holds the worker text, and _INLINE_DUTY_PARAGRAPHS swaps in the inline one.
+_STEP_PLAN_NO_GRAPH = """\
+11. **Execution graph.** Record none: the steps are issued one at a time.
 """
-_STEP_PLAN_INLINE = """\
-11. **Execution graph.** Record none: an inline run issues the steps one at a time.
-"""
-_IMPLEMENT_CHAIN = """\
-7. **Chain.**
-   - The step plan says no parallel chain, or the item context says its steps write the same tree: one writer in the
-     execution checkout, no chain bound; cite that locator in the result.
-   - Otherwise, for a reviewed graph with safe independent steps, bind the default parallel mode (Parallel-chain
-     guide) when the Plan Dispatcher and Ask-Agent contracts are compatible and native slots are observed free
-     (capacity is the observed user or host slot limit, not the fallback default). If it cannot start, record the
-     concrete blocker (compatibility, capacity, resource, readiness or recovery). Serial mode only for an explicit
-     user or host limit: one ready step in the main context, no agents.
-   - Both modes use external sibling worktrees and one acceptance route: Ask-Agent creates each worker worktree; you
-     verify and adopt it, import its results, check the combination, merge into the invoking branch, accept the step,
-     remove the worktree. Keep conflicts and cleanup blockers; never repeat accepted work because removal failed.
-     Keep the combined status observable. Only accepted steps are done.
-   - On the first frontier and after every callback, refresh and start every safe listed candidate up to capacity (a
-     branch may become ready after a serial prefix). Never wait on a reconciliation, preparation, verification or
-     collection while an independent safe worker can start; defer only a candidate with a recorded blocker.
-   - Before this stage's callback: every required step accepted and the combined return verified, or a recorded
-     incomplete blocker.
-"""
-# The inline route issues one action per step: its scope is the step's criteria (no path fence, implement-step fix plan
-# D3) and its `proof` is the step's Proof (section 4.1); the ask-agent action builds every step and keeps the item's checks.
-_IMPLEMENT_SCOPE = """\
-1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
-   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
-   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
-   change one only when a criterion says to.
-"""
-_IMPLEMENT_SCOPE_INLINE = """\
-1. **Scope.** Do only this step: meet its criteria, nothing no criterion asks for, and break none of the item's
-   other requirements. Earlier steps are accepted. Write no tests, start no later step, and leave unrelated code as is
-   (no reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
-   change one only when a criterion says to.
-"""
-_IMPLEMENT_CHECK = """\
-3. **Check.** After each edit run each step's Proof (its `proof` in the step plan) and `shiploop lint --action`; write each
-   exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
-   command.
-"""
-_IMPLEMENT_CHECK_INLINE = """\
-3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action`; write
-   each exit code in RUN/notes/<action>.md. ShipLoop runs the Proof itself at done; the item's other checks belong to
-   the test stage. Fix a failure by changing the work, never the Proof or what it expects.
+_IMPLEMENT_WORKER = """\
+7. **Worker.** You are the one step's worker in the shared execution checkout. Do the step of the packet's Step block
+   (task, criteria, Proof, skills; the lint command) and no more: make no commit (ShipLoop commits the step), run no
+   callback (the parent submits it), start no later step, and leave no delegate of yours writing when you return.
 """
 _IMPLEMENT_INLINE = """\
 7. **Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint command) in this
@@ -1327,7 +1274,7 @@ Change no product file in this stage.
 10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
     in KNOWLEDGE/.
-""" + _STEP_PLAN_GRAPH + """\
+""" + _STEP_PLAN_NO_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
 """,
@@ -1385,9 +1332,9 @@ On re-entry after implement, ShipLoop runs the checks in a temporary worktree at
 preparatory commit); a mismatch there is a send-back.
 """,
     "implement": """\
-1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
-   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
-   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
+1. **Scope.** Do only this step: meet its criteria, nothing no criterion asks for, and break none of the item's
+   other requirements. Earlier steps are accepted. Write no tests, start no later step, and leave unrelated code as is
+   (no reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
    change one only when a criterion says to.
 2. **Build.** Each iteration edits first. First settle the considerations it touches (Implement considerations).
    Follow the step plan's Coding decision selection (Coding decision guide), reading only its matching sections;
@@ -1395,9 +1342,9 @@ preparatory commit); a mismatch there is a send-back.
    only when a check fails or a question needs one section. Apply Code craft and House-style guidance. Use each
    listed step skill for its purpose (invoke it, or read its SKILL.md and follow it); the summary says per skill
    whether you used it, and why not.
-3. **Check.** After each edit run each step's Proof (its `proof` in the step plan) and `shiploop lint --action`; write each
-   exit code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
-   command.
+3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action`; write
+   each exit code in RUN/notes/<action>.md. ShipLoop runs the Proof itself at done; the item's other checks belong to
+   the test stage. Fix a failure by changing the work, never the Proof or what it expects.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
@@ -1419,7 +1366,7 @@ preparatory commit); a mismatch there is a send-back.
    - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
      selection) or needs a new prerequisite or authority boundary.
    Report blocked, with awaiting, only when a person (a decision or a grant) or an outside service must resolve it.
-""" + _IMPLEMENT_CHAIN,
+""" + _IMPLEMENT_WORKER,
     "test": """\
 1. **Write the cases.** Mocks first: before a case's test, build the mock it names in `mock`, playing what it says
    the dependency does, slow, failing or out of order included. The mock's own header states what it stands in for
@@ -1869,7 +1816,7 @@ IMPROVE_SCOPES = {
     "test-strategy": "independent test/risk strategy, required test boundaries and their procedures",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
-    "step-plan": "the newly created bounded steps and any parallel or serial execution graph, criteria, test commands, expectations, step skills, conventions and diagnostic obligations",
+    "step-plan": "the newly created bounded steps and their ordered dependencies, criteria, test commands, expectations, step skills, conventions and diagnostic obligations",
     "test-spec": "the test cases, their procedures, independent oracles, RED/GREEN definitions and command IDs",
     "validate-existing": "the expectation checks, preparatory fixes and environment repairs",
     "implement": "one implementation step's diff: its task and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use",
@@ -2238,17 +2185,15 @@ def _require_planning_review(planning_review: str) -> None:
         raise ValueError(f"unknown planning review option: {planning_review!r}")
 
 
-# Inline runs replace only the chain-specific paragraphs of these duties; the
-# ask-agent text above stays the single source for the delegated route.
+# Inline runs replace only the worker paragraph of the implement duty; the worker text above stays the single source
+# for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
-    "step-plan": ((_STEP_PLAN_GRAPH, _STEP_PLAN_INLINE),),
-    "implement": ((_IMPLEMENT_SCOPE, _IMPLEMENT_SCOPE_INLINE), (_IMPLEMENT_CHECK, _IMPLEMENT_CHECK_INLINE),
-                  (_IMPLEMENT_CHAIN, _IMPLEMENT_INLINE)),
+    "implement": ((_IMPLEMENT_WORKER, _IMPLEMENT_INLINE),),
 }
 for _stage, _pairs in _INLINE_DUTY_PARAGRAPHS.items():
     for _delegated, _inline in _pairs:
         if DUTIES[_stage].count(_delegated) != 1:
-            raise RuntimeError(f"navigator {_stage} duty lost its delegated chain paragraph")
+            raise RuntimeError(f"navigator {_stage} duty lost its delegated worker paragraph")
 
 _PLANNING_HANDOFF = (
     "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
@@ -2459,11 +2404,9 @@ def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
     return ("\n\n".join(BACKCHAIN_STUB if kind == "backchain" else text for kind, text in parts), moved)
 
 
-# Inline runs have no dispatcher steps, execution graph or worker packets; the
+# Inline runs have no dispatcher steps or worker packets; the
 # ask-agent wording above stays the single source for the delegated route.
 _INLINE_IMPROVE_REPLACEMENTS = (
-    ("the newly created bounded steps and any parallel or serial execution graph",
-     "the newly created bounded steps and their ordered dependencies"),
     ("user prompt nor a second worker directive. The dispatch step's task/ready/done\n"
      "contract remains the sole assignment.",
      "user prompt nor a second directive. Each reviewed step's task/ready/done\n"
