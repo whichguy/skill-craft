@@ -9,9 +9,10 @@ which owns the contract and the terminal check), runs every recorded command and
 ShipLoop runs three things itself, in this order:
 
 - ``base_check``: every focused and regression command in a temporary detached Git worktree at the item's lint base
-  (``shiploop_lint.read_base``), with only this item's test files copied in.  A new test ID (one a focused command
-  lists, not named in the result's ``red_na``) must not pass there: it must fail, or be missing because a file this item
-  adds cannot be loaded.  The run records each command's base count, which sets the floor.
+  (``shiploop_lint.read_base``), with only this item's test files copied in.  A test ID new at this step (``new_ids``,
+  not named in the result's ``red_na``) must not pass there: it must fail, or be missing because a file this item adds
+  cannot be loaded.  An earlier step's cases already pass there, so a command holding only those is counted, not judged.
+  The run records each command's base count, which sets the floor.
 - ``loop_run``: every recorded command (focused, regression, check) on the candidate.  Each must exit 0, show every
   listed ID and run at least its floor: the larger of the base count and the most any earlier run of this action ran,
   less the tests the result's ``retired_tests`` retires that the base run showed.
@@ -433,6 +434,16 @@ def new_ids(state: Mapping[str, Any], work_item: str) -> List[str]:
     return list(seen)
 
 
+def _earlier_step(state: Mapping[str, Any], work_item: str, row: Mapping[str, Any]) -> bool:
+    """Whether the base run at this inline step holds a focused ``row`` only to earlier steps' cases, which already pass
+    on the step's base (``iteration.earlier_command``): it is counted for the floor, not judged."""
+    number = step_number(state, work_item)
+    if number is None or row["suite"] != "focused":
+        return False
+    steps = _plan_steps(_step_plan(state, work_item)[1])
+    return iteration.earlier_command(row, _test_cases(state, work_item), steps, number)
+
+
 def _listing(row: Mapping[str, Any], floor: Optional[int] = None) -> str:
     """One command as packets show it, with the IDs, minimum and floor ShipLoop checks."""
     text = "[" + row["suite"] + "] " + row["command"]
@@ -468,16 +479,20 @@ def _id_records(result: Optional[Mapping[str, Any]], key: str) -> List[Dict[str,
 def check_result_fields(state: Mapping[str, Any], work_item: str, result: Optional[Mapping[str, Any]]) -> None:
     """Refuse a test result whose ``red_na`` or ``retired_tests`` cannot apply to this item's commands.
 
-    ``red_na: [{"id", "reason"}]`` exempts a characterisation test from the base rule: each ID must be one a focused
-    command lists.  ``retired_tests: [{"id", "reason"}]`` lowers a floor for a test this item deliberately removes: its
-    ID must not be one a focused command still lists.  Whether the base run showed each retired test is checked by the
-    base run itself, the only place that can see it.
+    ``red_na: [{"id", "reason"}]`` exempts a characterisation test from the base rule: each ID must be one new at this
+    step (``new_ids``), since the base run judges no other.  ``retired_tests: [{"id", "reason"}]`` lowers a floor for a
+    test this item deliberately removes: its ID must not be one a focused command still lists, an earlier step's
+    included.  Whether the base run showed each retired test is checked by the base run itself, the only place that can
+    see it.
     """
-    listed = new_ids(state, work_item)
-    unknown = [row["id"] for row in _id_records(result, RED_NA) if row["id"] not in listed]
-    _need(not unknown, "red_na names " + ", ".join(unknown) + ", which no focused command lists"
-          + (" (listed: " + ", ".join(listed) + ")" if listed else "") + ". red_na exempts only a listed test ID "
-          "that passes without this item's change (a characterisation test).")
+    new = new_ids(state, work_item)
+    listed = [test_id for row in base_commands(state, work_item) if row["suite"] == "focused"
+              for test_id in row.get("ids") or ()]
+    unknown = [row["id"] for row in _id_records(result, RED_NA) if row["id"] not in new]
+    _need(not unknown, "red_na names " + ", ".join(unknown) + ", which is not a test ID new at this step"
+          + (" (new: " + ", ".join(new) + ")" if new else "") + ". red_na exempts only a new test ID that passes "
+          "without this change (a characterisation test, or a case a step committed before a send-back); the base run "
+          "does not judge an earlier step's IDs.")
     still = [row["id"] for row in _id_records(result, RETIRED_TESTS) if row["id"] in listed]
     _need(not still, "retired_tests names " + ", ".join(still) + ", which a focused command still lists: a retired "
           "test is one this item removes, so it cannot also be a test the item must run.")
@@ -496,11 +511,12 @@ FLOOR_RULE = ("Floor of each focused and regression command: the larger of its c
               "each retired_tests entry the base run showed for it. A test removed or newly skipped to pass is refused; "
               "a test this item deliberately retires goes in retired_tests (shape: duty 6) and must print its name on "
               "the base.")
-BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the item's "
-             "base (a temporary detached worktree, with only this item's test files copied in). No listed test ID "
-             "may pass there: each must fail because the behaviour it asserts is missing, or fail to load the code "
-             "this item adds; a guard that only checks or prints a file's path is not RED. A "
-             "characterisation test that passes without this item's change goes in red_na (shape: duty 6). A command "
+BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused and regression command on the step's "
+             "base (a temporary detached worktree, with only this item's test files copied in). No test ID new at "
+             "this step may pass there: each must fail because the behaviour it asserts is missing, or fail to load "
+             "the code this item adds; a guard that only checks or prints a file's path is not RED. An earlier step's "
+             "IDs already pass there and are not judged. A new test that passes without this change (a "
+             "characterisation test, or a case a step committed before a send-back) goes in red_na (shape: duty 6). A command "
              "the platform card lists under Remote tests is not run there (its target already holds the change). A "
              "refused base run counts toward the same refused runs.")
 # What the reruns after the test stage say about the floor ``accepted_counts`` sets.
@@ -1687,10 +1703,11 @@ def _added_named(output: str, added: Sequence[str]) -> List[str]:
 
 
 def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt: Sequence[str],
-                retired: Sequence[str], added: Sequence[str]) -> Dict[str, Any]:
+                retired: Sequence[str], added: Sequence[str], earlier_step: bool = False) -> Dict[str, Any]:
     """Classify one base run: a focused command's new IDs must not pass; every command is counted for the floor.
 
-    ``status`` is ``red`` (accepted), ``counted`` (a regression command: only its count matters), ``passes-on-base``
+    ``status`` is ``red`` (accepted), ``counted`` (a regression command, or with ``earlier_step`` a focused command
+    holding only earlier steps' cases, which pass on this step's base: only its count matters), ``passes-on-base``
     (a new ID passed, or a focused command without ids exited 0 with no reporter-recognised failure in its tally),
     ``unread`` (a new ID is named but no line says how it ended) or ``not-run`` (a new ID is missing and no load
     failure names a file the item adds).
@@ -1699,8 +1716,10 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
     verdict: Dict[str, Any] = {"counts": tally}
     if retired:
         verdict["retired_shown"] = counts.named(output, list(retired))["shown"]
-    if row["suite"] != "focused":
+    if row["suite"] != "focused" or earlier_step:
         verdict["status"] = "counted"
+        if earlier_step:
+            verdict["earlier_step"] = True
         return verdict
     ids = [test_id for test_id in row.get("ids") or () if test_id not in exempt]
     if not row.get("ids"):
@@ -1764,8 +1783,8 @@ def _explain_base(run: Mapping[str, Any]) -> str:
         if run.get("ids_passing"):
             return ("passed " + ", ".join(run["ids_passing"]) + " on the item's base, without this item's change: "
                     "such a test does not detect the change. Make it assert the behaviour the test spec defines "
-                    "(which the base lacks); if it is a characterisation test that must pass already, name it in the "
-                    "result's red_na with the reason. A command that names the checkout by an absolute path runs the "
+                    "(which the base lacks); if it must pass already (a characterisation test, or a case a step committed "
+                    "before a send-back), name it in the result's red_na with the reason. A command that names the checkout by an absolute path runs the "
                     "candidate, not the base: use a path relative to the repository.")
         return ("exited 0 on the item's base: no test failed without this item's change. List the case IDs it must run "
                 "so ShipLoop can judge each one, and make the tests assert the behaviour the change adds.")
@@ -1799,10 +1818,17 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
     commands = base_commands(state, work_item)
     exempt = [row["id"] for row in _id_records(result, RED_NA)]
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
+    # RED holds only this step's new cases (design T §9 row 4): an earlier step's cases already pass on this step's base,
+    # which is what they should do, so the base run does not judge them (``new_ids``), and a command holding only those
+    # cases, with or without IDs, is counted (``_earlier_step``).
+    new = set(new_ids(state, work_item))
+    earlier = [test_id for row in commands if row["suite"] == "focused" for test_id in row.get("ids") or ()
+               if test_id not in new]
     record: Dict[str, Any] = {
         "schema": BASE_SCHEMA, "action": action, "stage": STAGES[0], "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "red_na": exempt, "retired_tests": retired, "runs": [],
+        **({"earlier_steps": earlier} if earlier else {}),
     }
     base = lint.read_base(root, work_item)
     if base is not None and base_commit:
@@ -1840,7 +1866,8 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
                 fields, output = _run_command(runner, row["command"], cwd, command_timeout, environment, clock)
                 run = {**row, **fields}
                 if "status" not in run:
-                    run.update(_judge_base(row, run["exit"], output, exempt, retired, added))
+                    run.update(_judge_base(row, run["exit"], output, [*exempt, *earlier], retired, added,
+                                           _earlier_step(state, work_item, row)))
                 runs.append(run)
     except (TestLoopError, lint.LintError, OSError) as exc:
         failure = str(exc)
@@ -1917,6 +1944,7 @@ def _base_summary(record: Mapping[str, Any]) -> List[str]:
     for run in record.get("runs") or ():
         tally = run.get("counts") or {}
         lines.append("base: [" + run["suite"] + "] " + run["command"] + " -> " + run["status"]
+                     + (" (earlier steps' cases)" if run.get("earlier_step") else "")
                      + (" (" + str(tally.get("ran")) + " ran)" if tally else ""))
     return lines
 
@@ -1939,7 +1967,7 @@ def red_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: s
     """The loop's own view of the base rule: run the base check now, never counted; return (would pass, report lines).
 
     Writes ``tests/<action>-red-check.md`` (replaced each call).  ``result`` may carry the red_na and retired_tests the
-    model intends to submit; without it, every listed ID must fail on the base.
+    model intends to submit; without it, every test ID new at this step must fail on the base.
     """
     root = Path(root)
     try:

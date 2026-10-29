@@ -28,14 +28,17 @@ On `done`, after the lint gate, ShipLoop runs two things itself
 
 1. **Base run** (`base_check`): every focused and regression command in a
    temporary detached worktree at the item's base (after any preparatory fix),
-   with only this item's test files copied in. A new test ID (one a focused
-   command lists) must not pass there: it must fail because the behaviour it
-   asserts is missing, or fail to load the code this item adds. A line that is
-   only a path is not a load failure, so a guard that checks or prints a file's
-   path is not RED. A command a platform card lists under Remote tests is not
-   run on the base. A characterisation test that already
-   passes goes in the result's `red_na: [{"id", "reason"}]`, which may name only
-   an ID a focused command lists (`tests/<action>-base<N>.md`).
+   with only this item's test files copied in. A test ID new at this step must
+   not pass there: it must fail because the behaviour it asserts is missing, or
+   fail to load the code this item adds. A line that is only a path is not a
+   load failure, so a guard that checks or prints a file's path is not RED. At a
+   later inline step an earlier step's cases already pass on the step's base:
+   they are not judged, and a command holding only those, with or without IDs,
+   is counted for its floor (`earlier_steps` in the record). A command a
+   platform card lists under Remote tests is not run on the base. A new test
+   that already passes (a characterisation test, or a case a step committed
+   before a send-back) goes in the result's `red_na: [{"id", "reason"}]`, which
+   may name only a test ID new at this step (`tests/<action>-base<N>.md`).
 2. **Candidate run** (`loop_run`): every recorded command (focused, regression,
    check) in the checkout. Each must exit 0, show every listed ID and run at
    least its floor (`tests/<action>-verify<N>.md`). The refusal prints each

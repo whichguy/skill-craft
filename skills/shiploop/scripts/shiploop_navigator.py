@@ -2823,8 +2823,9 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
 
     Every step names the criteria it satisfies and its ``proof``, the command that proves them (implement-step fix
     plan section 4.1); every criterion is satisfied by some step; a step's optional paths are a subset of the item's;
-    and no step only changes test files, unless the whole item is tests (the test stage writes the tests after the
-    last implement step, so a test-only step would be a no-op).
+    and no step only changes test files, unless the whole item is tests (the test stage writes the tests for the
+    behaviour the steps build: each step's own on the inline route, design T §8, and one for every step on the ask-agent
+    route, so a test-only step's implement would build nothing).
     """
     steps = result.get("steps") or []
     known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
@@ -2856,8 +2857,8 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
         test_only = [str(step.get("id")) for step in steps if isinstance(step, Mapping) and step.get("paths")
                      and all(item_scope.classify(path) == "test" for path in step["paths"])]
         _need(not test_only, "step " + ", ".join(test_only) + " only changes test files. Tests are not a step: "
-              "the test stage writes them after the last implement step. Merge that work into the step whose behaviour the test "
-              "proves, or drop it if a test-spec case already covers it.")
+              "the test stage writes the tests for the behaviour the steps build. Merge that work into the step whose "
+              "behaviour the test proves, or drop it if a test-spec case already covers it.")
 
 
 # Fields a stage's send-back must carry (its gate refuses a send-back without them).

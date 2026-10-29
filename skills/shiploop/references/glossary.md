@@ -33,7 +33,7 @@ return (owner rule, 2026-10-24).
 | harness run | Prepare's proof that a prerequisite harness runs: the command that ran one test, and its saved output. | prepare `harness_runs` | |
 | surface | Where a requirement is observed: a public interface, a real boundary or a rendered UI. | "required surface", "checked surface" | the `test_layers` rows |
 | target | A runtime place where the code is deployed or tested. A target that keeps state says how a test still fails on an item's base there. | test-strategy `targets` (`keeps_state`, `base_state_route`) | an NFR's bound; a send-back's destination |
-| base run | ShipLoop's run of the focused and regression commands on the item's base, which must fail there (RED). `red-check` runs it without counting it. | `base_check`, `red_na` | an expected failure |
+| base run | ShipLoop's run of the focused and regression commands on the step's base, where every test ID new at this step must fail (RED). `red-check` runs it without counting it. | `base_check`, `red_na` | an expected failure |
 | RED | The failure a new test must show on the item's base, because the behaviour is missing. | test-spec `red` | an expected failure |
 | expected failure | A baseline failure that a repair is planned to fix. | test-strategy and discovery duties | RED |
 | remote test | A test that runs against a deployed target (remote-resident), listed by a platform card under `## Remote tests`. The base run and the mutation check skip it and record why. It is one kind of real-boundary check. | `references/platforms/*.md` | |

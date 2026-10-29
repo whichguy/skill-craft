@@ -97,6 +97,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-progress-render.test.py",
     "test/shiploop-stage-spec.test.py",
     "test/shiploop-send-back.test.py",
+    "test/shiploop-step-edges.test.py",
     "test/shiploop-rehydration.test.py",
     "test/shiploop-confirmation.test.py",
     "test/shiploop-auth-readiness.test.py",
@@ -192,6 +193,9 @@ _DURATION_SECONDS = {
     "test/plan-dispatcher-scenarios.test.js": 50.0,
     "test/shiploop-stage-spec.test.py": 1.0,
     "test/shiploop-send-back.test.py": 1.0,
+    # measured locally 2026-10-28: 4 tests through the real complete CLI (design T §9.1 step 4's edges), 51 s while three
+    # other sessions ran their tiers.
+    "test/shiploop-step-edges.test.py": 51.0,
     "test/shiploop-rehydration.test.py": 2.0,
     "test/shiploop-confirmation.test.py": 1.0,
     "test/shiploop-navigator-contract.test.py": 2.793,

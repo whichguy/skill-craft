@@ -181,6 +181,20 @@ def new_cases(cases: Sequence[Mapping[str, Any]], steps: Sequence[Mapping[str, A
     return [str(case.get("id")) for case in cases if _due(case.get("criterion"), steps) == number]
 
 
+def earlier_command(command: Mapping[str, Any], cases: Sequence[Mapping[str, Any]],
+                    steps: Sequence[Mapping[str, Any]], number: int) -> bool:
+    """Whether a command step ``number`` runs (as ``active_commands`` returns it) holds only cases due at an earlier
+    step, which already pass on this step's base: every ID it lists is due before ``number``, or it lists none and every
+    criterion it names is (one naming none is due at the last step)."""
+    _number(steps, number)
+    due_at = {str(case.get("id")): _due(case.get("criterion"), steps) for case in cases}
+    ids = command.get("ids")
+    if ids:
+        return all(due_at.get(str(ident), len(steps)) < number for ident in ids)
+    criteria = command.get("criteria") or ()
+    return bool(criteria) and max(_due(criterion, steps) for criterion in criteria) < number
+
+
 def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mapping[str, Any]],
                     steps: Sequence[Mapping[str, Any]], number: int) -> list[dict[str, Any]]:
     """The recorded commands step ``number``'s test stage runs, as copies.

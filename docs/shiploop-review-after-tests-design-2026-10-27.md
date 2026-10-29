@@ -975,6 +975,50 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
       - **Evidence.** Five fail-first tests in shiploop-e2e-commit-counters and shiploop-e2e-efficiency.
         - `ClassifyTest`: script/other is (7, 5) with the run's ledger, against (5, 7) before.
         - `ShipLoopOwnedSubjectsTest` pins `step_commit_message` and the announcement line.
+- **Step 4 (lane D), the edge cases, 2026-10-28.** The cases are driven through the real `complete` in a new suite,
+  `test/shiploop-step-edges.test.py`. Commit failure and retry were done in 2b-4a. Tests a review adds are step 3's,
+  in lane B.
+  - **A defect, since 2b-2.** At every step after the first, the base run refused an earlier step's focused IDs:
+    they pass on the later step's base, as they should, and the RED check judged them as new. `red_na` could not exempt
+    them, since it accepts only `new_ids`. So a multi-step item with code was stuck at its second step's test stage.
+    (An item whose validate-existing made a preparatory fix was not: see "Not fixed here" below.) The plain walks never
+    showed it, because they used docs-only or one-step plans.
+    - Fixed in `test_loop._base_run`. It judges only the step's new cases (`new_ids`), runs and counts the rest, and
+      records them as `earlier_steps` in the base record. A focused command holding only earlier steps' cases, with IDs
+      or with only criteria, is counted, not judged (`iteration.earlier_command`, `test_loop._earlier_step`): an
+      ID-less command exits 0 on that base too.
+    - Fail-first: before the fix, the cross-step test was refused at S2 with "passed TC-1 on the item's base". With the
+      base run's RED switched off for the step's new cases, the retention test fails ("NavigatorError not raised").
+  - **Covered now:**
+    - A send-back after S1 is committed commits nothing and keeps S1's commit. The next plan's S1, with nothing left to
+      change, starts no review and makes no commit. Its S2 is committed on S1's commit, and the ledger keeps both
+      plans' rows.
+    - A step review whose result is a send-back commits nothing. The step's change stays in the checkout, and the next
+      plan's S1 commits it.
+    - A case whose criterion S1 and S2 both list is due at S2 only. S1's test stage passes the real gate before that
+      case's test exists, and S2's is refused until it runs.
+    - RED holds at S2 for the cases new there: S1's change already holds what TC-2 asserts, so TC-2 is refused by
+      name while S1's TC-1, which passes there too, is not judged; `red_na` takes TC-2.
+    - **After a send-back the redone plan counts steps afresh**, so a case an earlier plan's S1 committed is new again at
+      the redone S1 and passes on that base. The base run refuses it and the refusal names the way through: `red_na`,
+      worded "a case a step committed before a send-back". The cost is one avoidable refused run per such case;
+      red-check shows it first (not counted).
+    - `red_na` names only a test ID new at this step, and `retired_tests` refuses an ID a focused command still lists,
+      an earlier step's included. Both refusals now say so. The base rule in the packet says "No test ID new at this
+      step may pass there" and that an earlier step's IDs "are not judged".
+    - A step that only changes test files is still refused (owner sizing rule), now saying the test stage writes the
+      tests for the behaviour the steps build (route-neutral: the ask-agent route has one test stage for every step).
+      The old text said the test stage runs "after the last implement step", untrue on the inline route since 2b-2.
+  - **Adversarial review.** 37 agents read the diff through three lenses (RED correctness, suite validity, words
+    against behaviour) and two skeptics tried to refute each finding: 17 findings, 13 survived, all fixed above except
+    the one below. They also found that the first version of the suite did not pin RED at later steps; the
+    retention test does.
+  - **Not fixed here (lane B, step 3).** With a preparatory-fix commit, every step's base run and mutation check take
+    the tree before step 1 (`_test_loop_gate` passes `base_commit=preparatory_base` at every step), so RED is weaker
+    there: a step's new test that asserts only an earlier step's behaviour fails there and is accepted. Step 3's
+    "shared baselines" build (the preparatory commit moves the base only at the first step) is that fix. When it merges,
+    `iteration.earlier_command` must also be checked against lane B's folded row (a focused row that is also the minimum
+    regression, run alone with no IDs at an early step).
 - **2c. The ask-agent route** gets the same step boundaries (G1).
 - **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
 
