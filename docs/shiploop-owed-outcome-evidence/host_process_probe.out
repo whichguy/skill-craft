@@ -1,0 +1,109 @@
+{
+ "claude": {
+  "pid": 86722,
+  "start": "Wed Oct 28 18:03:27 2026"
+ },
+ "hooks": [
+  {
+   "event": "PostToolUse",
+   "session": "e706a621-7eea-46b3-96f4-682ca89f388c",
+   "host_process": {
+    "pid": 86722,
+    "start": "Wed Oct 28 18:03:27 2026"
+   },
+   "chain": [
+    {
+     "pid": 86833,
+     "name": "Python",
+     "age": 0
+    },
+    {
+     "pid": 86722,
+     "name": "claude",
+     "age": 2
+    },
+    {
+     "pid": 86711,
+     "name": "Python",
+     "age": 2
+    },
+    {
+     "pid": 86700,
+     "name": "zsh",
+     "age": 2
+    },
+    {
+     "pid": 98461,
+     "name": "claude",
+     "age": 35330
+    },
+    {
+     "pid": 98460,
+     "name": "disclaimer",
+     "age": 35330
+    },
+    {
+     "pid": 88898,
+     "name": "Claude",
+     "age": 70801
+    },
+    {
+     "pid": 1,
+     "name": "launchd",
+     "age": 123062
+    }
+   ]
+  },
+  {
+   "event": "Stop",
+   "session": "e706a621-7eea-46b3-96f4-682ca89f388c",
+   "host_process": {
+    "pid": 86722,
+    "start": "Wed Oct 28 18:03:27 2026"
+   },
+   "chain": [
+    {
+     "pid": 86873,
+     "name": "Python",
+     "age": 1
+    },
+    {
+     "pid": 86722,
+     "name": "claude",
+     "age": 3
+    },
+    {
+     "pid": 86711,
+     "name": "Python",
+     "age": 3
+    },
+    {
+     "pid": 86700,
+     "name": "zsh",
+     "age": 3
+    },
+    {
+     "pid": 98461,
+     "name": "claude",
+     "age": 35331
+    },
+    {
+     "pid": 98460,
+     "name": "disclaimer",
+     "age": 35331
+    },
+    {
+     "pid": 88898,
+     "name": "Claude",
+     "age": 70802
+    },
+    {
+     "pid": 1,
+     "name": "launchd",
+     "age": 123063
+    }
+   ]
+  }
+ ],
+ "every_hook_found_the_session": true
+}

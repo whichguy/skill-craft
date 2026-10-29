@@ -59,11 +59,18 @@ class KeepaliveTestCase(unittest.TestCase):
         self.repo = self.temp / "repo"
         self.run_dir = self.temp / "run"
         self.repo.mkdir()
+        # No progress observer: `init` would start one detached, and it writes into the run folder every 2 s, so a fast
+        # test's cleanup raced it ("Directory not empty", 4 of 7 direct runs on 2026-10-28; run_suites.py sets it too).
         env = {"SHIPLOOP_KEEPALIVE_HOME": str(self.temp / "state"), "HOME": str(self.temp / "home"),
-               "XDG_CONFIG_HOME": str(self.temp / "home" / ".config")}
+               "XDG_CONFIG_HOME": str(self.temp / "home" / ".config"), "SHIPLOOP_PROGRESS": "off"}
         patcher = mock.patch.dict(os.environ, env)
         patcher.start()
         self.addCleanup(patcher.stop)
+        # Hooks here run in the test process: no host process is found, so only time frees a claim (OwnerProcessTests
+        # gives the process table).
+        no_host = mock.patch.object(keepalive, "host_process", return_value=None)
+        no_host.start()
+        self.addCleanup(no_host.stop)
         os.environ.pop("SHIPLOOP_KEEPALIVE", None)
         result = shiploop("init", "--run-dir", str(self.run_dir), "--repo", str(self.repo),
                           "--prompt", "Add a greeting script.")
@@ -577,6 +584,91 @@ class ProgressAndTurnTests(KeepaliveTestCase):
             self.assertEqual(protocol._loop_iteration(self.run_dir, {"active_improve": None}), 4)
         self.assertEqual(protocol._loop_iteration(self.run_dir, {"active_improve": None}), 0)  # intake: no loop
         self.assertEqual(self.status()["progress"], "0.0.0")
+
+
+class OwnerProcessTests(unittest.TestCase):
+    """A dead session's claim is taken over at once (owner, 2026-10-28): the owner's host process is recorded when it
+    claims, and a claim whose process is gone frees the run without waiting OWNER_STALE_SECONDS. A live owner keeps it."""
+
+    START = "Wed Oct 28 08:14:39 2026"
+
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-keepalive-owner-")
+        self.addCleanup(temp.cleanup)
+        patcher = mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE_HOME": temp.name})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.run_dir = "/runs/r"
+
+    @staticmethod
+    def row(ppid: int, name: str, age: int, start: str = START) -> dict:
+        return {"ppid": ppid, "name": name, "age": age, "start": start}
+
+    def table(self, **rows: dict) -> mock._patch:
+        return mock.patch.object(keepalive, "_processes", return_value={int(pid[1:]): row for pid, row in rows.items()})
+
+    def owned_by(self, session: str, process: dict | None) -> None:
+        with mock.patch.object(keepalive, "host_process", return_value=process):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", session))
+
+    def found(self, **rows: dict) -> dict | None:
+        """host_process() from a hook with pid 101 (age 0) whose parent is pid 100."""
+        with self.table(p101=self.row(100, "Python", 0), **rows), \
+                mock.patch.object(keepalive.os, "getpid", return_value=101), \
+                mock.patch.object(keepalive.os, "getppid", return_value=100):
+            return keepalive.host_process()
+
+    def test_the_host_process_is_the_nearest_ancestor_past_launchers(self) -> None:
+        # The probe (docs/shiploop-owed-outcome-evidence/host_process_probe.out): Claude Code runs a hook directly, so
+        # the hook's parent is the session's `claude`, 2 seconds old at its first hook. A shell launcher may sit between.
+        self.assertEqual(self.found(p100=self.row(90, "sh", 0), p90=self.row(70, "Python", 0),
+                                    p70=self.row(60, "claude", 2), p60=self.row(1, "zsh", 9000)),
+                         {"pid": 70, "start": self.START})
+
+    def test_it_never_guesses_past_a_process_that_started_with_the_hook(self) -> None:
+        # An unknown launcher (not a shell) started with the hook: not the host, and nothing above it is looked at.
+        self.assertIsNone(self.found(p100=self.row(70, "hook-runner", 1), p70=self.row(1, "claude", 3000)))
+        self.assertIsNone(self.found(p100=self.row(90, "sh", 0), p90=self.row(1, "zsh", 9000)))  # only launchers
+
+    def test_a_dead_owners_claim_is_taken_over_at_once(self) -> None:
+        self.owned_by("crashed", {"pid": 70, "start": self.START})
+        with self.table(p71=self.row(1, "claude", 50)), mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "next"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["owner"], "claude:next")
+
+    def test_a_reused_pid_is_not_the_owner(self) -> None:
+        self.owned_by("crashed", {"pid": 70, "start": self.START})
+        with self.table(p70=self.row(1, "claude", 50, "Thu Oct 29 09:00:00 2026")), \
+                mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "next"))
+
+    def test_a_live_owner_keeps_the_run_however_quiet_and_an_unknown_one_waits_for_time(self) -> None:
+        self.owned_by("busy", {"pid": 70, "start": self.START})
+        with self.table(p70=self.row(1, "claude", 5000)):
+            self.assertFalse(keepalive.claim_owner(self.run_dir, "claude", "next"))
+        keepalive.release_owner(self.run_dir)
+        self.owned_by("unknown", None)
+        with self.table(), mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertFalse(keepalive.claim_owner(self.run_dir, "claude", "next"))  # fresh, process unknown
+            with mock.patch.object(keepalive, "OWNER_STALE_SECONDS", 0):
+                self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "next"))  # the time rule still frees it
+
+    def test_the_owner_keeps_its_live_process_and_a_resume_elsewhere_records_the_new_one(self) -> None:
+        self.owned_by("owner", {"pid": 70, "start": self.START})
+        with self.table(p70=self.row(1, "claude", 5000)), mock.patch.object(keepalive, "host_process") as found:
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
+            found.assert_not_called()  # a live record is kept, not looked up again on every hook
+        resumed = {"pid": 80, "start": "Wed Oct 28 18:00:00 2026"}
+        with self.table(p80=self.row(1, "claude", 60)), mock.patch.object(keepalive, "host_process", return_value=resumed):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["process"], resumed)
+
+    def test_a_claim_with_no_process_yet_looks_again_on_its_next_hook(self) -> None:
+        self.owned_by("owner", None)  # its first hook came too soon after the host started
+        found = {"pid": 70, "start": self.START}
+        with mock.patch.object(keepalive, "host_process", return_value=found):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["process"], found)
 
 
 class HealthNoticeTests(KeepaliveTestCase):

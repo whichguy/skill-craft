@@ -753,7 +753,43 @@ None, implement cannot build its loop, and every done result is refused.
 - **Open for the owner.** Outside the driver, a crashed or killed session leaves the next session unkept for up to
   30 minutes. That is the documented trade-off, which stops two live sessions fighting over a run. Should a
   session that runs a driving command (`next`, `complete`) take over a claim whose owner process is gone? Not
-  changed; it needs a decision.
+  changed; it needs a decision. **Decided 2026-10-28 (owner: "a session that died should be taken over"); built in
+  batch 2, below.**
+
+## Batch 2 (2026-10-28, owner: "Start batch 2"; branch `feat/shiploop-batch2-b384be`)
+
+**Release preflight (`eba6d983`, firm).** Each ShipLoop change a release ships now needs an E2E round committed after
+it, or its own `No-E2E-Round` reason. Ancestry decides "after". Replayed on history: the rule refuses 1.18.0, naming
+the three phase A commits. It would also refuse 1.19.0 as cut, naming T1 and T2. That release was already cut, so the
+rule applies from the next one. Tests: release-preflight 19 OK; the two new refusal tests fail on the old rule.
+
+**Slice case lock (`98e7aff0`, firm; landed by another session the same evening).** A slice holds
+`<out>/.harness-lock` while it runs, as `run.py` does, so lifecycle's orphan check no longer flags live slices. The
+separate runs root used for the owner-note run is no longer needed. This session's own version of the same fix was
+dropped in favour of it: it also closes the lock in a `finally` and tests the orphan scan itself.
+
+**Dead-session takeover (firm for Claude; other hosts fall back safely).**
+- **Design.** A claim records the owner's host process: the nearest ancestor of the hook that is not a shell or
+  launcher, when it started at least 2 seconds before the hook. A different session takes the run over as soon as
+  that process is gone, or its pid is reused (the start time differs). A live owner keeps the run until
+  `OWNER_STALE_SECONDS`. With no process found, only time frees a claim, and the owner's next hook looks again.
+- **Rejected along the way:** "take over when the claimant runs in the same host process" (to cover `/clear`). Two
+  live sessions in one host process would fight. `/clear` and normal exits are better covered by a host session-end
+  hook (Claude `SessionEnd`), which ShipLoop does not register yet: a follow-up, once each host's equivalent is known.
+- **Probe on a real Claude session** (`docs/shiploop-owed-outcome-evidence/host_process_probe.py`, `.out`):
+  - a `claude -p` session on Ollama with PostToolUse and Stop hooks;
+  - both hooks found the session's own `claude` process (pid and start time);
+  - Claude runs a hook directly under `claude`, which was 2 seconds old at its first hook;
+  - from this desktop-app session, the walk also stops at the session's own `claude` (pid 98461), not the app.
+  So the first draft's 10-second floor would have skipped a fresh host and recorded the process above it. Hence the
+  2-second floor, measured against the hook's own start, plus a retry while unknown.
+- **Why it is safe on other hosts:** a launcher starts with its hook, so it is never recorded. If something above the
+  host is recorded, it outlives the host, so the owner reads as alive and the time rule decides, as before.
+- **Tests:** shiploop-keepalive 72 OK. New: `OwnerProcessTests`, 7 tests. Fail-first: with only the time rule, the two
+  takeover tests fail.
+- **Flake found and fixed:** the keepalive suite's "Directory not empty" cleanup error (4 of 7 direct runs today) came
+  from the detached progress observer that `shiploop init` starts, which rewrites the run folder every 2 seconds. The
+  suite now sets `SHIPLOOP_PROGRESS=off`, as run_suites.py already does for the tier.
 
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
