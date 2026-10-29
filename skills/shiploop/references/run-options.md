@@ -12,7 +12,7 @@ included, and start no reviewer, test-runner or executor agent unless the user
 asked for independent review. Pass `--delegation ask-agent` at `workspace start`
 (or direct `init`) to opt in to the delegated route: each Improve checkpoint runs
 the `improve-agent` skill, which starts one fresh native worker that runs
-`/improve`, and implementation uses chains. Every run records the
+`/improve`, and each implement step is built by one fresh worker. Every run records the
 setting; a saved run without it is refused with an error naming the missing
 `delegation` key. An `init` or `workspace start` retry cannot change it. For an
 existing run, use:
@@ -23,7 +23,7 @@ python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline   # or ask-agent
 
 The setting applies from the next issued action: the action pending when you
 switch, including its Improve checkpoint, keeps the route it was issued with
-(the packet says so), so a worker, bound child or chain that may already own it
+(the packet says so), so a worker or bound child that may already own it
 is never re-routed. It is refused on a halted or done run; setting the recorded
 value is a no-op. `graph-dry-run --delegation
 inline|ask-agent` previews either route (inline by default).

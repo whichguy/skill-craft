@@ -50,7 +50,7 @@ USAGE_ERROR = re.compile(r"^(?:usage: shiploop\b|shiploop(?: [\w-]+)?: error: )"
 RUN_DIR_FLAG = re.compile(r"--run-dir\b")
 # The verbs shiploop_protocol hands to their own modules before the navigator loads the run: not traced from 1.13.1, traced
 # with an exit and no text in 1.12.0. The harness reads their failures from the host stream on every release.
-ROUTED_VERBS = frozenset(("chain", "lint", "red-check", "backchain-check"))
+ROUTED_VERBS = frozenset(("lint", "red-check", "backchain-check"))
 
 
 def first_line(text: str | None, limit: int | None = LINE_LIMIT) -> str:

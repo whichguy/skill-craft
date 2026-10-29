@@ -20,7 +20,6 @@ import shiploop_standalone_improve as bridge
 import shiploop_planning_context as context
 import shiploop_planning_revision as revision
 import shiploop_consumer_delivery as delivery
-import shiploop_chain as chain
 import shiploop_navigator_dry_run as dry_run
 
 
@@ -174,8 +173,6 @@ class V4ConsumersTests(unittest.TestCase):
         current = revision.current_actions(self.f.state)
         self.assertEqual(current[(None, 'research')], old_actions['research'])
         self.assertNotIn((None, 'spec'), current)
-        with self.assertRaises(chain.ChainError):
-            chain._require_bindable(self.f.state, nav.current_action(self.f.state)['id'])
         old_spec.unlink()
         old_tests.unlink()
         new_spec = self.f.write_text('new-spec.md', 'Reconciled requirement')
@@ -188,24 +185,15 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertEqual(classes[reconciled], 'history')
         self.assertEqual(classes[self.f.actions['spec'][-1]], 'current')
         self.assertTrue(any(reconciled in row['producers'] for row in result['manifest']['artifacts']))
-        chain._require_bindable(self.f.state, nav.current_action(self.f.state)['id'])
-        # The supported v4 implement boundary must be advertised by the skill
-        # and selected chain guide, including after planning reconciliation.
         self.assertEqual(self.f.state['navigator_protocol_version'], 4)
-        card = (ROOT / 'skills/shiploop/SKILL.md').read_text()
-        guide = (ROOT / 'skills/shiploop/references/parallel-chain.md').read_text()
-        self.assertIn('current `implement` action', card)
-        self.assertIn('current navigator `implement` action', guide)
 
-    def test_missing_reconciliation_archive_blocks_context_and_chain_recovery(self):
+    def test_missing_reconciliation_archive_blocks_context_recovery(self):
         self.to_plan()
         action = self.reconcile('test-strategy')
         self.f.to_implement()
         (self.f.run / 'improve' / action / 'receipt.md').unlink()
         with self.assertRaisesRegex(context.PlanningContextError, 'reconciliation'):
             context.collect(self.f.run.resolve(), self.f.state, self.f.graph, self.f.graph_source)
-        with self.assertRaisesRegex(chain.ChainError, 'reconciliation'):
-            chain._load_state(self.f.run)
 
     def test_registered_v4_plan_experiment_note_collects_without_plan_change(self):
         self.f.state['work_items'] = [

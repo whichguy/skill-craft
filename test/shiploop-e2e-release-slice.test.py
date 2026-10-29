@@ -759,7 +759,7 @@ class Rehearsal(unittest.TestCase):
         self.assertEqual(release["skipped_checks"], [])  # the product was returned, so the source check ran
         self.assertEqual([c["command"] for c in result["checks"]][0], "test -f sfdx-project.json && echo project")
         self.assertTrue(all(check["pass"] for check in result["checks"]))
-        self.assertIsNone(result["chain"])  # a release slice has no implementation chain to grade
+        self.assertNotIn("chain", result)  # no run is graded on an implementation chain any more (2c-2)
         self.assertEqual(result["seeded"]["stage"], "release-plan")
         self.assertEqual(result["seeded"]["product"]["files"], len(PRODUCT_FILES))
         self.assertEqual(result["seeded"]["delegation"], "inline")

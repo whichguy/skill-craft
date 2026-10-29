@@ -163,7 +163,6 @@ class StageTableTest(unittest.TestCase):
         (owner: no count stops), so no text may state one: a leftover copy would tell a model a stop rule that no gate
         applies.  The prompts carry the rule itself and every prose copy its anchor."""
         import re
-        import shiploop_chain as chain
         import shiploop_keepalive as keepalive
         import shiploop_loops as loops
         import shiploop_prompts as prompts
@@ -174,7 +173,6 @@ class StageTableTest(unittest.TestCase):
                            ("implement duty", prompts.prompt("implement", delegation=prompts.INLINE))):
             with self.subTest(prompt=name):
                 self.assertIn(spec.STUCK_FIX, " ".join(text.split()))
-        self.assertIn(spec.STUCK_FIX_ANCHOR, " ".join(chain._EXIT_CRITERIA_INSTRUCTION.split()))
         gone = (
             re.compile(r"\b(?:\d+|seven|three)\s+genuine\s+fix\s+attempts\b", re.IGNORECASE),
             re.compile(r"GENUINE_FIX_ATTEMPTS"),
@@ -204,7 +202,8 @@ class StageTableTest(unittest.TestCase):
             for pattern in gone:
                 with self.subTest(file=str(path.relative_to(ROOT)), removed=pattern.pattern):
                     self.assertIsNone(pattern.search(raw))
-        self.assertGreaterEqual(copies, 4)  # the scan reaches the copies: the skill card and the references
+        # The scan reaches the copies: the skill card and the references (4 before the chain's guides were deleted, 2c-2).
+        self.assertGreaterEqual(copies, 3)
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint

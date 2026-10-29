@@ -1362,12 +1362,49 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
           fix, run alone.
         - `test/shiploop_e2e/head_table.json`: ask-agent implement head 18,307 to 17,135, step-plan 19,486 to 18,801;
           test and carry-forward rise by 7 and 21 (their cause is not traced); the reasons are in its `_comment`.
-      - *Not done, on purpose.* 2c-0 part 2 (the preparatory base at every step) is lane B's `test_base_commit`; the
-        inline test `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit` should now hold on the
-        ask-agent route too, which has steps. It is run in 2c-3 with the E2E cases.
-  - **Found on the way** (reference text, not changed here). chain-route.md's inline paragraph still says "An Improve
-    stage reviews each accepted step, and the callback after the last step's review moves to `test`".
-    parallel-chain.md's diagram still ends in "The item's Improve stage, then the test stage". Both predate 2b-2.
+      - *2c-0 part 2 (the preparatory base at every step)* is lane B's `test_base_commit`. The inline test
+        `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit` now also runs on the ask-agent route, which
+        has steps since this change, and passes (`test_red_at_a_later_step_holds_with_a_preparatory_commit_on_the_ask_agent_route_too`).
+    - **2c-2: the chain retired (done 2026-10-29).** ShipLoop no longer has an implementation chain.
+      - *Removed.*
+        - `shiploop_chain`, `_git`, `_handoff` and `_ledger` (7,710 lines); the `chain` verb and its place among the
+          traced verbs; `chain_bindings` (the state key, its validation, the packets' chain orientation blocks, the
+          reconciliation guard) and `guard_completion` (which held `complete` and `halt` while a chain ran).
+        - The seven chain test files (`shiploop-chain`, `-async`, `-git`, `-handoff`, `-ledger`, `-lifecycle`,
+          `-planning-context`), their two support modules and two worker fixtures, their rows in `suite_catalog.py`
+          (109 ShipLoop suites to 99) and in the groups tests.
+        - `chain-route.md`, `parallel-chain.md`, `chain-navigation.md`, three rows of the card-split ledger and every link
+          to them in the card, the README, the references and the repository README. This resolves the two stale
+          paragraphs found under 2c: both lived in files that are gone. The step exit criteria are read in
+          `inner-loop.md#stage-until-loops`.
+        - The progress view's chain activity and bound-graph projection (`shiploop_progress_data`); it keeps the accepted
+          step plan's steps, now with the same done / active / queued reading on both routes.
+        - The E2E harness's chain grade (`run.py`: `chain_facts`, `chain_in_flight`, the `recovery` grade and
+          `--interrupt-at`), the four cases' `chain` expectations in `cases.json`, and the tests of those. The cases
+          stay, as ordinary seeded cases of the `parallel-graph` style; 2c-3 says what that leaves uncovered.
+        - The native pilot (`test/experiments/shiploop_chain`, three suites): it drove the `shiploop chain` lifecycle.
+      - *Kept, on purpose.* Plan Dispatcher and Ask-Agent as skills; old runs' receipts, ledgers and worktrees; the Grok
+        adapter's list of ShipLoop subcommands, which still names `chain` (its source hash binds the trace corpus, and an
+        old Grok trace may carry the verb); the
+        `shiploop-chain-ask-agent-managed-worktree/v1` capability name, which is those skills' contract and is not ShipLoop
+        code; `counters.py`'s reading of the chain's merge subject and the item commit subject, for old runs.
+      - *Not on the brief's list; left for the owner.*
+        - `shiploop_planning_context.py` and its own suite: the chain was its only caller, and Plan Dispatcher consumes
+          the manifest it writes.
+        - `shiploop_backchain_graph.py` (`backchain-check`), which checks a candidate plan's graph.
+        - `test/current_dispatcher.py`, the `current-dispatcher` integration command and its fixture tests in
+          `integration-boundaries.test.py`: they qualified a Dispatcher by running the native pilot, which is gone.
+        - The default `delegation` of a seeded E2E step slice is still ask-agent, "which the chain cases need"; changing
+          it breaks comparability with earlier evidence, so it is the owner's.
+      - *Evidence.* Fail-first does not apply to a deletion; the evidence is that what still exists runs. `shiploop-package-integrity`
+        (the card-split ledger), `-reference`, `-reference-routing`, `-retired-terms`, `-domain-words`, `test-groups`,
+        `ci-policy`, `shiploop-progress`, `-progress-data`, `-v4-consumers`, `-stage-spec`, `-delegation`, `-e2e`,
+        `-e2e-reorientation`, `-e2e-run-trace`, `-e2e-commit-counters` and `-workspace` pass after their chain parts were
+        removed; the whole quick and shiploop groups were run on the result (below).
+  - **Found on the way** (reference text; resolved in 2c-2, which deleted both files). chain-route.md's inline paragraph
+    still said "An Improve stage reviews each accepted step, and the callback after the last step's review moves to
+    `test`". parallel-chain.md's diagram still ended in "The item's Improve stage, then the test stage". Both predated
+    2b-2.
 - **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
 
   > "One of the things that I want to make sure of in our test suite is that we're both running the tests for the new

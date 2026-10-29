@@ -2826,13 +2826,11 @@ class CliBoundaryRegressionTests(unittest.TestCase):
                              "--result", str(run / "inbox" / (action + ".md"))),
                 "init": ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt),
                 "delegation": ("delegation", "--run-dir", str(run), "--set", "inline"),
-                "chain next": ("chain", "next", "--run-dir", str(run), "--action", action),
             }
-            # Every non-chain verb shares one pre-dispatch refusal, so each
-            # verb is pinned once (protocol 2); the other fixtures use next and
-            # the separately routed chain next.
+            # Every verb shares one pre-dispatch refusal, so each verb is pinned once (protocol 2); the other fixtures
+            # use next.
             if label != "protocol-2":
-                commands = {key: commands[key] for key in ("next", "chain next")}
+                commands = {key: commands[key] for key in ("next",)}
             for command, argv in commands.items():
                 with self.subTest(fixture=label, command=command):
                     refused = self.cli(*argv)
@@ -3795,8 +3793,6 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         ("references/improve-context.md", "for the selected initial Plan Improve child using the bundled ephemeral runtime"):
             PLAN_CHILD,
         ("references/navigator.md", "Its initial Plan Improve child can return a stopped"): PLAN_CHILD,
-        ("references/parallel-chain.md", "If the graph is first created or materially changed after that planning review"):
-            "follows the paragraph that states both schedules; says what a graph changed later needs before it is bound",
         ("references/planning-experiments.md", "This planning-specific duty applies only to the initial bound Plan Improve child"):
             PLAN_CHILD,
         ("references/planning-experiments.md", "A plan-local finding stays in the current Improve child."): PLAN_CHILD,
@@ -3885,7 +3881,6 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "references/research-loop.md": ("`planning_review: none`",),
             "references/execution-planning.md": ("a `none` run has no such review",),
             "references/backchain-planning.md": ("`planning_review: none`",),
-            "references/parallel-chain.md": ("`planning_review: none`", "`backchain-check`"),
             "references/testing-and-documentation.md": ("Under `none` no Improve review follows them",),
         }
         for name, needles in pins.items():
@@ -3915,7 +3910,6 @@ class BackchainGateDocumentsTest(unittest.TestCase):
     # Mentions that are not a Backchain gate statement, each with its reason.
     NOT_A_GATE = {
         "skills/backchain/references/harness.md": "says direct harness commands do not perform the reviews; no gate",
-        "skills/shiploop/references/parallel-chain.md": "Improve's own gate; Backchain only informs that review",
     }
 
     @staticmethod

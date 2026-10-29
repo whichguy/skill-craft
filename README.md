@@ -61,19 +61,10 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 <!-- skill-craft:inventory:end -->
 
 Operator guides: [ShipLoop](skills/shiploop/README.md),
-[current chain operator contract](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph),
 [historical planning-artifact handoff implementation/qualification record](docs/shiploop-planning-artifact-handoff-plan-2026-09-19.md)
 (supporting references; dispatcher step contracts remain the worker assignment),
 [Improve and release-candidate limits](skills/improve/README.md), and
 [completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
-
-**External compatibility:** Per-step ShipLoop chains require a selected compatible
-Plan Dispatcher and an Ask-Agent helper declaring all five required
-managed-worktree capabilities (no version floor). Both parallel and serial modes
-use the current managed-worktree lifecycle and v6 binding. Every chain operation
-refuses an earlier binding; preserve its worktrees and ledger and bind a new
-chain. Follow
-[the chain binding requirements](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph).
 
 **External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Its catalog pin is in `catalog/external-plugins.json`.
 

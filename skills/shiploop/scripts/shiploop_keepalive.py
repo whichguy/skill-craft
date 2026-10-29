@@ -18,7 +18,7 @@ Hook events per host:
   ``SessionEnd``, Cursor ``sessionEnd``: a ``/clear``, an exit).  Release the run
   the session owned and drop its binding, so the next session takes it at once.
 
-Several agents can touch one run: a parallel-chain worker, a second terminal,
+Several agents can touch one run: an implement or review worker, a second terminal,
 consecutive driver sessions.  Only one session, the run's owner, is ever kept
 alive.  The first session to bind a free run owns it; ownership is released when
 the owner's turn ends normally, when the host ends the owner's session

@@ -798,9 +798,11 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
             self.assertIsNone(counters.RETIRE_SUBJECT.fullmatch(other))
         self.assertFalse(hasattr(counters, "knowledge_home"))
 
-    def test_the_chain_merge_prefix_is_the_one_the_chain_writes(self):
-        self.assertIn(f'_PREPARED_MERGE_PREFIX = "{counters.CHAIN_PREFIX}"',
-                      (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_chain_git.py").read_text())
+    def test_the_chain_merge_prefix_is_written_by_no_script_since_the_chain_was_retired(self):
+        # Design T §9.1 2c-2 retired the chain (shiploop_chain_git wrote "ShipLoop chain prepared"); counters.py still
+        # reads the prefix for the runs that were saved with it.
+        self.assertFalse((ROOT / "skills" / "shiploop" / "scripts" / "shiploop_chain_git.py").exists())
+        self.assertTrue(counters.CHAIN_PREFIX)
 
 
 class ReaderCase(GitCase):

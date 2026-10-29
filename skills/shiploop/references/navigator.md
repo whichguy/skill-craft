@@ -206,9 +206,9 @@ so a later shell cwd cannot change which card the checkpoint selects.
 Every run records its execution `delegation`. `workspace start` and direct
 `init` record `inline` for a new run unless `--delegation=ask-agent` is passed.
 Under `inline`, this conversation executes every producer and the whole Improve
-invocation itself, and `implement` runs reviewed steps directly without a chain.
-Under the opt-in `ask-agent` route, INNER producers and Improve prefer native
-fresh workers and `implement` can bind a [parallel or serial chain](parallel-chain.md#parallel-implementation-chains).
+invocation itself, and `implement` runs each step directly. Under the opt-in
+`ask-agent` route, INNER producers and Improve prefer native fresh workers, and `implement` is
+issued once per step, built by one fresh worker in the shared checkout.
 A saved run without the setting is refused with an error naming the
 missing `delegation` key. Retrying `init` or `workspace start` cannot change the setting. Use the
 `delegation` command instead. It applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with
@@ -302,23 +302,19 @@ reprinted packet. ShipLoop issues one `implement` packet per step of the
 accepted step plan, in its order, in the execution checkout. Each packet, its
 printed head and the step's Improve hand-off, after its document stage, carry the same Step block (task,
 criteria, Proof, dependencies, later steps) and end with the step's Until Loop;
-ShipLoop runs the step's Proof, its step-plan `proof`, at done. It binds no chain
-and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
-ordered `steps` rather than a dispatcher execution graph.
+ShipLoop runs the step's Proof, its step-plan `proof`, at done. On the inline route it uses
+no Ask Agent, native worker or Plan Dispatcher; on both routes `step-plan` records
+ordered `steps` rather than a dispatcher execution graph, and ShipLoop has no
+implementation chain.
 
 Under the opt-in `delegation: ask-agent` route, every active INNER producer
 packet begins with
 **Execute the prompt in a fresh context.**
 This is the serial execution instruction for the producer only.
-For an `implement` producer, select the chain route first. During that producer,
-its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
-explicit serial chains execute in the main context without spawning workers.
-Do not wrap a chain in another worker. Both modes recover the existing attempt
-rather than rerunning `start`. Serial chains execute in this conversation; the
-[chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
-remains authoritative. Chain precedence ends at producer completion. Improve follows
-its own selected context and ownership policy even when the historical chain binding
-remains. For other serial work where delegation is permitted,
+An `implement` worker builds the step packet's one step in the shared checkout: it makes
+no commit, runs no callback, starts no later step and leaves no delegate writing.
+Improve follows its own selected context and ownership policy.
+For serial work where delegation is permitted,
 save the recovery locators and prefer one native fresh worker at a time, without
 inherited conversation. It needs the assignment's tools, the existing workspace
 and a return route to the live parent. The parent supplies the current packet,
@@ -940,8 +936,7 @@ New workspace/direct entries record their selected actual Improve binding, the
 The reviewed action is `active_improve` while a bound child is active, and the
 sequence stage is `improve`; ShipLoop
 does not duplicate the child's cursor or review counter. The `delegation`
-command never re-owns a bound Improve child or switches a bound chain's frozen
-mode. A saved run the current code cannot load (navigator v1/v2/v3, the removed
+command never re-owns a bound Improve child. A saved run the current code cannot load (navigator v1/v2/v3, the removed
 managed and legacy modes, or a protocol 4 state with unexpected or missing keys) is
 refused with an error naming the protocol, mode or keys; start a fresh run
 directory for that request. A malformed/missing selected card or child evidence

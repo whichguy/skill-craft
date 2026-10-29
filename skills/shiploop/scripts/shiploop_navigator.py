@@ -155,7 +155,6 @@ _STATE_KEYS = frozenset(
         "improve_skill",
         "active_improve",
         "improve_results",
-        "chain_bindings",
         "delegation",
         "delegation_hold",
         "planning_reconciliations",
@@ -1505,12 +1504,13 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     _need("delegation" in keys,
           "navigator state has no recorded delegation; it was saved by an older ShipLoop that "
           "routed such runs through ask-agent. " + FRESH_RUN_HINT)
+    # Refused before the key check: a version-10 run may carry the retired chain_bindings key, and its reason is this one.
+    _need(state.get("version") != 10, V10_REASON)
     unexpected = sorted(keys - allowed)
     _need("lint" in keys,
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
           + FRESH_RUN_HINT)
-    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "chain_bindings",
-                                "delegation_hold", "owner_notes"} - keys)
+    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "delegation_hold", "owner_notes"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
@@ -1520,7 +1520,6 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     _need(state.get("version") != 6, V6_REASON)
     _need(state.get("version") != 8, V8_REASON)
     _need(state.get("version") != 9, V9_REASON)
-    _need(state.get("version") != 10, V10_REASON)
     _need(state.get("version") == STATE_VERSION,
           "navigator state version " + repr(state.get("version")) + " is not the supported version "
           + str(STATE_VERSION) + ". " + FRESH_RUN_HINT)
@@ -1655,16 +1654,6 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
 
-    bindings = state.get("chain_bindings", {})
-    _need(isinstance(bindings, Mapping), "chain bindings must be an object")
-    chain_actions = {entry["action"] for entry in history if entry["stage"] == "implement"}
-    if _active_cursor(state)[0] == "implement":
-        chain_actions.add(effective_action_id)
-    for action_id, digest in bindings.items():
-        _need(isinstance(action_id, str) and action_id in chain_actions,
-              "chain binding must belong to an implementation action")
-        _need(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) is not None,
-              "chain binding digest is invalid")
     _need(state["delegation"] in DELEGATIONS,
           "unsupported delegation setting; expected inline or ask-agent")
     hold = state.get("delegation_hold")
@@ -2393,9 +2382,6 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("unverified", FILE_ONLY, _unverified_lines(state, stage)))
     context = _run_context_lines(core, root, state, stage, workitem, stage_text, producer=True)
     blocks.append(_Block("run-context", FILE_ONLY, context))
-    if state.get("chain_bindings"):
-        import shiploop_chain
-        blocks.append(_Block("chain", FILE_ONLY, shiploop_chain.orientation(core, root, state)))
     blocks.append(_Block("last-accepted", FILE_ONLY, _last_accepted_lines(state, root)))
     if guidance.ENVIRONMENT_DISCOVERY_REQUIREMENTS.get(stage) is not None:
         # The requirement and the shared investigation allowance are in the stage's duty (packet re-cut, 2026-10-11);
@@ -4221,7 +4207,7 @@ def _reconciliation_permitted(state: Mapping[str, Any], action_id: str) -> Mappi
     _need(state["status"] == "active", "parent must be active to reconcile Improve")
     _need(state["stage"] == "plan" and state.get("work_index") == 0
           and not state.get("completed_work_items") and not state.get("inner_loops")
-          and not state.get("chain_bindings"),
+,
           "reconciliation is allowed only before prepare or work execution")
     child = state.get("active_improve")
     _need(isinstance(child, Mapping) and child.get("action_id") == action_id
@@ -6055,9 +6041,6 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             ]
         )
         return "\n".join(lines) + "\n"
-    if state.get("chain_bindings"):
-        import shiploop_chain
-        lines.extend(shiploop_chain.orientation(core, root, state))
     if state["status"] == "halted":
         lines.extend(
             [
@@ -8098,11 +8081,9 @@ def _leftovers(root: Path | None, state: Mapping[str, Any]) -> dict[str, Any] | 
         return None
     try:
         import shiploop_workspace as workspace
-        import shiploop_chain
     except ImportError:  # pragma: no cover - supports package-style local imports.
         from . import shiploop_workspace as workspace  # type: ignore
-        from . import shiploop_chain  # type: ignore
-    found = workspace.leftovers(Path(root).parent, shiploop_chain.attempt_branches(Path(root), state))
+    found = workspace.leftovers(Path(root).parent)
     return found if found and found["items"] else None
 
 
@@ -9512,16 +9493,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     if command not in ("status", "report"):
         _iteration_recover(root, state)
     # `complete` on an Improve stage imports its review (owner, 2026-10-11: Improve is a stage of its own).
-    improve_import =command == "complete" and _reviewed_action(state, getattr(args, "action", None)) is not None
-    if command in ("complete", "halt") and state.get("chain_bindings"):
-        import shiploop_chain
-        try:
-            guarded_action = (current_action(state)["id"] if command == "halt"
-                              else _reviewed_action(state, getattr(args, "action", None))
-                              or getattr(args, "action", None))
-            shiploop_chain.guard_completion(root, state, guarded_action)
-        except ValueError as exc:
-            raise NavigatorError(str(exc)) from exc
+    improve_import = command == "complete" and _reviewed_action(state, getattr(args, "action", None)) is not None
     if command == "init":
         emit(core, root, state)
         return 0

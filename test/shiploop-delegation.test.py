@@ -301,10 +301,7 @@ class DelegationStateTests(unittest.TestCase):
         restored = nav.set_delegation(switched, "ask-agent")
         self.assertNotIn("delegation_hold", restored)
         self.assertEqual(self.render(restored), self.render(dict(at_test_author, revision=restored["revision"])))
-        # A chain-bound or Improve-bound current action is safe for the same reason.
-        at_implement = advance(self.state("ask-agent"), "implement")
-        chained = dict(at_implement, chain_bindings={nav.current_action(at_implement)["id"]: "0" * 64})
-        self.assertEqual(nav.delegation(nav.set_delegation(chained, "inline")), "ask-agent")
+        # An Improve-bound current action is safe for the same reason (a chain-bound one was too, until 2c-2 retired it).
 
     def test_toggle_refuses_terminal_runs(self):
         halted = nav.control(self.state(), "halt", "Synthetic stop.")
@@ -1337,21 +1334,6 @@ class DelegationCliTests(unittest.TestCase):
         self.assertNotIn(" · Route: ask-agent", handoff.read_text(encoding="utf-8"))
         self.assertNotIn("Prefer a native fresh worker", switched.stdout + handoff.read_text(encoding="utf-8"))
         self.assertEqual(self.saved()["delegation_hold"], {"action": action, "route": "inline"})
-
-    def test_chain_bind_is_refused_on_inline_runs_before_any_side_effect(self):
-        state = advance(nav.new_state(str(self.repo), "Synthetic chain refusal.",
-                                      delegation="inline"), "implement")
-        self.run.mkdir()
-        nav.save(self.run, state)
-        before = (self.run / "state.md").read_bytes()
-        action = nav.current_action(state)["id"]
-        refused = self.cli("chain", "bind", "--run-dir", self.run, "--action", action,
-                           "--graph", self.base / "graph.json", "--dispatcher-skill", self.base / "d",
-                           "--ask-agent-skill", self.base / "a", "--worktree-parent", self.base)
-        self.assertNotEqual(refused.returncode, 0)
-        self.assertIn("delegation is inline", refused.stdout + refused.stderr)
-        self.assertEqual(before, (self.run / "state.md").read_bytes())
-        self.assertFalse((self.run / "chains").exists())
 
     def test_workspace_start_passes_delegation_and_refuses_a_changed_retry(self):
         def git(*args):

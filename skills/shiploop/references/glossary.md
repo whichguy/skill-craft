@@ -58,7 +58,6 @@ return (owner rule, 2026-10-24).
 | Improve child | The Until Loop child runtime an Improve stage runs its review in: its frozen contract (`start.json`), its live state and the folder the handoff names CHILD. ShipLoop binds and starts it at the transition; it is active, blocked, stopped or complete, and a stopped one restarts (or, the plan's, reconciles). | `active_improve`, CHILD (`.shiploop-improve/<stage>-<id>/`) | the Improve stage; the Improve review |
 
 **Separate schemas.** These keep their own words and are not ShipLoop terms:
-- the ask-agent chain worker's item statuses (`confirmed`, `inspected`, `failed`, `not_run`, `unconfirmable`);
 - Backchain's confirm levels (`execute`, `inspect`, `unconfirmable`) and its `repair`/`revise` passes;
 - the Until Loop's own fields and file names (`continuation_assessment`, `repeat_condition`, `packet.json`), and the
   vendored runtime's text, which calls its record a packet;

@@ -184,33 +184,6 @@ if mode in ("done", "no-skill"):
 if mode == "active":
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-if mode == "chain-hang":
-    sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
-    import shiploop_chain_ledger as ledger, time
-    chain = Path.cwd().parent / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
-    child = chain / "child"
-    def ledger_events(*rows):
-        start = len(ledger.read_events(str(chain / "events")))
-        for number, (kind, data) in enumerate(rows, start):
-            ledger.append_event(str(chain / "events"), f"e{{number}}", kind, data)
-    if "This session ended" not in argv[argv.index("-p") + 1]:
-        child.mkdir(parents=True)
-        # The run is active while its chain worker is in flight, as a real run's state.md says.
-        store.write_record(chain.parent.parent / "state.md", {{"status": "active", "stage": "implement", "revision": 3}})
-        store.write_record(chain / "binding.md", {{"dispatcher_run": str(child), "mode": "parallel"}})
-        ledger_events(("launched_result", {{"attempt": "A-1"}}), ("launched_result", {{"attempt": "B-1"}}))
-        time.sleep(120)  # killed by --interrupt-at long before this ends
-    (child / "plan-dispatcher-state.json").write_text(json.dumps({{
-        "graph": {{"steps": [{{"id": "A", "deps": []}}, {{"id": "B", "deps": []}}]}},
-        "steps": {{"A": {{"status": "accepted"}}, "B": {{"status": "accepted"}}}},
-        "attempts": {{"A-1": {{"step": "A", "handle": "h"}}, "B-1": {{"step": "B", "handle": "h"}}}}}}))
-    ledger_events(("handoff_import_result", {{"attempt": "A-1"}}), ("handoff_import_result", {{"attempt": "B-1"}}),
-                  ("contribution_recorded", {{"attempt": "A-1", "step": "A"}}),
-                  ("contribution_recorded", {{"attempt": "B-1", "step": "B"}}))
-    # The fresh session finishes the seeded run itself: the harness grades the run it seeded, not work/.shiploop.
-    store.write_record(chain.parent.parent / "state.md", {{"status": "done", "stage": "done", "revision": 9}})
-    (chain.parent.parent / "report.html").write_text("<html></html>")
-    product()
 if mode == "api-error":
     # What the real CLI wrote when the API refused: subtype stays "success", is_error says otherwise.
     print(json.dumps({{"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "api_error",
@@ -674,106 +647,9 @@ class SeedTest(HarnessCase):
         self.assertIn(f'next --run-dir "{result["seeded"]["run_dir"]}"', prompt)
         self.assertIn("stages before step-plan without doing them", prompt)
         self.assertEqual(result["committed"]["start_head"], result["seeded"]["start_head"])
-        self.assertEqual((result["chain"]["pass"], result["chain"]["bindings"]), (False, []))
+        self.assertNotIn("chain", result)    # the chain grade is retired with the chain (design T §9.1 2c-2)
         self.assertFalse(self.baselines.exists())
 
-    def chain(self, events: list[tuple[str, str]], status: dict[str, str], deps: dict[str, list[str]] | None = None,
-              expect: dict | None = None) -> dict:
-        """A binding whose ledger holds `events` as (kind, step); contributions name their step."""
-        import shiploop_chain_ledger as ledger
-        out = self.tmp / "out"
-        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
-        dispatcher = chain_dir / "child"
-        dispatcher.mkdir(parents=True)
-        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
-        deps = deps or {step: [] for step in status}
-        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
-            "graph": {"steps": [{"id": step, "deps": needs} for step, needs in deps.items()]},
-            "steps": {step: {"status": s} for step, s in status.items()},
-            "attempts": {f"{step}-1": {"step": step, "handle": f"h-{step}"} for step in status}}))
-        for number, (kind, step) in enumerate(events):
-            data = {"attempt": f"{step}-1", **({"step": step} if kind == "contribution_recorded" else {})}
-            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
-        return run.chain_facts(out, expect)
-
-    @staticmethod
-    def worked(*steps: str) -> list[tuple[str, str]]:
-        """Launch every step together, then import and integrate each."""
-        return ([("launched_result", s) for s in steps] + [("handoff_import_result", s) for s in steps]
-                + [("contribution_recorded", s) for s in steps])
-
-    def test_chain_passes_when_all_accepted_in_order_once_and_two_ran_together(self):
-        events = self.worked("A", "B") + self.worked("J")
-        facts = self.chain(events, {"A": "accepted", "B": "accepted", "J": "accepted"},
-                           {"A": [], "B": [], "J": ["A", "B"]})
-        self.assertTrue(facts["pass"], facts)
-        binding = facts["bindings"][0]
-        self.assertEqual((binding["max_in_flight"], binding["depth"], binding["native_attempts"]), (2, 2, 3))
-
-    def test_serial_chain_fails(self):
-        facts = self.chain(self.worked("A") + self.worked("B"), {"A": "accepted", "B": "accepted"})
-        self.assertFalse(facts["pass"])
-        self.assertEqual(facts["bindings"][0]["max_in_flight"], 1)
-
-    def test_unaccepted_step_fails_even_after_fan_out(self):
-        facts = self.chain(self.worked("A", "B"), {"A": "accepted", "B": "running"})
-        self.assertFalse(facts["pass"])
-
-    def test_a_step_launched_before_its_dependency_was_integrated_fails(self):
-        events = [("launched_result", "A"), ("launched_result", "B"), ("launched_result", "J"),
-                  ("handoff_import_result", "A"), ("handoff_import_result", "B"), ("handoff_import_result", "J"),
-                  ("contribution_recorded", "A"), ("contribution_recorded", "B"), ("contribution_recorded", "J")]
-        facts = self.chain(events, {"A": "accepted", "B": "accepted", "J": "accepted"},
-                           {"A": [], "B": [], "J": ["A", "B"]})
-        self.assertFalse(facts["pass"])
-        self.assertEqual(facts["bindings"][0]["out_of_order"], ["J"])
-
-    def test_a_step_integrated_twice_or_never_fails(self):
-        twice = self.chain(self.worked("A", "B") + [("contribution_recorded", "A")],
-                           {"A": "accepted", "B": "accepted"})
-        self.assertEqual(twice["bindings"][0]["integrated_twice"], ["A"])
-        self.assertFalse(twice["pass"])
-
-    def test_case_expectations_raise_the_bar(self):
-        events = self.worked("A", "B") + self.worked("J")
-        status = {"A": "accepted", "B": "accepted", "J": "accepted"}
-        facts = self.chain(events, status, {"A": [], "B": [], "J": ["A", "B"]},
-                           expect={"min_steps": 3, "min_in_flight": 3, "min_depth": 2})
-        self.assertFalse(facts["pass"])  # only two ran together
-        self.assertEqual(facts["expect"]["min_in_flight"], 3)
-
-    def test_a_retried_worker_stops_counting_as_in_flight(self):
-        # Kill-and-resume: A-1 and B-1 are lost (never imported) and retried; their
-        # replacements then run one after the other. Only one worker ever really ran
-        # after the kill, so the lost attempts must not inflate the count.
-        import shiploop_chain_ledger as ledger
-        out = self.tmp / "out"
-        chain_dir = out / ".shiploop-runs" / "seed" / "run" / "chains" / "nav-1"
-        dispatcher = chain_dir / "child"
-        dispatcher.mkdir(parents=True)
-        run.store.write_record(chain_dir / "binding.md", {"dispatcher_run": str(dispatcher), "mode": "parallel"})
-        attempts = {"A-1": "A", "B-1": "B", "A-2": "A", "B-2": "B"}
-        (dispatcher / "plan-dispatcher-state.json").write_text(json.dumps({
-            "graph": {"steps": [{"id": "A", "deps": []}, {"id": "B", "deps": []}]},
-            "steps": {"A": {"status": "accepted"}, "B": {"status": "accepted"}},
-            "attempts": {a: {"step": s, "handle": "h"} for a, s in attempts.items()}}))
-        events = [("launched_result", "A-1"), ("launched_result", "B-1"), ("retry_result", "A-1"),
-                  ("retry_result", "B-1"), ("launched_result", "A-2"), ("handoff_import_result", "A-2"),
-                  ("contribution_recorded", "A-2"), ("launched_result", "B-2"), ("handoff_import_result", "B-2"),
-                  ("contribution_recorded", "B-2")]
-        for number, (kind, attempt) in enumerate(events):
-            data = {"attempt": attempt, **({"step": attempts[attempt]} if kind == "contribution_recorded" else {})}
-            ledger.append_event(str(chain_dir / "events"), f"e{number}", kind, data)
-        facts = run.chain_facts(out)
-        self.assertEqual(facts["bindings"][0]["max_in_flight"], 2)  # A-1 and B-1 before the kill
-        self.assertEqual(facts["bindings"][0]["max_in_flight_after_retry"], 1)
-
-    def test_chain_in_flight_is_true_only_between_launch_and_import(self):
-        self.chain([("launched_result", "A")], {"A": "running"})
-        self.assertTrue(run.chain_in_flight(self.tmp / "out"))
-        shutil.rmtree(self.tmp / "out")
-        self.chain(self.worked("A"), {"A": "accepted"})
-        self.assertFalse(run.chain_in_flight(self.tmp / "out"))
 
     def test_launch_kills_the_session_when_its_stop_condition_holds(self):
         out = self.tmp / "out-stop"
@@ -815,22 +691,6 @@ class SeedTest(HarnessCase):
         self.assertEqual(result["status"], "interrupted")
         self.assertEqual(len(polls), 2)
         self.assertLess(result["elapsed_seconds"], 10, result)
-
-    def test_interrupt_kills_the_host_mid_chain_and_a_fresh_session_finishes(self):
-        code, result = self.invoke("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        self.assertEqual(code, 0, {k: result.get(k) for k in ("process", "chain", "recovery", "shiploop")})
-        sessions = result["process"]["sessions"]
-        self.assertEqual([s["status"] for s in sessions], ["interrupted", "exited"])
-        # The killed session began and never reported: the cost is a lower bound by one session.
-        self.assertEqual(result["metrics"]["unreported_sessions"], 1)
-        self.assertTrue(result["recovery"]["pass"], result["recovery"])
-        self.assertEqual(result["recovery"]["interrupt"]["at"], "chain-launched")
-        self.assertIn("This session ended", (Path(result["output"]) / "resume-after-interrupt.txt").read_text()
-                      if (Path(result["output"]) / "resume-after-interrupt.txt").exists() else self.seen()["argv"][1])
-
-    def test_without_interrupt_no_recovery_verdict(self):
-        code, result = self.invoke("claude", "done")
-        self.assertIsNone(result["recovery"])
 
 
 class ExpectationTest(HarnessCase):
@@ -4381,17 +4241,6 @@ class ReportedCostThroughMainTest(PrintedCase):
         self.assertNotIn("$0", process)
         self.assertIn("cost not reported", self.line(printed, "  metrics   turns"))
 
-    def test_a_session_the_run_killed_is_named_beside_the_cost_and_is_not_a_baseline_key(self):
-        code, result, printed = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        self.assertEqual(code, 0, result)
-        note = "(lower bound: 1 session(s) never reported)"
-        self.assertIn(f"cost=$0.0 {note}", self.line(printed, "  process"))
-        self.assertIn(f"cost $0.0 {note}", self.line(printed, "  metrics   turns"))
-        self.assertNotIn("unreported_sessions", run.baseline_row(result, None, None))
-        code, result, printed = self.invoke_printed("claude", "done")
-        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
-        self.assertNotIn("lower bound", printed)
-
 
 class ResumedRunRecordTest(PrintedCase):
     """A run continued after the harness stopped keeps what it recorded and invents nothing."""
@@ -5790,13 +5639,6 @@ class ResumeCliThroughMainTest(PrintedCase):
         self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)  # the first host's install, not the new one
         self.assertNotIn(str(other_cli), prompt)
 
-    def test_the_resume_after_an_interrupt_names_the_cli_the_run_started_on(self):
-        code, result, _ = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        self.assertEqual(code, 0, result)
-        argv = self.seen()["argv"]
-        prompt = argv[argv.index("-p") + 1]
-        self.assertIn("This session ended while the ShipLoop run was still active", prompt)
-        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
 
     def test_a_resume_whose_plugin_cli_is_gone_is_refused_before_any_host_starts(self):
         code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")

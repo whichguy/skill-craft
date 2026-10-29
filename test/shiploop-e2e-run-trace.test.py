@@ -178,7 +178,7 @@ class TracedRun(unittest.TestCase):
         # A line that also runs a traced verb on the run is the trace's, whichever of its verbs failed.
         self.assertFalse(metrics.outside_trace(f"{cli} lint --run-dir {run} --action=nav-1 && {cli} complete --run-dir {run} "
                                                "--action=nav-1", refusal))
-        self.assertEqual(run_trace.ROUTED_VERBS, {"chain", "lint", "red-check", "backchain-check"})
+        self.assertEqual(run_trace.ROUTED_VERBS, {"lint", "red-check", "backchain-check"})
         self.assertNotIn("lint", {f["verb"] for f in run_trace.read(self.run_dir)["failures"]})
 
     def test_an_unreadable_trace_is_an_error_record_never_an_exception(self):

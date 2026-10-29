@@ -121,8 +121,7 @@ a current run, such as `init`, `next`, `complete`, `pause` or `status`: exit cod
 revision, stage and action before and after, results accepted, refusal text),
 `packet` (every packet such a command prints, its text kept as sent in
 `packets/sent/<sha>.md`, since `next` rewrites `packets/<action>.md`) and `hook`
-(each keepalive stop decision, with the text it put into the turn). `chain`,
-`lint`, `red-check` and `backchain-check` are not traced: their views and
+(each keepalive stop decision, with the text it put into the turn). `lint`, `red-check` and `backchain-check` are not traced: their views and
 record-only checks must leave the run as it was. Skill-tool calls stay in `skill-calls.jsonl`. The
 trace is evidence, never state: nothing resumes from it, and a failed append
 never fails a command.

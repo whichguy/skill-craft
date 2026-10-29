@@ -21,13 +21,13 @@ there with one headless host process, shows its progress live, and grades:
 
 --seed-at step-plan starts an Ask-Agent run whose stages before step-plan are
 recorded without doing them (the case prompt is the specification), so a host
-reaches the implementation chain in minutes instead of hours of planning. The
-host then follows ShipLoop's own packets from step-plan. A seeded run is also
-graded on `chain` (every step accepted and at least two workers in flight
-together) and writes no baseline row, since it does not start from intake.
+reaches the implementation steps in minutes instead of hours of planning. The
+host then follows ShipLoop's own packets from step-plan. A seeded run writes no
+baseline row, since it does not start from intake. (Until design T section 9.1 2c-2 it was also graded on `chain`: the
+chain is retired, and so is that grade.)
 --seed-at release-plan (or system-test-author) starts a RELEASE SLICE: the build is recorded without doing it and the case's prebuilt
 product is committed in the run's worktree, so the host plans, checks, performs and verifies the release in minutes
-(test/shiploop_e2e/release_slice.py, README "The release slice"). It is graded on `release_slice` instead of `chain`: which stages
+(test/shiploop_e2e/release_slice.py, README "The release slice"). It is graded on `release_slice`: which stages
 ShipLoop accepted from the seed point on, where it stopped, and whether the case's platform change (the deploy) happened in its own
 stage. --platform-existing update lets such a run deploy over work an earlier run kept: the items already in the platform are the
 baseline and the cleanup removes only what the run adds beyond it. The seed also records the item's base snapshot
@@ -155,7 +155,6 @@ import run_trace  # noqa: E402
 import runrecord  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
-import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -1323,7 +1322,7 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
 
     ShipLoop refuses a repository without a commit, so the seed commits a README first, or the whole `fixture`
     directory when one is given (a step slice starts on an existing product). `work_item` is the plan's only item
-    (default: the whole request); `delegation` is the run's route (default Ask-Agent, which the chain cases need, and inline
+    (default: the whole request); `delegation` is the run's route (default Ask-Agent, as before the chain was retired, and inline
     for a release slice, as a real run of such a case is). `records` ({stage: fields}) are merged into the synthetic result of
     each stage the seed records (SEED_SCRIPT).
     The seed records the item's base snapshot (SEED_SCRIPT) and, unless `home` is false (the flagged no-home variant:
@@ -1406,101 +1405,6 @@ def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-age
             f"is still running.\n\nThe request: {prompt}")
 
 
-CHAIN_DEFAULTS = {"min_steps": 2, "min_in_flight": 2, "min_depth": 1}
-
-
-def _bindings(out: Path):
-    for binding_path in sorted(out.rglob("chains/*/binding.md")):
-        if binding_path.relative_to(out).parts[0] not in ("home", "build", "marketplace"):
-            yield binding_path
-
-
-def _depth(deps: dict[str, list[str]]) -> int:
-    """Steps on the longest dependency path (1 = no step depends on another)."""
-    memo: dict[str, int] = {}
-
-    def level(step: str, seen: frozenset = frozenset()) -> int:
-        if step not in memo:
-            memo[step] = 1 + max((level(d, seen | {step}) for d in deps.get(step, []) if d not in seen), default=0)
-        return memo[step]
-    return max((level(step) for step in deps), default=0)
-
-
-def chain_facts(out: Path, expect: dict | None = None) -> dict:
-    """ShipLoop chain evidence from files only, never from the model's account.
-
-    For each binding under run/chains/<action>/, from the dispatcher state and the
-    bridge ledger (in ledger order): steps accepted, native vs main-context
-    attempts, the most launched workers not yet imported (fan-out), each step's
-    integrations (contribution_recorded; exactly one each), and whether every step
-    launched only after each dependency was integrated. `expect` (a case's
-    "chain" entry) sets min_steps, min_in_flight and min_depth.
-    """
-    expect = {**CHAIN_DEFAULTS, **(expect or {})}
-    chains = []
-    for binding_path in _bindings(out):
-        fact = {"binding": str(binding_path)}
-        try:
-            binding = store.read_record(binding_path)
-            state_file = Path(binding["dispatcher_run"]) / "plan-dispatcher-state.json"
-            state = json.loads(state_file.read_text()) if state_file.is_file() else {"steps": {}, "attempts": {}}
-            events = chain_ledger.read_events(str(binding_path.parent / "events"))
-        except (store.StorageError, ValueError, KeyError, OSError) as exc:
-            chains.append(dict(fact, error=str(exc)))
-            continue
-        attempts = state.get("attempts", {})
-        steps = state.get("steps", {})
-        deps = {s["id"]: list(s.get("deps") or []) for s in (state.get("graph") or {}).get("steps", [])}
-        step_of = {attempt: record.get("step") for attempt, record in attempts.items()}
-        in_flight, most, after_retry, retried = set(), 0, 0, False
-        first_launch, integrated, integrations = {}, {}, {}
-        for row in events:
-            event = row["event"]
-            data = event.get("data") or {}
-            attempt = data.get("attempt")
-            step = data.get("step") or step_of.get(attempt)
-            if event["kind"] == "launched_result":
-                in_flight.add(attempt)
-                most = max(most, len(in_flight))
-                if retried:
-                    after_retry = max(after_retry, len(in_flight))
-                first_launch.setdefault(step, event["seq"])
-            elif event["kind"] in ("handoff_import_result", "retry_result"):
-                # A retried attempt was lost or rejected; it is no longer running work for the chain.
-                in_flight.discard(attempt)
-                retried = retried or event["kind"] == "retry_result"
-            elif event["kind"] == "contribution_recorded":
-                integrations[step] = integrations.get(step, 0) + 1
-                integrated.setdefault(step, event["seq"])
-        out_of_order = sorted(step for step, needs in deps.items() if step in first_launch and any(
-            dep not in integrated or integrated[dep] > first_launch[step] for dep in needs))
-        accepted = sum(1 for s in steps.values() if s.get("status") == "accepted")
-        fact.update({
-            "mode": binding.get("mode"),
-            "steps": len(steps),
-            "accepted": accepted,
-            "depth": _depth(deps),
-            "native_attempts": sum(1 for a in attempts.values() if a.get("handle")),
-            "main_context_attempts": sum(1 for a in attempts.values() if a.get("executor")),
-            "attempts": len(attempts),
-            "max_in_flight": most,
-            "max_in_flight_after_retry": after_retry if retried else None,
-            "out_of_order": out_of_order,
-            "integrated_twice": sorted(step for step, count in integrations.items() if count > 1),
-            "not_integrated": sorted(step for step in steps if integrations.get(step, 0) == 0),
-            "events": len(events),
-        })
-        fact["pass"] = (fact["steps"] >= expect["min_steps"] and accepted == fact["steps"]
-                        and fact["depth"] >= expect["min_depth"] and most >= expect["min_in_flight"]
-                        and not out_of_order and not fact["integrated_twice"] and not fact["not_integrated"])
-        chains.append(fact)
-    return {"pass": any(c.get("pass") for c in chains), "expect": expect, "bindings": chains}
-
-
-RECOVERY_SOURCE = ("SPEC S-6 (runs survive session resumes) and S-14 (unattended by default): a fresh session "
-                   "recovers the chain without a person")
-
-
 def run_minutes(run_dir: str | None) -> float | None:
     """Minutes from ShipLoop's run start to its last accepted action, from the run's own timeline.
 
@@ -1569,26 +1473,6 @@ def write_mismatch(out: Path, name: str, host: str, failed: list[tuple[str, str,
     path = out / "mismatch.md"
     path.write_text(MISMATCH_TEMPLATE.format(case=name, host=host, output=out, expected=expected, observed=observed))
     return path
-
-
-def chain_in_flight(out: Path) -> bool:
-    """Whether some chain worker has launched and its result is not yet imported."""
-    for binding_path in _bindings(out):
-        try:
-            events = chain_ledger.read_events(str(binding_path.parent / "events"))
-        except (ValueError, OSError):
-            continue
-        open_attempts = set()
-        for row in events:
-            event = row["event"]
-            attempt = (event.get("data") or {}).get("attempt")
-            if event["kind"] == "launched_result":
-                open_attempts.add(attempt)
-            elif event["kind"] in ("handoff_import_result", "retry_result"):
-                open_attempts.discard(attempt)
-        if open_attempts:
-            return True
-    return False
 
 
 def knowledge_facts(work: Path) -> dict:
@@ -2653,7 +2537,7 @@ def parser() -> argparse.ArgumentParser:
                         "(required by follow-on cases, which name the case they follow)")
     p.add_argument("--seed-at", choices=SEED_STAGES,
                    help="start a run at this stage, with the earlier stages recorded without doing them. step-plan: an "
-                        "Ask-Agent run that reaches the implementation chain without hours of planning, graded on the chain. "
+                        "Ask-Agent run that reaches the implementation steps without hours of planning. "
                         "system-test-author or release-plan: a RELEASE SLICE of a case that declares seed_product, seed_home and "
                         "seed_release: an inline run whose built product is committed in its worktree, so only the release "
                         "stages run; graded on which of them ShipLoop accepted and whether the platform change (the deploy) "
@@ -2662,9 +2546,6 @@ def parser() -> argparse.ArgumentParser:
                    help="with --seed-at: do not commit the neutral knowledge home (docs/shiploop/spec.md with R-1, "
                         "environment.md with the case's checks) into the seed repository. The item base is recorded either way. "
                         "The flagged variant, to see which refusals a run with no spec hits")
-    p.add_argument("--interrupt-at", choices=("chain-launched",),
-                   help="kill the host (and its workers) as soon as a chain worker is in flight, then resume the "
-                        "run with a fresh session; graded as `recovery`")
     p.add_argument("--owner-note-at", choices=stage_spec.STAGES, metavar="STAGE",
                    help="write one owner note (`shiploop note`, with the run's own CLI) once a step of STAGE is current and its "
                         "packet has printed, as the run's owner would mid-step; recorded in owner-note.json, and its fate "
@@ -4344,7 +4225,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         improve_skill = str(improve_card(plugin_dir).absolute())
         prompt = f"{prompt} {planning_review_sentence(improve_skill)}"
     seeded = earlier.get("seeded") if resumed else None
-    interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     owner_note_at = earlier.get("owner_note_at") if resumed else args.owner_note_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
     the_cli = resumed_cli if resumed else run_cli(host.name, out, plugin_dir)
@@ -4411,7 +4291,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at, "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
+                  "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
                   "planning_review": planning_review, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
@@ -4506,32 +4386,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
     else:
-        interrupt_file = out / "interrupt.json"
-        stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
         process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
                          fresh=follow_on is None and seeded is None and based is None,
-                         first=resumed is None, translate=host.translator(), stop_when=stop_when,
+                         first=resumed is None, translate=host.translator(),
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
                          reason="start" if resumed is None else "resume-run",
                          told=resume_told(resumed["run_dir"], the_cli) if resumed else None)
     sessions = [] if regrade else [dict(process, resumed=None, host=host.name)]  # a regrade launched no session
-    if process["status"] == "interrupted":
-        state = grade_shiploop(out)
-        interrupt_file.write_text(json.dumps({
-            "at": interrupt_at, "elapsed_seconds": process["elapsed_seconds"], "stage": state.get("stage"),
-            "revision": state.get("revision"), "chain": chain_facts(out)["bindings"]}, indent=2) + "\n")
-        if not args.quiet:
-            print(f"interrupted: killed the host at {process['elapsed_seconds']}s with a chain worker in flight; "
-                  "resuming with a fresh session", flush=True)
-        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli),
-                         prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
-                         effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
-                         max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir,
-                         allow=host_allow)
-        process = session(argv, work, out, env, max(60, deadline - time.monotonic()), watch=not args.quiet,
-                         first=False, translate=host.translator(), stop_file=stop_file,
-                         kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
-        sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session instead of losing the run.
     resume_stop = ("not evaluated (regraded)" if regrade
@@ -4714,32 +4575,19 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         "ledger": lifecycle.LEDGER, "leases": [key for handle in held if isinstance(handle, lifecycle.Lease) for key in handle.keys],
         "contention": start_contention, "disk": start_disk,
         "cleanup": {**({"before_resume": retry_cleanup} if retry_cleanup is not None else {}), "end": run_cleanup}}
-    expect = case.get("chain")
-    # An inner-loop seed is graded on its chain; a release slice has none (its items are recorded, not built).
-    chain = chain_facts(out, expect) if ((seeded and not sliced) or interrupt_at or expect) else None
     release = release_slice.grade(
         seeded=seeded, run_dir=Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None, state=engine, out=out, case=case,
         skipped_checks=skipped_checks, preflights=preflight_ranges(out)) if sliced else None
-    if chain is not None:
-        chain["source"] = (expect or {}).get("source") or "the harness default: a fanned-out chain (seeded or interrupted run)"
-    recovery = None
-    if interrupt_at:
-        interrupt_file = out / "interrupt.json"
-        interrupted = json.loads(interrupt_file.read_text()) if interrupt_file.is_file() else None
-        recovery = {"pass": bool(interrupted) and chain["pass"], "interrupt": interrupted, "source": RECOVERY_SOURCE}
-    budget = budget_facts(case.get("budget"), bool(seeded), shiploop.get("run_dir"), interrupted=bool(interrupt_at))
+    budget = budget_facts(case.get("budget"), bool(seeded), shiploop.get("run_dir"))
     expectations = {
         "checks": case.get("checks_source") or "the --check arguments given with --prompt",
         **({"retention": case["retention_source"]} if case.get("retention_source") else {}),
-        **({"chain": {k: v for k, v in chain["expect"].items()} | {"source": chain["source"]}} if chain else {}),
-        **({"recovery": RECOVERY_SOURCE} if recovery else {}),
         **({"release_slice": release["source"] or "the case's seed_release"} if release else {}),
         **({"budget": {"seeded_minutes": budget["expected_minutes"], "level": "should",
                        "source": budget["source"]}} if budget else {}),
     }
     verdicts = [invoked["pass"], plugin["pass"], *([] if process["pass"] is None else [process["pass"]]),
                 shiploop["pass"], committed["pass"],
-                *([chain["pass"]] if chain else []), *([recovery["pass"]] if recovery else []),
                 *([release["pass"]] if release else []),
                 *(c["pass"] for c in check_results),
                 *([bool(platform_block["cleanup"].get("ok"))] if platform_block else []),  # a platform left dirty is a failed run
@@ -4806,7 +4654,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "base": based, "delivery": {"before": delivered_before, "after": delivered_after},
-              "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
+              "resumed_run": resumed, "seeded": seeded, "budget": budget,
               **({"release_slice": release} if release else {}),
               "expectations": expectations,
               **({"product_at_stop": at_stop} if at_stop is not None else {}),
@@ -4888,29 +4736,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files"
           + ("; the seed committed the spec and environment (R-1 is the request)" if (seeded or {}).get("home") else ""))
-    if chain is not None:
-        want = chain["expect"]
-        print(f"            expected  >= {want['min_steps']} steps all accepted, >= {want['min_in_flight']} in flight, "
-              f"depth >= {want['min_depth']}, dependency order, each merged once ({chain['source']})")
-        for binding in chain["bindings"] or [{}]:
-            print(f"  chain     {mark(chain['pass'])}  " + (
-                f"{binding.get('mode')} {binding.get('accepted')}/{binding.get('steps')} steps accepted, depth "
-                f"{binding.get('depth')}, native {binding.get('native_attempts')}, main-context "
-                f"{binding.get('main_context_attempts')}, most in flight {binding.get('max_in_flight')}"
-                + "".join(f", {key} {binding[key]}" for key in ("out_of_order", "integrated_twice", "not_integrated")
-                          if binding.get(key))
-                if binding.get("steps") is not None else binding.get("error") or "no chain bound"))
     if release is not None:
         shown = release_slice.lines(release)
         print(f"  release   {mark(release['pass'])}  {shown[0]}")
         for line in shown[1:]:
             print(f"            {line}")
-    if recovery is not None:
-        stop = recovery["interrupt"]
-        print(f"  recovery  {mark(recovery['pass'])}  " + (
-            f"killed at {stop['elapsed_seconds']}s in {stop['stage']}; a fresh session resumed the chain"
-            if stop else "the host was never interrupted (no chain worker was ever in flight)"))
-        print(f"            expected  {recovery['source']}")
     if budget is not None and not budget["applies"]:
         print(f"  budget    n/a   took {budget['observed_minutes']} min; {budget['reason']}")
     elif budget is not None:
@@ -5008,25 +4838,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
              "uncommitted", f"HEAD {str(committed['head'])[:8]}, {committed['head_files']} files in HEAD, "
              f"{len(committed['uncommitted'])} uncommitted"),
         ) if ok is not None and not ok]
-        if chain is not None and not chain["pass"]:
-            want = chain["expect"]
-            got = "; ".join(f"{b.get('accepted')}/{b.get('steps')} accepted, depth {b.get('depth')}, "
-                            f"most in flight {b.get('max_in_flight')}, out of order {b.get('out_of_order')}, "
-                            f"merged twice {b.get('integrated_twice')}, not merged {b.get('not_integrated')}"
-                            if b.get("steps") is not None else b.get("error", "no chain")
-                            for b in chain["bindings"]) or "no chain bound"
-            failed.append(("chain", f">= {want['min_steps']} steps all accepted, >= {want['min_in_flight']} in "
-                           f"flight, depth >= {want['min_depth']}, in dependency order, each merged once "
-                           f"(source: {chain['source']})", got))
         if release is not None and not release["pass"]:
             shown = release_slice.lines(release)
             failed.append(("release_slice", f"ShipLoop accepts every stage from {release['from']} on"
                            + (f" and the {release['operation']['name']} happens in the {release['operation']['stage']} stage"
                               if release.get("operation") else "") + f" (source: {release['source'] or 'the case'})",
                            "; ".join(shown[1:] or shown)))
-        if recovery is not None and not recovery["pass"]:
-            failed.append(("recovery", f"a fresh session finishes the chain after the kill (source: {RECOVERY_SOURCE})",
-                           "never interrupted" if not recovery["interrupt"] else "the chain did not finish"))
         def check_observed(check: dict) -> str:
             lines = [line for line in str(check.get("output") or "").splitlines() if line.strip()]
             last = f": {lines[-1].strip()[:300]}" if lines else ""

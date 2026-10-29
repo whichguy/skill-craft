@@ -73,8 +73,8 @@ flowchart TD
 
 Pull requests and ordinary `main` pushes run the quick tier: the fixed baseline
 plus the suites that match the changed files (a changed suite runs itself; a
-changed file selects the suites named after it, so `shiploop_chain.py` selects
-the `shiploop-chain*` suites; a change under `skills/<leaf>/` selects the core
+changed file selects the suites named after it, so `shiploop_planning_context.py` selects
+the `shiploop-planning-context` suite; a change under `skills/<leaf>/` selects the core
 suites named after the leaf; a changed file under `skills/`, `agents/`,
 `scripts/` or `test/` also selects the suites whose source, or a test helper
 they import, names it, so `shiploop_navigator.py` and
@@ -196,7 +196,7 @@ for that boundary and retain its results separately from automated test results.
 | Navigator / action walk / full runtime | Synthetic state transitions, protocol traversal and copied-package public CLI execution are distinct checks |
 | Improve standalone / actual CLI / stopped completion | Direct import, process transport and incomplete-settlement rejection need independent evidence |
 
-Reusable chain, lifecycle, planning-context and consumer-contract setup lives in
+Reusable lifecycle, planning-context and consumer-contract setup lives in
 `test/shiploop_*_support.py` modules. Chain and navigator consumers import these
 helpers directly; the dedicated actual-Improve-CLI fixture adapter remains in its
 integration test. Each case still owns its disposable repositories and cleanup; expensive
@@ -239,7 +239,8 @@ that commit and package identity and runs the offline native-pilot composition
 checks against it. It requires a new output directory outside both repositories;
 missing inputs and package drift fail. It does not fetch an upstream revision or
 launch a native/model agent, so the caller must select the current revision and
-retain how it was resolved.
+retain how it was resolved. (The native pilot it ran, `test/experiments/shiploop_chain`, was retired with
+ShipLoop's chain in design T section 9.1 2c-2, so this command has no target until it is retired or replaced.)
 
 The upstream `whichguy/plan-orchestrator` repository is private. This repository's
 credential-free GitHub jobs therefore retain frozen hermetic fixtures; current
@@ -255,109 +256,13 @@ and checks blind evidence collection. Live prompt comparisons are explicit
 experiments, not CI dependencies. See the
 [probe-decision study](experiments/shiploop_probe_decisions/README.md).
 
-`python3 -B test/shiploop-chain-lifecycle.test.py` repeats the code-producing
-parallel/dependent chain in a disposable Git repository. Independent worker
-processes generate and test Python code; A/B overlap, C starts after A while B
-still runs, and J waits for B+C. The parent verifies each combination, integrates
-it into the invoking linked checkout and removes accepted worker worktrees.
-The same suite checks serial execution, A-first/B-first/burst completion delivery,
-and an old B result arriving after its retry has been accepted. Required output
-files must exist; checks cannot silently skip missing contributions. Target
-updates must form one contiguous history containing every accepted source.
-Worker processes are deterministic
-fixtures, not native/model agents. `shiploop-chain-handoff.test.py` covers local
-result preservation and hostile-path/replay controls. Both are in the full
-ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
-for separate qualification with actual Ask-Agent contexts and completion events.
-
-New execution cases use the source managed Ask-Agent helper with real sibling
-worktrees and immutable receipts. They exercise both return orders, stale combined
-verification after target movement, successor launch before accepted-worker
-cleanup, replay/retry fencing, and cleanup recovery with late worker changes.
-Serial execution uses that same preparation and cleanup contract in the main
-context, without a native handle. Old packages are built as mutated copies of
-the current fixtures to check refusal; pre-v6 bindings are refused on every
-operation. The helper's identity and its full declared capability set establish
-compatibility; there is no version floor, and Markdown wording alone does not.
-Managed `done` returns acceptance and ready actions first; the parent then uses
-the existing cleanup callback. `shiploop-chain-git.test.py` separately checks that
-an integrated-worker inspection rejects a newer HEAD, dirty or ignored files, and
-replacement worktree identities without removing them. Each case owns and tears
-down its disposable repositories; these are full-suite members, not live-host
-notification evidence.
-
-`python3 -B test/shiploop-chain-async.test.py` adds concurrent public-CLI
-callbacks to those real-Git fixtures: competing completions, duplicate import,
-acceptance and cleanup, wrong-attempt results, and callbacks invoked from a
-different working directory. Each case owns its repositories, worker processes,
-callback processes and pipe barriers; teardown stops remaining children before
-removing fixture directories. It verifies the initiating linked checkout, source
-commit ancestry, immutable event history, and both filesystem and Git worktree
-cleanup. The suite belongs to the **quick baseline and full/sharded** inventories, so
-routine PR CI exercises this boundary. Native host completion delivery remains a separate
-opt-in qualification. See the [asynchronous test plan](../docs/async-orchestrator-test-plan-2026-09-20.md).
-
-Planning-material transport has two focused suites:
+Planning-material transport has one focused suite (its composed suite with ShipLoop's chain was retired with the chain, design T section 9.1 2c-2):
 
 ```sh
 python3 -B test/shiploop-planning-context.test.py
-python3 -B test/shiploop-chain-planning-context.test.py
 ```
 
-The collector suite checks accepted planning records, reference resolution,
-immutable inputs, and exclusion of the original user prompt. The composed suite
-uses the repository's Plan Dispatcher package, `skills/plan-dispatcher`, and
-controlled worker processes to
-check invalid-graph rejection before binding with no parent mutation, corrected
-retry, cold recovery, parallel/serial code generation from references, dependency
-joins, import recovery, and worktree cleanup. Its failure-path check stops
-workers before removing their workspaces. Both suites run in the ordinary
-ShipLoop inventory; they do not establish model understanding or native-host
-delivery. The fixture's `PROVENANCE.json` identifies the upstream commit and
-every copied file hash, independently of the author's local checkout path; it is
-a copied fixture, not a released package, installed-package qualification, or
-native-execution proof.
-
-`python3 -B test/experiments/shiploop_chain/test_native_pilot.py` checks the
-pilot's actual inline prompt adapter and current planning-context preparation
-without launching a model. It verifies complete worker-packet transport,
-including guidance instructions, and keeps recovery separate from a fresh
-launch. It is part of the full inventory; it does not qualify model adherence.
-
-The lifecycle suite also verifies the script-owned `navigation` response:
-script-selected fan-out, exact continuation from an unrelated directory, no
-relaunch on recovery, capacity boundaries, serial execution, and cleanup/final
-verification before `navigation.complete`. The skill supplies facts and follows
-these packets; it does not recompute the dependency frontier.
-
-The [compound coverage matrix](../docs/shiploop-chain-compound-coverage-2026-09-19.md)
-adds interactions between retry, integration recovery, dependency readiness and
-pending cleanup. The Git suite checks that a stale cleanup cannot remove a
-replacement worktree recreated at the same path. Native-trace controls reject
-contradictory terminal outcomes and cross-step handle sources while preserving
-valid pending observations and identical completion replay. These remain local
-tests; prompt-driven Ask-Agent worktree creation and native recovery need their
-separate live qualification.
-
-The [parallel integration test plan](../docs/parallel-integration-test-plan-2026-09-20.md)
-separates these real-Git fixtures from the native trace observer's strict A/B
-and B/C interval checks. The opt-in native runner holds B at a disclosed test
-barrier until C is launched; it proves overlapping task lifetimes and integrated
-code behavior, not simultaneous code-writing or other hosts' behavior.
-Grok qualification uses the host's root-session transcript to distinguish
-parent actions from interleaved worker events. Whole-second task event times
-must still overlap after conservative one-second bounds are applied at each
-end; receipt order cannot substitute for overlap evidence.
-
-The [interaction audit](../docs/shiploop-chain-interaction-audit-2026-09-19.md)
-maps every supported chain operation to state, Git effects, context requirements
-and existing tests. It separates dispatcher snapshot authority from bridge audit
-history, and host-owned review judgments from mechanical checks. Selected gaps
-reuse these suites instead of adding another orchestration or test framework.
-The chain suite also checks that runs have one `plan-dispatcher-state.json`,
-a run with a retired `state.json` is refused, status views save no completion
-copy, and ambiguous or missing state cannot silently select or reconstruct
-authority.
+The collector suite checks accepted planning records, reference resolution, immutable inputs, and exclusion of the original user prompt. It runs in the ordinary ShipLoop inventory; it does not establish model understanding or native-host delivery. The fixture's `PROVENANCE.json` identifies the upstream commit and every copied file hash, independently of the author's local checkout path; it is a copied fixture, not a released package, installed-package qualification, or native-execution proof.
 
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol 4 graph, including cold recovery and
@@ -442,30 +347,6 @@ real CLI through an isolated run: the empty lessons commit returns to the
 source branch (X1), handoff makes no retire commit and leaves an older
 version's feature folder untouched. The handoff retire and its suite were
 removed with the feature folder (consumer contract, slice 4c).
-
-The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
-ShipLoop aggregate. They exercise the public bridge with the repository's
-`skills/plan-dispatcher` package, disposable real Git worktrees, eager fan-out and
-joins, per-step integration, and append-only event records under process
-contention. Serial cases use the same fixture: one main-context task at a time,
-no native launch/handle, dependency-respecting completion, stale attempts,
-refused old packages (mutated fixture copies) and exact terminal replay after
-other steps progress. The state/ledger bytes must
-remain unchanged on identical terminal retries; a crash between child acceptance
-and bridge recording is reconciled once. Native handles, worker
-reports, and prerequisite Improve judgments are synthetic in these tests; these
-passes prove local composition, not live host delivery or semantic verification.
-The same public-CLI suite covers read-only `chain history` and `chain pending`:
-ready/waiting/claimed/running/reported/rejected states, retries, empty completion,
-serial capacity, past indexed actions, child drift, corrupt ledgers and explicit
-recovery boundaries. Queries must preserve every run file's bytes, avoid creating
-locks and leave pending transactions and interrupted event hardlinks untouched.
-The fixture's `PROVENANCE.json` records its upstream source and exact hashes.
-The separate [native pilot](experiments/shiploop_chain/README.md) runs the same
-public bridge with actual host-native workers and an independent code oracle.
-It is opt-in and must report observed results separately from synthetic setup.
-The [2026-09-18 pilot report](../docs/shiploop-chain-native-pilot-2026-09-18.md)
-records the actual local fan-out, rejected report, retry, join and feature return.
 
 ## Skill and script execution boundary
 

@@ -381,7 +381,7 @@ class TierTests(unittest.TestCase):
     LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "owner-notes-delivered", "backchain-route"}
     CHROME = {"progress-view", "pause"}
     FILE = {"delegation", "halt", "pass-log", "run-context", "last-accepted", "deltas", "lint-records", "unverified",
-            "chain", "discovery-links"}
+            "discovery-links"}
 
     def blocks(self, delegation: str, stage: str):
         row = next(row for key, row in renders(delegation, INSTALL_RUN_DIR).items()

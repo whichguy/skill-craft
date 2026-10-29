@@ -264,14 +264,14 @@ class CardSplitSensitivityTests(unittest.TestCase):
                          ["tests-pass-or-stop: test-loop.md lacks 'in the same way after a genuine fix'"])
 
     def test_an_unledgered_section_and_an_unlinked_file_are_reported(self) -> None:
-        self.edit("references/chain-navigation.md", "## Navigation and settlement", "## Navigation\n\n## Settlement")
+        self.edit("references/test-loop.md", "## Tests pass or the step stops", "## Tests pass\n\n## Or the step stops")
         card = self.package / "SKILL.md"
-        card.write_text(card.read_text(encoding="utf-8").replace("references/chain-navigation.md", "elsewhere"),
+        card.write_text(card.read_text(encoding="utf-8").replace("references/test-loop.md", "elsewhere"),
                         encoding="utf-8")
         problems = card_split_problems(self.package, self.ledger)
-        self.assertIn("chain-navigation.md: the card does not link it", problems)
-        self.assertIn("chain-navigation.md: section '## Settlement' has no ledger row", problems)
-        self.assertIn("chain-navigation: no section '## Navigation and settlement' in chain-navigation.md", problems)
+        self.assertIn("test-loop.md: the card does not link it", problems)
+        self.assertIn("test-loop.md: section '## Or the step stops' has no ledger row", problems)
+        self.assertIn("tests-pass-or-stop: no section '## Tests pass or the step stops' in test-loop.md", problems)
 
     def test_the_size_bounds_and_the_recovery_block_are_checked(self) -> None:
         card = (self.package / "SKILL.md").read_text(encoding="utf-8")

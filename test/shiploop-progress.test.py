@@ -20,7 +20,6 @@ sys.path.insert(0, str(SCRIPTS))
 import shiploop_navigator as navigator
 import shiploop_progress as progress
 import shiploop_store as store
-from shiploop_chain_support import ChainFixture
 
 CLI = SCRIPTS / "shiploop"
 
@@ -245,70 +244,6 @@ class ProgressTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(json.loads(result.stdout)["running"])
         self.assertEqual(before, sorted(str(p.relative_to(self.run)) for p in self.run.rglob("*")))
-
-
-class ProgressChainTests(ChainFixture):
-    def test_legacy_child_status_is_unknown_and_sent_back_plan_retires_old_graph(self):
-        import shiploop_progress_data as data
-
-        self.bind()
-        legacy = self.child_state_path().with_name("state.json")
-        legacy.write_text("{}")
-        before = self.run_bytes()
-        snapshot = data.build_snapshot(self.run)
-        graph = next(row for row in snapshot["graphs"] if row.get("edges"))
-        self.assertTrue(all(node["status"] == "unknown" for node in graph["nodes"]))
-        self.assertEqual(before, self.run_bytes())
-        legacy.unlink()
-        child_path = self.child_state_path()
-        child_bytes = child_path.read_bytes()
-        child = json.loads(child_bytes)
-        child["graph_sha256"] = "0" * 64
-        child_path.write_text(json.dumps(child))
-        mismatched = data.build_snapshot(self.run)
-        graph = next(row for row in mismatched["graphs"] if row.get("edges"))
-        self.assertTrue(all(node["status"] == "unknown" for node in graph["nodes"]))
-        self.assertTrue(any("identity or state mismatch" in message for message in mismatched["warnings"]))
-        child_path.write_bytes(child_bytes)
-        state = store.loads((self.run / "state.md").read_text())
-        sent_back = navigator.apply(state, self.action, {"outcome": "send-back", "summary": "Replan the implementation."})
-        navigator.save(self.run, sent_back)
-        after = data.build_snapshot(self.run)
-        self.assertFalse(any(row["id"] == self.action for row in after["graphs"]))
-
-    def test_real_dispatcher_graph_updates_while_parent_action_is_parked(self):
-        import shiploop_progress_data as data
-
-        self.bind()
-        parent_before = (self.run / "state.md").read_bytes()
-        first = data.build_snapshot(self.run)
-        graph = next(row for row in first["graphs"] if row.get("edges"))
-        self.assertEqual({(edge["from"], edge["to"]) for edge in graph["edges"]},
-                         {("A", "C"), ("B", "J"), ("C", "J")})
-        def cleanup():
-            progress.stop(self.run)
-            deadline = time.monotonic() + 5
-            while progress.running(self.run) and time.monotonic() < deadline:
-                time.sleep(.05)
-        self.addCleanup(cleanup)
-        self.assertTrue(progress.start(self.run, interval=.1))
-        page_before = (self.run / progress.PAGE).read_bytes()
-        self.claim(["A"])
-        after = data.build_snapshot(self.run)
-        graph = next(row for row in after["graphs"] if row.get("edges"))
-        self.assertEqual(next(row for row in graph["nodes"] if row["id"] == "A")["status"], "claimed")
-        self.assertNotEqual(first["source_fingerprint"], after["source_fingerprint"])
-        self.assertEqual(parent_before, (self.run / "state.md").read_bytes())
-        deadline = time.monotonic() + 6
-        while time.monotonic() < deadline:
-            page = (self.run / progress.PAGE).read_bytes()
-            if page != page_before and b"claimed" in page.lower():
-                break
-            time.sleep(.05)
-        else:
-            self.fail("observer did not publish the real dispatcher step transition")
-        self.assertIn(b"Implement A", page)
-        self.assertIn(b"Implement J", page)
 
 
 if __name__ == "__main__":

@@ -33,10 +33,9 @@ run from its next issued action; see the [command reference](#command-reference)
 Read [Improve context ownership](references/improve-context.md) for capability,
 exclusive writer, interruption and retention rules. A worktree alone does not
 create a separate model session. Shell model-CLI launching belongs only to the external
-E2E harness, not normal ShipLoop CLI operation. Optional bound implementation
-chains, available only on ask-agent runs, may still use a selected compatible
-Ask-Agent adapter through host-native delegation; inline runs execute reviewed
-steps directly in the main conversation. The `shiploop` CLI never launches a
+E2E harness, not normal ShipLoop CLI operation. Each implement step runs in one
+fresh worker on an ask-agent run, and in the main conversation on an inline run;
+ShipLoop has no implementation chain (retired, design T section 9.1 2c-2). The `shiploop` CLI never launches a
 model: the former `drive` command and model transports are removed. The optional
 [keepalive](#keepalive-keep-a-run-moving) driver, `scripts/shiploop-drive`, is a
 separate script you start yourself.
@@ -72,36 +71,6 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [House style: evidenced conventions and per-item exemplar match contracts](references/house-style.md)
 - [Plan record: what a step plan records when the item touches code or stored data, a pinned value, or interactions, UI or service state](references/plan-record.md)
-- [Optional parallel or serial implementation chains](references/parallel-chain.md) — on
-  a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
-  packages to one current implementation action; `chain bind` refuses a fresh
-  binding on an inline run, which executes its reviewed steps directly. New
-  chains use the per-step managed-workspace flow only. The Ask-Agent helper
-  must declare the full current capability set (helper-managed-worktree,
-  prepared-inspection, returned-commit-delivery, fingerprint-bound-close,
-  ignored-output-report); there is no version floor. Its helper identity and
-  selected package bytes are frozen for the run; caller-prepared worktrees are
-  not supported.
-  The Dispatcher must advertise `planning_context: "shiploop-planning-artifacts/v1"`
-  and `graph_validation: "execution-graph/v1"`; [chain preflight](references/parallel-chain.md#planning-artifact-handoff)
-  rejects invalid graphs before binding. In a `stage` run the initial steps and their graph must
-  complete the planning Improve loop (a `none` run has none); later material revisions require review.
-  Both execution modes prepare through the selected Ask-Agent workspace helper.
-  Parallel mode grants native launches. `chain bind --mode serial` executes one
-  ready step in the main context, with a managed preparation receipt and no
-  native handle. Neither mode adopts an arbitrary caller-created worktree.
-  The parent imports worker results, verifies the current combined candidate,
-  integrates and accepts the exact attempt, then refills safe ready capacity
-  before helper-owned cleanup. Accepted is the sole stored done state; the
-  derived `completion` view lists done/not-done. `chain done` is the one
-  verified settlement transition. Read-only `chain history` and `chain pending`
-  expose timestamped evidence, unfinished steps, dependencies and capacity.
-  Final completion requires all contributions integrated and cleanup resolved.
-  Superseded managed attempts remain an explicit retained-workspace blocker;
-  their unsuccessful work is not silently discarded. A pre-v6 binding is
-  refused on every chain operation; preserve its worktrees and ledger and bind
-  a new managed chain. Binding schema v6 records this capability proof and lifecycle;
-  its number is independent of the selected Ask-Agent package version.
 
 The planning-artifact handoff published at `c33a103` and its bounded native
 Codex Ask-Agent `A/B → C` pilot were verified; see the [Native Ask-Agent
@@ -1093,8 +1062,6 @@ shiploop delegation --run-dir RUN --set=inline|ask-agent   # from the next issue
 shiploop lint-mode --run-dir RUN --set=fix|report|off      # later lint passes
 shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N | --gate N]]   # report-only rerun
 shiploop backchain-check --candidate PLAN.json [--run-dir RUN]   # record-only Backchain graph check
-# Implementation chains within the current implement action (ask-agent runs)
-shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
 # Keepalive (see references/keepalive.md)
 shiploop hook-status --run-dir RUN                        # read-only JSON; never locks or writes
 scripts/shiploop-hook install|status|uninstall --host HOST [--dry-run]
@@ -1105,9 +1072,6 @@ scripts/shiploop-drive --host HOST --run-dir RUN [--max-minutes N] [--session-ti
 shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 ```
 
-`chain` subcommands are packet-issued on `delegation: ask-agent` runs; see
-[parallel implementation chains](references/parallel-chain.md). Without
-`--mode`, a new binding is parallel and a replay keeps its recorded mode.
 `delegation` applies from the next issued action; the pending action and its
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 setting the recorded value is a no-op.
@@ -1166,7 +1130,6 @@ phase diagram.
 | How does isolated work return to the source checkout? | [Workspace start, return plan and guarded return](scripts/shiploop_workspace.py). |
 | How are consumer-delivery declarations checked? | [Consumer-delivery contract](scripts/shiploop_consumer_delivery.py). |
 | How does the navigator rerun invalidated planning? | [Planning revision archives](scripts/shiploop_planning_revision.py). |
-| How do implementation chains run? | [Chain bridge](scripts/shiploop_chain.py), [Git](scripts/shiploop_chain_git.py), [handoff](scripts/shiploop_chain_handoff.py), [ledger](scripts/shiploop_chain_ledger.py) and [planning inputs](scripts/shiploop_planning_context.py). |
 | How are routes inspected without project work? | [Graph dry run](scripts/shiploop_navigator_dry_run.py). |
 | What does the script-owned lint pass run, fix and record? | [Lint pass and implement gate](scripts/shiploop_lint.py) and its [lint catalog](references/lint-catalog.md). |
 

@@ -13,7 +13,6 @@ import re
 import stat
 from typing import Any, Mapping
 
-import shiploop_chain_ledger as chain_ledger
 import shiploop_context_index as context_index
 import shiploop_knowledge_home as knowledge_home
 import shiploop_navigator as navigator
@@ -29,12 +28,8 @@ _MAX_DOCUMENT_BYTES = 128 * 1024
 _MAX_REPORT_BYTES = 1024 * 1024
 _MAX_DOCUMENTS = 12
 _MAX_ACTIVITIES = 100
-_MAX_LEDGER_ENTRIES = 500
-_MAX_LEDGER_BYTES = 8 * 1024 * 1024
 _MAX_GRAPHS = 12
 _MAX_GRAPH_NODES = 100
-_MAX_BINDING_BYTES = 1024 * 1024
-_MAX_DISPATCHER_BYTES = 4 * 1024 * 1024
 _DOCUMENT_NAME = re.compile(r"(?:^|[._-])(spec(?:ification)?|architecture|design|plan)(?:[._-]|$)", re.I)
 _ALLOWED_TEXT_SUFFIXES = frozenset((".md", ".txt"))
 _ARCHITECTURE_PATHS = (
@@ -165,38 +160,6 @@ def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[byt
         if descriptor != -1:
             os.close(descriptor)
         os.close(directory)
-
-
-def _directory_exists_beneath(base: Path, relative: str | Path) -> bool:
-    """Report whether ``relative`` names an existing directory beneath ``base``, without following symlinks.
-    Returns ``False`` if a component is missing beneath a usable base. Raises ``_UnsafeSource`` for an unusable
-    base, an unsafe path, or a component that is a symlink, not a directory, cannot be opened, or changes while
-    opening. Any other ``OSError`` from statting a component propagates unchanged.
-    """
-    parts = _relative_parts(relative)
-    descriptor = _directory_fd(base)
-    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        for part in parts:
-            try:
-                before = os.stat(part, dir_fd=descriptor, follow_symlinks=False)
-            except FileNotFoundError:
-                return False
-            if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
-                raise _UnsafeSource("directory component is unsafe")
-            try:
-                child = os.open(part, flags, dir_fd=descriptor)
-            except OSError as exc:
-                raise _UnsafeSource("directory component cannot be opened safely") from exc
-            after = os.fstat(child)
-            if not _same_identity(before, after):
-                os.close(child)
-                raise _UnsafeSource("directory component changed while opening")
-            os.close(descriptor)
-            descriptor = child
-        return True
-    finally:
-        os.close(descriptor)
 
 
 def _mtime_text(stamp_ns: int | None) -> str | None:
@@ -422,62 +385,6 @@ def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
                                    "outcome": result.get("outcome", entry.get("outcome")),
                                    "summary": summary})
 
-    chain_fingerprint: list[dict[str, Any]] = []
-    chain_actions = [entry["action"] for entry in history if entry.get("stage") == "implement"]
-    if current_id and current_action.get("stage") == "implement":
-        chain_actions.append(current_id)
-    bindings = state.get("chain_bindings", {})
-    for action_id in dict.fromkeys(chain_actions):
-        if action_id not in bindings:
-            continue
-        relative = f"chains/{action_id}/events"
-        try:
-            if not _directory_exists_beneath(root, relative):
-                continue
-            directory = root / relative
-            names = os.listdir(directory)
-            if len(names) > _MAX_LEDGER_ENTRIES:
-                warnings.append(f"Chain activity withheld for {action_id} (ledger entry bound exceeded).")
-                continue
-            total_size = 0
-            for name in names:
-                try:
-                    metadata = os.lstat(directory / name)
-                except OSError as exc:
-                    raise _UnsafeSource(f"ledger entry {name!r} for {action_id} is unstable") from exc
-                if stat.S_ISREG(metadata.st_mode):
-                    total_size += metadata.st_size
-                    if metadata.st_nlink != 1:
-                        raise _UnsafeSource("ledger entry has an unsafe link count")
-            if total_size > _MAX_LEDGER_BYTES:
-                warnings.append(f"Chain activity withheld for {action_id} (ledger byte bound exceeded).")
-                continue
-            events = chain_ledger.read_events(directory)
-            for event_row in events:
-                event = event_row["event"]
-                data = event.get("data", {})
-                message = next((data.get(key) for key in ("summary", "headline", "outcome", "status", "reason")
-                                if isinstance(data, Mapping) and isinstance(data.get(key), str)), "")
-                kind = event.get("kind", "event")
-                summary = _safe_summary(message) or str(kind).replace("_", " ")
-                event_seq = event.get("seq")
-                rows.append({"stream": "chain:" + action_id, "seq": event_seq,
-                             "time": event.get("occurred_at") or event.get("recorded_at"),
-                             "stage": "implement", "workitem": work_by_action.get(action_id),
-                             "outcome": kind, "summary": summary})
-                chain_fingerprint.append({"stream": "chain:" + action_id, "seq": event_seq,
-                                          "stage": "implement", "workitem": work_by_action.get(action_id),
-                                          "outcome": kind, "summary": summary,
-                                          "sha256": event_row.get("sha256")})
-                event_path = Path(event_row.get("path", ""))
-                try:
-                    event_relative = event_path.relative_to(root)
-                    _, mtime_ns = _read_beneath(root, event_relative, 256 * 1024)
-                    mtimes.append(mtime_ns)
-                except (ValueError, OSError, _UnsafeSource):
-                    warnings.append(f"Chain activity timestamp unavailable for {action_id}.")
-        except (OSError, ValueError, _UnsafeSource) as exc:
-            warnings.append(f"Chain activity unavailable for {action_id} ({type(exc).__name__}).")
     # Sequence is authoritative within each stream; wall-clock timestamps may
     # be absent or skewed, so they must not reorder a stream's records.
     streams: dict[str, list[dict[str, Any]]] = {}
@@ -496,181 +403,20 @@ def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
     if len(rows) > _MAX_ACTIVITIES:
         rows = rows[-_MAX_ACTIVITIES:]
         warnings.append("Activity is limited to the latest 100 recorded items.")
-    return rows, [{"parent": parent_fingerprint, "chains": chain_fingerprint}]
-
-
-def _valid_bound_graph(graph: Any) -> list[dict[str, Any]]:
-    """Check a bound chain ``graph``; return its steps as new dicts of ``id``, ``deps`` (copied) and ``contract``
-    (not copied). Needs ``version`` equal to 1 and 1 to ``_MAX_GRAPH_NODES`` steps, each with a unique ``id`` of
-    1 to 200 characters, none below U+0020, distinct ``deps`` naming graph ids, ``contract`` None or a mapping
-    with string ``task``. Raises ``ValueError`` if not; cycles go unchecked.
-    """
-    if not isinstance(graph, Mapping) or graph.get("version") != 1:
-        raise ValueError(f"invalid bound graph: need a mapping with version 1, got {type(graph).__name__} version "
-                         f"{graph.get('version') if isinstance(graph, Mapping) else 'n/a'}")
-    raw_steps = graph.get("steps")
-    if not isinstance(raw_steps, list) or not raw_steps or len(raw_steps) > _MAX_GRAPH_NODES:
-        raise ValueError(f"invalid bound graph size: steps must be a list of 1 to {_MAX_GRAPH_NODES} rows, got "
-                         f"{len(raw_steps) if isinstance(raw_steps, list) else type(raw_steps).__name__}")
-    ids: set[str] = set()
-    steps: list[dict[str, Any]] = []
-    for position, row in enumerate(raw_steps):
-        if not isinstance(row, Mapping) or not isinstance(row.get("id"), str):
-            raise ValueError(f"invalid bound graph step at position {position}: it needs a string id")
-        step_id = row["id"]
-        deps = row.get("deps")
-        contract = row.get("contract")
-        if (not step_id or len(step_id) > 200 or any(ord(character) < 32 for character in step_id)
-                or step_id in ids or not isinstance(deps, list)
-                or not all(isinstance(dep, str) and dep for dep in deps)
-                or len(set(deps)) != len(deps)):
-            raise ValueError(f"invalid bound graph step {step_id[:80]!r} at position {position}: bad id, repeated id "
-                             "or bad deps")
-        if contract is not None and (not isinstance(contract, Mapping)
-                                     or not isinstance(contract.get("task"), str)):
-            raise ValueError(f"invalid bound graph contract for step {step_id!r}: contract.task must be a string")
-        ids.add(step_id)
-        steps.append({"id": step_id, "deps": list(deps), "contract": contract})
-    if any(dep not in ids for row in steps for dep in row["deps"]):
-        raise ValueError("bound graph dependency is missing")
-    return steps
+    return rows, [{"parent": parent_fingerprint}]
 
 
 def _implementation_graphs(
     state: Mapping[str, Any], root: Path, current: Mapping[tuple[str | None, str], str],
     warnings: list[str], mtimes: list[int],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Project accepted step plans and bound chain graphs without running helpers."""
+    """Project accepted step plans without running helpers."""
     graphs: list[dict[str, Any]] = []
     identities: list[dict[str, Any]] = []
-    bound_workitems: set[str] = set()
-    history = state.get("history", [])
-    positions = {row.get("action"): index for index, row in enumerate(history)
-                 if isinstance(row, Mapping)}
-    # A revised plan retires its old execution graphs. Prefer the newest bound
-    # action when the display bound cannot retain the whole current plan history.
-    action_workitem = {}
-    for index, row in reversed(list(enumerate(history))):
-        if not isinstance(row, Mapping) or row.get("stage") != "implement":
-            continue
-        plan_action = current.get((row.get("workitem"), "step-plan"))
-        if plan_action and index > positions.get(plan_action, -1):
-            action_workitem.setdefault(row.get("action"), row.get("workitem"))
-    active_action = navigator.current_action(state)
-    if isinstance(active_action, Mapping) and active_action.get("stage") == "implement":
-        action_workitem = {active_action.get("id"): state["work_items"][state["work_index"]]["id"],
-                           **action_workitem}
-
-    bindings = state.get("chain_bindings", {})
-    if not isinstance(bindings, Mapping):
-        bindings = {}
-        warnings.append("Chain graph bindings are malformed; bound graphs are unavailable.")
-    for action_id in dict.fromkeys(action_workitem):
-        if not isinstance(action_id, str) or action_id not in bindings:
-            continue
-        if len(graphs) >= _MAX_GRAPHS:
-            warnings.append("Additional implementation graphs were omitted at the graph bound.")
-            break
-        workitem = action_workitem.get(action_id)
-        label = f"Bound implementation graph ({workitem or 'work item unknown'} · {action_id})"
-        identity: dict[str, Any] = {"action": action_id, "binding_sha256": None,
-                                    "dispatcher_sha256": None, "binding_status": "unavailable"}
-        try:
-            raw, binding_mtime = _read_beneath(root, f"chains/{action_id}/binding.md", _MAX_BINDING_BYTES)
-            mtimes.append(binding_mtime)
-            binding_digest = _sha256_hex(raw)
-            identity["binding_sha256"] = binding_digest
-            saved_digest = bindings.get(action_id)
-            if (not isinstance(saved_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", saved_digest)
-                    or binding_digest != saved_digest):
-                raise ValueError("binding digest does not match navigator state")
-            binding = store.loads(raw.decode("utf-8"))
-            if (not isinstance(binding, Mapping)
-                    or binding.get("schema") != "shiploop-chain-binding/v6"
-                    or binding.get("run_id") != state.get("run_id")
-                    or binding.get("action_id") != action_id
-                    or not isinstance(binding.get("root"), str)
-                    or Path(os.path.abspath(binding["root"])) != root):
-                raise ValueError("binding scope does not match navigator state")
-            dispatcher_root = root / "chains" / action_id / "dispatcher"
-            dispatcher_text = binding.get("dispatcher_run")
-            if (not isinstance(dispatcher_text, str)
-                    or Path(os.path.abspath(dispatcher_text)) != dispatcher_root):
-                raise ValueError("dispatcher scope does not match bound run")
-            raw_graph = binding.get("graph")
-            steps = _valid_bound_graph(raw_graph)
-            identity["binding_status"] = "verified"
-            statuses = {row["id"]: "unknown" for row in steps}
-            try:
-                if os.path.lexists(dispatcher_root / "state.json"):
-                    raise ValueError("legacy dispatcher state is present")
-                dispatcher_raw, dispatcher_mtime = _read_beneath(
-                    root, f"chains/{action_id}/dispatcher/plan-dispatcher-state.json",
-                    _MAX_DISPATCHER_BYTES)
-                mtimes.append(dispatcher_mtime)
-                dispatcher_digest = _sha256_hex(dispatcher_raw)
-                identity["dispatcher_sha256"] = dispatcher_digest
-                child = json.loads(dispatcher_raw.decode("utf-8"))
-                child_graph = child.get("graph") if isinstance(child, Mapping) else None
-                child_steps = child.get("steps") if isinstance(child, Mapping) else None
-                graph_sha = child.get("graph_sha256") if isinstance(child, Mapping) else None
-                step_ids = {row["id"] for row in steps}
-                valid_statuses = {"pending", "claimed", "launching", "running",
-                                  "rejected", "blocked", "accepted"}
-                if (isinstance(child, Mapping) and child.get("version") in (1, 2)
-                        and child.get("owner") == binding.get("owner")
-                        and isinstance(child.get("run_id"), str) and child.get("run_id")
-                        and child_graph == raw_graph
-                        and isinstance(graph_sha, str) and re.fullmatch(r"[0-9a-f]{64}", graph_sha)
-                        # A nonmatching canonical digest (including unsupported
-                        # JS/Python number formatting) withholds status only.
-                        # It is never compared with the raw graph-source file hash.
-                        and graph_sha == _sha256_hex(_canonical(raw_graph))
-                        and isinstance(child_steps, Mapping)
-                        and set(child_steps) == step_ids
-                        and all(isinstance(child_steps[step_id], Mapping)
-                                and child_steps[step_id].get("status") in valid_statuses
-                                for step_id in step_ids)):
-                    statuses = {step_id: child_steps[step_id]["status"] for step_id in step_ids}
-                    identity["dispatcher_status"] = "verified"
-                else:
-                    identity["dispatcher_status"] = "unverified"
-                    warnings.append(f"Dispatcher progress withheld for {action_id} (graph identity or state mismatch).")
-            except FileNotFoundError:
-                identity["dispatcher_status"] = "missing"
-                warnings.append(f"Dispatcher state is not yet available for {action_id}; bound steps have unknown status.")
-            except (UnicodeError, ValueError, _UnsafeSource, OSError):
-                identity["dispatcher_status"] = "unavailable"
-                warnings.append(f"Dispatcher progress withheld for {action_id} (state is unreadable).")
-            graphs.append({"id": action_id, "label": label, "status": "accepted",
-                           "dependencies_known": True,
-                           "nodes": [{"id": row["id"],
-                                      "title": _display_text(
-                                          row["contract"].get("task", row["id"])
-                                          if isinstance(row.get("contract"), Mapping) else row["id"]),
-                                      "status": statuses.get(row["id"], "unknown"), "plan": ""}
-                                     for row in steps],
-                           "edges": [{"from": dep, "to": row["id"]}
-                                     for row in steps for dep in row["deps"]]})
-            if isinstance(workitem, str):
-                bound_workitems.add(workitem)
-        except FileNotFoundError:
-            identity["binding_status"] = "missing"
-            warnings.append(f"Bound implementation graph is missing for {action_id}.")
-            graphs.append({"id": action_id, "label": label, "status": "unavailable",
-                           "dependencies_known": False, "nodes": [], "edges": [],
-                           "reason": "Binding file is missing."})
-        except (UnicodeError, ValueError, store.StorageError, _UnsafeSource, OSError):
-            identity["binding_status"] = "unavailable"
-            warnings.append(f"Bound implementation graph is unavailable for {action_id}.")
-            graphs.append({"id": action_id, "label": label, "status": "unavailable",
-                           "dependencies_known": False, "nodes": [], "edges": [],
-                           "reason": "Binding could not be verified."})
-        identities.append(identity)
 
     for item in state.get("work_items", []):
         item_id = item.get("id") if isinstance(item, Mapping) else None
-        if not isinstance(item_id, str) or item_id in bound_workitems:
+        if not isinstance(item_id, str):
             continue
         action_id = current.get((item_id, "step-plan"))
         accepted = state.get("accepted", {}).get(action_id) if action_id else None
@@ -691,8 +437,7 @@ def _implementation_graphs(
                           and state["work_items"][state["work_index"]]["id"] == item_id)
             nodes = []
             for index, step in enumerate(steps):
-                status = ("done" if index < done else "active" if is_current and index == done else "queued") \
-                    if state.get("delegation") == "inline" else "unknown"
+                status = "done" if index < done else "active" if is_current and index == done else "queued"
                 nodes.append({"id": step["id"], "title": _display_text(step["task"]),
                               "status": status, "plan": _display_text(step_summary)})
             graphs.append({"id": action_id or item_id,

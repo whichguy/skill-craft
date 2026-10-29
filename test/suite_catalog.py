@@ -104,17 +104,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
     "test/shiploop-return-review.test.py",
-    "test/shiploop-chain-ledger.test.py",
-    "test/shiploop-chain-git.test.py",
-    "test/shiploop-chain.test.py",
-    "test/shiploop-chain-handoff.test.py",
-    "test/shiploop-chain-lifecycle.test.py",
-    "test/shiploop-chain-async.test.py",
     "test/shiploop-planning-context.test.py",
-    "test/shiploop-chain-planning-context.test.py",
-    "test/experiments/shiploop_chain/test_trace.py",
-    "test/experiments/shiploop_chain/test_grok_trace.py",
-    "test/experiments/shiploop_chain/test_native_pilot.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
     "test/shiploop-delegation.test.py",
@@ -226,9 +216,6 @@ _DURATION_SECONDS = {
     # load average 4.7 to 6.8 for 77 tests). Still above QUICK_MAX_SECONDS, so the quick tier does not select it.
     "test/shiploop-workspace.test.py": 191.2,
     "test/shiploop-return-review.test.py": 85.9,  # measured alone 2026-10-08 at load average 4.6 to 5.1: 23 tests, 85.9 s (81.5 s at 20, 65.5 s at 17, 36.8 s at 11)
-    "test/shiploop-chain.test.py": 191.262,
-    "test/shiploop-chain-async.test.py": 35.083,
-    "test/experiments/shiploop_chain/test_trace.py": 0.701,
     "test/shiploop-consumer-delivery.test.py": 1.165,
     "test/experiments/shiploop_delivery/fake_deployment.test.py": 0.0,
     "test/shiploop-literal-transport.test.py": 2.548,
@@ -245,10 +232,6 @@ _DURATION_SECONDS = {
     # reads every bind command of every scenario under both delegations.  Under QUICK_MAX_SECONDS.
     "test/shiploop-navigator-dry-run.test.py": 12.7,
     "test/shiploop-cross-run.test.py": 20.313,
-    "test/shiploop-chain-git.test.py": 27.248,
-    "test/shiploop-chain-lifecycle.test.py": 803.023,
-    "test/shiploop-chain-planning-context.test.py": 118.442,
-    "test/experiments/shiploop_chain/test_native_pilot.py": 72.521,
     "test/shiploop-store.test.py": 0.015,
     "test/shiploop-discovery.test.py": 10.128,
     "test/shiploop-generalized-discovery.test.py": 23.84,
@@ -260,10 +243,7 @@ _DURATION_SECONDS = {
     "test/shiploop-standalone-improve.test.py": 2.811,
     "test/shiploop-guidance.test.py": 4.581,
     "test/shiploop-full-runtime.test.py": 156.431,
-    "test/shiploop-chain-ledger.test.py": 0.34,
-    "test/shiploop-chain-handoff.test.py": 0.758,
     "test/shiploop-planning-context.test.py": 0.976,
-    "test/experiments/shiploop_chain/test_grok_trace.py": 0.178,
     "test/shiploop-consumer-delivery-cli.test.py": 4.374,
     "test/shiploop-delegation.test.py": 3.445,
     # 0.2 was written at a handful of tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
@@ -422,29 +402,18 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
     "test/shiploop-narrative.test.py",
-    "test/shiploop-chain-async.test.py",
     "test/shiploop-planning-handoff.test.py",
 })
 
 # Current Ask-Agent checks.  The adapter rows exercise the ShipLoop consumers
 # that make the current helper contract material.
 _ASK_AGENT_PATHS = frozenset({
-    "test/experiments/shiploop_chain/test_native_pilot.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-chain-handoff.test.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
 })
 
 _COMPOSITION_PATHS = frozenset({
     "test/shiploop-actual-improve-cli.test.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-chain-git.test.py",
-    "test/shiploop-chain-handoff.test.py",
-    "test/shiploop-chain-ledger.test.py",
-    "test/shiploop-chain-lifecycle.test.py",
-    "test/shiploop-chain-planning-context.test.py",
-    "test/shiploop-chain.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-delegation.test.py",
@@ -879,7 +848,7 @@ def targeted(changed: Iterable[str]) -> set[str]:
     """Suite ids that a set of changed repository paths points at.
 
     A changed suite runs itself.  A changed file selects the suites named after
-    it (shiploop_chain.py selects the shiploop-chain suites).  A change under
+    it (shiploop_navigator.py selects its consumers).  A change under
     skills/<leaf>/, agents/<leaf>.md or changes/<leaf>/ selects the core suites
     named after the leaf, except ShipLoop's, whose leaf name prefixes every
     one of its suites.  A changed file also

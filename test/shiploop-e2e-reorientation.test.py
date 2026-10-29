@@ -1718,14 +1718,6 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         prompt = argv[argv.index("-p") + 1]
         self.assertIn(f'python3 "{got[1]["told"]["cli"]}" next --run-dir "{got[1]["told"]["run_dir"]}"', prompt)
 
-    def test_the_session_after_an_interrupt_is_fresh_and_the_killed_one_ends_interrupted(self):
-        code, result, _ = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
-        got = self.sessions(result)
-        self.assertEqual([(g["n"], g["kind"], g["reason"], g["end"]["status"]) for g in got],
-                         [(1, "first", "start", "interrupted"), (2, "fresh", "after-interrupt", "exited")])
-        self.assertEqual(got[1]["events_line"], got[0]["end"]["events_line"])
-        self.assertEqual(got[1]["told"]["cli"], str(self.cli))
-        self.assertTrue(got[1]["told"]["run_dir"].endswith("/run"))
 
     def test_a_launch_refused_before_any_host_ran_leaves_no_session_rows(self):
         import sessionlog
