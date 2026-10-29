@@ -178,8 +178,8 @@ command, then the argument between two marker lines (it is already in the
 contract file ShipLoop wrote to `loops/<action>-contract.json`) and what to do
 with the loop's result, and ShipLoop accepts the result only with a
 terminal receipt that matches the contract rebuilt from state (see "Stage Until
-Loops" in [the inner loop](references/inner-loop.md#stage-until-loops)). `complete --check-only` runs a stage's
-script gates on a draft result without completing it.
+Loops" in [the inner loop](references/inner-loop.md#stage-until-loops)). `shiploop check` asks whether ShipLoop
+would accept a draft result now, without completing it; `complete` takes its yes.
 
 - `step-plan` records the item's steps, paths, criteria, test and check commands
   and `expectations`: each a works, absent or broken fact with a read-only check

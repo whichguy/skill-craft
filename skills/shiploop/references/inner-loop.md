@@ -70,10 +70,15 @@ needs no receipt when the loop never started. `verify` exits only after one
 complete iteration that finds only trivial issues; every other stage exits on
 its first iteration whose exit assessment holds. There is no iteration limit.
 
-`complete --check-only` runs the stage's script gates on a result without
-completing the action or saving anything, and prints each refusal as `complete`
-would. The step-plan loop runs it on every draft. A duplicate command runs
-once; check-only reuse: state-files.md `tests/`.
+`shiploop check` asks whether ShipLoop would accept the result now: it runs the
+same evaluator as `complete`, accepts and counts nothing, and records one answer
+in `checks/<action>.md` (yes, or no with the first refusal). `complete` takes a
+yes whose key still matches (the revision, the package version, the loop
+contract, the draft, the working tree, the item's base, the counted runs the
+floors read and the lint option) without running any gate again; any change
+makes it run them all. Each inner packet prints the check command beside its
+callback; the step-plan loop runs it on every draft. A duplicate command runs
+once; records: state-files.md `tests/` and `checks/`.
 
 ## Expectations and validate-existing
 

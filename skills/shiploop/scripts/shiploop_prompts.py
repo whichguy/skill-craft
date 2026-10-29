@@ -144,9 +144,12 @@ def packet_pointer(path: object, head_end: str) -> str:
 # own `head`, and the status display, which reads the command, never fires.  The label names the absolute result path
 # because `complete` reads that one path by default and the command carries no --result flag.
 CALLBACK_LABEL_PREFIX = "Callback for this stage (run once after its work, with the result written to "
-CALLBACK_REASON = ("run it exactly as printed, adding only --check-only to test before it accepts, and with no pipe, "
-                   "redirect, \";\" or shell variable: its output is the next stage's instructions and the status display "
-                   "reads the command")
+CALLBACK_REASON = ("run it exactly as printed, with no pipe, redirect, \";\" or shell variable: its output is the next "
+                   "stage's instructions and the status display reads the command")
+# An inner stage's check command, printed on the line after its callback (phases B and C plan, decision D3): the same
+# gates on the draft, with nothing accepted or counted.  An outer stage's callback is its own check.
+CHECK_LABEL = ("Check (asks whether ShipLoop would accept the result now; changes nothing; repeat it until the check says "
+               "yes): ")
 
 
 def callback_label(result_path: object) -> str:
@@ -1496,8 +1499,8 @@ This is item acceptance, not a claim that integration or release has happened. E
 in order; """ + _VERIFY_ONCE + """
 
 1. **Run.** After your last edit, write the result (the Result template below) to RUN/inbox/<action>.md, then run the
-   callback with `--check-only`, which reads that file; fix each refusal. It reruns every recorded command
-   into RUN/tests/<action>-check-only.md: copy no exit code.
+   check command printed after the callback, which reads that file; fix each refusal until the check says yes. It
+   reruns every recorded command into RUN/tests/<action>-check.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
    this. A criterion confirmed `searched` or `inspected` whose condition needs execution: report send-back.

@@ -61,16 +61,16 @@ _NEVER_CANCEL = "Never stop cancelled: a user's stop is the ShipLoop packet's pa
 _NO_LIMIT = "there is no iteration limit."
 
 # ``{items}`` is the duty items the loop does, counted from the duty text the route prints (``_duty_items``), so a duty
-# edit moves the range the Work cites and the Work never cites an item the packet does not print.  The check-only clause
-# is the callback with the flag added, which no packet prints as a command of its own.
-_CHECK_ONLY = "run the callback with `--check-only` added and fix each refusal"
+# edit moves the range the Work cites and the Work never cites an item the packet does not print.  The check clause
+# names the check command the packet prints after its callback; the contract names no install path, so not the command.
+_CHECK = "run the packet's check command and fix each refusal until the check says yes"
 
 WORK: Mapping[str, str] = {
     "step-plan": (
         "Do duty items {items} of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then "
-        + _CHECK_ONLY + "."),
+        + _CHECK + "."),
     "test-spec": (
-        "Do duty items {items} of {run}/packets/{action}.md, one `test_cases` row per case; then " + _CHECK_ONLY + "."),
+        "Do duty items {items} of {run}/packets/{action}.md, one `test_cases` row per case; then " + _CHECK + "."),
     "validate-existing": (
         "Take the first expectation whose check does not match its state and do duty items {items} of "
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
@@ -79,7 +79,7 @@ WORK: Mapping[str, str] = {
     "test": (
         "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet until every case "
         "is a passing test the focused command runs; write each test change's independent reason in "
-        "{run}/notes/{action}.md; then " + _CHECK_ONLY + " (it runs the base run, the candidate run and the mutation "
+        "{run}/notes/{action}.md; then " + _CHECK + " (it runs the base run, the candidate run and the mutation "
         "check without counting)."),
     "document": (
         "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
@@ -104,10 +104,10 @@ WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the 
 
 REPEAT: Mapping[str, str] = {
     "step-plan": (
-        "Repeat while a check-only refusal remains or an exit condition above does not hold; " + _NO_LIMIT
+        "Repeat while the check says no or an exit condition above does not hold; " + _NO_LIMIT
         + " Stop blocked only when the plan no longer requires the item. " + _NEVER_CANCEL),
     "test-spec": (
-        "Repeat while a criterion has no entry, an entry lacks a field, or the callback with --check-only refuses an id; " + _NO_LIMIT
+        "Repeat while a criterion has no entry, an entry lacks a field, or the check refuses an id; " + _NO_LIMIT
         + " Stop blocked when a criterion cannot be tested as written (the stage then reports send-back). "
         + _NEVER_CANCEL),
     "validate-existing": (
@@ -123,7 +123,7 @@ REPEAT: Mapping[str, str] = {
         + stage_spec.STUCK_FIX + ". " + _NEVER_CANCEL),
     "test": (
         "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
-        "below the floor, a new ID passing on the base, a lint finding or a check-only refusal, and changed code or "
+        "below the floor, a new ID passing on the base, a lint finding or a refusal from the check, and changed code or "
         "tests to fix it; "
         + _NO_LIMIT + " Stop blocked when a failure is proven unachievable (it contradicts the specification or "
         "another requirement, needs a tool, access or authority that is absent, or would exceed the item), or "

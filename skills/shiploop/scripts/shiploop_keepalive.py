@@ -304,7 +304,7 @@ def _strings(value: Any) -> Iterator[str]:
 # Only commands that drive the run bind; a read-only query (hook-status, status,
 # report, context) from another session must never claim someone else's run.
 COMMAND_RUN_DIR = re.compile(
-    r"\bshiploop\s+(?:init|next|resume|complete|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
+    r"\bshiploop\s+(?:init|next|resume|complete|check|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
     r"[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
 
 

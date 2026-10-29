@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 import os
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -87,7 +87,7 @@ def record_answer(root: Path, action_id: str, stage: str | None, key: Mapping[st
     """Write the check's one answer for ``action_id`` and return it."""
     answer = {
         "schema": "shiploop-check-answer-1", "action": action_id, "stage": stage,
-        "created_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),  # noqa: UP017 - Python 3.9 too
         "answer": "yes" if yes else "no", "reason": reason, "gate_lines": list(gate_lines),
         "preparatory": list(preparatory), "records": list(records), "key": dict(key),
     }

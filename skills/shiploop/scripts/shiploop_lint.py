@@ -2286,6 +2286,12 @@ def _declared(top: Path, catalog: Mapping[str, Any], tool: str, files: Sequence[
     return ""
 
 
+def fix_command(command: str, run_dir: Path, action: str) -> str:
+    """The advisory lint verb that applies the gate's own fixes (``--fix``); a check's lint refusal names it in fix
+    mode (decision D2, phases B and C plan)."""
+    return _command_line(command, "lint", run_dir=run_dir, action=action) + " --fix"
+
+
 def _command_line(command: str, verb: str, **flags: Any) -> str:
     argv = ["python3", command, verb]
     argv += ["--" + name.replace("_", "-") + "=" + str(value) for name, value in flags.items()]
@@ -2781,7 +2787,8 @@ def _natural_number(minimum: int):
 
 
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
-    """``shiploop lint``: report-only rerun for the current action, or show a stored part."""
+    """``shiploop lint``: report-only rerun for the current action, or show a stored part; ``--fix`` applies the
+    fixes the gate would apply in fix mode (on lines the item changed), so a check can say yes without them."""
     parser = argparse.ArgumentParser(
         prog="shiploop lint",
         description="Advisory lint rerun (" + SUPPORTING + "). ShipLoop never gates on this exit code: "
@@ -2792,6 +2799,8 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--part", type=_natural_number(1), default=1)
     parser.add_argument("--rerun", type=_natural_number(0), default=0, help="with --show: read rerun record N")
     parser.add_argument("--gate", type=_natural_number(0), default=0, help="with --show: read implement gate record N")
+    parser.add_argument("--fix", action="store_true",
+                        help="apply the fixes the gate applies in fix mode, on lines this item changed (lint=fix only)")
     args = parser.parse_args(list(argv or ()))
     root = Path(args.run_dir).absolute()
     if re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,159}", args.action) is None:
@@ -2832,6 +2841,10 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             print("ShipLoop lint: off (run option lint=off); nothing ran. Choose and run this step's static "
                   "checks yourself. ShipLoop never gates on this exit code.")
             return EXIT_UNAVAILABLE
+        if args.fix and view["mode"] != "fix":
+            print("ShipLoop lint: --fix needs the run option lint=fix (this run's is " + str(view["mode"]) + "); "
+                  "nothing ran. Fix each finding yourself.")
+            return EXIT_UNAVAILABLE
         number = 1
         while _record_path(root, args.action + "." + str(number)).exists():
             number += 1
@@ -2839,11 +2852,14 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         base = read_base(root, view["workitem"])
         try:
             payload = lint_pass(Path(state["repo"]), root, action=args.action, work_item=view["workitem"] or "",
-                                stage=str(view["stage"]), mode="report", run_option=view["mode"], base=base,
-                                allow_fix=False, command=command, record_name=name,
+                                stage=str(view["stage"]), mode="fix" if args.fix else "report",
+                                run_option=view["mode"], base=base, allow_fix=bool(args.fix and base is not None),
+                                command=command, record_name=name,
                                 execution_mode=str(view.get("execution_mode", "navigator")))
             for relative, text in record_writes(payload).items():
                 store.atomic_write_text(root / relative, text)
+            if args.fix:
+                finalize(root, payload)
         except KeyboardInterrupt:
             raise
         except BaseException as exc:  # noqa: BLE001

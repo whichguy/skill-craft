@@ -184,7 +184,7 @@ def record_command(root: str | Path, argv: Sequence[str], code: int, started: fl
     delivered = sorted((set((after or {}).get("owner_notes") or {}) - known), key=lambda note: int(note[1:]))
     return record(
         root, "command", verb=verb, action=_flag(argv, "--action"), exit=code,
-        ms=round((time.monotonic() - started) * 1000), check_only=True if "--check-only" in argv else None,
+        ms=round((time.monotonic() - started) * 1000),
         **pairs, status=(last or {}).get("status"), accepted=accepted or None, error=error if code else None,
         note=note, held=list(held) if held else None, delivered=delivered or None,
     )
@@ -406,7 +406,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "reprints": sum(bool(event.get("repeat")) for event in events),
             "refusals": sum(refused(event) for event in commands),
             "held": sum(bool(event.get("held")) for event in commands),
-            "checks_failed": sum(event.get("exit") not in (0, None) and bool(event.get("check_only")) for event in commands),
+            "checks_failed": sum(event.get("exit") not in (0, None) and event.get("verb") == "check" for event in commands),
             "continuations": sum(event.get("decision") == "continue" for event in hooks),
             "stops": sum(event.get("decision") == "allow" for event in hooks),
             "skills": counts["skill"],
@@ -415,9 +415,9 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
 
 
 def refused(event: Mapping[str, Any]) -> bool:
-    """A command that exited non-zero, other than a ``--check-only`` run, which reports and never completes, and a
+    """A command that exited non-zero, other than a check (``shiploop check``), which reports and never completes, and a
     callback held once for owner notes, which refuses nothing the model submitted."""
-    return (event.get("kind") == "command" and event.get("exit") not in (0, None) and not event.get("check_only")
+    return (event.get("kind") == "command" and event.get("exit") not in (0, None) and event.get("verb") != "check"
             and not event.get("held"))
 
 
@@ -752,7 +752,7 @@ def event_line(event: Mapping[str, Any]) -> str:
         if event.get("held"):
             text += " · held for owner note" + ("s " if len(event["held"]) > 1 else " ") + ", ".join(event["held"])
         elif event.get("exit"):
-            text += " · " + ("check: " if event.get("check_only") else "refused: ") + _one_line(event.get("error") or "(no message recorded)")
+            text += " · " + ("check: " if event.get("verb") == "check" else "refused: ") + _one_line(event.get("error") or "(no message recorded)")
         return f"{head}{text} · {event.get('ms')} ms"
     if kind == "packet":
         where = f"{(event.get('item') + ' ') if event.get('item') else ''}{event.get('stage')}"

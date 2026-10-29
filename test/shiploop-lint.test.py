@@ -956,7 +956,7 @@ def _packet_file_text(stdout: str) -> str:
 PATHS = ["a.py", "b.py"]
 
 
-def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True) -> str:
+def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True, command: str = "complete") -> str:
     """Submit ``result`` through real dispatch; an inner stage's loop runs through the real runtime unless ``loop`` is
     False (a refusal test that must reach the gate without a receipt, or a result already prepared)."""
     action = nav.current_action(state)["id"]
@@ -985,7 +985,7 @@ def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True) 
     path.write_text(store.dumps(result, "result"))
     buffer = io.StringIO()
     with contextlib.redirect_stdout(buffer):
-        nav.dispatch(CORE, run, state, types.SimpleNamespace(command="complete", action=action, result=str(path)))
+        nav.dispatch(CORE, run, state, types.SimpleNamespace(command=command, action=action, result=str(path)))
     return _packet_file_text(buffer.getvalue())
 
 
@@ -1614,6 +1614,41 @@ class GateTests(Fixture):
                          [{"id": found[0], "reason": "Kept on purpose."}])
         self.assertEqual(settle(self.run_dir)["accepted"][action]["lint_waivers"],
                          [{"id": found[0], "reason": "Kept on purpose."}])
+
+    def check_lint_refusal(self, option: str) -> str:
+        """The check's refusal for one new finding under lint ``option``; the file is left as it was."""
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start(option)
+        self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+        with self.patched_env():
+            with self.assertRaises(nav.NavigatorError) as refused:
+                complete(self.run_dir, state, command="check")
+        text = str(refused.exception)
+        self.assertIn("implement is not done while 1 new lint finding", text)
+        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2  # lint\n")
+        return text
+
+    def test_in_fix_mode_the_checks_lint_refusal_names_lint_fix_and_edits_nothing(self):
+        """D2 (phases B and C plan): the check never edits a file, so where the run's lint option is fix its refusal names
+        the advisory verb that applies the gate's own fixes."""
+        text = self.check_lint_refusal("fix")
+        action = nav.current_action(store.read_record(self.run_dir / "state.md"))["id"]
+        self.assertIn("lint --run-dir=" + str(self.run_dir) + " --action=" + action + " --fix", text)
+
+    def test_under_lint_report_the_checks_lint_refusal_names_no_fix(self):
+        self.assertNotIn("--fix", self.check_lint_refusal("report"))
+
+    def test_complete_that_takes_the_checks_yes_runs_no_lint_pass(self):
+        """D2: a matching yes leaves complete nothing to fix, so it runs no lint pass at all (fix mode included)."""
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start("fix")
+        self.edit({"a.py": "x = 1\ny = 2\n"})
+        with self.patched_env():
+            result = inner.prepare(self.run_dir, state, DONE)
+            complete(self.run_dir, state, result, loop=False, command="check")
+            with mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")):
+                complete(self.run_dir, state, result, loop=False)
+        self.assertEqual(store.read_record(self.run_dir / "state.md")["active_improve"]["stage"], "implement")
 
     def test_every_implement_step_is_gated(self):
         """Owner decision 4 (2026-10-10): the lint gate runs on every implement step, not only the last; a finding a

@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as fx  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
-from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_result_path, check_argv  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -940,11 +940,11 @@ class MissingContractTests(unittest.TestCase):
             self.assertNotIn("The loop contract is missing", (run / "packets" / (action + ".md")).read_text())
 
 
-    def test_check_only_inside_the_loop_accepts_the_prefilled_receipt_before_it_exists(self) -> None:
+    def test_a_check_inside_the_loop_accepts_the_prefilled_receipt_before_it_exists(self) -> None:
         """The live hello run on 13d278dd (2026-10-11) was refused "evidence_refs cite files that do not exist: ...
-        loops/<action>-terminal.json. Write the file" for a --check-only run inside the loop: the receipt is the
+        loops/<action>-terminal.json. Write the file" for a check (then --check-only) inside the loop: the receipt is the
         runtime's, so a check from inside the loop must not ask the model to write it."""
-        with tempfile.TemporaryDirectory(prefix="shiploop-check-only-receipt-") as temp:
+        with tempfile.TemporaryDirectory(prefix="shiploop-check-receipt-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -968,8 +968,9 @@ class MissingContractTests(unittest.TestCase):
                               "headline": "Docs updated.", "evidence_refs": [str(receipt)]}) + "\n```\n")
             cli = [sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "complete", "--run-dir", str(run),
                    "--action", action, "--result", str(result)]
+            check = [*cli[:3], "check", *cli[4:]]
             env = {**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"}
-            checked = subprocess.run(cli + ["--check-only"], capture_output=True, text=True, env=env)
+            checked = subprocess.run(check, capture_output=True, text=True, env=env)
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
             self.assertNotIn("Write the file", checked.stdout + checked.stderr)
             # The real complete still needs the receipt: the loop's own check refuses, naming the start command.
@@ -1054,22 +1055,47 @@ class WorkTextTests(Synthetic):
         self.assertIn("8. **Assembly.**", prompts.duty("verify", delegation="ask-agent"))
         self.assertNotIn("Assembly", prompts.duty("verify", delegation="inline"))
 
-    def test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command(self):
+    def test_the_check_is_named_in_the_work_and_printed_by_the_packet_not_the_contract(self):
+        """The contract names no install path, so the Work names the packet's check command, which the packet prints
+        after its callback."""
         for stage in ("step-plan", "test-spec", "test"):
             with self.subTest(stage=stage):
                 work = " ".join(self.work(stage).split())
-                self.assertIn("then run the callback with `--check-only` added and fix each refusal", work)
-                self.assertNotIn("printed there", work)
+                self.assertIn("then run the packet's check command and fix each refusal until the check says yes", work)
+                self.assertNotIn("python3", work)
         self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
                       " ".join(self.work("test").split()))
-        self.assertIn("a lint finding or a check-only refusal", loops.REPEAT["test"])
+        self.assertIn("a lint finding or a refusal from the check", loops.REPEAT["test"])
         for stage in ("document", "implement", "verify", "carry-forward", "validate-existing"):
-            self.assertNotIn("check-only", self.work(stage), stage)
+            self.assertNotIn("check command", self.work(stage), stage)
 
-    def test_the_printed_callback_with_the_flag_added_is_a_check_only_run(self):
-        """Paired with the behaviour the sentence describes: the packet prints the Callback, and the same command plus
-        --check-only runs the stage's gates without completing the action."""
-        with tempfile.TemporaryDirectory(prefix="shiploop-check-only-callback-") as temp:
+    def test_only_an_inner_packet_prints_the_check_and_the_callback_line_invites_no_dry_run(self):
+        """D3 (phases B and C plan, P8): in arm A every outer complete followed a dry run the callback line invited
+        ("adding only --check-only to test before it accepts"); an outer callback is its own check.  The line no longer
+        invites one, an outer packet prints no check, and `complete --check-only` is a usage error."""
+        self.assertNotIn("check", prompts.CALLBACK_REASON)
+        with tempfile.TemporaryDirectory(prefix="shiploop-outer-check-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            run = Path(temp).resolve() / "run"
+            run.mkdir()
+            nav.save(run, nav.new_state(str(repo), "Build a thing.", delegation="inline"))
+            env = {**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"}
+            cli = [sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop")]
+            printed = subprocess.run([*cli, "next", "--run-dir", str(run)], capture_output=True, text=True, env=env)
+            self.assertTrue(callback_argv(printed.stdout))
+            self.assertFalse([line for line in printed.stdout.splitlines() if line.startswith("Check (")])
+            action = nav.current_action(store.read_record(run / "state.md"))["id"]
+            flag = subprocess.run([*cli, "complete", "--run-dir", str(run), "--action", action, "--check-only"],
+                                  capture_output=True, text=True, env=env)
+            self.assertEqual(flag.returncode, 2)
+            self.assertIn("unrecognized arguments: --check-only", flag.stderr)
+
+    def test_the_printed_check_command_runs_the_gates_and_completes_nothing(self):
+        """Paired with the behaviour the sentence describes: the packet prints the Callback and, after it, the check
+        command, which runs the stage's gates without completing the action."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-check-callback-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -1094,10 +1120,12 @@ class WorkTextTests(Synthetic):
             result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
                               "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))]})
                               + "\n```\n")
-            checked = subprocess.run([*command, "--check-only"], capture_output=True, text=True,
+            self.assertEqual(check_argv(printed.stdout), [*command[:command.index("complete")], "check",
+                                                          *command[command.index("complete") + 1:]])
+            checked = subprocess.run(check_argv(printed.stdout), capture_output=True, text=True,
                                      env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-            self.assertIn("ShipLoop check-only: every script gate for document accepts this result", checked.stdout)
+            self.assertIn("ShipLoop check: the check says yes for document: every script gate accepts this result", checked.stdout)
             self.assertEqual(nav.current_action(store.read_record(run / "state.md"))["id"], action)  # not completed
 
 

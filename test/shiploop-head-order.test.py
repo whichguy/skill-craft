@@ -289,8 +289,8 @@ class OrderTests(unittest.TestCase):
 
     def test_the_commands_the_top_block_prints_are_commands_the_status_hook_reads_and_a_planted_pipe_is_not(self) -> None:
         """The callback label asks for the command exactly as printed, because the status display reads the command: the
-        printed callback, its --check-only form, the next command of the first pointer line and the pause command all
-        return a verb from the real hook, and the same commands behind a pipe return nothing."""
+        printed callback, the next command of the first pointer line and the pause command all return a verb from the
+        real hook (the check form prints no packet, so it returns none), and the same commands behind a pipe return nothing."""
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
@@ -305,7 +305,7 @@ class OrderTests(unittest.TestCase):
                     pause = next(line for line in text.splitlines() if line.startswith("Pause without consuming the action: "))
                     pause = pause.split(": ", 1)[1].split(" (only when", 1)[0]
                     self.assertEqual(hook._verb(callback), ("complete", None))
-                    self.assertEqual(hook._verb(callback + " --check-only"), ("complete", None))
+                    self.assertIsNone(hook._verb(packet_view.check_command(callback)))
                     self.assertEqual(hook._verb(following), ("next", None))
                     self.assertEqual(hook._verb(pause), ("pause", None))
                     self.assertIsNone(hook._verb(callback + " | head -5"))

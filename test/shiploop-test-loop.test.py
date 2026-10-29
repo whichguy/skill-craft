@@ -190,7 +190,7 @@ class TestLoopTests(unittest.TestCase):
     def packet(self) -> str:
         return nav.render(CORE, self.run_dir, self.state())
 
-    def complete(self, result: dict, *, loop: bool | None = None, fill: bool = True, check_only: bool = False) -> str:
+    def complete(self, result: dict, *, loop: bool | None = None, fill: bool = True, check: bool = False) -> str:
         """Submit ``result`` through the real ``complete``.
 
         At an inner stage the result is filled with the fields its gates need (``inner_fixture.fill``) and, unless it
@@ -236,7 +236,7 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state,
-                         types.SimpleNamespace(command="complete", action=action, result=str(path), check_only=check_only))
+                         types.SimpleNamespace(command="check" if check else "complete", action=action, result=str(path)))
         return buffer.getvalue()
 
     def finish_improve(self) -> None:
@@ -694,15 +694,15 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(len(notices), 1)
         self.assertTrue(notices[0].endswith("`test -f retained.txt`"))
 
-    def test_the_verify_duty_runs_check_only_and_keeps_the_assembly_item_on_the_ask_agent_route(self):
-        """VR-5: duty 1 points at the check-only record ShipLoop writes, duty 11 asks for no exit codes; item 8 stays
+    def test_the_verify_duty_runs_check_and_keeps_the_assembly_item_on_the_ask_agent_route(self):
+        """VR-5: duty 1 points at the check record ShipLoop writes, duty 11 asks for no exit codes; item 8 stays
         on the ask-agent route only."""
         for route in prompts.DELEGATIONS:
             duty = prompts.duty("verify", delegation=route)
-            # The result is written first: check-only reads it (packet review 2026-10-17, D-8).
+            # The result is written first: the check reads it (packet review 2026-10-17, D-8).
             self.assertIn("1. **Run.** After your last edit, write the result (the Result template below) to "
-                          "RUN/inbox/<action>.md, then run the callback with `--check-only`", " ".join(duty.split()))
-            self.assertIn("RUN/" + test_loop.check_only_path("<action>"), duty)
+                          "RUN/inbox/<action>.md, then run the check command printed after the callback", " ".join(duty.split()))
+            self.assertIn("RUN/" + test_loop.check_path("<action>"), duty)
             summary = next(row for row in duty.splitlines() if row.startswith("11. **Summary:**"))
             self.assertNotIn("exit code", summary)
             self.assertEqual("8. **Assembly.**" in duty, route == prompts.ASK_AGENT)
@@ -1840,18 +1840,18 @@ class TestLoopTests(unittest.TestCase):
             test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
         self.assertEqual(self.tree_bytes(), before)
 
-    def test_check_only_runs_the_mutation_check_without_counting(self):
+    def test_check_runs_the_mutation_check_without_counting(self):
         self.calc_item(self.EMPTY_TEST)
         action = self.action()
         done = self.loop_done()
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(inner.fill(self.state(), "test", done, self.run_dir), "result"))
-        with self.assertRaisesRegex(nav.NavigatorError, r"(?s)mutation check: test is not done.*This check-only run "
-                                                        r"does not count toward the refused runs"):
+        with self.assertRaisesRegex(nav.NavigatorError, r"(?s)mutation check: test is not done.*This check does not "
+                                                        r"count toward the refused runs"):
             nav.dispatch(CORE, self.run_dir, self.state(), types.SimpleNamespace(
-                command="complete", action=action, result=str(path), check_only=True))
-        self.assertTrue((self.run_dir / test_loop.mutation_check_only_path(action)).is_file())
+                command="complete", action=action, result=str(path), check=True))
+        self.assertTrue((self.run_dir / test_loop.mutation_check_path(action)).is_file())
         self.assertFalse((self.run_dir / test_loop.mutation_path(action, 1)).exists())
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
 
@@ -2123,8 +2123,8 @@ class TestLoopTests(unittest.TestCase):
 
     # -- the gates' outcomes are printed (TD-3) and the refused-run tally shows no cap (TD-10) -------------------------
 
-    def complete_output(self, result: dict, *, check_only: bool = False) -> str:
-        """The stdout of the real ``complete`` (or ``complete --check-only``) for the current action."""
+    def complete_output(self, result: dict, *, check: bool = False) -> str:
+        """The stdout of the real ``complete`` (or ``check``) for the current action."""
         state = self.state()
         action = nav.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
@@ -2133,7 +2133,7 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="complete", action=action, result=str(path), **({"check_only": True} if check_only else {})))
+                command="check" if check else "complete", action=action, result=str(path)))
         return buffer.getvalue()
 
     def status_display_reads(self, output: str) -> bool:
@@ -2210,14 +2210,14 @@ class TestLoopTests(unittest.TestCase):
             self.assertEqual(record["disposition"], "passed")
             self.assertNotIn("skipped", record)
 
-    def test_check_only_prints_the_gates_after_its_sentence_and_nothing_is_counted(self):
+    def test_check_prints_the_gates_after_its_sentence_and_nothing_is_counted(self):
         self.calc_item(self.REAL_TEST)
         action = self.action()
-        output = self.complete_output(self.loop_done(), check_only=True)
+        output = self.complete_output(self.loop_done(), check=True)
         lines = output.rstrip().splitlines()
-        self.assertTrue(lines[0].startswith("ShipLoop check-only: every script gate for test accepts this result"))
-        self.assertIn("once the Until Loop's receipt says complete or stopped, run the same callback without "
-                      "--check-only to submit it.", lines[0])
+        self.assertTrue(lines[0].startswith("ShipLoop check: the check says yes for test: every script gate accepts"))
+        self.assertIn("the Until Loop receipt is checked by the callback, once the loop says complete or stopped",
+                      lines[0])
         self.assertEqual([line.split(" ")[1] for line in lines[1:]], ["base:", "base:", "candidate:", "candidate:", "mutation:"])
         self.assertTrue(all(line.startswith("Gates: ") for line in lines[1:]))
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
@@ -2236,8 +2236,8 @@ class TestLoopTests(unittest.TestCase):
             return real(argv, cwd, timeout, **kw)
         return run
 
-    def dispatch(self, result: dict, *, check_only: bool = False) -> str:
-        """The stdout of the real ``complete`` (``--check-only`` too) for ``result`` as it stands."""
+    def dispatch(self, result: dict, *, check: bool = False) -> str:
+        """The stdout of the real ``complete`` (or ``check``) for ``result`` as it stands."""
         state = self.state()
         action = nav.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
@@ -2246,18 +2246,18 @@ class TestLoopTests(unittest.TestCase):
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
-                command="complete", action=action, result=str(path), **({"check_only": True} if check_only else {})))
+                command="check" if check else "complete", action=action, result=str(path)))
         return buffer.getvalue()
 
     def verify_checked(self) -> tuple:
-        """At verify, the loop ended and a passing ``complete --check-only``: (action, done result, its output)."""
+        """At verify, the loop ended and a passing check: (action, done result, its output)."""
         self.start()
         self.drive_to("verify")
         action = self.action()
         self.run_loop([TRIVIAL])
         done = inner.fill(self.state(), "verify", dict(DONE, evidence_refs=[str(self.terminal())]), self.run_dir)
-        output = self.dispatch(done, check_only=True)
-        self.assertTrue((self.run_dir / test_loop.check_only_path(action)).is_file())
+        output = self.dispatch(done, check=True)
+        self.assertTrue((self.run_dir / test_loop.check_path(action)).is_file())
         return action, done, output
 
     def test_a_command_recorded_twice_is_one_row_and_runs_once_per_run(self):
@@ -2280,19 +2280,19 @@ class TestLoopTests(unittest.TestCase):
             self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
         self.assertEqual(calls, ["sh check.sh fixed.txt", "test -f retained.txt"])
 
-    def test_complete_after_a_passing_check_only_on_an_unchanged_tree_takes_that_run_and_says_so(self):
+    def test_complete_after_a_passing_check_on_an_unchanged_tree_takes_that_run_and_says_so(self):
         """D5 (D-11b): after a passing check-only the real complete reran all ten org commands (about 104 s) on a tree
         that had not changed.  It now takes the check's yes, and its counted record names the check record."""
         action, done, output = self.verify_checked()
-        self.assertIn("That complete takes this answer (" + str(self.run_dir / shiploop_check.answer_path(action))
+        self.assertIn("The callback takes this answer (" + str(self.run_dir / shiploop_check.answer_path(action))
                       + ") instead of running the gates again", " ".join(output.split()))
-        checked = store.read_record(self.run_dir / test_loop.check_only_path(action))
+        checked = store.read_record(self.run_dir / test_loop.check_path(action))
         with mock.patch.object(test_loop.lint, "run_argv") as runner:
             self.complete(done, loop=False)
             runner.assert_not_called()
         record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
         self.assertEqual((record["passed"], record["disposition"]), (True, "passed"))
-        self.assertEqual(record["reused"]["path"], test_loop.check_only_path(action))
+        self.assertEqual(record["reused"]["path"], test_loop.check_path(action))
         self.assertEqual(record["reused"]["created_at"], checked["created_at"])
         self.assertEqual(record["reused"]["answer"], shiploop_check.answer_path(action))
         self.assertEqual([run["command"] for run in record["runs"]], [run["command"] for run in checked["runs"]])
@@ -2322,13 +2322,13 @@ class TestLoopTests(unittest.TestCase):
         action = self.action()
         self.ran_here(3)
         done = self.loop_done()
-        self.complete_output(done, check_only=True)
-        checked = store.read_record(self.run_dir / test_loop.check_only_path(action))
+        self.complete_output(done, check=True)
+        checked = store.read_record(self.run_dir / test_loop.check_path(action))
         self.assertEqual((checked["runs"][0]["accepted_ran"], checked["runs"][0]["floor_from"]), (3, "3 on the base"))
         answer = store.read_record(self.run_dir / shiploop_check.answer_path(action))
         self.assertEqual(answer["answer"], "yes")
-        self.assertEqual(answer["records"], [test_loop.base_check_path(action), test_loop.check_only_path(action),
-                                             test_loop.mutation_check_only_path(action)])
+        self.assertEqual(answer["records"], [test_loop.base_check_path(action), test_loop.check_path(action),
+                                             test_loop.mutation_check_path(action)])
         with mock.patch.object(test_loop.lint, "run_argv") as runner, \
                 mock.patch.object(test_loop, "_base_run") as base_run:
             output = self.complete_output(done)
@@ -2338,8 +2338,8 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(lines[0].startswith("Gates: taken from the check of "), lines)
         self.assertEqual(lines[1:], answer["gate_lines"])
         for counted, check in ((test_loop.base_path(action, 1), test_loop.base_check_path(action)),
-                               (test_loop.verify_path(action, 1), test_loop.check_only_path(action)),
-                               (test_loop.mutation_path(action, 1), test_loop.mutation_check_only_path(action))):
+                               (test_loop.verify_path(action, 1), test_loop.check_path(action)),
+                               (test_loop.mutation_path(action, 1), test_loop.mutation_check_path(action))):
             record = store.read_record(self.run_dir / counted)
             self.assertEqual(record["reused"]["path"], check, counted)
             self.assertEqual(record["reused"]["answer"], shiploop_check.answer_path(action))
@@ -2360,7 +2360,7 @@ class TestLoopTests(unittest.TestCase):
                 action = self.action()
                 self.ran_here(3)
                 done = self.loop_done()
-                self.complete_output(done, check_only=True)
+                self.complete_output(done, check=True)
                 if change == "tree":
                     (self.repo / "a.py").write_text("x = 2\n")
                 elif change == "draft":
@@ -2396,7 +2396,7 @@ class TestLoopTests(unittest.TestCase):
         done = self.loop_done()
         floor = r"ran fewer tests than its floor \(at least 3: 3 on the base\)"
         with self.assertRaisesRegex(nav.NavigatorError, floor):
-            self.complete_output(done, check_only=True)
+            self.complete_output(done, check=True)
         self.assertEqual(test_loop.refused_runs(self.run_dir, action), 0)
         self.assertFalse((self.run_dir / test_loop.base_path(action, 1)).exists())
         with self.assertRaisesRegex(nav.NavigatorError, floor):
@@ -2409,7 +2409,7 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("test-spec")
         corrective = [{"id": "W2", "title": "Another item"}]
         with self.assertRaisesRegex(nav.NavigatorError, r"test-spec accepts only done, blocked, send-back"):
-            self.dispatch(dict(DONE, outcome="add-work", work_items=corrective), check_only=True)
+            self.dispatch(dict(DONE, outcome="add-work", work_items=corrective), check=True)
 
     def test_the_test_packet_prints_the_refused_runs_only_above_zero(self):
         self.start()
@@ -2495,16 +2495,16 @@ class TestLoopTests(unittest.TestCase):
             self.complete(DONE)
         self.assertIn("ran no tests", str(caught.exception))
 
-    def test_complete_takes_a_passed_check_only_proof_only_while_the_candidate_is_unchanged(self):
+    def test_complete_takes_a_passed_check_proof_only_while_the_candidate_is_unchanged(self):
         """T27 (candidate binding): a passed --check-only Proof is taken at complete on the same tree; after an edit the
         Proof runs again, on the final candidate, and its record says which tree it judged."""
         self.start()
         self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
         action = self.action()
         (self.repo / "proof.txt").write_text("proved\n")
-        printed = self.complete(DONE, check_only=True)
+        printed = self.complete(DONE, check=True)
         self.assertIn("step-proof: [check] " + self.PROOF + " -> passed", printed)
-        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_check_only_path(action))["passed"])
+        self.assertTrue(store.read_record(self.run_dir / test_loop.step_proof_check_path(action))["passed"])
         (self.repo / "proof.txt").unlink()          # the candidate changes after the check-only run
         with self.assertRaises(nav.NavigatorError) as caught:
             self.complete(DONE)
@@ -2514,7 +2514,7 @@ class TestLoopTests(unittest.TestCase):
         self.restart_loop(str(caught.exception))
         out = self.complete(DONE)
         record = store.read_record(self.run_dir / test_loop.step_proof_path(action, 2))
-        self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_only_path(action))
+        self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_path(action))
         self.assertIn("Gates: taken from the check of ", out)   # the check's yes holds again on this same tree
 
     def test_a_review_that_breaks_the_proof_is_refused_at_import_and_an_unchanged_candidate_reuses_its_record(self):

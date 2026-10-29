@@ -207,6 +207,23 @@ def callback_argv(text: Union[str, Sequence[str]]) -> list[str]:
     return shlex.split(line[line.index("): python3 ") + 3:])
 
 
+def check_command(callback: str) -> str:
+    """The check form of a printed callback command: the same arguments with the verb ``check``."""
+    assert " complete " in callback, callback
+    return callback.replace(" complete ", " check ", 1)
+
+
+def check_argv(text: Union[str, Sequence[str]]) -> list[str]:
+    """The argv of an inner packet's check command (the line labelled ``Check (``, printed beside the callback): the
+    text after the label's closing ``): `` up to the end of the line.  Raises AssertionError when there is none."""
+    import shlex
+    lines = text.splitlines() if isinstance(text, str) else list(text)
+    for line in lines:
+        if line.startswith("Check (") and "): python3 " in line:
+            return shlex.split(line[line.index("): python3 ") + 3:])
+    raise AssertionError("the packet has no 'Check (' line")
+
+
 def callback_result_path(text: Union[str, Sequence[str]]) -> Path:
     """The absolute result path the callback's label names (``<run>/inbox/<action>.md``).  The command has no ``--result``
     flag (``complete`` reads that one path by default), so the label is where a packet says where to write the result."""

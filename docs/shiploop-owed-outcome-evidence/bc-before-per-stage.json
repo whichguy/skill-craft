@@ -1,0 +1,621 @@
+{
+ "slices": [
+  {
+   "slice": "bc-before-1-3e8c03",
+   "segments": [
+    {
+     "stage": "step-plan",
+     "next": "improve",
+     "action": "nav-01d2ed5eb1944e40a7dbcc6404554c44",
+     "commands": 39,
+     "kinds": {
+      "other": 35,
+      "loop_start": 1,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": null,
+     "complete_ms": 287
+    },
+    {
+     "stage": "improve",
+     "next": "test-spec",
+     "action": "nav-a6fe8b523572443897428861b7029dc1",
+     "commands": 73,
+     "kinds": {
+      "other": 64,
+      "loop_next": 1,
+      "improve-pass": 3,
+      "loop_done": 3,
+      "complete": 2
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 381.5,
+     "complete_ms": 166
+    },
+    {
+     "stage": "test-spec",
+     "next": "implement",
+     "action": "nav-deb5271c46ad47efb263981c23a7cdc2",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 51.0,
+     "complete_ms": 544
+    },
+    {
+     "stage": "implement",
+     "next": "improve",
+     "action": "nav-0a092191738b4ba790d5630e7c0580b0",
+     "commands": 11,
+     "kinds": {
+      "loop_start": 1,
+      "other": 5,
+      "loop_next": 1,
+      "lint": 1,
+      "loop_done": 1,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 59.8,
+     "complete_ms": 673
+    },
+    {
+     "stage": "improve",
+     "next": "test",
+     "action": "nav-e55a50b919934cd4a3e2e3cd5cb8f033",
+     "commands": 11,
+     "kinds": {
+      "loop_next": 2,
+      "other": 5,
+      "lint": 1,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 37.3,
+     "complete_ms": 229
+    },
+    {
+     "stage": "test",
+     "next": "document",
+     "action": "nav-f34b952c6ad7472da584c26b8cd5a817",
+     "commands": 10,
+     "kinds": {
+      "other": 4,
+      "loop_start": 1,
+      "red-check": 1,
+      "lint": 1,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 47.2,
+     "complete_ms": 1332
+    },
+    {
+     "stage": "document",
+     "next": "verify",
+     "action": "nav-3e863ac8c7e540d5819d40bb24816799",
+     "commands": 7,
+     "kinds": {
+      "other": 3,
+      "loop_start": 1,
+      "lint": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 39.0,
+     "complete_ms": 675
+    },
+    {
+     "stage": "verify",
+     "next": "carry-forward",
+     "action": "nav-2d1275c02a8f40e1a914c1c22c0b5b3b",
+     "commands": 9,
+     "kinds": {
+      "other": 4,
+      "loop_start": 1,
+      "lint": 1,
+      "dry_run": 2,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 37.6,
+     "complete_ms": 658
+    },
+    {
+     "stage": "carry-forward",
+     "next": "improve",
+     "action": "nav-4b898488d6b8451a80e081060b884c46",
+     "commands": 7,
+     "kinds": {
+      "other": 3,
+      "loop_start": 1,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 40.9,
+     "complete_ms": 232
+    },
+    {
+     "stage": "improve",
+     "next": "system-test-author",
+     "action": "nav-88d6c30dae034f6fb3c91cb7e8a71da4",
+     "commands": 12,
+     "kinds": {
+      "other": 8,
+      "loop_next": 1,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 66.5,
+     "complete_ms": 323
+    }
+   ]
+  },
+  {
+   "slice": "bc-before-2-740b8b",
+   "segments": [
+    {
+     "stage": "step-plan",
+     "next": "improve",
+     "action": "nav-3d45f93edb5449529b587baddc615d62",
+     "commands": 62,
+     "kinds": {
+      "other": 52,
+      "loop_start": 5,
+      "dry_run": 2,
+      "loop_done": 1,
+      "loop_next": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": null,
+     "complete_ms": 163
+    },
+    {
+     "stage": "improve",
+     "next": "test-spec",
+     "action": "nav-47516892a35647c0b0ce17a7dca9c535",
+     "commands": 14,
+     "kinds": {
+      "other": 10,
+      "loop_next": 1,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 65.3,
+     "complete_ms": 190
+    },
+    {
+     "stage": "test-spec",
+     "next": "implement",
+     "action": "nav-20542aa404cb4261aeb0578530cd205a",
+     "commands": 6,
+     "kinds": {
+      "other": 2,
+      "loop_start": 1,
+      "dry_run": 2,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 36.2,
+     "complete_ms": 888
+    },
+    {
+     "stage": "implement",
+     "next": "improve",
+     "action": "nav-3215c299578a4af3beba771ce2aca3de",
+     "commands": 12,
+     "kinds": {
+      "loop_start": 1,
+      "other": 10,
+      "lint": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 62.3,
+     "complete_ms": 1345
+    },
+    {
+     "stage": "improve",
+     "next": "test",
+     "action": "nav-3460bdc7dba64d658a92d5af550ebdee",
+     "commands": 9,
+     "kinds": {
+      "other": 5,
+      "improve-pass": 1,
+      "loop_done": 1,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 1,
+     "refused_completes": 0,
+     "seconds": 37.6,
+     "complete_ms": 454
+    },
+    {
+     "stage": "test",
+     "next": "document",
+     "action": "nav-98977bc6de854491b3276ca07180afed",
+     "commands": 10,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "red-check": 1,
+      "lint": 1,
+      "loop_done": 1,
+      "dry_run": 3,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 2,
+     "refused_completes": 0,
+     "seconds": 51.6,
+     "complete_ms": 2961
+    },
+    {
+     "stage": "document",
+     "next": "verify",
+     "action": "nav-e899c5cf21474a3c86be6334e8369c05",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "loop_done": 1,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 29.6,
+     "complete_ms": 1397
+    },
+    {
+     "stage": "verify",
+     "next": "carry-forward",
+     "action": "nav-12e52f395dd24963aa01a17e548ba2c4",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 2,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 38.5,
+     "complete_ms": 1768
+    },
+    {
+     "stage": "carry-forward",
+     "next": "improve",
+     "action": "nav-e19b67bb29e84fe2920224d587d977fc",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 1,
+      "loop_done": 1,
+      "dry_run": 1,
+      "complete": 2
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 1,
+     "seconds": 39.5,
+     "complete_ms": 557
+    },
+    {
+     "stage": "improve",
+     "next": "system-test-author",
+     "action": "nav-0fe56cf4009b4d3c9494e6253e801048",
+     "commands": 18,
+     "kinds": {
+      "other": 16,
+      "loop_done": 2
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 145.4,
+     "complete_ms": 1974
+    }
+   ]
+  },
+  {
+   "slice": "bc-before-3-1cc0c2",
+   "segments": [
+    {
+     "stage": "step-plan",
+     "next": "improve",
+     "action": "nav-48231e3abe7c467db67fe37d9c31260c",
+     "commands": 37,
+     "kinds": {
+      "other": 31,
+      "loop_start": 1,
+      "dry_run": 2,
+      "loop_done": 1,
+      "loop_next": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": null,
+     "complete_ms": 329
+    },
+    {
+     "stage": "improve",
+     "next": "test-spec",
+     "action": "nav-fae934733fe24445a490f09b4ec33415",
+     "commands": 42,
+     "kinds": {
+      "other": 36,
+      "loop_next": 1,
+      "improve-pass": 2,
+      "loop_done": 2,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 183.4,
+     "complete_ms": 353
+    },
+    {
+     "stage": "test-spec",
+     "next": "implement",
+     "action": "nav-99a90e8ba26d42b18dbc8e049a049887",
+     "commands": 8,
+     "kinds": {
+      "loop_start": 1,
+      "other": 4,
+      "dry_run": 1,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 49.3,
+     "complete_ms": 1242
+    },
+    {
+     "stage": "implement",
+     "next": "improve",
+     "action": "nav-04e78ea47b3c4bf6ab2ff0ffdc2f9f34",
+     "commands": 15,
+     "kinds": {
+      "loop_start": 1,
+      "other": 13,
+      "lint": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 68.3,
+     "complete_ms": 1524
+    },
+    {
+     "stage": "improve",
+     "next": "test",
+     "action": "nav-f46e55d74ad14ca1a46cea309229042a",
+     "commands": 12,
+     "kinds": {
+      "other": 10,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 45.7,
+     "complete_ms": 527
+    },
+    {
+     "stage": "test",
+     "next": "document",
+     "action": "nav-72d256200fb345bd987589fbb16891cf",
+     "commands": 9,
+     "kinds": {
+      "other": 3,
+      "loop_start": 1,
+      "red-check": 2,
+      "lint": 1,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 56.0,
+     "complete_ms": 3140
+    },
+    {
+     "stage": "document",
+     "next": "verify",
+     "action": "nav-8aca407394dd4626ae5a8aa801d30c4f",
+     "commands": 6,
+     "kinds": {
+      "loop_start": 1,
+      "other": 4,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 35.7,
+     "complete_ms": 1257
+    },
+    {
+     "stage": "verify",
+     "next": "carry-forward",
+     "action": "nav-d8f94a5fba924e2d80da872dba5dcefe",
+     "commands": 7,
+     "kinds": {
+      "loop_start": 1,
+      "other": 4,
+      "dry_run": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 36.7,
+     "complete_ms": 1386
+    },
+    {
+     "stage": "carry-forward",
+     "next": "improve",
+     "action": "nav-dde9c21de70345e0a65e7233559c8d57",
+     "commands": 4,
+     "kinds": {
+      "loop_start": 1,
+      "dry_run": 1,
+      "other": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 1,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 37.9,
+     "complete_ms": 447
+    },
+    {
+     "stage": "improve",
+     "next": "system-test-author",
+     "action": "nav-f3e434a3c5bb457a9a80b094fd5783f8",
+     "commands": 12,
+     "kinds": {
+      "other": 6,
+      "lint": 2,
+      "improve-pass": 2,
+      "loop_done": 1,
+      "complete": 1
+     },
+     "dry_runs_yes": 0,
+     "dry_runs_no": 0,
+     "refused_completes": 0,
+     "seconds": 53.6,
+     "complete_ms": 473
+    }
+   ]
+  }
+ ],
+ "by_stage": {
+  "step-plan": {
+   "n": 3,
+   "commands": 39,
+   "dry_runs": 1,
+   "refused_completes": 0,
+   "seconds": null,
+   "complete_ms": 287
+  },
+  "improve": {
+   "n": 9,
+   "commands": 12,
+   "dry_runs": 0,
+   "refused_completes": 0,
+   "seconds": 65.3,
+   "complete_ms": 353
+  },
+  "test-spec": {
+   "n": 3,
+   "commands": 6,
+   "dry_runs": 1,
+   "refused_completes": 0,
+   "seconds": 49.3,
+   "complete_ms": 888
+  },
+  "implement": {
+   "n": 3,
+   "commands": 12,
+   "dry_runs": 1,
+   "refused_completes": 0,
+   "seconds": 62.3,
+   "complete_ms": 1345
+  },
+  "test": {
+   "n": 3,
+   "commands": 10,
+   "dry_runs": 1,
+   "refused_completes": 0,
+   "seconds": 51.6,
+   "complete_ms": 2961
+  },
+  "document": {
+   "n": 3,
+   "commands": 6,
+   "dry_runs": 0,
+   "refused_completes": 0,
+   "seconds": 35.7,
+   "complete_ms": 1257
+  },
+  "verify": {
+   "n": 3,
+   "commands": 7,
+   "dry_runs": 1,
+   "refused_completes": 0,
+   "seconds": 37.6,
+   "complete_ms": 1386
+  },
+  "carry-forward": {
+   "n": 3,
+   "commands": 6,
+   "dry_runs": 1,
+   "refused_completes": 1,
+   "seconds": 39.5,
+   "complete_ms": 447
+  }
+ }
+}

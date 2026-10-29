@@ -190,7 +190,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "expectations_gate": re.compile(r"must list expectations: the facts its steps build on|names steps the result "
                                     r"does not list|have no expectation listing them in paths|needs an absent "
                                     r"expectation\.|needs a works or broken expectation\."),
-    # Improve stage misuse: --check-only has no draft to preview there (shiploop_navigator.py).
+    # Improve stage misuse: a check (or --check-only before phase B) has no draft to preview there.
     "improve_checkonly": re.compile(r"the Improve stage has no draft to check"),
     # improve-pass gates: no bound Improve stage, the review loop already ended or is not active, the improve
     # skill was not invoked, or the review file is missing or incomplete (shiploop_navigator.py:8095-8149).
@@ -199,7 +199,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                r"invalid:"),
     # Improve ended on an unchanged trivial pass, but the worktree moved since the review was bound (shiploop_navigator.py:4232).
     "improve_stale_files": re.compile(r"ended on one unchanged trivial pass, but these files changed"),
-    # complete --check-only replays the base run's own refusal (shiploop_navigator.py:4075).
+    # complete --check-only replayed the base run's own refusal in runs before phase B; a check's base refusal is now
+    # base_run_not_done's text.
     "check_only_base_run": re.compile(r"ShipLoop check-only: the base run would refuse this result"),
     # The focused/regression commands on the item's base are not all passing (shiploop_test_loop.py:1751).
     "base_run_not_done": re.compile(r"ShipLoop base run: test is not done"),
@@ -2831,7 +2832,7 @@ def shiploop_invocations(command: str) -> list[dict]:
         before_pipe = line if pipe is None else re.split(r"(?<!\|)\|(?!\|)", line, maxsplit=1)[0]
         run_dir = RUN_DIR_ARG.search(before_pipe)
         for verb in verbs:
-            found.append({"verb": verb, "check_only": "--check-only" in line, "piped": pipe is not None,
+            found.append({"verb": verb, "check_only": "--check-only" in line or verb == "check", "piped": pipe is not None,
                           "cut": pipe if pipe is not None and pipe["into"] in ("head", "tail", "sed") else None,
                           "variable_built": bool(run_dir and SHELL_VARIABLE_ANY.search(run_dir.group("dir"))),
                           "variable_any": bool(SHELL_VARIABLE_ANY.search(before_pipe)), "hook_visible": visible_to_hook})
@@ -2975,9 +2976,11 @@ def skipped_gates(run_dir: Path | None) -> dict:
         if records:
             gates.append({"gate": name, "records": len(records), "skipped": len(reasons), "reason": reasons[0] if reasons else None})
 
-    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if (r := _state_block(p))]
+    # A check's own runs (-base-check, -mutation-check, -check-only before phase B) are never counted.
+    base = [r for p in sorted((run_dir / "tests").glob("*-base*.md")) if not p.name.endswith("-base-check.md")
+            and (r := _state_block(p))]
     row("base", base, [reason for r in base if (reason := skipped_reason(r))])
-    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith("-check-only.md")
+    mutation = [r for p in sorted((run_dir / "tests").glob("*-mutation*.md")) if not p.name.endswith(("-check-only.md", "-check.md"))
                 and (r := _state_block(p))]
     row("mutation", mutation, [skipped_reason(r) or "no mutants" for r in mutation
                                if skipped_reason(r) or not r.get("mutants")])

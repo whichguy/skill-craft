@@ -136,7 +136,7 @@ python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html
 ```
 
 The digest prints its own legend. An event belongs to its own `--action`, else to
-the action of the last packet before it. A `--check-only` failure is a check, not
+the action of the last packet before it. A failed `shiploop check` is a check, not
 a refusal. A run saved before the trace reads from `state.md` and `timeline.json`,
 and what it never recorded shows as "not recorded", not zero.
 

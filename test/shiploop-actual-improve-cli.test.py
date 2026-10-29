@@ -1954,16 +1954,17 @@ class ImproveCommitContractTests(ImproveCliFixture):
                              *completion, status=2).stderr
         self.assertIn("Commit this review's changes first", self.line_one(stderr))
 
-    def test_check_only_on_the_improve_stage_is_refused_and_imports_nothing(self):
-        """Review of 2026-10-12: --check-only on the Improve stage's id ran the real import.  It previews a producer
+    def test_a_check_on_the_improve_stage_is_refused_and_imports_nothing(self):
+        """Review of 2026-10-12: --check-only (now `check`) on the Improve stage's id ran the real import.  It previews a producer
         stage's draft; the Improve stage has none, so it is refused with the command to run instead."""
         self.begin()
         self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
         before = (self.run / "state.md").read_bytes()
-        stderr = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, "--check-only",
-                             *completion, status=2).stderr
-        self.assertIn("--check-only previews a producer stage's draft result", self.line_one(stderr))
+        stderr = self.invoke(CLI, "check", "--run-dir", self.run, "--action", self.improve, status=2).stderr
+        first = stderr.splitlines()[0]
+        self.assertTrue(first.startswith("ShipLoop check: the check says no. "), stderr)
+        self.assertIn("the Improve stage has no draft to check", first)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)  # the named command works
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
