@@ -233,6 +233,10 @@ class Host:
     def env(self, home: Path, git_config: Path | None = None) -> dict:
         return dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
 
+    def keepalive_install(self, env: dict, plugin_dir: Path) -> dict | None:
+        """The keepalive block the run records: the hooks this host has before the session starts, or None for a host with none."""
+        return grok_keepalive(env, plugin_dir) if self.keepalive else None
+
     def invoke(self, skill: str, prompt: str) -> str:
         return f"/{skill} {prompt}"
 
@@ -380,6 +384,12 @@ class CodexHost(Host):
     Codex has no turn cap or dollar figure: ``max_turns`` and ``max_budget_usd``
     are not applied, and cost is reported as unknown. The session runs with
     ``danger-full-access`` and no approvals, as the other hosts run unattended.
+
+    Codex runs a plugin's hooks (``hooks/codex.json``: the keepalive, its session-end hook, the status display) only
+    once they are trusted, and a throwaway CODEX_HOME holds no trust, so ``argv`` passes
+    ``--dangerously-bypass-hook-trust`` (owner, 2026-10-29). That is safe here because nothing else can run: ``env``
+    links ``auth.json`` and nothing with a hook, and the only plugin installed is the one this harness installs
+    (the published marketplace, or a build of this checkout).
     """
 
     name, model, effort = "codex", "gpt-6-luna", "xhigh"
@@ -407,7 +417,8 @@ class CodexHost(Host):
         # `allow` is not used: this host runs with approval_policy "never", so no action waits for a permission.
         prompt_file.write_text(prompt)
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
-                "-s", "danger-full-access", "-c", 'approval_policy="never"', "-C", str(cwd)]
+                "-s", "danger-full-access", "-c", 'approval_policy="never"',
+                "--dangerously-bypass-hook-trust", "-C", str(cwd)]
         if effort:
             argv += ["-c", f"model_reasoning_effort={effort}"]
         return argv + (["resume", resume, prompt] if resume else [prompt])
@@ -438,6 +449,12 @@ class CodexHost(Host):
         installed = self.install_marketplace(env, str(Path(plugin_dir).resolve().parents[1]))
         return {"pass": installed["pass"], "loaded": installed["loaded"], "wanted": str(plugin_dir),
                 "path": installed["path"]}
+
+    def keepalive_install(self, env, plugin_dir):
+        """Codex loads the plugin's own hooks, so nothing is installed: the block says whether the plugin brought them."""
+        brought = (Path(plugin_dir) / "hooks" / "codex.json").is_file()
+        return {"installed": brought, "output": "the plugin's hooks/codex.json, run with the trust bypass"
+                if brought else f"no hooks/codex.json in {plugin_dir}"}
 
     def plugin_cli(self, home):
         return next((home / ".codex" / "plugins" / "cache").glob("*/skill-craft/*/skills/shiploop/scripts/shiploop"),
@@ -503,6 +520,9 @@ class CodexTranslator:
         elif kind == "item.started" and itype in self.TOOL:
             self.called.add(item.get("id"))
             out.append(self._call(item))
+        elif kind == "item.completed" and itype == "error":
+            # A notice from Codex itself (the trust bypass, a clamped hook timeout), not a tool call and not a turn.
+            out.append({"type": "thought", "data": "[codex notice] " + str(item.get("message") or "") + "\n"})
         elif kind == "item.completed":
             self.items += 1
             if itype == "agent_message":

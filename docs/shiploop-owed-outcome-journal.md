@@ -980,6 +980,44 @@ table: unit-tested, and no E2E case hides `ps`. One slice per mechanism.
 `round_summary.py`), `live-round-2026-10-29-owner-watch-sigterm-2.jsonl`, `live-round-2026-10-29-owner-watch-sigkill-1.jsonl`
 (the claim logs), `owner_watch.py` and `round_summary.py`. The run folders are under `~/e2e-runs/20261029/`.
 
+## Codex hook trust for the Terra runner (2026-10-29, owner: "Yes, allow it"; firm that the hooks run, n = 1)
+
+**Question.** The owner chose Codex with Terra 6.1 at xhigh as the E2E runner (Ollama's monthly limit ended DeepSeek). Codex
+runs a plugin's hooks only once they are trusted (`[hooks.state."<path>:<event>:i:j"] trusted_hash`), and the harness's
+throwaway `CODEX_HOME` holds no trust, so a Codex round ran with no keepalive, no session-end hook and no takeover.
+`codex exec --dangerously-bypass-hook-trust` ("intended only for automation that already vets hook sources") runs them
+without it. The auto-mode classifier refused it earlier in the session; the owner then allowed it in chat.
+
+**Decision (owner).** `CodexHost.argv` passes the flag on every launch, a fresh one and a resume. Forging trusted hashes was
+not done. The flag is safe here because the throwaway home links only `auth.json` (a test pins it, with a real home that
+carries a `hooks.json` and a `[hooks.state]` config) and the one plugin in it is the one the harness installs.
+
+**Probe.** One Terra turn through `hosts.CodexHost` (install from the marketplace: skill-craft 2.22.1; a shell
+command, then "done"). Terra answered, the command ran, and the keepalive wrote `{"allow": 1}` to the home's
+`decisions.log`: the plugin's hooks ran, which no earlier Codex run could show (n = 1). Evidence:
+`docs/shiploop-owed-outcome-evidence/codex-terra-hook-probe-2026-10-29.json` and `.stream.jsonl`.
+
+**Side effects, handled.**
+- Each launch now opens with three `error` items that are notices (the bypass, twice, and the SessionEnd clamp).
+  `CodexTranslator` turned each into a tool call named "error" and counted it as a turn: 5 turns for a two-item
+  session. They are now `thought` events and are not counted (2 turns), so a Terra run's turn count stays comparable with
+  an earlier Codex run's.
+- `Host.keepalive_install` replaces the one `grok_keepalive` call in `run.py`. Codex returns `installed` when the plugin
+  carries `hooks/codex.json`, so its result records `keepalive.decisions` like Grok's.
+
+**Not covered.** ShipLoop asks for a 10 s SessionEnd timeout and Codex clamps it to 3 s; whether the session-end hook
+finishes inside 3 s on Codex is unprobed (a skill change if it does not: a per-host timeout in
+`host-hooks.json`). The Codex session-end payload is still a constructed fixture.
+
+**Comparability.** The brownfield rounds R1 and R2 (`ba45b9d2`, three cases each on Terra at xhigh) ran **without hooks**,
+because the bypass did not exist. They are "the Terra baseline for Wave A", and a Terra run from this commit on is a
+different cell from them: with hooks, the stop hook can continue a turn and the status hook prints. No Terra round has
+run with hooks. **Decision (owner, 2026-10-29):** hooks are the Codex default, not a per-run option. R1 and R2 stay as
+the hookless Terra rows; a Wave A before/after needs a hooks-on re-baseline of the R2 round first (about an hour for three cases).
+
+The default host and model are unchanged: the shared Terra profile belongs to the mission-scorecards plan (P3). Until
+then a Terra run passes `--host codex --model gpt-6.1-terra --effort xhigh`.
+
 ## Phases B and C: plan (2026-10-28, awaiting the owner's approval)
 
 [The plan](shiploop-check-phases-bc-plan-2026-10-28.md) names every file, symbol, test and removal for B (one
@@ -1129,3 +1167,4 @@ tree hash excludes.
 - 2026-10-29: defect in the shipped takeover: an unreadable process table read as a dead owner; fixed so it reads as unknown.
 - 2026-10-29: session-end evidence path (lane B): probe of mid-turn signals against `claude -p` (F20), the decision to end
   a cleared slice session with SIGTERM, and the design of the trace row and check.
+- 2026-10-29: Codex hook trust for the Terra runner: `CodexHost.argv` passes `--dangerously-bypass-hook-trust` (owner allowed it); live probe n = 1; Codex notices are thoughts, not turns.
