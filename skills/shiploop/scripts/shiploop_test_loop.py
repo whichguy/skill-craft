@@ -76,7 +76,11 @@ SUITES = ("focused", "regression", "check")
 COUNTED_SUITES = ("focused", "regression")
 # ``regression`` (true, on a focused row only) is what a regression row folded into a byte-identical focused one leaves
 # (``normalise_commands``): the drift check at system-test still runs that command as the default suite.
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression", "target"})
+# ``minimum`` (true, on a regression command or a focused row that is also the regression command) marks the minimum
+# regression, which runs at every step; an unmarked regression command runs at the item's last step only (design T §9.1
+# 2d, ``iteration.active_commands``).
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent", "regression", "target",
+                          "minimum"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not recognised) is allowed only for a
 # regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -187,10 +191,11 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
     Each entry is ``{"command": str, "suite": focused|regression|check}`` plus
     optional ``ids`` (test IDs the command must visibly run), ``min_tests``
     (int >= 1), ``criteria`` (the step plan's criterion IDs it confirms),
-    ``target`` (the test-strategy targets row it runs on, F3) and
+    ``target`` (the test-strategy targets row it runs on, F3),
     ``host_dependent`` (true: its cases need a host tool, so no default suite may
-    run them; see ``default_suite_drift``).  A ``check`` is judged by its exit
-    code, so it takes no ids or min_tests.
+    run them; see ``default_suite_drift``) and ``minimum`` (true, on a regression
+    command: the minimum regression, which runs at every step).  A ``check`` is
+    judged by its exit code, so it takes no ids or min_tests.
 
     Rows that record the same command string are folded into the first of them
     when one row can check exactly what they did (``_fold``), so ShipLoop runs
@@ -235,6 +240,11 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
             _need(entry["regression"] is True and row["suite"] == "focused",
                   "a test command's regression is true, on a focused command that is also the regression command")
             row["regression"] = True
+        if "minimum" in entry:
+            _need(entry["minimum"] is True and (row["suite"] == "regression" or row.get("regression") is True),
+                  "a test command's minimum is true, on a regression command (or a focused command that is also the "
+                  "regression command): it marks the minimum regression, which runs at every step")
+            row["minimum"] = True
         if "target" in entry:
             # The test-strategy target the command runs on (run-5 batch F3); the step-plan gate checks the name.
             _need(isinstance(entry["target"], str) and entry["target"].strip() != "" and "\n" not in entry["target"],
@@ -266,7 +276,7 @@ def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str
     come under the base run's rule that a focused ID fails on the base).  The one row keeps ``first``'s place, the union
     of the ids and criteria and the larger min_tests: the same output is judged against both rows' terms.  A check and
     a counted row are judged differently and never fold.  A regression row folded into a focused one leaves
-    ``regression: true``.
+    ``regression: true``, and either row's ``minimum`` stays, so the one command still runs at every step.
     """
     if first["command"] != row["command"] or first.get("host_dependent") != row.get("host_dependent") \
             or first.get("target") != row.get("target"):
@@ -292,6 +302,8 @@ def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str
         merged["target"] = first["target"]  # where it runs decides the base run's remote rule (F3)
     if len(suites) > 1 or first.get("regression") or row.get("regression"):
         merged["regression"] = True
+    if first.get("minimum") or row.get("minimum"):
+        merged["minimum"] = True
     return merged
 
 
@@ -358,9 +370,30 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
     if commands and number is not None:
         # One iteration per step (design T §8): the test stage runs what this step owes, due cases narrowed per command.
         commands = iteration.active_commands(commands, _test_cases(state, work_item), _plan_steps(result), number)
+        if not commands:
+            return [], (NONE_DUE + str(_plan_steps(result)[-1].get("id")))
     if commands:
         return commands, ""
     return [], str(result.get("test_commands_na") or "")
+
+
+# Why a step before the last can have no command to run: its plan marks no minimum regression (minimum_na) and none of
+# its cases or criteria is due yet.
+NONE_DUE = ("no recorded command is due at this step: each runs from the step its cases or criteria are due at, and a "
+            "regression command not marked minimum at the item's last step, ")
+
+
+def held_back(state: Mapping[str, Any], work_item: str) -> Tuple[List[str], str]:
+    """(the full regression commands a step before the last leaves to the item's last step, that step's ID); ([], "")
+    at the last step, off the per-step route, or when every regression command is marked minimum (design T §9.1 2d)."""
+    number = step_number(state, work_item)
+    _action, result = _step_plan(state, work_item)
+    steps = _plan_steps(result)
+    if number is None or number >= len(steps):
+        return [], ""
+    full = [str(row["command"]) for row in result.get("test_commands") or ()
+            if row.get("suite") == "regression" and not row.get("minimum")]
+    return full, (str(steps[-1].get("id")) if full else "")
 
 
 def _plan_steps(plan: Mapping[str, Any]) -> List[Mapping[str, Any]]:
@@ -453,6 +486,8 @@ def _listing(row: Mapping[str, Any], floor: Optional[int] = None) -> str:
         text += " (at least " + str(row["min_tests"]) + " tests)"
     if row.get("regression"):
         text += " (also recorded as regression)"
+    if row.get("minimum"):
+        text += " (minimum regression: every step)"
     if floor:
         text += " (floor: " + str(floor) + " tests)"
     return text
@@ -578,6 +613,10 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
                   for number, counted, floor in shown]
     else:
         lines.append(head + "the base run at done sets each floor.")
+    full, last = held_back(state, work_item) if stage in STAGES else ([], "")
+    if full:
+        lines.append("The full regression runs at the item's last step, " + last + ": "
+                     + ", ".join("`" + command + "`" for command in full) + ".")
     if cli:
         lines.append("  red-check: " + cli + " red-check --run-dir=" + str(root) + " --action=" + action
                      + " (runs the base check now; it does not count toward the refused runs)")

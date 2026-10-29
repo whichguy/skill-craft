@@ -112,6 +112,32 @@ an ID that no line holds that way keeps the select-and-print remedy. A focused c
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
 
+### What each step runs
+
+On the inline route each step's `test` stage runs only what the step owes, in
+three tiers (owner, 2026-10-28: "we don't do exhaustive regressions on every
+iteration"):
+
+- **The new code in detail:** the step's own test-spec cases, through the
+  focused commands that list them, unit and mock tests first. A case is due at
+  the last step whose `criteria` list its criterion (the plan's last step when
+  none does), and only the cases due at this step must fail on its base (RED).
+- **The earlier steps' cases:** a focused command runs from the first step one of
+  its IDs is due at, narrowed to the IDs due by then, so every earlier case must
+  still pass.
+- **A minimum regression:** the regression command marked `"minimum": true`, a
+  fast suite that shows nothing basic broke, at every step.
+
+The full regression (every unmarked regression command), and a check whose
+criteria a later step serves, run at the item's last step only. A plan of two or
+more steps marks a minimum command or gives `minimum_na`, and a step before the
+last that owes nothing runs no command. The test packet names the full
+regression it leaves to the last step and asks where each new test belongs: a
+new suite (a recorded command must run it), the minimum suite or the full
+suites. MCP servers and skills may test the new code in more detail beside the
+unit and mock tests. The step's `document` and its review rerun what its test
+stage ran; the ask-agent route's one test stage runs every recorded command.
+
 ### Floors and their known limits
 
 `min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the

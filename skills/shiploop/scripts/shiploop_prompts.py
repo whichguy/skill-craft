@@ -1287,16 +1287,15 @@ Change no product file in this stage.
      `{"name", "why", "locator", "stages"}` for each with a concrete use in the step, else []. Prefer a
      repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),
      test, document, improve.
-5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test stage
-   runs exactly these.
+5. **`test_commands`**, run from the repository root.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
      pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
      every exit. """ + ID_WORD_RULE + """ `min_tests`
-     where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
-   - regression: the retained suites the changed paths affect.
+     where a command must run at least that many. A run that executed no test is refused, so check the filter.
+   - regression: the retained suites the changed paths affect; only the fast one marked `"minimum": true` runs
+     before the last step (none: `minimum_na`).
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
-     Implement runs only each step's own `proof`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
    - A focused or regression command that runs on a Test targets row that keeps state names it in `target`.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
@@ -1417,10 +1416,13 @@ preparatory commit); a mismatch there is a send-back.
     "test": """\
 1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
    command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
-   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities). Use
-   each skill this packet lists for the stage; never assume another named skill or MCP is available. Build a missing facility within this item and validate it before the
-   tests that use it; record it in KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness,
-   owner, revalidation condition). Write no case due at a later stage.
+   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities). Build a
+   missing facility within this item and validate it before the tests that use it; record it in
+   KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness, owner, revalidation condition).
+   Write no case due at a later stage. Decide where each new test belongs: a new suite (a recorded command must run
+   it), the minimum suite (it runs at every step) or the full suites (they run at the last step); the summary says
+   which. Test the new code in detail: unit and mock tests first, then any MCP server or skill this host offers
+   where it observes more. Use each skill this packet lists for the stage.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. Record a
    harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
    KNOWLEDGE/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.

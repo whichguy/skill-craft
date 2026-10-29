@@ -174,6 +174,10 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
         # Every step records its Proof (implement-step fix plan 4.1); a fixture that is not about it proves nothing.
         result["steps"] = [dict(step, skills=step.get("skills", []), proof=step.get("proof", "true"))
                            if isinstance(step, Mapping) else step for step in result["steps"]]
+        # A plan of two or more steps marks its minimum regression or says why it has none (design T §9.1 2d).
+        if len(result["steps"]) > 1 and result.get("test_commands") and not any(
+                isinstance(row, Mapping) and row.get("minimum") for row in result["test_commands"]):
+            result.setdefault("minimum_na", "Synthetic fixture: no fast regression suite is recorded.")
         if "expectations" not in result:
             result["expectations"] = expectations_for(repo, result["steps"], run_dir, _current_item(state))
     elif stage == "test-spec":

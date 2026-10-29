@@ -74,7 +74,7 @@ _RESULT_KEYS = frozenset((
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
-    "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
+    "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions", "suite_requirements",
     "knowledge",
@@ -1157,9 +1157,10 @@ def _canonical_result(
             result["failed_expectations"] = expectations.normalise_failed_expectations(value["failed_expectations"])
         except expectations.ExpectationError as exc:
             raise NavigatorError(str(exc)) from exc
-    if "check_na" in value:
-        _need(stage == "step-plan" and outcome == "done", "check_na is allowed only on a done step-plan result")
-        result["check_na"] = _text(value["check_na"], "check_na")
+    for key in ("check_na", "minimum_na"):
+        if key in value:
+            _need(stage == "step-plan" and outcome == "done", key + " is allowed only on a done step-plan result")
+            result[key] = _text(value[key], key)
     if "skill" in value:
         _need(stage == "carry-forward" and outcome == "done", "skill is allowed only on a done carry-forward result")
         _need(isinstance(value["skill"], Mapping) and value["skill"].get("decision") in _SKILL_DECISIONS,
@@ -5090,7 +5091,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
                               {"id": "C2", "text": CRITERION_PLACEHOLDER, "confirm": "executed"}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
-                                   {"command": "...", "suite": "regression"}]
+                                   {"command": "...", "suite": "regression", "minimum": True}]
         if test_loop.stateful_targets(state):
             # F3: with a target that keeps state, the template asks where each focused or regression command runs.
             for row in result["test_commands"]:

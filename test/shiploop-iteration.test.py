@@ -215,8 +215,34 @@ class DueCaseTests(unittest.TestCase):
         return {row["command"]: row.get("ids") for row in
                 iteration.active_commands(BATTLESHIP_COMMANDS, BATTLESHIP_CASES, BATTLESHIP_STEPS, number)}
 
-    def test_s1_runs_the_game_tests_and_the_regression_command_only(self):
-        self.assertEqual(self.active(1), {GAME["command"]: GAME["ids"], REGRESSION["command"]: None})
+    def test_s1_runs_the_game_tests_only_and_the_unmarked_regression_waits_for_the_last_step(self):
+        self.assertEqual(self.active(1), {GAME["command"]: GAME["ids"]})
+        self.assertNotIn(REGRESSION["command"], self.active(2))
+        self.assertIn(REGRESSION["command"], self.active(3))
+
+    MINIMUM = {"command": "node --test test/smoke.test.js", "suite": "regression", "minimum": True}
+
+    def test_a_regression_command_marked_minimum_runs_at_every_step(self):
+        """Design T §9.1 2d (owner 2026-10-28: "we definitely want to make sure that we don't do exhaustive regressions
+        on every iteration"): each step runs its new code's cases, the earlier steps' cases and a minimum regression;
+        the exhaustive regression, every unmarked regression command, runs at the item's last step only."""
+        commands = [GAME, self.MINIMUM, REGRESSION]
+        for number, expected in ((1, [GAME, self.MINIMUM]), (2, [GAME, self.MINIMUM]),
+                                 (3, [GAME, self.MINIMUM, REGRESSION])):
+            with self.subTest(step=number):
+                self.assertEqual(iteration.active_commands(commands, BATTLESHIP_CASES, BATTLESHIP_STEPS, number),
+                                 expected)
+
+    def test_a_focused_command_that_is_also_the_minimum_regression_runs_as_the_regression_until_its_ids_are_due(self):
+        """A focused row folded with the minimum regression (one command string, ``regression: true``) still runs at every
+        step: before any of its IDs is due it is only the regression, so it lists no ID and confirms no criterion."""
+        folded = {"command": "node --test", "suite": "focused", "ids": ["TC-4"], "criteria": ["C9"],
+                  "regression": True, "minimum": True}
+        self.assertEqual(iteration.active_commands([folded], BATTLESHIP_CASES, BATTLESHIP_STEPS, 1),
+                         [{"command": "node --test", "suite": "regression", "minimum": True}])
+        self.assertEqual(iteration.active_commands([folded], BATTLESHIP_CASES, BATTLESHIP_STEPS, 3), [folded])
+        unmarked = {key: value for key, value in folded.items() if key != "minimum"}
+        self.assertEqual(iteration.active_commands([unmarked], BATTLESHIP_CASES, BATTLESHIP_STEPS, 2), [])
 
     def test_a_focused_command_runs_from_its_first_due_id_narrowed_to_the_ids_due(self):
         at_two = self.active(2)

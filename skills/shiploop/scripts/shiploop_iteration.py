@@ -200,7 +200,10 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
     """The recorded commands step ``number``'s test stage runs, as copies.
     - A command with ``ids`` runs from the first step one of them is due at, narrowed to the IDs due by step ``number``;
       an ID no case names is due at the last step.
-    - The regression command runs at every step.
+    - A regression command marked ``minimum`` runs at every step; an unmarked one, the exhaustive regression, only at
+      the last (design T §9.1 2d; owner 2026-10-28: "we don't do exhaustive regressions on every iteration").  A
+      focused command that is also the minimum regression runs as that regression alone, with no IDs and no criteria,
+      at a step before any of its IDs is due.
     - Any other command (a check) runs from the last step its ``criteria`` are due at, or at the last step when it
       names none.  This is what lets a check that only a later step can satisfy wait for it (a run of 2026-10-17
       collapsed a three-step plan into one step when it could not).
@@ -214,8 +217,15 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
         if ids:
             row["ids"] = [ident for ident in ids if due_at.get(str(ident), len(steps)) <= number]
             if not row["ids"]:
+                if not command.get("minimum"):
+                    continue
+                row = {key: value for key, value in row.items() if key in ("command", "minimum", "host_dependent",
+                                                                           "target")}
+                row["suite"] = "regression"
+        elif command.get("suite") == "regression":
+            if not command.get("minimum") and number < len(steps):
                 continue
-        elif command.get("suite") != "regression":
+        else:
             criteria = command.get("criteria") or ()
             if (max(_due(criterion, steps) for criterion in criteria) if criteria else len(steps)) > number:
                 continue

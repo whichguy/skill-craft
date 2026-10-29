@@ -475,7 +475,8 @@ class RefusalRouteTests(RealCliCase):
              lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],
                                                 "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []},
                                                {"id": "S2", "task": "second", "deps": [], "criteria": ["C1"],
-                                                "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []}]},
+                                                "proof": "test -f built.txt", "paths": ["built.txt"], "skills": []}],
+                            "minimum_na": "The fixture's one regression command is its whole suite."},
              "step deps must name earlier steps"),
             ("no system_commands list", "system-test-author",
              lambda block: {k: v for k, v in block.items() if k != "system_commands"},
@@ -2072,6 +2073,37 @@ class InnerGateRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["check_na"],
                          "No lint, type or build command applies to a text file.")
+
+    @staticmethod
+    def two_steps(good: dict) -> dict:
+        """``good`` split into two steps that both serve its criterion, so a minimum regression has a step to run at."""
+        first = dict(good["steps"][0], id="S1")
+        return {**good, "steps": [first, dict(first, id="S2", task="Finish built.txt", deps=["S1"])]}
+
+    def test_a_plan_of_two_steps_marks_a_minimum_regression_or_gives_minimum_na(self) -> None:
+        """Design T §9.1 2d (owner 2026-10-28: "gradations of test suites to be run"): a step before the last runs only a
+        regression command marked minimum, so a plan of two or more steps marks one or says why it has none; the
+        refusal names both routes, and each is accepted."""
+        run, command, path, action, good = self.step_plan()
+        two = self.two_steps(good)
+        write_block(path, two)
+        reply = self.refused(command, run)
+        self.assertIn('marks no regression command "minimum": true', reply)
+        self.assertIn('Mark the fast regression command that shows nothing basic broke "minimum": true', reply)
+        self.assertIn("or give minimum_na with the reason there is none", reply)
+        write_block(path, {**two, "minimum_na": " "})
+        self.assertIn("minimum_na must be nonblank text", self.refused(command, run))
+        marked = [dict(row, minimum=True) if row["suite"] == "regression" else row for row in two["test_commands"]]
+        write_block(path, {**two, "test_commands": marked, "minimum_na": "No fast suite."})
+        self.assertIn('a regression command is marked "minimum": true, so drop minimum_na', self.refused(command, run))
+        write_block(path, {**two, "minimum_na": "The only retained suite is the whole one; it is fast."})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["minimum_na"], "The only retained suite is the whole one; it is fast.")
+        run, command, path, action, good = self.step_plan()
+        write_block(path, {**two, "test_commands": marked})
+        self.accepted(command)
+        self.assertEqual([row.get("minimum") for row in self.recorded(run, action)["test_commands"]],
+                         [None, True, None])
 
     def test_an_expectation_without_a_check_is_refused_and_the_one_with_its_check_is_accepted(self) -> None:
         run, command, path, action, good = self.step_plan()

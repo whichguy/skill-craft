@@ -695,6 +695,38 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("Skills for this review (use each; the summary says whether you did): prober (drive the focused "
                       "check)", handoff)
 
+    FULL = {"command": "test -f check.sh", "suite": "regression"}
+    GRADED_PLAN = {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), dict(COMMANDS[1], minimum=True), FULL,
+                                     {"command": "true", "suite": "check", "criteria": ["C2"]}],
+                   "paths": ["a.py"],
+                   "criteria": [{"id": "C1", "text": "The item's focused check passes."},
+                                {"id": "C2", "text": "The item's last check passes."}],
+                   "steps": [{"id": "S1", "task": "Make the first change.", "paths": ["a.py"], "proof": "true",
+                              "criteria": ["C1"]},
+                             {"id": "S2", "task": "Make the second change.", "paths": ["a.py"], "proof": "true",
+                              "criteria": ["C2"], "deps": ["S1"]}]}
+
+    def test_a_step_before_the_last_runs_the_minimum_regression_and_its_packet_asks_where_each_new_test_belongs(self):
+        """Design T §9.1 2d (owner 2026-10-28: "a prompt that determines whether this is a new test suite, whether it
+        enhances the minimum test suite, or whether it can always add tests to all of the suites as needed"; "We should
+        not be afraid to use MCP servers, skills, or anything of that nature if needed to test the newly added code in
+        detail"): S1's test stage runs its focused command and the minimum regression, names the full regression it
+        leaves to the last step, and asks where each new test belongs."""
+        self.start()
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        state = self.drive_to("test", step_plan=self.GRADED_PLAN, each=change)
+        self.assertEqual([row["command"] for row in test_loop.stage_commands(state, "test", "W1")[0]],
+                         [COMMANDS[0]["command"], COMMANDS[1]["command"]])
+        packet = self.packet()
+        flat = " ".join(packet.split())
+        self.assertIn(COMMANDS[1]["command"] + " (minimum regression: every step)", packet)
+        self.assertIn("The full regression runs at the item's last step, S2: `" + self.FULL["command"] + "`", flat)
+        self.assertIn("Decide where each new test belongs: a new suite (a recorded command must run it), the minimum "
+                      "suite (it runs at every step) or the full suites", flat)
+        self.assertIn("unit and mock tests first, then any MCP server or skill this host offers", flat)
+
     def test_a_step_skill_naming_an_unknown_stage_is_refused(self):
         self.start()
         self.drive_to("step-plan")
@@ -1858,6 +1890,29 @@ class TestLoopTests(unittest.TestCase):
             {"command": "./run-tests.sh", "suite": "focused", "ids": ["TC-1"], "target": "shared"},
             {"command": "./run-tests.sh", "suite": "regression", "ids": ["TC-1"]}])
         self.assertEqual(len(apart), 2)
+
+    def test_minimum_marks_a_regression_command_and_survives_a_fold(self):
+        """Design T §9.1 2d: a regression command marked ``minimum`` runs at every step (``iteration.active_commands``);
+        the mark is true, on a regression command or on a focused row that is also the regression command, and a fold
+        keeps it, so the one row still runs at every step."""
+        smoke = {"command": "make smoke", "suite": "regression", "minimum": True}
+        self.assertEqual(test_loop.normalise_commands([smoke]), [smoke])
+        for bad in ({"command": "make smoke", "suite": "focused", "ids": ["TC-1"], "minimum": True},
+                    {"command": "make lint", "suite": "check", "minimum": True},
+                    {"command": "make smoke", "suite": "regression", "minimum": False},
+                    {"command": "make smoke", "suite": "regression", "minimum": "yes"}):
+            with self.subTest(row=bad), self.assertRaisesRegex(
+                    test_loop.TestLoopError, "minimum is true, on a regression command"):
+                test_loop.normalise_commands([bad])
+        folded = test_loop.normalise_commands([{"command": "npm test", "suite": "focused", "ids": ["TC-1"]},
+                                               {"command": "npm test", "suite": "regression", "minimum": True}])
+        self.assertEqual(folded, [{"command": "npm test", "suite": "focused", "ids": ["TC-1"], "regression": True,
+                                   "minimum": True}])
+        self.assertEqual(test_loop.normalise_commands(folded), folded, "the folded row is canonical")
+        self.assertEqual(test_loop.normalise_commands([{"command": "npm test", "suite": "regression"}, dict(smoke,
+                                                       command="npm test")]),
+                         [{"command": "npm test", "suite": "regression", "minimum": True}])
+        self.assertIn("(minimum regression: every step)", test_loop._listing(smoke))
 
     def test_a_command_on_a_target_that_keeps_state_is_left_out_of_the_base_and_the_mutant_runs(self):
         """Run-5 batch F3: on any platform, a command naming a test-strategy target that keeps state is remote, so the

@@ -1084,6 +1084,55 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
       reflects, and a reviewer reads the coverage in the step's lint records.
     - A gate on coverage. A syntax-only or unlinted file still never refuses: the line informs, as §8.5 recommends.
 
+  **2d done (2026-10-28).** What landed:
+  - **The field.** A regression command takes `"minimum": true` (`test_loop.COMMAND_KEYS`). It is valid only as true, on
+    a regression command or on a focused row that is also the regression command (`regression: true`), and a fold keeps
+    it, so the one row still runs at every step (`normalise_commands`, `_fold`). The listing labels it "(minimum
+    regression: every step)".
+  - **The projection** (`iteration.active_commands`):
+    - a minimum regression runs at every step, and an unmarked one only at the item's last step;
+    - a focused row that is also the minimum regression runs as that regression alone, with no IDs and no criteria,
+      at a step before any of its IDs is due.
+
+    A step before the last that owes nothing (no minimum, no case or criterion due yet) gets no command. Its packet says
+    so (`test_loop.NONE_DUE`), where before it said the step plan recorded no test_commands and sent the model to
+    send-back.
+  - **The gate** (`expectations._check_minimum_suite`, at step-plan's done). A plan of two or more steps with test
+    commands marks a regression command minimum, or gives `minimum_na`. The refusal names both routes, and says which
+    steps run only the minimum and which step runs the rest. `minimum_na` must be nonblank, needs test commands, and is
+    refused beside a marked row. It is a done step-plan result key, as `check_na` is.
+  - **The test packet** names the full regression it leaves to the last step (`test_loop.held_back`). Its duty 1 asks
+    where each new test belongs: a new suite (a recorded command must run it), the minimum suite or the full suites,
+    with the summary saying which. It says to test the new code in detail, unit and mock tests first, then any MCP
+    server or skill this host offers where it observes more. The earlier "never assume another named skill or MCP is
+    available" is now "this host offers", which keeps the guard against an imagined tool.
+  - **References.** `references/test-loop.md` states the field and the gate; `testing-and-documentation.md` gains "What
+    each step runs" (the three tiers, the last step's full regression, the placement question).
+  - **Decisions kept.**
+    - *No `minimum_na` refusal on a one-step plan.* Its one step is the last, so the field changes nothing; refusing it
+      would only cost a round trip when a plan shrinks to one step.
+    - *Route-independent gate.* The ask-agent route runs every command in its one test stage, so the mark changes
+      nothing there today. The gate still applies, so 2c's step boundaries (G1) find the plans already marked.
+    - *The template marks it.* The step-plan template's regression row carries `"minimum": true`, so a model that fills
+      the printed two-step template passes the gate. callback-contract's template test caught the first cut, which
+      refused it.
+    - *The gates line names no new fault.* The step-plan head had 5 characters of room under the 20,000 cut.
+      - The first wording (+329) dropped the ask-agent head's References block with the test layers at their limit.
+      - A +38 cut dropped the inline head's Builds-on lines.
+      - The final text paid for itself. Duty 5 leaves its shape list to the template printed beside it, and drops "the
+        test stage runs exactly these", which per-step projection made untrue, and "Implement runs only each step's own
+        proof", which duty 4 already says.
+      - The refusal itself explains the rule and both routes.
+  - **Size** (`test/shiploop_e2e/head_table.json`): step-plan -27 on both routes (inline head 19,995 -> 19,968); the
+    test head +277 on both (17,954 -> 18,231).
+  - **Evidence.** Fail-first tests, each seen failing before the code:
+    - shiploop-iteration: a minimum regression at every step, the unmarked one at the last only (S1's pin changed to
+      match), and the folded row;
+    - shiploop-test-loop: `test_minimum_marks_a_regression_command_and_survives_a_fold` and
+      `test_a_step_before_the_last_runs_the_minimum_regression_and_its_packet_asks_where_each_new_test_belongs`;
+    - shiploop-callback-contract: `test_a_plan_of_two_steps_marks_a_minimum_regression_or_gives_minimum_na`, through
+      the real CLI. With HEAD's gate the two-step plan was accepted. Both routes are then accepted.
+
 **9.2 New decisions:**
 - **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
   item-level, which is a second lifecycle to maintain.

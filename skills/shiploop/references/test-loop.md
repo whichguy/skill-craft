@@ -13,7 +13,13 @@ order, each step's actual prerequisites as earlier step IDs in `deps` (`[]` for
 an independent step; order alone does not imply dependency). ShipLoop refuses a
 done `step-plan` without any of these; an empty command list needs
 `test_commands_na` with the reason, and a list with no `check` row (lint, type or
-build) needs `check_na`.
+build) needs `check_na`. A regression command may carry `"minimum": true`: the
+minimum regression, a fast suite that shows nothing basic broke, runs at every
+step, and an unmarked regression command, the full regression, runs only at the
+item's last step, so no earlier step runs an exhaustive regression. A plan of two
+or more steps marks one, or gives `minimum_na` with the reason. Each step's test
+stage runs its own cases in detail, every earlier step's cases and the minimum
+regression ([what each step runs](testing-and-documentation.md#what-each-step-runs)).
 
 The `test` stage follows `implement`. Tests are written after the build phase
 and must assert the behaviour the test spec's oracle states; ShipLoop mutates a

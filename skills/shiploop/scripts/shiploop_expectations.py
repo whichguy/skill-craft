@@ -347,14 +347,16 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
     command; an expectation naming an unknown step; an existing step path with no works or broken expectation, or a
     new one with no absent expectation; a works or broken path missing on the base, or an absent path present there;
     an open plan assumption whose due_item is this item and that no expectation cites in ``from`` (or a ``from``
-    naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a step
-    without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.
+    naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a plan of two
+    or more steps with test commands but no regression command marked ``minimum`` and no ``minimum_na`` (or both); a
+    step without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.
     """
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     repo = Path(str(state["repo"]))
     work_item, _action = _cursor(state)
     _check_check_suite(result)
+    _check_minimum_suite(result)
     steps = [step for step in result.get("steps") or () if isinstance(step, Mapping)]
     step_ids = {str(step.get("id")) for step in steps}
     for step in steps:
@@ -428,6 +430,28 @@ def _check_check_suite(result: Mapping[str, Any]) -> None:
           "files ({\"command\": \"...\", \"suite\": \"check\"}, judged by exit code), or give check_na with the reason "
           "there is none")
     _need(not (has_check and "check_na" in result), "test_commands has a check row, so drop check_na")
+
+
+def _check_minimum_suite(result: Mapping[str, Any]) -> None:
+    """A plan of two or more steps with test commands marks a regression command ``minimum``, or ``minimum_na`` says
+    why it has none (design T §9.1 2d): a step before the last runs only the minimum regression, and every unmarked
+    regression command runs at the item's last step."""
+    commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
+    steps = [step for step in result.get("steps") or () if isinstance(step, Mapping)]
+    marked = any(row.get("minimum") for row in commands)
+    if "minimum_na" in result:
+        _need(isinstance(result["minimum_na"], str) and result["minimum_na"].strip(), "minimum_na must be nonblank "
+              "text: why no fast regression command shows that nothing basic broke")
+        _need(commands, "minimum_na applies only beside test commands; with none, test_commands_na gives the reason")
+        _need(not marked, 'a regression command is marked "minimum": true, so drop minimum_na')
+    if len(steps) < 2 or not commands or marked or "minimum_na" in result:
+        return
+    _need(False, 'test_commands marks no regression command "minimum": true. A step before the last ('
+          + ", ".join(str(step.get("id")) for step in steps[:-1]) + ") runs its own cases, the earlier steps' cases "
+          "and only the minimum regression; every unmarked regression command runs at the last step ("
+          + str(steps[-1].get("id")) + ') alone. Mark the fast regression command that shows nothing basic broke '
+          '"minimum": true (add one from KNOWLEDGE/environment.md\'s suites if none is recorded), or give minimum_na '
+          "with the reason there is none")
 
 
 def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]]:
