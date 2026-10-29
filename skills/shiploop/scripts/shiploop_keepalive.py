@@ -10,8 +10,7 @@ Hook events per host:
   run prints the packet's ``SHIPLOOP-RUN`` marker, bind this host session to
   that run (a marker another command merely displays never binds).
 * stop    -- when the host is about to end the turn.  Continue while the bound
-  run is active and its progress moved since the last refusal, naming the report
-  the run is owed; otherwise allow.
+  run is active and its progress moved since the last refusal; otherwise allow.
 * skill   -- after a Skill-tool call (Claude Code only).  Append the call to the
   bound run's ``skill-calls.jsonl`` (shiploop_skill_calls), which the Improve
   stage's ``complete`` reads; it never blocks the call.
@@ -427,35 +426,12 @@ STOP_MEMORY = ("last_block_progress", "turn_blocks")
 CAP_WARNING_MARGIN = 2
 
 
-def _owed_report(status: Mapping[str, Any]) -> str:
-    """The report the run is owed, named with its exact command, or "" when the generic `next` sentence fits.
-
-    The innermost owed report comes first: an Until Loop iteration not yet reported while its receipt is active, else
-    the step's callback once the step's loop has ended.  Under ask-agent delegation a worker owns the loop, so the parent
-    is never handed the worker's command; an Improve review that has ended keeps its packet's final steps (`next`).
-    """
-    loop = status.get("loop")
-    if status.get("delegation") == "ask-agent" or not isinstance(loop, Mapping):
-        return ""
-    if loop.get("status") == "active" and loop.get("next"):
-        return (f"This step's Until Loop iteration {loop.get('iteration')} is unreported: run `{loop['next']}` and "
-                "report the iteration with the done command it prints. If its work is already done, recheck the "
-                "artifacts and report it; if any of it is incomplete, report it unresolved and name the gap.")
-    if loop.get("kind") == "stage" and loop.get("status") in ("complete", "stopped") and status.get("callback"):
-        outcome = "" if loop["status"] == "complete" else " with outcome blocked or send-back"
-        return (f"This step's Until Loop has {'finished' if not outcome else 'stopped'}, but the step is not "
-                f"submitted: write its result{outcome}, then run `{status['callback']}`.")
-    return ""
-
-
 def _continue_reason(status: Mapping[str, Any], host: str = "", turn_blocks: int = 0,
                      waiting: bool = False) -> str:
-    owed = _owed_report(status)
-    ask = (f"{owed} Lost context? Run `{status['next']}`." if owed
-           else f"run `{status['next']}` and follow the packet it prints.")
     text = (f"ShipLoop run {status['run_dir']} is still active at stage {status['stage']} "
-            f"(revision {status['revision']}). Do not end the turn: {ask} Only an explicit user stop or pause "
-            "ends the run; then run the packet's pause command.")
+            f"(revision {status['revision']}). Do not end the turn: run `{status['next']}` "
+            "and follow the packet it prints. Only an explicit user stop or pause ends the run; "
+            "then run the packet's pause command.")
     if waiting:
         text += (" A background task is still running: wait for it in this turn (poll its "
                  "output), then continue the packet; do not end the turn to wait.")

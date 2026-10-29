@@ -691,32 +691,21 @@ class NavigatorLoopTests(fx.RunDriver):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
-    def test_the_stop_hook_names_the_loops_report_then_the_steps_own_callback(self):
-        # End to end on a real run (owed-outcome phase A): hook-status reads the stage's real receipt, the command the
-        # stop names is the loop's own read-only next, and once the loop ends the stop names the packet's own callback.
+    def test_a_stage_loop_moves_the_stop_hooks_progress_and_next_reprints_its_commands(self):
+        # End to end on a real run: hook-status reads the stage's real receipt, so a model working a stage's Until Loop
+        # is never released as idle. The stop asks for `next`, whose reprint carries the loop's commands and the step's
+        # callback (the 1.18.0 owed-report wording was removed: docs/shiploop-trims-plan-2026-10-28.md, T1).
         import shiploop_keepalive as keepalive
         self.start()
         self.drive_to("step-plan")
         before = self.hook_status()
-        self.assertEqual(before["loop"], {})  # not started: the packet, which prints the start command, is what to read
-        self.assertIn("follow the packet it prints", keepalive._continue_reason(before))
-        started = self.run_loop([])
+        self.run_loop([])
         active = self.hook_status()
-        self.assertEqual({key: active["loop"][key] for key in ("kind", "status", "iteration")},
-                         {"kind": "stage", "status": "active", "iteration": 1})
         self.assertNotEqual(active["progress"], before["progress"])
-        self.assertIn(f"run `{active['loop']['next']}`", keepalive._continue_reason(active))
-        reread = json.loads(subprocess.run(shlex.split(active["loop"]["next"]), text=True, capture_output=True,
-                                           check=True, timeout=30).stdout)
-        self.assertEqual((reread["status"], reread["done_argv"]), ("active", started["done_argv"]))
-        report = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
-                  "evidence": "Synthetic: the step plan is written.", "handoff": "Synthetic hand-off."}
-        subprocess.run(started["done_argv"], input=json.dumps(report), text=True, capture_output=True, check=True,
-                       timeout=30)
-        finished = self.hook_status()
-        self.assertEqual(finished["loop"]["status"], "complete")
-        self.assertIn(f"then run `{finished['callback']}`.", keepalive._continue_reason(finished))
-        self.assertIn(finished["callback"], self.packet())  # the very callback the step's packet prints
+        self.assertIn(f"run `{active['next']}` and follow the packet it prints.", keepalive._continue_reason(active))
+        reprint = subprocess.run(shlex.split(active["next"]), text=True, capture_output=True, check=True,
+                                 timeout=60).stdout
+        self.assertIn(f"--action={active['action']}", reprint)  # the step's own callback
 
     def test_the_implement_packet_and_its_loop_carry_the_stuck_rule(self):
         # What the model receives at implement (owner, 2026-10-28: a criterion, not a count): the duty in the packet,
