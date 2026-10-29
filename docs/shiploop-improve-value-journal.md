@@ -18,8 +18,8 @@ before scaling it to request size. This journal answers two things:
 
 ## Short answer
 
-- **The data neither support nor refute skipping the planning reviews on one-item plans. Keep them until a paired
-  on/off run decides.** The data price the cost of a skip, not its benefit. Cost: on the 17 one-item plans the four
+- **The data neither support nor refute skipping the planning reviews on one-item plans. Keep them until F1's
+  three-arm measurement decides** (per-stage, one bundle review at prepare, off; Recommendation 2). The data price the cost of a skip, not its benefit. Cost: on the 17 one-item plans the four
   planning reviews took 161.9 minutes, a median 3.5 minutes per run (14% of active time), for about 10 record fixes per
   run. Benefit: those fixes are substantive (a third are contradictions or checks that cannot be replayed), but no run
   has the reviews switched off, so what a missed fix costs later is unmeasured (F5, F6).
@@ -378,8 +378,9 @@ the DeepSeek named run. Evidence: "By plan size and stage group" (`behaviour` co
 
 **F4 (firm). Improve is about 28% of a completed run, not half.** Pass seconds divided by stage seconds over the 22
 completed runs: median 28.1%, range 8.7% to 43%. Improve passes total 793 minutes, of which planning stages 369 (47%).
-The named runs: battleship 102.3 of 372.5 minutes (27%), hello 42.0 of 152.3 (28%). The owner's "half" may use another
-denominator (for example model-active time); I did not find one that gives 50%.
+The named runs: battleship 102.3 of 372.5 minutes (27%), hello 42.0 of 152.3 (28%). The owner's "half" is a different
+window: Improve's share of the planning window in the D7 brownfield runs, 53-58%
+(`docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md`, F1, at `e166e7b3`). Both figures hold.
 
 **F5 (interim). The planning findings are substantive in kind.** Across all runs 469 planning findings were acted on:
 139 contradictions or checks that cannot be replayed (30%), 199 missing content (42%), 65 stale or wrong references
@@ -464,11 +465,19 @@ plans, 55 of them contradictions or unreplayable checks, several in records late
 passes with zero tests, a rollback using `git reset --hard`). Later stages already fix some records (23% of record-only
 fixes, F7), so there is overlap, but how much is unknown. The saving is small against that uncertainty.
 
-**2. Run the paired experiment before cutting anything, with the existing flag.** Hello and battleship, three runs each per
-arm, one model and one harness version, `--planning-review stage` versus `--planning-review none`; no ShipLoop change is
-needed. `none` keeps the release-plan review and drops the step-plan review, so it differs from the proposal there (F12). Compare (a) record defects the implement and system-test
-reviews then find, (b) their behaviour changes, (c) the release stage's own failures and send-backs, (d) minutes.
-`extract.py` and `analyze.py` already produce (a), (b) and (d) from any run folder.
+**2. Fold the paired experiment into F1's measurement (owner, 2026-10-29).** F1 (owner Q2, approved 2026-10-28) replaces
+the reviews after spec, test-strategy, plan and step-plan with one review of the planning bundle at prepare. It is not
+built yet, and it edits the Improve schedule code that design T (session "E2E (fork)") is rewriting. Running `stage`
+versus `none` now would measure a schedule about to change, and the bundle arm would need a second batch. So after design
+T lands and F1 is built, one batch on one pinned build measures three arms: per-stage (`--planning-review stage`),
+bundle at prepare (F1), and off (`--planning-review none`). This journal's inputs to it:
+- hello as the one-item case (on DeepSeek, battleship plans three items, so it cannot answer the one-item question);
+- the comparison: (a) record defects the implement and system-test reviews then find, (b) their behaviour changes, (c)
+  the release stage's own failures and send-backs, (d) minutes; `extract.py` and `analyze.py` already produce (a), (b)
+  and (d) from any run folder;
+- the decision rule, fixed before the runs: an arm replaces per-stage if every run finishes and passes its checks and (b)
+  and (c) are no worse than per-stage beyond the gap between per-stage runs 1-2 and 3-4; (a) and (d) are reported, not
+  decisive; F1's own gate (hidden checks stay 43/43) applies as well.
 
 **3. Hypotheses to put in that experiment.** (a) The `plan` review: lowest yield (19 findings in 17 children, 0.51 per
 minute, 4 contradictions), saves 2.2 minutes per run. A finding is not a fixed price, so this is a candidate, not a
@@ -476,9 +485,9 @@ conclusion. (b) Improve as a whole on one-step plans: 0 behaviour changes in 27 
 total; the proposal keeps exactly those build reviews, and the cell is seven hello runs. (c) Multi-item plans hold the
 larger record-only pool (planning and step-level 284 of 490 minutes) and the most record fixes (35 per run).
 
-**4. If `none` is no worse on one-item plans,** choose `planning_review` per run instead of defaulting to `stage`. Spec and
-test-strategy run before the plan exists, so that choice has to come from the request (for example the intake
-classification), not from the plan's item count (F12). This is a ShipLoop change and the owner's call.
+**4. If the bundle or the `none` arm is no worse on one-item plans,** choose it per run instead of defaulting to per-stage.
+Per-stage reviews of spec and test-strategy run before the plan exists, so they cannot follow the plan's item count; a
+bundle review at prepare runs after the plan, so it can (F12). This is a ShipLoop change and the owner's call.
 
 **5. Not recommended without the owner's go:** any change to pass limits or to the confirming pass (F8); the owner asked
 to be consulted before a loop limit is added or changed.
@@ -499,6 +508,11 @@ prompts and templates. Added F12 and the table "What each review was given, and 
 `start.json` and the run's `planning_review`); Recommendation 2 now names the existing `--planning-review none` flag, and
 a new Recommendation 4 notes that spec and test-strategy run before the plan's item count exists. No earlier count changed.
 
+**2026-10-29.** The owner held the stage/none experiment and folded it into F1's measurement (Recommendation 2). Reason: F1,
+already approved, replaces the per-stage planning reviews with one bundle review at prepare and edits the same Improve
+schedule code design T is rewriting, so a run now would measure a schedule about to change, and one three-arm batch
+replaces two. F4 now names the window behind the owner's "about half" (53-58% of the D7 planning window). No count changed.
+
 ## Limits
 
 - No counterfactual. The data show where fixes land and what they cost, not what happens without them.
@@ -517,6 +531,13 @@ Subjects: the models in `runs.json`. Tools: `extract.py` (git tree diffs, run re
 four Sonnet 5.5 labelling workers, `analyze.py`. Conditions: run folders read-only; no ShipLoop code changed; the
 canonical checkout was clean at `3d7b83a3` when the task began; other sessions have committed on `main` since. Code under test in the named
 runs: `337b09c5` (battleship) and `4e1c8df0` (hello), plugin 2.18.0, ShipLoop 1.17.0. Result: findings F1 to F9 and the interim recommendation above.
+
+**Round 2, planned 2026-10-28, held 2026-10-29.** Question: does turning the planning reviews off cost anything
+downstream? Design: hello and battleship, `--planning-review stage` versus `none`, 4 runs per arm (the harness's A/A rule),
+DeepSeek flash on Ollama (the owner's E2E default), one plugin pinned to `202b2643`, battleship one at a time (it leases
+port 3000). Estimate from the earlier DeepSeek runs: hello 58-152 min and battleship 166-372 min per run, about 31 hours
+of wall time, about 2.7 billion processed tokens. A Sonnet 5.5 alternative (both cases one-item, about 5 hours, about
+$95) was offered and not chosen. Not run: folded into F1's three-arm measurement (Recommendation 2, Revisions 2026-10-29).
 
 Harness and test-case changes: none. Supersedes: none.
 
