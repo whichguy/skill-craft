@@ -1407,6 +1407,160 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - shiploop-callback-contract: `test_a_plan_of_two_steps_marks_a_minimum_regression_or_gives_minimum_na`, through
       the real CLI. With HEAD's gate the two-step plan was accepted. Both routes are then accepted.
 
+**Step 3, the bookkeeping per step: design note (2026-10-28, written before the build).** Step 3 of the build order is
+"due-case projection, cumulative floors, shared baselines and obligation aggregation" (Astra's §9 rows 4 and 6). For
+each part, what the code already does, read at 2d's tip, and what step 3 builds:
+- **Due-case projection.** Built: 2a's `due_cases`, `new_cases` and `active_commands`, and 2d's grades. Nothing to
+  add.
+- **Cumulative floors.**
+  - *What exists.*
+    - A floor is keyed by command text (`floor_detail`).
+    - Its earlier-run term reads every run ShipLoop accepted for the item since its step plan (`accepted_counts`), so a
+      step's floor already carries the earlier steps' counts.
+    - The projection narrows only a command's IDs, never its text, and IDs only grow from step to step. So a carried
+      count stays reachable unless a test is removed, and `retired_tests` lowers it for a deliberate removal.
+  - *Gap 1: what the step owes is not added.* The carried count does not grow by the tests this step newly owes. A
+    step can delete an earlier step's unnamed tests (sub-cases, entry-point cases, a review's tests), add its own new
+    cases, and land on the same count. The base run does not catch it either: the deletion is in the changed test file
+    the base run copies in.
+  - *Build for gap 1.* At a step's test stage, the carried term becomes the earlier count plus this step's new IDs on
+    that command. The floor is then the largest of:
+    - the base count;
+    - the earlier count plus the new IDs;
+    - this action's own earlier runs.
+
+    Retired tests still lower it.
+  - *Not inheriting a count the step can no longer reach.* A new ID in `red_na` passes on the step's base, so its
+    test may already be in the earlier count. It is left out of the addition, and so is an ID a review registered
+    (below).
+  - *Gap 2: `min_tests` is the item's total.* At a step before every ID a focused command lists is due, the narrowed
+    command cannot reach it, and the only way out was to write a later step's case early, which the test duty forbids.
+  - *Build for gap 2.* The projection drops `min_tests` from a command whose IDs it narrowed. It holds from the step at
+    which all of them are due.
+- **Tests a review adds, registered by ID.**
+  - *What exists.* None. A step review's fix adds a test as a sub-case of the closest case (`TC-3 (a)`). The reruns
+    after it check only the step plan's IDs, so a test the review added in a file no recorded command runs, or later
+    deleted, goes unseen (Astra row 4: "`_test_rerun_gate` cannot detect a new test excluded by an old filter").
+  - *Build.* A done document result, and so the step review's final result, may carry
+    `added_tests: [{"id", "command"}]`:
+    - `id` is the start of the test's printed title (`TC-3 (a)`); the ID matcher already reads it as a phrase;
+    - `command` is one of the item's recorded focused or regression commands.
+
+    ShipLoop appends each registered ID to that command's IDs wherever the command runs afterwards: the review's own
+    import rerun, document's rerun, and every later step's test stage, document and review. So each of those runs must
+    show it. A registered ID is never a new ID, so the RED rule does not apply to it. The step review's focus asks for
+    the field.
+- **Shared baselines.**
+  - *What exists.* 2b-2's `_iteration_base` recaptures the item's lint base when a step hands over to the next. Lint,
+    the mutation check, the base run, document's left-out rule, the commit scope and the review diff read it.
+  - *Gap: every base caller passes `base_commit=preparatory_base(...)`.* These are the test gate's base run and
+    mutation check, the check-only route and the `red-check` CLI. When validate-existing committed a preparatory fix,
+    `_at_commit` moves the base to that commit, which predates step 1. So from step 2 on, the base run, the mutation
+    check and the red-check run on the tree before step 1, whenever the item had a preparatory fix. This is Astra's
+    "baseline callers still use the item/preparatory base".
+  - *Build.* The preparatory commit moves the base only while the base predates it, that is, at the first step.
+- **One revision-aware aggregate of every step's receipts and open obligations.**
+  - *What exists.*
+    - Document's open items come from every step's result since the item's latest send-back
+      (`assumptions.PER_STEP_STAGES`, `_step_actions`, 2b-3).
+    - The Builds-on lines list each step's implement result (`navigator._PER_STEP`, `_item_actions`, built from
+      history since the step plan).
+    - Each step's base and commit are in `RUN/iterations/<item>.json`.
+  - *Gap.*
+    - The test and document results are read through `current_actions`, which keeps one per (item, stage). So
+      carry-forward's Builds-on lines name only the last step's test and document, and system-test-author's item
+      records (`_ITEM_RECORDS`) name only the last step's test result and candidate run.
+    - An earlier step's `red_na`, `retired_tests` and lint waivers, and its document's knowledge record, drop out of
+      the packets that reconcile the item.
+    - The two per-step readers also define "current" twice: since the latest send-back, and since the latest step
+      plan.
+  - *Build.* One function, `planning_revision.step_actions(state, item, stage)`: every accepted done action of
+    `stage` for `item` since the item's latest accepted step plan and its latest send-back, in order. Open items,
+    `_item_actions` (now for implement, test and document) and the item records all read it.
+  - *Not built.* Astra's "each mock maps to a real system case and its owner" needs a mock field in the test spec,
+    which is lane C's.
+
+**Step 3 done (2026-10-29).** What landed, against the note above:
+- **A later step's base run holds only its new cases to RED.** This was found while building, and it is the largest
+  fix here. Lane D (edge-case tests) found it independently and landed the fix first, on the tip this commit is
+  rebased onto (`_earlier_step`, `earlier_steps` in the base record). Step 3 keeps that fix and adds the registered
+  tests to it.
+  - *The defect.* `_judge_base` held every ID a command lists to failing on the base. From S2 on, S1's cases pass
+    on S2's base, which is S1's commit. `red_na` may name only a new ID, so a step after the first could not get its
+    test stage accepted at all whenever a focused command spans steps.
+  - *Reproduced.* On 2d's code, S2's done was refused: "passed TC-1 on the item's base … name it in the result's
+    red_na". This is Astra's row 4: "S2's base check would reject already-green S1 cases". 2b-2 made `new_ids`
+    step-aware, but not the base run, and no test drove a counted command through two steps.
+  - *The fix.* `_base_run` counts, and does not judge, the IDs that are not new at the step: an earlier step's
+    cases and, from step 3, registered tests (`new_ids` never lists one). Their counts still set the floor.
+- **Cumulative floors** (`test_loop.floor_detail`, `accepted_counts(earlier_steps=True)`). At an inline step after
+  the first, the earlier-run term adds this step's new IDs on the command to the earlier steps' count. A `red_na` ID
+  is left out, and so is an ID a review registered. The refusal reads "at least 4: 3 in an earlier run plus this step's
+  1 new ID (TC-2)". The projection drops `min_tests` from a narrowed command (`iteration.active_commands`).
+- **Registered tests** (`test_loop.registered`, `ADDED_TESTS`).
+  - A done document result, and so the step review's final result, may carry `added_tests: [{"id", "command"}]`.
+    The canonical result checks the shape. `_check_added_tests` refuses a command the step plan did not record as
+    focused or regression, at complete and at the review's import.
+  - `stage_commands` lists each registered ID after the command's own, from the item's accepted document results
+    under its current step plan. The review's import rerun and document's rerun also take the rows of the result not
+    accepted yet.
+  - `new_ids` never counts a registered ID, so it is never held to RED.
+  - The step review's focus asks for the field: "listed in the final result's `added_tests`".
+- **Shared baselines** (`navigator.test_base_commit`). The test gate's base run and mutation check, the check-only
+  route and the `red-check` CLI move the base to the preparatory commit only while the base predates it
+  (`merge-base --is-ancestor`). `preparatory_base` still names the commit in the Builds-on lines.
+  - *The effect, driven through the real gates* (`test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit`).
+    With the fix as every step's base, a test S2 writes that already passes on S2's base looked RED there, because
+    the older tree lacks S1's work, and was accepted without `red_na`. Now S2 refuses it, and S2's base record starts
+    from the commit S1 made.
+- **The aggregate** (`planning_revision.step_actions`).
+  - It returns every accepted done action of a stage for the item, after its latest accepted step plan and its
+    latest send-back.
+  - Open items (`assumptions.open_items`, replacing `_step_actions`), the Builds-on lines (`_item_actions`) and the
+    not-covered hand-off read it.
+  - carry-forward and system-test-author (`_EVERY_STEP_READERS`) list every step's implement, test and document
+    results. Every other packet that reads a test or document result lists the latest one.
+  - An inline step's result is labelled with its step in every packet ("W1 test S1 result"), because an artifact
+    keeps one label across the run (`shiploop-packet-completeness`). The first cut labelled only the item-wide
+    readers' lines, and that suite refused it: the same result read "W1 test result" at document and "W1 test S1
+    result" at carry-forward. The ask-agent route's one action names no step, so its implement line no longer reads
+    "S1".
+- **Caught by the tier, not by the suites I ran first** (they were outside the set I touched):
+  - `shiploop-packet-completeness` (the labels, above);
+  - `shiploop-delegation`: the step review's new `added_tests` example named `TC-3`, and step 1's review may not
+    mention a later step's case, so the example is now `<case ID> (a)`;
+  - `shiploop-test-loop`: the carry-forward line for the item commit reads "W1 document S1 item commit";
+  - `shiploop-package-integrity` and `shiploop-head-order` (reported by the main session from the tip): see References.
+- **Decisions kept.**
+  - *The addition counts only the earlier steps' runs.* Runs accepted inside the step being tested are never added
+    to, so a count is never added twice.
+  - *Registration rides on the document result.* A step review's final result replaces its document's accepted
+    result, so registration needs no ledger of its own and survives in state. A review that adds no test writes no
+    final result for it.
+  - *A test no recorded command runs is a send-back.* The refusal says so. A step review cannot add a command.
+- **Not built.** Mapping each mock to a real system case and its owner (lane C's test-spec mock field).
+- **References.** The floors that add up and the registered tests are written in
+  `testing-and-documentation.md#floors-and-their-known-limits`. `references/test-loop.md` only points to them, because
+  `shiploop-package-integrity` bounds it at 8,192 bytes (`test/fixtures/shiploop-card-ledger.json`, `file_max_bytes`):
+  it was 8,186 at 8d768519, 8,449 with the edge-case wording and 8,990 with 2d, and step 3's first draft made it
+  9,209. It is 8,096 now. 2d's tiers, the floors and release-verify's copy rules point to the other reference, the
+  base-run paragraph is tightened, and every anchor in the ledger stays. One sentence the workspace card is pinned
+  against (`shiploop-guidance`: "clean copy of the result the workspace return delivered", `consumer-check`) stays here.
+- **Size.** inline carry-forward +21 (head 14,298 -> 14,319, whole 17,179 -> 17,200), from seven step labels in its Builds-on lines; the ask-agent test and document heads -7 each (18,231 -> 18,224 and 15,657 -> 15,650), because the one implement action no longer reads "S1". The step review's `added_tests` clause is in the Improve handoff (improve-route's bounds), not in a producer packet.
+- **Evidence.** Fail-first tests, each seen failing on 2d's code:
+  - shiploop-test-loop:
+    - `test_a_later_steps_base_run_holds_only_its_new_cases_to_red`, a two-step drive through the real gates;
+    - `CountFloorTests.test_a_later_step_owes_the_earlier_steps_count_plus_its_own_new_cases`, which was accepted
+      with 3;
+    - `test_a_test_the_step_review_adds_is_registered_by_id_and_every_later_rerun_must_show_it`, where the import was
+      not refused;
+    - `SharedBaseTests`, where the function was missing;
+    - `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit`, which fails with `test_base_commit`
+      patched back to `preparatory_base` ("NavigatorError not raised"): the main session's item 3;
+  - shiploop-iteration: `test_a_narrowed_command_is_held_to_min_tests_only_once_every_id_it_lists_is_due`;
+  - shiploop-handoff `StepAggregateTests`, where the lists held only the last step's test.
+- **Tier.** `run-all.sh --group quick --group shiploop --changed-from <merge-base with origin/main>`; its summary is in this commit's message.
+
 **9.2 New decisions:**
 - **G1. The ask-agent route.** **Decided 2026-10-29 (the owner): "Adopt (a2)".** The same step boundaries, so one
   lifecycle: no chain, one implement action per step, run by a fresh worker in the execution checkout, and ShipLoop's

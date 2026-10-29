@@ -140,6 +140,19 @@ stage ran; the ask-agent route's one test stage runs every recorded command.
 
 ### Floors and their known limits
 
+Floors add up across an inline item's steps. A step's test stage may not run fewer tests than an earlier step's accepted
+run of the same command plus the IDs newly due at this step that the command lists, so a step cannot replace an earlier
+step's unnamed tests (sub-cases, entry-point cases, a review's tests) with its own and keep the count. A new ID in
+`red_na` passes on the step's base, so its test may already be in the earlier count, and it is not added. A command
+whose IDs a step narrows is held to its `min_tests` only from the step at which all of them are due.
+
+A test the step's `document` stage or its review adds after the test stage is registered in the result's
+`added_tests: [{"id": "<the start of its printed title, for example TC-3 (a)>", "command": "<a recorded focused or
+regression command>"}]` (the review lists it in its final result). From then on every run of that command must show it:
+the review's import, the document rerun, and each later step's test stage, document and review. A registered test is
+never a new ID, so it is never held to RED. A test no recorded command runs needs a send-back, so the step plan records
+its command.
+
 `min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the
 `test` stage, each step's `document` rerun may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go

@@ -2545,8 +2545,10 @@ and KNOWLEDGE, any of these:
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.
 Each fix that changes behaviour adds a test that fails without it, as a sub-case
-of the closest case, and corrects the docs it affects; change an existing test
-only for an independent reason you record, and never weaken, delete or skip one.
+of the closest case, listed in the final result's `added_tests`
+(`{"id": "<case ID> (a)", "command": "<its recorded command>"}`), and corrects the
+docs it affects; change an existing test only for an independent reason you
+record, and never weaken, delete or skip one.
 Do not start a later step or edit the Proof. After each edit rerun the step's
 recorded commands and ShipLoop's lint (its command is under Commit when the run
 lints), and record their exit codes: ShipLoop lints the lines you changed and

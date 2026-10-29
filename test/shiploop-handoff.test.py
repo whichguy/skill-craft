@@ -3026,6 +3026,45 @@ class ItemRecordsTests(RepoCase):
         self.assertNotIn("from state.md's accepted history with the locators it kept", duty)
 
 
+class StepAggregateTests(RepoCase):
+    """Design T §9.1 step 3 (Astra's §9 row 6: "One revision-aware aggregate of every step's receipts and open
+    obligations"): an item runs implement, test and document once per step, and ``current_actions`` keeps one result per
+    (item, stage), so the packets that reconcile an item read every step's results through one function."""
+
+    def two_step_item(self, stage: str, *extra: tuple) -> dict:
+        rows = [row("sp", "step-plan", "W1", {"steps": [{"id": "S1"}, {"id": "S2"}]}), row("ts", "test-spec", "W1", {}),
+                row("im1", "implement", "W1", {}), row("te1", "test", "W1", {}), row("dc1", "document", "W1", {}),
+                row("im2", "implement", "W1", {}), row("te2", "test", "W1", {}), row("dc2", "document", "W1", {}),
+                *extra]
+        return {**self.state, "status": "active", "delegation": "inline", "stage": stage, "work_index": 0,
+                "work_items": [{"id": "W1", "title": "one"}], "completed_work_items": ["W1"],
+                "history": [history for history, _ in rows], "accepted": {history["action"]: r for history, r in rows}}
+
+    def test_every_step_of_an_inline_item_is_listed_where_the_item_is_reconciled(self) -> None:
+        import shiploop_planning_revision as planning_revision
+        state = self.two_step_item("system-test-author")
+        lines = [line for line in navigator._builds_on_lines(self.root, state, "system-test-author", None)
+                 if line.startswith("- W1")]
+        self.assertEqual(lines, ["- W1 step-plan result: RUN/results/sp.md", "- W1 test-spec result: RUN/results/ts.md",
+                                 "- W1 test S1 result: RUN/results/te1.md", "- W1 test S2 result: RUN/results/te2.md"])
+        state = self.two_step_item("carry-forward")
+        lines = [line for line in navigator._builds_on_lines(self.root, state, "carry-forward", "W1")
+                 if line.startswith("- W1")]
+        for label, action in (("test S1", "te1"), ("test S2", "te2"), ("document S1", "dc1"), ("document S2", "dc2")):
+            self.assertIn("- W1 " + label + " result: RUN/results/" + action + ".md", lines)
+        self.assertEqual([planning_revision.step_actions(state, "W1", stage) for stage in ("implement", "test", "document")],
+                         [["im1", "im2"], ["te1", "te2"], ["dc1", "dc2"]])
+
+    def test_a_send_back_or_a_new_step_plan_starts_the_aggregate_again(self) -> None:
+        import shiploop_planning_revision as planning_revision
+        state = self.two_step_item("step-plan", row("dc3", "document", "W1", {}, outcome="send-back"))
+        self.assertEqual(planning_revision.step_actions(state, "W1", "test"), [])
+        state = self.two_step_item("test", row("sp2", "step-plan", "W1", {"steps": [{"id": "S1"}]}),
+                                   row("im3", "implement", "W1", {}), row("te3", "test", "W1", {}))
+        self.assertEqual(planning_revision.step_actions(state, "W1", "test"), ["te3"])
+        self.assertEqual(planning_revision.step_actions(state, "W2", "test"), [])
+
+
 def stage_spec_duty(stage: str) -> str:
     import shiploop_prompts as prompts
     return prompts.prompt(stage)

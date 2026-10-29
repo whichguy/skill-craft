@@ -199,7 +199,8 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
                     steps: Sequence[Mapping[str, Any]], number: int) -> list[dict[str, Any]]:
     """The recorded commands step ``number``'s test stage runs, as copies.
     - A command with ``ids`` runs from the first step one of them is due at, narrowed to the IDs due by step ``number``;
-      an ID no case names is due at the last step.
+      an ID no case names is due at the last step.  A narrowed command drops its ``min_tests``, which counts the tests
+      of every ID it lists: it holds from the step at which all of them are due (step 3).
     - A regression command marked ``minimum`` runs at every step; an unmarked one, the exhaustive regression, only at
       the last (design T §9.1 2d; owner 2026-10-28: "we don't do exhaustive regressions on every iteration").  A
       focused command that is also the minimum regression runs as that regression alone, with no IDs and no criteria,
@@ -207,7 +208,7 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
     - Any other command (a check) runs from the last step its ``criteria`` are due at, or at the last step when it
       names none.  This is what lets a check that only a later step can satisfy wait for it (a run of 2026-10-17
       collapsed a three-step plan into one step when it could not).
-    How many tests each command must run per step (its floor) is build order step 3's."""
+    How many tests each command must run at a step beyond that is its floor (``shiploop_test_loop.floor_detail``)."""
     _number(steps, number)
     due_at = {str(case.get("id")): _due(case.get("criterion"), steps) for case in cases}
     active = []
@@ -222,6 +223,8 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
                 row = {key: value for key, value in row.items() if key in ("command", "minimum", "host_dependent",
                                                                            "target")}
                 row["suite"] = "regression"
+            elif len(row["ids"]) < len(ids):
+                row.pop("min_tests", None)
         elif command.get("suite") == "regression":
             if not command.get("minimum") and number < len(steps):
                 continue

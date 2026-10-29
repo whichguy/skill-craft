@@ -53,6 +53,7 @@ from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Seque
 
 import shiploop_iteration as iteration
 import shiploop_lint as lint
+import shiploop_planning_revision as planning_revision
 import shiploop_prompts as guidance
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -97,6 +98,9 @@ BASE_SCHEMA = "shiploop-test-base/v1"
 # Result fields of the test stage, validated by ``check_result_fields``.
 RED_NA = "red_na"
 RETIRED_TESTS = "retired_tests"
+# A done document result's field (and so its step review's final result's): each test it added after the test stage,
+# by the ID its title starts with and the recorded command that runs it (design T §9.1 step 3).
+ADDED_TESTS = "added_tests"
 
 Runner = Callable[..., Tuple[str, Optional[int], bytes, bytes]]
 
@@ -347,14 +351,17 @@ def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, An
     return {}
 
 
-def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, Any]], str]:
+def stage_commands(state: Mapping[str, Any], stage: str, work_item: str,
+                   added: Sequence[Mapping[str, Any]] = ()) -> Tuple[List[Dict[str, Any]], str]:
     """This stage's commands and, when there are none, why.
 
     The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An inline implement step and its
     Improve review run only that step's Proof, the step plan's ``check`` for it (``step_command``: the implement-step
     fix plan's section 4.1); the item's commands stay with the test stage and document.  Every other item stage, and the
     ask-agent route's one implement action for every step, runs every command the latest accepted step plan recorded.
-    The base run takes the focused and regression ones (``base_commands``).
+    The base run takes the focused and regression ones (``base_commands``).  At an item stage each command lists, after
+    its own IDs, the tests registered for it (``registered``; ``added`` are the rows of a result not accepted yet), so
+    every run of it from then on must show them.
     """
     if stage in STEP_PROOF_STAGES:
         step = step_command(state, work_item)
@@ -378,8 +385,36 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
         if not commands:
             return [], (NONE_DUE + str(_plan_steps(result)[-1].get("id")))
     if commands:
-        return commands, ""
+        return _with_registered(commands, registered(state, work_item, added)), ""
     return [], str(result.get("test_commands_na") or "")
+
+
+def registered(state: Mapping[str, Any], work_item: str,
+               added: Sequence[Mapping[str, Any]] = ()) -> Dict[str, List[str]]:
+    """{command: [test IDs]}: the tests registered for the item under its current step plan, from every step's accepted
+    document result (a step review's final result becomes its document's) and then ``added``.  Astra's §9 row 4: a
+    test a review adds is registered by ID, so the reruns that follow run it, where an old filter would leave it out
+    unseen."""
+    rows: List[Any] = []
+    for action in planning_revision.step_actions(state, work_item, STEP_RERUN_STAGE):
+        result = (state.get("accepted") or {}).get(action)
+        rows += list(result.get(ADDED_TESTS) or ()) if isinstance(result, Mapping) else []
+    found: Dict[str, List[str]] = {}
+    for row in [*rows, *(added or ())]:
+        if isinstance(row, Mapping) and row.get("id") and row.get("command"):
+            ids = found.setdefault(str(row["command"]), [])
+            if str(row["id"]) not in ids:
+                ids.append(str(row["id"]))
+    return found
+
+
+def _with_registered(commands: List[Dict[str, Any]], found: Mapping[str, Sequence[str]]) -> List[Dict[str, Any]]:
+    """``commands``, each listing after its own IDs the registered ones it does not list yet."""
+    merged = []
+    for row in commands:
+        extra = [test_id for test_id in found.get(row["command"], ()) if test_id not in (row.get("ids") or ())]
+        merged.append(dict(row, ids=[*(row.get("ids") or ()), *extra]) if extra else row)
+    return merged
 
 
 # Why a step before the last can have no command to run: its plan marks no minimum regression (minimum_na) and none of
@@ -456,13 +491,14 @@ def base_commands(state: Mapping[str, Any], work_item: str) -> List[Dict[str, An
 def new_ids(state: Mapping[str, Any], work_item: str) -> List[str]:
     """Every test ID a focused command lists that this step adds: the new tests, which must not pass on the base.  At an
     inline step (design T §8) an earlier step's cases already pass on this step's base, so only the cases due at this
-    step are new (``iteration.new_cases``)."""
+    step are new (``iteration.new_cases``).  A registered test (``registered``) was added after an earlier test stage
+    and passes on a later base, so it is never new."""
     number = step_number(state, work_item)
     cases = _test_cases(state, work_item)
-    earlier: set[str] = set()
+    earlier: set[str] = {test_id for ids in registered(state, work_item).values() for test_id in ids}
     if number is not None:
         due = iteration.due_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number)
-        earlier = set(due) - set(iteration.new_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number))
+        earlier |= set(due) - set(iteration.new_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number))
     seen: Dict[str, None] = {}
     for row in base_commands(state, work_item):
         if row["suite"] == "focused":
@@ -994,22 +1030,29 @@ def _next_attempt(root: Path, action: str) -> int:
     return _verify_count(root, action) + _base_count(root, action) + _mutation_count(root, action) + 1
 
 
-def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str) -> Dict[str, int]:
+def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str, *,
+                    earlier_steps: bool = False) -> Dict[str, int]:
     """Per command, the most tests any run ShipLoop accepted for this work item has run since its latest step plan.
 
     Read from the item's ``tests/<action>-verify<N>.md`` records, so no state key holds it: the passed records of the
     actions accepted after the item's latest accepted step plan (the history is append-only, so a revised step plan
     starts the count again), and in them the runs ShipLoop accepted whose output it could count.  Empty for the outer
     stages and the end-of-work review (``work_item`` is empty).  An action ShipLoop has not accepted yet is not in the
-    history, so its record sets no floor here (``action_counts`` reads it).
+    history, so its record sets no floor here (``action_counts`` reads it).  ``earlier_steps`` keeps only the runs of
+    the steps before the inline step being tested: the actions accepted before its build (design T §9.1 step 3).
     """
     plan, _result = _step_plan(state, work_item)
     if not work_item or plan is None:
         return {}
     history = list(state.get("history", ()))
     first = max(i for i, row in enumerate(history) if row.get("action") == plan) + 1
+    last = len(history)
+    if earlier_steps:
+        builds = [i for i, row in enumerate(history[first:], first) if row.get("stage") == "implement"
+                  and row.get("workitem") == work_item and row.get("outcome") == "done"]
+        last = builds[-1] if builds else first
     most: Dict[str, int] = {}
-    for action in dict.fromkeys(row.get("action") for row in history[first:] if row.get("workitem") == work_item):
+    for action in dict.fromkeys(row.get("action") for row in history[first:last] if row.get("workitem") == work_item):
         for number in range(1, _verify_count(root, str(action)) + 1):
             record = store.read_record(Path(root) / verify_path(str(action), number))
             if not isinstance(record, Mapping) or not record.get("passed"):
@@ -1062,20 +1105,32 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
 
     ``check`` (``shiploop check``) takes the base run that check just made (``base_check_path``), so the check holds
     its candidate to the floor ``complete`` sets from the same run (F15, owed-outcome journal).
+    At an inline step after the first the floors add up (design T §9.1 step 3): an earlier step's count carries, plus
+    the IDs newly due at this step that the command lists, so a step cannot replace an earlier step's unnamed tests
+    with its own and keep the count.  A new ID in ``red_na`` passes on the step's base, so its test may be in the
+    earlier count already, and is not added.
     """
     root = Path(root)
     base = (_check_base(root, action) if check else _latest_base(root, action, passed=True)) or {}
     base_runs = {run.get("command"): run for run in base.get("runs") or ()}
-    earlier = accepted_counts(root, state, work_item)
-    for command, ran in action_counts(root, action).items():
-        earlier[command] = max(earlier.get(command, 0), ran)
+    every, own = accepted_counts(root, state, work_item), action_counts(root, action)
+    carried = accepted_counts(root, state, work_item, earlier_steps=True) if step_number(state, work_item) else {}
+    exempt = {row["id"] for row in _id_records(result, RED_NA)}
+    new = [test_id for test_id in new_ids(state, work_item) if test_id not in exempt] if carried else []
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
     detail: Dict[str, Dict[str, Any]] = {}
     for row in base_commands(state, work_item):
         command = row["command"]
         run = base_runs.get(command) or {}
         base_ran = (run.get("counts") or {}).get("ran") if isinstance(run.get("counts"), Mapping) else None
-        before = earlier.get(command)
+        owed = [test_id for test_id in row.get("ids") or () if test_id in new] if command in carried else []
+        earlier = [(count, str(count) + " in an earlier run") for count in (every.get(command), own.get(command))
+                   if isinstance(count, int)]
+        if owed:
+            plural = "" if len(owed) == 1 else "s"
+            earlier.append((carried[command] + len(owed), str(carried[command]) + " in an earlier run plus this step's "
+                            + str(len(owed)) + " new ID" + plural + " (" + ", ".join(owed) + ")"))
+        before, said = max(earlier, key=lambda term: term[0], default=(None, ""))
         gone = [test_id for test_id in retired if test_id in (run.get("retired_shown") or ())]
         seen = [test_id for test_id in retired if test_id in (base.get("retired_seen") or ())]
         # The base term drops the retired tests this command showed on the base; the earlier-run term cannot tell
@@ -1088,7 +1143,7 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
             if isinstance(base_ran, int):
                 parts.append(str(base_ran) + " on the base")
             if isinstance(before, int):
-                parts.append(str(before) + " in an earlier run")
+                parts.append(said)
             text = "the larger of " + " and ".join(parts) if len(parts) > 1 else parts[0]
             if gone or seen:
                 text += ", less the retired " + ", ".join(dict.fromkeys(gone + seen))
@@ -1893,7 +1948,8 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
     # RED holds only this step's new cases (design T §9 row 4): an earlier step's cases already pass on this step's base,
     # which is what they should do, so the base run does not judge them (``new_ids``), and a command holding only those
-    # cases, with or without IDs, is counted (``_earlier_step``).
+    # cases, with or without IDs, is counted (``_earlier_step``).  A test registered after an earlier test stage
+    # (``registered``) is not new either, so it is counted here too (design T §9.1 step 3).
     new = set(new_ids(state, work_item))
     earlier = [test_id for row in commands if row["suite"] == "focused" for test_id in row.get("ids") or ()
                if test_id not in new]

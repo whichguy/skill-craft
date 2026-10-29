@@ -187,12 +187,12 @@ class OpenItem(NamedTuple):
 def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
     """Every open row still open, from each current result at ``STAGES``, in the order the results were accepted.
 
-    Current means ``planning_revision.current_actions``, and for a ``PER_STEP_STAGES`` stage every step's result since
-    the item's latest send-back (``_step_actions``).  The plan's rows (due_item: a work item) stay open, as the
-    ledger never updates a disposition.  A later stage's row is settled once a done result of its due stage (for
-    carry-forward, the same item's) is current and was accepted after the row's result; a row that result carries
-    forward (the same ID, open again) is its own row from then on.  A due stage with no assumptions field settles by its
-    done result.
+    Current means ``planning_revision.current_actions``, and for a ``PER_STEP_STAGES`` stage every step's result under
+    the item's current step plan (``planning_revision.step_actions``).  The plan's rows (due_item: a work item) stay
+    open, as the ledger never updates a disposition.  A later stage's row is settled once a done result of its due
+    stage (for carry-forward, the same item's) is current and was accepted after the row's result; a row that result
+    carries forward (the same ID, open again) is its own row from then on.  A due stage with no assumptions field
+    settles by its done result.
     """
     current = planning_revision.current_actions(state)
     accepted = state.get("accepted") or {}
@@ -204,7 +204,8 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
     for (workitem, stage), latest in current.items():
         if stage not in STAGES:
             continue
-        for action in (_step_actions(state, workitem, stage) if stage in PER_STEP_STAGES else (latest,)):
+        for action in (planning_revision.step_actions(state, workitem, stage) if stage in PER_STEP_STAGES
+                       else (latest,)):
             result = accepted.get(action)
             if not isinstance(result, Mapping):
                 continue
@@ -215,21 +216,6 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
                     continue
                 found.append((order.get(action, -1), position, OpenItem(stage, workitem, action, row)))
     return [item for _, _, item in sorted(found, key=lambda entry: (entry[0], entry[1]))]
-
-
-def _step_actions(state: Mapping[str, Any], workitem: Any, stage: str) -> List[str]:
-    """Every accepted done ``stage`` action of ``workitem`` since its latest send-back, in history order: the steps of the
-    item's current step plan (a send-back replans the item, and ``current_actions`` drops its results the same way)."""
-    accepted = state.get("accepted") or {}
-    found: List[str] = []
-    for entry in state.get("history") or ():
-        if not isinstance(entry, Mapping) or entry.get("workitem") != workitem:
-            continue
-        if entry.get("outcome") == "send-back":
-            found = []
-        elif entry.get("stage") == stage and entry.get("outcome") == "done" and entry.get("action") in accepted:
-            found.append(str(entry["action"]))
-    return found
 
 
 def _settled(row: Mapping[str, Any], produced: int, workitem: Any, current: Mapping[Tuple[Any, str], str],

@@ -258,6 +258,16 @@ class DueCaseTests(unittest.TestCase):
         self.assertEqual([row["command"] for row in iteration.active_commands([unnamed], [], BATTLESHIP_STEPS, 3)],
                          ["make check"])
 
+    def test_a_narrowed_command_is_held_to_min_tests_only_once_every_id_it_lists_is_due(self):
+        """Design T §9.1 step 3: ``min_tests`` counts the tests of every ID a command lists, so a step that owes only some
+        of them cannot reach it; the projection drops it there, and the last step's command keeps it."""
+        server = dict(SERVER, min_tests=8)
+        at_two = next(row for row in iteration.active_commands([server], BATTLESHIP_CASES, BATTLESHIP_STEPS, 2))
+        self.assertNotIn("min_tests", at_two)
+        self.assertEqual(iteration.active_commands([server], BATTLESHIP_CASES, BATTLESHIP_STEPS, 3), [server])
+        game = dict(GAME, min_tests=6)  # every ID due at S1: held from S1 on
+        self.assertEqual(iteration.active_commands([game], BATTLESHIP_CASES, BATTLESHIP_STEPS, 1), [game])
+
     def test_the_last_step_runs_every_command_as_recorded(self):
         self.assertEqual(iteration.active_commands(BATTLESHIP_COMMANDS, BATTLESHIP_CASES, BATTLESHIP_STEPS, 3),
                          BATTLESHIP_COMMANDS)

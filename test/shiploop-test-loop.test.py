@@ -777,7 +777,7 @@ class TestLoopTests(unittest.TestCase):
         git(self.repo, "commit", "-q", "--allow-empty", "-m", "feat: W1 Synthetic item commit")
         self.assertEqual(nav._item_commit_product(self.run_dir, state, "W1", document),
                          "the WORKTREE commit whose subject starts 'feat: W1 '")
-        self.assertIn("- W1 document item commit: the WORKTREE commit whose subject starts 'feat: W1 '", self.packet())
+        self.assertIn("- W1 document S1 item commit: the WORKTREE commit whose subject starts 'feat: W1 '", self.packet())
         self.assertIsNone(nav._item_commit_product(self.run_dir, state, "W", document))  # 'feat: W1' is not item W's
 
     def test_a_one_step_one_item_carry_forward_prints_the_short_queue_and_skill_duties(self):
@@ -2716,6 +2716,145 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "fixed.txt").write_text("fixed again\n")           # the route: fix it, complete again
         nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
 
+    REGISTERED = "sh check.sh fixed.txt; cat names.txt 2>/dev/null; true"
+
+    def test_a_test_the_step_review_adds_is_registered_by_id_and_every_later_rerun_must_show_it(self):
+        """Design T §9.1 step 3 (Astra's §9 row 4: "Register review-added test identities too: `_test_rerun_gate` cannot
+        detect a new test excluded by an old filter"): the step review names each test it adds in its final result's
+        `added_tests`, and from its own import on every rerun of that command must show it.  A registered test is no
+        new case, so the RED rule never asks it to fail on a base."""
+        self.start()
+        plan = {"test_commands": [{"command": self.REGISTERED, "suite": "focused", "criteria": ["C1"]}, COMMANDS[1]],
+                "paths": ["a.py"], "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        self.drive_to("document", step_plan=plan, each=change)
+        self.complete(DONE)
+        state = self.state()
+        child = state["active_improve"]
+        action = child["action_id"]
+        final = dict(child["seed_result"], added_tests=[{"id": "TC-1 (a)", "command": self.REGISTERED}])
+        receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT, "final_result": final}
+        (self.repo / "a.py").write_text("import os\nimport sys\n")       # the review's fix; its test is not run yet
+        with self.assertRaises(nav.NavigatorError) as caught:
+            nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
+        self.assertIn("TC-1 (a)", str(caught.exception))
+        (self.repo / "names.txt").write_text("ok - TC-1 (a) rejects an empty name\n")
+        nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)
+        after = nav.finish_improve(state, action, {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"],
+                                                   "check_refs": ["synthetic://c"]}, final_result=final)
+        row = next(row for row in test_loop.stage_commands(after, "test", "W1")[0] if row["command"] == self.REGISTERED)
+        self.assertEqual(row["ids"], ["TC-1 (a)"])
+        self.assertNotIn("TC-1 (a)", test_loop.new_ids(after, "W1"))
+        with self.assertRaisesRegex(nav.NavigatorError, "added_tests is allowed only on a done document result"):
+            nav._canonical_result(dict(DONE, added_tests=final["added_tests"]), stage="test")
+        with self.assertRaisesRegex(nav.NavigatorError, 'added_tests entries each need id, command'):
+            nav._canonical_result(dict(DONE, added_tests=[{"id": "TC-1 (a)"}]), stage="document")
+        with self.assertRaisesRegex(nav.NavigatorError, "added_tests names `make test`, which is not a focused or "
+                                    "regression command this item's step plan recorded"):
+            nav._check_added_tests(state, "document", dict(DONE, added_tests=[{"id": "TC-1 (a)", "command": "make test"}]))
+
+    # One test per tests/<ID>.case file, which names the product file its case needs; unittest-style lines and summary.
+    CASES = ('n=0; f=0; for t in tests/*.case; do [ -f "$t" ] || continue; id=$(basename "$t" .case); n=$((n+1)); '
+             'if [ -f "$(cat "$t")" ]; then echo "$id ... ok"; else echo "$id ... FAIL"; f=$((f+1)); fi; done; '
+             'echo "Ran $n tests in 0.001s"; if [ "$f" = 0 ]; then echo OK; else echo "FAILED (failures=$f)"; exit 1; fi\n')
+    CASE_PLAN = {"test_commands": [{"command": "sh cases.sh", "suite": "focused", "ids": ["TC-1", "TC-2"],
+                                    "criteria": ["C1", "C2"]}],
+                 "minimum_na": "The focused suite is the item's only suite.",
+                 "paths": ["one.txt", "two.txt", "tests/*.case"],
+                 "criteria": [{"id": "C1", "text": "one.txt exists."}, {"id": "C2", "text": "two.txt exists."}],
+                 "steps": [{"id": "S1", "task": "Add one.txt.", "paths": ["one.txt"], "proof": "test -f one.txt",
+                            "criteria": ["C1"]},
+                           {"id": "S2", "task": "Add two.txt.", "paths": ["two.txt"], "proof": "test -f two.txt",
+                            "criteria": ["C2"], "deps": ["S1"]}]}
+
+    def test_a_later_steps_base_run_holds_only_its_new_cases_to_red(self):
+        """Design T §9.1 step 3 (Astra's §9 row 4: "S2's base check would reject already-green S1 cases"): S2's base is S1's
+        commit, where S1's case already passes.  The base run judged every ID a command lists as new, and red_na may name
+        only a new ID, so S2's test stage could not be accepted at all; only the IDs due at this step must fail there."""
+        (self.repo / "cases.sh").write_text(self.CASES)
+        (self.repo / "tests").mkdir()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the case runner")
+        self.start()
+        self.drive_to("test-spec", step_plan=self.CASE_PLAN)
+        self.complete(dict(DONE, test_cases=[
+            {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "one.txt exists", "red": "it is missing",
+             "green": "it exists"},
+            {"id": "TC-2", "criterion": "C2", "requirement": "R-1", "oracle": "two.txt exists", "red": "it is missing",
+             "green": "it exists"}]))
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                name = "two.txt" if (self.repo / "one.txt").exists() else "one.txt"
+                (self.repo / name).write_text(name + "\n")
+        self.drive_to("test", step_plan=self.CASE_PLAN, each=build)
+        (self.repo / "tests" / "TC-1.case").write_text("one.txt")
+        self.pass_loop()
+        state = self.drive_to("test", step_plan=self.CASE_PLAN, each=build)
+        self.assertEqual(test_loop.step_number(state, "W1"), 2)
+        self.assertEqual(test_loop.new_ids(state, "W1"), ["TC-2"])
+        (self.repo / "tests" / "TC-2.case").write_text("two.txt")
+        self.pass_loop()                                    # refused before: TC-1 passes on S2's base
+        record = store.read_record(self.run_dir / test_loop.base_path(self.action_of("test", 2), 1))
+        self.assertTrue(record["passed"], record)
+        self.assertEqual(record["runs"][0]["id_outcomes"], {"TC-2": "failed"})
+
+    def action_of(self, stage: str, number: int) -> str:
+        """The ``number``-th accepted ``stage`` action of W1, from 1."""
+        return [row["action"] for row in self.state()["history"]
+                if row["stage"] == stage and row["workitem"] == "W1" and row["outcome"] == "done"][number - 1]
+
+    def test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit(self):
+        """Design T §9.1 step 3, shared baselines (the main session's item 3): validate-existing's preparatory fix moved
+        the base of every step's base run to its commit, which predates S1.  At S2 a test that already passes on S2's
+        base, where S1's work is, then looked RED there (the S1 work is missing from the older tree) and was accepted
+        without red_na.  Only S1's base moves to the fix; S2's base is the commit S1 made."""
+        (self.repo / "cases.sh").write_text(self.CASES)
+        (self.repo / "tests").mkdir()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the case runner")
+        plan = dict(self.CASE_PLAN, paths=[*self.CASE_PLAN["paths"], "prep.txt"])
+        self.start()
+        self.drive_to("test-spec", step_plan=plan)
+        # validate-existing's preparatory fix, committed and recorded as ShipLoop does, after the item's base was
+        # captured and before S1's iteration starts (which takes HEAD as its base).
+        (self.repo / "prep.txt").write_text("prepared\n")
+        git(self.repo, "add", "prep.txt")
+        git(self.repo, "commit", "-qm", "fix: preparatory fix for W1")
+        fix = [git(self.repo, "rev-parse", "HEAD").strip()]
+        record = self.run_dir / "expectations" / "W1-preparatory-commit.txt"
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(fix[0] + "\n")
+        self.complete(dict(DONE, test_cases=[
+            {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "one.txt exists", "red": "it is missing",
+             "green": "it exists"},
+            {"id": "TC-2", "criterion": "C2", "requirement": "R-1", "oracle": "two.txt exists", "red": "it is missing",
+             "green": "it exists"}]))
+
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                name = "two.txt" if (self.repo / "one.txt").exists() else "one.txt"
+                (self.repo / name).write_text(name + "\n")
+        self.drive_to("test", step_plan=plan, each=build)
+        (self.repo / "tests" / "TC-1.case").write_text("one.txt")
+        self.pass_loop()
+        first = store.read_record(self.run_dir / test_loop.base_path(self.action_of("test", 1), 1))
+        self.assertEqual(first["base_commit"], fix[0], "S1's base run starts from the preparatory fix")
+        self.drive_to("test", step_plan=plan, each=build)
+        self.assertEqual(test_loop.step_number(self.state(), "W1"), 2)
+        first_commit = git(self.repo, "rev-parse", "HEAD").strip()   # S1's commit; S2's build is uncommitted
+        (self.repo / "tests" / "TC-2.case").write_text("one.txt")   # already true on S2's base: S1 built one.txt
+        self.run_loop([TRIVIAL])
+        self.assert_refused(dict(DONE, evidence_refs=[str(self.terminal())]),
+                            r"passed TC-2 on the item's base, without this item's change")
+        (self.repo / "tests" / "TC-2.case").write_text("two.txt")   # S2's own behaviour: missing on its base
+        self.run_loop([TRIVIAL])
+        self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        last = store.read_record(self.run_dir / test_loop.base_path(self.action_of("test", 2), 1))
+        self.assertEqual((last["base_head"], last["base_commit"]), (first_commit, None),
+                         "S2's base run starts from the commit S1 made, not from the preparatory fix")
+
     def test_an_ask_agent_implement_action_runs_no_step_proof(self):
         """T31: the whole-plan action keeps its acceptance: no single-step Proof gate (a failing check is not run)."""
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Test loop fixture.", improve_skill=str(IMPROVE_CARD),
@@ -2743,6 +2882,51 @@ class ItemScopePathClassTests(unittest.TestCase):
         self.assertEqual(catalog["order"], ["test", "metadata-nav", "docs", "config"])
         self.assertEqual(catalog["non_behavioural"], ["metadata-nav", "docs", "config"])
         self.assertEqual(sorted(catalog["classes"]), ["config", "docs", "metadata-nav", "test"])
+
+
+class SharedBaseTests(unittest.TestCase):
+    """Design T §9.1 step 3 (Astra's §9 row 4: "Baseline callers still use the item/preparatory base"): the base run, the
+    mutation check and red-check read the item's lint base, which each step after the first recaptures from its own
+    base commit (``navigator._iteration_base``).  validate-existing's preparatory fix moved that base to its commit at
+    every step, so from S2 on those three ran on the tree before S1."""
+
+    def setUp(self) -> None:
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-shared-base-")
+        self.addCleanup(temp.cleanup)
+        self.repo, self.run_dir = Path(temp.name) / "repo", Path(temp.name) / "run"
+        self.repo.mkdir()
+        self.run_dir.mkdir()
+        git(self.repo, "init", "-q")
+        git(self.repo, "config", "user.email", "t@example.com")
+        git(self.repo, "config", "user.name", "T")
+        self.commit("status.txt", "fail\n")
+
+    def commit(self, name: str, text: str) -> str:
+        (self.repo / name).write_text(text)
+        git(self.repo, "add", name)
+        git(self.repo, "commit", "-qm", name)
+        return git(self.repo, "rev-parse", "HEAD").strip()
+
+    def capture(self) -> None:
+        import shiploop_lint as lint
+        for relative, text in lint.capture_base(self.run_dir, self.repo, "W1").items():
+            store.atomic_write_text(self.run_dir / relative, text)
+
+    def test_the_preparatory_fix_moves_the_first_steps_base_and_no_later_ones(self):
+        import shiploop_expectations as expectations
+        self.capture()                                    # the item's base, captured before validate-existing's fix
+        fix = self.commit("status.txt", "ok\n")
+        record = self.run_dir / expectations.PREPARATORY_COMMIT.format(item="W1")
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(fix + "\n")
+        self.assertEqual(nav.test_base_commit(self.run_dir, "W1"), fix)
+        self.commit("a.py", "import os\n")              # S1's commit
+        self.capture()                                    # S2's base: _iteration_base recaptures it after S1's commit
+        self.assertIsNone(nav.test_base_commit(self.run_dir, "W1"), "S2's base already holds the fix")
+        self.assertEqual(nav.preparatory_base(self.run_dir, "W1"), fix, "the commit itself is still the item's record")
 
 
 class ReleaseVerifyReturnedResultTests(unittest.TestCase):
@@ -3114,6 +3298,44 @@ class CountFloorTests(unittest.TestCase):
         self.assertEqual(test_loop.refused_runs(self.root, "A3"), 1)
         self.assertEqual(self.run_stage("A3", "document", 7), "")  # the same action, restored
         self.assertEqual(self.record("A3", 2)["runs"][0]["accepted_ran"], 7)  # a floor that held is recorded too
+
+    NAMED = 'echo "Ran $(cat n.txt) tests in 0.001s"; cat names.txt; echo OK'
+
+    def two_steps(self) -> None:
+        """An inline item of two steps whose one focused command runs TC-1 (due at S1) and TC-2 (due at S2), with S1
+        built."""
+        self.state = {"repo": str(self.root), "delegation": "inline", "accepted": {
+            "P1": dict(DONE, test_commands=[{"command": self.NAMED, "suite": "focused", "ids": ["TC-1", "TC-2"]}],
+                       steps=[{"id": "S1", "criteria": ["C1"]}, {"id": "S2", "criteria": ["C2"]}]),
+            "T1": dict(DONE, test_cases=[{"id": "TC-1", "criterion": "C1"}, {"id": "TC-2", "criterion": "C2"}]),
+            "I1": dict(DONE), "I2": dict(DONE)},
+            "history": [{"stage": "step-plan", "workitem": "W1", "action": "P1", "outcome": "done"},
+                        {"stage": "test-spec", "workitem": "W1", "action": "T1", "outcome": "done"},
+                        {"stage": "implement", "workitem": "W1", "action": "I1", "outcome": "done"}]}
+
+    def named(self, *names: str) -> None:
+        (self.root / "names.txt").write_text("".join("ok - " + name + " works\n" for name in names))
+
+    def test_a_later_step_owes_the_earlier_steps_count_plus_its_own_new_cases(self):
+        """Design T §9.1 step 3 (cumulative floors): S1 accepted TC-1 and two unnamed tests.  S2 may not drop those two and
+        land on the same count with its new TC-2: its floor is S1's 3 plus TC-2, the one ID newly due at S2."""
+        self.two_steps()
+        self.named("TC-1", "TC-1 (a)", "TC-1 (b)")
+        self.assertEqual(self.run_stage("A1", "test", 3), "")
+        self.state["history"].append({"stage": "implement", "workitem": "W1", "action": "I2", "outcome": "done"})
+        self.named("TC-1", "TC-2", "TC-2 (a)")
+        refusal = self.run_stage("A2", "test", 3)
+        self.assertIn("at least 4: 3 in an earlier run plus this step's 1 new ID (TC-2)", refusal)
+        self.named("TC-1", "TC-1 (a)", "TC-1 (b)", "TC-2")
+        self.assertEqual(self.run_stage("A2", "test", 4), "")
+        # A new ID in red_na passes on the step's base, so its test may already be in S1's count: it is not added.
+        detail = test_loop.floor_detail(self.root, self.state, "W1", "A3",
+                                        {"red_na": [{"id": "TC-2", "reason": "characterises the old behaviour"}]})
+        self.assertEqual(detail[self.NAMED]["floor"], 4, "A2's own accepted 4, with nothing added on top")
+        self.state["history"] = [row for row in self.state["history"] if row["action"] != "A2"]
+        detail = test_loop.floor_detail(self.root, self.state, "W1", "A3",
+                                        {"red_na": [{"id": "TC-2", "reason": "characterises the old behaviour"}]})
+        self.assertEqual((detail[self.NAMED]["floor"], detail[self.NAMED]["from"]), (3, "3 in an earlier run"))
 
     def test_the_equal_count_is_accepted(self):
         """GUARD (passes on the unchanged tree; kills a floor that also refuses the count it is)."""

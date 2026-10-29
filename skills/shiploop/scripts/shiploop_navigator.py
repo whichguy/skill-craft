@@ -78,7 +78,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions", "suite_requirements",
-    "knowledge",
+    "knowledge", "added_tests",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -126,7 +126,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "suite_requirements", "knowledge",
+    "mutant_dispositions", "suite_requirements", "knowledge", "added_tests",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1158,6 +1158,14 @@ def _canonical_result(
             result["failed_expectations"] = expectations.normalise_failed_expectations(value["failed_expectations"])
         except expectations.ExpectationError as exc:
             raise NavigatorError(str(exc)) from exc
+    if test_loop.ADDED_TESTS in value:
+        # Shape only; the CLI gate checks each command is one the step plan recorded (``_check_added_tests``).
+        _need(stage == item_scope.DOCUMENT_STAGE and outcome == "done",
+              "added_tests is allowed only on a done document result")
+        rows = _records(value[test_loop.ADDED_TESTS], test_loop.ADDED_TESTS, ("id", "command"))
+        _need(all("\n" not in row["id"] for row in rows), "an added_tests id is one line: the start of the test's "
+              "printed title, for example TC-3 (a)")
+        result[test_loop.ADDED_TESTS] = [{"id": row["id"].strip(), "command": row["command"].strip()} for row in rows]
     for key in ("check_na", "minimum_na"):
         if key in value:
             _need(stage == "step-plan" and outcome == "done", key + " is allowed only on a done step-plan result")
@@ -2765,6 +2773,23 @@ def _earlier_focused_ids(state: Mapping[str, Any], work_item: str | None) -> dic
     return found
 
 
+def _check_added_tests(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a done document result (or its step review's final result) whose ``added_tests`` names a command the
+    item's step plan did not record as focused or regression: only a recorded command reruns, so only it can run the
+    test."""
+    if stage != item_scope.DOCUMENT_STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    _action, plan = test_loop._step_plan(state, _current_work_item(state))
+    recorded = [str(row.get("command")) for row in plan.get("test_commands") or ()
+                if isinstance(row, Mapping) and row.get("suite") in test_loop.COUNTED_SUITES]
+    for row in result.get(test_loop.ADDED_TESTS) or ():
+        command = str(row.get("command")) if isinstance(row, Mapping) else ""
+        _need(command in recorded, "added_tests names `" + command + "`, which is not a focused or regression command "
+              "this item's step plan recorded (" + ", ".join("`" + name + "`" for name in recorded)
+              + "). Name the recorded command that runs the test; a test no recorded command runs needs a send-back so "
+              "the step plan records its command.")
+
+
 def _check_focused_ids_new(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """Refuse a done step plan whose focused command tests only an earlier item's behaviour (CLI gate).
 
@@ -3196,6 +3221,18 @@ PREPARATORY_BASE = expectations.PREPARATORY_COMMIT
 def preparatory_base(root: Path, work_item: str) -> str | None:
     """The preparatory-fix commit validate-existing made for ``work_item``, or None."""
     return expectations.preparatory_commit(root, work_item)
+
+
+def test_base_commit(root: Path, work_item: str) -> str | None:
+    """The commit the test gate's base runs (the base run, the mutation check, red-check) move the item's base to:
+    validate-existing's preparatory fix while the base predates it, that is at the first step; None once a later step's
+    base holds it (design T §9.1 step 3: each step's base callers share its base), or when there was no fix."""
+    commit = preparatory_base(root, work_item)
+    base = lint.read_base(Path(root), work_item) if commit else None
+    if not commit or not base or not base.get("head") or not base.get("toplevel"):
+        return commit
+    held = shiploop_git.git(Path(str(base["toplevel"])), "merge-base", "--is-ancestor", commit, str(base["head"]))
+    return None if held.returncode == 0 else commit
 
 
 def _preparatory_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str,
@@ -3911,10 +3948,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
                 sources.append(Source(key, "test-spec", action, owner, value))
         elif key == "not_covered":
             plan_action, _plan = test_loop._step_plan(state, item) if item else (None, {})
-            history = list(state.get("history") or ())
-            start = max((position for position, row in enumerate(history) if row.get("action") == plan_action), default=-1)
-            done = [row["action"] for row in history[start + 1:] if plan_action and row.get("stage") == "implement"
-                    and row.get("workitem") == item and row.get("outcome") == "done"]
+            done = planning_revision.step_actions(state, item, "implement") if plan_action else []
             for action in done or [None]:
                 found = accepted.get(action) if action else None
                 sources.append(Source(key, "implement", action, item,
@@ -4624,12 +4658,12 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
         return []
     try:
         found = test_loop.base_check(root, state, workitem or "", action_id, submitted,
-                                     base_commit=preparatory_base(root, workitem or ""), count=count)
+                                     base_commit=test_base_commit(root, workitem or ""), count=count)
         found += test_loop.loop_run(root, state, workitem or "", action_id, submitted, count=count)
         # On new code the base run can only see a load failure (RED by rule); the mutation check is what proves the
         # tests assert real behaviour (owner decision 2026-10-11).
         found += test_loop.mutation_check(root, state, workitem or "", action_id, submitted, count=count,
-                                          base_commit=preparatory_base(root, workitem or ""))
+                                          base_commit=test_base_commit(root, workitem or ""))
         return ["Gates: " + line for line in found]
     except test_loop.TestLoopError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -4673,12 +4707,14 @@ def _stage_base(state: Mapping[str, Any]) -> dict[str, str] | None:
     return {"status": "ok", "tree": entry, "label": "the tree this stage began from, " + entry[:12]} if entry else None
 
 
-def _document_rerun(root: Path, state: Mapping[str, Any], workitem: str) -> list[dict[str, Any]]:
+def _document_rerun(root: Path, state: Mapping[str, Any], workitem: str,
+                    submitted: Any = None) -> list[dict[str, Any]]:
     """The commands document's done reruns (design T §8.2, 2b-4b): those its step's test stage ran, narrowed to what
     document's own edits since it began could affect.  None runs after no edit, the check commands (the doc checks among
     them) after edits to no code or test path, and every one after a code or test edit, or when the edits cannot be
-    read."""
-    commands = test_loop.stage_commands(state, test_loop.STEP_RERUN_STAGE, workitem)[0]
+    read.  The tests ``submitted`` registers are listed with their commands."""
+    added = (submitted.get(test_loop.ADDED_TESTS) or ()) if isinstance(submitted, Mapping) else ()
+    commands = test_loop.stage_commands(state, test_loop.STEP_RERUN_STAGE, workitem, added)[0]
     base = _stage_base(state)
     changed = improve_changes.paths_since(root, Path(state["repo"]), base["tree"]) if base else None
     if changed is None or item_scope.behavioural_paths(changed):
@@ -4694,8 +4730,8 @@ def _test_rerun_gate(root: Path, state: Mapping[str, Any], action_id: str, stage
     ``count`` False (the check) makes the rerun non-counting (``test_loop.verify(count=False)``)."""
     if not isinstance(submitted, Mapping) or submitted.get("outcome") != "done":
         return
-    commands = (_document_rerun(root, state, workitem or "") if stage == test_loop.STEP_RERUN_STAGE and workitem
-                else None)
+    commands = (_document_rerun(root, state, workitem or "", submitted)
+                if stage == test_loop.STEP_RERUN_STAGE and workitem else None)
     if commands == []:
         return
     writes, refusal = test_loop.verify(root, state, workitem or "", action_id, stage, count=count,
@@ -4814,7 +4850,9 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
         item = _current_work_item(state) or ""
         if changes is not None and changes[0]:
             _review_lint_gate(core, root, state, action_id, item, receipt)
-        commands = test_loop.stage_commands(state, "test", item)[0] if item else []
+        final = receipt.get("final_result") if isinstance(receipt, Mapping) else None
+        added = (final.get(test_loop.ADDED_TESTS) or ()) if isinstance(final, Mapping) else ()
+        commands = test_loop.stage_commands(state, "test", item, added)[0] if item else []
         if commands and (changes is None or changes[0]):
             writes, refusal = test_loop.verify(root, state, item, action_id, "step review", commands=commands)
             for relative, text in writes.items():
@@ -6867,6 +6905,9 @@ _PRODUCTS: dict[str, tuple[tuple[str, Any, str], ...]] = {
 _RESULT_USE = {"step-plan": "the steps, criteria, test commands, expectations and paths",
                "implement": "what the step changed and its evidence"}
 _PER_STEP = frozenset(stage for stage in stage_spec.INNER if "step-proof" in stage_spec.stage(stage).complete_runs)
+# Stages that reconcile a whole item read every step's results of the stages each step's iteration runs, not only the
+# last step's (design T §9 row 6; §9.1 step 3).
+_EVERY_STEP_READERS = frozenset(("carry-forward", "system-test-author"))
 # Outer stages whose duty names each completed item's test-decision records (row VR-4): {stage: ((item stage, the
 # _PRODUCTS labels listed beside its result), ...)}.  Listed per completed item, so a cleared model need not search
 # state.md's history for the records in force.
@@ -6879,19 +6920,26 @@ def _product(label: str, path: str, use: str) -> str:
     return "- " + label + ": " + path + (" (" + use + ")" if use else "")
 
 
-def _item_actions(state: Mapping[str, Any], item: str, stage: str, current: Mapping[Any, str]) -> list[tuple[str, str]]:
-    """``[(label, action)]``: the item's current action of ``stage``, or, for a per-step stage, each accepted step's."""
-    if stage not in _PER_STEP:
+def _item_actions(state: Mapping[str, Any], item: str, stage: str, current: Mapping[Any, str],
+                  reader: str = "") -> list[tuple[str, str]]:
+    """``[(label, action)]`` for the item's ``stage`` results a packet of ``reader`` builds on.
+
+    A stage each step's iteration runs (implement, test, document) has one result per step
+    (``planning_revision.step_actions``).  An inline step's result is labelled with its step, in every packet, so an
+    artifact keeps one label across the run; the ask-agent route's one action names none.  A reader lists every step's
+    result when the stage is a per-step stage or the reader reconciles the whole item (``_EVERY_STEP_READERS``), else
+    only the latest."""
+    if stage not in iteration.MODEL_STAGES:
         action = current.get((item, stage))
         return [(item + " " + stage, action)] if action else []
     plan_action, plan = test_loop._step_plan(state, item)
     steps = list(plan.get("steps") or ()) if plan_action else []
-    history = list(state.get("history", ()))
-    start = max((position for position, row in enumerate(history) if row.get("action") == plan_action), default=-1)
-    done = [row["action"] for row in history[start + 1:]
-            if row.get("stage") == stage and row.get("workitem") == item and row.get("outcome") == "done"]
+    done = planning_revision.step_actions(state, item, stage)
+    first = 0 if stage in _PER_STEP or reader in _EVERY_STEP_READERS else max(len(done) - 1, 0)
+    if state.get("delegation") != guidance.INLINE:
+        return [(item + " " + stage, action) for action in done[first:]]
     return [(item + " " + stage + " " + str(steps[number]["id"] if number < len(steps) else "step " + str(number + 1)),
-             action) for number, action in enumerate(done)]
+             action) for number, action in enumerate(done) if number >= first]
 
 
 def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
@@ -6909,7 +6957,7 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
         if workitem is None:
             continue
         read = name[5:]
-        for label, action in _item_actions(state, workitem, read, current):
+        for label, action in _item_actions(state, workitem, read, current, stage):
             lines.append(_product(label + " result", "RUN/results/" + action + ".md", _RESULT_USE.get(read, "")))
             for product, locate, use in _PRODUCTS.get(read, ()):
                 path = locate(root, state, workitem, action)
@@ -6917,14 +6965,12 @@ def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem:
                     lines.append(_product(label + " " + product, path, use))
     for item in state.get("completed_work_items") or () if stage in _ITEM_RECORDS else ():
         for read, products in _ITEM_RECORDS[stage]:
-            action = current.get((item, read))
-            if not action:
-                continue
-            lines.append(_product(str(item) + " " + read + " result", "RUN/results/" + action + ".md", ""))
-            for product, locate, use in _PRODUCTS.get(read, ()):
-                path = locate(root, state, item, action) if product in products else None
-                if path:
-                    lines.append(_product(str(item) + " " + read + " " + product, path, use))
+            for label, action in _item_actions(state, str(item), read, current, stage):
+                lines.append(_product(label + " result", "RUN/results/" + action + ".md", ""))
+                for product, locate, use in _PRODUCTS.get(read, ()):
+                    path = locate(root, state, item, action) if product in products else None
+                    if path:
+                        lines.append(_product(label + " " + product, path, use))
     return [BUILDS_ON_HEAD, *lines] if lines else []
 
 
@@ -8424,7 +8470,7 @@ def red_check_command(core: Any, argv: list[str]) -> int:
                   "red-check runs only for the current test action")
             draft = _submitted_result(root, args, state=state, core=core) if args.result else None
             ok, lines = test_loop.red_check(root, state, workitem or "", args.action, draft,
-                                            base_commit=preparatory_base(root, workitem or ""))
+                                            base_commit=test_base_commit(root, workitem or ""))
         except (NavigatorError, test_loop.TestLoopError) as exc:
             print("ShipLoop red-check could not run: " + str(exc), file=sys.stderr)
             return 3
@@ -9440,6 +9486,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_test_commands(current, submitted)
     _check_focused_ids_new(state, current, submitted)
     _check_focused_guards(current, submitted)
+    _check_added_tests(state, current, submitted)
     _check_submitted_consumer_entry(state["repo"], current, submitted)
     _check_submitted_recorded_commands(current, submitted)
     _check_submitted_awaiting(submitted)
@@ -9583,6 +9630,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_guards(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_added_tests(state, child["stage"], final_result)
                     _check_submitted_layers(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_primary(
