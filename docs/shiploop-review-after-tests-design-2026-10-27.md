@@ -1019,6 +1019,27 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     "shared baselines" build (the preparatory commit moves the base only at the first step) is that fix. When it merges,
     `iteration.earlier_command` must also be checked against lane B's folded row (a focused row that is also the minimum
     regression, run alone with no IDs at an early step).
+- **Integration of the lanes, 2026-10-29.** Lane D (the step edge cases) was committed first and pushed; lanes C, B and A
+  were then cherry-picked, in that order, onto it in a separate worktree, and the feature branch was fast-forwarded to
+  the result (`e767c171`). The lanes had been cut from `bb32139c`, not from the pushed `8d768519`, so a merge would have
+  replayed 2b-5; cherry-picking each lane's own commits avoids that.
+  - **What landed:** D `f195ec80`; C's F6 `cc89bec6` (was `0cb983f4`); B's 2d `23ff03e4` (was `a46404c7`); A's docs
+    `ea9dba31`, `15e46c42`, `32120d83` (were `94629594`, `0ca16d4a`, `ba961648`); the re-measured head ceilings
+    `e767c171`. Still to come, from their worktrees: B's step 3 (a WIP commit already rebased onto the tip) and C's F5.
+  - **Conflicts:** one, `test/shiploop_e2e/head_table.json` (B's 2d against F6's own growth). Each lane had measured the
+    printed heads on its own base, so none knew the others' growth. On the integration `packet-recut` failed six
+    ceilings, now raised: implement 16,980 inline and 18,330 ask-agent, document 15,833, test 18,531 (F6 +176 on each;
+    the base rule's new wording +124 on the test head). The step-plan head is untouched at 19,997 of the 20,000-character
+    cut inline, and 19,536 ask-agent.
+  - **A miss, corrected.** D's own tier run showed two `packet-recut` failures (D grew the test head by 124 and had not
+    re-measured), plus three `shiploop-progress` timing failures that pass alone (17 tests) and came from a machine load of
+    about 60. The first was fixed by the integration commit; the second is load, not a regression.
+  - **Landing on main, the owner's call (relayed 2026-10-29 by the E2E session):** phase B (`shiploop check`) lands first;
+    design T merges main once afterwards and is not pushed to main before 2c-0, the pilots, the README and the owner's
+    release go. Six files conflict between B and this stack: `shiploop_navigator.py`, `shiploop_prompts.py`,
+    `state-files.md`, and the callback-contract, loops and test-loop tests. **Head budget:** B adds roughly 150 to 250
+    characters to each inner-stage head, and the inline step-plan head has 3 characters of room, so whichever side merges
+    second must cut an equal amount from that head.
 - **2c. The ask-agent route** gets the same step boundaries (G1).
   **2c design, 2026-10-28: nothing built. The owner decided G1 on 2026-10-29: adopt (a2)** (the decision and what it
   builds are at the end of this item). The question G1 left open: the iteration is serial, but the chain builds
