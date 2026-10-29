@@ -1048,6 +1048,41 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
   - **The test packet asks where each new test belongs:** a new suite, the minimum suite, or the full suites.
   - **It names the tools.** MCP servers and skills may be used to test the new code in detail, beside the unit and
     mock tests.
+- **F6. Lint coverage shown, done 2026-10-28** (the owner's go on §8.5's recommended form).
+  - **What landed.**
+    - A lint pass prints `Lint coverage:` on the line after its `Result:` line (`shiploop_lint._coverage_line`,
+      stored as the record's `coverage_line`). It counts the files a linter covered and names the linters, then
+      lists every other changed file with its coverage text, grouped:
+      - *syntax only, not linted*: `node --check`, a JSON parse, or a linter that was unavailable or timed out;
+      - *not linted*: no catalogued linter, excluded, or not in scope;
+      - *linted in part*: another linter the repository configures did not run, timed out or failed.
+
+      Deleted files are left out.
+    - On 36036c's shape the line reads: "1 file linted by ruff; syntax only, not linted: game.js, server.js (syntax
+      checked by node --check (no catalogued linter)); not linted: public/index.html (not in scope: no catalogued
+      linter for this file type; git diff --check only)".
+    - **Where the model sees it.** The packet's lint digest (`render_lines`, `_packet_digest`) keeps it beside the
+      verdict, though it still leaves the per-file Coverage section to the record (U13). Both gate refusals (after an
+      auto-fix, and on an unwaived finding) print it, and so does a pass that could not run (`NONE_COVERAGE`).
+      `shiploop lint --action` prints it with the block.
+    - **Lint off.** Implement, test and document print `OFF_COVERAGE` in their lint-commands block
+      (`lint.command_lines`): no linter and no lint gate run, so the step chooses its own static checks. Before, an
+      off run printed nothing there, though `_lint_command_lines`' docstring said it did.
+  - **Packet size.** The offline walk runs with lint off, so those three stages grow by the off line, 176 characters
+    with its newline, head and whole on both routes (`test/shiploop_e2e/head_table.json`): for example inline test
+    head 17,954 -> 18,130 and whole 19,852 -> 20,028. Every head fits the 20,000 cut. The bound rose rather than the
+    line being cut, since it carries an obligation.
+  - **Evidence.** Four fail-first tests in shiploop-lint `CoverageLineTests`, each seen failing before the code (no
+    `coverage_line` key, no off line, refusals without the line): the result's coverage line and the digest that
+    keeps it; a tool unavailable, timed out, and a configured linter not run; both refusals and a pass that could not
+    run; the off line at each gate stage and its absence elsewhere. shiploop-lint passes (105 tests), and so do
+    shiploop-packet-recut and shiploop-step-packets with the new pins.
+  - **Kept out.**
+    - The run's report. Its achievement report reads no lint record, so the line would need a new reader (§8.2a
+      named it).
+    - The environment.md coverage line (8.2b). That belonged to option A's knowledge stage; under option C document
+      reflects, and a reviewer reads the coverage in the step's lint records.
+    - A gate on coverage. A syntax-only or unlinted file still never refuses: the line informs, as §8.5 recommends.
 
 **9.2 New decisions:**
 - **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it

@@ -41,6 +41,14 @@ code and are not catalog options.
   At `test` and `document` the gate runs before ShipLoop's own test runs, so the
   tests cover any auto-fix. The implement and test packets print the
   report-only `lint` command to run after each edit, and the latest gate record.
+- **Coverage line.** Every lint result prints `Lint coverage:` beside its
+  `Result:` line, so a syntax check is never read as a lint. It counts the
+  files a linter covered and names the linters, then lists each other changed
+  file with its coverage: syntax only (`node --check`, a JSON parse, or a
+  linter that was unavailable or timed out), not linted, or linted in part
+  (another configured linter did not run). The packet, both gate refusals and
+  a pass that could not run ("none") print it; with lint `off` the implement,
+  test and document packets print an off line instead.
 - `next` and `context` only re-render the stored record and mark it stale when a
   scoped file changed afterwards. They never lint.
 

@@ -1716,6 +1716,106 @@ class GateTests(Fixture):
                 self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage=stage)["lint_waivers"],
                                  waivers)
 
+class CoverageLineTests(Fixture):
+    """Design T §8.2a, F6: every lint result the model sees prints a coverage line beside it, so a syntax check is never
+    read as a lint.  In 36036c every step's gate passed while game.js and server.js read "syntax checked by node --check
+    (no catalogued linter)", a line only the stored record held."""
+
+    def start(self, option: str = "fix") -> dict:
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint coverage fixture.", improve_skill="",
+                                             lint_option=option))
+        with self.patched_env():
+            return drive(self.run_dir, "implement")
+
+    def patched_env(self):
+        return mock.patch.dict(os.environ, {"PATH": str(self.bin) + ":" + SYSTEM_PATH, "STUB_LOG": str(self.log)})
+
+    def test_the_result_is_followed_by_a_coverage_line_naming_each_file_not_linted(self):
+        (self.bin / "node").write_text("#!" + sys.executable + "\n" + NODE_CHECK_STUB)
+        (self.bin / "node").chmod(0o755)
+        self.commit({"a.py": "x = 1\n", "game.js": "var a = 1\n", "server.js": "var s = 1\n",
+                     "public/index.html": "<p>a</p>\n", "old.py": "z = 1\n"})
+        self.base()
+        self.edit({"a.py": "x = 2\n", "game.js": "var a = 2\n", "server.js": "var s = 2\n",
+                   "public/index.html": "<p>b</p>\n"})
+        (self.repo / "old.py").unlink()     # a deleted file needs no lint and is left out
+        payload = self.run_pass(mode="report")
+        expected = ("Lint coverage: 1 file linted by ruff; syntax only, not linted: game.js, server.js (syntax checked "
+                    "by node --check (no catalogued linter)); not linted: public/index.html (not in scope: no catalogued "
+                    "linter for this file type; git diff --check only).")
+        self.assertEqual(payload["coverage_line"], expected)
+        block = payload["block"].splitlines()
+        self.assertEqual(block[block.index(payload["result_line"]) + 1], expected)
+        # The packet leaves the per-file Coverage section to the record, and keeps this line beside the verdict.
+        for relative, text in lint.record_writes(payload).items():
+            store.atomic_write_text(self.run_dir / relative, text)
+        packet = "\n".join(lint.render_lines(self.run_dir, "A1", stage="carry-forward", run_option="report",
+                                             repo=str(self.repo), command=str(CLI), commands=False))
+        self.assertNotIn("\nCoverage:", packet)
+        self.assertIn(payload["result_line"] + "\n" + expected, packet)
+
+    def test_the_coverage_line_says_when_a_tool_is_unavailable_timed_out_or_did_not_run(self):
+        self.commit({"a.py": "x = 1\n", "eslint.config.js": "export default []\n", ".prettierrc": "{}\n",
+                     "b.js": "var b = 1\n"})
+        self.base()
+        self.edit({"a.py": "x = 2\n"})
+        missing = self.run_pass(mode="report", env=self.env(path=str(self.repo / "nothing-here")))
+        self.assertIn("syntax only, not linted: a.py (syntax only: no linter available (ruff not found on this "
+                      "process's PATH:", missing["coverage_line"])
+        slow = Path(self.temp.name) / "slow"
+        slow.mkdir()
+        (slow / "ruff").write_text("#!" + sys.executable + "\nimport sys, time\nif '--version' in sys.argv:\n"
+                                   "    print('ruff 0.0.1')\n    sys.exit(0)\ntime.sleep(30)\n")
+        (slow / "ruff").chmod(0o755)
+        timed = self.run_pass(mode="report", env=self.env(path=str(slow)), tool_timeout=1.0)
+        self.assertRegex(timed["coverage_line"], r"syntax only, not linted: a\.py \(syntax only: ruff [^)]*timed out\)")
+        # A file one tool linted while another the repository configures could not run is linted in part.
+        self.edit({"a.py": "x = 1\n", "b.js": "var b = 2\n"})
+        write_tool(self.bin, "eslint")
+        part = self.run_pass(mode="report")
+        self.assertIn("Lint coverage: linted in part: b.js (linted by eslint (eslint.config.js); prettier not run: "
+                      "prettier not found", part["coverage_line"])
+        # Once prettier runs too, the file is linted, and the line names every linter that covered it.
+        write_tool(self.bin, "prettier")
+        self.assertEqual(self.run_pass(mode="report")["coverage_line"], "Lint coverage: 1 file linted by eslint, prettier.")
+
+    def test_each_gate_refusal_and_a_pass_that_cannot_run_print_the_coverage_line(self):
+        self.commit({"a.py": "x = 1\n", "notes.txt": "a\n"})
+        state = self.start()
+        self.edit({"a.py": "x = 1\ny = 2  # fixme\n", "notes.txt": "b\n"})
+        coverage = ("Lint coverage: 1 file linted by ruff; not linted: notes.txt (not in scope: no catalogued linter "
+                    "for this file type; git diff --check only).")
+        with self.patched_env():
+            with self.assertRaises(nav.NavigatorError) as fixed:
+                complete(self.run_dir, state)
+            self.assertIn("ShipLoop auto-fixed a.py", str(fixed.exception))
+            self.assertIn(coverage, str(fixed.exception))
+            self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+            with self.assertRaises(nav.NavigatorError) as found:
+                complete(self.run_dir, state)
+            self.assertIn("implement is not done while 1 new lint finding", str(found.exception))
+            self.assertIn(coverage, str(found.exception))
+            with mock.patch.object(lint, "lint_pass", side_effect=RuntimeError("boom")):
+                complete(self.run_dir, state)
+        action = nav.current_action(state)["id"]
+        failure = store.read_record(self.run_dir / "lint" / (action + ".gate3.md"))
+        self.assertIn("Lint coverage: none: this pass could not run, so no file was linted or syntax-checked.",
+                      failure["block"])
+
+    def test_a_gate_stages_packet_says_when_lint_is_off(self):
+        off = ("Lint coverage: off (run option lint=off): ShipLoop runs no linter and no lint gate, so nothing this "
+               "stage changes is linted. Choose and run this step's static checks yourself.")
+        for stage in lint.GATE_STAGES:
+            with self.subTest(stage=stage):
+                self.assertEqual(lint.command_lines(self.run_dir, "A1", stage=stage, run_option="off", command="x"),
+                                 [off])
+        self.assertEqual(lint.command_lines(self.run_dir, "A1", stage="carry-forward", run_option="off", command="x"),
+                         [])
+        self.commit({"a.py": "x = 1\n"})
+        self.assertIn(off, nav.render(CORE, self.run_dir, self.start("off")))
+        self.assertNotIn("Lint coverage: off", nav.render(CORE, self.run_dir, self.start("fix")))
+
+
 class PromptContractTests(unittest.TestCase):
     def test_gate_stages_tell_the_model_to_lint_inside_their_loop(self):
         """The pass-or-stop text left with the 17-stage loop (2026-10-10): every inner stage's Until Loop repeats until
