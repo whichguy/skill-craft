@@ -43,6 +43,7 @@ import shiploop_protocol as protocol  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_status_hook as hook  # noqa: E402
+import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CLI_PATH_LENGTH = 96          # a plugin-cache install: <root>/skills/shiploop/scripts/shiploop
@@ -124,14 +125,20 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
                "  Skills (use each; the summary says whether you did): "
                + (", ".join(skill["name"] for skill in step["skills"]) or "none"),
                "Lint each implementation step (report-only): "]
+    # A step before any recorded command is due runs none (design T §9.1 2d, the minimum regression and the due cases): its
+    # test packet says so instead of printing the rules for commands, and its document has nothing to rerun.
+    commands = test_loop.stage_commands(state, stage, item)[0] if stage in ("test", "document") else []
     if stage == "test":
-        p1 += ["Pass: exit 0 and at least one test run", "Floor of each focused and regression command: the larger of",
-               "Base run: before the candidate run", "Lint this item's changes (report-only): "]
+        p1 += (["Pass: exit 0 and at least one test run", "Floor of each focused and regression command: the larger of",
+                "Base run: before the candidate run"] if commands
+               else ["No command to run: no recorded command is due at this step"])
+        p1 += ["Lint this item's changes (report-only): "]
     if stage == "document":
         # Document's done reruns what its own edits could affect, out of the commands its step's test stage ran
         # (design T §8.2, 2b-4b; verify's rerun list moved here when verify retired, 2b-4c).
-        p1 += ["Step plan paths: " + ", ".join(plan["paths"]),
-               "Test rerun: on done, ShipLoop reruns what your edits since this stage began could affect"]
+        p1 += ["Step plan paths: " + ", ".join(plan["paths"])]
+        if commands:
+            p1 += ["Test rerun: on done, ShipLoop reruns what your edits since this stage began could affect"]
     if stage == "validate-existing":
         p1 += ["ShipLoop ran each expectation's check", "E2 absent  the helper is not there yet", "DOES NOT MATCH, exit 1"]
     if stage == "carry-forward":
