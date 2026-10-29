@@ -1279,7 +1279,7 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     (the exporter's `improveMin` runs to the receipt instead, so the two differ by the receipt's write time).
 
     Readers: `summary_lines` and progress.py print the totals; the rows are for the owner's reading of metrics.json
-    (is the planning window under 30 minutes, and where did it go) and for the Run Review page.
+    (how long the planning window took, and where it went) and for the Run Review page.
     """
     unmeasured: dict[str, str] = {}
     window = {"closed": False, "through": None, "seconds": None, "host_seconds": None, "before_engine_seconds": None}
@@ -3252,8 +3252,8 @@ def _run_dir_counters(run_dir: Path | None, order: list, tools: "ToolLog", class
 
 
 def stage_share(out: Path, run_dir: Path | None = None, stage: str = "plan", needle: str = "backchain") -> dict:
-    """What a planning stage takes of the planning window, offline (plan N5: the plan-stage Backchain child, which the 30-minute
-    bar does not price). The window and its stages are ``planning_window``'s; ``authoring_seconds`` is the stage's accept-to-accept
+    """What a planning stage takes of the planning window, offline (plan N5: the plan-stage Backchain child, which the window's
+    total does not price). The window and its stages are ``planning_window``'s; ``authoring_seconds`` is the stage's accept-to-accept
     time less its Improve child's (the figure the Luna study called the plan-stage Backchain work, 64.1 of 375.9 minutes), and
     ``named`` is the span of the stage's own tool calls whose input names ``needle`` (the Backchain guide, its artifacts), from
     the stage's start to the end of its authoring. Shares are fractions of the window on the engine clock. Anything the records

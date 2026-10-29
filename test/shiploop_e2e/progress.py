@@ -73,7 +73,7 @@ def report(out: Path) -> str:
     stages = [s for s in m["stages"] if not s.get("incomplete")][memo.get("stages", 0):]
     if stages:
         lines.append("  accepted: " + ", ".join(metrics.stage_text(s) for s in stages))
-    # The planning window is reported once, when it closes: the live record of the owner's 30-minute planning rule.
+    # The planning window is reported once, when it closes: the live record of how long planning took (no figure is a budget).
     closed = m["planning"]["window"]["closed"]
     if closed and not memo.get("planning"):
         lines.append("  " + metrics.planning_text(m["planning"]))
