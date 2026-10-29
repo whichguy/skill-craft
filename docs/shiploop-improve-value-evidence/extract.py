@@ -44,6 +44,12 @@ DEFAULT_PARENTS = [
     "/Users/dadleet/e2e-runs-owner-note/20261028",
 ]
 SKIP_FRAGMENTS = ("/seed/", "/evidence/", "/slice")  # slices, seeds and audit copies are not full runs
+# Runs whose review text is kept for every pass (the journal quotes them).
+NAMED_RUNS = (
+    "e2e-runs/20261028/pa-ds-battleship-4ed4e3",
+    "e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87",
+)
+SCOPE_FILES_RE = re.compile(r"Files (this item|the executed items) changed")
 STATE_RE = re.compile(r"```shiploop-state\n(.*?)\n```", re.DOTALL)
 CHILD_RE = re.compile(r"^(?P<stage>.+)-(?P<suffix>[0-9a-f]{8})$")
 TEST_DIRS = {"test", "tests", "test-support", "__tests__", "spec", "specs"}
@@ -299,12 +305,16 @@ def main():
             if not children:
                 continue
             run_row = dict(run=run_id, run_dir=os.path.relpath(run_dir, "/Users/dadleet"), **meta, **size,
-                           active_seconds=timing["active_seconds"], stage_seconds=timing["stage_seconds"])
+                           active_seconds=timing["active_seconds"], stage_seconds=timing["stage_seconds"],
+                           planning_review=(state or {}).get("planning_review"))
             for name, stage, suffix in children:
                 nav_id = by_suffix.get(suffix)
                 seconds = passes_table(run_dir, nav_id) if nav_id else {}
                 prev_tree = bind_tree(run_dir, nav_id) if nav_id else None
                 item = history.get(nav_id, {}).get("workitem") if nav_id else None
+                start = load_json(os.path.join(improve_dir, name, "start.json")) or {}
+                context = start.get("context") if isinstance(start.get("context"), dict) else {}
+                scope = (context.get("scope") or "").replace(run_dir, "<run>")
                 pass_files = sorted(
                     f for f in os.listdir(os.path.join(improve_dir, name, "reviews")) if re.match(r"pass-\d+\.json$", f)
                 )
@@ -359,6 +369,7 @@ def main():
                         "numbered_findings": len(pieces),
                         "numbering": method,
                         "class_text": klass[:300],
+                        "found": found[:1500] if run_id in NAMED_RUNS else None,
                     }
                     passes.append(row)
                     child_pass_rows.append(row)
@@ -372,6 +383,9 @@ def main():
                 reviews.append({
                     "run": run_id, "child": name, "stage": stage, "workitem": item, "nav_id": nav_id,
                     "passes": len(child_pass_rows),
+                    "scope": scope[:600],
+                    "scope_lists_files": bool(SCOPE_FILES_RE.search(scope)),
+                    "required_trivial_reviews": start.get("required_trivial_reviews"),
                     "review_seconds": timing["review_seconds"].get(name),
                     "non_trivial_passes": sum(1 for r in child_pass_rows if r["label"] == "non-trivial"),
                     "seconds": sum(r["seconds"] or 0 for r in child_pass_rows) if all(r["seconds"] is not None for r in child_pass_rows) else None,

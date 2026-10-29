@@ -34,6 +34,9 @@ before scaling it to request size. This journal answers two things:
 - **Two cut candidates are hypotheses for that experiment, not findings:** the `plan` review (0.51 findings per minute
   against 1.1 to 1.3 for the others) and, at the thin end, Improve as a whole on one-step plans. The larger pool of
   record-only minutes is on multi-item plans (284 of 490), where the one-item skip would not apply.
+- **Why Improve changed no product, mostly by design:** planning reviews are scoped to records, hello's code was one
+  already-proven line, and every review stops at its first trivial pass. The template part is the schedule: all 25 runs
+  used the default `planning_review: stage`, so none tried the existing `--planning-review none` (F12).
 - **The "about half of active time" figure is not reproduced.** Improve pass time is a median of 28% of a completed
   run's stage time (9% to 43% over 22 runs) (F4).
 
@@ -185,6 +188,22 @@ is the docstring.
 | 1 item, 1 step | 7 | 57.5 | 14.8 | 26% | 7.7 | 5.1 | 0.0 | 0 / 27 |
 | 1 item, 2+ steps | 10 | 62.0 | 21.9 | 35% | 10.8 | 13.0 | 1.5 | 15 / 72 |
 | 2+ items | 7 | 310.2 | 67.2 | 22% | 29.6 | 35.3 | 3.6 | 25 / 90 |
+
+### What each review was given, and when it stopped
+
+Scope is the `context.scope` text in each child's `start.json`; it names product files only when it lists "Files this item changed" or "Files the executed items changed". Every run used `planning_review: stage`.
+
+| stage | reviews | scope names product files | stop rule: 1 trivial pass | reviews that edited nothing | passes | passes that edited nothing | of which the review's last pass |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| spec | 25 | 0 | 25 | 2 | 94 | 19 | 19 |
+| test-strategy | 24 | 0 | 24 | 3 | 67 | 21 | 21 |
+| plan | 24 | 0 | 24 | 8 | 47 | 24 | 24 |
+| release-plan | 24 | 0 | 24 | 11 | 42 | 20 | 20 |
+| step-plan | 31 | 0 | 31 | 16 | 48 | 30 | 30 |
+| test-spec | 25 | 0 | 25 | 17 | 33 | 24 | 24 |
+| implement | 73 | 73 | 73 | 38 | 105 | 64 | 64 |
+| system-test-author | 25 | 0 | 25 | 15 | 42 | 23 | 23 |
+| carry-forward | 24 | 24 | 24 | 10 | 42 | 22 | 22 |
 
 ### All runs, by stage
 
@@ -409,6 +428,31 @@ all 50 product edits. On ShipLoop 1.16 and later: planning 162.8 min and step-le
 behaviour passes 0.0, 1.5, 3.6 across the three plan-size classes; Improve is 26%, 35% and 22% of active time.
 Evidence: "How Improve scales with plan size, per run". The one-step class is seven hello runs.
 
+**F12 (firm for the mechanics). Why most Improve passes change no product file, and which part is the template.**
+1. *Planning reviews are scoped to records by design.* Each child's `context.scope` (`start.json`) names the stage result
+   and "the knowledge files it worked from, under docs/shiploop"; it names product files for implement and carry-forward
+   only (97 of 275 reviews). `skills/shiploop/references/improve-stages.md` gives the intent: these stages "write the
+   contracts that later work is built on", and their handoffs focus on steps or examples that can't be replayed,
+   expected results a weaker stand-in would pass, commands that don't run what they claim, and dropped IDs. The labelled
+   findings match that focus (F5). The prompt does what it was written to do; product edits are the wrong yardstick here.
+2. *Small, already-proven code leaves nothing to fix.* `hello.py` is `print("Hello, world!")`, checked by the step's
+   proof before the review; the implement reviewer reported "nothing material" (`passes.json`, field `found`, hello
+   `implement-d09d307c` pass 1). Half of all implement reviews (38 of 73) edited nothing.
+3. *Every review stops at its first trivial pass* (`required_trivial_reviews: 1` in all 275 children; owner decision
+   2026-10-20). All 247 passes that edited nothing are a review's last pass, and 120 reviews found nothing in their only pass.
+4. *The template part is the schedule.* All 25 runs used the default `planning_review: stage` (`runs.json`), which starts
+   the same planning reviews whatever the request size: hello got 8 reviews, 17 passes and 42 minutes for one line.
+   `--planning-review none` already exists (`references/run-options.md`, "Planning review option"): it drops the reviews
+   after spec, test-strategy, plan and step-plan and keeps implement, system-test-author, release-plan and the last
+   carry-forward. No run used it, which is why the planning reviews' benefit is unmeasured.
+5. *Ordering limits a plan-size rule.* In every run spec and test-strategy finish before the plan exists, so a rule keyed
+   on the plan's item count can only govern the reviews from the plan onward; spec and test-strategy would need a guess
+   from the request.
+6. *A small scope gap.* system-test-author's scope names no files although that stage writes tests; 8 of its 42 passes
+   edited test or test-harness files anyway.
+
+Open: recall. Whether the reviews miss defects that exist is unmeasured; a seeded-defect check would answer it.
+
 ## Recommendation (interim)
 
 Marked interim: 17 one-item runs, 3 of them on the current harness (1.16.0 and later), one labelling pass, no
@@ -420,8 +464,9 @@ plans, 55 of them contradictions or unreplayable checks, several in records late
 passes with zero tests, a rollback using `git reset --hard`). Later stages already fix some records (23% of record-only
 fixes, F7), so there is overlap, but how much is unknown. The saving is small against that uncertainty.
 
-**2. Run the paired experiment before cutting anything.** Hello and battleship, three runs each per arm, one model and one
-harness version, planning Improve reviews on versus off. Compare (a) record defects the implement and system-test
+**2. Run the paired experiment before cutting anything, with the existing flag.** Hello and battleship, three runs each per
+arm, one model and one harness version, `--planning-review stage` versus `--planning-review none`; no ShipLoop change is
+needed. `none` keeps the release-plan review and drops the step-plan review, so it differs from the proposal there (F12). Compare (a) record defects the implement and system-test
 reviews then find, (b) their behaviour changes, (c) the release stage's own failures and send-backs, (d) minutes.
 `extract.py` and `analyze.py` already produce (a), (b) and (d) from any run folder.
 
@@ -431,7 +476,11 @@ conclusion. (b) Improve as a whole on one-step plans: 0 behaviour changes in 27 
 total; the proposal keeps exactly those build reviews, and the cell is seven hello runs. (c) Multi-item plans hold the
 larger record-only pool (planning and step-level 284 of 490 minutes) and the most record fixes (35 per run).
 
-**4. Not recommended without the owner's go:** any change to pass limits or to the confirming pass (F8); the owner asked
+**4. If `none` is no worse on one-item plans,** choose `planning_review` per run instead of defaulting to `stage`. Spec and
+test-strategy run before the plan exists, so that choice has to come from the request (for example the intake
+classification), not from the plan's item count (F12). This is a ShipLoop change and the owner's call.
+
+**5. Not recommended without the owner's go:** any change to pass limits or to the confirming pass (F8); the owner asked
 to be consulted before a loop limit is added or changed.
 
 ## Revisions
@@ -444,6 +493,11 @@ rows (they reproduce) and reworked the recommendation. Superseded, with reason:
   the data neither support nor refute the skip.
 - Added F10, F11 and two tables ("Improve minutes and product edits, by stage group"; "How Improve scales with plan size,
   per run"). No count changed.
+
+**2026-10-28, later.** The owner asked why Improve changed nothing and whether that is intended or a byproduct of the
+prompts and templates. Added F12 and the table "What each review was given, and when it stopped" (from each child's
+`start.json` and the run's `planning_review`); Recommendation 2 now names the existing `--planning-review none` flag, and
+a new Recommendation 4 notes that spec and test-strategy run before the plan's item count exists. No earlier count changed.
 
 ## Limits
 

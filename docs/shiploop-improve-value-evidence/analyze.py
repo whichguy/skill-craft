@@ -251,6 +251,34 @@ def main():
                       "build behaviour passes", "behaviour passes / build passes"], rows))
     out.append("")
 
+    # ---- why most passes change no product file: what each review was given, and when it stops
+    last_pass = collections.defaultdict(int)
+    for p in passes:
+        last_pass[(p["run"], p["child"])] = max(last_pass[(p["run"], p["child"])], p["pass"])
+    rows = []
+    for stage in STAGE_ORDER:
+        sv = [v for v in reviews if v["stage"] == stage]
+        if not sv:
+            continue
+        sp = [p for p in passes if p["stage"] == stage]
+        idle = [p for p in sp if p["outcome"] == "none"]
+        untouched = [v for v in sv if all(p["outcome"] == "none" for p in sp if p["child"] == v["child"] and p["run"] == v["run"])]
+        rows.append([stage, len(sv), sum(1 for v in sv if v["scope_lists_files"]),
+                     sum(1 for v in sv if v["required_trivial_reviews"] == 1), len(untouched), len(sp), len(idle),
+                     sum(1 for p in idle if p["pass"] == last_pass[(p["run"], p["child"])])])
+    out.append("### What each review was given, and when it stopped\n")
+    out.append("Scope is the `context.scope` text in each child's `start.json`; it names product files only when it lists "
+               "\"Files this item changed\" or \"Files the executed items changed\". Every run used `planning_review: stage`.\n")
+    out.append(table(["stage", "reviews", "scope names product files", "stop rule: 1 trivial pass", "reviews that edited nothing",
+                      "passes", "passes that edited nothing", "of which the review's last pass"], rows))
+    out.append("")
+    summary["planning_review_values"] = sorted({str(r.get("planning_review")) for r in runs})
+    summary["reviews_scope_lists_files"] = sum(1 for v in reviews if v["scope_lists_files"])
+    summary["reviews_that_edited_nothing"] = sum(1 for v in reviews if all(
+        p["outcome"] == "none" for p in passes if p["child"] == v["child"] and p["run"] == v["run"]))
+    summary["passes_edited_nothing_and_last"] = sum(
+        1 for p in passes if p["outcome"] == "none" and p["pass"] == last_pass[(p["run"], p["child"])])
+
     # ---- size class x stage
     rows = []
     for size in ["1 item, 1 step", "1 item, 2+ steps", "2+ items"]:

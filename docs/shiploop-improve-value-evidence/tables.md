@@ -87,6 +87,22 @@ Plan size is the planned work items and the steps of the first accepted step pla
 | 1 item, 2+ steps | 10 | 62.0 | 21.9 | 35% | 10.8 | 13.0 | 1.5 | 15 / 72 |
 | 2+ items | 7 | 310.2 | 67.2 | 22% | 29.6 | 35.3 | 3.6 | 25 / 90 |
 
+### What each review was given, and when it stopped
+
+Scope is the `context.scope` text in each child's `start.json`; it names product files only when it lists "Files this item changed" or "Files the executed items changed". Every run used `planning_review: stage`.
+
+| stage | reviews | scope names product files | stop rule: 1 trivial pass | reviews that edited nothing | passes | passes that edited nothing | of which the review's last pass |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| spec | 25 | 0 | 25 | 2 | 94 | 19 | 19 |
+| test-strategy | 24 | 0 | 24 | 3 | 67 | 21 | 21 |
+| plan | 24 | 0 | 24 | 8 | 47 | 24 | 24 |
+| release-plan | 24 | 0 | 24 | 11 | 42 | 20 | 20 |
+| step-plan | 31 | 0 | 31 | 16 | 48 | 30 | 30 |
+| test-spec | 25 | 0 | 25 | 17 | 33 | 24 | 24 |
+| implement | 73 | 73 | 73 | 38 | 105 | 64 | 64 |
+| system-test-author | 25 | 0 | 25 | 15 | 42 | 23 | 23 |
+| carry-forward | 24 | 24 | 24 | 10 | 42 | 22 | 22 |
+
 ### By plan size and stage
 
 | plan size | stage | children | passes | product | behaviour | records only | nothing | children edited in pass 1 | findings | f: product | f: records | min |

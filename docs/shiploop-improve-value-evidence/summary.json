@@ -91,13 +91,19 @@
  "one_item_runs_done": 17,
  "passes": 520,
  "passes_edited_anything": 273,
+ "passes_edited_nothing_and_last": 247,
  "passes_non_trivial": 247,
  "passes_unrecorded_edit": 11,
  "planning_minutes_all": 369.3,
  "planning_passes_one_item": 135,
  "planning_passes_one_item_product": 0,
+ "planning_review_values": [
+  "stage"
+ ],
  "planning_seconds_one_item": 9715,
  "planning_seconds_one_item_done_runs": 9715,
  "product_passes": 50,
+ "reviews_scope_lists_files": 97,
+ "reviews_that_edited_nothing": 120,
  "runs": 25
 }
