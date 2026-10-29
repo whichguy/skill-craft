@@ -205,7 +205,8 @@ count becomes a criterion, so no count remains.)
   in line with their 2026-10-11 rule "I want the thing achieved, I don't care how many loops".
 - **The model's stopping rule is a criterion** (`shiploop_stage_spec.STUCK_FIX`; `test/shiploop-stage-spec.test.py`
   pins every prose copy to its anchor and refuses any count). In the step exit criteria the model applies (the
-  implement duty, implement's loop contract, the step loop and the chain step contract), the same check still failing
+  implement duty, implement's loop contract and the step loop; the chain step contract was a fourth copy until 2c-2
+  retired the chain), the same check still failing
   in the same way after a genuine fix that taught nothing new about why ends the stage as `send-back`. No script
   judges it.
 - **Removed 2026-10-24.** No count of refused runs stops `done` (the packet still prints the tally); no count of

@@ -760,7 +760,7 @@ suites (one style) and the `breadth` suite (one case of each style in its `style
 `web-service`, `cli-files` and `stateful-service`). Breadth names the styles it
 leaves out in `not_covered`: `smoke` (hello covers it in the smoke suite and as the
 batch gate), `parallel-graph` (no qualified passing baseline; its cases run only
-with `--case`), `hosted-platform` (its cases deploy to a real hosted org and need
+with `--case`; since 2026-10-29 they are graded on nothing parallel, see "The chain cases, retired" below), `hosted-platform` (its cases deploy to a real hosted org and need
 the owner's go for each deploy) and `brownfield` (its one case, `user-listing`, has not run live). Every suite's `styles` must equal the styles of its cases, and SPEC
 and this README must name the same styles; `SuiteTest` pins all three. `--suite`
 runs the cases into one directory, each in its own folder; independent chains
@@ -1883,6 +1883,29 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 
 The two saved-run extracts the tests read are `test/fixtures/efficiency/` (`extract.py` there says how they were cut).
 
+## The chain cases, retired (2026-10-29, design T §9.1 2c-2)
+
+ShipLoop's implementation chain is gone: the ask-agent route builds one step per implement action, as the inline route does
+(owner decision G1, 2026-10-29: "Adopt (a2)"). So the harness lost what only the chain made measurable, and this is said
+openly, not counted as unchanged coverage:
+
+- **The `chain` grade is retired.** `run.py` no longer computes `chain_facts` (every step accepted, at least `min_in_flight`
+  workers together, the dependency depth, each merge once) or the `recovery` grade (`--interrupt-at chain-launched`: kill the
+  host while a chain worker is in flight and let a fresh session finish the chain). The `chain` and `recovery` keys are
+  gone from `result.json`, the four cases' `chain` expectations are gone from `cases.json`, and so are the tests of both.
+- **The four `parallel-graph` cases stay** (`temperature-report`, `unit-converter`, `word-report`, `temperature-plain`) as
+  ordinary cases: their products still build and their checks still run. What they were chosen for, independent modules
+  built in parallel, is no longer asked or graded, so the style name is a label for history. Whether to rename or drop
+  the style is the owner's.
+- **A step slice seeded at `step-plan` keeps its default route, ask-agent**, which the chain cases needed. Changing it
+  would break comparability with earlier evidence, so it is the owner's call.
+- **Not replaced yet:** a check that a lost implement worker is shown stopped before another starts (the open question of
+  design T §9.1 2c) has no harness support. The pilot Astra listed (the lifecycle's order and commits, the bases after a
+  preparatory fix and a send-back, crash recovery at four points, a killed implement worker, context fidelity, quality and
+  cost per stage, Run Review's per-step view) has not been run; it is proposed in the design doc.
+- **Old runs** keep their chain ledgers and worktrees on disk. The commit counters still read the chain's merge subject and
+  the item commit subject for them.
+
 ## The release slice: deployment tested from a built product
 
 A full run of a hosted-platform case spends most of its time building the app; the question "does ShipLoop release it into my org
@@ -1959,7 +1982,7 @@ bypassed), the case's checks, and a new one, `release_slice` in `result.json`:
   been returned to it (any file of the product folder is there, committed or not: the return puts them all there at once). Before that there is nothing for them to read, so
   they are left out and named, and a run that never returned the product shows it in `committed` and in the stages, not as a
   second failure. The other checks (`deployed`, `tests`, `access`, `rules`) read the org and always run.
-- No `chain` verdict: a release slice has no implementation chain, so the one a step-plan seed is graded on is not computed.
+- No `chain` verdict: no run is graded on an implementation chain any more (see "The chain cases, retired" below).
 
 The run prints `release   PASS|FAIL  <n>/6 stages accepted ...` with the stop and deploy lines, and a failing verdict is listed in
 `mismatch.md` as `release_slice`. A seeded run writes no baseline row.

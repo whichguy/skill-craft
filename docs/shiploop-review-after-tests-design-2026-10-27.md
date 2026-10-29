@@ -1401,6 +1401,30 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
         `ci-policy`, `shiploop-progress`, `-progress-data`, `-v4-consumers`, `-stage-spec`, `-delegation`, `-e2e`,
         `-e2e-reorientation`, `-e2e-run-trace`, `-e2e-commit-counters` and `-workspace` pass after their chain parts were
         removed; the whole quick and shiploop groups were run on the result (below).
+    - **2c-3: the evidence (2026-10-29; the pilot is proposed, not run).**
+      - *Done.* The head pins and Run Review followed the route in 2c-1. The E2E chain grade went with the chain in 2c-2,
+        since `run.py` read the deleted ledger; what that retires and what stays is said in `test/shiploop_e2e/README.md`
+        ("The chain cases, retired") and in SPEC S-10's list of copies of the stuck rule. No journal entry was written to
+        `test/shiploop_e2e/LEARNINGS.md`: it is the E2E rounds' journal, and release preflight reads it, so an entry
+        that is not a round would make the preflight pass without one.
+      - *Release preflight.* Every commit of this stack that changes `skills/shiploop/` or `changes/shiploop/` comes
+        after the last `LEARNINGS.md` entry, so `scripts/release.py` will refuse the release until an E2E round follows
+        them (or each carries `No-E2E-Round: <reason>`, which says the round was not run). The pilot below is that round.
+      - *Proposed pilot* (the owner's go and a model budget; none of it was run).
+        - *Runs.* One step slice seeded at `step-plan` with at least two steps on the ask-agent route, and the same case
+          inline as the control, on the E2E default subject (DeepSeek flash on Ollama, judge Opus). Cost to expect: about
+          4n fresh workers for n steps on ask-agent against n + 3 for the old item-level route, at about 86k tokens each at start.
+        - *Measured, from Astra's list:* the lifecycle's order and commits (one `feat(<item>/<step>)` commit per step, in
+          plan order, none by a worker); the bases after a preparatory fix and after a send-back; crash recovery at four
+          points (before the commit, after Git commits, after the ledger records it but before the save, after the save
+          but before the iteration entry), which this change makes testable but nothing has exercised live; context
+          fidelity (what the fresh worker saw: the Step block, the references, the skills); quality and cost per stage;
+          Run Review's per-step view on a version-11 ask-agent run.
+        - *The killed implement worker.* Add one harness trigger (kill the host once the current implement action's
+          worktree has uncommitted edits, then resume with a fresh session) and record what the parent does when it
+          cannot show the worker stopped: waits, asks the person, or starts a replacement. That decides whether the route
+          needs a rule beyond the generic producer boundary ("collect or confirm an existing owner stopped before
+          replacement"). It is the open question above, left to the pilot.
   - **Found on the way** (reference text; resolved in 2c-2, which deleted both files). chain-route.md's inline paragraph
     still said "An Improve stage reviews each accepted step, and the callback after the last step's review moves to
     `test`". parallel-chain.md's diagram still ended in "The item's Improve stage, then the test stage". Both predated
