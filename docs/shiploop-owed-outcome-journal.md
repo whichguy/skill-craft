@@ -885,6 +885,49 @@ B's first two parts, firm for the tests named: `test_the_check_and_complete_agre
 `test_complete_takes_the_checks_matching_yes_and_runs_nothing_again` and
 `test_each_change_to_what_the_gates_read_makes_complete_run_them_again` pass.
 
+### Phase B: the before arm, the first tier run and the fixes (2026-10-29)
+
+**Before arm (firm for what it counts; n = 3, one case, one model).** Three node-fix-bug slices from `070d752e` (Claude
+host, DeepSeek flash on Ollama, seed at step-plan, clear at `implement:inside`, `names-next`, the whole inner loop, no
+`--stop-after`), output `~/e2e-runs/20261028/bc-before-{1,2,3}-*`. All six verdicts passed in each. Medians, from
+`arm_b_metrics.py --per-stage` ([bc-before-per-stage.json](shiploop-owed-outcome-evidence/bc-before-per-stage.json)):
+
+| stage | commands to accept | dry runs | refused completes | complete (ms) |
+|---|---|---|---|---|
+| step-plan | 39 | 1 | 0 | 287 |
+| test-spec | 6 | 1 | 0 | 888 |
+| implement | 12 | 1 | 0 | 1,345 |
+| test | 10 | 1 | 0 | 2,961 |
+| document | 6 | 0 | 0 | 1,257 |
+| verify | 7 | 1 | 0 | 1,386 |
+| carry-forward | 6 | 1 | 1 (slice 2) | 447 |
+| improve (9 children) | 12 | 0 | 0 | 353 |
+
+This is E6 and plan P8 again on a clean run: one dry run per inner `complete`, and one refused `complete` in 21 inner
+stages.
+
+**What separates the before arm from the tip (checked 2026-10-29).** `git diff --stat 070d752e 202b2643 -- skills changes`
+lists only `1961f4c5` ("when the host ends a session, the run it owned is released at once"): `host-hooks.json`,
+`references/keepalive.md`, the new `scripts/shiploop-keepalive-session-end`, `scripts/shiploop_keepalive.py` and its
+change note. It touches the stop hook's ownership, not what a model runs to get a step accepted, so the comparison
+stands with that one caveat. The tip adds phase B on top.
+
+**First tier run of `a25cec39` (receipt `/Users/dadleet/tier-receipts/bc-b-d2dc65`, stopped at 29 of 70 suites;
+firm).** Three real findings:
+- `shiploop-rehydration`: the run map in `shiploop_context_index.MAP_ROWS` did not list `RUN/checks/`. Added; the test's map
+  limit went from 3,850 to 4,100 bytes for the row.
+- `shiploop-packet-recut`, `shiploop-step-packets`: the printed `Check (` line (a copy of the callback's command, 329
+  characters per inner head) pushed four heads over their journaled sizes and an ask-agent step-plan head with test
+  layers at their limit past the host cut. Removed. The inner stage's Checked-by line now says to run "the callback with
+  `check` in place of `complete`" (`prompts.CHECK_HOW`); an outer stage's packet names no check. Test and verify heads
+  grew 13-16 characters and are raised in `head_table.json` with the reason; every other head falls or is unchanged.
+- Learning: a prompt line that repeats a long literal command is expensive where heads are at the cut; derive the
+  command from the callback the packet already prints. This is how the old flag worked too.
+
+**B-arm smoke slice (n = 1, firm only for what it shows).** Slice `bc-b-1-ddde3c` ran `a25cec39`, the printed-line wording:
+all six verdicts passed; the trace shows 7 `check` calls, 10 `complete` calls and no use of the old flag, so a model uses
+the verb. It does not cover the final wording above; the B round runs on the final tip.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in
