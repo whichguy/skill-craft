@@ -803,7 +803,8 @@ _PLAN_RECORD_INTERACTIONS = """\
      Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
      plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
      component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     the spec's UI criteria this step meets (the first UI step records the design system, tokens, components and
+     theme, as an AD-<n>), and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
      defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
      animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
      ownership guide); locators of sources and checks.
@@ -972,7 +973,12 @@ DUTIES = {
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
-   keeps dependent work unready.
+   keeps dependent work unready. A deliverable with a user interface (a page, an app screen, a rendered report, a
+   terminal interface) gets a non-functional requirement for a deliberately designed, polished interface, never a
+   default one, with observable criteria: a consistent visual system (spacing and type scales, a palette with a light
+   and a dark theme); designed empty, loading and error states; a layout that works at a narrow and a wide width with
+   no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
+   honoring reduced motion; one icon set.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
@@ -1287,7 +1293,9 @@ Write no test code in this stage.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put its
    Test layers row (code and layer), its surface (public interface, real boundary or rendered UI; Real-boundary test
    guidance), due phase, setup and fixture, action, teardown (or "stateless"), command row, registering suite and
-   smoke membership in those fields or the summary.
+   smoke membership in those fields or the summary. A UI criterion's row observes the rendered interface in both
+   themes and at both widths (a contrast measurement, an overflow check, a focus-state capture); structure alone does
+   not close it.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
@@ -1616,7 +1624,8 @@ preparatory commit); a mismatch there is a send-back.
 5. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A; reconcile each
    affected requirement clause with its case, required surface and due phase, checked surface, candidate, status
    and evidence. A pass on another surface only supports; source, HTTP or DOM structure alone cannot close a
-   rendered interaction. Missing evidence for a due case stays incomplete. Check that no clause or case was
+   rendered interaction. A UI criterion closes only on the rendered interface, captured in both themes and at both
+   widths. Missing evidence for a due case stays incomplete. Check that no clause or case was
    dropped; claim no requirement met while a required observation is unrun.
 6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to add-work with one
    corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked

@@ -324,3 +324,15 @@ The owner asked overlapping sessions to stop and agree on owners. Design T (sess
   - Offline render diff, same four settings as F2, against the release: all 10 stages pass; the carry-forward packet grows
     by 165 characters (the `follows` row shape and the coverage rule), approved in `packet_changes.json` key F3.
   - Not measured yet: a rerun of the three D7 cases (hidden checks must stay 43/43), and a hooks-on Terra before/after.
+- **Plan P4 (2026-10-29), on F3. The fancy-UI template text (Q6, approved 2026-10-28).**
+  - The spec's non-functional duty states the observable criteria for a deliverable with an interface (visual system with a
+    light and a dark theme; empty, loading and error states; narrow and wide layouts without overflow; focus states and
+    WCAG AA contrast; motion only where it explains a change, honoring reduced motion; one icon set). The step plan's Design
+    basis names the ones a step meets. A test-spec row for a UI criterion and product acceptance close it only on the
+    rendered interface in both themes and at both widths. No stack or library is named.
+  - **Changed from the draft in section 6.** The plan stage would have recorded the design system as an AD-<n> on the
+    `ui` concern row, but the plan head ends its required text exactly at the 19,500-character bound, so the sentence
+    moved to the step plan's Design basis: the first UI step records the design system, which is where the first
+    screen is built.
+  - The criteria are observations, so acceptance stays scripted or rendered, never model taste (B7). Not measured: a UI
+    case (the D7 cases have no interface), and the extra minutes per UI feature.
