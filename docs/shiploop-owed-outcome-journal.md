@@ -557,6 +557,8 @@ session's E6D2 slices as orphans "whose harness is not running", and suggested `
 killed live runs (not run). Cause: `listeners.case_alive` judges a harness alive by the case lock `.harness-lock`, which
 `run.py` holds (`listeners.hold_case`) but `slice.py` never takes, so every live slice reads as orphaned and blocks any
 `run.py` launch under the same runs root.
+**Fixed 2026-10-28 by `98e7aff0` (another session):** a slice now holds its case lock while it runs. Slices already
+running from older worktrees hold none until they end, and for those a separate runs root is still the workaround.
 
 **Owner's choice, 2026-10-28: "Separate runs root".** The owner-note run was launched at 19:45Z from main `4e1c8df0`:
 hello, Claude host, DeepSeek flash on Ollama, `--source checkout --owner-note-at implement`, no timeout. Its output is
