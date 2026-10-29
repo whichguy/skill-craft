@@ -143,10 +143,18 @@ pre-created. It grades five verdicts into `result.json`:
   its `report.html`. Which run that is, is recorded in `shiploop-run.json` (added
   2026-10-16): the runs already in the folder when it was created (a follow-on's copy can
   bring one) are never candidates, and the run itself is the one seeded by the harness,
-  else the only new run, else the only new run the host's `--run-dir` commands named.
-  A resume and a regrade grade that same run. Several runs that nothing tells apart are
+  else the only new run. A model that abandons its first run and starts a second leaves
+  several; then the runs it did not pause or halt are the candidates (a finished or blocked
+  run is still in play), one candidate is the run, and several are told apart only by the
+  one the host's `--run-dir` commands named. When every run was paused or halted, the run
+  whose `state.md` changed last is the run if it changed strictly after the others.
+  The runs not chosen are listed as `other_runs`. A resume and a regrade grade the
+  recorded run again; a choice that follows the runs' statuses is made again at every
+  grade and is not recorded, because a model can resume the run it paused. Several runs
+  that nothing tells apart (two live runs, or a finished run beside a live one) are
   `ambiguous` (the result lists them) and fail; an unrelated finished run is never
-  preferred;
+  preferred. The same rule (`run_choice.py`) picks the run for every measurement that
+  reads the run's files and for the live monitor;
 - **committed**: the source checkout ends committed: HEAD moved past where the
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),

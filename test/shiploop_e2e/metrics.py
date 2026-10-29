@@ -22,6 +22,7 @@ import re
 
 import glossary
 import rollouts
+import run_choice
 import run_trace
 import runrecord
 import sessionlog
@@ -1445,7 +1446,6 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 # The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
 # where the same command assigns them), to compare with what the resume prompt told.
 NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
-RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
 # The ShipLoop verbs whose call can be the one that gets an action accepted. The Improve stage's `complete` (it names the Improve
 # stage's id) accepts the action it reviews; `improve-complete` was the Improve child's finish before the Improve stage was an
 # action of its own, and a saved run still holds it.
@@ -1541,7 +1541,7 @@ def _recovery(tools: "ToolLog", window: list, told: dict | None, heads: dict) ->
     if nexts:
         number, key = nexts[0]
         found = NEXT_CALL.search(tools.calls[key]["expanded"])
-        run_dir = RUN_DIR_ARG.search(found.group("rest")) if found else None
+        run_dir = run_choice.RUN_DIR_ARG.search(found.group("rest")) if found else None
         failed = key in tools.failed
         first = {"call": number, "failed": failed, "exit": tools.failure_of[key]["exit"] if failed else None,
                  "cli": None if told is None else _same_path(told.get("cli"), found.group("cli") if found else None),
@@ -2833,7 +2833,7 @@ def shiploop_invocations(command: str) -> list[dict]:
             continue
         pipe = pipe_of(line)
         before_pipe = line if pipe is None else re.split(r"(?<!\|)\|(?!\|)", line, maxsplit=1)[0]
-        run_dir = RUN_DIR_ARG.search(before_pipe)
+        run_dir = run_choice.RUN_DIR_ARG.search(before_pipe)
         for verb in verbs:
             found.append({"verb": verb, "check_only": "--check-only" in line or verb == "check", "piped": pipe is not None,
                           "cut": pipe if pipe is not None and pipe["into"] in ("head", "tail", "sed") else None,
@@ -2925,7 +2925,8 @@ def _bucket_table() -> dict:
 
 def run_dir_of(out: Path) -> Path | None:
     """The ShipLoop run directory a harness output folder recorded: a slice's invocation.json (`seeded.run_dir`) or a full
-    run's result.json (`shiploop.run_dir`), else the one `.shiploop-runs/*/run` under the folder; None where none is there."""
+    run's result.json (`shiploop.run_dir`), else the run run_choice.choose picks from the folder (the same one the verdict and
+    the progress monitor name); None where there is none or several that nothing tells apart."""
     out = Path(out)
     for name, keys in (("invocation.json", ("seeded", "run_dir")), ("result.json", ("shiploop", "run_dir"))):
         try:
@@ -2940,8 +2941,8 @@ def run_dir_of(out: Path) -> Path | None:
             for candidate in (local, Path(value)):
                 if (candidate / "state.md").is_file():
                     return candidate
-    found = sorted((out / ".shiploop-runs").glob("*/run/state.md")) if (out / ".shiploop-runs").is_dir() else []
-    return found[0].parent if len(found) == 1 else None
+    chosen = run_choice.choose(out).chosen
+    return Path(chosen["run_dir"]) if chosen else None
 
 
 def _state_block(path: Path) -> dict | None:

@@ -1714,6 +1714,221 @@ class GradeIdentityTest(unittest.TestCase):
         self.assertEqual((run.grade_shiploop(self.out)["run_dir"], run.grade_shiploop(self.out)["pass"]), (inside, True))
 
 
+class MultipleRunsTest(unittest.TestCase):
+    """A model that abandons its first ShipLoop run and starts a second leaves two runs in the output folder (brownfield
+    bf-ds-r1-ticket-assignment, 2026-10-29: the first paused with a status_reason saying it was replaced, the second live).
+    Three readers say which run the folder holds: grade_shiploop (the verdict), metrics.run_dir_of (every measurement that
+    reads the run's files) and progress.report (the live monitor). They share one rule, so each case here asks all three:
+    a run is told apart by its revision, which the monitor prints and the other two return as the run directory."""
+
+    STAMP = 1_800_000_000  # seconds; the state.md of each run is stamped from here so the newest state change is known
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out = Path(tmp.name).resolve()
+        self.written = 0
+
+    def make(self, name: str, status: str, revision: int, *, changed: int | None = None, report: bool = False,
+             stage: str | None = None) -> str:
+        """One run under .shiploop-runs/<name>/run, its state.md stamped `changed` seconds after STAMP (default: later than
+        the runs written before it)."""
+        folder = self.out / ".shiploop-runs" / name / "run"
+        state = {"status": status, "stage": stage or ("done" if status == "done" else "implement"), "revision": revision}
+        if status in ("paused", "blocked", "halted"):
+            state["status_reason"] = f"{status} by the test"
+        run.store.write_record(folder / "state.md", state)
+        if report:
+            (folder / "report.html").write_text("<html></html>")
+        self.written += 1
+        stamp = (self.STAMP + (self.written if changed is None else changed)) * 10 ** 9
+        os.utime(folder / "state.md", ns=(stamp, stamp))
+        return str(folder)
+
+    def readers(self) -> tuple[dict, str | None, int | None, str]:
+        """(the graded verdict, the directory run_dir_of returns, the revision the monitor shows, the monitor's text)."""
+        graded = run.grade_shiploop(self.out)
+        picked = metrics.run_dir_of(self.out)
+        text = progress.report(self.out)
+        shown = re.search(r"\| \w+, rev (\d+),", text)
+        return graded, str(picked) if picked else None, int(shown.group(1)) if shown else None, text
+
+    def assert_chosen(self, directory: str, revision: int) -> dict:
+        graded, picked, shown, text = self.readers()
+        self.assertEqual(graded.get("run_dir"), directory, graded)
+        self.assertEqual(picked, directory)
+        self.assertEqual(shown, revision, text)
+        return graded
+
+    def assert_ambiguous(self, *directories: str) -> dict:
+        graded, picked, shown, text = self.readers()
+        self.assertFalse(graded["pass"])
+        self.assertEqual(sorted(graded.get("ambiguous", [])), sorted(directories), graded)
+        self.assertIn("ambiguous", graded["reason"])
+        self.assertIsNone(picked)
+        self.assertIsNone(shown, text)
+        self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", text)
+        return graded
+
+    # ---- the reported defect
+
+    def test_a_run_the_model_paused_and_replaced_is_not_the_run_while_its_live_successor_is(self):
+        first = self.make("work-1", "paused", 1, stage="intake")
+        second = self.make("work-2", "active", 5, stage="test-strategy")
+        graded = self.assert_chosen(second, 5)
+        self.assertEqual((graded["status"], graded["pass"], graded["runs"], graded["other_runs"]), ("active", False, 2, [first]))
+        self.assertNotIn("paused", self.readers()[3].split("\n")[0])
+
+    def test_the_choice_follows_the_runs_statuses_so_it_is_not_recorded_as_the_runs_identity(self):
+        self.make("work-1", "paused", 1)
+        self.make("work-2", "active", 5)
+        self.assert_chosen(str(self.out / ".shiploop-runs" / "work-2" / "run"), 5)
+        self.assertNotIn("run_dir", run.run_identity(self.out))
+
+    def test_a_live_run_is_preferred_to_a_paused_one_whichever_changed_last(self):
+        first = self.make("work-1", "paused", 1, changed=500)
+        second = self.make("work-2", "active", 5, changed=100)
+        self.assert_chosen(second, 5)
+        self.assertNotEqual(second, first)
+
+    def test_a_halted_run_is_set_aside_as_a_paused_one_is(self):
+        self.make("work-1", "halted", 1)
+        second = self.make("work-2", "active", 5)
+        self.assert_chosen(second, 5)
+
+    def test_a_blocked_run_is_still_in_play_beside_a_paused_one(self):
+        blocked = self.make("work-1", "blocked", 1, changed=100)
+        self.make("work-2", "paused", 5, changed=500)
+        self.assert_chosen(blocked, 1)
+
+    def test_the_live_run_is_found_among_several_that_were_set_aside(self):
+        first = self.make("work-1", "paused", 1)
+        second = self.make("work-2", "halted", 2)
+        third = self.make("work-3", "active", 5)
+        graded = self.assert_chosen(third, 5)
+        self.assertEqual(graded["other_runs"], [first, second])
+
+    # ---- candidates that nothing tells apart
+
+    def test_two_live_runs_stay_ambiguous_and_the_newer_one_is_not_picked(self):
+        first = self.make("work-1", "active", 1, changed=100)
+        second = self.make("work-2", "active", 5, changed=500)
+        graded = self.assert_ambiguous(first, second)
+        self.assertEqual(graded["runs"], 2)
+        self.assertNotIn("other_runs", graded)
+
+    def test_a_finished_run_beside_an_active_one_stays_ambiguous(self):
+        # The 2026-10-16 audit's control: an unrelated finished run is never preferred, and nothing prefers the active one either.
+        finished = self.make("work-1", "done", 3, report=True, changed=500)
+        active = self.make("work-2", "active", 5, changed=100)
+        self.assert_ambiguous(finished, active)
+
+    def test_the_live_runs_that_remain_are_the_only_ones_listed_as_ambiguous(self):
+        self.make("work-1", "paused", 1)
+        second = self.make("work-2", "active", 5)
+        third = self.make("work-3", "active", 7)
+        graded = self.assert_ambiguous(second, third)
+        self.assertEqual(graded["runs"], 3)
+        self.assertIn("2 ShipLoop runs under the output directory that are not paused or halted", graded["reason"])
+
+    def test_the_host_naming_one_of_two_live_runs_resolves_them_in_every_reader(self):
+        first = self.make("work-1", "active", 1)
+        second = self.make("work-2", "active", 5)
+        self.assert_ambiguous(first, second)
+        command = f'python3 "/x/shiploop" next --run-dir "{first}"'
+        (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
+        graded = self.assert_chosen(first, 1)
+        self.assertEqual(graded["other_runs"], [second])
+
+    def test_a_paused_run_the_host_named_does_not_beat_a_live_one_it_did_not(self):
+        paused = self.make("work-1", "paused", 1)
+        live = self.make("work-2", "active", 5)
+        command = f'python3 "/x/shiploop" pause --run-dir "{paused}"'
+        (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
+        self.assert_chosen(live, 5)
+
+    # ---- no run is live
+
+    def test_when_every_run_was_set_aside_the_one_changed_last_is_the_run(self):
+        first = self.make("work-1", "paused", 1, changed=500)
+        second = self.make("work-2", "halted", 5, changed=100)
+        graded = self.assert_chosen(first, 1)
+        self.assertEqual((graded["status"], graded["other_runs"]), ("paused", [second]))
+
+    def test_set_aside_runs_changed_at_the_same_moment_stay_ambiguous(self):
+        first = self.make("work-1", "paused", 1, changed=100)
+        second = self.make("work-2", "paused", 5, changed=100)
+        self.assert_ambiguous(first, second)
+
+    def test_a_finished_run_beside_a_paused_one_is_the_run_and_its_pass_is_its_own(self):
+        finished = self.make("work-1", "done", 3, report=True, changed=100)
+        self.make("work-2", "paused", 5, changed=500)
+        graded = self.assert_chosen(finished, 3)
+        self.assertTrue(graded["pass"])
+
+    # ---- the identity the harness recorded still wins
+
+    def test_a_recorded_run_wins_in_every_reader_even_when_it_is_the_paused_one(self):
+        recorded = self.make("work-1", "paused", 1)
+        self.make("work-2", "active", 5)
+        run.record_run_identity(self.out, run_dir=recorded, basis="seeded by the harness")
+        graded = self.assert_chosen(recorded, 1)
+        self.assertEqual(graded["identity"], "recorded")
+
+    def test_a_recorded_run_whose_state_is_gone_is_chosen_again_by_the_rule(self):
+        gone = self.make("work-1", "paused", 1)
+        paused = self.make("work-2", "paused", 2)
+        live = self.make("work-3", "active", 7)
+        run.record_run_identity(self.out, run_dir=gone, basis="seeded by the harness")
+        (Path(gone) / "state.md").unlink()
+        graded = self.assert_chosen(live, 7)
+        self.assertEqual(graded["other_runs"], [paused])
+
+    def test_runs_that_were_there_before_the_invocation_are_candidates_for_no_reader(self):
+        stale = self.make("a-stale", "done", 3, report=True)
+        run.record_preexisting_runs(self.out)
+        live = self.make("work-2", "active", 5)
+        graded = self.assert_chosen(live, 5)
+        self.assertNotEqual(graded["run_dir"], stale)
+
+    # ---- state files that are not runs
+
+    def test_a_state_file_nobody_can_read_is_not_a_run(self):
+        self.make("work-1", "paused", 1)
+        live = self.make("work-2", "active", 5)
+        broken = self.out / ".shiploop-runs" / "work-3" / "run" / "state.md"
+        broken.parent.mkdir(parents=True)
+        broken.write_bytes(b"not a record \xff\xfe")
+        graded = self.assert_chosen(live, 5)
+        self.assertEqual(graded["runs"], 2)
+
+    def test_one_readable_run_beside_an_unreadable_one_is_the_only_run(self):
+        paused = self.make("work-1", "paused", 1)
+        broken = self.out / ".shiploop-runs" / "work-2" / "run" / "state.md"
+        broken.parent.mkdir(parents=True)
+        broken.write_text("# no state fence here\n")
+        graded = self.assert_chosen(paused, 1)
+        self.assertEqual(graded["identity"], "the only run that was not there before the invocation")
+        self.assertNotIn("other_runs", graded)
+
+    # ---- a folder with exactly one run is graded as it always was
+
+    def test_exactly_one_run_grades_with_the_same_keys_in_the_same_order_whatever_its_status(self):
+        for status, report in (("paused", False), ("active", False), ("done", True), ("halted", False)):
+            with self.subTest(status=status):
+                shutil.rmtree(self.out / ".shiploop-runs", ignore_errors=True)
+                (self.out / run.RUN_IDENTITY).unlink(missing_ok=True)
+                only = self.make("only", status, 4, report=report)
+                graded = self.assert_chosen(only, 4)
+                self.assertEqual(list(graded), ["pass", "run_dir", "status", "stage", "revision", "report_html", "runs", "identity",
+                                                "worktree"])
+                self.assertEqual(graded, {"pass": status == "done", "run_dir": only, "status": status,
+                                          "stage": "done" if status == "done" else "implement", "revision": 4,
+                                          "report_html": report, "runs": 1,
+                                          "identity": "the only run that was not there before the invocation", "worktree": None})
+                self.assertEqual(run.run_identity(self.out)["run_dir"], only)  # one run: bound at the first grade, as before
+
+
 class FollowOnTest(HarnessCase):
     def prior_run(self) -> Path:
         prior = self.tmp / "prior"
