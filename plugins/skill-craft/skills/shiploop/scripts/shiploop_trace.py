@@ -6,7 +6,8 @@
   and action before and after, the results it accepted, and the refusal text when it exited non-zero;
 - ``packet``: every packet ShipLoop printed: action, stage, work item, its characters in the file and as printed, and
   the copy kept as sent (``packets/sent/<sha>.md``), since ``next`` rewrites ``packets/<action>.md`` in place;
-- ``hook``: every keepalive stop decision for a session bound to the run, with the text the hook put into the turn.
+- ``hook``: every keepalive stop decision for a session bound to the run, with the text the hook put into the turn, and
+  every session end the host reported for one (``hook=session-end``, ``released``: whether the run's claim was freed).
 
 Skill-tool calls stay in ``skill-calls.jsonl``; the reader merges them.  The trace is evidence, never state:
 ``state.md`` stays the authority, nothing resumes from the trace, and a failed append never fails a command.
@@ -196,6 +197,17 @@ def record_stop(run_dir: Any, host: str, session: str | None, decision: Mapping[
         return False
     return record(run_dir, "hook", hook="stop", host=host, session=session, decision=decision.get("decision"),
                   why=decision.get("why"), text=decision.get("reason") or decision.get("notice"))
+
+
+def record_session_end(run_dir: Any, host: str, session: str | None, *, released: bool, reason: str | None = None) -> bool:
+    """Record that the host ended a session bound to the run: ``released`` is whether that session's claim on the run was
+    removed (False when the stop hook had already released it, or another session owns the run), ``reason`` the host's
+    own (``other``, ``clear``, ...).  The row that shows a session's end, not the end of a turn, freed the run."""
+    if not isinstance(run_dir, str) or not run_dir or current_state(run_dir) is None:
+        return False
+    return record(run_dir, "hook", hook="session-end", host=host, session=session, decision="release", released=released,
+                  why="the host ended the session; " + ("the run it owned is released" if released else "it owned no claim"),
+                  reason=reason)
 
 
 def _flag(argv: Sequence[str], name: str) -> str | None:
