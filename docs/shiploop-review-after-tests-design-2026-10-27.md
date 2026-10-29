@@ -1020,6 +1020,184 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     `iteration.earlier_command` must also be checked against lane B's folded row (a focused row that is also the minimum
     regression, run alone with no IDs at an early step).
 - **2c. The ask-agent route** gets the same step boundaries (G1).
+  **2c design, 2026-10-28: nothing built; it waits on the owner's G1 (§9.2).** The question G1 leaves open: the
+  iteration is serial, but the chain builds independent steps in parallel.
+  - **The route today** (checked in the code).
+    - One implement action builds every step (`loops.implement_scope`, `all_steps`). Its duty 7 (`_IMPLEMENT_CHAIN`)
+      binds a Plan Dispatcher chain on the step plan's execution graph, parallel by default.
+    - Chain workers build and commit in sibling worktrees. Each accepted step's `done` fast-forwards its candidate into
+      the execution checkout (`shiploop_chain._per_step_integrate`, `shiploop_chain_git.fast_forward`), and
+      `guard_completion` holds implement until the chain's finish receipt exists. So the item's code lands as worker
+      commits and "ShipLoop chain prepared" merges (`_PREPARED_MERGE_PREFIX`).
+    - Then come one test stage for the whole item, one document, one review in a fresh worker, and
+      `_item_commit_stage`.
+      - In the test stage `test_loop.step_number` is None, so every case is new and RED runs on the item's base;
+        `step_command` runs no step Proof.
+      - The commit, `feat: <item> <title>`, holds the tests, docs, knowledge and review edits. It writes no ledger row
+        and no pending record.
+    - Every other ask-agent producer differs from inline only in its packet's first line, "Execute the prompt in a fresh
+      context". As navigator.md says, "The setting selects packet text; no script verifies who executed an assignment."
+  - **Why the chain and an iteration do not compose as they stand.**
+    - `done` moves HEAD with a worker commit. Inside an iteration, `iteration.commit_decision` refuses any HEAD but the
+      base or its pending commit.
+    - `_per_step_expected_target` advances the bound target "only through recorded integrations". So a step commit
+      between two chain steps makes the next `done` refuse ("prepared target is stale").
+    - `shiploop_chain_git.target_identity` requires a clean checkout ("repository must be clean, including staged and
+      untracked paths"). An iteration keeps its tests and docs uncommitted until its commit stage.
+    - A chain lives inside one implement action. `_require_bindable` and `_current_binding` accept only the current
+      action, and `dispatch` runs `guard_completion` on every `complete` of a bound action, a send-back included.
+  - **What the chain has shown live** (test/shiploop_e2e/LEARNINGS.md). All of these runs were on Sonnet 5.5 on
+    2026-10-03 and 04, and all but chain-full were seeded at step-plan.
+    - **Shapes.**
+      - S1 ∥ S2 → S3: chain-seeded, chain-full and b3;
+      - four steps in flight: unit-converter;
+      - depth 3: word-report.
+    - **Recovery.** In group C, c1 and c2 recovered a host killed with two workers in flight, with no person. They used
+      `retry` with `native_status: "unavailable"`, which keeps the lost worker's worktree aside (owner, 2026-10-03:
+      "retry without proof").
+    - **Speed.** The runs show overlap. In chain-full, S1 and S2 launched at 17:02:10 and settled at 17:05:08 and
+      17:05:28. No run measured the serial counterfactual, so the gain (about one step's build per parallel pair) is an
+      estimate, not a measurement.
+    - **Use since.** All 93 run states under ~/e2e-runs written since 2026-10-05 record `delegation: inline`. The
+      harness still seeds ask-agent by default (`run.seed_run`).
+  - **The options.** Each step gets its own test, document and review in every option but (c). On ask-agent each of
+    those stages is a fresh worker, so an n-step item starts about 4n workers instead of about n + 3. A fresh Claude
+    Code subagent costs about 86k tokens at start (measured 2026-09-27).
+    - **(a1) Serialise, one chain per step.**
+      - *How.* Each step's implement binds a chain on a one-node graph cut from the reviewed graph. The worker's change
+        must come back uncommitted, with HEAD left on the iteration's base. Fast-forwarding and then squashing at the
+        commit stage would make the chain's recorded ancestry and the step's history disagree. A `--no-commit` on the
+        fast-forward still moves HEAD (Astra).
+      - *Cost.* The chain needs an uncommitted return with its own recoverable intent, and a change to `prepare`,
+        `done`, `finish` and `guard_completion`'s ancestry check. The one-node graph must keep the step's criteria and
+        show its dependencies already committed. Each step pays about nine chain callbacks. Serial mode runs in the
+        main conversation, so a fresh worker needs one-worker parallel mode.
+      - *Risk.* It has no parallel build at all: the chain is kept only for isolation and its unattended retry.
+      - *One lifecycle.* Yes, once the return is uncommitted.
+      - *Ledger and pending record.* Inline's. The return needs its own intent record, because the commit's pending
+        record cannot tell a half-applied return from a whole one.
+      - *Send-back mid-item.* As inline, except that an unfinished chain blocks it (`guard_completion`) until the chain
+        gains a way to abandon an attempt.
+    - **(a2) Serialise, no chain.**
+      - *How.* One implement action per step, as on the inline route, run by a fresh worker in the execution checkout.
+      - *Cost.* It removes code: the route's step branches go. They are:
+        - `implement_scope`'s `all_steps`;
+        - the route checks in `step_view`, `_next_step_follows`, `_between_steps`, `_iteration_base`, `_step_entry`,
+          `test_loop.step_number`, `test_loop.step_command` and `look_back_lines`;
+        - `_item_commit_stage` and `prompts.for_steps`;
+        - the ask-agent step-plan and implement duty paragraphs, and their head pins;
+        - Run Review's "no visit is tied to a step" for ask-agent runs.
+
+        Implement needs one new paragraph for a worker in the shared checkout, because `_IMPLEMENT_INLINE` says to
+        dispatch no worker. ShipLoop's chain is then unused, so under one supported version it goes (the owner's
+        call). A saved item-level run is refused, not read as S1.
+      - *Risk.* A lost implement worker writes the shared checkout, so a replacement waits until it is shown stopped
+        (Astra, finding 1). Fresh-context execution stays a host behaviour that no script sees.
+      - *One lifecycle.* Yes. The route keeps only its context policy, which says who executes each stage.
+      - *Ledger and pending record.* Inline's, unchanged.
+      - *Send-back mid-item.* Inline's. Earlier steps stay committed, the current step's edits stay uncommitted against
+        the new plan's base, and no later step's code is in that base.
+    - **(b) Parallel build, then iterate per step over the integrated result.**
+      - *How.* The chain builds every step. Then test, document, review and commit run per step, in plan order.
+      - *Cost.* Each step needs a second base for RED: the chain's recorded start revision, which can lack steps that
+        are accepted by then, so RED can hold for the wrong reason. GREEN runs on a tree that holds later steps' code,
+        so it cannot show a step works without them. Lint and mutation need the contribution's lines mapped through
+        the prepare merges. The review's diff since its base shows tests and docs but not the step's code.
+      - *Risk.* Each step commit holds only tests, docs and review edits; the code is the workers'. The hard part is
+        rebuilding contribution boundaries after the combined preparation, not shared files as such. It is the
+        monolithic build the owner ruled out.
+      - *One lifecycle.* No: an iteration without a build, and different evidence.
+      - *Ledger and pending record.* The base is the previous step's commit (S1's is the chain's finish commit), plus a
+        RED base per step. The pending record describes a tests-and-docs commit, not the whole-step commit.
+      - *Send-back mid-item.* A send-back at step k carries steps k+1 to n, untested and unreviewed, into the next
+        plan's committed base: the vanishing that §9 row 5 forbids.
+    - **(c) Keep the route item-level** (§9.2's alternative).
+      - *How.* As today.
+      - *Cost.* The cheapest change now. It keeps a second lifecycle, with different answers to what is accepted, what
+        RED compares against, who may commit and what a send-back keeps. Every later lifecycle change is decided twice:
+        2d's test tiers, F9's skills per stage, Run Review's per-step view. 2b-4c found the chain, send-back and
+        improve-route suites drifted. Astra notes that test selection is part of that cause, because `--changed-from`
+        never selected those suites.
+      - *Risk.* None of §9 rows 2, 3 and 5 holds on this route. Calling the item one iteration only renames the
+        monolithic build.
+      - *One lifecycle.* No.
+      - *Ledger and pending record.* None. Recovering the chain's integration does not make the later item commit
+        idempotent.
+      - *Send-back mid-item.* As today: the worker commits stay, and the next implement binds a new chain over every
+        step.
+    - **(d) Build ahead.**
+      - *How.* While step k iterates, steps whose dependencies are committed build in sibling worktrees. At step k+1's
+        entry, ShipLoop applies its contribution as an uncommitted change on step k's commit, and the iteration runs
+        as on the inline route.
+      - *Cost.* The largest new design. The chain must outlive its implement action, with an owner of speculative work
+        across stages. It must also advance its target through ShipLoop's commits and integrate without committing.
+        "Contribution ready" must be told apart from "step accepted", because `_per_step_done` releases dependents at
+        integration. A send-back or a review change voids speculative builds, and their late returns must be refused.
+      - *Risk.* It relaxes the owner's order: step two is built before step one is reviewed. Its net gain is
+        unmeasured, though longer per-step stages leave more build time to hide.
+      - *One lifecycle.* Yes, if applying the contribution is the step's implement stage.
+      - *Ledger and pending record.* Inline's. The contribution records where it was built.
+      - *Send-back mid-item.* The old plan's speculative attempts are voided and kept as evidence.
+  - **Astra's verdict** (`gpt-6-astra`, max effort, read-only sandbox, no fallback): "**Recommend (a2): one serial
+    per-step lifecycle, with `ask-agent` selecting the execution context.** Pilot it before release." Retiring the
+    chain also "removes a demonstrated isolation and recovery capability—not merely parallel build speed". Astra's
+    rating of each option:
+    - a1: reserve it for required isolation;
+    - a2: pilot and adopt;
+    - b and c: reject;
+    - d: defer.
+
+    The question and the answer, verbatim:
+    [`astra-review.md`](experiments/ask-agent-step-boundaries-20261028/astra-review.md).
+  - **Astra's findings, each checked against the code.** All hold.
+
+    | # | finding | checked against | result |
+    |---|---|---|---|
+    | 1 (P1) | (a2) loses unattended replacement of a lost implement worker | `shiploop_chain._parse_retry` accepts `confirmed_stopped: false` with `native_status: "unavailable"`; `_retry` keeps the old worktree; LEARNINGS batch B (F1) and group C | **True.** One addition: the route's test, document and Improve workers already write the shared checkout with no such fence. (a2) extends that exposure to implement; it does not create it |
+    | 2 (P1) | The commit stage's recovery has crash windows | `_commit_stage` records the commit and drops `pending` inside `_transition`, before `dispatch` saves the state; a retry then finds HEAD on its own commit with no pending record, and `commit_decision` refuses. `_iteration_entry` runs after the save, and `_commit_stage` skips a step that has no ledger row | **True, on both routes.** It is a defect of 2b-1 and 2b-4a, to fix before the release whatever G1 is. The refusal's `git reset --soft` route recovers the first window by hand |
+    | 3 (P1) | After a preparatory fix, RED and mutation do not read the step's base | `_test_loop_gate` passes `preparatory_base` to `base_check`, `red_check` and `mutation_check`; `_base_run` and `shiploop_mutation._check` replace the step's base with it (`_at_commit`) | **True, on both routes**, for items with a preparatory fix. From S2 on, RED and mutation measure from before S1. Fix it with 2 |
+    | 4 (P1) | (d), and (a1) too, need changes to the chain's lifetime and its completion authority | `_require_bindable`, `_current_binding`; `dispatch` calls `guard_completion` before it reads the outcome; `_per_step_done` releases dependents at integration | **True.** Folded into (a1) and (d) above |
+    | 5 (P2) | More live chain runs exist than the two I cited, and the gain is inferred | LEARNINGS batch B and group C | **True.** Corrected above. My "every full run since is inline" was checked: 93 of 93 run states since 2026-10-05 |
+    | 6 (P2) | The removal list for (a2) is incomplete | `test_loop.step_command`, `step_number`; Run Review `export` (ask-agent visits tied to no step); `_IMPLEMENT_INLINE` ("dispatch no worker") | **True.** Folded into (a2). Its point on old runs is taken: refused, not reinterpreted |
+    | nit | Shared files alone do not stop per-step commits | | Taken into (b) |
+
+  - **Recommendation: (a2)**, as Astra recommends.
+    - It is the owner's order: build one step, then test, document and review it, then build the next.
+    - It keeps one lifecycle. The route keeps only its context policy, and every step rule is shared.
+    - Parallel build's gain was never measured. Per-step test, document and review are serial whatever the build
+      does.
+    - It removes code instead of adding a third integration mode to a 7,710-line chain.
+    - **Conditions.**
+      - Fix findings 2 and 3 first; they are on both routes.
+      - The pilot measures what Astra lists:
+        - the lifecycle's order and commits;
+        - the bases after a preparatory fix and after a send-back;
+        - crash recovery at four points: before the commit, after Git commits, after the ledger records it but before
+          the save, and after the save but before the iteration entry;
+        - a killed implement worker;
+        - context fidelity;
+        - quality and cost per stage;
+        - Run Review's per-step view on ask-agent.
+      - The E2E chain cases are rewritten for the per-step route or retired, and the change is said openly; they are
+        not counted as unchanged coverage.
+    - **What (a2) keeps from the chain, as duties** (Astra):
+      - parent verification, the step's Proof (`_step_proof_gate`), cumulative GREEN, per-step RED and mutation, and
+        the review;
+      - the whole assignment context: the Step block, the planning references and the skills;
+      - parent-only callbacks, and an existing worker confirmed stopped before a replacement starts;
+      - a planned join step where steps meet at an interface.
+
+      Plan Dispatcher and Ask-Agent stay as skills of their own, and old runs' receipts and worktrees are kept.
+  - **The owner's decision (G1).** Choose one:
+    - adopt (a2) and retire ShipLoop's chain. This accepts that a lost implement worker must be shown stopped before a
+      replacement starts. The route's test, document and Improve workers already work this way, but for implement it
+      gives up the unattended recovery the owner chose on 2026-10-03;
+    - or keep isolated implement attempts and fund a revised (a1): one chain per step, whose return stays uncommitted.
+
+    The per-step lifecycle is the same either way. (b), (c) and (d) are not recommended.
+  - **Found on the way** (reference text, not changed here). chain-route.md's inline paragraph still says "An Improve
+    stage reviews each accepted step, and the callback after the last step's review moves to `test`".
+    parallel-chain.md's diagram still ends in "The item's Improve stage, then the test stage". Both predate 2b-2.
 - **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
 
   > "One of the things that I want to make sure of in our test suite is that we're both running the tests for the new
@@ -1135,7 +1313,13 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
 
 **9.2 New decisions:**
 - **G1. The ask-agent route.** Recommended: the same step boundaries, so one lifecycle. The alternative keeps it
-  item-level, which is a second lifecycle to maintain.
+  item-level, which is a second lifecycle to maintain. **Refined by the 2c design (§9.1, 2026-10-28):** the choice is
+  between two serial forms:
+  - (a2), recommended by Astra and by me: no chain, and a lost implement worker must be shown stopped before it is
+    replaced;
+  - a revised (a1): one isolated chain per step, whose return stays uncommitted.
+
+  Parallel build followed by per-step iterations, and build ahead, are not recommended.
 - **G2. Framing.** Recommended: present §8 as a quality and feedback-speed pilot. Its cost is measured, not forecast.
 
 Still unproven (Astra's open unknowns):
