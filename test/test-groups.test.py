@@ -626,6 +626,30 @@ class StateHomeGuardTest(unittest.TestCase):
         self.assert_the_developers_state_is_untouched()
 
 
+class ChildBytecodeTest(unittest.TestCase):
+    """A suite never writes bytecode into the tree it runs in, so a sibling suite's `tar` of that tree stays quiet.
+
+    CI run 40813164137 (1961f4c5): sync-plugin-views and native-marketplace-adapters copy the checkout with `tar -cf - .`
+    while the first four suites run together at --jobs 4.  Two of those are Python suites that import test/ci_policy.py
+    and test/run_suites.py, which created test/__pycache__ on the fresh runner checkout, and GNU tar exited 1 with
+    "./test: file changed as we read it".  The runner's own `python3 -B` does not reach the processes it starts, and
+    macOS's bsdtar makes no such check, so no local run ever showed it.
+    """
+
+    def test_a_suite_that_imports_a_sibling_module_leaves_no_pycache_behind(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="skill-craft-bytecode-") as name:
+            root = Path(name).resolve()
+            (root / "sibling.py").write_text("VALUE = 1\n", encoding="utf-8")
+            program = root / "imports_a_sibling.py"
+            program.write_text("import sibling\n", encoding="utf-8")
+            # The runner must supply the setting itself: a developer's or a CI job's own value would hide its absence.
+            without = {key: value for key, value in os.environ.items() if key != "PYTHONDONTWRITEBYTECODE"}
+            with mock.patch.dict(os.environ, without, clear=True):
+                outcome = run_suites.run_process((sys.executable, str(program)), cwd=root, timeout_seconds=60)
+            self.assertEqual(outcome.status, "passed", (outcome.error or "") + outcome.stderr)
+            self.assertEqual(sorted(root.rglob("__pycache__")), [])
+
+
 class PacketSourceSelectionTest(unittest.TestCase):
     """A ShipLoop prompt or packet source always selects the packet-size suites (owner, 2026-10-25).
 

@@ -318,7 +318,10 @@ def run_process(
         environment = {key: value for key, value in os.environ.items() if key not in _STATE_OVERRIDES}
         # Ordinary hermetic fixtures must not leave per-run observers.
         # Progress integration tests explicitly enable and stop their own.
-        environment.update({"SHIPLOOP_PROGRESS": "off", "XDG_STATE_HOME": str(state_home)})
+        # No bytecode: the runner's own `python3 -B` does not reach the processes it starts, and a suite that created
+        # test/__pycache__ made a sibling suite's GNU `tar` of the checkout exit 1 ("file changed as we read it").
+        environment.update({"SHIPLOOP_PROGRESS": "off", "XDG_STATE_HOME": str(state_home),
+                            "PYTHONDONTWRITEBYTECODE": "1"})
         outcome = _run_bounded(argv, cwd=cwd, timeout_seconds=timeout_seconds, on_start=on_start, env=environment)
         error = _state_home_error(state_home)
     if error is None:
