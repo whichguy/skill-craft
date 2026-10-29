@@ -202,6 +202,8 @@ class TracedRun(unittest.TestCase):
                           ("complete", 2, False, "trace")])
         self.assertIn("exactly one shiploop-state fence", m["shiploop_failures"][4]["line"])
         self.assertIn("ShipLoop workspace blocked", m["shiploop_failures"][1]["line"])
+        # The routed verb's refusal keeps its own line (until 2026-10-28 it was recorded as "").
+        self.assertIn("ShipLoop lint could not run: ", m["shiploop_failures"][3]["line"])
         self.assertEqual(m["failures_source"], {"file": "<run>/trace.jsonl", "why": None})
         # The stream saw the check and the three it is the source of: the piped refusal hid both its exit and its refusal line.
         self.assertEqual(m["run_trace"]["stream_failures"], 4)
@@ -370,15 +372,17 @@ class TracedRun(unittest.TestCase):
 
     def test_read_first_refusals_come_from_the_trace_beside_the_stream_count(self):
         r = self.first["refusals"]
-        # The refusal from the trace and the workspace refusal from the stream (the panel counts refusal lines, so the usage
-        # error is in neither); the stream's own count is the check's line and the workspace's.
-        self.assertEqual((r["count"], r["checks_failed"], r["stream_count"], r["source"]), (2, 1, 2, "trace"))
+        # The refusal from the trace, and from the stream the workspace refusal and the lint that could not run (the panel
+        # counts refusal lines, so the usage error is in neither); the stream's own count is the check's, the workspace's and
+        # the lint's lines. The lint's line is a refusal line since 2026-10-28.
+        self.assertEqual((r["count"], r["checks_failed"], r["stream_count"], r["source"]), (3, 1, 3, "trace"))
         self.assertEqual((r["file"], r["outside_file"]), (f"{RUN}/trace.jsonl", "events.jsonl"))
         self.assertEqual([(row["stage"], row["count"], row["source"]) for row in r["rows"]],
-                         [("intake", 1, "trace"), ("intake", 1, "events.jsonl")])
+                         [("intake", 1, "trace"), ("intake", 1, "events.jsonl"), ("intake", 1, "events.jsonl")])
         self.assertIn("exactly one shiploop-state fence", r["rows"][0]["cause"])
         self.assertIn("exactly one shiploop-state fence", r["rows"][0]["text"])
         self.assertIn("cannot read record", r["rows"][1]["cause"])
+        self.assertIn("not a Git checkout", r["rows"][2]["cause"])
         t = self.first["trace"]
         self.assertEqual((t["measured"], t["packets"], t["reprints"], t["continuations"], t["checks_failed"]),
                          (True, 4, 2, 1, 1))
@@ -387,14 +391,14 @@ class TracedRun(unittest.TestCase):
     def test_read_first_of_a_run_before_the_trace_counts_from_the_stream(self):
         first = flow.read_first(self.untraced, repo=ROOT)
         self.assertEqual((first["refusals"]["count"], first["refusals"]["file"], first["refusals"]["source"]),
-                         (2, "events.jsonl", "events.jsonl"))  # the check's and the workspace's lines; the piped refusal is missing
+                         (3, "events.jsonl", "events.jsonl"))  # the check's, the workspace's and the lint's lines; the piped refusal is missing
         self.assertEqual(first["trace"], {"measured": False, "reason": "the run has no trace.jsonl (ShipLoop before 1.12.0)"})
         self.assertTrue(any("a pipe hid" in line for line in first["cannot_show"]))
 
     def test_the_owner_page_names_where_the_refusals_came_from(self):
         traced = owner_page.render(_page_data(self.first))
         self.assertIn("From ShipLoop's run trace", traced)
-        self.assertIn("the host stream showed 2", traced)
+        self.assertIn("the host stream showed 3", traced)
         self.assertIn("2 reprints", traced)
         old = owner_page.render(_page_data(flow.read_first(self.untraced, repo=ROOT)))
         self.assertIn("From the host stream's refusal lines", old)

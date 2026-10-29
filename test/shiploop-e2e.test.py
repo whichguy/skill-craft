@@ -2719,14 +2719,15 @@ class MetricsTest(unittest.TestCase):
                 "The run is still active: fix the result and resubmit in this turn; do not end the turn over a "
                 "refused callback.")
 
-    def recorded_failure_line(self, output: str) -> str:
+    def recorded_failure_line(self, output: str, command: str = "python3 x/shiploop complete --run-dir r",
+                              code: int = 2) -> str:
         """The `line` the export keeps for one refused ShipLoop command whose output was ``output``."""
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             stream = [{"type": "tool_call", "toolCallId": "a",
-                       "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}},
+                       "rawInput": {"command": command}},
                       {"type": "tool_call_update", "toolCallId": "a",
-                       "rawOutput": {"exit_code": 2, "output_for_prompt": output}},
+                       "rawOutput": {"exit_code": code, "output_for_prompt": output}},
                       {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
             (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
             failures = metrics.collect(out, None)["shiploop_failures"]
@@ -2747,6 +2748,18 @@ class MetricsTest(unittest.TestCase):
         # A line that already matched before is still recorded first, wherever the prefix line sits.
         self.assertEqual(self.recorded_failure_line("shiploop: error: unrecognized arguments: x\n" + trailers),
                          "shiploop: error: unrecognized arguments: x")
+
+    def test_a_routed_verbs_could_not_run_refusal_is_recorded_by_its_own_line(self):
+        # lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3), which has no failure
+        # word: metrics.json kept "line": "" for all 7 lint refusals of the brownfield runs bf-ds-*-09c33b (2026-10-28).
+        refusal = "ShipLoop lint could not run: nav-b is not the current action (nav-a)"
+        lint = "python3 x/shiploop lint --run-dir=r --action=nav-b"
+        self.assertEqual(self.recorded_failure_line("Exit code 3\n" + refusal + "\n", lint, 3), refusal)
+        # A refusal line counts whatever exit the host showed: a pipe through tail shows 0.
+        self.assertEqual(self.recorded_failure_line(refusal + "\n", lint + " 2>&1 | tail -5", 0), refusal)
+        red = "ShipLoop red-check could not run: red-check runs only for the current test action"
+        self.assertEqual(self.recorded_failure_line(red + "\n", "python3 x/shiploop red-check --run-dir=r --action=a", 3),
+                         red)
 
     def test_where_only_the_trailers_match_the_export_records_what_it_did_before(self):
         self.assertEqual(self.recorded_failure_line("\n".join(self.TRAILERS) + "\n"), self.TRAILERS[0])

@@ -130,7 +130,9 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # (8 of the 13 refusals of the Luna 1.16.1 run); the script's text is pinned by test/shiploop-e2e.test.py.
 # The same line is what makes a tool result a failure on every host, whatever exit code the host showed: the model pipes
 # the CLI through head, grep or sed, which hides the exit (all 5 refusals of the round-1 Sonnet Battleship run).
-REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked): ", re.M)
+# The routed verbs lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3) instead;
+# until 2026-10-28 no prefix here matched it, so each was recorded with an empty line (7 lint refusals, bf-ds-*-09c33b).
+REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): ", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
