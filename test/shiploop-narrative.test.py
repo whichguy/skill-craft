@@ -78,13 +78,25 @@ class NarrativeTests(unittest.TestCase):
     def test_headline_is_validated(self) -> None:
         state = self.driver.state()
         action = navigator.current_action(state)["id"]
-        for bad, message in ((navigator.HEADLINE_PLACEHOLDER, "placeholder"), ("x" * 101, "at most 100"),
+        for bad, message in ((navigator.HEADLINE_PLACEHOLDER, "placeholder"),
                              ("two\nlines", "one line"), ("  ", "nonempty")):
             with self.subTest(bad=bad[:20]):
                 with self.assertRaisesRegex(navigator.NavigatorError, message):
                     navigator.apply(state, action, status_display.result(headline=bad))
         accepted = navigator.apply(state, action, status_display.result(headline="  Scope set.  "))
         self.assertEqual(accepted["accepted"][action]["headline"], "Scope set.")
+
+    def test_a_long_headline_is_accepted_whole_and_shown_cut(self) -> None:
+        """Plan F2: a headline has no character limit (it was refused past 100); it stays one line, the result keeps it
+        whole, and the narrative shows it cut to ``HEADLINE_SHOWN``."""
+        long = "Scope set: " + "a very long account of what this step established, " * 4
+        self.assertGreater(len(long), navigator.HEADLINE_SHOWN)
+        state = self.driver.produce(self.driver.state(), headline=long)
+        action = next(iter(state["accepted"]))
+        self.assertEqual(state["accepted"][action]["headline"], long.strip())
+        shown = navigator.narrative_facts(state)["achieved"][0]["text"]
+        self.assertLessEqual(len(shown), navigator.HEADLINE_SHOWN)
+        self.assertTrue(shown.startswith("Scope set: a very long account"))
 
     def test_work_items_narrative_and_group_milestones(self) -> None:
         state = self.driver.planned(ROWS)

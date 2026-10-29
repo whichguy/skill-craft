@@ -24,6 +24,7 @@ import shiploop_store as store
 
 VERSION = 1
 _ACTION = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
+# Guard: an Improve record file larger than this is refused unread (a runaway or foreign file, not a receipt).
 _MAX_BYTES = 4 * 1024 * 1024
 _EPHEMERAL_DECLARATION = "scripts/until_loop_ephemeral.py"
 _EPHEMERAL_CLI = "until_loop_ephemeral.py"

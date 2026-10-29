@@ -77,6 +77,8 @@ SKILL_KEYS = frozenset(("name", "why", "locator", "stages"))
 SKILL_STAGES = ("implement", "test", "document", "improve")
 FAILED_KEYS = frozenset(("id", "actual", "route"))
 CHECK_TIMEOUT_SECONDS = 60.0
+# Guard: the bytes of one expectation check's output its record keeps, so a runaway check cannot fill the run; a cut
+# record says so, and its first line is the command that prints the rest.
 OUTPUT_LIMIT = 64 * 1024
 SCHEMA = "shiploop-expectations/v1"
 # ShipLoop's knowledge home: validate-existing may record an environment fix there, and the knowledge commit owns it, so
@@ -705,7 +707,9 @@ def run(repo: Path, expectations: Sequence[Mapping[str, Any]], run_dir: Path, ac
         if changed:
             note = "the check changed the checkout (" + ", ".join(changed[:5]) + "); a check must be read-only"
         relative = "expectations/" + action_id + "-" + tag + "-" + str(expectation["id"]) + ".txt"
-        (Path(run_dir) / relative).write_text("$ " + expectation["check"] + "\n" + text
+        kept = ("" if len(raw) <= OUTPUT_LIMIT else "\n[... " + str(len(raw) - OUTPUT_LIMIT) + " more bytes not kept: "
+                "rerun the command on the first line to see them]\n")
+        (Path(run_dir) / relative).write_text("$ " + expectation["check"] + "\n" + text + kept
                                               + ("\n[" + note + "]\n" if note else ""), encoding="utf-8")
         rows.append({"id": expectation["id"], "state": expectation["state"], "statement": expectation["statement"],
                      "steps": list(expectation.get("steps") or ()), "paths": list(expectation.get("paths") or ()),

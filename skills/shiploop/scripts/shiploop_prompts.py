@@ -1119,7 +1119,7 @@ DUTIES = {
 9. KNOWLEDGE/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
    ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
    and ## Interfaces and boundaries where this plan changes them.
-10. Give each work item a compact `context` (at most 2,500 characters) a fresh reader can act on, full locators in
+10. Give each work item a compact `context` a fresh reader can act on, full locators in
     `evidence_refs`, longer notes in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
     revalidation condition:
     - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
@@ -1155,8 +1155,7 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it
-    (1,200 characters per item).
+    open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
 17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
     approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
@@ -1227,8 +1226,7 @@ Change no product file in this stage.
      is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Its `paths` (inside the item's) name every file it changes. Limits: task 700 characters, proof 600,
-     its criteria 1,200.
+     some step. Its `paths` (inside the item's) name every file it changes.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file

@@ -34,6 +34,8 @@ import shiploop_stage_spec as stage_spec
 RECORD_GLOBS = ("tests/*-verify*.md", "loops/*-terminal.json", "lint/*.md", "improve/*/receipt.md")
 
 INDEX_FILE = "context-index.md"
+# Display: the characters of a summary, lesson, assumption or context one index line quotes; each entry names the result
+# file that holds it whole, and the index's opening names state.md, which holds the rest.
 SUMMARY_LIMIT = 400
 
 # Entries each stage reads first.  A bare name is the run's root result for
@@ -65,6 +67,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
      "implement, test and document"),
     ("RUN/checks/", "the latest `shiploop check` answer per action: yes or no, its reason and the key it was given on",
      "complete takes a check's yes, or you ask why a check said no"),
+    ("RUN/fields/", "the whole text of a field a packet printed cut (a field file)", "a packet's cut names one"),
     ("RUN/lint/", "lint output for the item's changes", "a lint verdict is cited"),
     ("RUN/improve/", "per reviewed action: receipt, review files, lessons", "an Improve stage"),
     ("RUN/expectations/", "validate-existing's check results", "validate-existing"),

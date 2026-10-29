@@ -719,10 +719,10 @@ class TestLayerGateTests(RepoCase):
             navigator._canonical_result(dict(done, test_layers=[dict(layers.ROW_TEMPLATE)], targets=[]),
                                         stage="test-strategy")
 
-    def test_the_layers_print_within_their_limit_or_are_refused(self) -> None:
-        # One bound: the printed lines together (layers.TEXT_LIMIT). A single long field is accepted while they fit; the
-        # per-field limits refused 6 fields in the phase A round, e.g. a 61-character target and a 293-character route
-        # (docs/shiploop-trims-plan-2026-10-28.md, T2).
+    def test_the_layers_of_any_size_are_accepted(self) -> None:
+        # Plan F2: no gate bounds the layers' printed size (they were refused past 1,200 characters together, 6 fields in
+        # the phase A round, e.g. a 61-character target and a 293-character route).  A packet prints them within
+        # layers.LINES_PRINT and names RUN/fields/<action>-test-layers.md for the rest.
         state = item_state(self.repo, "W1", [], "step-plan")
         done = {"outcome": "done", "summary": "s", "targets": []}
         long_row = dict(self.UNIT, code="x" * 61, harness="h" * 86, reason="r" * 176)
@@ -732,10 +732,7 @@ class TestLayerGateTests(RepoCase):
                                           dict(done, test_layers=[long_row], targets=[long_target]))
         many = [dict(self.UNIT, code="code " + str(index), harness="runner " + str(index), reason="r" * 150,
                      status="prerequisite") for index in range(12)]
-        message = self.refused(state, "test-strategy", dict(done, test_layers=many))
-        self.assertIn("keep them within " + str(layers.TEXT_LIMIT), message)
-        # The named exit: broader code and shorter text fit.
-        navigator._check_submitted_layers(state, "test-strategy", dict(done, test_layers=many[:3]))
+        navigator._check_submitted_layers(state, "test-strategy", dict(done, test_layers=many))
 
     def test_prepare_harness_evidence_must_show_a_test_ran(self) -> None:
         """Run 5a (2026-10-24): prepare's harness_runs evidence was a browser page that said it was "not the slChessBoard

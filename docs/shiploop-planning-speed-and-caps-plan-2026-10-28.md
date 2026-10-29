@@ -301,3 +301,15 @@ The owner asked overlapping sessions to stop and agree on owners. Design T (sess
   refusals. A display cut that pages or trims a lint block keeps the Result and Lint coverage lines together.
 - **The lint fix.** On design T's base the step review belongs to document (2b-2), not implement, so 18844f21's
   "implement review" wording is checked when design T rebases onto it.
+
+## 10. Landed
+
+- **Plan F2 (2026-10-29), on the design T release `9d8c2793`.** Every refusing cap on the model's text is gone: the work
+  item context, open assumptions, step task, Proof and criteria, step notes, concern rows, test layers and the headline's
+  100 characters. The step block, the concern rows and the test layers print a field whole within its print budget
+  (`STEP_TASK_PRINT` 700, `STEP_PROOF_PRINT` 600, `STEP_CRITERIA_PRINT` 1,200, `ROWS_PRINT` 1,200, `LINES_PRINT` 1,200);
+  past it they print what fits and name `RUN/fields/<action>-<field>.md`, which `emit` writes from state
+  (`shiploop_fields`). The offline render diff of `node-fix-bug` (inline and ask-agent, run directory 83 and 163, CLI path
+  96) passes with `--unit F2`: every printed text shrinks, and the head table is rewritten for the stages design T left.
+  `test/shiploop-packet-bounds.test.py` lists every numeric limit by kind (`LIMIT_KINDS`) and fails on a new one without a
+  kind or on a refusal that states a limit. Not measured yet: the rerun of the three D7 cases for "no size refusals".

@@ -1,5 +1,5 @@
 {
-  "_doc": "The lines a unit may add to a packet (G-RENDER, test/shiploop_e2e/render_diff.py --unit Un). One key per unit of the efficiency plan, so units that change packet text edit different lines of this file; the list stays empty for a unit that adds no line. An entry: {\"prefix\": the first characters of the added line (8 or more), \"stages\": [stage names or patterns, default all], \"routes\": [inline, ask-agent, default both], and exactly one of \"offset\": [prefixes of lines the same change removes from the same stage; the entry's added lines may not be longer in all than the removed lines it names] or \"approval\": the decision that allows the growth (the plan row, owner message or review)}. \"note\" is free text.",
+  "_doc": "The lines a unit may add to a packet (G-RENDER, test/shiploop_e2e/render_diff.py --unit Un). One key per unit of the efficiency plan (U1-U35) or per item of a later plan (F2: docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md), so units that change packet text edit different lines of this file; the list stays empty for a unit that adds no line. An entry: {\"prefix\": the first characters of the added line (8 or more), \"stages\": [stage names or patterns, default all], \"routes\": [inline, ask-agent, default both], and exactly one of \"offset\": [prefixes of lines the same change removes from the same stage; the entry's added lines may not be longer in all than the removed lines it names] or \"approval\": the decision that allows the growth (the plan row, owner message or review)}. \"note\" is free text.",
   "U1": [],
   "U2": [],
   "U3": [],
@@ -34,5 +34,6 @@
   "U32": [],
   "U33": [],
   "U34": [],
-  "U35": []
+  "U35": [],
+  "F2": [{"prefix": "\"headline\": \"<one line for the user: what this step established>\"", "offset": ["\"headline\": \"<one line for the user, under 100 characters: what this step established>\""], "note": "F2 (owner Q4, 2026-10-28): the headline stays one line and loses its character count; the narrative and a step commit's subject cut it for display (HEADLINE_SHOWN)"}, {"prefix": "some step. Its `paths` (inside the item's) name every file it changes.", "stages": ["step-plan"], "offset": ["some step. Its `paths` (inside the item's) name every file it changes. Limits:", "its criteria 1,200."], "note": "F2 (owner Q4, 2026-10-28): duty 4 no longer states the task, Proof and criteria limits; past their print budgets the Step block names RUN/fields/<action>-<field>.md"}]
 }

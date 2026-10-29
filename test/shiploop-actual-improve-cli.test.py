@@ -1644,26 +1644,21 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(state["accepted"][self.action]["evidence_refs"], [str(note)])
         self.assertEqual(state["improve_results"][self.action]["receipt"]["final_result"]["evidence_refs"], [str(note)])
 
-    def test_a_revised_final_result_over_a_producer_bound_is_refused_and_one_within_imports(self):
-        """E6 plan sizing F32 (2026-10-25): the Improve import ran every final-result gate but the producer bounds, so a
-        Grok step-plan review lengthened step S1's criteria from 846 to 1,221 characters and the run stored it over the
-        1,200 a later implement packet prints whole. A revised result now meets the bounds a submitted one meets."""
+    def test_a_revised_final_result_past_the_former_size_limits_imports_whole(self):
+        """Plan F2 (2026-10-28): the Improve import ran the producer bounds, so a Grok step-plan review that lengthened
+        step S1's task past 700 characters was refused (E6 plan sizing F32, 2026-10-25).  No size limit refuses model text
+        now: the revised result imports and the accepted result holds the task whole."""
         self._start_parent_at_stage("step-plan", [str(self.product_contract)])
         self.finish_ephemeral()
         seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
         steps = [dict(step) for step in seed["steps"]]
         steps[0]["task"] = str(steps[0].get("task") or "") + " " + "and the revised wording repeats it." * 25
+        self.assertGreater(len(steps[0]["task"]), 700)
         completion, _receipt = self.completion_receipt(final_result=dict(seed, steps=steps))
-        before = (self.run / "state.md").read_bytes()
-        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
-        self.assertIn("step " + str(steps[0]["id"]) + "'s task is", refused.stderr)
-        self.assertIn("characters; the limit is 700", refused.stderr)
-        self.assertEqual(before, (self.run / "state.md").read_bytes())
-        completion, _receipt = self.completion_receipt(final_result=dict(seed, summary=seed["summary"] + " Reviewed."))
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         state = store.read_record(self.run / "state.md")
         self.assertEqual(navigator.current_stage(state), "test-spec")
-        self.assertEqual(state["accepted"][self.action]["summary"], seed["summary"] + " Reviewed.")
+        self.assertEqual(state["accepted"][self.action]["steps"][0]["task"], steps[0]["task"])
 
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""

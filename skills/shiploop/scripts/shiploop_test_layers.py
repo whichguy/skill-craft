@@ -41,10 +41,10 @@ CONFIRMS = ("executed", "searched", "inspected")
 YES_NO = ("yes", "no")
 # Programs that only read text: a command made of these (and cd) confirms no behaviour.
 SEARCH_PROGRAMS = frozenset(("grep", "egrep", "fgrep", "rg", "ag", "ack", "findstr", "select-string"))
-# The printed Test layers and Test targets lines together: the step-plan head carries them as required text below the
-# host's output cut, so the gate keeps them short instead of the print cutting them. One field may be long while the
-# lines fit.
-TEXT_LIMIT = 1_200
+# The print budget of the Test layers and Test targets lines together: the step-plan head carries them as required text
+# below the host's output cut.  No gate refuses longer ones (owner, 2026-10-28, plan F2): past the budget a packet prints
+# the lines that fit and names the run file that holds them all (shiploop_navigator._layer_lines, shiploop_fields).
+LINES_PRINT = 1_200
 
 ROW_TEMPLATE = {"code": "<code the run writes: a module, component or page>", "layer": "unit", "harness": "<runner>",
                 "status": "available", "reason": "<why this status; for unverified, why no runner exists there>"}
@@ -118,13 +118,6 @@ def canonical_targets(value: Any) -> List[Dict[str, str]]:
               "there: a clean target, a destructive or ordered deploy, or an inventory check")
         rows.append(found)
     return rows
-
-
-def check_text(rows: Optional[Sequence[Mapping[str, str]]], targets: Optional[Sequence[Mapping[str, str]]]) -> None:
-    """Refuse layers and targets whose printed lines pass ``TEXT_LIMIT``: later heads carry them whole."""
-    size = len("\n".join(packet_lines(rows, targets)))
-    _need(size <= TEXT_LIMIT, "test_layers and targets print as " + str(size) + " characters; keep them within "
-          + str(TEXT_LIMIT) + ": name broader code, and shorten harness, reason and base_state_route")
 
 
 def search_only(command: str) -> bool:
@@ -226,7 +219,7 @@ def packet_lines(rows: Optional[Sequence[Mapping[str, str]]], targets: Optional[
     return lines
 
 
-__all__ = ("BUILD_LAYERS", "CONFIRMS", "HARNESS_RUN_SHAPE", "HARNESS_RUN_TEMPLATE", "LAYERS",
+__all__ = ("BUILD_LAYERS", "CONFIRMS", "HARNESS_RUN_SHAPE", "HARNESS_RUN_TEMPLATE", "LAYERS", "LINES_PRINT",
            "LayerError", "ROW_SHAPE", "ROW_TEMPLATE", "SEARCH_PROGRAMS", "STATUSES", "TARGET_SHAPE", "TARGET_TEMPLATE",
-           "TEXT_LIMIT", "canonical_rows", "canonical_targets", "check_confirms", "check_harness_output",
-           "check_harness_runs", "check_rows", "check_text", "criterion_label", "packet_lines", "search_only")
+           "canonical_rows", "canonical_targets", "check_confirms", "check_harness_output",
+           "check_harness_runs", "check_rows", "criterion_label", "packet_lines", "search_only")

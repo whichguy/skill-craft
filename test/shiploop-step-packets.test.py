@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -184,20 +185,18 @@ class StepPacketTests(unittest.TestCase):
         self.assertIn("Current stage guidance:", printed)
         self.assertGreater(len(full), len(printed))  # the packet file holds the rest
 
-    def test_a_step_plan_head_with_test_layers_at_their_limit_still_fits_the_cut(self) -> None:
-        """Run-5 batch F1: the step-plan head prints test-strategy's layers and targets as required text, so the gate
-        bounds their printed size (layers.TEXT_LIMIT) and the head with the largest block it accepts stays under the
-        host cut on both routes, the duties and every layers line intact; optional lookups give way first."""
+    def test_a_step_plan_head_with_test_layers_far_past_their_print_budget_still_fits_the_cut(self) -> None:
+        """Run-5 batch F1, since plan F2: the step-plan head prints test-strategy's layers and targets as required text.
+        No gate bounds their size; a block past ``layers.LINES_PRINT`` prints its leading lines and names the run file
+        that holds every line, so the head with a block three times the budget stays under the host cut on both routes,
+        the duties intact, and that file holds the whole block."""
         targets = [{"target": "the shared org", "keeps_state": "yes", "base_state_route": "r" * 200}]
         rows: list = []
-        while True:
-            row = {"code": "code " + str(len(rows)) + " " + "c" * 40, "layer": "unit",
-                   "harness": "runner " + str(len(rows)) + " " + "h" * 60, "status": "prerequisite", "reason": "r" * 150}
-            if len("\n".join(layers.packet_lines([*rows, row], targets))) > layers.TEXT_LIMIT:
-                break
-            rows.append(row)
-        layers.check_text(rows, targets)
-        self.assertGreater(len("\n".join(layers.packet_lines(rows, targets))), layers.TEXT_LIMIT - 300)
+        while len("\n".join(layers.packet_lines(rows, targets))) <= 3 * layers.LINES_PRINT:
+            rows.append({"code": "code " + str(len(rows)) + " " + "c" * 40, "layer": "unit",
+                         "harness": "runner " + str(len(rows)) + " " + "h" * 60, "status": "prerequisite",
+                         "reason": "r" * 150})
+        whole = layers.packet_lines(rows, targets)
         case = CASES["node-fix-bug"]
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route), budget.reference_tmpdir(), \
@@ -222,8 +221,10 @@ class StepPacketTests(unittest.TestCase):
                 self.assertLessEqual(budget.at_reference_install(printed), navigator.HEAD_LIMIT)
                 self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
                 self.assertIn("Current stage guidance:", printed)
-                for line in layers.packet_lines(rows, targets):
-                    self.assertIn(line, printed)
+                self.assertIn(whole[0], printed)  # the leading lines print
+                found = re.search(r"RUN/(fields/\S+-test-layers\.md) holds all " + str(len(whole)) + " whole", full)
+                self.assertIsNotNone(found, "the packet names the file that holds every layers line")
+                self.assertEqual((run_dir / found.group(1)).read_text(encoding="utf-8"), "\n".join(whole) + "\n")
 
     def test_offline_report_counts_every_packet(self) -> None:
         report = packets.offline_report("node-add-function", CASES["node-add-function"])

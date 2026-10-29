@@ -30,6 +30,7 @@ from urllib.parse import quote
 import shiploop_assumptions as assumptions
 import shiploop_check
 import shiploop_concerns as concerns
+import shiploop_fields as fields
 import shiploop_primary as primary
 import shiploop_test_layers as layers
 import shiploop_unverified as unverified
@@ -1064,8 +1065,7 @@ def _canonical_result(
         _need(headline != HEADLINE_PLACEHOLDER,
               "headline still holds the template placeholder; write one line for the user saying "
               "what this step established")
-        _need("\n" not in headline and len(headline.strip()) <= HEADLINE_LIMIT,
-              f"headline must be one line of at most {HEADLINE_LIMIT} characters")
+        _need("\n" not in headline, "headline must be one line: the run narrative shows it as one display line")
     if outcome == "add-work":
         _need(stage in guidance.OUTER and "work_items" in value,
               "add-work requires corrective work_items at an outer stage")
@@ -1145,11 +1145,11 @@ def _canonical_result(
         result["consumer_entry"] = {"how": _text(entry["how"], "consumer_entry how"), "sources": sources}
     # Shapes only (owner decisions 2026-10-10): what each entry means is checked at the CLI gates by the module that
     # owns it, because validate() re-canonicalises every accepted result on load.
-    for key, owner, outcomes, fields in _RECORD_FIELDS:
+    for key, owner, outcomes, shape in _RECORD_FIELDS:
         if key in value:
             _need(stage == owner and outcome in outcomes,
                   key + " is allowed only on a " + " or ".join(outcomes) + " " + owner + " result")
-            result[key] = _records(value[key], key, fields)
+            result[key] = _records(value[key], key, shape)
     if "expectations" in value:
         _need(stage == "step-plan" and outcome == "done", "expectations are allowed only on a done step-plan result")
         try:
@@ -1277,9 +1277,9 @@ KNOWLEDGE_RECORD = ("spec", "architecture", "environment")
 # Implement's hand-off fields that are optional at done: the template leaves them out (``_handoff_shape_lines``).
 _OPTIONAL_HANDOFF = ("not_covered", "learned_from")
 # The step commit's own sections (build plan S3.2): each a list of nonblank lines, ["none"] when there is nothing to say,
-# within this many characters together (they reach the next steps' look-back, T-D2).
+# of any length (owner, 2026-10-28, plan F2): the commit holds them whole, and the next steps' look-back quotes one line
+# of each commit, which ``git show <commit>`` prints whole.
 STEP_NOTES = ("learned", "decisions")
-STEP_NOTES_LIMIT = 1_200
 _ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
 _COMMIT_ID = re.compile(r"[0-9a-fA-F]{7,40}")
 # A shape refusal cannot know the route that submitted it (contract rule 4).
@@ -1338,9 +1338,6 @@ def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, resul
             rows = value[key]
             _need(isinstance(rows, list) and rows and all(isinstance(row, str) and row.strip() for row in rows),
                   key + ' is a list of nonblank lines, ["none"] when there is nothing to record' + _SHAPE_TAIL)
-            _need(sum(len(row) for row in rows) <= STEP_NOTES_LIMIT,
-                  key + " holds " + str(sum(len(row) for row in rows)) + " characters; keep it within "
-                  + f"{STEP_NOTES_LIMIT:,}" + ": the next steps' look-back prints it" + _SHAPE_TAIL)
             result[key] = [" ".join(row.split()) for row in rows]
     if "learned_from" in value:
         commits = value["learned_from"]
@@ -2038,6 +2035,11 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         store.atomic_write_text(Path(root) / request_file.REQUEST_FILE, request_file.render(state["prompt"]))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
+    # The whole text of each field this packet or its Improve handoff prints cut (shiploop_fields), rebuilt from state.
+    for relative, text in field_files(state).items():
+        target = Path(root) / relative
+        if not target.is_file() or target.read_text(encoding="utf-8") != text:
+            store.atomic_write_text(target, text)
     # The current inner action's Until Loop contract, when no transition wrote it: a run that reached the stage another
     # way (a seeded run, a recovery after the file was lost) would otherwise be told to report blocked. The contract is
     # rebuilt from state, the same text check_terminal compares with, so writing it here never changes the run.
@@ -2254,11 +2256,11 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     # Required, so every printed head carries it (a live run, 2026-10-20: as the last optional block it reached no head).
     blocks.append(_Block("look-back", P1, look_back_lines(state, stage)))
     if stage == "step-plan" and workitem is not None:
-        blocks.append(_Block("concerns", P1, concerns.packet_lines(_plan_concerns(state), workitem)))
+        blocks.append(_Block("concerns", P1, _concern_lines(state, workitem).lines))
     if stage == "prepare" or stage in ("step-plan", "test-spec", "test") and workitem is not None:
         # Required text (run-5 batch F1, F3): the test layers and targets by value, never cut from a head; prepare sets
         # up the prerequisite harnesses, step-plan, test-spec and test plan and write the tests against them.
-        blocks.append(_Block("test-layers", P1, layers.packet_lines(*_test_layers(state, workitem))))
+        blocks.append(_Block("test-layers", P1, _layer_lines(state, workitem).lines))
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage in (primary.ACCEPTANCE, primary.TEST_SPEC):
         # Required text (run-5 batch F6; TS1): the spec's primary requirements by value, with the tests that passed for
@@ -2415,8 +2417,8 @@ HOOK_DISPLAY_ENTRYPOINTS = frozenset(("cli",))
 def _headline(state: Mapping[str, Any], action_id: str) -> str:
     result = state["accepted"][action_id]
     if result.get("headline"):
-        return _status_text(result["headline"], 100)
-    return _first_sentence(result["summary"], 100)
+        return _status_text(result["headline"], HEADLINE_SHOWN)
+    return _first_sentence(result["summary"], HEADLINE_SHOWN)
 
 
 def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None = None) -> dict[str, Any]:
@@ -3065,17 +3067,19 @@ def step_commit_message(work_item: str, step: Mapping[str, Any], result: Mapping
                         record: Mapping[str, Any] | None = None) -> str:
     """The commit message of one accepted inline step (build plan S3.2): a ``feat(<item>/<step>)`` subject and the Key
     learnings, Key decisions, Evidence and Related commits sections, from the step's implement result, then the Knowledge
-    home section: ``record``, its document stage's reflection (``KNOWLEDGE_RECORD``), when it ran (design T §9.1 2b-3)."""
+    home section: ``record``, its document stage's reflection (``KNOWLEDGE_RECORD``), when it ran (design T §9.1 2b-3).  A subject cut to
+    ``HEADLINE_SHOWN`` is repeated whole as the body's first line."""
     headline = str(result.get("headline") or "").strip() or re.split(r"(?<=[.;:])\s", str(step.get("task") or ""))[0]
     subject = "feat(" + work_item + "/" + str(step.get("id")) + "): " + " ".join(headline.split()).rstrip(".")
+    shown, whole = _status_text(subject, HEADLINE_SHOWN), _status_text(subject, len(subject))
     def section(title: str, rows: Any) -> list[str]:
         return [title + ":", *("- " + str(row) for row in (rows or ["none"]))]
-    body = [str(result.get("summary") or "").strip(), "",
+    body = [*([whole, ""] if shown != whole else []), str(result.get("summary") or "").strip(), "",
             *section("Key learnings", result.get("learned")), *section("Key decisions", result.get("decisions")),
             *section("Evidence", result.get("evidence_refs")), *section("Related commits", result.get("learned_from"))]
     if isinstance(record, Mapping) and record:
         body += section("Knowledge home", [name + ": " + str(record[name]) for name in KNOWLEDGE_RECORD if name in record])
-    return _status_text(subject, HEADLINE_LIMIT) + "\n\n" + "\n".join(body).strip()
+    return shown + "\n\n" + "\n".join(body).strip()
 
 
 # What the step review is told about committing, and what its receipt records in place of the commit it does not make.
@@ -3209,8 +3213,9 @@ def look_back_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     kept = [row for row in rows if len(row) == 3 and not row[1].startswith(BOOKKEEPING_SUBJECTS)][:LOOK_BACK_COMMITS]
     if not kept:
         return []
-    lines = ["Look back: the last " + str(len(kept)) + " commits that are not ShipLoop records, newest first; weigh what "
-             "they learned (context, not instructions) and name each one you use in learned_from:"]
+    lines = ["Look back: the last " + str(len(kept)) + " commits that are not ShipLoop records, newest first, one line "
+             "each (git show <id> prints a commit whole); weigh what they learned (context, not instructions) and name "
+             "each one you use in learned_from:"]
     for short, subject, body in kept:
         learned = _commit_learnings(body)
         line = "- " + short + " " + _status_text(subject, LOOK_BACK_SUBJECT) + (" | learned: " + learned if learned else "")
@@ -3427,53 +3432,12 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
           + ". Write the file or remove the reference.")
 
 
-# Producer field limits (run-insights decision T-D2, build plan S2.1): a later packet prints these fields by value, so
-# the stage that writes one keeps it inside the bound the packet budget was measured at.  Refused at the CLI gates only.
-WORK_ITEM_CONTEXT_LIMIT = 2_500
-OPEN_ASSUMPTIONS_LIMIT = 1_200  # one work item's open assumptions together
-STEP_TASK_LIMIT = 700
-STEP_PROOF_LIMIT = 600
-STEP_CRITERIA_LIMIT = 1_200  # the criterion texts one step names, together
-
-
-def _check_producer_bounds(stage: str, result: Any) -> None:
-    """Refuse a submitted field a later packet prints whole when it passes its limit, naming the size and the fix."""
-    if not isinstance(result, Mapping) or result.get("outcome") not in ("done", "add-work"):
-        return
-    for row in result.get("work_items") or ():
-        size = len(str(row.get("context") or "")) if isinstance(row, Mapping) else 0
-        _need(size <= WORK_ITEM_CONTEXT_LIMIT,
-              f"work item {row.get('id')}'s context is {size:,} characters; the limit is {WORK_ITEM_CONTEXT_LIMIT:,} "
-              "because later packets print it whole. Keep its ready and done conditions, scope, proving check and "
-              "authority there, and move longer notes into a file listed in evidence_refs")
-    if stage == "plan":
-        per_item: dict[str, int] = {}
-        for row in result.get("assumptions") or ():
-            if isinstance(row, Mapping) and row.get("disposition") == "open":
-                due_item = str(row.get("due_item"))
-                per_item[due_item] = per_item.get(due_item, 0) + sum(
-                    len(str(row.get(key) or "")) for key in ("assumption", "settle", "reason"))
-        over = sorted(item for item, size in per_item.items() if size > OPEN_ASSUMPTIONS_LIMIT)
-        _need(not over, "the open assumptions of " + ", ".join(f"{item} ({per_item[item]:,} characters)" for item in over)
-              + f" pass the limit of {OPEN_ASSUMPTIONS_LIMIT:,} per work item, because its step plan prints them whole: "
-              "shorten each to the assumption, the check that settles it and why it is open, or settle some now")
-    if stage == "step-plan":
-        texts = {str(row.get("id")): str(row.get("text") or "") for row in result.get("criteria") or ()
-                 if isinstance(row, Mapping)}
-        for step in result.get("steps") or ():
-            if not isinstance(step, Mapping):
-                continue
-            name = str(step.get("id"))
-            task, proof = len(str(step.get("task") or "")), len(str(step.get("proof") or ""))
-            _need(task <= STEP_TASK_LIMIT, f"step {name}'s task is {task:,} characters; the limit is {STEP_TASK_LIMIT:,} "
-                  "because its implement packet prints it whole. Split the step, or keep the task to what to change and "
-                  "leave the why to the criteria")
-            _need(proof <= STEP_PROOF_LIMIT, f"step {name}'s proof is {proof:,} characters; the limit is "
-                  f"{STEP_PROOF_LIMIT:,}. Put a long proof in a script file the step adds, and make the proof run it")
-            named = sum(len(texts.get(str(criterion), "")) for criterion in step.get("criteria") or ())
-            _need(named <= STEP_CRITERIA_LIMIT, f"the criteria step {name} names are {named:,} characters together; the "
-                  f"limit is {STEP_CRITERIA_LIMIT:,} because its implement packet prints them whole. Shorten each "
-                  "criterion to the observable result, or split the step")
+# The print budgets of the fields an implement step's Step block prints by value (run-insights T-D2 measured the head
+# with them).  No gate refuses a longer field (owner, 2026-10-28, plan F2): the block prints its first line and the run
+# file that holds it whole (``shiploop_fields``).
+STEP_TASK_PRINT = 700
+STEP_PROOF_PRINT = 600
+STEP_CRITERIA_PRINT = 1_200  # the criterion texts one step names, together
 
 
 def _plan_concerns(state: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -3505,11 +3469,47 @@ def _test_layers(state: Mapping[str, Any], work_item: str | None) -> tuple[list[
     return [*(rows or ()), *(own or ())], list(targets or ())
 
 
+def _layer_lines(state: Mapping[str, Any], work_item: str | None) -> fields.Shown:
+    """The Test layers and Test targets lines a packet prints (``_test_layers``), whole within ``layers.LINES_PRINT``;
+    past it, the lines that fit and RUN/fields/<action>-test-layers.md, where <action> is the item's step plan when it
+    adds rows of its own and test-strategy otherwise."""
+    lines = layers.packet_lines(*_test_layers(state, work_item))
+    current = planning_revision.current_actions(state)
+    plan = current.get((work_item, "step-plan")) if work_item else None
+    own = ((state.get("accepted") or {}).get(plan) or {}).get("test_layers") if plan else None
+    action = plan if own else current.get((None, "test-strategy"))
+    if not lines or action is None:
+        return fields.Shown(lines, None)
+    return fields.block(lines, len("\n".join(lines)), layers.LINES_PRINT, action, "test-layers")
+
+
+def _concern_lines(state: Mapping[str, Any], work_item: str) -> fields.Shown:
+    """The step-plan packet's concern rows for ``work_item`` (``concerns.packet_lines``), whole while the rows fit
+    ``concerns.ROWS_PRINT``; past it, the rows that fit and RUN/fields/<plan action>-<item>-concerns.md."""
+    lines = concerns.packet_lines(_plan_concerns(state), work_item)
+    action = planning_revision.current_actions(state).get((None, "plan"))
+    if not lines or action is None:
+        return fields.Shown(lines, None)
+    return fields.block(lines, len("\n".join(lines[1:])), concerns.ROWS_PRINT, action, work_item + "-concerns")
+
+
+def field_files(state: Mapping[str, Any]) -> dict[str, str]:
+    """The RUN/fields files the current action's packet and Improve handoff name: each model-written field that a
+    required block prints cut, whole (``shiploop_fields``).  Derived from state alone: ``emit`` writes each one whose
+    text differs before it prints, so the file a packet names exists whenever its packet does."""
+    item = _current_work_item(state)
+    shown = [_layer_lines(state, item), *([_concern_lines(state, item)] if item is not None else [])]
+    files = dict(found.file for found in shown if found.file)
+    files.update(_step_block_shown(state, item)[1])
+    return files
+
+
 def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """The test layers at the CLI gates (run-5 batch F1, F3).
 
-    test-strategy records test_layers (or test_layers_na) and targets: all code has a unit or component row, neither
-    layer is unverified, and the printed lines fit ``layers.TEXT_LIMIT``.  prepare's harness_runs shows each
+    test-strategy records test_layers (or test_layers_na) and targets: all code has a unit or component row, and neither
+    layer is unverified.  Their printed lines have no size gate (owner, 2026-10-28, plan F2): a packet that would print
+    them past ``layers.LINES_PRINT`` names their run file instead (``_layer_lines``).  prepare's harness_runs shows each
     prerequisite row's harness running.  A step plan whose paths hold code lists the item's own rows when the run
     recorded none; each criterion says how it is confirmed (``layers.check_confirms``).
     """
@@ -3524,9 +3524,8 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
                   "reason instead (never both)")
             _need("targets" in result, "a done test-strategy result lists targets: where the tests run, "
                   + layers.TARGET_SHAPE + " ([] when every test runs on the checkout)")
-            rows = layers.canonical_rows(result.get("test_layers", []))
-            layers.check_rows(rows)
-            layers.check_text(rows, layers.canonical_targets(result["targets"]))
+            layers.check_rows(layers.canonical_rows(result.get("test_layers", [])))
+            layers.canonical_targets(result["targets"])
             return
         run_rows, targets = _test_strategy_layers(state)
         if stage == "prepare":
@@ -3546,7 +3545,6 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
         _need("test_layers_na" not in _test_strategy_result(state) or bool(own) or not code,
               "the run recorded no test layers (test_layers_na), but this item's paths hold code ("
               + ", ".join(code[:5]) + "): list the item's own rows in test_layers, " + layers.ROW_SHAPE)
-        layers.check_text([*(run_rows or ()), *own], targets)
         criteria = [row for row in result.get("criteria") or () if isinstance(row, Mapping)]
         commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
         # F3: a command names the test-strategy target it runs on; one on a target that keeps state is remote.
@@ -5023,12 +5021,15 @@ IMPROVE_CARD_BLANK = "<absolute path of the selected Improve SKILL.md>"
 # makes the worker name the files instead.
 EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the check output it recorded>"
 # The user-facing line the run narrative shows for this step.
-HEADLINE_PLACEHOLDER = "<one line for the user, under 100 characters: what this step established>"
+HEADLINE_PLACEHOLDER = "<one line for the user: what this step established>"
 # The test stage's summary says what no ShipLoop record holds: ShipLoop's records hold the counts and the exit codes.
 TEST_SUMMARY_PLACEHOLDER = ("<tests added by ID and what each asserts; test decisions retained, refined or superseded "
                             "and why; any test changed to pass a run and its independent reason; ShipLoop's records "
                             "hold the counts>")
-HEADLINE_LIMIT = 100
+# How much of a headline one display line shows: the narrative's Achieved row and a step commit's subject.  A display
+# cut, never a refusal (owner, 2026-10-28, plan F2): the result file keeps the headline whole, and a step commit whose
+# subject cuts it opens its body with the whole headline.
+HEADLINE_SHOWN = 100
 
 
 def _summary_placeholders() -> frozenset[str]:
@@ -7309,30 +7310,41 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
     accepted earlier steps and the later ones by their first sentence.  ``render``, ``packet_head`` and
     ``improve_handoff_text`` print these lines word for word (packet review F15: the head and the Improve hand-off lacked
     them).  No path fence (the fix plan's D3): the item's declared paths bound the change.  [] outside an inline step.
+    A task, Proof or criteria past its print budget prints cut, naming its RUN/fields file (``_step_block_shown``).
     """
+    return _step_block_shown(state, work_item)[0]
+
+
+def _step_block_shown(state: Mapping[str, Any], work_item: str | None) -> tuple[list[str], dict[str, str]]:
+    """``step_block``'s lines, and the RUN/fields files that hold whole each field they print cut (``field_files``)."""
     view = step_view(state, work_item)
     if view is None:
-        return []
+        return [], {}
     step = view.step
+    name = str(step["id"])
     listed = [str(ident) for ident in step.get("criteria") or ()]
-    criteria = [(layers.criterion_label(row), _one_line(row.get("text"))) for row in view.plan.get("criteria") or ()
-                if isinstance(row, Mapping) and str(row.get("id")) in listed]
+    rows = [row for row in view.plan.get("criteria") or () if isinstance(row, Mapping) and str(row.get("id")) in listed]
     action = planning_revision.current_actions(state).get((work_item, "test-spec"))
     spec = (state.get("accepted") or {}).get(action) if action else None
     cases = [str(case.get("id")) for case in (spec.get("test_cases") or () if isinstance(spec, Mapping) else ())
              if isinstance(case, Mapping) and str(case.get("criterion")) in listed]
     accepted = {str(earlier.get("id")): row for earlier, row in view.accepted}
     deps = [str(dep) for dep in step.get("deps") or ()]
-    proof = str(step.get("proof") or "").strip()
+    task = fields.inline(str(step.get("task") or ""), STEP_TASK_PRINT, view.plan_action, name + "-task")
+    proof_text = str(step.get("proof") or "").strip()
+    proof = fields.inline(proof_text, STEP_PROOF_PRINT, view.plan_action, name + "-proof")
+    serves = fields.block(["  Serves (each criterion this step satisfies, in the step plan's words):",
+                           *("    " + layers.criterion_label(row) + ": " + _one_line(row.get("text")) for row in rows)],
+                          sum(len(str(row.get("text") or "")) for row in rows), STEP_CRITERIA_PRINT, view.plan_action,
+                          name + "-criteria", indent="    ") if rows else fields.Shown([], None)
     lines = [f"Step {step['id']} ({view.number} of {len(view.steps)}), the only work for this packet: "
-             + _one_line(step.get("task")),
-             *(["  Serves (each criterion this step satisfies, in the step plan's words):",
-                *("    " + ident + ": " + text for ident, text in criteria)] if criteria else []),
+             + _one_line(task.lines[0]),
+             *serves.lines,
              *(["  Test cases of these criteria (the test stage writes them later; their oracles: the test-spec result): "
                 + ", ".join(cases)] if cases else []),
              "  Depends on: " + ("; ".join(dep + (" (accepted: RUN/results/" + str(accepted[dep]["action"]) + ".md)"
                                                   if dep in accepted else "") for dep in deps) or "none"),
-             ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + proof) if proof else
+             ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + proof.lines[0]) if proof_text else
              "  Proof: none recorded in the step plan; report send-back so the step plan records the step's proof.",
              "  Skills (use each; the summary says whether you did): "
              + (", ".join(str(skill["name"]) for skill in step_skills(step, "implement")) or "none")]
@@ -7343,7 +7355,8 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
         lines.append("Later steps (ShipLoop issues each after this one; do not start them): "
                      + "; ".join(str(row.get("id")) + " " + _first_sentence(row.get("task"), 200).rstrip(".")
                                  for row in later))
-    return lines + [STEP_FILES_LINE.format(plan=view.plan_action)]
+    files = dict(found.file for found in (task, proof, serves) if found.file)
+    return lines + [STEP_FILES_LINE.format(plan=view.plan_action)], files
 
 
 def _without_step_criteria(lines: list[str], state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
@@ -9433,7 +9446,6 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     gate_lines: list[str] = []
     _check_submitted_evidence(submitted, _loop_receipt(root, state, stage, action_id, workitem), count=count)
     _check_submitted_assumptions(state, current, submitted)
-    _check_producer_bounds(current, submitted)
     _check_submitted_concerns(state, current, submitted)
     _check_submitted_layers(state, current, submitted)
     _check_submitted_unverified(state, current, submitted)
@@ -9567,8 +9579,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     final_result = receipt.get("final_result")
                     if final_result is not None:
                         _check_submitted_evidence(final_result, None)
-                        # A revised result meets the size bounds a submitted one meets: later packets print it whole.
-                        _check_producer_bounds(child["stage"], final_result)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)

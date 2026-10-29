@@ -4943,29 +4943,6 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
                       "what changed in it or why nothing did", row.done_when)
 
 
-class ProducerBoundTests(unittest.TestCase):
-    """Build plan S2.1 (run-insights T-D2): the plan's work-item context and an item's open assumptions are printed whole
-    by later packets, so the submit gate refuses one past its limit and names the size, the limit and the fix."""
-
-    def test_a_work_item_context_past_2500_is_refused_and_one_at_it_is_accepted(self) -> None:
-        navigator._check_producer_bounds("plan", {"outcome": "done", "work_items": [{"id": "W1", "title": "t",
-                                                                                    "context": "c" * 2_500}]})
-        with self.assertRaisesRegex(navigator.NavigatorError, "work item W1's context is 2,501 characters; the limit is 2,500"):
-            navigator._check_producer_bounds("plan", {"outcome": "done", "work_items": [{"id": "W1", "title": "t",
-                                                                                        "context": "c" * 2_501}]})
-        with self.assertRaisesRegex(navigator.NavigatorError, "W2's context"):  # an add-work item too
-            navigator._check_producer_bounds("system-test", {"outcome": "add-work", "work_items": [
-                {"id": "W2", "title": "t", "context": "c" * 2_501}]})
-
-    def test_an_items_open_assumptions_past_1200_together_are_refused(self) -> None:
-        row = {"id": "A1", "disposition": "open", "assumption": "a" * 600, "settle": "b" * 300, "reason": "c" * 300,
-               "due_item": "W1"}
-        navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row]})  # exactly 1,200
-        with self.assertRaisesRegex(navigator.NavigatorError, r"open assumptions of W1 \(1,201 characters\)"):
-            navigator._check_producer_bounds("plan", {"outcome": "done", "assumptions": [row, dict(
-                row, id="A2", assumption="d", settle="", reason="")]})
-
-
 class ConcernMapTests(unittest.TestCase):
     """The concern map (build plan S2.2, run-insights A1): the plan maps every concern for every work item, and the step
     plan maps each applicable concern it owns to its steps. The gates check structure only."""

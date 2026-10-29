@@ -96,6 +96,8 @@ def _rows(facts: Mapping[str, Any]) -> list[tuple[str, list[tuple[str, str]] | s
 
 # The narrative's bound (run-insights E6): the stage templates print it in a slot of this size, so it is capped where it
 # is produced.  The oldest achieved rows fold into one line first; the current stage, what is ahead and the pace stay.
+# Display only: ShipLoop writes the narrative from saved results, refuses nothing for it, and by its contract it names
+# no path or command (each result file holds its step's headline whole).
 NARRATIVE_LIMIT = 900
 
 

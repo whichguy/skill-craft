@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 import re
 import sys
@@ -10,7 +11,9 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
+SCRIPTS = ROOT / "skills/shiploop/scripts"
+sys.path.insert(0, str(SCRIPTS))
+import shiploop_fields as fields  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -238,6 +241,137 @@ class PacketBoundsTests(unittest.TestCase):
                                                     "summary": "...",
                                                     "evidence_refs": [navigator.EVIDENCE_PLACEHOLDER]})
         self.assertIn(navigator.current_action(state)["id"], packet)
+
+
+class FieldSpillTests(unittest.TestCase):
+    """Plan F2: a required block prints a model-written field whole within its print budget, else what fits and the run
+    file that holds it whole.  Nothing refuses a field for its length."""
+
+    def test_a_field_that_fits_prints_whole_and_writes_no_file(self):
+        self.assertEqual(fields.inline("Build it.", 700, "a", "S1-task"), fields.Shown(["Build it."], None))
+        self.assertEqual(fields.block(["one", "two"], 7, 7, "a", "W1-concerns"), fields.Shown(["one", "two"], None))
+        self.assertEqual(fields.path("step-plan-W1", "S1-task"), "fields/step-plan-W1-S1-task.md")
+
+    def test_a_long_inline_field_prints_its_first_line_cut_and_names_the_file_holding_it_whole(self):
+        text = "First line of the task.\n" + "detail " * 200
+        shown = fields.inline(text, 40, "plan-1", "S1-task")
+        self.assertEqual(len(shown.lines), 1)
+        self.assertTrue(shown.lines[0].startswith("First line of the task."))
+        self.assertIn("RUN/fields/plan-1-S1-task.md holds all " + f"{len(text):,}" + " characters", shown.lines[0])
+        self.assertEqual(shown.file, ("fields/plan-1-S1-task.md", text.strip("\n") + "\n"))
+
+    def test_a_long_block_prints_its_leading_lines_and_names_the_file_holding_every_line(self):
+        lines = ["  row " + str(n) + " " + "r" * 40 for n in range(30)]
+        size = len("\n".join(lines))
+        shown = fields.block(lines, size, 300, "plan-1", "W1-concerns", indent="  ")
+        printed, tail = shown.lines[:-1], shown.lines[-1]
+        self.assertEqual(printed, lines[:len(printed)])
+        self.assertTrue(0 < len(printed) < len(lines))
+        self.assertIn("RUN/fields/plan-1-W1-concerns.md holds all 30 whole", tail)
+        self.assertIn(f"{len(lines) - len(printed)} more lines not printed here", tail)
+        self.assertEqual(shown.file, ("fields/plan-1-W1-concerns.md", "\n".join(lines) + "\n"))
+
+    def test_the_first_line_of_a_block_is_cut_to_the_budget_when_it_alone_passes_it(self):
+        shown = fields.block(["x" * 500, "y"], 501, 100, "a", "f")
+        self.assertLessEqual(len(shown.lines[0]), 100)
+        self.assertTrue(shown.lines[0].endswith("\u2026"))
+        self.assertEqual(shown.file[1], "x" * 500 + "\ny\n")
+
+
+# Every numeric limit in skills/shiploop/scripts, by kind (plan F2).  A "print budget" is the size up to which a required
+# block prints a model-written field by value; past it the block prints what fits and the field's RUN/fields file holds
+# it whole.  A "display cut" shortens what a reader sees and says where the rest is.  A "guard" protects a reader from a
+# runaway or binary file.  No kind is a refusal of the model's own text: the gates accept a field of any length.
+LIMIT_KINDS = {
+    "shiploop_concerns.ROWS_PRINT": "print budget",
+    "shiploop_navigator.STEP_TASK_PRINT": "print budget",
+    "shiploop_navigator.STEP_PROOF_PRINT": "print budget",
+    "shiploop_navigator.STEP_CRITERIA_PRINT": "print budget",
+    "shiploop_test_layers.LINES_PRINT": "print budget",
+    "shiploop_context_index.SUMMARY_LIMIT": "display cut",
+    "shiploop_expectations.OUTPUT_LIMIT": "display cut",
+    "shiploop_lint.PAGE_BYTES": "display cut",
+    "shiploop_narrative.NARRATIVE_LIMIT": "display cut",
+    "shiploop_navigator.PRINT_LIMIT": "display cut",
+    "shiploop_navigator.HEAD_LIMIT": "display cut",
+    "shiploop_navigator.HEADLINE_SHOWN": "display cut",
+    "shiploop_navigator._REQUIREMENT_LINE_LIMIT": "display cut",
+    "shiploop_navigator._CONTENTS_LINES": "display cut",
+    "shiploop_owner_notes.NOTE_LIMIT": "display cut",
+    "shiploop_owner_notes.BLOCK_LIMIT": "display cut",
+    "shiploop_protocol.OUTPUT_LIMIT": "display cut",
+    "shiploop_skill_calls.ARGS_LIMIT": "display cut",
+    "shiploop_test_counts.INSIDE_CHARS": "display cut",
+    "shiploop_test_loop.TAIL_CHARS": "display cut",
+    "shiploop_trace.TEXT_LIMIT": "display cut",
+    "shiploop_trace.PAGE_PACKET_LIMIT": "display cut",
+    "shiploop_trace.FIELD_LIMIT": "display cut",
+    "shiploop_trace.ANSWER_LIMIT": "display cut",
+    "shiploop_lint.MAX_FILE_BYTES": "guard",
+    "shiploop_lint.DIFF_CELL_CAP": "guard",
+    "shiploop_mutation.MAX_FILE_BYTES": "guard",
+    "shiploop_planning_revision._MAX_ARCHIVE_BYTES": "guard",
+    "shiploop_progress_data._MAX_STATE_BYTES": "guard",
+    "shiploop_progress_data._MAX_DOCUMENT_BYTES": "guard",
+    "shiploop_progress_data._MAX_REPORT_BYTES": "guard",
+    "shiploop_standalone_improve._MAX_BYTES": "guard",
+    "shiploop_trace.TRACE_LIMIT": "guard",
+    "shiploop_trace.PAGE_TEXT_LIMIT": "guard",
+    "shiploop_trace.SPEC_LIMIT": "guard",
+}
+_LIMIT_NAME = re.compile(r"(LIMIT|CAP|MAX|PRINT|SHOWN|CHARS|BYTES|BUDGET|ROWS|LINES|WIDTH|PAGE|TAIL|HEAD|SIZE|DEPTH|COUNT)$")
+
+
+def _number(node):
+    """The number a constant expression holds (a literal, or literals joined by * + - **), else None."""
+    try:
+        value = ast.literal_eval(node)
+    except Exception:
+        value = None
+    if isinstance(node, ast.BinOp):
+        left, right = _number(node.left), _number(node.right)
+        if left is not None and right is not None:
+            value = {ast.Mult: lambda: left * right, ast.Add: lambda: left + right, ast.Sub: lambda: left - right,
+                     ast.Pow: lambda: left ** right}.get(type(node.op), lambda: None)()
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def numeric_limits():
+    """``{module.NAME: value}`` for every module-level size constant of 20 or more in the shiploop scripts."""
+    found = {}
+    for path in sorted(SCRIPTS.glob("shiploop_*.py")):
+        for node in ast.parse(path.read_text(encoding="utf-8")).body:
+            targets = (node.targets if isinstance(node, ast.Assign) else [node.target] if isinstance(node, ast.AnnAssign)
+                       and node.value is not None else [])
+            value = _number(node.value) if targets else None
+            for target in targets:
+                if isinstance(target, ast.Name) and target.id.isupper() or (
+                        isinstance(target, ast.Name) and target.id.lstrip("_").isupper()):
+                    if value is not None and value >= 20 and _LIMIT_NAME.search(target.id):
+                        found[path.stem + "." + target.id] = value
+    return found
+
+
+class SizeLimitInventoryTests(unittest.TestCase):
+    """Plan F2 done-when: every numeric limit has a kind, and a new refusing cap on model text fails here."""
+
+    def test_every_numeric_limit_in_the_scripts_has_a_kind(self):
+        found = numeric_limits()
+        self.assertEqual(sorted(set(found) - set(LIMIT_KINDS)), [],
+                         "a new size constant: add it to LIMIT_KINDS as a print budget (a field spills to a RUN/fields "
+                         "file past it), a display cut (the cut names the rest) or a guard (a runaway file); never as "
+                         "a limit the gates refuse the model's own text for")
+        self.assertEqual(sorted(set(LIMIT_KINDS) - set(found)), [], "a limit left LIMIT_KINDS stale: remove its row")
+
+    def test_no_gate_refuses_the_models_text_for_its_length(self):
+        """The refusals the D7 before-runs counted (3-5 per run) stated the size and a limit; none remains."""
+        phrases = re.compile(r"the limit is|keep it within|characters? (?:together|long); (?:the )?limit|passes the limit")
+        offenders = []
+        for path in sorted(SCRIPTS.glob("shiploop_*.py")):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, ast.Constant) and isinstance(node.value, str) and phrases.search(node.value):
+                    offenders.append(path.name + ":" + str(node.lineno) + " " + node.value[:80])
+        self.assertEqual(offenders, [])
 
 
 if __name__ == "__main__":

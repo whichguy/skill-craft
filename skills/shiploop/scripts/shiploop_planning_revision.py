@@ -47,6 +47,7 @@ _RECONCILE_RESULT_FIELDS = {
 }
 _RECONCILE_RECEIPT_FIELDS = {"summary", "target", "evidence_refs"}
 _RECEIPT_TITLE = "ShipLoop standalone Improve receipt"
+# Guard: an archived stopped-child file larger than this is refused as no archive (a runaway or foreign file).
 _MAX_ARCHIVE_BYTES = 4 * 1024 * 1024
 
 

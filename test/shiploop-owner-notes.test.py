@@ -289,16 +289,19 @@ class HeadBoundTests(unittest.TestCase):
         texts = [f"Note {index}: the board must work at phone width; reuse the date helper in src/util/dates.ts."
                  for index in range(1, 6)]
         for route in ("inline", "ask-agent"):
-            for stage, quoted in (("plan", []), ("step-plan", ["N1", "N2", "N3", "N4", "N5"]),
-                                  ("implement", ["N1", "N2", "N3", "N4", "N5"])):
+            # The plan head has the least room.  Plan F2 took the stated size limits and the headline's character count
+            # out of it, so one note now fits whole there; five do not, and the head prints the floor by id and file.
+            for stage, quoted in (("plan", {1: ["N1"], 5: []}),
+                                  ("step-plan", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]}),
+                                  ("implement", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]})):
                 for count in (1, 5):
                     with self.subTest(route=route, stage=stage, notes=count):
                         printed, p0, p1, _ = self.printed(route, stage, texts[:count])
                         self.assertLessEqual(len(printed), self.head_order.HOST_CUT)
                         for token in p0 + p1:
                             self.assertIn(token, printed)
-                        self.assertEqual(owner_notes.quoted_ids(printed), quoted[:count])
-                        if stage == "plan":  # 240 characters of room: the floor, by id and file
+                        self.assertEqual(owner_notes.quoted_ids(printed), quoted[count])
+                        if stage == "plan" and not quoted[count]:  # too little room for a quote: the floor, by id and file
                             self.assertIn("not printed here for room: read ", printed)
                             self.assertIn("RUN/owner-notes/", printed)
 

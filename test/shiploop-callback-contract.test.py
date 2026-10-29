@@ -1189,27 +1189,36 @@ class StepSizingRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], "test -f built.txt")
 
-    def test_a_field_past_its_producer_limit_is_refused_with_the_limit_and_one_at_the_limit_is_accepted(self) -> None:
-        """Build plan S2.1 (run-insights T-D2): the step plan's task, check and per-step criteria are printed whole by
-        implement, so step-plan refuses one past its limit with the size, the limit and the fix."""
+    def test_a_step_plan_field_of_any_length_is_accepted_and_stored_whole(self) -> None:
+        """Plan F2 (owner, 2026-10-28): the step plan's task, Proof and per-step criteria were refused past 700, 600 and
+        1,200 characters, and each refusal cost the model a rewrite (3-5 per D7 run).  ShipLoop accepts any length and
+        keeps the field whole; a packet prints what fits its budget and names the file that holds the rest."""
         run, head = self.new_run("step-plan")
         command, path, action = printed_callback(head)
         good = self.fill_done(head)
         step = good["steps"][0]
-        cases = [
-            ("a long task", {**good, "steps": [dict(step, task="x" * 701)]},
-             "step S1's task is 701 characters; the limit is 700"),
-            ("a long proof", {**good, "steps": [dict(step, proof="test -f built.txt && " + "true && " * 75)]},
-             "step S1's proof is"),
-            ("long criteria", {**good, "criteria": [dict(good["criteria"][0], text="y" * 1_201)]},
-             "the criteria step S1 names are 1,201 characters together; the limit is 1,200"),
-        ]
-        for label, block, fragment in cases:
-            with self.subTest(label):
-                write_block(path, block)
-                self.assertIn(fragment, self.refused(command, run))
-        write_block(path, {**good, "steps": [dict(step, task="z" * 700)]})  # at the limit
+        task, proof, text = "x" * 701, "test -f built.txt" + " && true" * 90, "y" * 1_201
+        write_block(path, {**good, "steps": [dict(step, task=task, proof=proof)],
+                           "criteria": [dict(good["criteria"][0], text=text)]})
         self.accepted(command)
+        kept = self.recorded(run, action)
+        self.assertEqual((kept["steps"][0]["task"], kept["steps"][0]["proof"], kept["criteria"][0]["text"]),
+                         (task, proof, text))
+
+    def test_a_step_field_past_its_print_budget_prints_cut_and_names_the_file_that_holds_it_whole(self) -> None:
+        """Plan F2: the implement packet prints a step's task and Proof by value while they fit their print budget (700 and
+        600 characters); a longer one prints its first line cut and names RUN/fields/<step plan action>-S1-<field>.md,
+        which the CLI wrote before it printed and which holds the field as written."""
+        step = dict(RESULTS["step-plan"]["steps"][0], task="Build it. " + "x" * 800, proof="test -f built.txt" + " && true" * 90)
+        run, head = self.new_run("implement", results={"step-plan": {"steps": [step]}})
+        for field, text in (("task", step["task"]), ("proof", step["proof"])):
+            found = re.search(r"RUN/(fields/\S+-S1-" + field + r"\.md) holds all ([\d,]+) characters", head)
+            self.assertIsNotNone(found, field + " is printed cut and names its file:\n" + head)
+            self.assertEqual(found.group(2), f"{len(text):,}")
+            self.assertEqual((run / found.group(1)).read_text(encoding="utf-8"), text + "\n")
+            self.assertNotIn(text, head)
+        self.assertEqual(sorted(path for path in nav.field_files(self.state(run))),
+                         sorted(path for path in (p.relative_to(run).as_posix() for p in (run / "fields").iterdir())))
 
     def test_a_step_without_its_proof_is_refused_by_name_and_the_step_with_it_is_accepted(self) -> None:
         """Implement-step fix plan T1 (section 4.1): every step records `proof`, the exact command that proves its criteria

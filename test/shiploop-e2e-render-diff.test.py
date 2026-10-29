@@ -508,11 +508,15 @@ class ShippedFilesTests(unittest.TestCase):
     def test_the_allowlist_has_one_list_per_unit_so_units_edit_different_lines(self):
         data = json.loads(render_diff.CHANGES.read_text())
         units = [key for key in data if not key.startswith("_")]
-        self.assertEqual(units, [f"U{n}" for n in range(1, 36)])
+        self.assertEqual(units[:35], [f"U{n}" for n in range(1, 36)])
+        # After the efficiency plan's U1-U35, one key per item of a later plan (the _doc names them), e.g. F2 and F3 of
+        # docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md.
+        self.assertTrue(all(re.fullmatch(r"[FP]\d+", key) for key in units[35:]), units[35:])
+        self.assertEqual(len(units), len(set(units)))
         self.assertTrue(all(isinstance(data[key], list) for key in units))
         self.assertIn("_doc", data)
         for number, line in enumerate(render_diff.CHANGES.read_text().splitlines()[2:-1], 3):
-            self.assertRegex(line, r'^  "U\d+": \[.*\],?$', f"line {number}: one key per line so that units do not conflict")
+            self.assertRegex(line, r'^  "[UFP]\d+": \[.*\],?$', f"line {number}: one key per line so that units do not conflict")
         self.assertEqual(render_diff.load_entries(render_diff.CHANGES, ["U1", "U35"]), [])
 
     def test_the_head_table_holds_every_stage_of_the_case_at_the_four_keys_the_plan_names(self):

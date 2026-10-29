@@ -23,6 +23,8 @@ import shiploop_workspace as workspace
 
 
 SCHEMA = "shiploop-progress/v1"
+# Guards and display bounds of the read-only progress view: the bytes it reads from each file and the rows it draws.
+# It warns where it cuts and never refuses a run's records.
 _MAX_STATE_BYTES = 4 * 1024 * 1024
 _MAX_DOCUMENT_BYTES = 128 * 1024
 _MAX_REPORT_BYTES = 1024 * 1024
