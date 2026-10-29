@@ -1,6 +1,7 @@
 # ShipLoop: planning speed, size caps, step-relative tests and UI quality (plan, 2026-10-28)
 
-Status: **proposal**. Execute: ask. Decisions for the owner are in section 7.
+Status: **proposal**. Execute: ask. Decisions for the owner are in section 7. They are ShipLoop behaviour
+trade-offs and loop limits, which `AGENTS.md` "## Decisions" keeps for the owner.
 
 Evidence:
 - the D7 before-runs, in [the brownfield journal](shiploop-brownfield-baseline-journal.md) ("The before-runs") and
@@ -75,7 +76,9 @@ Plus one more: tests relative to each step's intention.
   correctness gap on cases that fit in context. The value of recording knowledge has to come from cases that do not fit.
   Q5 holds it until a large case shows a gap.
 - **E3.** Cost is judged in minutes and turns until the Claude-host Ollama runs measure tokens (F7).
-- **E4.** Expectations are per subject. Sonnet plans a small request in about 5 minutes, DeepSeek flash in 17-49, and
+- **E4.** The E2E subject stays DeepSeek flash after the 2026-10-29 Grok reset; Grok runs only checks that need
+  another host (owner, 2026-10-28, `AGENTS.md` "## Decisions", 917e0c2b). So the waves' reruns stay comparable
+  with the D7 before-runs. Expectations are per subject. Sonnet plans a small request in about 5 minutes, DeepSeek flash in 17-49, and
   Luna xhigh took 375. A change is measured on the E2E subject, and a ship decision on the agreed pairing.
 
 ## 4. Fix what did not work as intended (F), ranked by measured gain
@@ -186,7 +189,8 @@ This is Q3.
 
 ### F7. Harness
 
-1. E6 slices should take the run lock. Today other launches mistake their live hosts and listeners for orphans.
+1. ~~E6 slices should take the run lock.~~ Done on main in 98e7aff0 (a step slice holds its case lock), so run.py no
+   longer takes a live slice for an orphan. A separate runs root is needed only beside slices from older checkouts.
 2. Tokens and cost on Claude-host Ollama runs. E3 needs them.
 
 ## 5. Byproducts we had not considered (B)
@@ -260,7 +264,7 @@ This is Q3.
   - F2 (remove refusing caps, spill to files);
   - F3 (step-relative coverage and test-strategy wording);
   - P4 (fancy-UI template text);
-  - F7.1.
+  - (F7.1 already landed on main, 98e7aff0.)
   - Verification: rerun the three D7 cases from the release commit.
 - **Wave B**: F1 (one planning review), measured by the same rerun, then F4 (living files) and F6.
 - **Wave C**: P6 (large case) and F7.2. Revisit E2 and Q5 with that evidence.
