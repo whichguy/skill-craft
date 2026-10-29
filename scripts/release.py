@@ -33,11 +33,13 @@ skill never shipped in plugins/skill-craft may ship at its authored version
 with a `version:` note. When the release fails before committing, the checkout
 is restored to HEAD and the notes are kept.
 
-A release that ships the shiploop skill also needs an E2E round on record: a
-commit since the last release (every commit, before the first one) that touches
-test/shiploop_e2e/LEARNINGS.md, or one that carries a `No-E2E-Round: <reason>`
-trailer (final message paragraph, non-empty reason). Without either, the run
-and --dry-run both refuse and write nothing. Other releases are not asked.
+A release that ships the shiploop skill also needs an E2E round on record for
+every change it ships. Since the last release (every commit, before the first
+one), each commit that changes skills/shiploop/ or changes/shiploop/ must come
+before the latest commit touching test/shiploop_e2e/LEARNINGS.md, or carry a
+`No-E2E-Round: <reason>` trailer (final message paragraph, non-empty reason).
+Otherwise the run and --dry-run both refuse, name those commits, and write
+nothing. Other releases are not asked.
 
 It never pushes. Publish the commit with scripts/release-push.py.
 
@@ -191,25 +193,35 @@ def released_versions():
 
 
 def e2e_round_missing(releases):
-    """Why a release that ships ShipLoop has no E2E round on record, or None. Reads only.
+    """Why a release that ships ShipLoop has no E2E round on record for every change it ships, or None. Reads only.
 
-    The range runs from the last release commit to HEAD, or is all of history before the
-    first release. A round is on record when a commit in it touches the journal, or one
-    carries a No-E2E-Round trailer with a reason (git reads trailers only in the final paragraph)."""
+    The range runs from the last release commit to HEAD, or is all of history before the first release. Each commit in
+    it that changes the skill (skills/shiploop/ or changes/shiploop/) must come before the range's latest journal commit,
+    or carry a No-E2E-Round trailer with a reason (git reads trailers only in the final paragraph). A round recorded
+    before a change does not vouch for it: 1.18.0 shipped three changes committed after the range's last journal entry."""
     if E2E_LEAF not in releases:
         return None
     last = next((sha for sha, _ in release_commits()), None)
     span = f"{last}..HEAD" if last else "HEAD"
-    if git("log", "--format=%H", span, "--", E2E_JOURNAL).strip():
-        return None
-    reasons = git("log", f"--format=%(trailers:key={NO_ROUND},valueonly,unfold)", span)
-    if any(line.strip() for line in reasons.splitlines()):
+    journal = git("log", "-1", "--format=%H", span, "--", E2E_JOURNAL).strip()
+    after = f"{journal}..HEAD" if journal else span
+    rows = git("log", f"--format=%x1e%h %s%x00%(trailers:key={NO_ROUND},valueonly,unfold)", after, "--",
+               f"skills/{E2E_LEAF}/", f"changes/{E2E_LEAF}/")
+    uncovered = [head for head, _, reasons in (row.partition("\0") for row in rows.split("\x1e") if row.strip())
+                 if not reasons.strip()]
+    if not uncovered and (journal or rows.strip()):
         return None
     since = f"since the last release ({last[:8]})" if last else "in the history before the first release"
-    return (f"{E2E_LEAF} would ship with no E2E round on record {since}.\n"
-            f"  Add an entry to {E2E_JOURNAL} in a commit in that range, or\n"
-            f"  add a '{NO_ROUND}: <reason>' trailer with a reason to a commit in that range "
-            "(final message paragraph, next to Co-Authored-By).")
+    if not uncovered:  # nothing changed the skill and no round is recorded: a version-only note still needs one
+        return (f"{E2E_LEAF} would ship with no E2E round on record {since}.\n"
+                f"  Add an entry to {E2E_JOURNAL} in a commit in that range, or\n"
+                f"  add a '{NO_ROUND}: <reason>' trailer with a reason to a commit in that range "
+                "(final message paragraph, next to Co-Authored-By).")
+    where = f"after its latest E2E round ({journal[:8]})" if journal else f"with no E2E round on record {since}"
+    return (f"{E2E_LEAF} would ship {len(uncovered)} change(s) committed {where}:\n"
+            + "".join(f"  {head[:100]}\n" for head in uncovered)
+            + f"  Add an entry to {E2E_JOURNAL} in a commit after them, or a '{NO_ROUND}: <reason>' trailer on each "
+              "(final message paragraph, next to Co-Authored-By).")
 
 
 def plan():
