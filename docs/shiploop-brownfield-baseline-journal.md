@@ -421,9 +421,9 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
 - **Refusals.**
   - Size limits: 3-5 per run.
   - Improve protocol: `--check-only` at Improve, and a skipped skill call at a new Improve.
-  - Lint at Improve: 6 of 6 lint refusals named the Improve action while lint wanted the reviewed step's. Fixed on
-    `claude/priceless-hertz-be6123`, d0916465. The harness stored those refusals without their text; fixed there too,
-    e740819b.
+  - Lint at Improve: 6 of 6 lint refusals named the Improve action while lint wanted the reviewed step's. Fixed in
+    18844f21 (first made as d0916465 on `claude/priceless-hertz-be6123`, which is not merged). The harness stored those
+    refusals without their text; fixed there too, 8764d1b1 (first e740819b).
   - Quality gates: mutation, expectations, evidence, and the primary-coverage gate.
   - Every refusal was recovered.
 - **What it means for the design.**

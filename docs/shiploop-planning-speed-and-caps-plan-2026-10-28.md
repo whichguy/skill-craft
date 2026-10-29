@@ -176,7 +176,8 @@ This is Q3.
 
 ### F5. Lint at Improve (template bug) — fixed, held
 
-- Commits d0916465 and e740819b, on `claude/priceless-hertz-be6123`.
+- Commits 18844f21 and 8764d1b1 (first made on branch `claude/priceless-hertz-be6123` as d0916465 and e740819b; the
+  branch is not merged, these are the same patches).
 - They land with this plan's first release, so the D7 after-runs share one base.
 
 ### F6. Repeated model habits
@@ -289,7 +290,7 @@ The owner asked overlapping sessions to stop and agree on owners. Design T (sess
 1. Lanes C (F6+F5), then B (2d and step 3), merge onto the design T branch.
 2. Wave A rebases there: design T names the commit to build on.
 3. Design T lands on main after its pilot E2E rounds and README, not before 2026-10-29.
-4. The lint fix (d0916465, e740819b), D8, the node-tickets case pair and this plan's documents land on main now. Design T
+4. The lint fix (18844f21, 8764d1b1), D8, the node-tickets case pair and this plan's documents land on main now. Design T
    rebases onto them, and they meet at `test/test-groups.test.py`'s suite counts.
 
 **Constraints for the Wave A rebase:**
@@ -298,5 +299,5 @@ The owner asked overlapping sessions to stop and agree on owners. Design T (sess
   `due_cases` and the step-plan criteria gate (`_check_step_sizing`).
 - **Plan F2.** Lane F6 adds a "Lint coverage:" line right after "Result:" in every lint block and in `gate()`'s two
   refusals. A display cut that pages or trims a lint block keeps the Result and Lint coverage lines together.
-- **The lint fix.** On design T's base the step review belongs to document (2b-2), not implement, so d0916465's
+- **The lint fix.** On design T's base the step review belongs to document (2b-2), not implement, so 18844f21's
   "implement review" wording is checked when design T rebases onto it.
