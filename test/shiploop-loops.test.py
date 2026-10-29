@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as fx  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
-from shiploop_packet_view import callback_argv, callback_result_path, check_argv  # noqa: E402
+from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -1055,24 +1055,25 @@ class WorkTextTests(Synthetic):
         self.assertIn("8. **Assembly.**", prompts.duty("verify", delegation="ask-agent"))
         self.assertNotIn("Assembly", prompts.duty("verify", delegation="inline"))
 
-    def test_the_check_is_named_in_the_work_and_printed_by_the_packet_not_the_contract(self):
-        """The contract names no install path, so the Work names the packet's check command, which the packet prints
-        after its callback."""
+    def test_the_check_is_named_in_the_work_as_the_callback_with_a_new_verb_not_as_a_command(self):
+        """The contract names no install path, so the Work names the callback with `check` in place of `complete`
+        (``prompts.CHECK_HOW``), not a command."""
         for stage in ("step-plan", "test-spec", "test"):
             with self.subTest(stage=stage):
                 work = " ".join(self.work(stage).split())
-                self.assertIn("then run the packet's check command and fix each refusal until the check says yes", work)
+                self.assertIn("then run the callback with `check` in place of `complete` and fix each refusal until the "
+                              "check says yes", work)
                 self.assertNotIn("python3", work)
         self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
                       " ".join(self.work("test").split()))
         self.assertIn("a lint finding or a refusal from the check", loops.REPEAT["test"])
         for stage in ("document", "implement", "verify", "carry-forward", "validate-existing"):
-            self.assertNotIn("check command", self.work(stage), stage)
+            self.assertNotIn(prompts.CHECK_HOW, self.work(stage), stage)
 
-    def test_only_an_inner_packet_prints_the_check_and_the_callback_line_invites_no_dry_run(self):
+    def test_only_an_inner_packet_names_the_check_and_the_callback_line_invites_no_dry_run(self):
         """D3 (phases B and C plan, P8): in arm A every outer complete followed a dry run the callback line invited
         ("adding only --check-only to test before it accepts"); an outer callback is its own check.  The line no longer
-        invites one, an outer packet prints no check, and `complete --check-only` is a usage error."""
+        invites one, an outer packet names no check, and `complete --check-only` is a usage error."""
         self.assertNotIn("check", prompts.CALLBACK_REASON)
         with tempfile.TemporaryDirectory(prefix="shiploop-outer-check-") as temp:
             repo = Path(temp).resolve() / "repo"
@@ -1085,7 +1086,7 @@ class WorkTextTests(Synthetic):
             cli = [sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop")]
             printed = subprocess.run([*cli, "next", "--run-dir", str(run)], capture_output=True, text=True, env=env)
             self.assertTrue(callback_argv(printed.stdout))
-            self.assertFalse([line for line in printed.stdout.splitlines() if line.startswith("Check (")])
+            self.assertNotIn(prompts.CHECK_HOW, printed.stdout)
             action = nav.current_action(store.read_record(run / "state.md"))["id"]
             flag = subprocess.run([*cli, "complete", "--run-dir", str(run), "--action", action, "--check-only"],
                                   capture_output=True, text=True, env=env)
@@ -1093,8 +1094,8 @@ class WorkTextTests(Synthetic):
             self.assertIn("unrecognized arguments: --check-only", flag.stderr)
 
     def test_the_printed_check_command_runs_the_gates_and_completes_nothing(self):
-        """Paired with the behaviour the sentence describes: the packet prints the Callback and, after it, the check
-        command, which runs the stage's gates without completing the action."""
+        """Paired with the behaviour the sentence describes: an inner packet's Checked-by line says to run the callback
+        with `check` in place of `complete`, which runs the stage's gates without completing the action."""
         with tempfile.TemporaryDirectory(prefix="shiploop-check-callback-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
@@ -1120,9 +1121,10 @@ class WorkTextTests(Synthetic):
             result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
                               "headline": "Docs updated.", "evidence_refs": [str(loops.receipt_path(run, action))]})
                               + "\n```\n")
-            self.assertEqual(check_argv(printed.stdout), [*command[:command.index("complete")], "check",
-                                                          *command[command.index("complete") + 1:]])
-            checked = subprocess.run(check_argv(printed.stdout), capture_output=True, text=True,
+            checked_by = next(line for line in printed.stdout.splitlines() if line.startswith("Checked by: "))
+            self.assertIn(prompts.CHECK_HOW, checked_by)
+            check = [*command[:command.index("complete")], "check", *command[command.index("complete") + 1:]]
+            checked = subprocess.run(check, capture_output=True, text=True,
                                      env={**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"})
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
             self.assertIn("ShipLoop check: the check says yes for document: every script gate accepts this result", checked.stdout)

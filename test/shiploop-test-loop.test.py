@@ -701,7 +701,7 @@ class TestLoopTests(unittest.TestCase):
             duty = prompts.duty("verify", delegation=route)
             # The result is written first: the check reads it (packet review 2026-10-17, D-8).
             self.assertIn("1. **Run.** After your last edit, write the result (the Result template below) to "
-                          "RUN/inbox/<action>.md, then run the check command printed after the callback", " ".join(duty.split()))
+                          "RUN/inbox/<action>.md, then run the callback with `check` in place of `complete`", " ".join(duty.split()))
             self.assertIn("RUN/" + test_loop.check_path("<action>"), duty)
             summary = next(row for row in duty.splitlines() if row.startswith("11. **Summary:**"))
             self.assertNotIn("exit code", summary)

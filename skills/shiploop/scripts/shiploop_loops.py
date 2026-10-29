@@ -62,8 +62,8 @@ _NO_LIMIT = "there is no iteration limit."
 
 # ``{items}`` is the duty items the loop does, counted from the duty text the route prints (``_duty_items``), so a duty
 # edit moves the range the Work cites and the Work never cites an item the packet does not print.  The check clause
-# names the check command the packet prints after its callback; the contract names no install path, so not the command.
-_CHECK = "run the packet's check command and fix each refusal until the check says yes"
+# names the callback with its verb changed (``prompts.CHECK_HOW``); the contract names no install path, so no command.
+_CHECK = "run " + prompts.CHECK_HOW + " and fix each refusal until the check says yes"
 
 WORK: Mapping[str, str] = {
     "step-plan": (

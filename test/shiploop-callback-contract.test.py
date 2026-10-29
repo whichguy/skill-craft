@@ -2366,7 +2366,7 @@ class PacketReviewRefusalRouteTests(RealCliCase):
         duty = " ".join(head.split())
         one = duty[duty.index("1. **Run.**"):duty.index("2. **Confirm.**")]
         self.assertIn("write the result (the Result template below) to RUN/inbox/<action>.md", one)
-        self.assertLess(one.index("write the result"), one.index("check command"))
+        self.assertLess(one.index("write the result"), one.index("in place of `complete`"))
         self.assertFalse(path.exists())
         reply = self.refused(check_command(command), run)
         self.assertIn("no result file at " + str(path), reply)
@@ -2383,7 +2383,7 @@ class PacketReviewRefusalRouteTests(RealCliCase):
         checked = next(row for row in head.splitlines() if row.startswith("Checked by: "))
         self.assertIn("reruns every recorded test command and refuses done unless each passes", checked)
         duty = " ".join(head.split())
-        self.assertIn("then run the check command printed after the callback, which reads that file", duty)
+        self.assertIn("then run the callback with `check` in place of `complete`, which reads that file", duty)
         built = self.repo_of(run) / "built.txt"
         built.unlink()
         write_block(path, self.fill_done(head))

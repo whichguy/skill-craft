@@ -260,7 +260,7 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertIn("at done ShipLoop refuses ", line)
                 self.assertIn("the usual faults (", line)
                 if stage in stage_spec.INNER:
-                    self.assertIn("the check command beside the callback prints the first refusal without accepting, so "
+                    self.assertIn("the callback with `check` in place of `complete` prints the first refusal without accepting, so "
                                   "repeat it until the check says yes", line)
                 else:
                     self.assertNotIn("check", line.split("A refusal does not advance the run")[1])

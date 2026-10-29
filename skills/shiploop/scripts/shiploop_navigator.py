@@ -6755,9 +6755,9 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work.
 
     One line (aggressive re-cut, 2026-10-11): what ShipLoop runs at done, then only the refusals that go beyond the
-    exit conditions.  At an inner stage the check command beside the callback runs the same gates on a draft and prints
-    the first refusal's fix (a gate raises at the first fault it finds, so a result with two faults needs two runs);
-    an outer stage's callback is its own check (decision D3, phases B and C plan).
+    exit conditions.  At an inner stage the callback with `check` in place of `complete` (``guidance.CHECK_HOW``) runs
+    the same gates on a draft and prints the first refusal's fix (a gate raises at the first fault it finds, so a
+    result with two faults needs two runs); an outer stage's callback is its own check (decision D3, phases B and C plan).
     """
     extra = _stage_gates(row.name, state)
     # The step Proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
@@ -6766,8 +6766,8 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
             + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
-            "and run the same command again" + ("; the check command beside the callback prints the first refusal "
-                                                 "without accepting, so repeat it until the check says yes."
+            "and run the same command again" + ("; " + guidance.CHECK_HOW + " prints the first refusal without "
+                                                 "accepting, so repeat it until the check says yes."
                                                  if row.name in loops.STAGES else "."))
 
 
@@ -7117,11 +7117,8 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
     if child is None:
         # The label names the absolute result path; `complete` reads that one path by default, so the command has no
         # --result flag for the model to type.  The reason (no pipe, redirect, ";" or variable) is guidance.callback_label's.
-        lines = [guidance.callback_label(_result_input_path(root, action_id))
-                 + _callback(core, root, "complete", action=action_id)]
-        if current_stage(state) in loops.STAGES:
-            lines.append(guidance.CHECK_LABEL + _callback(core, root, "check", action=action_id))
-        return lines
+        return [guidance.callback_label(_result_input_path(root, action_id))
+                + _callback(core, root, "complete", action=action_id)]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         return ["Next command (bind the selected Improve card; details below): "

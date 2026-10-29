@@ -76,8 +76,9 @@ in `checks/<action>.md` (yes, or no with the first refusal). `complete` takes a
 yes whose key still matches (the revision, the package version, the loop
 contract, the draft, the working tree, the item's base, the counted runs the
 floors read and the lint option) without running any gate again; any change
-makes it run them all. Each inner packet prints the check command beside its
-callback; the step-plan loop runs it on every draft. A duplicate command runs
+makes it run them all. An inner packet's Checked-by line says to run the callback
+with `check` in place of `complete`; an outer stage's callback is its own check.
+The step-plan loop runs the check on every draft. A duplicate command runs
 once; records: state-files.md `tests/` and `checks/`.
 
 ## Expectations and validate-existing
