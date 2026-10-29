@@ -144,9 +144,13 @@ def packet_pointer(path: object, head_end: str) -> str:
 # own `head`, and the status display, which reads the command, never fires.  The label names the absolute result path
 # because `complete` reads that one path by default and the command carries no --result flag.
 CALLBACK_LABEL_PREFIX = "Callback for this stage (run once after its work, with the result written to "
-CALLBACK_REASON = ("run it exactly as printed, adding only --check-only to test before it accepts, and with no pipe, "
-                   "redirect, \";\" or shell variable: its output is the next stage's instructions and the status display "
-                   "reads the command")
+CALLBACK_REASON = ("run it exactly as printed, with no pipe, redirect, \";\" or shell variable: its output is the next "
+                   "stage's instructions and the status display reads the command")
+# How an inner stage asks whether ShipLoop would accept its draft (phases B and C plan, decision D3): the callback's own
+# command with the verb `check`, which runs the same gates and changes nothing.  Not a second printed command: the
+# separate "Check (" line cost 329 characters in every inner head and pushed a step-plan head with test layers at their
+# limit past the host cut.  An outer stage's callback is its own check, so its packet does not mention one.
+CHECK_HOW = "the callback with `check` in place of `complete`"
 
 
 def callback_label(result_path: object) -> str:
@@ -1496,8 +1500,8 @@ This is item acceptance, not a claim that integration or release has happened. E
 in order; """ + _VERIFY_ONCE + """
 
 1. **Run.** After your last edit, write the result (the Result template below) to RUN/inbox/<action>.md, then run the
-   callback with `--check-only`, which reads that file; fix each refusal. It reruns every recorded command
-   into RUN/tests/<action>-check-only.md: copy no exit code.
+   callback with `check` in place of `complete`, which reads that file; fix each refusal until the check says yes. It
+   reruns every recorded command into RUN/tests/<action>-check.md: copy no exit code.
 2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
    other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
    this. A criterion confirmed `searched` or `inspected` whose condition needs execution: report send-back.
@@ -2578,8 +2582,8 @@ base (below) and fix, within the item's paths, any of these:
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.
 Do not write tests, start a later step, or edit the Proof. After your last edit,
-rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop
-lint --action`), and record their exit codes. Commit your edits. A pass that
+rerun the step's Proof and ShipLoop's lint (its command is under Commit when the
+run lints), and record their exit codes. Commit your edits. A pass that
 finds none of these is trivial.
 """
 IMPLEMENT_STEP_REVIEW_FOCUS = IMPLEMENT_STEP_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
@@ -2612,14 +2616,14 @@ _STEPS_WORDING = (
      "  step's work), or a new unwaived lint finding on a changed line, after your\n"
      "  last edit.\n"
      "Do not write tests, start a later step, or edit the Proof. After your last edit,\n"
-     "rerun the step's Proof and ShipLoop's lint for the step's action (`shiploop\n"
-     "lint --action`), and record their exit codes. Commit your edits. A pass that\n"
+     "rerun the step's Proof and ShipLoop's lint (its command is under Commit when the\n"
+     "run lints), and record their exit codes. Commit your edits. A pass that\n"
      "finds none of these is trivial.",
      "- a recorded check command that fails, or a new lint finding on a changed line\n"
      "  with no waiver, after your last edit.\n"
      "Do not write tests or edit a recorded command. After your last edit, rerun the\n"
-     "steps' recorded check commands and ShipLoop's lint for this action (`shiploop\n"
-     "lint --action`), and record their exit codes. Commit your edits. A pass that finds none of these is trivial."),
+     "steps' recorded check commands and ShipLoop's lint (its command is under Commit\n"
+     "when the run lints), and record their exit codes. Commit your edits. A pass that finds none of these is trivial."),
     ("one implementation step's diff: its task and criteria,",
      "the diff of implementation steps {steps}: their tasks and criteria,"),
 )

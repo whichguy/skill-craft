@@ -408,7 +408,7 @@ def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated:
 CALLBACK_ATTEMPTS = "callback-attempts"
 PACKET_VERBS = frozenset({"next", "resume", "complete", "improve-bind", "improve-start", "improve-pass",
                           "improve-reconcile"})
-CALLBACK_VERBS = frozenset({"complete", "improve-bind", "improve-reconcile"})
+CALLBACK_VERBS = frozenset({"complete", "check", "improve-bind", "improve-reconcile"})
 
 
 def _callback_attempts(root: Path) -> int:
@@ -650,6 +650,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         "report",
         "context",
         "complete",
+        "check",
         "halt",
         "pause",
         "resume",
@@ -694,18 +695,15 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         if name == "improve-pass":
             sub.add_argument("--no-commit", dest="no_commit",
                              help="the user's or repository's instruction not to commit this review's edits")
-        if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile"):
+        if name in ("complete", "check", "improve-bind", "improve-start", "improve-commit", "improve-pass",
+                    "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name == "improve-reconcile":
             sub.add_argument("--result", required=True)
-        if name == "complete":
+        if name in ("complete", "check"):
             # Every producer stage reads it; the one path accepted is RUN/inbox/<action>.md, so it may be left out.  An
             # improve stage takes no result (--final-result is its changed result).
             sub.add_argument("--result", help="the result file; default and only accepted path: RUN/inbox/<action>.md")
-        if name == "complete":
-            sub.add_argument("--check-only", dest="check_only", action="store_true",
-                             help="run this stage's script gates on the result and report, without completing the "
-                                  "action (an Until Loop's way to observe its exit conditions before done)")
         if name == "complete":
             sub.add_argument("--notes", metavar="FILE",
                              help="optional: the path of a plain-text file (not the text itself) holding the review's "
@@ -868,6 +866,11 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return 2
     except navigator.NavigatorError as exc:
         _TRACE["error"] = str(exc)
+        if args.command == "check":
+            print(f"ShipLoop check: the check says no. {exc}", file=sys.stderr)
+            print("Nothing was accepted or counted. Fix the cause and run the check again in this turn.",
+                  file=sys.stderr)
+            return 2
         print(f"ShipLoop navigator: {exc}", file=sys.stderr)
         print("Read the current packet with next; the rejected request did not advance the graph.",
               file=sys.stderr)

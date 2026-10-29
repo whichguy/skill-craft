@@ -325,17 +325,17 @@ def delivered_lines(root: str | Path, state: Mapping[str, Any]) -> list[str]:
             "this stage's work touches it."]
 
 
-def hold_text(held: Sequence[Mapping[str, Any]], *, check_only: bool = False) -> str:
-    """What a held callback prints: the notes whole, and what to do (a ``--check-only`` run says it is a notice)."""
+def hold_text(held: Sequence[Mapping[str, Any]], *, check: bool = False) -> str:
+    """What a held callback prints: the notes whole, and what to do (a check says it is a notice)."""
     one = len(held) == 1
     noun = "an owner note" if one else "owner notes"
-    lines = [(f"ShipLoop check-only: {noun} this action's packet did not print in full (it shows the note now; the real "
-              "callback is not held for it):") if check_only else
+    lines = [(f"ShipLoop check: {noun} this action's packet did not print in full (it shows the note now; the "
+              "callback is not held for it):") if check else
              f"ShipLoop held this callback once: {noun} this action's packet did not print in full (written after "
              "it was printed, or no room in its head)."]
     for note in held:
         lines.extend(quote(note))
-    if not check_only:
+    if not check:
         lines += [("If it changes this step's work" if one else "If one changes this step's work")
                   + ", change the work and the result first. Then run the same callback again in this turn; it is not "
                   "held twice for the same note.",

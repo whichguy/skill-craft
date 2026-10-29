@@ -2,6 +2,50 @@
 
 Written by scripts/release.py.
 
+## 2026-10-29
+
+### skill-craft 2.22.0
+
+- Skills: shiploop 1.21.0
+
+### shiploop 1.21.0
+
+- A living file's `R-<n>` or `AD-<n>` entry now starts at the ID's first heading or list item. A summary table row or an
+  overview sentence that begins with the same ID earlier in the file no longer stands for it. The first start of any form
+  still counts when the ID has no heading or list-item start.
+  - Before, "AD-4 and AD-10 appear under Superseded." in an overview shadowed `### AD-4 …`, so a superseded decision read
+    as current. A row such as `| R-1 | … |` above `### R-1 …` did the same to the requirement.
+  - In 1,204 knowledge files from past E2E runs, 27 of 5,369 entries move, each from such a line to its heading. No ID
+    appears or disappears, and no retired flag changes.
+- An Improve handoff prints the exact lint command for the action it reviews, so a reviewer's `shiploop lint` runs
+  instead of being refused.
+  - While an Improve stage runs, `shiploop lint` lints the reviewed action and accepts only that action's ID. Every
+    other command in the Improve files names the Improve stage's own ID, and the handoff printed no lint command, so
+    reviewers used the Improve ID and were refused ("<Improve ID> is not the current action").
+  - When the run lints, each handoff's Commit section now ends with "Lint after your last edit (report-only; its --action
+    is the reviewed <stage> action, not this Improve stage): <command>", as producer packets print theirs. The implement
+    review's focus points to it. `shiploop lint` is unchanged: it still refuses the Improve stage's own ID.
+  - Why: in two DeepSeek flash brownfield E2E runs on 2026-10-28, all 7 lint refusals were this one, at implement (4),
+    carry-forward, system-test-author and release-plan reviews.
+- When the host ends a session (a `/clear`, an exit), the run that session owned is released at once, so the next
+  session drives it without waiting 30 minutes.
+  - The keepalive registers a session-end hook on every plugin host: Claude Code, Codex and Grok run `SessionEnd`, and
+    Cursor runs `sessionEnd`. `shiploop-hook install` writes the same entry. The hook drops the session's binding and
+    releases the run only when that session owns it; a subagent's or another session's end changes nothing.
+  - A killed session sends no session end; the 1.20.0 process check covers that case.
+- `shiploop check` asks whether ShipLoop would accept the current result now, and `complete` takes its yes.
+  - The check and `complete` run one evaluator, so they give the same answer on the same inputs. Before, a dry run held
+    the test stage's candidate to no floor and `complete` then refused it below the base run's count; and a dry run
+    skipped the inner stage's allowed outcomes, so `complete` refused an outcome the dry run had passed.
+  - The check records one answer in `RUN/checks/<action>.md`, yes or no with the reason, tied to the state revision,
+    the package version, the loop contract, the result draft, the working tree, the item's base, the counted runs the
+    floors read and the lint option. `complete` takes a yes whose key still matches: it runs no gate again, and writes
+    the check's base, candidate, mutation and Proof records as its counted ones, each naming the check record. Any
+    change since the check makes `complete` run every gate again.
+  - The test stage's check now makes the real base run (`RUN/tests/<action>-base-check.md`, never counted), and holds
+    its candidate run to the floor that run sets.
+  - Why: the phases B and C plan (docs/shiploop-check-phases-bc-plan-2026-10-28.md, findings F15 and P9).
+
 ## 2026-10-28
 
 ### skill-craft 2.21.0

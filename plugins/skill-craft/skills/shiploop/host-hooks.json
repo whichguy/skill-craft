@@ -37,6 +37,18 @@
       ]
     },
     {
+      "id": "keepalive-session-end",
+      "event": "session-end",
+      "script": "scripts/shiploop-keepalive-session-end",
+      "timeout": 10,
+      "hosts": [
+        "claude",
+        "codex",
+        "cursor",
+        "grok"
+      ]
+    },
+    {
       "id": "skill-calls",
       "event": "after-skill",
       "script": "scripts/shiploop-skill-call",
