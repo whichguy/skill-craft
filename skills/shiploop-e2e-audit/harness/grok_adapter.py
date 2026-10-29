@@ -49,6 +49,7 @@ SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
         "report",
         "context",
         "complete",
+        "check",
         "red-check",
         "halt",
         "pause",
