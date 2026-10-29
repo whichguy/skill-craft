@@ -398,9 +398,10 @@ class TierTests(unittest.TestCase):
                         self.assertIn(name, {"answered", "owner-notes", "work-item", "revisit", "concerns", "step", "commit-scope",
                                              "expectation-results", "queue-rule", "test-rules", "rerun", "observed",
                                              "workspace-return", "delivery", "lint-commands", "improve-lessons"})
-                # Document's Step block names the step it reflects on and its spec mark: required, so P0 (design T
-                # §9.1 2b-3); implement's Step block is its stage input, P1.
-                required = {"step"} if stage == "document" else set()
+                # Test's and document's Step block names the step just built and the skills the step plan lists for the
+                # stage (design T §8.2c, F9), and document's its spec mark: required, so P0 (design T §9.1 2b-3, 2b-5);
+                # implement's Step block is its stage input, P1.
+                required = {"step"} if stage in ("test", "document") else set()
                 for name in required & set(tiers):
                     self.assertEqual(tiers[name], navigator.P0, name)
                 self.assertEqual([name for name in tiers if name not in

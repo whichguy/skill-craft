@@ -1284,8 +1284,9 @@ Change no product file in this stage.
      exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only; steps share
      one proof script. None runs now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
-     `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
-     reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
+     `{"name", "why", "locator", "stages"}` for each with a concrete use in the step, else []. Prefer a
+     repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),
+     test, document, improve.
 5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test stage
    runs exactly these.
    - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
@@ -1416,8 +1417,8 @@ preparatory commit); a mismatch there is a send-back.
     "test": """\
 1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
    command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
-   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities); never
-   assume a named skill or MCP is available. Build a missing facility within this item and validate it before the
+   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities). Use
+   each skill this packet lists for the stage; never assume another named skill or MCP is available. Build a missing facility within this item and validate it before the
    tests that use it; record it in KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness,
    owner, revalidation condition). Write no case due at a later stage.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. Record a

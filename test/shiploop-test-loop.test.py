@@ -658,6 +658,50 @@ class TestLoopTests(unittest.TestCase):
         path = self.run_dir / test_loop.verify_path(action, 1)
         return [run["command"] for run in store.read_record(path)["runs"]] if path.is_file() else []
 
+    SKILLED_PLAN = {"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:]], "paths": ["a.py"],
+                    "criteria": [{"id": "C1", "text": "The item's focused check passes."}],
+                    "steps": [{"id": "S1", "task": "Make the planned change.", "paths": ["a.py"], "proof": "true",
+                               "criteria": ["C1"],
+                               "skills": [{"name": "scaffolder", "why": "lay out the module"},
+                                          {"name": "prober", "why": "drive the focused check",
+                                           "stages": ["test", "improve"]},
+                                          {"name": "writer", "why": "phrase the README section", "stages": ["document"]}]}]}
+
+    def test_each_stage_of_a_step_lists_the_skills_the_step_plan_names_for_it(self):
+        """Design T §8.2c, F9 (owner 2026-10-27: "make sure that we had the prompt template reference any skills that might
+        exist that could help us execute in the build stage or test stage"): a step's skill names the stages that use it
+        (`stages`: implement, test, document or improve; implement when absent), and each of those stages lists it."""
+        self.start()
+        def change(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "a.py").write_text("import os\n")
+        self.drive_to("implement", step_plan=self.SKILLED_PLAN)
+        implement = self.packet()
+        self.assertIn("Skills (use each; the summary says whether you did): scaffolder", implement)
+        self.assertNotIn("prober", implement)
+        self.drive_to("test", step_plan=self.SKILLED_PLAN, each=change)
+        test = self.packet()
+        self.assertIn("Skills for this stage (use each; the summary says whether you did): prober (drive the focused "
+                      "check)", test)
+        self.assertNotIn("scaffolder", test)
+        self.drive_to("document", step_plan=self.SKILLED_PLAN, each=change)
+        document = self.packet()
+        self.assertIn("Skills for this stage (use each; the summary says whether you did): writer (phrase the README "
+                      "section)", document)
+        self.assertNotIn("prober", document)
+        self.run_loop([TRIVIAL])
+        self.complete(dict(DONE, evidence_refs=[str(self.terminal())]))
+        handoff = nav.improve_handoff_text(CORE, self.run_dir, self.state())
+        self.assertIn("Skills for this review (use each; the summary says whether you did): prober (drive the focused "
+                      "check)", handoff)
+
+    def test_a_step_skill_naming_an_unknown_stage_is_refused(self):
+        self.start()
+        self.drive_to("step-plan")
+        plan = json.loads(json.dumps(self.SKILLED_PLAN))
+        plan["steps"][0]["skills"][1]["stages"] = ["test", "verify"]
+        self.assert_refused(dict(DONE, **plan), r"stages must list only implement, test, document or improve", loop=True)
+
     def test_document_reruns_what_its_own_edits_could_affect(self):
         """Design T §8.2 (2b-4b): verify's rerun of every recorded command moves to each step's document stage, which
         reruns what its own edits since it began could affect: nothing after no edit, the step's check commands after a

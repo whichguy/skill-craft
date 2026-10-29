@@ -72,7 +72,7 @@ node tools, then from `PATH`, and runs it in the run's repository directory on
 the changed files of that type. A configured but missing tool produces a
 recommendation. A row marked `fixable` in the catalog data (eslint, prettier,
 black, gofmt, clang-format, terraform fmt today) applies its fix exactly like
-ruff — journal-first, only on lines this work item changed, sha256-checked —
+ruff — journal-first, only on lines changed since the gate's base, sha256-checked —
 before any row's findings are reported. eslint's own fix-dry-run call is
 separate from its report call (its fix output's accompanying messages are
 numbered against the hypothetical fixed text, not the real file, so they are

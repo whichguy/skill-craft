@@ -72,7 +72,9 @@ A run is read with its own stage model (`stageModel`: `v4`, the 17-stage inner l
 the 8-stage one with verify, state version 5 to 9; or `v6`, the 7-stage one, state version 10 and later, where each step is built,
 tested, documented, reviewed and committed): a 17-stage or 8-stage run keeps its own catalog (`defaults/stages-v4.json`,
 `defaults/stages-v5.json`, frozen, never regenerated), phases, phase texts and skill stages. See "Stage models" in
-[SCHEMA.md](SCHEMA.md).
+[SCHEMA.md](SCHEMA.md). A 7-stage run is read per step: each visit of a step names it, each work item's steps carry their
+visits and the commit ShipLoop recorded (`RUN/iterations/<item>.json`), and the page groups the visits under one header per
+step (SCHEMA.md "Plan and execution" and "The stage card").
 The run document also says how the run ended, from the harness's own records: `status` `stopped` when the harness ended the host
 while the engine still read `active` (with the stage it never accepted and what that cost), a blocked run's question and options,
 the listeners the harness ended, whether the unreturned product passes its checks in the worktree, and which hosts wrote the run

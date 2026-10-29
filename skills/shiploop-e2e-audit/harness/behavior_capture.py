@@ -27,7 +27,9 @@ _MAX_EVENT_LINE_BYTES = 1024 * 1024
 
 # These lists are intentionally closed.  A value read from a live transcript is
 # not portable merely because it looks harmless; unknown strings become a fixed
-# qualification rather than being copied into a fixture.
+# qualification rather than being copied into a fixture.  ``verify`` stays for
+# captures of runs recorded before it retired (design T §9.1 2b-4c), as the
+# retired outcomes do below.
 _STAGES = frozenset(
     {
         "intake", "discovery", "research", "spec", "test-strategy", "plan",

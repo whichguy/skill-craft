@@ -6,11 +6,12 @@
     python3 test/shiploop_e2e/packets.py <output> --compare <earlier output>
 
 A full E2E run (run.py) plans from intake and releases at the end; a step slice exercises one item's inner loop:
-step-plan, test-spec, validate-existing, implement, test, document, verify, carry-forward (with an Improve child after
-each implement step and the last item's carry-forward Improve child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
+step-plan, test-spec, validate-existing, then for each step implement, test and document (with an Improve child after
+each step's document stage, and ShipLoop's commit of the step once that review is accepted), then carry-forward (with
+the last item's carry-forward Improve child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
 step-plan without doing it (run.seed_run, on the plugin's own navigator, with the case's work item as the plan's only
-item), records what those stages would have left (the item's base snapshot, which the base run, the mutation check, the
-change inventory and the item commit read; a neutral docs/shiploop/ home, unless --seed-without-home), and the host follows
+item), records what those stages would have left (the item's base snapshot, which the base run, the mutation check and
+the step commits read; a neutral docs/shiploop/ home, unless --seed-without-home), and the host follows
 ShipLoop's packets from step-plan. A poll every POLL_SECONDS archives each distinct packet
 ShipLoop emits (packets.archive_packets) and ends the host once the item's inner loop is over (``slice_complete``): the
 item is advanced past, the run left the inner loop, or the run is no longer active. That stop is final: nothing resumes
@@ -37,8 +38,9 @@ Verdicts (slice-result.json):
                  fresh sessions repeated a completed state-changing call (clear.py; clear.json lists the clears and
                  slice-result.json `clear_unfired` the positions that never came)
 The candidate is graded against the seed commit, committed or not: each item is assembled inside the execution
-checkout, verify commits the files the step plan declares (and documentation and docs/shiploop/), and anything else is
-committed only at the final return (`workspace plan-return`, at release), which a slice does not reach
+checkout, ShipLoop commits each step's files the step plan declares (and documentation and docs/shiploop/) once the
+step's document stage and review are accepted, and anything else is committed only at the final return
+(`workspace plan-return`, at release), which a slice does not reach
 (references/workspace-lifecycle.md, "Inner assembly and final return").
 ShipLoop command failures, model glue and queue growth (items a carry-forward added) are recorded, not verdicts.
 """

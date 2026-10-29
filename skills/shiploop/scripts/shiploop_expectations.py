@@ -72,7 +72,9 @@ NEW_STATES = ("absent",)
 # false and the steps must change (a needed repair becomes an earlier step).
 ROUTES = ("check", "steps")
 KEYS = frozenset(("id", "state", "statement", "steps", "paths", "check", "from"))
-SKILL_KEYS = frozenset(("name", "why", "locator"))
+SKILL_KEYS = frozenset(("name", "why", "locator", "stages"))
+# The stages of a step's iteration that print its skills (design T §8.2c, F9); a skill that names none is implement's.
+SKILL_STAGES = ("implement", "test", "document", "improve")
 FAILED_KEYS = frozenset(("id", "actual", "route"))
 CHECK_TIMEOUT_SECONDS = 60.0
 OUTPUT_LIMIT = 64 * 1024
@@ -110,7 +112,9 @@ _SHAPE = ('expectations are [{"id": "E1", "state": "works" | "absent" | "broken"
           'from the repository root that exits 0 when the state holds>", "from": "<open plan assumption id, '
           'optional>"}]')
 _SKILL_SHAPE = ('a step\'s skills are [{"name": "<skill>", "why": "<the concrete use in this step>", "locator": '
-                '"<absolute path, or repository-relative path, of its SKILL.md or card; optional>"}], or []')
+                '"<absolute path, or repository-relative path, of its SKILL.md or card; optional>", "stages": '
+                '["<the stages that use it: implement, test, document or improve; optional, implement when absent>"]}], '
+                'or []')
 # First words that write; a check is read-only.  The runtime git-status comparison is the backstop.
 _WRITERS = frozenset(("rm", "rmdir", "mv", "cp", "touch", "mkdir", "tee", "chmod", "chown", "ln", "dd", "truncate",
                       "install", "sudo", "patch", "unlink", "shred"))
@@ -253,6 +257,12 @@ def normalise_skills(value: Any, step: str = "") -> List[Dict[str, str]]:
             locator = _text(entry["locator"], label + " " + name + " locator")
             _need("\n" not in locator, label + " " + name + " locator must be one path")
             row["locator"] = locator
+        if "stages" in entry:
+            stages = entry["stages"]
+            _need(isinstance(stages, list) and stages and all(stage in SKILL_STAGES for stage in stages)
+                  and len(set(stages)) == len(stages),
+                  label + " " + name + " stages must list only implement, test, document or improve, each once")
+            row["stages"] = list(stages)
         rows.append(row)
     names = [row["name"] for row in rows]
     _need(len(set(names)) == len(names), label + " must not repeat a skill")

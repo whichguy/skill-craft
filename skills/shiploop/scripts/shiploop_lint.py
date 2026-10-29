@@ -1082,7 +1082,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     else:
         result_line = ("Result: " + str(len(uncovered)) + " uncovered file" + ("" if len(uncovered) == 1 else "s")
                        + "; " + str(new_on + new_else) + " new finding" + ("" if new_on + new_else == 1 else "s")
-                       + " remain (" + str(new_on) + " on lines this item changed, " + str(new_else)
+                       + " remain (" + str(new_on) + " on lines changed since the base, " + str(new_else)
                        + " elsewhere in changed files); " + str(old)
                        + " present at the base (not counted); " + str(unattributed)
                        + " from repository linters elsewhere in changed files (not compared with the base)."
@@ -1152,7 +1152,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     lines.append("END lint data")
     lines.append(result_line)
     if stage in GATE_STAGES:
-        lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
+        lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line changed since the base "
                      "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
                      "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
                      "errors and timeouts never block. This pass does not replace the checks you run for this step.")
@@ -1290,10 +1290,10 @@ def _classify_findings(item: _File, findings: List[Dict[str, Any]], base_finding
         else:
             finding["class"] = "new"
         finding["on_changed"] = on_changed
-        where = "on a line this item changed" if on_changed else "elsewhere in a file this item changed"
+        where = "on a line changed since the base" if on_changed else "elsewhere in a file changed since the base"
         label = {"new": "new since the base; " + where,
                  "at-base": "present at the base; " + where,
-                 "at-base-edited": "present at the base, on a line this item edited"}[finding["class"]]
+                 "at-base-edited": "present at the base, on a line edited since the base"}[finding["class"]]
         code = _ruff_code(finding["rest"])
         if code in DELETION_RULES and "[*]" in finding["rest"]:
             label += "; fixable, not applied: deletion-type rule (ruff-classified safe; may remove side-effect code)"
@@ -1622,7 +1622,7 @@ def _tier0(invoker: _Invoker, top: Path, run_dir: Path, files: List[_File],
                 if item.path.lower().endswith(".md") and "conflict marker" in finding["rest"]:
                     continue
                 finding.update({"class": "new", "on_changed": True,
-                                "label": "new since the base; on a line this item changed (git diff --check)"})
+                                "label": "new since the base; on a line changed since the base (git diff --check)"})
                 item.findings.append(finding)
     jsonc = tuple(catalog.get("jsonc_names", ()))
     for item in files:
@@ -1793,8 +1793,8 @@ def _add_finding(item: _File, name: str, line: int, message: str, lines: Sequenc
     item.findings.append({
         "path": item.path, "line": line, "rest": rest, "raw": item.path + ":" + str(line) + ": " + rest,
         "class": "new" if on_changed else "unattributed", "on_changed": on_changed,
-        "label": ("on a line this item changed" if on_changed
-                  else "elsewhere in a file this item changed (not compared with the base)"),
+        "label": ("on a line changed since the base" if on_changed
+                  else "elsewhere in a file changed since the base (not compared with the base)"),
     })
 
 

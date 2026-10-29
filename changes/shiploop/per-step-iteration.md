@@ -12,6 +12,6 @@ Each inline step is built, tested, documented and reviewed before the next step 
   leaves its edits uncommitted. When it changed a file, ShipLoop reruns the step's focused command at import. A step
   that changed no file starts no review. This replaces the wide-item rule.
 - ShipLoop commits each step once its document stage and review are accepted. The next step's lint, mutation check,
-  base check, document's left-out rule and review diff start from that commit. Verify still closes the item and
-  commits what is left.
+  base check, document's left-out rule and review diff start from that commit. The item ends at carry-forward:
+  verify is retired, and its checks run inside each step (see the verify-retired note).
 - Each step's iteration (number, base and commit) is recorded in `RUN/iterations/<item>.json`.

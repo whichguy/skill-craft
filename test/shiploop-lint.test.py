@@ -365,8 +365,8 @@ class LintPassTests(Fixture):
         self.edit({"a.py": "x = 1  # lint\ny = 2  # lint\n"})
         payload = self.run_pass()
         self.assertTrue(payload["block"].startswith("ShipLoop lint (supporting output; not exit-criteria evidence"))
-        self.assertIn("[present at the base; elsewhere in a file this item changed; L", payload["block"])
-        self.assertIn("[new since the base; on a line this item changed; L", payload["block"])
+        self.assertIn("[present at the base; elsewhere in a file changed since the base; L", payload["block"])
+        self.assertIn("[new since the base; on a line changed since the base; L", payload["block"])
         self.assertEqual(payload["counts"]["new_on_changed"], 1)
         self.assertEqual(payload["counts"]["at_base"], 1)
         self.assertEqual(payload["exit_code"], lint.EXIT_FINDINGS)
@@ -1196,7 +1196,7 @@ class HookTests(Fixture):
         for kept in ("ShipLoop lint (" + lint.SUPPORTING, "Action A1 | work item", "BEGIN lint data", "Findings (", "END lint data",
                      payload["result_line"], "Rerun after your own edits (report-only): "):
             self.assertIn(kept, packet)
-        self.assertIn("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed", packet)
+        self.assertIn("Gate: ShipLoop refuses this step's done while a new finding on a line changed since the base", packet)
         # The command the packet prints shows the whole record, through the real CLI path.
         shown = next(line for line in lines if line.startswith("Whole lint record ("))
         command = shown.split("): ", 1)[1]
@@ -1520,7 +1520,7 @@ class GateTests(Fixture):
                 complete(self.run_dir, state)
             self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
             text = str(refused.exception)
-            self.assertIn("implement is not done while 1 new lint finding on lines this work item changed", text)
+            self.assertIn("implement is not done while 1 new lint finding on lines this step changed", text)
             found = re.findall(r"^- (L[0-9a-f]{10}) a\.py:2: ", text, re.M)
             self.assertEqual(len(found), 1, text)
             action = nav.current_action(state)["id"]
@@ -1563,8 +1563,8 @@ class GateTests(Fixture):
             # The gate sentence the lint pass prints says so too (it said "only the item's last step is gated: an
             # earlier step's findings are reported without auto-fix": false since this decision, U11).
             block = store.read_record(self.run_dir / "lint" / (nav.current_action(state)["id"] + ".gate1.md"))["block"]
-            self.assertIn("Gate: ShipLoop refuses this step's done while a new finding on a line this item changed "
-                          "remains.", block)
+            self.assertIn("Gate: ShipLoop refuses this step's done while a new finding on a line changed since the "
+                          "base remains.", block)
             self.assertNotIn("last step is gated", block)
             self.assertNotIn("without auto-fix", block)
             found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
@@ -1584,7 +1584,7 @@ class GateTests(Fixture):
         state = self.start()
         self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})
         with self.patched_env():
-            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a.py on lines this work item "
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a.py on lines this step "
                                                             "changed"):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
@@ -1597,7 +1597,7 @@ class GateTests(Fixture):
         state = self.start()
         self.edit({"a.md": "one\ntwo   \n"})
         with self.patched_env():
-            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.md on lines this work item "
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.md on lines this step "
                                                             "changed"):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.md").read_text(), "one\ntwo\n")
@@ -1610,7 +1610,7 @@ class GateTests(Fixture):
         state = self.start()
         self.edit({"a.js": "one\nvar x = 1 FIXME\n"})
         with self.patched_env():
-            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.js on lines this work item "
+            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop auto-fixed a\\.js on lines this step "
                                                             "changed"):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.js").read_text(), "one\nvar x = 1\n")

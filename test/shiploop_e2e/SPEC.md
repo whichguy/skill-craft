@@ -163,8 +163,9 @@ files and requirement-ID and decision-ID retention); the structural,
 record-only `backchain-check`; `test-spec`'s ID match (a case ID that no focused command lists is refused);
 `validate-existing`'s expectation checks; the `test` stage's base run (no new test ID passes without the change,
 unless `red_na` names it) and candidate run (every command passes, every listed ID ran, the count holds the
-floor), and, coming, its mutation check; `verify`'s rerun; and the system-test gates, which ShipLoop runs and
-records. No script-run check at
+floor), and, coming, its mutation check; `document`'s rerun of what its own edits could affect (`verify`'s
+rerun of every recorded command until verify retired, design T §9.1 2b-4c); and the system-test gates, which
+ShipLoop runs and records. No script-run check at
 planning, in any mode, covers whether the spec's criteria are complete and
 verifiable, whether the test strategy maps every criterion to a check, or
 whether a test spec's oracles are independent. Under `none` those rest on the

@@ -918,6 +918,63 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
   - **2b-5. The rest of the switch.**
     - The packets' text, Run Review v6 and the E2E audit harness.
     - The lifecycle's change note (`bump: minor`).
+    - **The packets, done 2026-10-28.**
+      - **Skills per stage (F9, §8.2c).** A step plan's skill entry takes an optional `stages` list (implement, test,
+        document, improve; implement when absent), refused when it names any other stage
+        (`expectations.normalise_skills`).
+        - Implement's Step block lists implement's skills.
+        - The test and document packets print the step just built and "Skills for this stage". Before, the test packet
+          had no Step block at all, which 2b-2 had left open.
+        - The step review's handoff prints "Skills for this review".
+        - Each line names the skill's use and locator, or says none is listed and points at KNOWLEDGE/environment.md
+          `## Skills` (`step_skills`, `_skills_line`, `_review_skills_lines`).
+        - The test duty now says to use each skill its packet lists, and still assumes no unlisted skill or MCP.
+        - Not built: a skill a later item's carry-forward created reaches a step only through environment.md
+          `## Skills` and the step plan, which rereads the index; there is no knowledge stage to create one mid-item
+          (2b-3, option C).
+      - **Lint's wording.** A lint record says "on a line changed since the base" in place of "this item changed".
+        Since 2b-2 every gate measures from its own base (the step's, document's entry, the review's bind), and the
+        record's Base line names which. An inline step's refusal says "on lines this step changed".
+      - **Size.** step-plan's duty text gained the `stages` field: its head is 19,995 characters inline (+51) and
+        19,536 on the ask-agent route. The first cut was 137 characters longer and pushed the layers-at-their-limit
+        step-plan head past the cut, which dropped its References block; shiploop-step-packets caught it. The test
+        head is 17,954 on both routes (+54).
+      - **Evidence.** Fail-first tests:
+        - shiploop-test-loop `test_each_stage_of_a_step_lists_the_skills_the_step_plan_names_for_it` and
+          `test_a_step_skill_naming_an_unknown_stage_is_refused`;
+        - shiploop-lint's seven wording assertions.
+
+        Head pins are in test/shiploop_e2e/head_table.json; head-order allows test's Step block at P0.
+    - **Run Review per step, done 2026-10-28.** A v6 run's inner visits carry their step (`stages[].step` on implement,
+      test and document, with the step just built at test and document, as the engine reads it). Each work item's
+      `steps` list gives each step's number, its visit range and its commit.
+      - The commit is read from the iterations ledger only: absent when unknown, `null` when the ledger records none.
+        The exporter reads no git log.
+      - The page groups the visits under one header per step: "Step S1 · implement → test → document → review · commit
+        1a2b3c4". The review is the document visit's Improve child; the engine records no history row for it.
+      - A send-back restarts the numbering under the new plan. v4 and v5 runs render as before.
+      - Fixed on the way: an item stopped between steps counted as past implement and lost its `stepsExecuted`.
+      - Nine fail-first tests: shiploop-run-review StepIterationExportTests and StepGroupPageTests.
+    - **The E2E audit harness, done 2026-10-28.**
+      - **Step commits were miscounted.** `test/shiploop_e2e/counters.py` counted every inline step commit as the
+        model's (`other`). They are ShipLoop's: the commit stage's, and before 2b-4a the step commit's.
+        - A read-only regrade of the 108 runs under ~/e2e-runs found 97 step commits in 30 runs from 2026-10-20 on, all
+          counted as the model's. In 26 of those runs `other` was exactly the step-commit count. For example:
+          - chess-sf-full-12a23d: script 21 -> 32, other 11 -> 0;
+          - ds-flash-978478-battleship: 21 -> 33, other 12 -> 0;
+          - gate-2100 battleship: 14 -> 16, other 3 -> 1, a real model commit.
+        - A step commit is now ShipLoop's by its announcement ("ShipLoop committed step W1/S1 as …") or by its
+          `feat(<item>/…` subject for an item of the run. A `feat(ui)` commit, or one naming another run's item, stays
+          the model's. The committed fixtures are unchanged.
+      - **Verify-era text.** The harness text that presented verify as live is updated: `slice.py`, the harness
+        README, SPEC.md's gate list and comments in `run.py` and metrics. `metrics.skipped_gates` and `flow.py` read
+        the item-commit gate at an accepted document; for older runs, at verify.
+      - **Kept as recorded.** LEARNINGS.md entries, the `tests/*-verify<N>.md` record names, `packet_anatomy.py`'s
+        grouping of 8-stage runs, and `behavior_capture.py`'s stage allowlist, which keeps verify so that older
+        captures still parse.
+      - **Evidence.** Five fail-first tests in shiploop-e2e-commit-counters and shiploop-e2e-efficiency.
+        - `ClassifyTest`: script/other is (7, 5) with the run's ledger, against (5, 7) before.
+        - `ShipLoopOwnedSubjectsTest` pins `step_commit_message` and the announcement line.
 - **2c. The ask-agent route** gets the same step boundaries (G1).
 - **2d. Test gradations** (owner to-do, 2026-10-28). The owner, in full:
 

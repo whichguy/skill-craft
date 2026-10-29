@@ -1611,8 +1611,9 @@ share a suite directory, and `.../batch-sonnet/battleship` is also a prefix of `
 ## Step slices: one work item's inner loop
 
 A full run spends most of its time planning and releasing. A step slice exercises only one work item's inner loop:
-step-plan, test-spec, validate-existing, implement, test, document, verify and carry-forward, with the Improve child
-after each implement step and the last item's carry-forward Improve. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
+step-plan, test-spec, validate-existing, then implement, test and document for each step (the Improve child after each
+step's document stage, then ShipLoop's commit of the step), then carry-forward with the last item's carry-forward
+Improve. Verify retired on 2026-10-28 (design T §9.1 2b-4c); slices recorded before then show it after document. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
 cost, and repeat that after each skill edit.
 
 There are three tiers, cheapest first.
@@ -1658,11 +1659,11 @@ dependency-free Node project whose tests use `node --test`, with a deliberate `p
 **The seed** (`run.seed_run` with `fixture`, `work_item` and `delegation`) copies the fixture into a new git
 repository and commits it. It starts a run with that delegation (inline by default: one session, every packet in
 the main context). It then records every stage before step-plan without doing it, on the plugin's own navigator.
-So the gates the test stage and verify run on an item find what they read, the seed also records what the skipped
+So the gates the test and document stages run on an item find what they read, the seed also records what the skipped
 stages would have left (X-2, TD-5, SP-7a):
 - **the item base.** When the plan's item enters its inner loop the seed writes `lint/items/<item>.md`, the snapshot
   `shiploop_lint.on_transition` takes on a real run, in the same transaction as the state. The base run, the mutation
-  check, the change inventory and the item commit read it; without it each recorded `skipped: no item base was
+  check and the step commits read it (the change inventory did too, until verify retired); without it each recorded `skipped: no item base was
   recorded` and did nothing, so every earlier slice baseline covers fewer gates than it claims. `seeded.item_bases`
   names the items recorded;
 - **a neutral knowledge home**, committed into the seed repository before the baseline commit (so the worktree starts
@@ -1704,7 +1705,7 @@ given, one per session, and each is measured from its own stop, so a redo after 
 
 ```sh
 python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --clear-at implement \
-  --clear-at implement:inside --clear-at test --clear-at verify --clear-at carry-forward --clear-at improve \
+  --clear-at implement:inside --clear-at test --clear-at document --clear-at carry-forward --clear-at improve \
   --resume-prompt withheld
 ```
 

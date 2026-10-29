@@ -408,8 +408,11 @@ SCHEMA = {
             "origin": (("enum", ("plan", "add-work", "carry-forward")), False),
             "stepPlans": (N, True), "loops": (N, True), "sendBacks": (N, True), "repeats": (N, True),
             "implementVisits": (("map", N), True), "stepsPlanned": (N, False), "stepsExecuted": (N, False),
+            # number, visits and commit: a 7-stage (v6) run's only (SCHEMA.md "Plan and execution")
             "steps": (("items", {"id": (S, True), "task": (S, True), "truncated": (B, False),
-                                 "action": (S, False)}), False)}), False),
+                                 "action": (S, False), "number": (N, False),
+                                 "visits": (("object", {"first": (N, True), "last": (N, True)}), False),
+                                 "commit": (S, False)}), False)}), False),
         "stepsPlanned": (N, False), "stepsExecuted": (N, False),
         "knowledge": (("map", N), False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
@@ -2579,7 +2582,8 @@ def _produced(history: list[dict], results: Path, state: dict) -> dict[str, str]
 
 
 def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[str],
-               after_implement: tuple[str, ...] = AFTER_IMPLEMENT) -> tuple[list[dict] | None, dict[str, str], dict[int, dict]]:
+               after_implement: tuple[str, ...] = AFTER_IMPLEMENT, per_step: bool = False,
+               ledgers: dict[str, dict] | None = None) -> tuple[list[dict] | None, dict[str, str], dict[int, dict]]:
     """(the run's work items, the reason for each measure that is unknown, the marks of each history row).
 
     Every number comes from state.md (its work_items queue and history) and the accepted results, never from
@@ -2593,7 +2597,13 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
     The records cannot tell which visit ran which step on another route, or when the counts do not line up with one
     packet per step: then the item has no `stepsExecuted` and its steps no `action`, and the reason is under
     `stepsExecuted`. `workItems` is None, with its reason, when the queue or history cannot be read or the plan visit
-    was recorded by the E2E seed (the work items are then the harness's)."""
+    was recorded by the E2E seed (the work items are then the harness's).
+
+    `per_step` (a 7-stage run): each step is built, tested and documented before the next (shiploop_navigator.step_view:
+    at test and document, and while document's Improve review runs, the step is the one just built), so a test, document
+    or improve visit after a done implement visit is that step's too, and only a stage past the steps (carry-forward)
+    means the item left its build. Each step of the latest plan then also carries its `number`, the `visits` it spans
+    under that plan and, from `ledgers[item]` (RUN/iterations/<item>.json, _step_ledger_commit), its `commit`."""
     queue = state.get("work_items")
     if not isinstance(queue, list) or not all(isinstance(q, dict) and isinstance(q.get("id"), str) for q in queue):
         return None, {"workItems": "state.md has no work_items queue of {id, title}"}, {}
@@ -2633,19 +2643,28 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
             doc["origin"] = produced[item_id]
         # Walk the item's visits in order: the plan in force, the implement visits done under it.
         steps, executed, loop, readable, left_implement = None, [], 1, True, False
+        plan_action, spans = None, {}  # per step: the latest plan's action and {step index: [first, last] history index}
         for index, entry in rows:
             mark = {"workitem": item_id, "loop": loop}
             stage, outcome = entry.get("stage"), entry.get("outcome")
             if stage == "step-plan" and outcome == "done":
                 steps = _plan_steps(_result_body(results, state, entry.get("action")))
                 readable, executed, left_implement = steps is not None, [], False
+                plan_action, spans = entry.get("action"), {}
             elif steps is not None:
-                left_implement = left_implement or stage in after_implement
+                left_implement = left_implement or (stage in after_implement and not (per_step and stage in STEP_STAGES))
+                at = None
                 if stage == "implement" and inline:
                     if len(executed) < len(steps):
-                        mark["step"] = steps[len(executed)]["id"]
+                        at = len(executed)
                     if outcome == "done":
                         executed.append(entry.get("action"))
+                elif per_step and inline and stage in STEP_STAGES and 0 < len(executed) <= len(steps):
+                    at = len(executed) - 1  # the step just built
+                if at is not None and (per_step or stage == "implement"):
+                    mark["step"] = steps[at]["id"]
+                    if per_step:
+                        spans.setdefault(at, [index, index])[1] = index
             if outcome == "send-back":
                 loop += 1
             marks[index] = mark
@@ -2670,9 +2689,50 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
                 doc["stepsExecuted"] = len(executed)
             doc["steps"] = [dict(step, **({} if problem else {"action": executed[k] if k < len(executed) else None}))
                             for k, step in enumerate(steps)]
+            if per_step and inline:
+                for k, step in enumerate(doc["steps"]):
+                    step["number"] = k + 1
+                    if k in spans and not problem:  # the visits follow the pairing: unknown with it
+                        step["visits"] = {"first": spans[k][0] + 1, "last": spans[k][1] + 1}
+                    found, commit = _step_ledger_commit((ledgers or {}).get(item_id), plan_action, step["id"])
+                    if found:
+                        step["commit"] = commit
         items.append(doc)
     reasons = {name: "; ".join(why) for name, why in unknown.items() if why}
     return items, reasons, marks
+
+
+# The stages of a 7-stage step's iteration after its build (shiploop_navigator.AFTER_BUILD, and the step's Improve review
+# should it ever be a visit of its own): a visit to one after a done implement visit is the step just built.
+STEP_STAGES = ("test", "document", "improve")
+# The engine's step ledger (shiploop_navigator.ITERATION_LEDGER), run-relative: {"plans": {<step plan action>: {<step>:
+# {"number", "base", "commit"}}}}. `commit` is the step's own commit (its `feat(<item>/<step>)` commit), set once the commit
+# stage lands it; until then the row holds None (and `pending` while it commits).
+ITERATION_LEDGER = "iterations/{item}.json"
+COMMIT_ID = re.compile(r"[0-9a-f]{7,64}")
+
+
+def _iteration_ledgers(run_dir: Path, items) -> dict[str, dict]:
+    """{item: its step ledger} for each work item whose RUN/iterations/<item>.json reads as one; an item without is left out."""
+    found = {}
+    for item in items:
+        ledger = _optional_json(run_dir / ITERATION_LEDGER.format(item=item)) if isinstance(item, str) and "/" not in item else None
+        if isinstance(ledger, dict) and isinstance(ledger.get("plans"), dict):
+            found[item] = ledger
+    return found
+
+
+def _step_ledger_commit(ledger: dict | None, plan: str | None, step: str) -> tuple[bool, str | None]:
+    """(known, commit) of one step from its item's ledger: (True, the commit id) once the commit stage recorded it, (True,
+    None) when the ledger records the step with no commit (not committed, or not yet), (False, None) when the ledger is
+    missing or does not record the step, or records a commit that is not a commit id: unknown, never invented."""
+    row = (((ledger or {}).get("plans") or {}).get(plan) or {}).get(step) if isinstance(plan, str) else None
+    if not isinstance(row, dict):
+        return False, None
+    commit = row.get("commit")
+    if commit in (None, ""):
+        return True, None
+    return (True, commit) if isinstance(commit, str) and COMMIT_ID.fullmatch(commit) else (False, None)
 
 
 # What a producer packet's text carries (the tenet: context is cleared between any two stages, so a packet restates how
@@ -3029,8 +3089,11 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             unmeasured[field] = _hosts_why(hosts)
     unmeasured.update(improve_why)
     # A slice's work item is the case's, given by the harness on purpose, and its steps loop is the model's: it is measured.
+    per_step = tables == "v6"  # the 7-stage loop runs each step's build, test, document and review before the next
+    queue = [q.get("id") for q in state.get("work_items") or [] if isinstance(q, dict)]
     items, plan_why, marks = work_items(state, history, results, set() if sliced else seeded_ids,
-                                        AFTER_IMPLEMENT_BY_MODEL[tables])
+                                        AFTER_IMPLEMENT_BY_MODEL[tables], per_step,
+                                        _iteration_ledgers(run_dir, queue) if per_step else None)
     unmeasured.update(plan_why)
     for index, mark in marks.items():  # one stage row per history entry, in order
         stages[index].update(mark)

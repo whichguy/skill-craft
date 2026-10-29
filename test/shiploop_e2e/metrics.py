@@ -136,11 +136,13 @@ TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is s
 
 
 # The replies counters.py reads (the `packets` and `commits` blocks): a ShipLoop packet head, or a line ShipLoop printed to announce
-# a commit it made (`improve-commit`, a work item's commit). ToolLog keeps the text of those replies and no other; counters.py
+# a commit it made (`improve-commit`, a work item's commit, an inline step's commit). ToolLog keeps the text of those replies and no other; counters.py
 # holds the patterns that read them, and its test pins that each is covered here.
-# A coarse filter: which replies counters.py reads. The precise patterns (counters.IMPROVE_COMMITTED, counters.ITEM_COMMITTED) stay in
+# A coarse filter: which replies counters.py reads. The precise patterns (counters.IMPROVE_COMMITTED, counters.ITEM_COMMITTED,
+# counters.STEP_COMMITTED) stay in
 # counters.py, so a reworded announcement (release 1.27 reworded the work item's) changes one pattern there, not a second copy here.
-KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s ")
+KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s |"
+                        r"ShipLoop committed step ")
 
 
 # Named ShipLoop refusal gates (run-insights gate_counts), each a regex read against a refusal's own first line --
@@ -2963,8 +2965,9 @@ def skipped_reason(record: dict) -> str | None:
 
 def skipped_gates(run_dir: Path | None) -> dict:
     """The gates a run's records say did not run, from the run directory alone: the test stage's base run, its mutation check
-    (skipped, or run and found no mutants), the change inventory, and the item commit (which cannot read an item's changes
-    when no base snapshot was captured). Each gate is a row ``{gate, records, skipped, reason}``; ``count`` is the number of
+    (skipped, or run and found no mutants), the change inventory (verify's, in runs recorded before it retired), and the item's
+    commit (the step commits at each accepted document stage, or verify's item commit in an older run; neither can read an
+    item's changes when no base snapshot was captured). Each gate is a row ``{gate, records, skipped, reason}``; ``count`` is the number of
     gates with at least one skipped record. A run that never reached a gate has no row for it."""
     if run_dir is None or not Path(run_dir).is_dir():
         return {"measured": False, "reason": "no run directory", "count": None, "gates": []}

@@ -287,6 +287,7 @@ label.opt .t{min-width:0}
 .pkt-head{font-family:var(--mono);font-size:12px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code-bg);padding:8px 10px;border-radius:6px;margin:6px 0 0}
 .sclist{margin-top:12px}
 .sc-list{display:grid;gap:4px;margin-top:8px}
+.sc-step{margin-top:8px;font-size:12.5px;font-weight:600;color:var(--muted);overflow-wrap:anywhere}  /* a 7-stage run's step header */
 .sc-row{position:relative;font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 38px 8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
 .sc-row.sel{border-color:var(--accent);background:var(--accent-bg)}
 .sc-chev{position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
@@ -315,6 +316,7 @@ table.cmp{min-width:420px}
 table.vt th,table.vt td,table.cmp th,table.cmp td{text-align:left;padding:4px 10px 4px 0;border-top:1px solid var(--line);vertical-align:top;font-weight:400}
 table.vt th,table.vt td{white-space:nowrap}
 table.vt thead th,table.cmp thead th{color:var(--muted);font-size:12px;border-top:0}
+table.vt tr.vt-step th{color:var(--muted);font-weight:600;padding-top:10px;white-space:normal}  /* a 7-stage run's step header */
 table.cmp tbody th{color:var(--muted);white-space:nowrap}
 table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
 .stepnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
@@ -1754,6 +1756,36 @@ function visitTable(run,model){
       .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):(c&&isCount(c.peak)?grouped(c.peak)+" tokens":"not measured"),c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
   })};
 }
+/* A 7-stage run's step groups, in visit order: each work item's run of consecutive visits that name the same step in the same
+   steps-loop pass, {at, last} (visit indexes), item, loop, step, commit (the step's record when the export has it) and text,
+   the header: "Step S1 · implement → test → document → review · commit 1a2b3c4". It names the stages of the visits
+   in order (a repeated stage once), "review" after a document visit with its Improve child (or a visit of the improve stage),
+   then the commit of the item's step whose visits these are: its short id, "not committed" when ShipLoop's ledger records
+   none, nothing when the export does not know. [] for any other run, so an 8-stage or 17-stage run renders as before. */
+function stepGroups(run){
+  if(stageModel(run)!=="v6"||!run||!Array.isArray(run.stages))return [];
+  var rows=run.stages,groups=[],cur=null;
+  rows.forEach(function(r,i){
+    r=r||{};
+    if(cur&&typeof r.step==="string"&&r.step===cur.step&&r.workitem===cur.item&&r.loop===cur.loop&&cur.last===i-1){cur.last=i;return;}
+    cur=typeof r.step==="string"?{at:i,last:i,item:r.workitem,loop:r.loop,step:r.step}:null;
+    if(cur)groups.push(cur);
+  });
+  var items=Array.isArray(run.workItems)?run.workItems:[];
+  return groups.map(function(g){
+    var chain=[];
+    for(var i=g.at;i<=g.last;i++){
+      var r=rows[i]||{},s=r.stage==="improve"?"review":String(r.stage||"");
+      if(chain[chain.length-1]!==s)chain.push(s);
+      if(r.stage==="document"&&(r.improve||isCount(r.improvePacketBytes))&&chain[chain.length-1]!=="review")chain.push("review");
+    }
+    var item=items.filter(function(w){return w&&w.id===g.item;})[0],steps=item&&Array.isArray(item.steps)?item.steps:[];
+    var rec=steps.filter(function(x){return x&&x.id===g.step&&x.visits&&x.visits.first<=g.at+1&&g.at+1<=x.visits.last;})[0];
+    var commit=rec&&typeof rec.commit==="string"?rec.commit:rec&&rec.commit===null?null:undefined;
+    return {at:g.at,last:g.last,item:g.item,loop:g.loop,step:g.step,commit:commit,
+      text:"Step "+g.step+" \u00b7 "+chain.join(" \u2192 ")+(typeof commit==="string"?" \u00b7 commit "+commit.slice(0,7):commit===null?" \u00b7 not committed":"")};
+  });
+}
 /* A column's tooltip and spoken name. */
 function columnName(c){
   if(c.kind==="tail")return "unaccepted "+c.stage+", "+(isCount(c.min)?c.min+" min":"minutes not measured")+", the run ended here";
@@ -2406,10 +2438,12 @@ function renderCardList(model,run){
   var catalog=stageCatalog(run);
   box.appendChild(h("h3","","Stage cards"));
   box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row to open its card in place; tap it again to close it."));
-  var list=h("div","sc-list"),rows=cardRows(model,run,catalog),openAt=-1;
+  var list=h("div","sc-list"),rows=cardRows(model,run,catalog),openAt=-1,steps={};
+  stepGroups(run).forEach(function(g){steps[g.at]=g;});  /* a 7-stage run: a header above each step's first visit */
   rows.forEach(function(r,i){if(openAt<0&&pickedCol>=0&&r.col===pickedCol)openAt=i;});  /* a column of several skipped visits opens under its first row */
   rows.forEach(function(r,i){
-    var isOpen=i===openAt;
+    var isOpen=i===openAt,col0=model.columns[r.col];
+    if(col0&&col0.kind!=="tail"&&steps[col0.first])list.appendChild(h("div","sc-step",steps[col0.first].text));
     var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-expanded",isOpen?"true":"false");
     if(isOpen)b.setAttribute("aria-controls","seqdetail");
     var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);
@@ -2500,7 +2534,10 @@ function renderPicture(reveal){
   vt.head.forEach(function(t){var th=h("th","",t);th.setAttribute("scope","col");hd.appendChild(th);});th0.appendChild(hd);tbl.appendChild(th0);
   var visits=run&&Array.isArray(run.stages)?run.stages:[];  /* one table row per visit, in order: the flow link reads its action */
   if(FLOW){var fth=h("th","","Flow");fth.setAttribute("scope","col");hd.appendChild(fth);}
+  var groups={};stepGroups(run).forEach(function(g){groups[g.at]=g;});  /* a 7-stage run: a header row above each step */
   vt.rows.forEach(function(r,i){
+    if(groups[i]){var gr=h("tr","vt-step"),gh=h("th","",groups[i].text);gh.setAttribute("scope","rowgroup");
+      gh.setAttribute("colspan",String(vt.head.length+(FLOW?1:0)));gr.appendChild(gh);tbody.appendChild(gr);}
     var tr=h("tr");r.forEach(function(t){tr.appendChild(h("td","",t));});
     if(FLOW){var td=h("td"),fh=flowHref(FLOW,flowAction(visits[i]));
       if(fh){var a=h("a","lk","open");a.setAttribute("href",fh);a.setAttribute("aria-label","visit "+(i+1)+" in flow.html");td.appendChild(a);}

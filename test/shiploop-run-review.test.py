@@ -1776,7 +1776,8 @@ class PageShellTests(unittest.TestCase):
 
     def test_the_page_reads_and_writes_no_iterations_and_the_contract_no_longer_documents_them(self) -> None:
         self.assertNotIn("iterations", script_text())
-        self.assertNotIn("iterations/", SCHEMA_MD.read_text(encoding="utf-8"))
+        # the retired page collection; the engine's step ledger in the run directory (RUN/iterations/<item>.json) is a run record
+        self.assertNotIn("iterations/", SCHEMA_MD.read_text(encoding="utf-8").replace("RUN/iterations/<item>.json", ""))
         self.assertNotIn("iterations", export.SCHEMA)
 
     def test_one_step_shows_at_a_time_and_the_stepper_carries_live_counts(self) -> None:
@@ -10449,6 +10450,204 @@ class StageModelTests(unittest.TestCase):
                                   ["Release", "Carry forward", principle]])
         self.assertNotIn("phase-7", defaults["expectations"])
         self.assertIn("phase-7", export._default_keys())
+
+
+# Two commits ShipLoop's commit stage recorded, as RUN/iterations/<item>.json holds them (full ids).
+STEP_COMMITS = {"S1": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "S2": "2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e"}
+STEP_BASE = "0" * 40
+
+
+def step_run(root: Path, inner: list[tuple[str, str]], version: int = 10) -> Path:
+    """A run of work item W1 on the inline route: the outer stages, then `inner` ((stage, outcome) in order; every step
+    plan lists S1 and S2), at state version `version` (10: the 7-stage loop). Each done document visit has its step's
+    Improve review (improve/<document action>/, the child the review stage records)."""
+    visits = [(None, s, "done") for s in SM_OUTER] + [("W1", s, o) for s, o in inner]
+    accepts = []
+    for n, (_, stage, outcome) in enumerate(visits):
+        name = f"st-{version}-{len(inner)}-{n:02d}-{stage}-{outcome}"
+        IDS.setdefault(name, "nav-" + hashlib.sha256(name.encode()).hexdigest()[:32])
+        accepts.append((name, stage, 5 * (n + 1), outcome))
+    out = make_run(root, accepts=accepts, loops=False)
+    run_dir = run_dir_of(out)
+    state = export._record(run_dir / "state.md")
+    for row, (item, _, _) in zip(state["history"], visits):
+        row["workitem"] = item
+        if row["stage"] == "document" and row["outcome"] == "done":
+            make_improve_child(run_dir, row["action"])
+    state.update(version=version, work_index=0, stage="system-test-author", inner_loops={})
+    record(run_dir / "state.md", state)
+    return out
+
+
+def step_plans(out: Path) -> list[str]:
+    """The action ids of the run's done step-plan visits, in order."""
+    return [h["action"] for h in export._record(run_dir_of(out) / "state.md")["history"]
+            if h["stage"] == "step-plan" and h["outcome"] == "done"]
+
+
+def write_ledger(out: Path, plans: dict) -> None:
+    """RUN/iterations/W1.json as the engine writes it: {plans: {<step plan action>: {<step>: {number, base, commit}}}}."""
+    write_json(run_dir_of(out) / "iterations" / "W1.json", {"plans": plans})
+
+
+TWO_STEPS = [("step-plan", "done"), ("test-spec", "done"), ("validate-existing", "done"),
+             ("implement", "done"), ("test", "done"), ("document", "done"),
+             ("implement", "done"), ("test", "done"), ("document", "done"), ("carry-forward", "done")]
+
+
+class StepIterationExportTests(unittest.TestCase):
+    """Design T section 9 row 8: a 7-stage run is read per step. Each inner visit from an item's implement through its
+    last step's review names its step, and the item's steps carry their number, visits and the commit ShipLoop recorded."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def run_doc(self, out: Path) -> dict:
+        return next(iter(export.build_run(out)[0]["runs"].values()))
+
+    def test_each_visit_of_a_step_names_it_and_the_items_steps_carry_their_visits_and_commits(self):
+        out = step_run(self.tmp, TWO_STEPS)
+        plan = step_plans(out)[0]
+        write_ledger(out, {plan: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]},
+                                  "S2": {"number": 2, "base": STEP_COMMITS["S1"], "commit": None}}})
+        run = self.run_doc(out)
+        self.assertEqual(run["stageModel"], "v6")
+        # visits 8 to 10 plan the item, 11 to 13 build, test and document S1, 14 to 16 S2, 17 carries forward
+        self.assertEqual([(i + 1, r["stage"], r.get("step")) for i, r in enumerate(run["stages"]) if r.get("workitem") == "W1"],
+                         [(8, "step-plan", None), (9, "test-spec", None), (10, "validate-existing", None),
+                          (11, "implement", "S1"), (12, "test", "S1"), (13, "document", "S1"),
+                          (14, "implement", "S2"), (15, "test", "S2"), (16, "document", "S2"), (17, "carry-forward", None)])
+        implement = [r["action"] for r in run["stages"] if r["stage"] == "implement"]
+        item = run["workItems"][0]
+        self.assertEqual(item["steps"], [
+            {"id": "S1", "task": "Write the rules module", "action": implement[0], "number": 1,
+             "visits": {"first": 11, "last": 13}, "commit": STEP_COMMITS["S1"]},
+            {"id": "S2", "task": "Write the server", "action": implement[1], "number": 2,
+             "visits": {"first": 14, "last": 16}, "commit": None}])  # the ledger records S2 with no commit: not committed
+        self.assertEqual((item["stepsPlanned"], item["stepsExecuted"]), (2, 2))
+        self.assertEqual(export.validate_doc("runs", run), [])
+
+    def test_with_no_iterations_ledger_a_steps_commit_is_unknown_never_invented(self):
+        run = self.run_doc(step_run(self.tmp, TWO_STEPS))
+        steps = run["workItems"][0]["steps"]
+        self.assertEqual([(s["id"], s["visits"]) for s in steps], [("S1", {"first": 11, "last": 13}), ("S2", {"first": 14, "last": 16})])
+        self.assertFalse([s for s in steps if "commit" in s])
+        # a ledger that does not record a step, or records something that is not a commit id, says nothing about it either
+        out = step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS)
+        write_ledger(out, {step_plans(out)[0]: {"S1": {"number": 1, "base": STEP_BASE, "commit": "not a commit"}}})
+        self.assertFalse([s for s in self.run_doc(out)["workItems"][0]["steps"] if "commit" in s])
+
+    def test_an_item_mid_step_has_its_steps_so_far_and_is_not_read_as_past_implement(self):
+        # at S2's test: S1 is done, S2 is being tested; test and document between steps do not end the build
+        run = self.run_doc(step_run(self.tmp, TWO_STEPS[:8]))
+        item = run["workItems"][0]
+        self.assertEqual((item["stepsPlanned"], item["stepsExecuted"]), (2, 2))
+        self.assertEqual([(s["id"], s.get("visits")) for s in item["steps"]],
+                         [("S1", {"first": 11, "last": 13}), ("S2", {"first": 14, "last": 15})])
+        self.assertNotIn("stepsExecuted", run["unmeasured"])
+        # an item that reaches carry-forward with a step never built did not run one packet per step
+        early = self.run_doc(step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS[:6] + [("carry-forward", "done")]))
+        self.assertIn("moved past", early["unmeasured"]["stepsExecuted"])
+
+    def test_a_send_back_restarts_the_step_numbering_under_the_new_step_plan(self):
+        inner = [("step-plan", "done"), ("test-spec", "done"), ("validate-existing", "done"),
+                 ("implement", "done"), ("test", "send-back"),
+                 ("step-plan", "done"), ("implement", "done"), ("test", "done"), ("document", "done"),
+                 ("implement", "done"), ("test", "done"), ("document", "done"), ("carry-forward", "done")]
+        out = step_run(self.tmp, inner)
+        first, second = step_plans(out)
+        write_ledger(out, {first: {"S1": {"number": 1, "base": STEP_BASE, "commit": None}},
+                           second: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]},
+                                    "S2": {"number": 2, "base": STEP_COMMITS["S1"], "commit": STEP_COMMITS["S2"]}}})
+        run = self.run_doc(out)
+        rows = [(i + 1, r["stage"], r.get("loop"), r.get("step")) for i, r in enumerate(run["stages"]) if r.get("workitem") == "W1"]
+        self.assertEqual(rows, [(8, "step-plan", 1, None), (9, "test-spec", 1, None), (10, "validate-existing", 1, None),
+                                (11, "implement", 1, "S1"), (12, "test", 1, "S1"),
+                                (13, "step-plan", 2, None), (14, "implement", 2, "S1"), (15, "test", 2, "S1"),
+                                (16, "document", 2, "S1"), (17, "implement", 2, "S2"), (18, "test", 2, "S2"),
+                                (19, "document", 2, "S2"), (20, "carry-forward", 2, None)])
+        # the item's steps are the latest plan's: S1 again from visit 14, with that plan's commits
+        self.assertEqual([(s["id"], s["number"], s["visits"], s["commit"]) for s in run["workItems"][0]["steps"]],
+                         [("S1", 1, {"first": 14, "last": 16}, STEP_COMMITS["S1"]),
+                          ("S2", 2, {"first": 17, "last": 19}, STEP_COMMITS["S2"])])
+
+    def test_an_8_stage_or_17_stage_run_gets_no_step_fields_beyond_its_implement_visits(self):
+        for model in ("v5", "v4"):
+            with self.subTest(model=model):
+                out = stage_model_run(Path(tempfile.mkdtemp(dir=self.tmp)), model)
+                write_ledger(out, {step_plans(out)[0]: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]}}})
+                run = self.run_doc(out)
+                self.assertEqual(run["stageModel"], model)
+                # the implement visit names its step as before; no other visit does, and the steps carry no new field
+                self.assertEqual({r["stage"] for r in run["stages"] if "step" in r}, {"implement"})
+                for item in run["workItems"]:
+                    for step in item.get("steps") or []:
+                        self.assertEqual(set(step) - {"id", "task", "truncated", "action"}, set(), step)
+        # an 8-stage run at state version 9 shaped like a 7-stage one is still read the 8-stage way
+        run = self.run_doc(step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS, version=9))
+        self.assertEqual(run["stageModel"], "v5")
+        self.assertEqual({r["stage"] for r in run["stages"] if "step" in r}, {"implement"})
+
+    def test_schema_md_defines_the_step_fields(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`steps[].number`", "`steps[].visits`", "`steps[].commit`", "RUN/iterations/<item>.json",
+                       "`feat(<item>/<step>)`"):
+            self.assertIn(phrase, schema, phrase)
+
+
+class StepGroupPageTests(unittest.TestCase):
+    """The page groups a 7-stage run's inner visits under one header per step, in the stage cards and the visits table; an
+    older run renders as before."""
+
+    @classmethod
+    def setUpClass(cls):
+        tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        out = step_run(root / "v6", TWO_STEPS)
+        write_ledger(out, {step_plans(out)[0]: {"S1": {"number": 1, "base": STEP_BASE, "commit": STEP_COMMITS["S1"]},
+                                                "S2": {"number": 2, "base": STEP_COMMITS["S1"], "commit": None}}})
+        cls.v6 = next(iter(export.build_run(out)[0]["runs"].values()))
+        cls.v5 = next(iter(export.build_run(stage_model_run(root / "v5", "v5"))[0]["runs"].values()))
+        cls.v4 = next(iter(export.build_run(stage_model_run(root / "v4", "v4"))[0]["runs"].values()))
+
+    PROBE = ('[byClass("sclist","sc-step").map(function(e){return e.textContent;}),'
+             'byClass("seqtable","vt-step").map(function(e){return e.textContent;}),'
+             'walk(REG.seqtable,function(e){return e.tagName==="tr";}).length,byClass("sclist","sc-row").length]')
+
+    def view(self, run: dict):
+        return page_probe(self.PROBE, setup=card_setup(dict(run, key="k", order=1)))
+
+    def test_a_7_stage_runs_visits_are_grouped_under_one_header_per_step(self):
+        headers = ["Step S1 · implement → test → document → review · commit 1a2b3c4",
+                   "Step S2 · implement → test → document → review · not committed"]
+        cards, table, rows, card_rows = self.view(self.v6)
+        self.assertEqual((cards, table), (headers, headers))
+        self.assertEqual(rows, 1 + len(self.v6["stages"]) + 2)  # the head row, one row per visit, one header row per step
+        self.assertEqual(card_rows, len(self.v6["stages"]))
+        # the groups, as the logic block works them out: where each starts and ends, and the step's own record
+        groups = run_logic("stepGroups(%s)" % json.dumps(self.v6))
+        self.assertEqual([(g["at"], g["last"], g["step"]) for g in groups], [(10, 12, "S1"), (13, 15, "S2")])
+
+    def test_a_step_with_no_review_or_no_recorded_commit_says_only_what_is_known(self):
+        run = json.loads(json.dumps(self.v6))
+        for row in run["stages"]:
+            row.pop("improve", None)
+            row.pop("improvePacketBytes", None)
+        for step in run["workItems"][0]["steps"]:
+            step.pop("commit", None)
+        self.assertEqual(run_logic("stepGroups(%s).map(function(g){return g.text;})" % json.dumps(run)),
+                         ["Step S1 · implement → test → document", "Step S2 · implement → test → document"])
+
+    def test_an_8_stage_or_17_stage_run_renders_as_before_with_no_step_headers(self):
+        for run in (self.v5, self.v4):
+            with self.subTest(model=run["stageModel"]):
+                cards, table, rows, card_rows = self.view(run)
+                self.assertEqual((cards, table), ([], []))
+                self.assertEqual(rows, 1 + len(run["stages"]))
+                self.assertEqual(run_logic("stepGroups(%s)" % json.dumps(run)), [])
 
 
 SLICE_NOT_REACHED = "system tests, release and the report: a slice ends after the item's inner loop"

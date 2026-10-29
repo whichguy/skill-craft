@@ -436,6 +436,22 @@ class SkippedGateTests(unittest.TestCase):
         self.assertEqual([(g["gate"], g["skipped"], g["reason"]) for g in found["gates"] if g["skipped"]],
                          [("base", 1, "no reason recorded"), ("mutation", 1, "no reason recorded")])
 
+    def test_a_current_runs_item_commit_gate_is_its_accepted_document_stage(self) -> None:
+        """Verify retired (design T §9.1 2b-4c): ShipLoop commits a step once its document stage and review are accepted, so an
+        accepted document is where the commit gate stands; a run recorded before still reads it at verify (the fixtures above)."""
+        fence = lambda record: "```shiploop-state\n" + json.dumps(record) + "\n```\n"  # noqa: E731
+        for base, skipped in ((False, 1), (True, 0)):
+            with self.subTest(base=base), tempfile.TemporaryDirectory() as temp:
+                run = Path(temp) / "run"
+                (run / "lint").mkdir(parents=True)
+                (run / "state.md").write_text(fence({"history": [{"stage": "document", "outcome": "done", "workitem": "W1"},
+                                                                 {"stage": "carry-forward", "outcome": "done", "workitem": "W1"}]}))
+                if base:
+                    (run / "lint" / "items").mkdir()
+                    (run / "lint" / "items" / "W1.md").write_text(fence({"tree": "t"}))
+                (gate,) = [g for g in metrics.skipped_gates(run)["gates"] if g["gate"] == "item_commit"]
+            self.assertEqual((gate["records"], gate["skipped"]), (1, skipped))
+
     def test_no_run_directory_is_not_measured(self) -> None:
         self.assertEqual(metrics.skipped_gates(None)["count"], None)
         self.assertFalse(metrics.skipped_gates(Path("/nonexistent/run"))["measured"])

@@ -1246,8 +1246,8 @@ DEFAULT_SEED_ITEM = {"id": "seeded-request", "title": "The whole request"}
 # Runs in a separate interpreter on the installed plugin's own navigator, so the
 # seeded state is exactly what that version's CLI reads back.
 # When an item enters its inner loop it records the item's base snapshot, as shiploop_lint.on_transition does on a real run
-# (the record lint/items/<item>.md, saved in the same transaction as the state). The base run, the mutation check, the change
-# inventory and the item commit read it and, without it, record "skipped: no item base was recorded" and do nothing.
+# (the record lint/items/<item>.md, saved in the same transaction as the state). The base run, the mutation check and the
+# step commits read it and, without it, record "skipped: no item base was recorded" or skip with a note, and do nothing.
 SEED_SCRIPT = """
 import json, sys
 from pathlib import Path

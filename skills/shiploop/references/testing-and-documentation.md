@@ -547,8 +547,8 @@ issued only when the item's diff touches a code or test path. `carry-forward`
 records the reusable-skill decision (`none`, `reuse`, `update` or `create`) with
 its reason and repeat evidence, and runs a created or updated skill once on the
 run's real procedure. A decision is required; needless edits or skill creation
-are not. Each step's helper `skills` are chosen at `step-plan`, and `implement`
-reports whether each was used. Update or explicitly assess relevant README and
+are not. Each step's helper `skills` are chosen at `step-plan`, each with the
+stages that use it, and each of those stages reports whether it was used. Update or explicitly assess relevant README and
 interface documentation before the step's commit stage.
 
 Read the actual code/test diff, accepted step plan and relevant repo docs.
@@ -564,8 +564,12 @@ the existing appropriate index instead of duplicating it.
 ### Reusable product skills
 
 Two stages own skill decisions. `step-plan` lists each step's helper `skills`
-(`[{"name", "why", "locator"}]`, an existing locator, or an empty list), which
-the implement packet prints; `implement` reports whether each was used.
+(`[{"name", "why", "locator", "stages"}]`, an existing locator, or an empty list).
+`stages` names the stages of the step's iteration that use the skill
+(`implement`, `test`, `document`, `improve`; `implement` when absent), and each of
+those prints it: implement's Step block, the "Skills for this stage" line of the
+test and document packets, and the step review's "Skills for this review" line
+(design T §8.2c, F9). Each stage reports whether it used each skill it lists.
 `carry-forward` records the reusable-skill decision in its result's `skill`
 (`none`, `reuse`, `update` or `create`, with its reason and repeat evidence; see
 the [carry-forward contract](carry-forward.md)). For `update` and `create`

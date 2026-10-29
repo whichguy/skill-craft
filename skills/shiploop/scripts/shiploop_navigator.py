@@ -4883,13 +4883,15 @@ def _lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, 
     # its own paths); before, earlier steps only reported and the item's last step gated.
     waivers = {entry["id"]: entry["reason"] for entry in result.get("lint_waivers", [])}
     # Document is gated on its own edits (design T §8.2a, 2b-4b): a finding an earlier stage of the step waived is not
-    # document's to waive again.
+    # document's to waive again.  An inline step's implement and test are gated from the step's base, so their refusal
+    # names the step's lines.
     own = stage == item_scope.DOCUMENT_STAGE
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=workitem or "", run_option=mode,
         base=_stage_base(state) if own else lint.read_base(root, workitem), waivers=waivers, command=_command(core),
         stage=stage, reference_dir=_reference_dir(core), execution_mode=str(state.get("execution_mode", "navigator")),
-        changed_by="the document stage" if own else "this work item")
+        changed_by="the document stage" if own else "this step" if step_view(state, workitem) is not None
+        else "this work item")
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _lint_finish(root, payload)
@@ -7316,8 +7318,7 @@ def step_block(state: Mapping[str, Any], work_item: str | None) -> list[str]:
              ("  Proof (ShipLoop runs it from WORKTREE at done; it must exit 0): " + proof) if proof else
              "  Proof: none recorded in the step plan; report send-back so the step plan records the step's proof.",
              "  Skills (use each; the summary says whether you did): "
-             + (", ".join(str(skill.get("name")) for skill in step.get("skills") or () if isinstance(skill, Mapping))
-                or "none")]
+             + (", ".join(str(skill["name"]) for skill in step_skills(step, "implement")) or "none")]
     for earlier, row in view.accepted:
         lines.append(f"Accepted step {earlier['id']}: {row['summary']}")
     later = view.steps[view.number:]
@@ -7352,17 +7353,42 @@ def _step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> 
     return [STEP_LOOP_LINE, *block] if block else []
 
 
+def step_skills(step: Mapping[str, Any], stage: str) -> list[Mapping[str, Any]]:
+    """The step plan's skills for ``step`` that ``stage`` uses (their ``stages``; implement's when they name none)."""
+    return [skill for skill in step.get("skills") or ()
+            if isinstance(skill, Mapping) and stage in (skill.get("stages") or ("implement",))]
+
+
+def _skills_line(step: Mapping[str, Any], stage: str, label: str) -> str:
+    """One line naming the step's skills for ``stage`` (design T §8.2c, F9): each with its use and locator, or none, and
+    where the repository records the rest."""
+    named = ["%s (%s%s)" % (skill["name"], skill.get("why"), "; " + str(skill["locator"]) if skill.get("locator") else "")
+             for skill in step_skills(step, stage)]
+    return (label + " (use each; the summary says whether you did): " + ("; ".join(named) if named else
+            "none listed; KNOWLEDGE/environment.md ## Skills names the repository's own") + ".")
+
+
 def _document_step_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """An inline step's document packet names the step it documents and the mark that ends a spec.md line it adds (design
-    T §9.1 2b-3, option C: document records what the step showed in the knowledge home); [] elsewhere."""
-    if stage != "document" or state["status"] != "active" or state.get("active_improve"):
+    """An inline step's test and document packets name the step just built and the skills the step plan lists for the
+    stage (design T §8.2c, F9); document's also names the mark that ends a spec.md line it adds (design T §9.1 2b-3,
+    option C: document records what the step showed in the knowledge home); [] elsewhere."""
+    if stage not in AFTER_BUILD or state["status"] != "active" or state.get("active_improve"):
         return []
     view = step_view(state, work_item)
     if view is None:
         return []
-    return [f"Step {view.step['id']} ({view.number} of {len(view.steps)}), built and tested: "
-            + _first_sentence(view.step.get("task"), 200) + " A line this step adds to KNOWLEDGE/spec.md ends ("
-            + str(work_item) + "/" + str(view.step["id"]) + ")."]
+    head = f"Step {view.step['id']} ({view.number} of {len(view.steps)}), built"
+    lines = [head + (": " + _first_sentence(view.step.get("task"), 200) if stage == "test" else
+                     " and tested: " + _first_sentence(view.step.get("task"), 200)
+                     + " A line this step adds to KNOWLEDGE/spec.md ends (" + str(work_item) + "/"
+                     + str(view.step["id"]) + ").")]
+    return lines + [_skills_line(view.step, stage, "Skills for this stage")]
+
+
+def _review_skills_lines(state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """A step review's line of the skills the step plan lists for the review (``improve``, F9); [] elsewhere."""
+    view = step_view(state, work_item) if stage in stage_spec.with_improve("item") else None
+    return [_skills_line(view.step, "improve", "Skills for this review")] if view is not None else []
 
 
 def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, Any]) -> list[str]:
@@ -7515,6 +7541,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
           if workitem is not None else []),
         # The step under review: the producer's own Step block, word for word, and the diff base it began from (W2-B).
         *(step_block(state, workitem) if stage in stage_spec.with_improve("item") else []),
+        *_review_skills_lines(state, stage, workitem),
         *_review_base_line(root, state, child),
         *_test_context_lines(state, root),
         *_reviewed_input_lines(root, state, stage, workitem),

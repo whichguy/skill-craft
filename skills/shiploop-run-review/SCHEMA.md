@@ -72,7 +72,7 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `stages[].seeded` | `true` | present only when true: the E2E harness recorded the visit itself (`--seed-at`) without doing it. They are the first `len(seeded.skipped)` history rows, taken from `result.json` `seeded` and used only when their stage names match `seeded.skipped` in order (else none is marked and `facts.md` says why). A seeded visit has `min` null and is neither work nor `skipped` |
 | `stages[].improve` | map `{passes?, min?}` | present when the visit started an Improve child: `passes` from `terminal.json` `progress.action_number`, `min` from `improve/<action>-bind.md` to `improve/<action>/receipt.md` by file time. A member is omitted when unknown (`min` when either file is missing or the times run backwards), never 0 |
 | `stages[].context` | map `{calls?, peak?, peakPct?, compactions?}` | present only where the harness measured that visit's context: the main thread's calls, the largest call's tokens (`peak`, a call's total tokens on Codex, see `contextPeak`), `peakPct` of the window, and compactions inside the visit. Whether a visit has a `context` follows the harness's stage rows, not the host: a row has one when the harness measured at least one model call in its stage window (Claude's per-message usage, Grok's usage events, a Codex run's rollouts), and a stage whose window holds no event has no `context` (it is not a count of zero calls). A Grok stage row counts its usage events as calls and has no `peakPct`, because the host reports no window: the percentage is unknown there and the exporter never computes one without a window. A run recorded before the harness left such a row out keeps its old rows, and a row that counts no model call (`calls` 0) is read as none: its peak is unmeasured, and a bare "0 calls" would read as a measurement. A run that two hosts wrote has none (see `hosts`). The harness's stage rows carry no action id, so they are matched to the visits by position in the history and used only when their count and every stage and outcome agree; else no visit has a context. The visits without one are counted in `unmeasured.visitContext` ("N of M visits carry no context: ..."), and when no row carries a context at all it says the stage rows carry none, as the run was recorded |
-| `stages[].workitem`, `stages[].loop`, `stages[].step` | string, number, string | present when `workItems` is: the visit's work item id (from `state.md` history; absent at an outer stage), its `loop` (1-based pass through the steps loop that visit belongs to: 1 plus the accepted `send-back` visits of that item before it) and, for an implement visit on the inline route, the `step` id its packet named (the step plan then in force, one step per done visit; a `send-back` or a historical `repeat` visit is an attempt at that step). Step ids repeat across plans, so read `step` with `loop` |
+| `stages[].workitem`, `stages[].loop`, `stages[].step` | string, number, string | present when `workItems` is: the visit's work item id (from `state.md` history; absent at an outer stage), its `loop` (1-based pass through the steps loop that visit belongs to: 1 plus the accepted `send-back` visits of that item before it) and, for an implement visit on the inline route, the `step` id its packet named (the step plan then in force, one step per done visit; a `send-back` or a historical `repeat` visit is an attempt at that step). In a 7-stage (`v6`) run every visit of a step names it: its implement visits, then its test and document visits (and an `improve` visit, should the review be one of its own), which are the step just built (`shiploop_navigator.step_view`); step-plan, test-spec, validate-existing and carry-forward name none, and an 8- or 17-stage run's test and document visits never do. Step ids repeat across plans (a send-back starts the numbering again under the new plan), so read `step` with `loop` |
 | `stages[].packetDoc` | `true` | present only when a `packets` document was written for the visit: its packet file exists and was read. The page loads `packets/<runKey>--<action>` on demand |
 | `stages[].summary`, `stages[].summaryTruncated` | string, `true` | present when the visit's accepted result has a summary: the text from `state.md` history (else the result record's), trimmed and cut at 300 characters; `summaryTruncated` is present only when it was cut. The card prints it as the visit's output. Absent when the records carry none |
 | `stages[].resultFile` | boolean | `true` when `results/<action>.md` exists, `false` when it does not (the accepted result is then read from `state.md`); absent for a visit with no action id. `resultBytes` is its size when it exists |
@@ -310,12 +310,23 @@ Every number is counted from `state.md` history and the accepted results (`resul
 - `steps` (array of `{id, task, truncated?, action?}`): the steps of the item's **latest accepted (done) step plan**, in order, each `task` cut at 200 characters (`truncated` true when cut); `[]` for an item with no accepted step plan. Absent, with the reason in `unmeasured.stepsPlanned`, when that plan lists no readable steps.
 - `steps[].action` (string or null): the action id of the accepted implement visit that executed the step, or `null` when no visit did (never executed, or not yet). **Absent when the pairing is unknown** (below): then the item has no `stepsExecuted` either.
 - `stepsPlanned`, `stepsExecuted` (number): the item's step count, and the steps with an `action` (`stepsExecuted` absent when unknown).
+- `steps[].number`, `steps[].visits`, `steps[].commit`: a 7-stage (`v6`) run's only, on the inline route; an 8- or 17-stage
+  run's steps have none. In the 7-stage loop each step is built, tested, documented and reviewed, then ShipLoop commits it,
+  before the next step starts. `number` is the step's place in its plan, from 1. `visits` (`{first, last}`) are the 1-based
+  numbers, in `stages` order, of the step's first and last visit under the latest plan (implement through document); absent for
+  a step not begun, or when the pairing is unknown. `commit` is the step's own commit (its `feat(<item>/<step>)` commit, made by
+  ShipLoop's commit stage once the step's document and its review are accepted), as the engine's step ledger
+  RUN/iterations/<item>.json records it (`{"plans": {<step plan action>: {<step>: {number, base, commit}}}}`, read under the
+  latest plan's action): a commit id when it landed, `null` when the ledger records the step with no commit (not committed, or
+  not yet), and absent when the run has no ledger for the item, the ledger does not record the step or its commit is not a
+  commit id. It is never taken from summary text, and the exporter reads no git log.
 
 *The pairing.* On the inline route ShipLoop issues one implement packet per step, in order, and only a `done` implement
 visit moves to the next step (`implement_progress` and `_step_lines` in `shiploop_navigator.py`: the step is
 `steps[done]`, where `done` counts the item's done implement visits since its latest accepted step plan). So the k-th
 done implement visit after the latest accepted step plan executed step k, and a `repeat` visit is another attempt at the
-same step. The export follows that rule exactly. It does not guess elsewhere: the item gets no `stepsExecuted` and its steps no
+same step. In a 7-stage run a test or document visit after a done implement visit belongs to the step it built, so only a
+stage past the steps (carry-forward) means the item moved past implement. The export follows that rule exactly. It does not guess elsewhere: the item gets no `stepsExecuted` and its steps no
 `action`, with the reason under `unmeasured.stepsExecuted`, when the run's recorded `delegation` is not `inline` (ask-agent
 issues one implement packet for the whole plan; a run whose route was switched mid-run is read by its final route), when
 more done implement visits follow a plan than it has steps, or when the item moved past implement with fewer done implement
@@ -589,6 +600,12 @@ file per action, and a visit with `packetImprove` keeps only the child's), child
 left only an `-improve-bind.md` file: each stopped before its card was bound), or files that could not be read as UTF-8.
 
 ## The stage card
+
+*Steps of a 7-stage run.* For a `v6` run the "Stage cards" list and the visits table group each work item's inner visits by
+step (`stepGroups`): a header above the step's first visit reads "Step S1 · implement → test → document → review · commit
+1a2b3c4", the stages its visits ran in order, "review" after a document visit with its Improve child, then the step's
+`commit` cut to 7 characters, "not committed" when it is `null`, nothing when it is absent. The visits keep their own rows, and
+an 8- or 17-stage run has no headers.
 
 Tapping a visit on step 1 (the picture or a row of the "Stage cards" list below it) opens that visit's card with three labelled
 blocks, and Previous and Next visit step through the run. It uses only what the export holds, and prints a part only when its
