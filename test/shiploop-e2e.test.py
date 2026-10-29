@@ -45,10 +45,12 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
+import packets
 import progress  # noqa: E402
 import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
+import status_card
 # The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import scorecard  # noqa: E402
@@ -1717,9 +1719,11 @@ class GradeIdentityTest(unittest.TestCase):
 class MultipleRunsTest(unittest.TestCase):
     """A model that abandons its first ShipLoop run and starts a second leaves two runs in the output folder (brownfield
     bf-ds-r1-ticket-assignment, 2026-10-29: the first paused with a status_reason saying it was replaced, the second live).
-    Three readers say which run the folder holds: grade_shiploop (the verdict), metrics.run_dir_of (every measurement that
-    reads the run's files) and progress.report (the live monitor). They share one rule, so each case here asks all three:
-    a run is told apart by its revision, which the monitor prints and the other two return as the run directory."""
+    Five readers say which run the folder holds: grade_shiploop (the verdict), metrics.run_dir_of (every measurement that
+    reads the run's files), progress.report (the live monitor), status_card.build_e2e (the Live Run Card the owner is fed
+    each tick) and packets.find_run_dir (the run flow.build, packets.build and the owner page describe). They share one
+    rule, so each case here asks all five: a run is told apart by its revision, which the monitor prints, the card draws
+    (the run's trace starts at its revision) and the other three return as the run directory."""
 
     STAMP = 1_800_000_000  # seconds; the state.md of each run is stamped from here so the newest state change is known
 
@@ -1738,6 +1742,8 @@ class MultipleRunsTest(unittest.TestCase):
         if status in ("paused", "blocked", "halted"):
             state["status_reason"] = f"{status} by the test"
         run.store.write_record(folder / "state.md", state)
+        # The Live Run Card draws no revision; it draws the run's trace on a time axis that starts at the trace's first row.
+        (folder / "trace.jsonl").write_text(json.dumps({"kind": "command", "verb": "workspace", "exit": 0, "ts": float(revision)}) + "\n")
         if report:
             (folder / "report.html").write_text("<html></html>")
         self.written += 1
@@ -1753,11 +1759,28 @@ class MultipleRunsTest(unittest.TestCase):
         shown = re.search(r"\| \w+, rev (\d+),", text)
         return graded, str(picked) if picked else None, int(shown.group(1)) if shown else None, text
 
+    def card(self) -> tuple[int | None, dict, dict]:
+        """(the revision the Live Run Card drew, its model, its meta); None where it drew no run."""
+        model, meta = status_card.build_e2e(self.out)
+        return (int(model["timeline"]["start"]) if model.get("timeline") else None), model, meta
+
+    def packet_reader(self) -> str | None:
+        """What packets.find_run_dir answers: the directory, None, or the message of the exit it makes."""
+        try:
+            found = packets.find_run_dir(self.out)
+        except SystemExit as stopped:
+            return str(stopped)
+        return str(found) if found else None
+
     def assert_chosen(self, directory: str, revision: int) -> dict:
         graded, picked, shown, text = self.readers()
         self.assertEqual(graded.get("run_dir"), directory, graded)
         self.assertEqual(picked, directory)
         self.assertEqual(shown, revision, text)
+        drawn, _model, meta = self.card()
+        self.assertEqual(drawn, revision, meta)
+        self.assertFalse(any("ambiguous" in event["text"] for event in meta["events"]), meta)
+        self.assertEqual(self.packet_reader(), directory)
         return graded
 
     def assert_ambiguous(self, *directories: str) -> dict:
@@ -1768,6 +1791,13 @@ class MultipleRunsTest(unittest.TestCase):
         self.assertIsNone(picked)
         self.assertIsNone(shown, text)
         self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", text)
+        # The card draws no run, and says why instead of drawing the first one in path order.
+        drawn, model, meta = self.card()
+        self.assertIsNone(drawn, meta)
+        self.assertEqual(model["rows"], [])
+        self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", meta["events"][0]["text"])
+        # packets.find_run_dir exits with the same words; flow.build, packets.build and the owner page stop there.
+        self.assertIn(f"ambiguous: {len(directories)} ShipLoop runs", self.packet_reader() or "")
         return graded
 
     # ---- the reported defect

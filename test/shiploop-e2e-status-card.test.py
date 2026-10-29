@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -250,6 +251,51 @@ class Builders(unittest.TestCase):
         untraced, _meta = status_card.build_e2e(self.e2e_folder(), NOW)
         self.assertNotIn("timeline", untraced)
         self.assertNotIn("timeline", status_card.render(model))
+
+    def write_run(self, folder: Path, name: str, state: dict) -> Path:
+        """One more run under .shiploop-runs/<name>/run, with a worktree beside it."""
+        run = folder / ".shiploop-runs" / name / "run"
+        run.mkdir(parents=True)
+        (run.parent / "worktree").mkdir()
+        (run / "state.md").write_text("# state\n\n```shiploop-state\n" + json.dumps(state) + "\n```\n", encoding="utf-8")
+        return run
+
+    def test_an_e2e_card_draws_the_live_run_not_the_first_run_the_model_paused_and_replaced(self):
+        # Brownfield 2026-10-29: the model paused its first run ("replaced by a fresh run") and started a second. The card
+        # took the first state.md in path order, so it drew the abandoned run's intake cursor for the whole of the second.
+        folder = self.e2e_folder()  # .shiploop-runs/work-1: live, on W2's test-spec
+        self.write_run(folder, "work-0", {"status": "paused", "stage": "intake", "revision": 1, "history": []})
+        model, meta = status_card.build_e2e(folder, NOW)
+        self.assertEqual([row["name"] for row in model["rows"]], ["Prelude", "W1", "W2", "Outer"])
+        self.assertEqual(slots(model, 0), [("pass", "")] * 7)  # not the paused run's intake, which is running there
+        self.assertEqual(slots(model, 2)[:3], [("pass", ""), ("running", "I"), ("pending", "")])
+        self.assertEqual(meta["events"][0]["text"], "done: step-plan (W2)")
+        alone, _meta = status_card.build_e2e(self.e2e_folder_alone(), NOW)
+        self.assertEqual(model["rows"], alone["rows"])  # the same card as when the paused run is not there
+
+    def e2e_folder_alone(self) -> Path:
+        shutil.rmtree(self.base / "chess-sf-full-abc123", ignore_errors=True)
+        return self.e2e_folder()
+
+    def test_an_e2e_card_with_runs_nothing_tells_apart_says_so_and_draws_no_stage(self):
+        folder = self.e2e_folder()
+        self.write_run(folder, "work-2", {"status": "active", "stage": "plan", "revision": 8, "history": []})
+        model, meta = status_card.build_e2e(folder, NOW)
+        words = "ambiguous: 2 ShipLoop runs, nothing tells the live one apart"
+        self.assertEqual((model["rows"], model["plan"]), ([], []))  # drawing either run's cursor would be a guess
+        self.assertEqual(meta["events"][0], {"at": meta["events"][0]["at"], "kind": "warn", "text": words})
+        self.assertTrue(meta["subtitle"].endswith(words), meta["subtitle"])
+        self.assertIn(words, status_card.render(model))
+        self.assertNotIn("timeline", model)
+
+    def test_the_inspector_reads_reviews_from_the_worktree_beside_the_run_the_card_draws(self):
+        folder = self.base / "two-runs"
+        old = self.write_run(folder, "work-0", {"status": "paused", "stage": "intake", "revision": 1})
+        live = self.write_run(folder, "work-1", {"status": "active", "stage": "plan", "revision": 8})
+        self.assertEqual(status_card._worktree(folder), live.parent / "worktree")
+        self.assertNotEqual(status_card._worktree(folder), old.parent / "worktree")
+        self.write_run(folder, "work-2", {"status": "active", "stage": "plan", "revision": 3})  # now two live: no run
+        self.assertEqual(status_card._worktree(folder), folder)
 
     def test_a_refusal_is_material_unless_it_is_a_length_cap_or_an_ordering_slip(self):
         material = status_card.refusal_is_material

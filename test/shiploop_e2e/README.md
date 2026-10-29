@@ -153,8 +153,15 @@ pre-created. It grades five verdicts into `result.json`:
   grade and is not recorded, because a model can resume the run it paused. Several runs
   that nothing tells apart (two live runs, or a finished run beside a live one) are
   `ambiguous` (the result lists them) and fail; an unrelated finished run is never
-  preferred. The same rule (`run_choice.py`) picks the run for every measurement that
-  reads the run's files and for the live monitor;
+  preferred. The same rule (`run_choice.py`) names the run for each of these readers:
+  the verdict, every measurement that reads the run's files (`metrics.run_dir_of`), the
+  live monitor (`progress.py`), the Live Run Card (`status_card.py build e2e`, and the
+  worktree its action inspector reads reviews from) and the reader behind the flow
+  viewer, the packet report and the owner page (`packets.find_run_dir`, which exits
+  saying `ambiguous` where the verdict would). The Run Review exporter
+  (`skills/shiploop-run-review/scripts/export.py`) may not import from `test/`: it takes
+  the run `result.json` names, which the verdict wrote from this rule, else the newest
+  `state.md`;
 - **committed**: the source checkout ends committed: HEAD moved past where the
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),

@@ -66,7 +66,7 @@ def report(out: Path) -> str:
         position = (f"{state.get('status')}, rev {state.get('revision')}, "
                     f"stage {metrics.current_stage(state) or state.get('stage')}, items {items}")
     elif tied:
-        position = f"ambiguous: {len(tied)} ShipLoop runs, nothing tells the live one apart"
+        position = run_choice.ambiguity(tied)
     else:
         position = "no run state yet"
     lines = [f"[{int(time.time() - started) // 60} min] turns {metrics.turns_text(m)}, peak context "

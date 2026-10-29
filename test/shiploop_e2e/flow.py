@@ -500,7 +500,7 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
     """The owner page's first screen, from the run's files only (no model judges anything here). Every block names its source
     file relative to ``out``; a block the files cannot give is ``{"measured": False, "reason": ...}``."""
     out = Path(out).resolve()
-    run_dir = metrics.run_dir_of(out) or packets.find_run_dir(out)
+    run_dir = packets.find_run_dir(out)
     if run_dir is None:
         raise SystemExit(f"no ShipLoop run directory under {out}")
     rel = lambda path: str(Path(path).resolve().relative_to(out)) if str(Path(path).resolve()).startswith(str(out)) else str(path)  # noqa: E731

@@ -1,8 +1,12 @@
 """Which ShipLoop run an output folder holds: the candidates, the identity the harness recorded, and the one rule that picks.
 
 A model under test sometimes abandons its first run (it pauses it as "replaced by a fresh run") and starts a second, so the
-folder holds several. Three readers need the same answer: the verdict (run.grade_shiploop), every measurement that reads the
-run's files (metrics.run_dir_of) and the live monitor (progress.py). They all call `choose`, so they cannot disagree.
+folder holds several. Every reader of the folder needs the same answer, so each calls `choose` (directly or through
+metrics.run_dir_of) and they cannot disagree: the verdict (run.grade_shiploop), every measurement that reads the run's files
+(metrics.run_dir_of), the live monitor (progress.py), the Live Run Card (status_card.build_e2e) and the reader behind the
+flow viewer, the packet report and the owner page (packets.find_run_dir). The one reader outside the harness is the Run
+Review exporter (skills/shiploop-run-review/scripts/export.py): it may not import from test/, so it takes the run
+result.json names (the verdict wrote that from `choose`) and, where result.json names none, the newest state.md.
 
 The rule, first match wins:
 
@@ -149,3 +153,9 @@ def choose(out: Path) -> Choice:
     if len(last) == 1:
         return result(last[0], CHANGED_LAST)
     return result(tied=last, why=" that are paused or halted and last changed at the same moment")
+
+
+def ambiguity(tied: list[dict]) -> str:
+    """What a reader that is shown runs `choose` could not tell apart says in place of a run: the monitor's line, the Live Run
+    Card's event and the exit of packets.find_run_dir. One wording, so the three agree."""
+    return f"ambiguous: {len(tied)} ShipLoop runs, nothing tells the live one apart"
