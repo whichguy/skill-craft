@@ -1005,9 +1005,18 @@ command, then "done"). Terra answered, the command ran, and the keepalive wrote 
 - `Host.keepalive_install` replaces the one `grok_keepalive` call in `run.py`. Codex returns `installed` when the plugin
   carries `hooks/codex.json`, so its result records `keepalive.decisions` like Grok's.
 
-**Not covered.** ShipLoop asks for a 10 s SessionEnd timeout and Codex clamps it to 3 s; whether the session-end hook
-finishes inside 3 s on Codex is unprobed (a skill change if it does not: a per-host timeout in
-`host-hooks.json`). The Codex session-end payload is still a constructed fixture.
+**The SessionEnd clamp and the real payload (probed later the same day; firm for the timing and the payload, n = 1 live
+session, 12 timings).** ShipLoop asks for a 10 s SessionEnd timeout and Codex clamps it to 3 s.
+- Under the bypass, Codex 0.165.0 fires SessionStart, Stop and SessionEnd in a `codex exec` turn. The SessionEnd payload
+  has five fields (`session_id`, `transcript_path`, `cwd`, `hook_event_name`, `reason` = `other`) and no `model` or
+  `permission_mode`, unlike the constructed fixture it replaces (`test/fixtures/shiploop-keepalive/codex-session-end.json`).
+- The 2.22.1 hook script, run cold with a bound run to release, took 0.18-0.22 s (median 0.19, n = 12, on a loaded
+  machine), about 14 times under the clamp; with nothing bound, 0.05-0.08 s. All 12 released the run and wrote a trace row.
+  The recorded payload through the hook identified host `codex`, released the run in 0.2 s and recorded `reason: other`.
+- So the clamp does not stop a hooks-on Codex round from freeing its run, and no per-host timeout is needed. The log line
+  stays a notice. Evidence: `docs/shiploop-owed-outcome-evidence/codex-session-end-probe-2026-10-29.json`.
+- **Not covered:** a live ShipLoop run freed by a real Codex session end (the timing was taken outside a Codex session,
+  and no round has run with hooks yet), and Grok's and Cursor's session-end payloads, which are still constructed.
 
 **Comparability.** The brownfield rounds R1 and R2 (`ba45b9d2`, three cases each on Terra at xhigh) ran **without hooks**,
 because the bypass did not exist. They are "the Terra baseline for Wave A", and a Terra run from this commit on is a
@@ -1168,3 +1177,4 @@ tree hash excludes.
 - 2026-10-29: session-end evidence path (lane B): probe of mid-turn signals against `claude -p` (F20), the decision to end
   a cleared slice session with SIGTERM, and the design of the trace row and check.
 - 2026-10-29: Codex hook trust for the Terra runner: `CodexHost.argv` passes `--dangerously-bypass-hook-trust` (owner allowed it); live probe n = 1; Codex notices are thoughts, not turns.
+- 2026-10-29: the Codex SessionEnd clamp (10 s to 3 s) is harmless (hook 0.2 s); Codex's real SessionEnd payload recorded and replaces the constructed fixture.

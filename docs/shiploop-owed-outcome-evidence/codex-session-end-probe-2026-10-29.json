@@ -1,0 +1,50 @@
+{
+  "what": "Codex's SessionEnd hook under the trust bypass: the payload it sends, and whether ShipLoop's session-end hook beats Codex's 3 s clamp",
+  "codex": "codex-cli 0.165.0, gpt-6.1-terra xhigh, throwaway CODEX_HOME (auth.json link + a payload-dumping hooks.json), --dangerously-bypass-hook-trust",
+  "hooks_fired_in_order": [
+    "SessionStart",
+    "Stop",
+    "SessionEnd"
+  ],
+  "session_end_payload_recorded": {
+    "session_id": "__SESSION__",
+    "transcript_path": "/tmp/shiploop-keepalive-fixture",
+    "cwd": "/tmp/shiploop-keepalive-fixture",
+    "hook_event_name": "SessionEnd",
+    "reason": "other"
+  },
+  "session_end_payload_fields_recorded": [
+    "cwd",
+    "hook_event_name",
+    "reason",
+    "session_id",
+    "transcript_path"
+  ],
+  "clamp": {
+    "codex_clamps_to_s": 3,
+    "shiploop_asks_s": 10
+  },
+  "hook_timing": {
+    "script": "skill-craft 2.22.1 skills/shiploop/scripts/shiploop-keepalive-session-end, cold subprocess, isolated HOME, a bound run to release",
+    "with_bound_run": {
+      "n": 12,
+      "min_s": 0.182,
+      "median_s": 0.189,
+      "max_s": 0.215
+    },
+    "nothing_bound": {
+      "n": 12,
+      "min_s": 0.049,
+      "median_s": 0.052,
+      "max_s": 0.075
+    },
+    "released_and_traced": "12 of 12 bound runs released, 12 trace rows"
+  },
+  "recorded_payload_through_the_hook": {
+    "host_identified": "codex",
+    "released": true,
+    "reason": "other",
+    "seconds": 0.199
+  },
+  "limits": "Timed outside a live Codex session, on a loaded machine, n = 12; no live ShipLoop run was freed by a Codex session end yet."
+}

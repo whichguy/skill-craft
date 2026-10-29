@@ -3,6 +3,5 @@
   "transcript_path": "/tmp/shiploop-keepalive-fixture",
   "cwd": "/tmp/shiploop-keepalive-fixture",
   "hook_event_name": "SessionEnd",
-  "model": "gpt-6-astra",
-  "permission_mode": "default"
+  "reason": "other"
 }

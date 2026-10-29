@@ -17,8 +17,11 @@ payloads are built by ShipLoop's own plugin (`skills/shiploop/hooks/opencode-kee
 
 `claude-session-end.json` is the SessionEnd payload recorded on 2026-10-28 from a `claude -p` session (Claude Code
 2.1.312, a `--settings` SessionEnd hook that saved its stdin; `docs/shiploop-owed-outcome-evidence/session_end_probe.out`),
-with paths and ids scrubbed: `reason` was `other` for an ordinary exit. `codex-session-end.json`, `grok-session-end.json`
-and `cursor-session-end.json` are constructed, not recorded: each carries its host's recorded stop fields that identify
-the session, with the host's session-end event name (Codex 0.165.0 and Grok 1.0.70 name `SessionEnd`, cursor-agent
-2026.09.23 names `sessionEnd`), and no per-turn fields. The keepalive's `session_end` looks the session id up under
+with paths and ids scrubbed: `reason` was `other` for an ordinary exit. `codex-session-end.json` is the SessionEnd payload
+recorded on 2026-10-29 from a `codex exec` turn (Codex CLI 0.165.0, `gpt-6.1-terra`, a throwaway CODEX_HOME whose hooks.json
+SessionEnd hook saved its stdin under `--dangerously-bypass-hook-trust`;
+`docs/shiploop-owed-outcome-evidence/codex-session-end-probe-2026-10-29.json`), with paths and the id scrubbed: five fields,
+`reason` `other`, and no `model` or `permission_mode`. `grok-session-end.json` and `cursor-session-end.json` are constructed,
+not recorded: each carries its host's recorded stop fields that identify the session, with the host's session-end event
+name (Grok 1.0.70 names `SessionEnd`, cursor-agent 2026.09.23 names `sessionEnd`), and no per-turn fields. The keepalive's `session_end` looks the session id up under
 every host, so it does not depend on telling them apart.
