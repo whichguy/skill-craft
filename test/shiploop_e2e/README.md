@@ -329,9 +329,11 @@ compound command), the exit for the four the model piped, and the stage the run 
 before reading a refusal difference between a run before 1.12.0 and a later one.
 
 **Live checks** (`run_trace.checks`, in `metrics.json` as `run_trace.checks` and printed as the run's `trace checks` line).
-Three behaviours the fixtures prove had not been seen on a real run by 2026-10-28, so every run reads them:
+Three behaviours the fixtures prove; each first passed on a real run on 2026-10-28, and every run reads them:
 - `keepalive_text`: each keepalive stop decision that continued a turn recorded the text it put into the turn;
-- `packet_reprint`: each reprint names a kept copy (`packets/sent/<sha>.md`) whose text has that hash;
+- `packet_copies`: each printed packet names a kept copy (`packets/sent/<sha>.md`) whose text has that hash, the
+  copy the Run Review page reads; reprints are counted. It was `packet_reprint` until 2026-10-28 and read identical
+  reprints only, which the reprint a fresh session gets from `next` never is;
 - `owner_note`: each owner note was delivered, that is, a step was accepted after its packet quoted the note. The
   evidence names the step, the action whose `complete` was held to show it, and whether the step's summary cites it.
 

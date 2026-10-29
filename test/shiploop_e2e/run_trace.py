@@ -13,7 +13,7 @@ gives the harness's readers one shape:
 - ``hooks``: every keepalive stop decision with its text;
 - ``notes``: every owner note and where it stands (waiting, shown, delivered), as ``shiploop trace`` reads it.
 
-``checks`` reads three live behaviours from them (keepalive text, packet reprints, owner notes) into metrics.json.
+``checks`` reads three live behaviours from them (keepalive text, packet copies, owner notes) into metrics.json.
 
 The host stream stays the source of what the model did (its calls, text and turns); the trace is ShipLoop's account of what it
 sent and refused. A run with no ``trace.jsonl`` (before 1.12.0) reads None and its readers keep their stream sources.
@@ -155,12 +155,14 @@ def _check(verdict: str, evidence: str, lines: list | None = None) -> dict:
 
 
 def checks(traced: dict | None) -> dict | None:
-    """Three behaviours the trace's fixtures prove and a live run has not yet shown (docs/shiploop-run-trace-journal.md,
-    2026-10-28), each read from the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had
-    not delivered when it stopped short of done) or ``not exercised`` (the run never did the thing, which is not a pass).
+    """Three live behaviours the trace's fixtures prove (docs/shiploop-run-trace-journal.md, 2026-10-28), each read from
+    the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had not delivered when it
+    stopped short of done) or ``not exercised`` (the run never did the thing, which is not a pass).
 
     - ``keepalive_text``: every keepalive stop decision that continued a turn recorded the text it put into the turn;
-    - ``packet_reprint``: every reprint of a packet names a kept copy (``packets/sent/<sha>.md``) whose text has that hash;
+    - ``packet_copies``: every printed packet names a kept copy (``packets/sent/<sha>.md``) whose text has that hash, the
+      copy the Run Review page reads; reprints are counted (``lines``). Until 2026-10-28 this was ``packet_reprint`` and
+      read identical reprints only, which a fresh session's ``next`` reprint never is;
     - ``owner_note``: every owner note was delivered (a step accepted with it shown); ``--owner-note-at`` writes one mid-step.
     """
     if traced is None or "error" in traced:
@@ -174,19 +176,21 @@ def checks(traced: dict | None) -> dict | None:
                  _check("fail", f"{len(silent)} of {len(continued)} continuations recorded no text", lines(silent)) if silent else
                  _check("pass", f"{len(continued)} continuation{'s' if len(continued) != 1 else ''} with text; first: "
                                 f"{first_line(continued[0]['text'], 120)}", lines(continued)))
-    repeats = [send for sends in traced["packets"].values() for send in sends if send.get("repeat")]
+    sends = [send for rows in traced["packets"].values() for send in rows]
+    repeats = [send for send in sends if send.get("repeat")]
     broken = []
-    for send in repeats:
+    for send in sends:
         try:
             text = (Path(traced["run_dir"]) / str(send.get("file"))).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             text = None
         if text is None or not send.get("sha") or hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] != send["sha"]:
             broken.append(send)
-    reprint = (_check("not exercised", "no packet was printed twice for one action") if not repeats else
-               _check("fail", f"{len(broken)} of {len(repeats)} reprints name no kept copy with their hash", lines(broken))
-               if broken else _check("pass", f"{len(repeats)} reprint{'s' if len(repeats) != 1 else ''}, each with its kept copy",
-                                     lines(repeats)))
+    copies = (_check("not exercised", "no packet was printed") if not sends else
+              _check("fail", f"{len(broken)} of {len(sends)} prints name no kept copy with their hash", lines(broken))
+              if broken else _check("pass", f"{len(sends)} print{'s' if len(sends) != 1 else ''} ({len(repeats)} "
+                                            f"reprint{'s' if len(repeats) != 1 else ''}), each with its kept copy",
+                                    lines(repeats)))
     notes = traced.get("notes") or []
     undelivered = [note for note in notes if note.get("state") != "delivered"]
     told = "; ".join(f"{note['id']} {note.get('state')}" + (f" by {note['delivered_by']}" if note.get("delivered_by") else "")
@@ -195,7 +199,7 @@ def checks(traced: dict | None) -> dict | None:
     note = (_check("not exercised", "no owner note was written to the run") if not notes else
             _check("pass", told) if not undelivered else
             _check("fail" if traced.get("status") == "done" else "open", told))
-    return {"keepalive_text": keepalive, "packet_reprint": reprint, "owner_note": note}
+    return {"keepalive_text": keepalive, "packet_copies": copies, "owner_note": note}
 
 
 def checks_line(found: dict | None) -> str | None:

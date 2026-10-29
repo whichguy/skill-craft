@@ -536,6 +536,14 @@ Earlier, 2026-10-27, another session fixed `a7bda6a2`, the fixture race that fai
 to the millisecond and the fixture's stream does not, so a keepalive recorded within 0.5 ms of a result sorted before it.
 The full tier dispatched on `a7bda6a2` passed.
 
+**Superseded in part (2026-10-28, later the same day): `packet_reprint` is now `packet_copies`.** It read identical
+reprints only, and the reprint a fresh session gets from `next` is never identical (it is 52 characters longer), so it
+was exercised in 1 of 8 live runs that day. It now checks every print's kept copy and counts reprints. On the round's 8
+real traces it passes every time: 74 prints in arm A, 33 in hello, 7 to 9 per arm B slice. Fail-first: a first print
+pointed at a missing copy passes the old check and fails the new one. The live results are in
+`docs/shiploop-owed-outcome-journal.md`; the change is trims plan T3 (`docs/shiploop-trims-plan-2026-10-28.md`).
+Entries above keep the old name.
+
 ## 2026-10-28: the Live Run Card shows the three checks while a run is going (firm for the builder)
 
 **Question.** The checks reached `metrics.json` only when a run ended or was regraded, and the Live Run Card's e2e builder

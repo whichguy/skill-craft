@@ -227,9 +227,11 @@ class TracedRun(unittest.TestCase):
     def test_the_checks_pass_the_keepalive_text_and_reprints_and_say_no_note_was_written(self):
         found = self.metrics["run_trace"]["checks"]
         self.assertEqual({name: row["verdict"] for name, row in found.items()},
-                         {"keepalive_text": "pass", "packet_reprint": "pass", "owner_note": "not exercised"})
+                         {"keepalive_text": "pass", "packet_copies": "pass", "owner_note": "not exercised"})
         self.assertIn(CONTINUED[:60], found["keepalive_text"]["evidence"])
-        self.assertEqual(found["packet_reprint"]["evidence"], "2 reprints, each with its kept copy")
+        prints = sum(len(sends) for sends in run_trace.read(self.run_dir)["packets"].values())
+        self.assertGreater(prints, 2)  # every print is checked, not only the two reprints
+        self.assertEqual(found["packet_copies"]["evidence"], f"{prints} prints (2 reprints), each with its kept copy")
         self.assertEqual(self.metrics["run_trace"]["notes"], {"written": 0, "held": 0, "delivered": 0, "cited": 0})
         line = run_trace.checks_line(found)
         self.assertTrue(line.startswith("keepalive text pass ("), line)
@@ -246,8 +248,21 @@ class TracedRun(unittest.TestCase):
             found = run_trace.checks(traced)
         self.assertEqual((found["keepalive_text"]["verdict"], found["keepalive_text"]["evidence"]),
                          ("fail", "1 of 1 continuations recorded no text"))
-        self.assertEqual(found["packet_reprint"]["verdict"], "fail")
-        self.assertIn(reprint["i"], found["packet_reprint"]["lines"])
+        self.assertEqual(found["packet_copies"]["verdict"], "fail")
+        self.assertIn(reprint["i"], found["packet_copies"]["lines"])
+
+    def test_a_first_print_whose_kept_copy_is_missing_fails_too(self):
+        # A print that is not a repeat: the reprint a fresh session gets from `next` differs from the first print, so
+        # only checking repeats never saw it (docs/shiploop-trims-plan-2026-10-28.md, T3).
+        with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-copies-") as temp:
+            run = Path(temp) / "run"
+            shutil.copytree(self.run_dir, run)
+            traced = run_trace.read(run)
+            single = next(send for sends in traced["packets"].values() for send in sends if not send["repeat"])
+            single["file"] = "packets/sent/never-written.md"  # its reprint keeps the shared copy, which still passes
+            found = run_trace.checks(traced)
+        self.assertEqual(found["packet_copies"]["verdict"], "fail")
+        self.assertEqual(found["packet_copies"]["lines"], [single["i"]])
 
     def test_a_run_before_the_trace_keeps_the_stream_counts(self):
         m = metrics.collect(self.untraced, self.untraced / RUN)

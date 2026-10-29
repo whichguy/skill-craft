@@ -36,7 +36,7 @@ events, findings, tiles, comparison, bands}`, every key optional; its events com
 
 An e2e run with a run trace also gets `timeline` (`start`, `end`, `lanes`, `spans` of each stage and Improve review,
 `marks` of each refused callback, epoch seconds) and `tiles` (elapsed, stages, Improve reviews, refusals, then one tile per
-live trace check of run_trace.checks: keepalive text, packet reprint, owner note). In the job document, JOB's `tiles`
+live trace check of run_trace.checks: keepalive text, packet copies, owner note). In the job document, JOB's `tiles`
 replace the builder's headline tiles and the trace-check tiles follow them, `comparison` (`{title, note, columns, rows: [{label, values, verdict:
 {text, tone: ok|warn|bad}}], caption}`) is passed through, and `bands` (`[{start, end, label}]`, such as the periods the
 machine slept) joins the timeline. A finding may carry `example`, `before`, `after` and `evidence` beside its `tag`,
@@ -481,7 +481,7 @@ def _e2e_tiles(line: dict, progress: dict) -> list[dict]:
              "sub": f'{checks} a --check-only check' if checks == 1 else f"{checks} --check-only checks"}]
 
 
-CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_reprint": "Packet reprint", "owner_note": "Owner note"}
+CHECK_LABELS = {"keepalive_text": "Keepalive text", "packet_copies": "Packet copies", "owner_note": "Owner note"}
 CHECK_TONES = {"pass": "ok", "fail": "bad", "open": "warn"}
 CHECK_SUB = 90  # characters of a check's evidence a tile shows; metrics.json keeps it whole
 
