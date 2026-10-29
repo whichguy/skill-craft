@@ -68,6 +68,25 @@ Plan size is the planned work items and the steps of the first accepted step pla
 | 2+ items | 7 | build | 51 | 75 | 24 | 25 | 20 | 7 | 43 | 80 | 54 | 22 | 4 | 144.2 | 20.6 |
 | 2+ items | 7 | carry-forward | 7 | 15 | 8 | 5 | 5 | 3 | 7 | 21 | 9 | 10 | 2 | 42.3 | 6.0 |
 
+### Improve minutes and product edits, by stage group
+
+| runs | stage group | passes | min | share of Improve min | passes editing product | behaviour passes | findings | f: product | f: records | min per behaviour pass |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| all 25 runs | planning | 250 | 369.3 | 47% | 0 | 0 | 471 | 0 | 469 | - |
+| all 25 runs | step-level planning | 81 | 120.5 | 15% | 0 | 0 | 49 | 0 | 47 | - |
+| all 25 runs | build + carry-forward | 189 | 303.5 | 38% | 50 | 40 | 161 | 89 | 65 | 7.6 |
+| ShipLoop 1.16 and later (5 runs) | planning | 72 | 162.8 | 51% | 0 | 0 | 179 | 0 | 179 | - |
+| ShipLoop 1.16 and later (5 runs) | step-level planning | 10 | 21.4 | 7% | 0 | 0 | 9 | 0 | 9 | - |
+| ShipLoop 1.16 and later (5 runs) | build + carry-forward | 48 | 137.6 | 43% | 19 | 16 | 81 | 41 | 36 | 8.6 |
+
+### How Improve scales with plan size, per run
+
+| plan size | runs | active min | Improve min | Improve share | planning min | planning fixes | build behaviour passes | behaviour passes / build passes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 item, 1 step | 7 | 57.5 | 14.8 | 26% | 7.7 | 5.1 | 0.0 | 0 / 27 |
+| 1 item, 2+ steps | 10 | 62.0 | 21.9 | 35% | 10.8 | 13.0 | 1.5 | 15 / 72 |
+| 2+ items | 7 | 310.2 | 67.2 | 22% | 29.6 | 35.3 | 3.6 | 25 / 90 |
+
 ### By plan size and stage
 
 | plan size | stage | children | passes | product | behaviour | records only | nothing | children edited in pass 1 | findings | f: product | f: records | min |

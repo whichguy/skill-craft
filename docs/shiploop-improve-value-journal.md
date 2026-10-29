@@ -18,24 +18,24 @@ before scaling it to request size. This journal answers two things:
 
 ## Short answer
 
-- **Recommendation (interim): do not adopt the blanket skip on this evidence.** The numbers support a narrower first
-  cut: the `plan` review on one-item plans (lowest yield, 0.5 findings per minute against 1.1 to 1.3 for the other
-  three). If the owner wants to scale Improve to request size, key the rule on steps rather than items, because the
-  clearest no-yield cell is the build side of one-step plans, which the proposal would keep (F9, Recommendation).
-- **Skipping all four planning reviews on one-item plans would save a median of 3.5 minutes per run** (14% of active
-  time; range 1.0 to 53.3 minutes, 6% to 27%) and forgo 166 fixes, a third of them contradictions or checks that cannot
-  be replayed (F5, F6). The data cannot show what those missing fixes would have cost downstream.
-- **Planning reviews edited records only: 0 of 250 passes touched a product file.** They edited records in 166 of those
-  250 passes and fixed 469 defects across the 25 runs. That 0 is expected, because the reviewed artifact is a record, so
-  it is no argument for or against skipping them (F1).
-- **Product changes come from implement, system-test-author and carry-forward reviews**: 50 of their 189 passes edited
-  a product file, and 40 of those changed behaviour; the other 10 changed a comment, docstring or line wrap (F2).
-- **The product yield scales with plan size and is zero at the smallest size.** On build and carry-forward passes,
-  behaviour changed in 0 of 27 on one-item one-step plans, 15 of 72 on one-item plans of two or more steps, and 25 of
-  90 on plans of two or more items (F3). On the one-step plans every review of every stage added up to 90 passes,
-  104 minutes over 7 runs, 52 findings, and no behaviour change.
+- **The data neither support nor refute skipping the planning reviews on one-item plans. Keep them until a paired
+  on/off run decides.** The data price the cost of a skip, not its benefit. Cost: on the 17 one-item plans the four
+  planning reviews took 161.9 minutes, a median 3.5 minutes per run (14% of active time), for about 10 record fixes per
+  run. Benefit: those fixes are substantive (a third are contradictions or checks that cannot be replayed), but no run
+  has the reviews switched off, so what a missed fix costs later is unmeasured (F5, F6).
+- **What the data do establish:** 62% of Improve minutes (490 of 793) went to planning and step-level reviews that changed
+  no product file at any plan size; the other 38% (303.5 minutes) made all 50 product edits, 40 of them behaviour changes,
+  one per 7.6 minutes. Same shape on ShipLoop 1.16 and later: 184 record-only minutes against 138 build minutes with 16
+  behaviour passes (F1, F2, F10).
+- **Improve's output grows with plan size on both sides.** Per run, planning fixes are 5.1, 13.0 and 35.3 and behaviour
+  passes on the build side are 0, 1.5 and 3.6, for one item/one step, one item/2+ steps and 2+ items. On the 7
+  one-step runs (all hello) Improve took 14.8 minutes per run (26% of active time) for 7.4 findings, 5.1 of them in
+  planning, and no behaviour change (F3, F11).
+- **Two cut candidates are hypotheses for that experiment, not findings:** the `plan` review (0.51 findings per minute
+  against 1.1 to 1.3 for the others) and, at the thin end, Improve as a whole on one-step plans. The larger pool of
+  record-only minutes is on multi-item plans (284 of 490), where the one-item skip would not apply.
 - **The "about half of active time" figure is not reproduced.** Improve pass time is a median of 28% of a completed
-  run's stage time (9% to 43% over 22 runs); planning stages are 369 of 793 Improve minutes (47%) (F4).
+  run's stage time (9% to 43% over 22 runs) (F4).
 
 ## Data and method
 
@@ -166,6 +166,25 @@ Model `deepseek-v4.1-flash:1017-cloud`, ShipLoop 1.17.0, plan: 1 planned items (
 
 Nine non-trivial passes (probably the "9 things" in the brief), 28 findings, 27 of them in records. The one product edit
 is the docstring.
+
+### Improve minutes and product edits, by stage group
+
+| runs | stage group | passes | min | share of Improve min | passes editing product | behaviour passes | findings | f: product | f: records | min per behaviour pass |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| all 25 runs | planning | 250 | 369.3 | 47% | 0 | 0 | 471 | 0 | 469 | - |
+| all 25 runs | step-level planning | 81 | 120.5 | 15% | 0 | 0 | 49 | 0 | 47 | - |
+| all 25 runs | build + carry-forward | 189 | 303.5 | 38% | 50 | 40 | 161 | 89 | 65 | 7.6 |
+| ShipLoop 1.16 and later (5 runs) | planning | 72 | 162.8 | 51% | 0 | 0 | 179 | 0 | 179 | - |
+| ShipLoop 1.16 and later (5 runs) | step-level planning | 10 | 21.4 | 7% | 0 | 0 | 9 | 0 | 9 | - |
+| ShipLoop 1.16 and later (5 runs) | build + carry-forward | 48 | 137.6 | 43% | 19 | 16 | 81 | 41 | 36 | 8.6 |
+
+### How Improve scales with plan size, per run
+
+| plan size | runs | active min | Improve min | Improve share | planning min | planning fixes | build behaviour passes | behaviour passes / build passes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 item, 1 step | 7 | 57.5 | 14.8 | 26% | 7.7 | 5.1 | 0.0 | 0 / 27 |
+| 1 item, 2+ steps | 10 | 62.0 | 21.9 | 35% | 10.8 | 13.0 | 1.5 | 15 / 72 |
+| 2+ items | 7 | 310.2 | 67.2 | 22% | 29.6 | 35.3 | 3.6 | 25 / 90 |
 
 ### All runs, by stage
 
@@ -381,39 +400,50 @@ one-item one-step runs all stages together: 90 passes, 103.7 minutes (14.8 per r
 both docstring edits. Implement reviews there: 7 passes, 1 product edit (a docstring), 6.2 minutes; carry-forward:
 10 passes, 1 product edit (a docstring), 9.5 minutes. Seven runs, one task family, so this is a pattern to test.
 
+**F10 (firm). Where Improve's minutes go is not where its product edits come from.** Planning 369.3 min (47%) and
+step-level planning 120.5 min (15%) changed no product file in 331 passes; build and carry-forward 303.5 min (38%) made
+all 50 product edits. On ShipLoop 1.16 and later: planning 162.8 min and step-level 21.4 min, 0 product edits; build
+137.6 min, 19 product passes, 16 behaviour. Evidence: "Improve minutes and product edits, by stage group".
+
+**F11 (interim). Both sides of Improve grow with plan size.** Per run, planning fixes 5.1, 13.0, 35.3 and build
+behaviour passes 0.0, 1.5, 3.6 across the three plan-size classes; Improve is 26%, 35% and 22% of active time.
+Evidence: "How Improve scales with plan size, per run". The one-step class is seven hello runs.
+
 ## Recommendation (interim)
 
 Marked interim: 17 one-item runs, 3 of them on the current harness (1.16.0 and later), one labelling pass, no
 counterfactual, one task family for the one-step class.
 
-**1. Do not skip all four planning reviews on one-item plans on this evidence.**
-- The product-effect test cannot distinguish the options: planning reviews change no product file whether or not they
-  matter (F1).
-- Skipping all four saves a median 3.5 minutes per run (mean 9.5; 14% of active time) and forgoes 166 record fixes,
-  55 of them contradictions or unreplayable checks (F5, F6). Spec and test-strategy have the highest yield: 15 and 14 of
-  17 children needed edits in pass 1, at 1.3 and 1.1 findings per minute.
-- Several of the defects sit in records later stages act on (vacuous or un-runnable consumer checks, a destructive
-  rollback). Whether the implement, system-test or release stages would have caught them without the planning review is
-  untested; F7 says later stages already fix some records.
+**1. Keep the planning reviews on one-item plans for now.** A skip is a bet that the record fixes are worth less than the
+minutes. The minutes are known (median 3.5 per run, 14% of active time). The fixes are real but unpriced: 166 on one-item
+plans, 55 of them contradictions or unreplayable checks, several in records later stages act on (a release check that
+passes with zero tests, a rollback using `git reset --hard`). Later stages already fix some records (23% of record-only
+fixes, F7), so there is overlap, but how much is unknown. The saving is small against that uncertainty.
 
-**2. The cut the numbers support first is the `plan` review on one-item plans.** It has the lowest yield (19 findings in 17
-children, 0.51 per minute, 4 contradictions) and spends 19.8 of its 37.3 minutes in passes that edited nothing. It
-saves 2.2 minutes per run on average. This is the lowest-regret candidate, not a proven-safe one: its defects included a
-test case asserting a store API the plan did not contain and a consumer check that could not observe the exit status it
-claimed.
+**2. Run the paired experiment before cutting anything.** Hello and battleship, three runs each per arm, one model and one
+harness version, planning Improve reviews on versus off. Compare (a) record defects the implement and system-test
+reviews then find, (b) their behaviour changes, (c) the release stage's own failures and send-backs, (d) minutes.
+`extract.py` and `analyze.py` already produce (a), (b) and (d) from any run folder.
 
-**3. If the owner wants to scale Improve to request size, key it on steps, and look at the build side first
-(exploratory, F9).** The
-clearest no-yield cell is the implement, system-test-author and carry-forward reviews on one-item one-step plans: 0
-behaviour changes in 27 passes, 32.4 minutes over 7 runs (4.6 per run). The proposal keeps exactly these reviews. Planning
-reviews on the same plans return 36 record fixes for 7.7 minutes per run. On plans of two or more steps the build side
-pays: behaviour changed in 15 of 72 passes (one item) and 25 of 90 (several items), including real page and server
-defects in the named battleship run (stale reply applied after New game, a fired cell re-enabled).
+**3. Hypotheses to put in that experiment.** (a) The `plan` review: lowest yield (19 findings in 17 children, 0.51 per
+minute, 4 contradictions), saves 2.2 minutes per run. A finding is not a fixed price, so this is a candidate, not a
+conclusion. (b) Improve as a whole on one-step plans: 0 behaviour changes in 27 build-side passes, 14.8 minutes per run in
+total; the proposal keeps exactly those build reviews, and the cell is seven hello runs. (c) Multi-item plans hold the
+larger record-only pool (planning and step-level 284 of 490 minutes) and the most record fixes (35 per run).
 
-**4. What would settle the planning question.** A paired run on identical cases, with the planning Improve reviews on
-or off: hello and battleship, three runs each on one model and one harness version, compared on (a) defects the
-implement and system-test reviews find in records, (b) behaviour changes made by implement and system-test reviews,
-(c) the release stage's own failures, (d) minutes. The extraction script already produces (a) to (d) from any run folder.
+**4. Not recommended without the owner's go:** any change to pass limits or to the confirming pass (F8); the owner asked
+to be consulted before a loop limit is added or changed.
+
+## Revisions
+
+**2026-10-28, later the same day.** The owner found the conclusion unclear. I re-derived the headline numbers from the
+rows (they reproduce) and reworked the recommendation. Superseded, with reason:
+- "Do not adopt the blanket skip", then "the cut the numbers support first is the `plan` review", then "key it on steps":
+  three recommendations of unequal strength. The `plan` review ranking rests on findings per minute, which does not price a
+  fix; "key it on steps" rests on seven hello runs. Both are now hypotheses (Recommendation 3). The short answer now says
+  the data neither support nor refute the skip.
+- Added F10, F11 and two tables ("Improve minutes and product edits, by stage group"; "How Improve scales with plan size,
+  per run"). No count changed.
 
 ## Limits
 

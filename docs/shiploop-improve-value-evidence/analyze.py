@@ -209,6 +209,48 @@ def main():
                       "findings", "f: product", "f: records", "f: unacted", "min total", "min per run"], rows))
     out.append("")
 
+    # ---- minutes versus product edits, by stage group (all runs, then ShipLoop 1.16 and later)
+    def at_least(run, version):
+        return tuple(int(x) for x in run["shiploop_version"].split(".")[:2]) >= version
+
+    rows = []
+    for label, keep in (("all 25 runs", lambda r: True), ("ShipLoop 1.16 and later (5 runs)", lambda r: at_least(r, (1, 16)))):
+        runs_in = {r["run"] for r in runs if keep(r)}
+        total = sum(p["seconds"] or 0 for p in passes if p["run"] in runs_in)
+        for names, groups in (("planning", ("planning",)), ("step-level planning", ("step-level planning",)),
+                              ("build + carry-forward", ("build", "carry-forward"))):
+            sp = [p for p in passes if p["run"] in runs_in and p["group"] in groups]
+            sec = sum(p["seconds"] or 0 for p in sp)
+            fl = [f for f in findings if f["run"] in runs_in and f["group"] in groups]
+            fe = collections.Counter(f["effect"] for f in fl)
+            nb = sum(1 for p in sp if p["behaviour"])
+            rows.append([label, names, len(sp), mins(sec), pct(sec, total), sum(1 for p in sp if p["outcome"] == "product"), nb,
+                         len(fl), fe["product"], fe["records"], mins(sec / nb) if nb else "-"])
+    out.append("### Improve minutes and product edits, by stage group\n")
+    out.append(table(["runs", "stage group", "passes", "min", "share of Improve min", "passes editing product", "behaviour passes",
+                      "findings", "f: product", "f: records", "min per behaviour pass"], rows))
+    out.append("")
+
+    # ---- how the work scales with plan size (per run)
+    rows = []
+    for size in ["1 item, 1 step", "1 item, 2+ steps", "2+ items"]:
+        rs = [r for r in runs if size_class(r) == size]
+        n = len(rs)
+        ids = {r["run"] for r in rs}
+        sp = [p for p in passes if p["run"] in ids]
+        plan_p = [p for p in sp if p["group"] == "planning"]
+        build_p = [p for p in sp if p["group"] in ("build", "carry-forward")]
+        plan_f = [f for f in findings if f["run"] in ids and f["group"] == "planning" and f["effect"] != "unacted"]
+        active = sum(r["active_seconds"] or r["wall_seconds"] or 0 for r in rs)
+        imp = sum(p["seconds"] or 0 for p in sp)
+        rows.append([size, n, mins(active / n), mins(imp / n), pct(imp, active), mins(sum(p["seconds"] or 0 for p in plan_p) / n),
+                     "%.1f" % (len(plan_f) / n), "%.1f" % (sum(1 for p in build_p if p["behaviour"]) / n),
+                     "%d / %d" % (sum(1 for p in build_p if p["behaviour"]), len(build_p))])
+    out.append("### How Improve scales with plan size, per run\n")
+    out.append(table(["plan size", "runs", "active min", "Improve min", "Improve share", "planning min", "planning fixes",
+                      "build behaviour passes", "behaviour passes / build passes"], rows))
+    out.append("")
+
     # ---- size class x stage
     rows = []
     for size in ["1 item, 1 step", "1 item, 2+ steps", "2+ items"]:
