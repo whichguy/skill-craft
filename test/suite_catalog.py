@@ -76,7 +76,6 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-navigator-contract.test.py",
     "test/shiploop-navigator-v4.test.py",
     "test/shiploop-stopped-improve.test.py",
-    "test/shiploop-v4-consumers.test.py",
     "test/shiploop-standalone-improve.test.py",
     "test/shiploop-actual-improve-cli.test.py",
     "test/shiploop-packet-bounds.test.py",
@@ -104,7 +103,6 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
     "test/shiploop-return-review.test.py",
-    "test/shiploop-planning-context.test.py",
     "test/shiploop-consumer-delivery.test.py",
     "test/shiploop-consumer-delivery-cli.test.py",
     "test/shiploop-delegation.test.py",
@@ -190,7 +188,6 @@ _DURATION_SECONDS = {
     "test/shiploop-rehydration.test.py": 2.0,
     "test/shiploop-confirmation.test.py": 1.0,
     "test/shiploop-navigator-contract.test.py": 2.793,
-    "test/shiploop-v4-consumers.test.py": 1.048,
     "test/shiploop-packet-bounds.test.py": 0.167,
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
@@ -243,7 +240,6 @@ _DURATION_SECONDS = {
     "test/shiploop-standalone-improve.test.py": 2.811,
     "test/shiploop-guidance.test.py": 4.581,
     "test/shiploop-full-runtime.test.py": 156.431,
-    "test/shiploop-planning-context.test.py": 0.976,
     "test/shiploop-consumer-delivery-cli.test.py": 4.374,
     "test/shiploop-delegation.test.py": 3.445,
     # 0.2 was written at a handful of tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
@@ -397,7 +393,6 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-navigator-contract.test.py",
     "test/shiploop-navigator-v4.test.py",
     "test/shiploop-stopped-improve.test.py",
-    "test/shiploop-v4-consumers.test.py",
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-status-display.test.py",
@@ -419,7 +414,6 @@ _COMPOSITION_PATHS = frozenset({
     "test/shiploop-delegation.test.py",
     "test/shiploop-full-runtime.test.py",
     "test/shiploop-improve-schedule.test.py",
-    "test/shiploop-planning-context.test.py",
     "test/shiploop-standalone-improve.test.py",
     "test/shiploop-stopped-improve.test.py",
 })

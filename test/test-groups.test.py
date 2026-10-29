@@ -113,9 +113,9 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         # 109 before design T §9.1 2c-2 retired the chain's seven suites and the native pilot's three
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 99)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 97)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 154)
+        self.assertEqual(len(suite_catalog.SUITES), 152)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))

@@ -58,7 +58,6 @@ truthfully reports incomplete planning with a usable recovery action.
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |
-| Current dependency | `bash test/run-integration.sh current-dispatcher --help` | Explicit external Dispatcher checkout; offline compatibility |
 | Installed or live | `bash test/run-integration.sh --help` | Selected real host, engine, installed package or credentials; opt-in |
 
 ```mermaid
@@ -73,8 +72,8 @@ flowchart TD
 
 Pull requests and ordinary `main` pushes run the quick tier: the fixed baseline
 plus the suites that match the changed files (a changed suite runs itself; a
-changed file selects the suites named after it, so `shiploop_planning_context.py` selects
-the `shiploop-planning-context` suite; a change under `skills/<leaf>/` selects the core
+changed file selects the suites named after it, so `shiploop_lint.py` selects
+the `shiploop-lint` suite; a change under `skills/<leaf>/` selects the core
 suites named after the leaf; a changed file under `skills/`, `agents/`,
 `scripts/` or `test/` also selects the suites whose source, or a test helper
 they import, names it, so `shiploop_navigator.py` and
@@ -127,10 +126,10 @@ slices of the same full inventory, not additional coverage.
 The quick baseline is three core suites (`test-groups`, `ci-policy`,
 `skill-frontmatter`), the apparatus's no-model mock replay
 (`shiploop-mock-replay`, `check_suite.py --suite mock`: captured agent results
-drive the real navigator, about two seconds) and twelve ShipLoop suites
+drive the real navigator, about two seconds) and ten ShipLoop suites
 (`no-model-launch`, `navigator-contract`, `navigator-v4`, `stopped-improve`,
-`v4-consumers`, `packet-bounds`, `navigator-dry-run`, `status-display`,
-`narrative`, `stage-spec`, `chain-async` and `planning-handoff`).
+`packet-bounds`, `navigator-dry-run`, `status-display`, `narrative`,
+`stage-spec` and `planning-handoff`).
 The Ask-Agent workspace, delivery and managed-harness checks run in core.
 
 An optional `--output` directory must be new and outside the checkout. It retains
@@ -196,8 +195,8 @@ for that boundary and retain its results separately from automated test results.
 | Navigator / action walk / full runtime | Synthetic state transitions, protocol traversal and copied-package public CLI execution are distinct checks |
 | Improve standalone / actual CLI / stopped completion | Direct import, process transport and incomplete-settlement rejection need independent evidence |
 
-Reusable lifecycle, planning-context and consumer-contract setup lives in
-`test/shiploop_*_support.py` modules. Chain and navigator consumers import these
+Reusable lifecycle and consumer-contract setup lives in
+`test/shiploop_*_support.py` modules. Navigator consumers import these
 helpers directly; the dedicated actual-Improve-CLI fixture adapter remains in its
 integration test. Each case still owns its disposable repositories and cleanup; expensive
 setup is not shared across cases whose mutations could interfere. Pure convergence
@@ -222,31 +221,7 @@ it edits `TOP_ORDER` or a label in the helper once; the helper's negative self-t
 `TopBlockHelperTests` in `test/shiploop-packet-recut.test.py`. `unaccepted_outcomes` checks that every outcome a
 packet or refusal tells the model to report is one its stage accepts.
 
-## Qualify the current Dispatcher
-
-The default hermetic suites intentionally use recorded compatibility fixtures.
-For an external checkout of the current Dispatcher, use its explicit card:
-
-```sh
-bash test/run-integration.sh current-dispatcher \
-  --dispatcher-skill /absolute/plan-orchestrator/skills/plan-dispatcher/SKILL.md \
-  --output /tmp/dispatcher-qualification-unique
-```
-
-Both skill-craft and the selected dependency must be clean Git checkouts. Select
-a freshly resolved upstream commit for the dependency. The command records
-that commit and package identity and runs the offline native-pilot composition
-checks against it. It requires a new output directory outside both repositories;
-missing inputs and package drift fail. It does not fetch an upstream revision or
-launch a native/model agent, so the caller must select the current revision and
-retain how it was resolved. (The native pilot it ran, `test/experiments/shiploop_chain`, was retired with
-ShipLoop's chain in design T section 9.1 2c-2, so this command has no target until it is retired or replaced.)
-
-The upstream `whichguy/plan-orchestrator` repository is private. This repository's
-credential-free GitHub jobs therefore retain frozen hermetic fixtures; current
-Dispatcher qualification is a separate local release check until an authorized
-CI credential is available. This is an explicit coverage boundary, not a skipped
-green CI job.
+## Local composition checks
 
 `python3 test/shiploop-probe-decisions.test.py` checks the separate decision-driven
 probe corpus and its thin frozen-study adapter without launching a model. It
@@ -255,14 +230,6 @@ indeterminate outcomes; verifies candidate/arm identity and source integrity;
 and checks blind evidence collection. Live prompt comparisons are explicit
 experiments, not CI dependencies. See the
 [probe-decision study](experiments/shiploop_probe_decisions/README.md).
-
-Planning-material transport has one focused suite (its composed suite with ShipLoop's chain was retired with the chain, design T section 9.1 2c-2):
-
-```sh
-python3 -B test/shiploop-planning-context.test.py
-```
-
-The collector suite checks accepted planning records, reference resolution, immutable inputs, and exclusion of the original user prompt. It runs in the ordinary ShipLoop inventory; it does not establish model understanding or native-host delivery. The fixture's `PROVENANCE.json` identifies the upstream commit and every copied file hash, independently of the author's local checkout path; it is a copied fixture, not a released package, installed-package qualification, or native-execution proof.
 
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol 4 graph, including cold recovery and
