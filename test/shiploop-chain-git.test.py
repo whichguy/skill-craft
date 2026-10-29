@@ -173,9 +173,17 @@ class ShipLoopChainGitTests(unittest.TestCase):
         }
 
     def recreate_registered_worktree(self, root: Path, branch: str) -> dict:
-        self.git("worktree", "remove", str(root), cwd=self.primary)
-        self.git("worktree", "add", "-q", str(root), branch, cwd=self.primary)
-        return self.call(chain_git.target_identity, root)
+        # Hold both directories open across the removal. An unlinked directory keeps its inode until it is closed, so the
+        # replacement cannot be handed the same inode number; ext4 hands a freed one out at once, which made the
+        # "different instance" premise of the ABA test fail on CI (full tier, 2026-10-29).
+        held = [os.open(path, os.O_RDONLY) for path in (root, Path(self.call(chain_git.target_identity, root)["git_dir"]))]
+        try:
+            self.git("worktree", "remove", str(root), cwd=self.primary)
+            self.git("worktree", "add", "-q", str(root), branch, cwd=self.primary)
+            return self.call(chain_git.target_identity, root)
+        finally:
+            for descriptor in held:
+                os.close(descriptor)
 
     def assert_registered_worktree(self, root: Path) -> None:
         worktrees = self.git("worktree", "list", "--porcelain", cwd=self.primary).stdout
