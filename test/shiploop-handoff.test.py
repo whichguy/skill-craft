@@ -692,10 +692,16 @@ class TestLayerGateTests(RepoCase):
                                         stage="test-strategy")
 
     def test_the_layers_print_within_their_limit_or_are_refused(self) -> None:
+        # One bound: the printed lines together (layers.TEXT_LIMIT). A single long field is accepted while they fit; the
+        # per-field limits refused 6 fields in the phase A round, e.g. a 61-character target and a 293-character route
+        # (docs/shiploop-trims-plan-2026-10-28.md, T2).
         state = item_state(self.repo, "W1", [], "step-plan")
         done = {"outcome": "done", "summary": "s", "targets": []}
-        with self.assertRaisesRegex(navigator.NavigatorError, "within 60"):
-            navigator._canonical_result(dict(done, test_layers=[dict(self.UNIT, code="x" * 61)]), stage="test-strategy")
+        long_row = dict(self.UNIT, code="x" * 61, harness="h" * 86, reason="r" * 176)
+        long_target = {"target": "t" * 61, "keeps_state": "yes",
+                       "base_state_route": "an inventory check before each test " + "b" * 260}
+        navigator._check_submitted_layers(state, "test-strategy",
+                                          dict(done, test_layers=[long_row], targets=[long_target]))
         many = [dict(self.UNIT, code="code " + str(index), harness="runner " + str(index), reason="r" * 150,
                      status="prerequisite") for index in range(12)]
         message = self.refused(state, "test-strategy", dict(done, test_layers=many))
