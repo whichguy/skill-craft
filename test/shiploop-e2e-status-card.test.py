@@ -150,7 +150,7 @@ class Builders(unittest.TestCase):
         history = ([{"stage": stage, "outcome": "done", "workitem": None, "action": "p" + stage}
                     for stage in ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")]
                    + [{"stage": stage, "outcome": "done", "workitem": "W1", "action": "w" + stage}
-                      for stage in ("step-plan", "test-spec", "implement", "test", "document", "verify")]
+                      for stage in ("step-plan", "test-spec", "implement", "test", "document")]
                    + [{"stage": "implement", "outcome": "send-back", "workitem": "W1", "action": "sb"},
                       {"stage": "implement", "outcome": "done", "workitem": "W1", "action": "again"},
                       {"stage": "step-plan", "outcome": "done", "workitem": "W2", "action": "w2"}])
@@ -172,8 +172,7 @@ class Builders(unittest.TestCase):
         self.assertEqual(names, ["Prelude", "W1", "W2", "Outer"])
         self.assertEqual(slots(model, 0), [("pass", "")] * 7)
         # A finished item shows only the stages it ran; implement ran twice, after one send-back.
-        self.assertEqual(slots(model, 1), [("pass", ""), ("pass", ""), ("pass", "2"), ("pass", ""), ("pass", ""),
-                                           ("pass", "")])
+        self.assertEqual(slots(model, 1), [("pass", ""), ("pass", ""), ("pass", "2"), ("pass", ""), ("pass", "")])
         self.assertEqual(model["rows"][1]["sub"], "1 sent back or added work")
         self.assertEqual(slots(model, 2)[:3], [("pass", ""), ("running", "I"), ("pending", "")])
         self.assertTrue(all(state == "pending" for state, _label in slots(model, 3)))

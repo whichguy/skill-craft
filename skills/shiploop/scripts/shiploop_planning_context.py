@@ -50,7 +50,6 @@ _PLANNING_STAGES = frozenset(
         "validate-existing",
         "test",
         "document",
-        "verify",
         "carry-forward",
         "system-test-author",
         "system-test",

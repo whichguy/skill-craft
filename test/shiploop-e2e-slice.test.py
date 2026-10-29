@@ -279,7 +279,7 @@ class StopTests(SliceCase):
         # from it, and the archive the poll still writes covers only the packets the trace never printed.
         self.assertTrue(report["emissions_source"].startswith("run trace"), report["emissions_source"])
         stages = {row["stage"] for row in report["packets"]}
-        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward"}
+        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward"}
         self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once
         self.assertGreaterEqual(len(archived), len(inner))
         self.assertTrue((self.out / packets.REPORT_MD).is_file())
@@ -734,10 +734,10 @@ class ClearProbeTests(SliceCase):
 
     def test_each_session_ends_at_the_next_position_not_yet_cleared_and_three_clears_give_three_records(self):
         seeded = self.seed()
-        specs = clear.parse_spec(["implement", "test", "verify"])
+        specs = clear.parse_spec(["implement", "test", "document"])  # verify retired (design T §9.1 2b-4c)
         statuses, first = [], True
         for _ in range(6):                                   # the loop in slice.main: continue while a clear ended the session
-            process = self.fake(seeded, "normal", pause_at="implement,test,verify", clear_at=specs, first=first)
+            process = self.fake(seeded, "normal", pause_at="implement,test,document", clear_at=specs, first=first)
             statuses.append(process["status"])
             first = False
             if process["status"] != "cleared":
@@ -745,7 +745,7 @@ class ClearProbeTests(SliceCase):
         self.assertEqual(statuses, ["cleared", "cleared", "cleared", "slice-complete"])
         records = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
         self.assertEqual([(r["n"], r["stage"], r["stopped"]["stage"]) for r in records],
-                         [(1, "implement", "implement"), (2, "test", "test"), (3, "verify", "verify")])
+                         [(1, "implement", "implement"), (2, "test", "test"), (3, "document", "document")])
         lines = [r["stopped"]["events_line"] for r in records]
         self.assertEqual(lines, sorted(lines))
 

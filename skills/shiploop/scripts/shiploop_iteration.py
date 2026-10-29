@@ -21,8 +21,8 @@ Build order step 2a adds what each step owes its test stage (``case_step``, ``du
 ``active_commands``), derived from data ShipLoop already validates: each test-spec case names its step-plan
 ``criterion`` and each step lists the ``criteria`` it satisfies, so the test spec needs no field of its own (F1).
 
-Stage IDs keep today's names (``implement`` is the design's "build"); ``commit`` is new, and ``verify`` has no place in
-an iteration (§7, §8.1).  There is no knowledge stage (2b-3, option C; owner 2026-10-28, "Go with C"): document is the
+Stage IDs keep today's names (``implement`` is the design's "build"); ``commit`` is new, and ``verify`` is retired
+(§7, §8.1; 2b-4c).  There is no knowledge stage (2b-3, option C; owner 2026-10-28, "Go with C"): document is the
 step's one place to reflect, recording in the knowledge home what the step showed, so its review sees and corrects
 that record with the code, tests and docs.
 """

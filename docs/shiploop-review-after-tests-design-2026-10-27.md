@@ -802,7 +802,84 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - It uses `pending_record` and `commit_decision`.
     - Verify is retired, and carry-forward follows the last iteration.
 
-    It lands as two commits whose tests pass: 2b-4a, the commit stage; then 2b-4b, verify retired.
+    It lands as two commits whose tests pass: 2b-4a, the commit stage; then 2b-4b with 2b-4c, verify's gates moved
+    into the step and verify retired. (2b-4b was cut as its own commit first; its quick tier showed the same packet
+    pins and heads failing that retiring verify changes again, so the two land together.)
+    - **2b-4c, 2026-10-28: verify retired.** The stage table has 23 stages; each item runs step-plan, test-spec and
+      validate-existing, then implement, test and document per step, then carry-forward (`_finish`: send-back from
+      test-spec through document). State version 10; a version-9 run is refused with `V9_REASON`.
+      - **Where verify's duties went** (§7.3, checked against its duty text):
+        - *Run and Confirm* (every recorded command after the last edit; each criterion confirmed): document's rerun
+          and the review import's rerun. A criterion no passing command confirms is the step review's, by inspection
+          after its last edit (a new bullet in its focus).
+        - *Trace* (one valid, one boundary and one invalid input per changed public entry point): a new step-review
+          bullet, and the test stage's duty 3 now writes those three cases. Every finding verify made in five runs came
+          from this trace (§7.2).
+        - *Review* (the whole diff against the Code craft rubric): the step review's focus already held the rubric
+          and the same checklist.
+        - *Assembly* (chained work on the ask-agent route): a bullet of the item review's steps wording, "two steps
+          that conflict, or disagree at an interface they share".
+        - *Later checks*: document's open items, due at the stage that makes the check.
+        - *Reconcile cases*: the test stage's ID, floor and RED gates at every step, so nothing is left to reconcile by
+          hand. *Services* got no new home: in the five runs verify found no service issue (§7.2); test-spec plans
+          service cases.
+      - **The item commit.** `_item_commit` is gone. On the inline route each step's commit stage commits it; on the
+        ask-agent route `_item_commit_stage` commits the item whole as `feat: <item> <title>` when its document stage
+        and review are accepted, fail-closed like the step's. Both name the changed files they leave
+        (`_left_notice`), and document's packet prints "Changed, ShipLoop will not commit: …" when one is left.
+      - **Removed with verify.** The change inventory (lint), the advisory lint pass at its entry, `shiploop_quality`
+        and its rubric file, verify's one-trivial-review loop (`TRIVIAL_REVIEWS`, `_LOOP_LAST`), its RED-unobserved
+        lines (product-acceptance keeps every item's). Carry-forward reads the item's test and document results, and
+        its unnamed-commands line reads the item's test stage (`_passed_commands`).
+      - **Run Review** reads the new loop as stage model v6, and an 8-stage run with verify as v5, frozen as v4 is
+        (`defaults/stages-v5.json`). Per-step rendering stays 2b-5's.
+      - **A defect from 2b-2, found here.** The step review's handoff still told the child to commit, though its focus
+        said "Leave your edits uncommitted". It did so in its Commit section (improve-commit and its message rules),
+        its top line, Checked-by, Changes and Evidence lines. A review that followed it would have moved HEAD inside
+        the step, and since 2b-4a the commit stage refuses that.
+        - Now every one of those lines says the step review commits nothing (`STEP_REVIEW_COMMIT_LINE`), and
+          `improve-commit` refuses at a step review, naming improve-pass. improve-pass already left the edits
+          uncommitted (`STEP_REVIEW_NO_COMMIT`, 2b-2).
+        - The handoff fits pilot A again (21,475 bytes inline, 21,896 on the ask-agent route). Its Commit line ends at
+          5,395 and 5,476 characters, inside a 5,600 window that improve-route measures; every other review keeps
+          4,500.
+      - **Suites that `--changed-from` never selected had drifted since 2b-2.** improve-route, improve-schedule,
+        consumer-delivery, send-back and chain still expected implement's step review, or a walk from S1's build
+        straight to S2's. Each failure was checked against 3e4c3e0e or 388de0bf. The whole shiploop group now runs
+        for this switch, and it ran on the commit (Evidence below).
+      - **Left for 2b-5** (E2E audit harness): `test/shiploop_e2e/counters.py` matches only `feat: <item> ` subjects,
+        so it counts no inline step commit (`feat(W1/S1): …`); `slice.py`'s docstring still names verify. Recorded
+        fixtures and evaluators that name verify are history and stay as recorded.
+      - **Evidence.** `run-all.sh --group quick --group shiploop --changed-from fdad45b4`: 118 suites in 1,776 s; 116
+        passed. The two that failed, delegation and packet-completeness, still expected the improve-commit command in
+        the step review's handoff; both pass after the fix (66 and 63 tests). Fail-first tests, each seen failing
+        first:
+        - the version-9 refusal (send-back);
+        - the v5/v6 stage models (run-review StageModelTests);
+        - the step review's Commit section (improve-route);
+        - improve-commit refused at a step review (actual-improve-cli, through the real CLI);
+        - 2b-4b's three gate tests (below).
+    - **2b-4b, 2026-10-28: verify's gates move into the step.**
+      - **Document's done** runs the lint gate and a rerun, both measured from the tree document began from. That tree
+        is recorded at its entry as `entry`, by `_document_entry` (read back by `_stage_base`).
+        - The lint gate judges only document's own lines. A finding implement or test waived is not document's to
+          waive again, and the refusal says "on lines the document stage changed".
+        - The rerun (`_document_rerun`) covers what document's edits could affect, out of the commands its step's
+          test stage ran:
+          - nothing after no edit;
+          - the check commands after edits to no code or test path, so a docs edit reruns the doc checks;
+          - every command after a code or test edit, or when the edits cannot be read.
+
+          So a step whose document edits only Markdown does not rerun its test suites (the owner's 2d cost rule). The
+          design's §8.2 table said exactly this: "lint on docs; the doc checks among the recorded commands".
+      - **The step review's import** lints the lines the review changed since its bind snapshot
+        (`_review_lint_gate`), then reruns the step's commands as before. Since 2b-2 the review's edits to every step
+        but the last were linted by no gate: verify's gate measured from the last step's base.
+      - **Refused reruns.** Document's refused rerun opens its send-back route as verify's does (`loops._rerun_refused`).
+      - **Evidence.** Fail-first tests, each seen failing first:
+        - shiploop-test-loop `test_document_reruns_what_its_own_edits_could_affect` (all three cases);
+        - shiploop-lint `GateTests.test_document_is_gated_on_the_lines_it_changed_and_only_on_them` and
+          `test_a_step_reviews_edits_are_gated_at_its_import_on_the_lines_the_review_changed`.
     - **2b-4a, done 2026-10-28.** The step's commit is the iteration's commit stage (`_commit_stage`, which replaces
       `_step_commit`).
       - **When it runs.** It runs in the call that accepts the step's last stage: document's complete, or the import

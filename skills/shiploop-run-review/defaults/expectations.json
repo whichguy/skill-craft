@@ -47,37 +47,29 @@
   "kind": "phase",
   "order": 3,
   "title": "Build",
-  "short": "Validate, implement, test, document",
-  "text": "For each work item the script serves validate-existing, implement, test and document in order, each as an Until Loop whose contract the script writes and whose terminal packet it checks. validate-existing runs the step plan's expectation checks on the item base and is skipped when every one matches; implement runs one packet per step, each followed by an Improve child and the lint gate; test proves the new tests fail on the base checkout and pass on the candidate; document runs only when the change is behavioural. A revise outcome returns through the script to step-plan for a replan."
+  "short": "Validate, then build, test, document and commit each step",
+  "text": "For each work item the script serves validate-existing once, then each step in turn: implement, test and document, each as an Until Loop whose contract the script writes and whose terminal packet it checks, then the step's Improve review and the script's commit of the step. validate-existing runs the step plan's expectation checks on the item base and is skipped when every one matches; implement builds the step and passes the lint gate and its Proof; test proves the step's new tests fail on the step's base and pass on the candidate; document updates the docs and the knowledge home, is recorded not applicable when the step changed no code or test path, and at done lints its own lines and reruns what its edits could affect. The review traces each changed entry point; its import lints and reruns again, and the script commits the step as one commit before the next step starts. A send-back returns through the script to step-plan for a replan."
  },
  {
   "key": "phase-4",
   "kind": "phase",
   "order": 4,
-  "title": "Verify",
-  "short": "Rerun every check, commit the item",
-  "text": "The script reruns every recorded test command and the lint gate on the item's candidate, always, and commits the verified item."
- },
- {
-  "key": "phase-5",
-  "kind": "phase",
-  "order": 5,
   "title": "Carry forward",
   "short": "Lessons, skill decision, queue",
   "text": "Once per work item the model records lessons, decides whether a skill is reused, updated or created (the script commits a created or updated skill), and revises the remaining queue before the next item's step plan."
  },
  {
-  "key": "phase-6",
+  "key": "phase-5",
   "kind": "phase",
-  "order": 6,
+  "order": 5,
   "title": "System test",
   "short": "Whole product, real checks",
   "text": "The whole product is tested for real against the spec's acceptance criteria, by tests the script requires and checks."
  },
  {
-  "key": "phase-7",
+  "key": "phase-6",
   "kind": "phase",
-  "order": 7,
+  "order": 6,
   "title": "Release",
   "short": "Release, report, hand off",
   "text": "The script serves the release plan, check, release and verification stages, then operations and handoff, and ends the run with a report."

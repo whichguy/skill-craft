@@ -32,7 +32,6 @@ from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E4
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
-import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -72,7 +71,7 @@ class Synthetic(unittest.TestCase):
         self.repo.mkdir()
         (self.root / "loops").mkdir(parents=True)
         subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
-        self.cli = loops.runtime(self.state_for("verify"))["runtime_cli"]
+        self.cli = loops.runtime(self.state_for("document"))["runtime_cli"]
 
     def state_for(self, stage: str, title: str = "Add parser") -> dict:
         return {
@@ -156,7 +155,8 @@ class ContractTests(Synthetic):
                 self.assertEqual(validate(json.loads(json.dumps(value)), input_contract=True), {**value, "exit_checks": []})
                 self.assertEqual(json.loads(writes[loops.contract_path(action)]), value)
                 self.assertEqual(loops.contract(self.root, state, action), value, "not deterministic")
-                self.assertEqual(value["required_trivial_reviews"], 1 if stage == "verify" else 0)
+                # Verify's review loop, the one stage that needed a trivial review, is retired (design T §9.1 2b-4c).
+                self.assertEqual(value["required_trivial_reviews"], 0)
                 # an inline implement step's first condition ends with the criteria assigned to it (fix plan T11)
                 scope = loops.implement_scope(state, "W1", action) if stage == "implement" else None
                 self.assertEqual(value["exit_condition"], loops.exit_condition(stage, scope))
@@ -166,7 +166,7 @@ class ContractTests(Synthetic):
                 self.assertIn("there is no iteration limit", value["repeat_condition"])
                 self.assertNotIn("Build a parser", json.dumps(value), "the request text leaked into the contract")
                 self.assertIn(str(self.root / "state.md"), value["context"]["request"])
-                self.assertEqual(stage == "verify", quality.RUBRIC_PATH in writes)
+                self.assertEqual(set(writes), {loops.contract_path(action)})  # no rubric file: it was verify's
                 receipt = loops.receipt_path(self.root, action)
                 packet = self.runtime(["start", "--receipt", str(receipt)], writes[loops.contract_path(action)])
                 self.assertEqual(packet["status"], "active", packet)
@@ -241,13 +241,6 @@ class ContractTests(Synthetic):
                 for retired in ("revise", "replan"):
                     self.assertNotIn(retired, text)
 
-    def test_verify_writes_the_code_craft_rubric_its_contract_names(self):
-        writes = self.write(self.state_for("verify"))
-        self.assertEqual(writes[quality.RUBRIC_PATH], prompts.CODE_CRAFT)
-        value = loops.contract(self.root, self.state_for("verify"), "A-verify")
-        purposes = {row["purpose"]: row["locator"] for row in value["context"]["resources"]}
-        self.assertEqual(purposes["Code craft rubric the review applies"], str(self.root / quality.RUBRIC_PATH))
-
     def test_implement_contract_names_the_current_step_and_the_items_paths_with_no_step_fence(self):
         """The inline step's scope is its assigned criteria within the item's declared paths (implement-step fix plan
         D3: no step path fence), and its Work names the step."""
@@ -285,7 +278,7 @@ class ContractTests(Synthetic):
                     str(self.root / "packets" / ("A-" + stage + ".md")), str(self.root / "notes" / ("A-" + stage + ".md")),
                     str(home / "spec.md"), str(home / "architecture.md"), str(home / "environment.md"),
                     str(self.root / "results" / "A-sp.md")])
-                self.assertEqual(len(resources), 9 if stage == "verify" else 6)
+                self.assertEqual(len(resources), 6)
 
     def test_a_contract_is_only_for_the_current_inner_action(self):
         with self.assertRaisesRegex(loops.LoopError, "not the current inner action"):
@@ -365,7 +358,7 @@ class InvokeLinesTests(Synthetic):
 
     def test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop(self):
         """The printed command is the one that starts the loop, on this action's own contract and receipt."""
-        for stage in ("step-plan", "test", "document", "verify"):
+        for stage in ("step-plan", "test", "document", "carry-forward"):
             with self.subTest(stage=stage):
                 state = self.state_for(stage)
                 self.write(state)
@@ -541,7 +534,7 @@ class RenderedPacketsTests(unittest.TestCase):
 
 class CheckTerminalTests(Synthetic):
     def test_a_complete_satisfied_receipt_supports_done_only(self):
-        for stage, classification in (("implement", "non-trivial"), ("verify", "trivial")):
+        for stage, classification in (("implement", "non-trivial"), ("document", "trivial")):
             with self.subTest(stage=stage):
                 state, receipt = self.start(stage)
                 refs = {"evidence_refs": [str(receipt)]}
@@ -564,11 +557,11 @@ class CheckTerminalTests(Synthetic):
         """E4 (run-insights plan 8.5): a live run from another contract must end first, because the runtime refuses a new
         start over an active receipt, so a contract mismatch named first would send the model to a start command that is
         refused.  Once the run ends, the same result is refused for its contract."""
-        state, receipt = self.start("verify")
-        other = self.state_for("verify", title="Other title")
+        state, receipt = self.start("document")
+        other = self.state_for("document", title="Other title")
         refs = {"evidence_refs": [str(receipt)]}
-        self.refused(other, {"outcome": "done", **refs}, "the verify loop is still active")
-        self.refused(other, {"outcome": "send-back", **refs}, "the verify loop is still active")
+        self.refused(other, {"outcome": "done", **refs}, "the document loop is still active")
+        self.refused(other, {"outcome": "send-back", **refs}, "the document loop is still active")
         self.report(receipt, TRIVIAL)
         self.refused(other, {"outcome": "done", **refs}, "not from a run of this action's contract")
         loops.check_terminal(self.root, state, {"outcome": "done", **refs})
@@ -591,18 +584,6 @@ class CheckTerminalTests(Synthetic):
         result = {"outcome": "blocked", "evidence_refs": []}
         self.assertIsNone(loops.check_terminal(self.root, state, result))
         self.assertIs(loops.cite_receipt(result, None), result)
-
-    def test_verify_needs_a_final_trivial_satisfied_report(self):
-        state, receipt = self.start("verify")
-        self.report(receipt, MATERIAL, TRIVIAL)
-        refs = {"outcome": "done", "evidence_refs": [str(receipt)]}
-        packet = json.loads(receipt.read_text())
-        packet["last_report"]["classification"] = "non-trivial"
-        receipt.write_text(json.dumps(packet))
-        self.refused(state, refs, "this loop's review gate needs a final trivial report")
-        packet["last_report"].update(classification="trivial", exit_assessment="unsatisfied")
-        receipt.write_text(json.dumps(packet))
-        self.refused(state, refs, "a complete receipt needs a final report whose exit is satisfied")
 
     def test_a_missing_receipt_refuses_done_with_the_start_command_and_accepts_blocked(self):
         state = self.state_for("carry-forward")
@@ -654,8 +635,14 @@ class CheckTerminalTests(Synthetic):
         self.refused({"stage": "spec"}, {"outcome": "done"}, "not in an inner stage")
 
 
+# A done document result: its knowledge record is required (design T §9.1 2b-3).
+DOC_DONE = dict(fx.DONE, knowledge=dict(fx.KNOWLEDGE_NONE))
+
+
 class NavigatorLoopTests(fx.RunDriver):
-    """The navigator's ``complete`` checks the receipt first, at every inner stage (here verify, the review loop)."""
+    """The navigator's ``complete`` checks the receipt first, at every inner stage (here document, the step's last).
+
+    Document's done needs its knowledge record, so the accepted results here carry it (``DOC_DONE``)."""
 
     def receipt(self) -> Path:
         return loops.receipt_path(self.run_dir, self.action())
@@ -721,13 +708,13 @@ class NavigatorLoopTests(fx.RunDriver):
 
     def test_the_packet_carries_the_invoke_block_and_the_entry_wrote_the_contract(self):
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         packet = self.packet()
         self.assertIn(loops.INVOKE_LINE, packet)
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
         self.assertEqual(contract, loops.contract(self.run_dir, self.state(), self.action()))
         self.assertEqual(contract["workspace"], str(self.repo))
-        # Decision 20: verify is outside ARGUMENT_STAGES, so the packet prints no "Work: ..." line; the Work lives
+        # Decision 20: document is outside ARGUMENT_STAGES, so the packet prints no "Work: ..." line; the Work lives
         # only in the Contract file (what the loop's own packets state each time).
         self.assertNotIn("\nWork: " + contract["work"] + "\n", packet)
         self.assertIn("Contract: " + str(self.run_dir / loops.contract_path(self.action())) + " · Receipt: "
@@ -770,7 +757,7 @@ class NavigatorLoopTests(fx.RunDriver):
         """Since 2026-10-10 every inner stage runs a loop, so a run that selected no Improve card binds the improve
         skill bundled beside ShipLoop instead of printing the loop as unavailable."""
         self.start(improve_skill="")
-        self.drive_to("verify")
+        self.drive_to("document")
         packet = self.packet()
         self.assertIn(loops.INVOKE_LINE, packet)
         # The packet names the bundled runtime's script in the command it prints, not a card to read.
@@ -781,18 +768,18 @@ class NavigatorLoopTests(fx.RunDriver):
 
     def test_a_completed_loop_is_accepted_as_done(self):
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         terminal = self.run_loop([MATERIAL, TRIVIAL])
         self.assertEqual((terminal["status"], terminal["progress"]["action_number"]), ("complete", 2))
-        self.submit(dict(fx.DONE, evidence_refs=[str(self.receipt())]))
-        self.assertEqual(nav.current_stage(self.state()), "carry-forward")
+        self.submit(dict(DOC_DONE, evidence_refs=[str(self.receipt())]))
+        self.assertEqual(self.state()["active_improve"]["stage"], "document", "accepted: the step's review starts")
 
     def test_done_without_a_matching_receipt_is_refused_and_nothing_is_saved(self):
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         before = (self.run_dir / "state.md").read_bytes()
-        for result, message in ((fx.DONE, "the verify loop has not run: no receipt exists at"),
-                                (dict(fx.DONE, outcome="repeat"), "verify accepts only done, blocked, send-back")):
+        for result, message in ((fx.DONE, "the document loop has not run: no receipt exists at"),
+                                (dict(fx.DONE, outcome="repeat"), "document accepts only done, blocked, send-back")):
             with self.subTest(message=message), self.assertRaisesRegex(nav.NavigatorError, message):
                 self.submit(result)
         edits = {"work": lambda contract: contract.update(work="Something easier."),
@@ -817,7 +804,7 @@ class NavigatorLoopTests(fx.RunDriver):
     def test_a_copied_or_live_receipt_is_refused(self):
         """Audit 2026-09-26: a six-key object copied from the contract passed as the terminal packet."""
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         before = (self.run_dir / "state.md").read_bytes()
         result = dict(fx.DONE, evidence_refs=[str(self.receipt())])
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
@@ -842,8 +829,8 @@ class NavigatorLoopTests(fx.RunDriver):
     def test_the_loop_has_no_iteration_limit(self):
         """Owner decision 2026-09-26: ShipLoop loops run until their exit condition holds."""
         self.start()
-        self.drive_to("verify")
-        # Decision 20: verify is outside ARGUMENT_STAGES, so the repeat condition (which carries this text) lives
+        self.drive_to("document")
+        # Decision 20: document is outside ARGUMENT_STAGES, so the repeat condition (which carries this text) lives
         # only in the Contract file, not the printed packet.
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
         self.assertIn("there is no iteration limit", contract["repeat_condition"])
@@ -851,14 +838,14 @@ class NavigatorLoopTests(fx.RunDriver):
         self.assertEqual(terminal["progress"]["action_number"], 7)
         refs = [str(self.receipt())]
         for outcome in ("send-back", "blocked"):
-            with self.assertRaisesRegex(nav.NavigatorError, "a complete verify loop reports outcome done"):
+            with self.assertRaisesRegex(nav.NavigatorError, "a complete document loop reports outcome done"):
                 self.submit(dict(fx.DONE, outcome=outcome, awaiting=SERVICE_WAIT, evidence_refs=refs))
-        self.submit(dict(fx.DONE, evidence_refs=refs))
-        self.assertEqual(nav.current_stage(self.state()), "carry-forward")
+        self.submit(dict(DOC_DONE, evidence_refs=refs))
+        self.assertEqual(self.state()["active_improve"]["stage"], "document", "accepted: the step's review starts")
 
     def test_a_cancelled_loop_is_refused_and_a_blocked_stop_reports_blocked(self):
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         self.run_loop([MATERIAL] * 4 + [CANCELLED])
         refs = [str(self.receipt())]
         for outcome in ("done", "send-back", "blocked"):
@@ -876,7 +863,7 @@ class NavigatorLoopTests(fx.RunDriver):
     def test_blocked_without_a_receipt_is_accepted(self):
         """A loop that never started (for example, no usable runtime) can still report blocked."""
         self.start()
-        self.drive_to("verify")
+        self.drive_to("document")
         self.assertFalse(self.receipt().exists())
         self.submit(dict(fx.DONE, outcome="blocked", awaiting=SERVICE_WAIT, summary="Until Loop runtime unavailable."))
         self.assertEqual(self.state()["status"], "blocked")
@@ -985,14 +972,11 @@ class WorkTextTests(Synthetic):
     """The Work and Repeat text of each contract cites the packet's duty items and the one command that tests a draft
     result; both were false in the artifact run (U11, SP-5, TD-6, SPEC-7, VR-6)."""
 
-    # The pin: how many numbered duty items each inner stage's duty prints (the highest number; verify's item 8, the
-    # assembly check, prints on the ask-agent route only).  A duty edit that adds, drops or renumbers an item fails here,
-    # and the range its Work cites (counted from the same text) moves with it.
+    # The pin: how many numbered duty items each inner stage's duty prints (the highest number).  A duty edit that adds,
+    # drops or renumbers an item fails here, and the range its Work cites (counted from the same text) moves with it.
+    # Every stage's loop does its whole duty: verify, whose last three items followed its review loop, is retired.
     DUTY_ITEMS = {"step-plan": 12, "test-spec": 8, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
-                  "verify": 12, "carry-forward": 4}
-    # The items each Work cites.  A stage's loop does its whole duty but verify's: items 10 to 12 (commit nothing, the
-    # summary, the send-back route) follow the review loop, and its duty says items 1-7 repeat and 8-9 are done once.
-    LOOP_LAST = {"verify": 9}
+                  "carry-forward": 4}
 
     def numbers(self, stage: str, route: str) -> list:
         return [int(n) for n in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))]
@@ -1023,14 +1007,13 @@ class WorkTextTests(Synthetic):
         for stage in stage_spec.INNER:
             for route in prompts.DELEGATIONS:
                 with self.subTest(stage=stage, route=route):
-                    printed = [n for n in self.numbers(stage, route) if n <= self.LOOP_LAST.get(stage, 99)]
+                    printed = self.numbers(stage, route)
                     self.assertEqual(self.cited(self.work(stage, route)), printed)
 
-    def test_the_ranges_read_as_ranges_and_verify_skips_the_assembly_item_inline(self):
+    def test_the_ranges_read_as_ranges(self):
         self.assertIn("duty items 1-12 of ", self.work("step-plan"))
         self.assertIn("duty items 1-4 of ", self.work("carry-forward", "ask-agent"))
-        self.assertIn("duty items 1-9 of ", self.work("verify", "ask-agent"))
-        self.assertIn("duty items 1-7 and 9 of ", self.work("verify", "inline"))
+        self.assertIn("duty items 1-7 of ", self.work("document", "inline"))
 
     def test_the_cited_range_follows_the_duty_text_it_is_generated_from(self):
         """A renumbering cannot leave a stale range: add an item to a duty and the Work moves with it."""
@@ -1042,21 +1025,6 @@ class WorkTextTests(Synthetic):
             prompts.DUTIES["document"] = original
         self.assertIn("duty items 1-7 of ", self.work("document"))
 
-    def test_verify_says_which_items_repeat_and_which_are_done_once(self):
-        text = {route: " ".join(prompts.duty("verify", delegation=route).split()) for route in prompts.DELEGATIONS}
-        self.assertIn("Each review iteration does items 1-7 in order; items 8-9 once, before you report the exit "
-                      "satisfied.", text["ask-agent"])
-        self.assertIn("Each review iteration does items 1-7 in order; item 9 once, before you report the exit "
-                      "satisfied.", text["inline"])
-        # the exit condition that item 9 serves
-        self.assertIn("later-phase checks are marked pending with their owner", stage_spec.stage("verify").done_when[3])
-        for route in prompts.DELEGATIONS:
-            self.assertIn("9. **Later checks.**", prompts.duty("verify", delegation=route))
-
-    def test_the_assembly_item_prints_on_the_ask_agent_route_only(self):
-        self.assertIn("8. **Assembly.**", prompts.duty("verify", delegation="ask-agent"))
-        self.assertNotIn("Assembly", prompts.duty("verify", delegation="inline"))
-
     def test_the_check_only_command_is_the_callback_with_the_flag_added_not_a_printed_command(self):
         for stage in ("step-plan", "test-spec", "test"):
             with self.subTest(stage=stage):
@@ -1066,7 +1034,7 @@ class WorkTextTests(Synthetic):
         self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
                       " ".join(self.work("test").split()))
         self.assertIn("a lint finding or a check-only refusal", loops.REPEAT["test"])
-        for stage in ("document", "implement", "verify", "carry-forward", "validate-existing"):
+        for stage in ("document", "implement", "carry-forward", "validate-existing"):
             self.assertNotIn("check-only", self.work(stage), stage)
 
     def test_the_printed_callback_with_the_flag_added_is_a_check_only_run(self):

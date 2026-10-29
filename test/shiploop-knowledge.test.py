@@ -215,7 +215,7 @@ class KnowledgeAfterEveryStageTests(KnowledgeTests):
         spec.write_text("# spec\n\nR-1: Import files.\nR-2: Report totals.\n")
         knowledge.commit(self.state, "prepare")
         spec.write_text("# spec\n\nR-1: Import files.\n")
-        self.assertIn("no longer mentions R-2", knowledge.check(self.state, "verify"))
+        self.assertIn("no longer mentions R-2", knowledge.check(self.state, "document"))
 
     def test_an_unchanged_home_is_not_checked_outside_a_close(self) -> None:
         self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
@@ -253,8 +253,9 @@ class ArchitectureTests(HomeFixture):
         prepare = [row for row in knowledge.stage_lines(self.state, "prepare") if row.startswith("Written by earlier stages")]
         self.assertIn(absolute, prepare[0])
         # implement keeps it up to date since task A2 (a deviation recorded as an AD-<n>), test-strategy since consumer
-        # contract 4b (the real-boundary checks); verify reads it and writes nothing.  Line 1 names every living file.
-        for stage in ("intake", "discovery", "spec", "verify"):
+        # contract 4b (the real-boundary checks); system-test reads it and writes nothing.  Line 1 names every living
+        # file.
+        for stage in ("intake", "discovery", "spec", "system-test"):
             with self.subTest(stage):
                 self.assertNotIn(absolute, "\n".join(knowledge.stage_lines(self.state, stage)[2:]))
 
@@ -837,9 +838,14 @@ class SectionsTests(HomeFixture):
                     self.assertTrue(any(item.startswith(heading) for heading in knowledge.SECTIONS[name]),
                                     repr(item) + " is named for " + name + " but is not in SECTIONS[" + repr(name) + "]")
 
-    def test_verify_reads_the_architecture_and_writes_nothing_and_the_planning_entries_are_unchanged(self) -> None:
+    def test_a_reader_that_writes_nothing_has_no_entry_and_the_planning_entries_are_unchanged(self) -> None:
+        # Verify, the reader this pinned before, is retired (design T §9.1 2b-4c) and keeps no entry in either table.
         self.assertNotIn("verify", knowledge.STAGE_FILES)
-        self.assertFalse([row for row in knowledge.stage_lines(self.state, "verify") if "keeps these up to date" in row])
+        self.assertNotIn("verify", knowledge.READS)
+        self.assertIn("architecture.md", knowledge.READS["system-test"])
+        self.assertNotIn("system-test", knowledge.STAGE_FILES)
+        self.assertFalse([row for row in knowledge.stage_lines(self.state, "system-test")
+                          if "keeps these up to date" in row])
         self.assertEqual(knowledge.STAGE_FILES["plan"], ("architecture.md",))
         self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))
         self.assertNotIn("test-spec", knowledge.STAGE_FILES)
@@ -1078,7 +1084,7 @@ class SectionNoticeTests(HomeFixture):
 
     def test_only_a_close_gives_a_notice_and_every_close_gives_the_same_lines(self) -> None:
         self.put("environment.md", "# Environment\n\nNode 22.\n")
-        for stage in ("intake", "plan", "step-plan", "implement", "verify", "handoff", "not-a-stage"):
+        for stage in ("intake", "plan", "step-plan", "implement", "document", "handoff", "not-a-stage"):
             with self.subTest(stage):
                 self.assertEqual(knowledge.section_notices(self.state, stage), [])
         for close in knowledge.CLOSES:
@@ -1258,7 +1264,7 @@ class SectionNoticeCloseTests(HomeFixture):
             with self.subTest(stage):
                 out, _ = self.close(stage)
                 self.assertEqual(out.count(knowledge.NOTICE_PREFIX), len(knowledge.SECTIONS))
-        for stage in ("implement", "plan", "verify", "carry-forward"):
+        for stage in ("implement", "plan", "document", "carry-forward"):
             with self.subTest(stage):
                 self.assertEqual(self.close(stage), ("", ""))
 
@@ -1740,8 +1746,9 @@ class SubjectTests(HomeCase):
 
 
 class UnnamedCommandTests(HomeFixture):
-    """knowledge.unnamed_commands and command_notices (efficiency plan U16, row VR-3): the commands that passed at verify and
-    environment.md's '## Commands' does not name, as a carry-forward line and one counted notice that never refuses."""
+    """knowledge.unnamed_commands and command_notices (efficiency plan U16, row VR-3): the commands that passed at the item's
+    test stage and environment.md's '## Commands' does not name, as a carry-forward line and one counted notice that never
+    refuses."""
 
     PASSED = ["npm test", "node   --test test/unit"]
 

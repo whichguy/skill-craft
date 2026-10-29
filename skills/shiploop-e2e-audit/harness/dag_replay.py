@@ -55,9 +55,10 @@ _PROTOCOL_VERSION = 4
 _PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
+# verify is retired (design T §9.1 2b-4c): each step's document stage and its review close the step, and the item's
+# carry-forward follows the last one.
 _INNER = (
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
-    "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
 )
 _OUTER = (
     "system-test-author", "system-test", "product-acceptance", "release-plan",

@@ -11,7 +11,7 @@ carries one progress block: the narrative at a milestone, otherwise a one-line
 === ShipLoop status ===
 Where:     Work items > W2 "Add --version flag" (2 of 4) > Build > test
 Run:       Preparation ✓ | Work items 1/4 ▶ | Release ·
-Item:      Plan ✓ | Validate existing ✓ | Build ▶ | Verify · | Carry forward ·
+Item:      Plan ✓ | Validate existing ✓ | Build ▶ | Carry forward ·
 Done:      W2 implement: --version added to the cli.py argparse; checks pass.
 Next:      test: write the specified tests and make every recorded command pass
 Item plan: Add --version to cli.py argparse; tests in test_cli.py.
@@ -25,7 +25,7 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 |---|---|
 | Where | Phase, then item (N of M) and its stage group, then the stage. `> improve` follows it while the Improve stage owns the step. |
 | Run | Preparation, work items (completed/total) and Release. |
-| Item / Stages | During a work item, its 8 stages in five phases: Plan, Validate existing, Build, Verify, Carry forward. In preparation and release, each stage. |
+| Item / Stages | During a work item, its 7 stages in four phases: Plan, Validate existing, Build, Carry forward. In preparation and release, each stage. |
 | Done | The latest accepted result's first sentence, marked when Improve reviewed it or the outcome was blocked, send-back, add-work or reconcile. While a child is parked, the result it is reviewing. |
 | Next / Stopped | The current stage and its one-line purpose, or, at the Improve stage, `improve: run the improve skill on the <stage> result`. A paused, blocked or halted run shows its reason; the packet prints the resume command. |
 | Item plan | The first sentence of the item's accepted `step-plan` summary, or of the item's `context` before that. Omitted when neither exists. |
@@ -235,7 +235,7 @@ progress bar per phase, what has been achieved, what is happening now, what
 comes next and the run's observed pace. A milestone is the first producer packet
 after one of these: the start of a run, an accepted preparation or release
 stage, the end of a work-item stage phase (Plan, Validate existing, Build,
-Verify, Carry forward); and every paused, blocked, awaiting, halted or done
+Carry forward); and every paused, blocked, awaiting, halted or done
 packet. An Improve packet is never one: the step it reviews is accepted only
 when it completes, so the last accepted step is still the one the packet before
 it showed (a live run repeated that narrative on 8 of 11 Improve packets until

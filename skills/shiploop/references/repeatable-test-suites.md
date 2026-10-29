@@ -176,7 +176,7 @@ are not promoted to completed sources. Their own result/Improve context
 continues to describe that attempt.
 
 Each INNER plan revalidates the relevant strategy and item context. The `test`
-stage's authoring and refinement and `verify`'s rerun use those decisions and retain justified changes in
+stage's authoring and refinement and `document`'s rerun use those decisions and retain justified changes in
 ordinary plan/result evidence. Carry the originating strategy locator plus the
 current item-specific decisions into repository test documentation and future
 item context; whole-system testing reconciles that retained coverage. A missing

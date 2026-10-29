@@ -34,8 +34,6 @@ ENTRY_RUNS = frozenset({
     "lint-base",           # snapshot the work item's lint base when the item starts
     "loop-contract",       # write the stage's Until Loop contract (every inner stage)
     "expectation-check",   # run the step plan's expectation checks on the item base; all match: no packet
-    "change-inventory",    # record the item's changed files for the review loop
-    "advisory-lint",       # lint the item's changes, auto-fixing on the first entry
 })
 COMPLETE_RUNS = frozenset({
     "loop-terminal",       # check the stage's Until Loop receipt against the contract rebuilt from state
@@ -191,11 +189,11 @@ RETURN_LEFTOVERS = "plan-return commits files left uncommitted, so commit nothin
 # Who commits an item's files (SPEC S-4, S-5): one rule, printed by every stage that adds files to the item.  The first
 # sentence mirrors ``item_scope.commit_scope`` (declared paths, the docs path class and docs/shiploop/); the second
 # depends on the run: a worktree run's plan-return commits what is left, an in-place run has no return.
-ITEM_COMMIT_STAGES = ("document", "verify")
+ITEM_COMMIT_STAGES = ("document",)
 ITEM_COMMITS = (
-    "When a step's document stage and its review are accepted, ShipLoop commits the step's changed files that the step "
-    "plan's paths declare, its changed documentation files (for example README.md or files under docs/) and "
-    "docs/shiploop/, as one commit; when verify is accepted it commits what is left."
+    "When the document stage and its review are accepted, ShipLoop commits the changed files the step plan's paths "
+    "declare, the changed documentation files (for example README.md or files under docs/) and docs/shiploop/, as one "
+    "commit for the step (on the ask-agent route, for the item), and the step advances only once that commit lands."
 )
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
                     + " Delete generated output the product does not need.")
@@ -338,8 +336,9 @@ _ROWS = (
         reads=("plan", "test-strategy"),
     ),
     # ------------------------------------------------------------------ inner
-    # Owner decision 2026-10-10: eight stages in five phases (Plan: step-plan, test-spec; Validate existing; Build:
-    # implement per step with an Improve stage after each, test, document; Verify; Carry forward).  Each stage's work
+    # Seven stages in four phases (owner decision 2026-10-10, eight in five; design T §8 and §9.1 2b-4, 2026-10-28: verify
+    # retired): Plan (step-plan, test-spec); Validate existing; Build (implement, test and document once per step, an
+    # Improve stage after each document, then ShipLoop's commit of the step); Carry forward.  Each stage's work
     # runs as one Until Loop with a ShipLoop-written contract (entry run loop-contract); its exit conditions are the
     # done_when lines below, and the gate rechecks by script what it can.  Evidence and the coverage review of the
     # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
@@ -363,7 +362,7 @@ _ROWS = (
             "the files the item will change are declared in paths",
         ),
         develop="Name target files, interfaces and conventions; follow the house-style match contract.",
-        test="Record the item's test commands; the test stage and verify run them exactly.",
+        test="Record the item's test commands; the test stage runs them exactly.",
         deploy="Note integration impact and any release prerequisite.",
         tools="ShipLoop records the item's lint base when the item starts; name the linters, type checks and build "
               "commands that cover the changed files.",
@@ -500,38 +499,15 @@ _ROWS = (
             "changed in it or why nothing did",
         ),
         develop="Update code, API, user and operator documentation from observed behaviour.",
+        # Design T §8.2 (2b-4b): verify's lint gate and rerun moved into the step, scoped to this stage's own edits.
+        tools="On done ShipLoop lints the lines this stage changed and reruns what those edits could affect.",
         edits=frozenset({"docs"}),
         entry_runs=("loop-contract",),
-        complete_runs=("loop-terminal",),
+        complete_runs=("loop-terminal", "lint-gate", "test-rerun"),
         improve="item",
         # test-spec: the step's due cases its hand-off quotes (CONSUMES), which its review judges.
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
         blocks=frozenset(),        outcomes=("done", "blocked"),
-    ),
-    Stage(
-        "verify", "inner",
-        goal='Accept the item: confirm each criterion after the last edit, trace entry points; review the diff; notes in RUN/notes/<action>.md.',
-        short_goal='verify and accept this item',
-        done_when=(
-            "every completion criterion is confirmed on the current candidate, with evidence made after the last edit",
-            "every recorded command exits 0 on the candidate after the last edit",
-            "each changed public entry point was traced with a valid, a boundary and an invalid input, and the "
-            "latest review iteration found only trivial issues",
-            "later-phase checks are marked pending with their owner",
-        ),
-        develop="Review the whole item's diff for what the per-step reviews could not see; on chained work, assemble "
-                "the steps' results and check the shared interfaces.",
-        test="Confirm each criterion; reconcile every selected case.",
-        tools="ShipLoop records the change inventory and lints the item's changes on entry (auto-fixing once); on "
-              "done it lints again and reruns every recorded command.",
-        edits=frozenset({"code", "tests"}),
-        entry_runs=("change-inventory", "advisory-lint", "loop-contract"),
-        complete_runs=("loop-terminal", "lint-gate", "test-rerun"),
-        # document: each step's result and its review's receipt, which the item review builds on.
-        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test",
-               "item:document"),
-        blocks=frozenset({"reconciliation"}),
-        outcomes=("done", "blocked"),
     ),
     Stage(
         "carry-forward", "inner",
@@ -549,7 +525,8 @@ _ROWS = (
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal",),
         improve="last-item",
-        reads=("spec", "plan", "item:verify"),
+        # test and document: the last step's test result and every step's reflection, which the item closes on.
+        reads=("spec", "plan", "item:test", "item:document"),
         blocks=frozenset({"test-facility", "backchain", "work-items"}),
         outcomes=("done", "blocked"),
     ),
@@ -673,13 +650,13 @@ _ROWS = (
 def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     """Add the outcomes that follow from a stage's place in the graph.
 
-    INNER stages from test-spec through verify build the item against its step
+    INNER stages from test-spec through document build the item against its step
     plan, so a goal that proves wrong there goes back to the step plan (send-back).  OUTER stages route missing product
     work as add-work, and the two that run another stage's plan send a wrong plan back to it (``OUTER_SEND_BACK_TO``).
     A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
-    first, last = names.index("test-spec"), names.index("verify")
+    first, last = names.index("test-spec"), names.index("document")
     finished = []
     for index, row in enumerate(rows):
         if first <= index <= last:
@@ -767,8 +744,8 @@ def reviewed_stages(mode: str) -> frozenset[str]:
 
 def _check_table() -> None:
     names = [row.name for row in _ROWS]
-    if len(names) != 24 or len(set(names)) != 24:
-        raise RuntimeError("the stage table must list 24 unique stages")
+    if len(names) != 23 or len(set(names)) != 23:
+        raise RuntimeError("the stage table must list 23 unique stages")
     order = {name: index for index, name in enumerate(names)}
     for row in _ROWS:
         for read in row.reads:

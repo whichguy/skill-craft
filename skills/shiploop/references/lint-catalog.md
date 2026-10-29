@@ -3,8 +3,9 @@
 ShipLoop lints each work item itself on runs whose run option `lint` is `fix`
 or `report` (new runs record `fix`; a saved run without the key is refused,
 never migrated). The gate pass runs at `complete`: an `implement` step, `test`
-or `verify` is not accepted as done while a new finding on a line the item
-changed has no waiver. The pass on entry to `verify` is advisory, and ShipLoop never gates on the `shiploop lint` exit code.
+or `document` is not accepted as done while a new finding on a line that stage
+changed has no waiver, and the step review's import is gated the same way on
+the lines the review changed. ShipLoop never gates on the `shiploop lint` exit code.
 The step still selects and runs its own checks. See
 [the run option](run-options.md#script-owned-lint).
 
@@ -17,33 +18,29 @@ code and are not catalog options.
 - **Item base.** When a work item's inner loop starts, ShipLoop snapshots the
   working content (tracked and untracked, not ignored files) into a private
   Git index and records the tree under `<run>/lint/items/<W>.md`. This runs in
-  every lint mode, as does the **change inventory**: each new `verify`
-  action records the item's changed paths (base to current snapshot) under
-  `<run>/lint/<action>-inventory.md` for verify's review. `off` stops only
-  linters and auto-fix.
+  every lint mode. `off` stops only linters and auto-fix.
 - **Scope.** Only files under the run's repository directory are in scope
   (a run whose `repo` is a subdirectory of a checkout never lints or fixes a
   sibling directory). ShipLoop runtime metadata (`.shiploop`,
   `.shiploop-improve`, `.until-loop`, `.shiploop-handoff` and the other
   workspace runtime directories) is never part of a work item's changes.
-- **implement, test and verify (gate).** The `complete` that submits an
-  `implement` step, `test` or `verify` with outcome `done` runs a pass before the result is accepted, stored as
-  `<run>/lint/<action>.gate<N>.md`. With a per-item base it applies safe fixes
-  on lines the item changed. It refuses the submission once after applying a
-  fix, so the step reruns its checks. It also refuses while a new finding on a
-  line the item changed is not listed in the result's `lint_waivers`
+- **implement, test and document (gate), and the step review's import.** The
+  `complete` that submits an `implement` step, `test` or `document` with
+  outcome `done`, and the import of the step's review, runs a pass before the
+  result is accepted, stored as `<run>/lint/<action>.gate<N>.md`. With a base
+  (the item's, the step's, or the stage's own entry snapshot) it applies safe
+  fixes on the lines that stage (or the review) changed. It refuses the
+  submission once after applying a fix, so the step reruns its checks. It also
+  refuses while a new finding on one of those lines is not listed in the
+  result's `lint_waivers`
   (`[{"id": "L…", "reason": "…"}]`); the refusal prints each finding's ID. IDs
   hash the path, the message and the line's text, not its number, so they
   survive edits above the line. Findings present at the base or elsewhere in a
   file, uncovered files, missing tools, tool errors, timeouts and a pass that
   cannot run never refuse. `send-back` and `blocked` submissions are not linted.
-  At `test` and `verify` the gate runs before ShipLoop's own test runs, so the
+  At `test` and `document` the gate runs before ShipLoop's own test runs, so the
   tests cover any auto-fix. The implement and test packets print the
   report-only `lint` command to run after each edit, and the latest gate record.
-- **verify (advisory).** The `complete` that enters `verify` runs a pass. Only
-  the item's first entry may apply fixes, and only with a per-item base; later
-  entries and any fallback base (workspace baseline, then `HEAD`) are
-  report-only, and the block says so.
 - `next` and `context` only re-render the stored record and mark it stale when a
   scoped file changed afterwards. They never lint.
 

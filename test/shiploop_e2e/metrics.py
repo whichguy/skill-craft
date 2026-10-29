@@ -2984,8 +2984,10 @@ def skipped_gates(run_dir: Path | None) -> dict:
     inventory = [r for p in sorted((run_dir / "lint").glob("*-inventory.md")) if (r := _state_block(p))]
     row("inventory", inventory, [str(r.get("reason") or r.get("status")) for r in inventory if r.get("status") == "unavailable"])
     state = engine_state(run_dir)
+    # The items that reached their commit: an accepted document stage (the commit stage runs then, design T §9.1 2b-4c),
+    # or, in a run recorded before verify retired, an accepted verify.
     items = sorted({e.get("workitem") for e in state.get("history") or [] if isinstance(e, dict)
-                    and e.get("stage") == "verify" and e.get("outcome") == "done" and e.get("workitem")})
+                    and e.get("stage") in ("document", "verify") and e.get("outcome") == "done" and e.get("workitem")})
     row("item_commit", [{"item": i} for i in items],
         [f"no base snapshot for {i} (lint/items/{i}.md): the item's changes cannot be read, so nothing is committed"
          for i in items if not (run_dir / "lint" / "items" / f"{i}.md").is_file()])

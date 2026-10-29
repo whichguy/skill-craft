@@ -46,9 +46,8 @@ EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 EXPECTED_INNER = (
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
-    "carry-forward",
-)
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
+)  # verify is retired (design T §9.1 2b-4): each step's document stage, its review and its commit close the step
 # ShipLoop records these by script when its own checks show nothing for the model to do: validate-existing when every
 # expectation matches, document when the item's diff touches no code or test path.  They keep a history row.
 SCRIPT_RECORDED_STAGES = frozenset({"validate-existing", "document"})
@@ -77,10 +76,10 @@ COLD_RECOVERY_STAGES = {"discovery", "implement", "release-check"}
 # other stage advances with a plain callback.  Independent of the navigator
 # implementation's own copy, per this file's public-contract convention above.
 CHECKPOINT_STAGES = frozenset({
-    "spec", "test-strategy", "plan", "step-plan", "implement",
+    "spec", "test-strategy", "plan", "step-plan", "document",
     "system-test-author", "release-plan",
-})  # implement: one Improve child per item, after its last step (rule item, 2026-10-26); this suite's items have one
-# step each.  test-spec has no Improve rule.
+})  # document: one Improve child per step, after its document stage (rule item, design T §8); this suite's items have
+# one step each.  test-spec has no Improve rule.
 
 
 def _delivery_contract(*, candidate: str = "candidate-v1") -> dict:
@@ -783,7 +782,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, result, "Synthetic ShipLoop producer callback")
         self._run(self._script(shiploop), "complete", "--run-dir", run, "--action", action_id, "--result", result_path)
-        if stage in ("test", "verify") and result.get("outcome") == "done":
+        if stage == "test" and result.get("outcome") == "done":
             # ShipLoop itself ran the recorded commands on the candidate before accepting done.
             verified = _read_record(run / "tests" / f"{action_id}-verify1.md")
             self.assertTrue(verified["passed"])
@@ -809,7 +808,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             result.setdefault("paths", [DELIVERED])
             result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": [DELIVERED],
                                          "criteria": ["C1"], "proof": "test -f " + DELIVERED, "skills": []}])
-            # delivered.txt is new to W1 and on the base of every later item (verify committed it).
+            # delivered.txt is new to W1 and on the base of every later item (W1's step commit committed it).
             exists = (repo / DELIVERED).exists()
             result.setdefault("expectations", [{
                 "id": "E1", "state": "works" if exists else "absent", "steps": ["S1"], "paths": [DELIVERED],
@@ -831,9 +830,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             result.setdefault("test_cases", [{"id": focused_id(item), "criterion": "C1", "requirement": "R-1",
                                               "oracle": "the focused command", "red": "fails before the change",
                                               "green": "passes after it"}])
-        if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
+        if stage in ("test-spec", "document", "carry-forward", "system-test-author", "system-test", "release-plan",
                      "release-verify"):
             result.setdefault("assumptions", [])
+        if stage == "document":
+            result.setdefault("knowledge", dict(inner_fixture.KNOWLEDGE_NONE))   # design T §9.1 2b-3, option C
         if stage == "release-verify":
             result.setdefault("lessons", {"learned": "Synthetic fixture: nothing learned.", "considerations": "none",
                                           "open_next": "none"})
@@ -1024,7 +1025,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
 
         The source holds an earlier version's knowledge home (consumer contract 4c): the run completes, makes no retire
         commit, and leaves every old file as it was."""
-        self.assertEqual(len(EXPECTED_STAGES), 24)
+        self.assertEqual(len(EXPECTED_STAGES), 23)
         source, workspace, run = self._start_workspace(delivery_contract=True, old_home=True)
         repo = workspace / "worktree"
         state = self._state(run)
@@ -1079,7 +1080,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIsNotNone(first_context)
         self.assertIsNotNone(checkpoint)
         self.assertEqual(state["status"], "done")
-        self.assertEqual(len(state["history"]), 24)
+        self.assertEqual(len(state["history"]), 23)
         # test_a_run_on_a_repository_with_every_old_file_completes_and_leaves_them_untouched and
         # test_handoff_makes_no_retire_commit (consumer contract 4c), on this run's own fast-forward return: no commit of the
         # run is a retire, no stage wrote a feature folder, and every old file is as it was.
@@ -1091,7 +1092,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self.assertEqual((source / relative).read_text(encoding="utf-8"), text, relative)
         self.assertEqual(self._git(source, "log", "-1", "--format=%H", "--", "SHIPLOOP.md").stdout.strip(),
                          self._git(source, "log", "--format=%H", "--grep=an earlier ShipLoop version").stdout.strip())
-        # Only the planning/contract stages, the one implement step and the run's single end-of-work
+        # Only the planning/contract stages, the one step's document stage and the run's single end-of-work
         # carry-forward review actually bind an Improve child.
         first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "carry-forward"]
         self.assertEqual(len(state["improve_results"]), len(first_pass_checkpoints))

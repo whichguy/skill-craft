@@ -200,8 +200,8 @@ Run options are recorded at `workspace start` or `init` and refused on a saved r
 
 ## Inner stages
 
-Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement`, `test` and `document` (once per step),
-`verify` and `carry-forward`, each inside one Until Loop started with the packet's literal command; the packet prints
+Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement`, `test` and `document` (once per step)
+and `carry-forward`, each inside one Until Loop started with the packet's literal command; the packet prints
 its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
 [test loop and confirmation](references/test-loop.md).
 
@@ -345,7 +345,7 @@ question about the loop is not a stop: answer it and continue the packet.
    `--receipt` makes the runtime keep its receipt there, so do not write that
    file yourself. At `test`, the packet's [test loop](references/test-loop.md#test-loop) lists the
    commands ShipLoop will run.
-   A ShipLoop lint block printed after a `verify` callback is
+   A ShipLoop lint block printed after a gate stage's callback is
    supporting output, not exit-criteria evidence, and never replaces the checks
    you select ([script-owned lint](references/run-options.md#script-owned-lint)).
    Record outcomes and limitations honestly. Do not weaken tests to obtain a pass.

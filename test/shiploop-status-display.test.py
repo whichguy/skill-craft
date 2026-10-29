@@ -102,7 +102,7 @@ class StatusBlockTests(unittest.TestCase):
         self.assertEqual(set(prompts.STAGE_PURPOSE), set(prompts.STAGES))
         self.assertEqual(tuple(s for _, group in prompts.INNER_GROUPS for s in group), prompts.INNER)
         self.assertEqual([name for name, _ in prompts.INNER_GROUPS],
-                         ["Plan", "Validate existing", "Build", "Verify", "Carry forward"])
+                         ["Plan", "Validate existing", "Build", "Carry forward"])  # verify retired (design T 2b-4c)
         for stage, purpose in prompts.STAGE_PURPOSE.items():
             self.assertTrue(purpose and len(purpose) <= 360 and "\n" not in purpose, stage)  # one action sentence naming its output (was 80)
 
@@ -152,7 +152,7 @@ class StatusBlockTests(unittest.TestCase):
                          f"Run:       Preparation {DONE} | Work items 0/2 {NOW} | Release {TODO}")
         self.assertEqual(line(block, "Item"),
                          f"Item:      Plan {NOW} | Validate existing {TODO} | Build {TODO} | "
-                         f"Verify {TODO} | Carry forward {TODO}")
+                         f"Carry forward {TODO}")
         self.assertNotIn("Item plan:", block)  # neither a step plan nor item context yet
 
         state = self.produce(state, **self.ONE_STEP,
@@ -164,7 +164,7 @@ class StatusBlockTests(unittest.TestCase):
                          'validate-existing')
         self.assertEqual(line(block, "Item"),
                          f"Item:      Plan {DONE} | Validate existing {NOW} | Build {TODO} | "
-                         f"Verify {TODO} | Carry forward {TODO}")
+                         f"Carry forward {TODO}")
         self.assertEqual(line(block, "Item plan"),
                          "Item plan: Split loader into parse and merge; cover both in test_config.py.")
         self.assertEqual(line(block, "Next"),

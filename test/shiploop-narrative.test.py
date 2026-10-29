@@ -96,7 +96,7 @@ class NarrativeTests(unittest.TestCase):
         self.assertEqual(facts["achieved"][0], {"label": "W1 Config loader refactor",
                                                 "text": "Loader split into two modules; 12 tests added"})
         self.assertEqual(facts["now"]["label"], "W2 Add --version flag (2 of 3) › Plan › test-spec")
-        self.assertEqual(facts["ahead"][0], {"label": "this item", "text": "Validate existing → Build → Verify → Carry forward"})
+        self.assertEqual(facts["ahead"][0], {"label": "this item", "text": "Validate existing → Build → Carry forward"})
         self.assertIn({"label": "W3 Document the flag", "text": ""}, facts["ahead"])
         self.assertIn("Preparation ✓", narrative.markdown(facts))
         self.assertIn("**Work items 1/3**", narrative.markdown(facts))

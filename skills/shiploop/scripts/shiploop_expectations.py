@@ -554,7 +554,7 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
             focused += [ident for ident in row.get("ids") or () if ident not in focused]
     cases = list(result.get("test_cases") or ())
     shape = ('Shape: {"id", "criterion", "requirement", "oracle", "red", "green"}, one per ID this item\'s focused '
-             'commands list. The implement, test, verify and system-test-author packets quote them.')
+             'commands list. The implement, test, document and system-test-author packets quote them.')
     if not cases:
         if not focused:
             return None

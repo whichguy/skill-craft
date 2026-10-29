@@ -68,9 +68,11 @@ there (`flow.html#action=<nav id>`); a seeded visit has no row in the flow viewe
 message says. Add `--key KEY` to keep the key the page already has for a run. Each visit's row also carries its summary,
 whether its result file exists and which items its packet text carried (the stage card). After the engine's stage table
 changes, `export.py --stages` rewrites `defaults/stages.json`, the catalog the cards read; a test fails when it drifts.
-A run is read with its own stage model (`stageModel`: `v4`, the 17-stage inner loop of every run saved before 2026-10-10, or `v5`,
-the 8-stage one): a 17-stage run keeps its own catalog (`defaults/stages-v4.json`, frozen, never regenerated), phases, phase texts
-and skill stages. See "Stage models" in [SCHEMA.md](SCHEMA.md).
+A run is read with its own stage model (`stageModel`: `v4`, the 17-stage inner loop of every run saved before 2026-10-10; `v5`,
+the 8-stage one with verify, state version 5 to 9; or `v6`, the 7-stage one, state version 10 and later, where each step is built,
+tested, documented, reviewed and committed): a 17-stage or 8-stage run keeps its own catalog (`defaults/stages-v4.json`,
+`defaults/stages-v5.json`, frozen, never regenerated), phases, phase texts and skill stages. See "Stage models" in
+[SCHEMA.md](SCHEMA.md).
 The run document also says how the run ended, from the harness's own records: `status` `stopped` when the harness ended the host
 while the engine still read `active` (with the stage it never accepted and what that cost), a blocked run's question and options,
 the listeners the harness ended, whether the unreturned product passes its checks in the worktree, and which hosts wrote the run
@@ -133,7 +135,7 @@ token; an open finding with no `effect` (the page shows it as "not rated").
    page's artifact URL, which the page cannot read itself; the prompt's head prints it); on an empty page,
    `--defaults --page-url URL --out DIR`. The script merges, never you: it keeps every revision, refuses a page revision the
    defaults lack (copy it into `defaults/` first), and writes only documents the defaults name (the stage catalogs,
-   `config/stages` and the frozen 17-stage `config/stages-v4` that saved runs read, among them), with their `writes.json`. `set` each with `if_version` where it exists. Never overwrite or delete an owner-added document, or
+   `config/stages` and the frozen 17-stage `config/stages-v4` and 8-stage `config/stages-v5` that saved runs read, among them), with their `writes.json`. `set` each with `if_version` where it exists. Never overwrite or delete an owner-added document, or
    any document you did not write.
 3. **The run.** Upload the `writes.json` of `export RUN_DIR` the same way, except an existing `backchain` document: it
    may hold hand verdicts the exporter cannot rebuild (`luna1-plan` and `luna1-step-plan` do), so never `set` a

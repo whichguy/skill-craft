@@ -165,16 +165,11 @@ class ChainIntegrationTests(ChainFixture):
     def test_history_survives_child_drift_and_views_allow_indexed_past_actions(self):
         self.complete_single_chain()
         self.parent_complete(ok=True)
-        # The producer result is accepted; implement's step review is the only thing parked on the action.
+        # The producer result is accepted and nothing is parked on the action: the item's review follows its document
+        # stage (design T §8), so the chain's action is a past action from here on.
         state = store.read_record(self.run / "state.md")
-        self.assertEqual((state["active_improve"]["action_id"], state["active_improve"]["stage"]),
-                         (self.action, "implement"))
-        self.assertEqual(state["active_improve"]["seed_result"]["outcome"], "done")
-        # The step review returns (a synthetic receipt, as the fixture's planning reviews), so the chain's action is
-        # a past action from here on.
-        improve, writes = self.synthetic_improve_record(self.action, "implement")
-        nav.save(self.run, nav.finish_improve(state, self.action, improve), writes)
-        state = store.read_record(self.run / "state.md")
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual(state["accepted"][self.action]["outcome"], "done")
         self.assertNotEqual(nav.current_action(state)["id"], self.action)
         before = self.run_bytes()
         history = self.call("history")
@@ -293,12 +288,12 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(p.returncode, 73, p.stdout + p.stderr)
 
     def assert_producer_advanced_past_finished_chain(self):
-        """Completion is accepted and keeps the binding; the only thing parked is implement's step review (owner
-        decision 2026-10-10: an Improve child follows each accepted implement step), not the finished chain."""
+        """Completion is accepted and keeps the binding, and nothing is parked on the finished chain's action: the
+        item's review follows its document stage (design T §8), so the run has moved on to the item's test stage."""
         state = store.read_record(self.run / "state.md")
-        self.assertEqual((state["active_improve"]["action_id"], state["active_improve"]["stage"]),
-                         (self.action, "implement"))
-        self.assertEqual(state["active_improve"]["seed_result"]["outcome"], "done")
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual(state["accepted"][self.action]["outcome"], "done")
+        self.assertEqual(nav.current_stage(state), "test")
         self.assertNotIn(self.action, state["improve_results"])
         self.assertIn(self.action, state["chain_bindings"])
         self.assertTrue((self.run / "chains" / self.action / "binding.md").is_file())

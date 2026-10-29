@@ -734,17 +734,21 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn("\"ShipLoop committed \"", navigator)
         self.assertTrue(counters.LEFTOVERS_SUBJECT.startswith("chore(shiploop): commit files written after the last work item"))
 
-    def test_the_work_item_subject_counters_matches_is_the_one_the_verify_stage_writes(self):
-        # The verify stage's reply names the commit, but the model's pipe can cut that reply, and then only the subject tells the
-        # script's commit from the model's. The message is built in shiploop_navigator._item_commit: call it with the commit itself
-        # replaced and read the message it hands over, so a reworded subject turns the matched work item commits into `other` here
-        # and not silently in a run.
-        before = {"history": []}
-        after = {"history": [{"stage": "verify", "outcome": "done", "workitem": "W1", "summary": "What it did."}],
-                 "work_items": [{"id": "W1", "title": "Add the grid"}]}
-        with mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [])) as made:
-            shiploop_navigator._item_commit(Path("."), before, after)
-        self.assertEqual(made.call_count, 1, "the verify row of the history makes one item commit")
+    def test_the_work_item_subject_counters_matches_is_the_one_the_item_commit_stage_writes(self):
+        # The ask-agent route's commit stage commits the item whole when its document stage and review are accepted (verify,
+        # which made this commit, is retired: design T §9.1 2b-4c). The model's pipe can cut ShipLoop's reply, and then only
+        # the subject tells the script's commit from the model's. The message is built in
+        # shiploop_navigator._item_commit_stage: call it with the commit itself replaced and read the message it hands over,
+        # so a reworded subject turns the matched work item commits into `other` here and not silently in a run.
+        rows = [{"stage": "document", "outcome": "done", "workitem": "W1", "action": "A-document"}]
+        before = {"history": [{"stage": "implement", "outcome": "done", "workitem": "W1", "action": "A-implement"}],
+                  "accepted": {"A-implement": {"summary": "What it did."}}}
+        after = {"history": before["history"] + rows, "accepted": {"A-document": {}},
+                 "work_items": [{"id": "W1", "title": "Add the grid"}], "execution_mode": "navigator"}
+        with mock.patch.object(shiploop_item_scope, "changed_paths_or_reason", return_value=(["a.py"], "")), \
+                mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [])) as made:
+            shiploop_navigator._item_commit_stage(Path("."), before, after, "W1", rows)
+        self.assertEqual(made.call_count, 1, "the item's accepted document stage makes one item commit")
         message = made.call_args.args[3]
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '

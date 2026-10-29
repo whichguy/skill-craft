@@ -21,19 +21,20 @@ import shiploop_context_index as context_index  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
-import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 PRELUDE = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
-INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward")
+# Verify is retired (design T §9.1 2b-4c): each step's document stage and its review close the step, and the commit
+# stage, ShipLoop's own, commits it.
+INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward")
 OUTER = ("system-test-author", "system-test", "product-acceptance", "release-plan", "release-check",
          "release", "release-verify", "operations", "handoff")
 
 
 class StageTableTest(unittest.TestCase):
-    def test_graph_order_is_the_fixed_24_stages(self) -> None:
-        self.assertEqual(len(spec.STAGES), 24)
+    def test_graph_order_is_the_fixed_23_stages(self) -> None:
+        self.assertEqual(len(spec.STAGES), 23)
         self.assertEqual(spec.PRELUDE, PRELUDE)
         self.assertEqual(spec.INNER, INNER)
         self.assertEqual(spec.OUTER, OUTER)
@@ -125,9 +126,9 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(prompts.BACKCHAIN_AUDIT_STAGES, frozenset({
             "spec", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
-            "verify", "system-test", "product-acceptance", "release-verify", "handoff"}))
-        # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test,
-        # document and verify cite the rules they apply in their own duties.
+            "system-test", "product-acceptance", "release-verify", "handoff"}))
+        # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test and
+        # document cite the rules they apply in their own duties, and the step review carries the rubric.
         self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({"implement"}))
         # step-plan's duty carries its own design-basis point (2026-10-11 dedupe), so it left this block.
         self.assertEqual(spec.with_block("interaction-design"),
@@ -137,17 +138,19 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(set(prompts.ENVIRONMENT_DISCOVERY_REQUIREMENTS), {"discovery", "research"})
 
     def test_assistive_tool_runs(self) -> None:
-        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "verify"))
+        # Document's done is gated on its own edits and reruns what they could affect (design T §8.2, 2b-4b).
+        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "document"))
         self.assertEqual(lint.GATE_STAGE, "implement")
-        self.assertEqual(lint.LINT_STAGES, ("verify",))
+        self.assertFalse(hasattr(lint, "LINT_STAGES"))  # verify's advisory entry pass is gone with it
         self.assertEqual(test_loop.STAGES, ("test",))
-        self.assertEqual(test_loop.RERUN_STAGES, ("verify", "system-test", "release-verify"))
+        self.assertEqual(test_loop.RERUN_STAGES, ("document", "system-test", "release-verify"))
+        self.assertEqual(test_loop.STEP_RERUN_STAGE, "document")
         self.assertFalse(hasattr(test_loop, "RED_STAGE"))
         self.assertFalse(hasattr(test_loop, "PROBE_STAGE"))
         self.assertEqual(spec.with_complete_run("test-base"), ("test",))
         self.assertNotIn("test-probe", spec.COMPLETE_RUNS)
         self.assertEqual(spec.with_complete_run("expectation-check"), ("validate-existing",))
-        self.assertEqual(quality.STAGE, "verify")
+        self.assertEqual(spec.ENTRY_RUNS, frozenset({"lint-base", "loop-contract", "expectation-check"}))
         self.assertEqual(spec.with_entry_run("lint-base"), ("step-plan",))
         # Every inner stage is an Until Loop: its contract is written on entry and its receipt checked at complete.
         self.assertEqual(spec.with_entry_run("loop-contract"), spec.INNER)

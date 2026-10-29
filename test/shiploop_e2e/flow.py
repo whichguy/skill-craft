@@ -609,7 +609,8 @@ def read_first(out: Path, repo: Path | None = None) -> dict:
     assembled = result.get("assembled") if isinstance(result, dict) else None
     uncommitted = (assembled or {}).get("uncommitted_product") or []
     if commit_gate is None and assembled is None:
-        item_commit = {"measured": False, "reason": "no item reached verify and no assembled result was recorded"}
+        item_commit = {"measured": False, "reason": "no item reached its commit (its document stage, or verify in a run "
+                                                    "recorded before it retired) and no assembled result was recorded"}
     else:
         present = not (commit_gate and commit_gate["skipped"]) and not uncommitted
         item_commit = {"measured": True, "present": present, "uncommitted_product": uncommitted,

@@ -336,7 +336,7 @@ class Fixture(unittest.TestCase):
                  env: dict | None = None, **kwargs):
         if base == "capture":
             base = lint.read_base(self.run_dir, "W1")
-        return lint.lint_pass(self.repo, self.run_dir, action="A1", work_item="W1", stage="verify",
+        return lint.lint_pass(self.repo, self.run_dir, action="A1", work_item="W1", stage="document",
                               mode=mode, run_option=mode, base=base, allow_fix=allow_fix,
                               env=env or self.env(), **kwargs)
 
@@ -608,7 +608,7 @@ class LintPassTests(Fixture):
         self.base()
         self.edit({"a.py": "y = 2  # fixme\n"})
         payload = self.run_pass(allow_fix=False)
-        self.assertIn("auto-fix runs only on the work item's first verify entry", payload["block"])
+        self.assertIn("auto-fix runs only in ShipLoop's lint gate", payload["block"])
         self.assertEqual(payload["mode"], "report")
 
     def test_deletion_rules_are_never_auto_applied(self):
@@ -746,7 +746,7 @@ class LintPassTests(Fixture):
         plain = Path(self.temp.name) / "plain"
         plain.mkdir()
         with self.assertRaisesRegex(lint.LintError, "not a Git checkout"):
-            lint.lint_pass(plain, self.run_dir, action="A1", work_item="W1", stage="verify",
+            lint.lint_pass(plain, self.run_dir, action="A1", work_item="W1", stage="document",
                            mode="fix", run_option="fix", base=None, allow_fix=False, env=self.env())
 
     def test_only_formatters_and_pre_commit_are_listed_as_not_run(self):
@@ -792,7 +792,7 @@ class LintPassTests(Fixture):
             (self.run_dir / relative).write_text(text)
         self.edit({"svc_a/a.py": "x = 1\nz = 2  # fixme\n", "svc_b/b.py": "y = 1\nw = 2  # fixme\n"})
         payload = lint.lint_pass(self.repo / "svc_a", self.run_dir, action="A1", work_item="W1",
-                                 stage="verify", mode="fix", run_option="fix",
+                                 stage="document", mode="fix", run_option="fix",
                                  base=lint.read_base(self.run_dir, "W1"), allow_fix=True, env=self.env())
         self.assertIn("limited to the run's repository svc_a", payload["block"])
         self.assertNotIn("svc_b", payload["block"])
@@ -848,7 +848,7 @@ class LintPassTests(Fixture):
         payload = self.run_pass(mode="report")
         self.assertNotIn("live9f8e7d6c", "\n".join(payload["coverage_lines"]))
         prior = self.run_dir / "lint" / "A1.md"
-        repeated = lint.unchanged_payload("B1", "verify", "W1", "report", payload, prior, "shiploop", self.run_dir)
+        repeated = lint.unchanged_payload("B1", "document", "W1", "report", payload, prior, "shiploop", self.run_dir)
         self.assertNotIn("live9f8e7d6c", repeated["block"])
         data = repeated["block"].split("BEGIN lint data")[1].split("END lint data")[0]
         self.assertIn("Coverage:", data)
@@ -1060,76 +1060,6 @@ class HookTests(Fixture):
     def edit_item(self) -> None:
         self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})
 
-    def enter_verify_with_a_fixable_edit(self) -> dict:
-        """Drive to document, add a fixable finding there (document is not gated) and enter verify: the last step's
-        document review finishes, ShipLoop commits the step, and verify's entry lints."""
-        self.commit({"a.py": "x = 1\n"})
-        self.start()
-        with self.patched_env():
-            state = drive(self.run_dir, "document")
-            self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
-            self.edit_item()
-            complete(self.run_dir, state)
-            state = settle(self.run_dir)
-            self.entered = nav.render(CORE, self.run_dir, state)
-        self.assertEqual(nav.current_stage(state), "verify")
-        return state
-
-    def test_verify_entry_fixes_once_and_never_relints_on_render(self):
-        """The advisory pass moved from static-checks to verify (2026-10-10): its entry lints and auto-fixes once."""
-        with self.patched_env():
-            state = self.enter_verify_with_a_fixable_edit()
-            action = nav.current_action(state)["id"]
-            record = store.read_record(self.run_dir / "lint" / (action + ".md"))
-            self.assertEqual((record["stage"], record["applied"]), ("verify", ["a.py"]))
-            self.assertIn("AUTO-FIX APPLIED", record["block"])
-            self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
-            self.assertEqual(list((self.run_dir / "lint").glob("pending-*.patch")), [])
-            calls = len(self.logged())
-            nav.render(CORE, self.run_dir, state)
-            nav.render(CORE, self.run_dir, state)
-            self.assertEqual(len(self.logged()), calls)
-            # The bound Until Loop repeats the review, so the graph refuses repeat here.
-            before = (self.run_dir / "state.md").read_bytes()
-            with self.assertRaisesRegex(nav.NavigatorError, "verify accepts only done, blocked, send-back"):
-                complete(self.run_dir, state, dict(DONE, outcome="repeat"), loop=False)
-            self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
-            self.assertEqual(len(self.logged()), calls)
-
-    def test_the_verify_packet_shows_its_entry_pass_and_marks_it_stale(self):
-        with self.patched_env():
-            state = self.enter_verify_with_a_fixable_edit()
-            self.assertIn("AUTO-FIX APPLIED", self.entered)
-            self.assertLess(self.entered.index("Callback for this stage (run once after its work"),
-                            self.entered.index("ShipLoop lint (supporting output"))
-            self.assertIn("AUTO-FIX APPLIED", nav.render(CORE, self.run_dir, state))
-            calls = len(self.logged())
-            # Model repairs make the stored record stale; rendering says so without linting.
-            self.edit({"a.py": "x = 1\ny = 3\n"})
-            self.assertIn("Status: stale. a.py changed after this pass", nav.render(CORE, self.run_dir, state))
-            self.assertEqual(len(self.logged()), calls)
-    def test_a_later_verify_entry_of_the_item_is_report_only(self):
-        """Auto-fix runs only on the item's first verify entry; after a send-back the next entry reports what it would
-        fix and changes nothing (``static_entries`` counts the item's earlier verify entries)."""
-        self.commit({"a.py": "x = 1\n"})
-        self.start()
-        with self.patched_env():
-            state = drive(self.run_dir, "document")
-            self.edit_item()
-            complete(self.run_dir, state)
-            state = settle(self.run_dir)
-            first = nav.current_action(state)["id"]
-            self.assertEqual(store.read_record(self.run_dir / "lint" / (first + ".md"))["applied"], ["a.py"])
-            complete(self.run_dir, state, dict(DONE, outcome="send-back", summary="A finding needs a test-spec case."))
-            state = drive(self.run_dir, "verify", edits={
-                "implement": lambda: None,
-                "document": lambda: self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})})
-            second = nav.current_action(state)["id"]
-        self.assertNotEqual(first, second)
-        record = store.read_record(self.run_dir / "lint" / (second + ".md"))
-        self.assertEqual(record["applied"], [])
-        self.assertIn("auto-fix runs only on the work item's first verify entry", record["block"])
-        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2  # fixme\n")
     def test_an_improve_completion_that_starts_a_work_item_captures_its_base(self):
         """The end review may add work items; its completion starts the next item's inner loop."""
         self.commit({"a.py": "x = 1\n"})
@@ -1159,24 +1089,18 @@ class HookTests(Fixture):
         paused = nav.control(state, "pause", "user stop")
         self.assertIn("UNCONSUMED LINT JOURNAL", nav.render(CORE, self.run_dir, paused))
 
-    def test_mode_off_runs_no_linter_but_records_the_change_inventory(self):
-        """lint=off stops linters and auto-fix; the item base and inventory still serve verify's review loop."""
+    def test_mode_off_runs_no_linter_but_records_the_item_base(self):
+        """lint=off stops linters and auto-fix; the item base is still recorded, since every later gate and the step's
+        commit stage read the item's change from it."""
         self.commit({"a.py": "x = 1\n"})
         self.start("off")
         with self.patched_env(), \
                 mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no lint pass")):
-            state = drive(self.run_dir, "verify", edits={"implement": self.edit_item})
+            state = drive(self.run_dir, "document", edits={"implement": self.edit_item})
         self.assertEqual(self.logged(), [])
-        action = nav.current_action(state)["id"]
         self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
-        self.assertFalse((self.run_dir / "lint" / (action + ".md")).exists())
-        record = store.read_record(self.run_dir / lint.inventory_path(action))
-        self.assertEqual(record["status"], "ok")
-        self.assertEqual([(row["status"], row["path"]) for row in record["rows"]], [("M", "a.py")])
-        packet = nav.render(CORE, self.run_dir, state)
-        self.assertIn("ShipLoop lint: off (run option lint=off)", packet)
-        self.assertIn("Change inventory for W1", packet)
-        self.assertIn("  M a.py", packet)
+        self.assertEqual(list((self.run_dir / "lint").glob("*-inventory.md")), [])  # verify's inventory is retired
+        self.assertNotIn("Change inventory", nav.render(CORE, self.run_dir, state))
 
     def test_a_saved_run_without_the_key_is_refused_not_read_as_off(self):
         # One supported version: an older run without a lint option is refused, never defaulted.
@@ -1192,30 +1116,25 @@ class HookTests(Fixture):
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_hook_exception_never_fails_complete(self):
-        """verify's entry lint runs in the transition that finishes the last step's document review."""
+        """The transition's lint hook only captures a new item's base; a capture that fails leaves the base absent and
+        the transition stands (the gates then report-only, the commit stage skips with a note)."""
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "document")
-            self.edit_item()
+            state = drive(self.run_dir, "carry-forward")
+            action = nav.current_action(state)["id"]
             complete(self.run_dir, state)
             state = store.read_record(self.run_dir / "state.md")
-            review = {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"], "check_refs": ["synthetic://c"]}
-            expected = nav.finish_improve(state, state["active_improve"]["action_id"], review)
-            with mock.patch.object(lint, "lint_pass", side_effect=SystemExit(2)):
-                finish_improve(self.run_dir)
-            packet = nav.render(CORE, self.run_dir, store.read_record(self.run_dir / "state.md"))
-        saved = store.read_record(self.run_dir / "state.md")
-        # Only the transition changed state: identical except the fresh action ID.
-        issued = nav.current_action(saved)["id"]
-        self.assertEqual(json.loads(json.dumps(saved).replace(issued, "NEW")),
-                         json.loads(json.dumps(expected).replace(nav.current_action(expected)["id"], "NEW")))
-        self.assertEqual(nav.current_stage(saved), "verify")
-        record = store.read_record(self.run_dir / "lint" / (issued + ".md"))
-        self.assertEqual(record["kind"], "failure")
-        self.assertIn("could not run: SystemExit: 2", record["block"])
-        self.assertIn("could not run: SystemExit: 2", packet)
-        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2  # fixme\n")
+            updated = nav.finish_improve(
+                state, action, {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"],
+                                "check_refs": ["synthetic://c"]},
+                dict(DONE, work_items=[{"id": "W2", "title": "Review follow-up"}]))
+            with mock.patch.object(lint, "capture_base", side_effect=SystemExit(2)):
+                writes, payload = nav._lint_transition(CORE, self.run_dir, state, updated)
+        self.assertEqual(nav.current_stage(updated), "step-plan")
+        self.assertNotIn("lint/items/W2.md", writes)
+        self.assertIsNone(payload)
+
     def test_unconsumed_journal_is_surfaced(self):
         journal = self.run_dir / "lint" / "pending-nav-x.patch"
         journal.parent.mkdir(parents=True)
@@ -1232,7 +1151,7 @@ class HookTests(Fixture):
         payload = self.run_pass(mode="report")
         for relative, text in lint.record_writes(payload).items():
             store.atomic_write_text(self.run_dir / relative, text)
-        lines = lint.render_lines(self.run_dir, "A1", stage="verify", run_option="report",
+        lines = lint.render_lines(self.run_dir, "A1", stage="carry-forward", run_option="report",
                                   repo=str(self.repo), command=str(CLI))
         parts = lint._parts(payload["block"])
         self.assertGreater(len(parts), 1)
@@ -1248,8 +1167,10 @@ class HookTests(Fixture):
         self.assertEqual("".join(shown), payload["block"])
 
 
-    def stored_lines(self, edit: dict, *, tools_failed: bool = False, stage: str = "verify") -> tuple:
-        """A report-mode pass over ``edit``, stored, and the packet lines ``render_lines`` prints for it: (payload, lines)."""
+    def stored_lines(self, edit: dict, *, tools_failed: bool = False, stage: str = "carry-forward") -> tuple:
+        """A report-mode pass over ``edit`` (run at a gate stage, document, so its block carries the gate rule), stored
+        as the action's own record, and the packet lines ``render_lines`` prints for it at ``stage``, a stage that reads
+        that record rather than a gate's: (payload, lines)."""
         self.commit({"a.py": "x = 1\n"})
         self.base()
         self.edit(edit)
@@ -1577,7 +1498,8 @@ class InvokerLogTests(unittest.TestCase):
 
 
 class GateTests(Fixture):
-    """implement's (every step's), test's and verify's done pass through the lint gate."""
+    """implement's (every step's), test's and document's done, and the step review's import, pass through the lint
+    gate."""
 
     def start(self, option: str = "fix") -> dict:
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
@@ -1711,6 +1633,50 @@ class GateTests(Fixture):
             found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
             complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "Kept."}]))
         self.assertEqual(nav.current_stage(settle(self.run_dir)), "document")
+    def test_document_is_gated_on_the_lines_it_changed_and_only_on_them(self):
+        """Design T §8.2a (2b-4b): verify's lint gate moves into the step. Document's done is gated on the lines document
+        changed since it began, so a finding implement waived is not document's, and one document adds is refused until
+        it is fixed or waived."""
+        self.commit({"a.py": "x = 1\n"})
+        state = self.start()
+        with self.patched_env():
+            self.edit({"a.py": "x = 1\ny = 2  # lint\n"})        # implement's finding: complete_gated waives it
+            state = drive(self.run_dir, "document", edits={"implement": lambda: None})
+            self.edit({"b.py": "z = 1\nw = 4  # lint\n"})        # document's own edit
+            with self.assertRaises(nav.NavigatorError) as refused:
+                complete(self.run_dir, state)
+            text = str(refused.exception)
+            self.assertIn("document is not done while 1 new lint finding on lines the document stage changed", text)
+            self.assertRegex(text, r"(?m)^- L[0-9a-f]{10} b\.py:2: ")
+            self.assertNotRegex(text, r"(?m)^- L[0-9a-f]{10} a\.py:")
+            self.edit({"b.py": "z = 1\nw = 4\n"})
+            complete(self.run_dir, state)
+        self.assertEqual(store.read_record(self.run_dir / "state.md")["active_improve"]["stage"], "document")
+
+    def test_a_step_reviews_edits_are_gated_at_its_import_on_the_lines_the_review_changed(self):
+        """Design T §8.2a (2b-4b): the step review's import lints the review's own edits (since its bind snapshot) before
+        ShipLoop reruns the step's commands and commits the step."""
+        import shiploop_improve_changes as improve_changes
+        self.commit({"a.py": "x = 1\n"})
+        self.start()
+        with self.patched_env():
+            state = drive(self.run_dir, "document")
+            complete(self.run_dir, state)
+            state = store.read_record(self.run_dir / "state.md")
+            child = state["active_improve"]
+            self.assertEqual(child["stage"], "document")
+            for relative, text in improve_changes.bind_writes(self.run_dir, self.repo, child["action_id"]).items():
+                store.atomic_write_text(self.run_dir / relative, text)
+            self.edit({"a.py": "x = 1\ny = 2  # lint\n"})        # the review's edit
+            receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT}
+            with self.assertRaises(nav.NavigatorError) as refused:
+                nav._improve_change_gate(CORE, self.run_dir, state, child["action_id"], child, receipt)
+            text = str(refused.exception)
+            self.assertIn("step review is not done while 1 new lint finding on lines this review changed", text)
+            self.assertRegex(text, r"(?m)^- L[0-9a-f]{10} a\.py:2: ")
+            self.edit({"a.py": "x = 1\ny = 2\n"})
+            nav._improve_change_gate(CORE, self.run_dir, state, child["action_id"], child, receipt)
+
     def test_lint_off_and_non_done_outcomes_run_no_gate(self):
         self.commit({"a.py": "x = 1\n"})
         state = self.start("off")
@@ -1738,9 +1704,9 @@ class GateTests(Fixture):
 
     def test_lint_waivers_are_refused_outside_a_done_gate_stage(self):
         waivers = [{"id": "L0123456789", "reason": "r"}]
-        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "verify"))
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test, verify result"):
-            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="document")
+        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "document"))
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test, document result"):
+            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="carry-forward")
         # A blocked result carrying them is refused for the fields it must not carry (the refusal names them and says
         # to delete them); the stage-specific sentence above applies to a done result at another stage.
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry lint_waivers"):

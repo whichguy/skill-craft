@@ -568,9 +568,9 @@ semicolon: `grep -o 'ShipLoop knowledge notice: [^;]*' events.jsonl | grep -o "'
 call: `awk '{n=gsub(/ShipLoop knowledge notice: /,"&")} n{print NR": "n}' events.jsonl` prints
 the files reported in each event, and `sed -n '<N>p' events.jsonl` in front of the heading
 command counts one event's headings. An accepted carry-forward prints one more line of the
-same prefix when commands that passed at its item's verify are not named under environment.md's
-`## Commands` (`knowledge.command_notices`): `... does not name <n> commands that passed at verify
-under 'Commands' (this carry-forward is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
+same prefix when commands that passed at its item's test stage are not named under environment.md's
+`## Commands` (`knowledge.command_notices`): `... does not name <n> commands that passed at the test
+stage of its item under 'Commands' (this carry-forward is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
 run that shows packets which quote the headings get them written.
 
 **Lessons commit and read-back.** release-verify's result carries `lessons`: `learned`,

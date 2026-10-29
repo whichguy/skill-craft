@@ -14,8 +14,7 @@ import shiploop_stage_spec as stage_spec
 
 # Independently declared expected paths: do not derive these from routing code.
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
-WORK3 = ('step-plan test-spec validate-existing implement test document verify '
-         'carry-forward').split()
+WORK3 = ('step-plan test-spec validate-existing implement test document carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
 # Stages whose result starts an Improve stage, besides the last carry-forward, for each

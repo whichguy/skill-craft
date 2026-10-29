@@ -446,7 +446,7 @@ class TracePlanTests(unittest.TestCase):
         self.assertEqual(model["now"]["item"], "W1")
         text = trace.digest(model)
         self.assertIn("W2 Add --version flag", text)
-        self.assertIn("8 stages pending", text)
+        self.assertIn("7 stages pending", text)  # the 7-stage inner loop (design T §9.1 2b-4: verify retired)
         self.assertIn("▶implement", text)
 
     def test_a_run_before_the_trace_reads_from_state_and_timeline(self) -> None:

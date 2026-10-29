@@ -1,6 +1,6 @@
 # Test loop and confirmation
 
-Split from the ShipLoop skill card (`../SKILL.md`). Read at `step-plan`, `test-spec`, `test` and `verify`, and when a test gate refuses.
+Split from the ShipLoop skill card (`../SKILL.md`). Read at `step-plan`, `test-spec`, `test` and `document`, and when a test gate refuses.
 
 ## Test loop
 
@@ -54,9 +54,10 @@ refuse. A draft result's `red_na` and `retired_tests` apply. It never gates and
 never counts toward the refused runs: exit 0 when no new test ID passes on the
 base, 1 when one does or a test did not run, 3 when the check cannot run.
 
-`verify` reruns every recorded command on `done` and may not run fewer tests
-than ShipLoop already accepted for the item; the outer `system-test` and
-`release-verify` rerun their own recorded commands. No count of refused runs
+`document` reruns what its edits affect on `done` and may not run fewer
+tests than ShipLoop already accepted for the item; the outer `system-test`
+and `release-verify` rerun their own recorded commands.
+No count of refused runs
 stops `done` (the packet shows the tally; at `test`, base, candidate and
 mutation runs share one). When the plan or a recorded command is what is wrong,
 take the stage's own remedy — back to the step plan with `send-back` at an INNER
@@ -84,7 +85,7 @@ command's `criteria`, the ones that command confirms; ShipLoop refuses a step pl
 with an uncovered criterion. Content with no test runner gets a `check` command
 (suite `check`, judged by exit code), for example a `grep` that a README documents a
 flag. A condition no command can confirm is not a criterion: the step plan records it
-as an open item in its summary. `verify` reruns every recorded command.
+as an open item in its summary. `document` reruns what its edits affect.
 `system-test-author` records `system_commands` and `release-plan` records
 `consumer_checks`; ShipLoop runs them when `system-test` and `release-verify` report
 done and refuses unless each passes. At `release-verify` of an isolated run they

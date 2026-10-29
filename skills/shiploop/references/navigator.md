@@ -29,7 +29,7 @@ flowchart LR
   C --> F[Script routes the final result]
   F -->|done| N[Next producer]
   F -->|blocked| B[Wait for resume, then same stage]
-  F -->|send-back, test-spec to verify| SB[The item goes back to its step plan]
+  F -->|send-back, test-spec to document| SB[The item goes back to its step plan]
   F -->|send-back, system-test or release-verify| SO[The stage that wrote the plan reruns]
   F -->|add-work, outer only| W[New work items enter the inner loop]
   N --> P
@@ -39,19 +39,21 @@ The route is the same for a direct result and an Improve stage's final result.
 The Improve review can change the result the stage imports, so a reviewed `done` can become
 `blocked`, `send-back` where the stage allows it or, at an outer stage, `add-work`.
 
-The 24 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
+The 23 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
 prelude `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
 `prepare`; inner `step-plan`, `test-spec`, `validate-existing`, `implement`,
-`test`, `document`, `verify`, `carry-forward`; and outer `system-test-author`,
+`test`, `document`, `carry-forward`; and outer `system-test-author`,
 `system-test`, `product-acceptance`, `release-plan`, `release-check`, `release`,
-`release-verify`, `operations`, `handoff`. The 8 inner stages form 5 phases:
+`release-verify`, `operations`, `handoff`. The 7 inner stages form 4 phases:
 Plan (`step-plan`, `test-spec`), Validate existing (`validate-existing`), Build
-(`implement` once per step, `test`, `document`), Verify (`verify`) and Carry
-forward (`carry-forward`). Every instantiated producer records a result,
+(`implement`, `test` and `document`, once per step, each step then committed by
+ShipLoop's [commit stage](#step-commits)) and Carry forward (`carry-forward`).
+`verify` is retired (design T §9.1 2b-4): its gates run inside each step, and its
+entry-point trace is each step review's. Every instantiated producer records a result,
 including a justified N/A output. The planning producers (`spec`,
 `test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
 `release-plan`; `step-plan` and `test-spec` only for the first work item and for an
-item that was sent back), every accepted `implement` step and the successful
+item that was sent back), each step's accepted `document` stage and the successful
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
@@ -61,9 +63,9 @@ packet's literal command, with a ShipLoop-authored contract and receipt under `l
 `done` only with a receipt that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at
 `validate-existing`, the [lint gate](run-options.md#script-owned-lint) at
-`implement`, `test` and `verify`, ShipLoop's base and candidate
-[test runs](test-loop.md#test-loop) at `test`, and its rerun of every recorded
-command at `verify`. Each loop prints its own repeat condition; the
+`implement`, `test` and `document` (document's on its own lines), ShipLoop's base and candidate
+[test runs](test-loop.md#test-loop) at `test`, and at `document` a rerun of what
+its own edits could affect. Each loop prints its own repeat condition; the
 `implement` and `test` loops carry the
 [pass-or-stop rule](test-loop.md#tests-pass-or-the-step-stops).
 No stage contains a copied Improve policy or independently counts review passes.
@@ -80,12 +82,11 @@ flowchart TD
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor; every stage runs one Until Loop]
     SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec ✦]
     TS --> VE[validate-existing ⛔ expectation checks; all match: no packet]
-    VE --> IM[implement, per step ✦ ⛔ lint gate; step commit]
-    IM -->|next step| IM
+    VE --> IM[implement, per step ⛔ lint gate]
     IM --> TE[test ⛔ lint gate, base run, candidate run]
-    TE --> DOC[document, only when behavioural]
-    DOC --> VF[verify ⛔ lint gate, test rerun; item commit]
-    VF --> CF[carry-forward, skill decision]
+    TE --> DOC[document ✦ ⛔ lint gate, rerun; then the step's commit]
+    DOC -->|next step| IM
+    DOC --> CF[carry-forward, skill decision]
     CF -->|more items| SP
   end
   CF -->|"last item ✦ end review"| STA
@@ -99,13 +100,14 @@ flowchart TD
 
 ✦ starts an Improve stage. A run recorded with `planning_review: none` starts no Improve
 stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
-ShipLoop's checks at `complete` and the graph advances; every `implement` step, `system-test-author`,
+ShipLoop's checks at `complete` and the graph advances; each step's `document`, `system-test-author`,
 `release-plan` and the last `carry-forward` keep their Improve stage. ⛔ is script-enforced:
 `validate-existing` is not accepted while an expectation check does not match its state;
-`implement`, `test` and `verify` are not accepted while the lint gate reports an unwaived new
+`implement`, `test` and `document` are not accepted while the lint gate reports an unwaived new
 finding; `test` is not accepted until ShipLoop's base run finds no new test ID passing on the
-item's base and its candidate run passes every recorded command at its floor; and `verify` is not
-accepted until ShipLoop has rerun every recorded command and each exited 0. The outer
+step's base and its candidate run passes every recorded command at its floor; `document` is not
+accepted until what its edits could affect has rerun and exited 0; and a step's review is not
+imported while a line it changed has a new finding or a step command fails. The outer
 `system-test` and `release-verify` rerun their own recorded commands the same way. No count of
 refused runs stops `done`: a failing command is fixed and resubmitted, or, when the plan is what
 is wrong, the stage takes its own remedy: `send-back` back to `step-plan` at an INNER stage, or
@@ -730,11 +732,11 @@ The inner path makes post-code quality visible: the expectations are checked
 before any change, each step is built, tested and documented and then reviewed
 by one Improve stage before the next step starts, the tests are written from
 the test spec and must fail on the step's base and pass on the candidate,
-documentation follows observed behaviour, and `verify`
-reruns every command and reviews the whole diff with justified fixes and
-rechecks. ShipLoop's step commits after each step's review and its item commit at
-`verify` are authorized Git work in the execution checkout; they do not assert
-a merge, push, or deployment. `carry-forward`
+documentation follows observed behaviour, and each step's review traces every
+changed entry point with justified fixes and rechecks. ShipLoop's step commits
+after each step's review (the item's one commit on the ask-agent route) are
+authorized Git work in the execution checkout; they do not assert a merge, push,
+or deployment. `carry-forward`
 reviews broad scope, dependencies, future system-test requirements, and the
 skill decision without pretending future work is complete.
 
@@ -822,7 +824,7 @@ do not repeat all discovery or blindly preserve the old pattern.
 #### Implementation quality indicator
 
 The planning and code-quality prompts (`plan`, `step-plan`, `implement`,
-`test`, `document` and `verify`) carry
+`test` and `document`) and each step's review carry
 error-checking, opt-in diagnostic and concise code-contract duties. This is
 prompt guidance for the current assignment, not a result field or a scripted
 pass/fail gate.
@@ -883,15 +885,15 @@ and cannot prove that the host performed the checks or wrote good documentation.
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
 | Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-spec`, `test` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
-| Own delegated work | `step-plan`, `implement`, `verify` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
-| Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
-| Select relevant operational checks | `step-plan`, `verify` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
-| Review the resulting candidate | Improve campaigns, `verify` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
+| Own delegated work | `step-plan`, `implement`, the item's review (ask-agent route) | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
+| Diagnose persistent failure | `test`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
+| Select relevant operational checks | `step-plan`, `document` (later checks as open items) | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
+| Review the resulting candidate | Improve campaigns (each step's review) | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
 | Place validated learnings | `document`, `carry-forward` (its skill decision), `product-acceptance` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
 
 For example, suppose two step contributions each pass their local tests, but
-one emits milliseconds while its consumer interprets seconds. At `verify`,
-the owner checks the shared specification and runs the combined path. The
+one emits milliseconds while its consumer interprets seconds. At the item's
+review, the owner checks the shared specification and runs the combined path. The
 observed unit mismatch prompts a scoped repair, review and affected rechecks;
 only then is an honest completion submitted. This hypothetical trace explains
 the duty, not a claim that the script detects units or runs these tests.

@@ -1,4 +1,4 @@
-"""ShipLoop's own test runs: the test stage's base and candidate runs, and the reruns at verify and the outer stages.
+"""ShipLoop's own test runs: the test stage's base and candidate runs, and the reruns at document and the outer stages.
 
 The accepted step plan records the work item's test command list (``test_commands``).  Each command may name the test
 IDs it must run (``ids``) and a minimum test count (``min_tests``).  A command that exits 0 but ran no test, too few
@@ -64,6 +64,8 @@ STAGES = stage_spec.with_complete_run("test-loop")
 BASE_STAGES = stage_spec.with_complete_run("test-base")
 # Stages that can edit code after the test stage: on done ShipLoop reruns every recorded command (no loop of its own).
 RERUN_STAGES = stage_spec.with_complete_run("test-rerun")
+# The inner rerun stage that closes a step: it reruns the step's own commands, not every one the step plan recorded.
+STEP_RERUN_STAGE = "document"
 VERIFY_STAGES = STAGES + RERUN_STAGES
 # The stage whose inline step action runs its step plan's Proof (``step_proof``): implement.
 STEP_PROOF_STAGES = stage_spec.with_complete_run("step-proof")
@@ -332,7 +334,7 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
 
     The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An inline implement step and its
     Improve review run only that step's Proof, the step plan's ``check`` for it (``step_command``: the implement-step
-    fix plan's section 4.1); the item's commands stay with the test stage and verify.  Every other item stage, and the
+    fix plan's section 4.1); the item's commands stay with the test stage and document.  Every other item stage, and the
     ask-agent route's one implement action for every step, runs every command the latest accepted step plan recorded.
     The base run takes the focused and regression ones (``base_commands``).
     """
@@ -349,7 +351,9 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tupl
     if "test_commands" not in result:
         return [], ""
     commands = [dict(row) for row in result["test_commands"]]
-    number = step_number(state, work_item) if stage in STAGES else None
+    # Document reruns the commands its step's test stage ran (design T §8.2, 2b-4b); the navigator narrows them to what
+    # document's own edits could affect.
+    number = step_number(state, work_item) if stage in STAGES or stage == STEP_RERUN_STAGE else None
     if commands and number is not None:
         # One iteration per step (design T §8): the test stage runs what this step owes, due cases narrowed per command.
         commands = iteration.active_commands(commands, _test_cases(state, work_item), _plan_steps(result), number)
@@ -656,7 +660,11 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
         "unknown": "Where they run: the return state cannot be read now, so done is refused without counting until it "
                    "can be; retry done then, or report add-work if it cannot be repaired.",
     }
-    return (["", "Test rerun: on done, ShipLoop runs every test command " + recorded_by + " recorded from "
+    what = ("reruns what your edits since this stage began could affect, out of the commands its step's test stage "
+            "ran (none after no edit, the check commands after a documentation edit, all of them after a code or test "
+            "edit), from " if stage == STEP_RERUN_STAGE else
+            "runs every test command " + recorded_by + " recorded from ")
+    return (["", "Test rerun: on done, ShipLoop " + what
              + _where(observed, state["repo"]) + " and refuses unless each passes (if it keeps refusing, "
              + _remedy_sentence(stage) + "; a command that times out or cannot start refuses the stage without "
              "counting):"]
@@ -1232,7 +1240,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     """Run every command of this stage once on the candidate; return (record writes, refusal text).
 
     An empty refusal means every command passed (``judge``).  At the test stage each focused and regression command is
-    also held to its floor (``floor_detail``, which reads ``result``'s retired_tests); at the item's rerun stage (verify)
+    also held to its floor (``floor_detail``, which reads ``result``'s retired_tests); at the item's rerun stage (document)
     to the most any accepted run of it ran since the step plan (``accepted_counts``); the outer stages and the
     end-of-work review to none.  A command that times out or cannot start refuses the stage, but the attempt is
     recorded ``could-not-run`` and does not count in ``refused_runs``.  ``command_timeout`` bounds each command; every
@@ -1959,6 +1967,7 @@ __all__ = (
     "STAGES",
     "STEP_PROOF_STAGES",
     "UNAVAILABLE",
+    "STEP_RERUN_STAGE",
     "VERIFY_STAGES",
     "TestLoopError",
     "accepted_counts",

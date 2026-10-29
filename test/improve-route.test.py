@@ -45,12 +45,22 @@ import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
 
-PILOT_A_BYTES = 22_000          # plan U18 exit 3: the implement handoff against pilot A's 22 KB
+PILOT_A_BYTES = 22_000          # plan U18 exit 3: the step review's handoff against pilot A's 22 KB
 READ_LIMIT = 2_000              # plan U18 exit 2: the first 2,000 characters are self-sufficient
 FOCUS_LIMIT = 4_500             # ... the focus ends, and the commit and complete lines sit, inside the first 4,500
+# The step review (document's, rule item, design T §8) reviews the step's code, tests, docs and knowledge together, so its
+# focus is the longest: its list of what to fix follows the top block. Its window is raised rather than its obligations
+# trimmed (owner rule: raise a bound rather than drop obligations), measured 2026-10-28 at install lengths: its Commit
+# section starts at 5,204 inline and 5,285 on the ask-agent route and its one line ("Commit nothing: ...") ends at 5,395
+# and 5,476. Design T §9.1 2b-2 to 2b-4 grew the focus (its test, docs and knowledge bullets, the entry-point trace and
+# the criterion a run must confirm); the Commit section started at 4,709 at 2b-3. Its handoff fits pilot A again (21,475
+# and 21,896 bytes) since it stopped printing the improve-commit command and the message rules, which a step review
+# never uses.
+STEP_REVIEW_STAGE = "document"
+STEP_FOCUS_LIMIT = 5_600
 # The walk prints short paths; a real install prints these lengths (the E2E render uses the same: run dir 83, CLI 96).
 RUN_LENGTH, WORKTREE_LENGTH, ROUTE_LENGTH, CLI_LENGTH = 83, 95, 105, 96
-KINDS = ("spec", "test-strategy", "plan", "step-plan", "implement", "carry-forward")   # plan U18 exit 2; test-spec has no review (2026-10-26)
+KINDS = ("spec", "test-strategy", "plan", "step-plan", STEP_REVIEW_STAGE, "carry-forward")   # plan U18 exit 2; test-spec has no review (2026-10-26)
 
 FILES = {"router": ROUTER, "standalone": STANDALONE, "policy": POLICY, "evidence": EVIDENCE, "adapter": ADAPTER}
 
@@ -391,24 +401,34 @@ class HandoffTests(unittest.TestCase):
         for route, handoffs in self.sized.items():
             for stage, text in handoffs.items():
                 with self.subTest(route=route, stage=stage):
+                    limit = STEP_FOCUS_LIMIT if stage == STEP_REVIEW_STAGE else FOCUS_LIMIT
                     focus = text.index("## What this review looks for")
                     commit = text.index("## Commit")
                     self.assertGreater(focus, text.index("Open ROUTE once per context"))   # the focus follows the top block
-                    self.assertLess(commit, FOCUS_LIMIT)                                    # the focus ends before char 4,500
-                    commit_end = text.index("\n", text.index("improve-commit", commit))
-                    self.assertLess(commit_end, FOCUS_LIMIT)                                # the improve-commit line ends inside it
+                    self.assertLess(commit, limit)                                          # the focus ends inside the window
+                    if stage == STEP_REVIEW_STAGE:
+                        # The step review commits nothing (design T §8): ShipLoop's commit stage commits its edits with
+                        # the step, and any other commit inside the step is refused, so its Commit section names no
+                        # improve-commit command (fork G's finding, 2026-10-28: it still did, against its own focus).
+                        section = text[commit:text.index("\n## ", commit + 1)]
+                        self.assertIn("Commit nothing: once this review is imported, ShipLoop commits its edits", section)
+                        self.assertNotIn("improve-commit", section)
+                        commit_end = text.index("\n", text.index("Commit nothing", commit))
+                    else:
+                        commit_end = text.index("\n", text.index("improve-commit", commit))
+                    self.assertLess(commit_end, limit)                                      # the commit line ends inside it
                     complete = text.index(" complete --run-dir=")
                     self.assertLess(complete, READ_LIMIT)
-                    self.assertLess(text.index("\n", complete), FOCUS_LIMIT)
+                    self.assertLess(text.index("\n", complete), limit)
                     # the focus is the stage's own, and Code craft stays verbatim beside the action
                     body = text[focus:commit]
                     if stage == "carry-forward":
                         self.assertIn(prompts.END_REVIEW_FOCUS_HEAD.strip(), body)
-                    elif stage == "implement":
+                    elif stage == STEP_REVIEW_STAGE:
                         self.assertIn("Implementation step review focus.", body)
                     else:
                         self.assertIn(prompts.PLANNING_REVIEW_FOCUS.strip(), body)
-                    if stage in ("implement", "carry-forward"):
+                    if stage in (STEP_REVIEW_STAGE, "carry-forward"):
                         self.assertIn("## Code craft\n" + prompts.CODE_CRAFT.rstrip(), text)
 
     def test_what_is_the_same_in_every_review_left_the_handoff_for_the_route(self):
@@ -439,6 +459,11 @@ class HandoffTests(unittest.TestCase):
                     if stage == "plan":
                         self.assertIn("run the improve-commit command in CHILD/parent-return.md; its message rules are "
                                       "there", text)
+                    elif stage == STEP_REVIEW_STAGE:
+                        # A step's review commits nothing, so it gets no message rules (design T §8, 2b-4).
+                        self.assertIn(nav.STEP_REVIEW_COMMIT_LINE, text)
+                        self.assertNotIn("`Key learnings: <what this iteration taught", text)
+                        self.assertIn("and leave it uncommitted;", text)
                     else:
                         self.assertIn("`Key learnings: <what this iteration taught", text)
                         self.assertIn("`Learned-from: <commit id> <what it contributed>`", text)
@@ -447,16 +472,16 @@ class HandoffTests(unittest.TestCase):
                     self.assertIn("Scratch directory (your temporary files, not /tmp)", text)
                     self.assertIn("short core has every pass's rules", text)       # the top line says what ROUTE is
 
-    def test_the_implement_handoff_is_within_pilot_a(self):
+    def test_the_step_review_handoff_is_within_pilot_a(self):
         for route, handoffs in self.walks.items():
             with self.subTest(route=route):
-                self.assertLessEqual(len(handoffs["implement"].encode()), PILOT_A_BYTES)
-                self.assertLess(len(handoffs["implement"]), 0.7 * 33_329)       # was 33,329 on the same walk (inline)
+                self.assertLessEqual(len(handoffs[STEP_REVIEW_STAGE].encode()), PILOT_A_BYTES)
+                self.assertLess(len(handoffs[STEP_REVIEW_STAGE]), 0.7 * 33_329)  # was 33,329 on the same walk (inline)
 
     def test_the_ask_agent_walk_reviews_the_aggregate_steps(self):
-        text = self.walks[prompts.ASK_AGENT]["implement"]
+        text = self.walks[prompts.ASK_AGENT][STEP_REVIEW_STAGE]
         self.assertIn("steps S1 to S2", text)               # so the bounds above hold for the longest focus
-        self.assertNotIn("steps S1 to S2", self.walks[prompts.INLINE]["implement"])
+        self.assertNotIn("steps S1 to S2", self.walks[prompts.INLINE][STEP_REVIEW_STAGE])
 
     def test_the_review_directory_is_short_and_per_action(self):
         # the Improve packet prints the handoff path; the child directory in it is the stage and 8 characters

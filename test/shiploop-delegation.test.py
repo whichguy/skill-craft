@@ -352,7 +352,7 @@ class StepTests(DelegationStateTests):
         """Chess run 2026-10-17: S1 was given a grep for files only S3 creates, failed, and the send-back (then called revise) merged S1-S3.
 
         The step Proof replaces 603a709c's interim rule (a check due from the step that finishes its criteria): each step
-        packet names the one command its step plan recorded for it, and the item's check rows stay with test and verify.
+        packet names the one command its step plan recorded for it, and the item's check rows stay with the test stage.
         """
         steps = [{"id": "S1", "task": "Add the parser.", "criteria": ["C1"], "proof": "python3 -B probe_parser.py"},
                  {"id": "S2", "task": "Add the validator.", "criteria": ["C2"], "proof": "python3 -B probe_validator.py"},
@@ -730,7 +730,9 @@ class PacketContractTests(DelegationStateTests):
     """Packet fields a fresh inline context needs, pinned on both routes where shared."""
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
-        entry = self.render(advance(self.state(), "verify"))
+        # The test stage: an inner producer that starts no Improve child (verify was this probe until it retired,
+        # design T §9.1 2b-4c).
+        entry = self.render(advance(self.state(), "test"))
         # The callback leads and is printed once (the "Write the structured result to:" line and the tail's "Call this when
         # done:" callback are gone, 2026-10-11 dedupe); the result contract follows the duties and rules and ends the
         # required text (the print order of the efficiency plan, section 6.1).
@@ -741,14 +743,14 @@ class PacketContractTests(DelegationStateTests):
         # U8: the label says why the command is run exactly as printed (no pipe, redirect, ";" or variable).
         self.assertIn(prompts.CALLBACK_REASON, callback_line(head))
         self.assertNotIn("Write the structured result to: ", entry)
-        # The four outcomes (run-insights plan N5): done and blocked everywhere, send-back from test-spec through verify,
+        # The four outcomes (run-insights plan N5): done and blocked everywhere, send-back from test-spec through document,
         # add-work at the outer stages; revise, replan and repeat are retired and no packet names them.
         self.assertIn("\nAllowed outcomes: done | blocked | send-back (", entry)
         self.assertLess(entry.index("Current stage guidance:"), entry.index("\nAllowed outcomes: "))
         self.assertNotIn("Call this when done:", entry)
         self.assertEqual(entry.count("Callback for this stage"), 1)
         self.assertIn(nav.HALT_LINE, entry)
-        # verify starts no Improve child, and its packet says nothing about Improve (owner rule 2026-10-10: Improve is
+        # test starts no Improve child, and its packet says nothing about Improve (owner rule 2026-10-10: Improve is
         # mentioned only as a directive); how to report a stop is the outcome shapes' (the trailing Improve-line sentence
         # is gone, 2026-10-11 dedupe), and the stage prints no Improve line.
         self.assertNotIn("advances directly", entry)
@@ -760,7 +762,7 @@ class PacketContractTests(DelegationStateTests):
         self.assertTrue(blocked_line.startswith('blocked (only a person or an outside service can unblock it): {"outcome": "blocked"'),
                         blocked_line)
         self.assertIn('"awaiting"', blocked_line)
-        long_form = reference.render(advance(self.state(), "verify"), Path("/simulation-only/run"))
+        long_form = reference.render(advance(self.state(), "test"), Path("/simulation-only/run"))
         for kind in ('{"kind": "answer", "question": ', '{"kind": "present", "steps": ', '{"kind": "service", "service": '):
             self.assertIn(kind, blocked_line + "\n" + long_form)
         self.assertIn('"no_default": "..."', long_form)  # why no recorded default would do, which ShipLoop requires of every wait
@@ -769,7 +771,7 @@ class PacketContractTests(DelegationStateTests):
         # No route offers a pause for a context clear: the host cannot be cleared from a packet.
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                packet = self.render(advance(self.state(route), "verify"))
+                packet = self.render(advance(self.state(route), "test"))
                 self.assertNotIn("context-boundary", packet)
                 self.assertNotIn("Recovery command, then the printed Resume", packet)
         self.assertIn("Optional work_items replaces the whole queue", self.render(advance(self.state(), "plan")))
@@ -815,22 +817,22 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("- W1 step-plan result: RUN/results/" + step_plan + ".md", delegated)
         self.assertNotIn("Current item step-plan source action", delegated)
 
-    def test_verify_assembles_direct_or_chain_work(self):
-        # integrate is folded into verify (8-stage loop, 2026-10-10).
+    def test_the_item_review_checks_steps_built_apart_and_no_route_tells_the_model_to_commit(self):
+        """Verify's assembly duty (integrate folded into it, 2026-10-10) moved to the review when verify retired (design T
+        §9.1 2b-4c): the ask-agent route's one action builds every step, so its item review, worded for the steps, checks
+        steps that conflict or disagree at an interface; one inline step has nothing of its own to assemble.  ShipLoop
+        commits the change, so no route's document duty tells the model to assemble or commit."""
+        assembly = "two steps that conflict, or disagree at an interface they share"
+        steps = nav.guidance.for_steps(nav.guidance.IMPLEMENT_STEP_REVIEW_FOCUS, "S1 to S3", "src/**")
+        self.assertIn(assembly, " ".join(steps.split()))
+        self.assertNotIn(assembly, " ".join(nav.guidance.IMPLEMENT_STEP_REVIEW_FOCUS.split()))
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                text = " ".join(nav.guidance.prompt("verify", delegation=route).split())
-                # ShipLoop commits the declared files when verify is accepted; no route tells the model to commit.
-                # Duty 8 (Assembly) prints on the ask-agent route only (U11, VR-6): an inline run builds every step in
-                # the execution checkout and binds no chain, so there is nothing to assemble; the other items keep
-                # their numbers.  Its fallback sentence still names the execution checkout where a chain is not bound.
+                text = " ".join(nav.guidance.prompt("document", delegation=route).split())
                 self.assertNotIn("assemble or commit", text)
-                self.assertEqual("candidate is assembled in the execution checkout" in text.lower(), route == "ask-agent")
-                self.assertEqual("8. **assembly.**" in text.lower(), route == "ask-agent")
-                self.assertIn("9. **later checks.**", text.lower())
-                # A chain exists only when delegation is ask-agent, so only that route confirms its finish commit.
-                self.assertEqual("confirm its finish commit is an ancestor of the execution checkout HEAD" in text,
-                                 route == "ask-agent")
+                self.assertIn("**Commit nothing yourself.**", text)
+                self.assertIn("A system, release or real-boundary check the criteria need is an open item due at the "
+                              "stage that makes it", text)
 
     def test_final_result_must_list_the_reviewed_queue(self):
         receipt = {"summary": "Synthetic receipt; no review claim."}
@@ -864,7 +866,8 @@ class PacketContractTests(DelegationStateTests):
             repo.mkdir()
             inline = bound_walk(repo, "inline", handoffs=True)
             delegated = bound_walk(repo, "ask-agent", handoffs=True)
-        self.assertEqual(len([entry for entry in inline if entry[1] != "handoff"]), 32)  # 33 before test-spec lost its review
+        # 33 before test-spec lost its review, 32 before verify retired (design T §9.1 2b-4c)
+        self.assertEqual(len([entry for entry in inline if entry[1] != "handoff"]), 31)
         for stage, kind, packet in inline:
             for text in BOUND_DELEGATED_TEXT:
                 self.assertNotIn(text, packet, (stage, kind, text))
@@ -898,7 +901,7 @@ class PacketContractTests(DelegationStateTests):
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             walks = {route: bound_walk(repo, route, handoffs=True) for route in ("inline", "ask-agent")}
-        checked = planned = 0
+        checked = planned = stepped = 0
         for route, packets in walks.items():
             for stage, kind, packet in packets:
                 # The commit rules moved from the Improve packet into the handoff file (re-cut 2026-10-11).
@@ -918,6 +921,13 @@ class PacketContractTests(DelegationStateTests):
                         self.assertIn(pointer, early)
                         planned += 1
                         continue
+                    if stage == "document":
+                        # A step's review commits nothing (design T §8, 2b-4): its line says so, early, in place of the
+                        # command, and the step's commit stage commits its edits.
+                        self.assertEqual(commits, [])
+                        self.assertIn(nav.STEP_REVIEW_COMMIT_LINE, early)
+                        stepped += 1
+                        continue
                     self.assertEqual(len(commits), 1, commits)
                     commit = lines[commits[0]]
                     self.assertTrue(commit.startswith("To commit a review iteration's changes"), commit)
@@ -936,8 +946,9 @@ class PacketContractTests(DelegationStateTests):
                     self.assertTrue(shlex.split(command)[4].startswith("--action="), command)
                     self.assertIn(commit, early)
                     checked += 1
-        self.assertGreaterEqual(checked, 12)
+        self.assertGreaterEqual(checked, 10)
         self.assertEqual(planned, 2)
+        self.assertEqual(stepped, 2)
 
     def test_a_child_shiploop_could_not_start_leads_with_the_restart_command(self):
         """A start the runtime refused leaves the Improve stage pending: its packet's first instruction is the one

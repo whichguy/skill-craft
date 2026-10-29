@@ -89,15 +89,15 @@ class DagReplayTests(unittest.TestCase):
             with self.assertRaisesRegex(dag_replay.DagReplayError, "partial or missing terminal"):
                 session.close()
 
-    def test_full_route_exercises_24_stages_and_32_callback_boundaries(self) -> None:
+    def test_full_route_exercises_23_stages_and_31_callback_boundaries(self) -> None:
         report = self._replay("synthetic-full")
 
         self.assertTrue(report["ok"], report.get("error"))
         self.assertEqual("synthetic-apparatus-passed", report["replay_status"])
-        # 24 producer callbacks plus 8 Improve completions: six planning
-        # checkpoints, the item's one implement step and the final carry-forward
-        # (33 until test-spec lost its review, 2026-10-26).
-        self.assertEqual(32, len(report["events"]))
+        # 23 producer callbacks plus 8 Improve completions: six planning
+        # checkpoints, the item's one step review and the final carry-forward
+        # (33 until test-spec lost its review, 2026-10-26; 32 until verify retired, design T §9.1 2b-4c).
+        self.assertEqual(31, len(report["events"]))
         self.assertEqual({"W1"}, set(report["final"]["completed_work_items"]))
         self.assertEqual(["intake", "discovery", "research"], [event["from"] for event in report["events"][:3]])
         for producer in report["events"][:3]:
@@ -124,16 +124,16 @@ class DagReplayTests(unittest.TestCase):
         self.assertIn("SIMULATION_ONLY", report["mock_transport"]["stderr"])
         self.assertEqual(1, report["mock_transport"]["subprocesses"])
 
-    def test_two_work_items_preserve_queue_identity_over_32_stages_and_41_callbacks(self) -> None:
+    def test_two_work_items_preserve_queue_identity_over_30_stages_and_39_callbacks(self) -> None:
         report = self._replay("synthetic-two-work-items")
 
         self.assertTrue(report["ok"], report.get("error"))
-        # 32 producer callbacks plus 9 Improve completions: spec, test-strategy, plan, W1's step-plan,
+        # 30 producer callbacks plus 9 Improve completions: spec, test-strategy, plan, W1's step-plan,
         # each item's step review after its document stage, the last carry-forward, system-test-author and
         # release-plan.
         # 44 until rule first-item (2026-10-19) dropped W2's step-plan and test-spec reviews; 42 until test-spec
-        # lost its review (2026-10-26).
-        self.assertEqual(41, len(report["events"]))
+        # lost its review (2026-10-26); 41 until verify retired from each item (design T §9.1 2b-4c).
+        self.assertEqual(39, len(report["events"]))
         self.assertEqual(["W1", "W2"], report["final"]["completed_work_items"])
         carry_forward = [event for event in report["events"] if event["from"] == "carry-forward"]
         # Only the carry-forward that leaves no item pending parks for Improve.
@@ -145,13 +145,13 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual("W2", handoff["next_owner"])
         self.assertEqual(["W1"], handoff["completed_work_items"])
 
-    def test_a_none_run_replays_24_stages_and_28_callbacks_with_no_checkpoint_at_the_five_planning_stages(self) -> None:
+    def test_a_none_run_replays_23_stages_and_27_callbacks_with_no_checkpoint_at_the_five_planning_stages(self) -> None:
         report = self._replay("synthetic-none-full")
 
         self.assertTrue(report["ok"], report.get("error"))
-        # 24 producer callbacks plus 4 Improve completions: the step review after the document stage (under
-        # either option), the last carry-forward, system-test-author and release-plan.
-        self.assertEqual(28, len(report["events"]))
+        # 23 producer callbacks plus 4 Improve completions: the step review after the document stage (under
+        # either option), the last carry-forward, system-test-author and release-plan (28 until verify retired).
+        self.assertEqual(27, len(report["events"]))
         improved = [event["from"] for event in report["events"] if event["command"] == "finish-improve"]
         self.assertEqual(["document", "carry-forward", "system-test-author", "release-plan"], improved)
         for stage in ("spec", "test-strategy", "plan", "step-plan", "test-spec"):
@@ -371,7 +371,7 @@ class DagReplayTests(unittest.TestCase):
                   planning_review=mode)
             with self.subTest(document_mode=mode), self.assertRaisesRegex(
                     dag_replay.DagReplayError, "replaced the parent action"):
-                check(navigator, state("document", "a1"), state("verify", "a2"), "produce", "a1", done,
+                check(navigator, state("document", "a1"), state("carry-forward", "a2"), "produce", "a1", done,
                       planning_review=mode)
             check(navigator, state("implement", "a1"), state("test", "a2"), "produce", "a1", done,
                   planning_review=mode)

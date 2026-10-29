@@ -5,7 +5,7 @@ test/shiploop_e2e/packet_obligations.json names what every packet must carry and
 this checkout's navigator (no model, no project) and fails when a row no longer holds:
 
 * the ledger is well formed, covers the seven obligations the plan names, and every anchor token is in the source file it names;
-* every row holds in every packet of its kinds that its ``when`` condition selects: the dry-run walk of all 24 stages and the
+* every row holds in every packet of its kinds that its ``when`` condition selects: the dry-run walk of all 23 stages and the
   Improve parent packets, and the offline step slice, on both delegation routes, in the printed text or the packet file as the
   row says;
 * each row notices a lost token (the mutation record: take any anchor of any row out of every packet and the check names it), so a
@@ -105,17 +105,17 @@ class LedgerHoldsTests(unittest.TestCase):
                 named += len(packet_view.named_outcomes(packet["file"]))
         self.assertGreaterEqual(named, 40, "the extraction found the instructions it checks (62 on 2026-10-17)")
 
-    def test_the_walk_covers_all_24_stages_and_the_improve_parent_on_both_routes(self) -> None:
+    def test_the_walk_covers_all_23_stages_and_the_improve_parent_on_both_routes(self) -> None:
         import shiploop_stage_spec as stage_spec
         for route in obligations.ROUTES:
             walked = [p for p in self.packets if p["where"].startswith(f"dry-run {route} ")]
             stages = {p["stage"] for p in walked if p["kind"] == "producer"}
             with self.subTest(route=route):
                 self.assertEqual(stages, set(stage_spec.STAGES))
-                self.assertEqual(len(stages), 24)
+                self.assertEqual(len(stages), 23)  # 24 until verify retired (design T §9.1 2b-4c)
                 self.assertTrue(any(p["kind"] == "improve" for p in walked))
             sliced = [p for p in self.packets if p["where"].startswith(f"slice node-fix-bug {route} ")]
-            self.assertTrue({"step-plan", "implement", "test", "verify", "carry-forward"} <= {p["stage"] for p in sliced})
+            self.assertTrue({"step-plan", "implement", "test", "document", "carry-forward"} <= {p["stage"] for p in sliced})
 
     def test_no_row_is_vacuous(self) -> None:
         """Each row applies to packets, and the conditional rows to many (the narrative at most stages, the loop at the looped ones)."""

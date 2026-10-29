@@ -6,9 +6,9 @@ with a disposition.  The model chooses which probes to run; these
 checks make a skipped probe visible instead of silent.  They verify shape,
 links and existence, never whether a list is complete or a locator true.
 
-Open items (consumer contract X10, 2026-10-11): test-spec, verify, carry-forward, system-test-author, system-test,
+Open items (consumer contract X10, 2026-10-11): test-spec, document, carry-forward, system-test-author, system-test,
 release-plan and release-verify record what they leave unproven in the same list.  There an open row's ``due_stage`` is
-a later OUTER stage, or the same item's carry-forward when the producer is test-spec or verify, and it may name an
+a later OUTER stage, or the same item's carry-forward when the producer is test-spec or document, and it may name an
 ``owner`` (a person).  The plan's open rows name instead, in ``due_item``, the work item that settles them (run-5 batch R3,
 2026-10-24: ``consumer`` named both, and also meant the product's user elsewhere).  ``open_items`` is the one reader of
 the rows still open.
@@ -26,11 +26,11 @@ import shiploop_stage_spec as stage_spec
 
 # The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).  Document
 # records the work a step found outside its item (design T §9.1 2b-3, option C, owner 2026-10-28).
-OPEN_ITEM_STAGES = frozenset(("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
+OPEN_ITEM_STAGES = frozenset(("test-spec", "document", "carry-forward", "system-test-author", "system-test",
                               "release-plan", "release-verify"))
 STAGES = frozenset(("plan",)) | OPEN_ITEM_STAGES
 # The producers whose open item may name their own item's carry-forward as its due stage.
-CARRY_FORWARD_PRODUCERS = ("test-spec", "document", "verify")
+CARRY_FORWARD_PRODUCERS = ("test-spec", "document")
 # The open-item stages an inline item runs once per step (design T §8): every step's result keeps its open rows, where
 # ``planning_revision.current_actions`` keeps only the latest result per (work item, stage).
 PER_STEP_STAGES = frozenset(("document",))
@@ -156,7 +156,7 @@ def check_files(rows: list[Mapping[str, Any]]) -> None:
 def allowed_due_stages(stage: str) -> Tuple[str, ...]:
     """The due stages an open item at an open-item ``stage`` may name, in graph order.
 
-    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec, document or verify.  Work
+    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec or document.  Work
     for a later work item goes through carry-forward's work_items, as before (K12).
     """
     order = stage_spec.STAGES

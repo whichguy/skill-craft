@@ -2,7 +2,7 @@
 
 Split from the ShipLoop skill card (`../SKILL.md`). Read when an inner stage (`step-plan` through `carry-forward`) needs the rule behind its packet, or a stage reports `send-back`.
 
-Each work item runs 8 stages in 5 phases (`INNER` in
+Each work item runs 7 stages in 4 phases (`INNER` in
 `scripts/shiploop_stage_spec.py`):
 
 | Phase | Stages |
@@ -10,7 +10,6 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 | Plan | `step-plan`, `test-spec` |
 | Validate existing | `validate-existing` |
 | Build | `implement`, `test`, `document`, once per step |
-| Verify | `verify` |
 | Carry forward | `carry-forward` |
 
 - `step-plan` records the item's `steps`, `paths`, `criteria`, test commands
@@ -20,22 +19,22 @@ Each work item runs 8 stages in 5 phases (`INNER` in
   code changes; ShipLoop refuses a case ID that no focused command lists, and a
   focused ID with no case; last item: a primary requirement no case names
   ([glossary](glossary.md)). Cases due at a later stage go under `## Due later` (read
-  by verify and `system-test-author`); criteria confirmed `searched` or `inspected`
-  go under `## Not tested here`.
+  by `system-test-author`); criteria confirmed `searched` or `inspected` go under
+  `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
 - `implement` builds one step per action; the lint gate runs on every step.
 - `test` writes the step's tests and makes every recorded command pass, then
   ShipLoop runs its base and candidate runs.
 - `document` is issued only when the step's diff touches a code or test path
   (`item_scope.behavioural`), else recorded not applicable. It updates the docs
-  and records what the step showed in KNOWLEDGE; then Improve reviews the step.
-- `verify` reruns every recorded command, traces each changed entry point and
-  reviews the whole diff. When `verify` is accepted ShipLoop commits the rest
-  of the item ([step commits](navigator.md#step-commits) came first).
+  and records what the step showed in KNOWLEDGE; at done ShipLoop lints its lines
+  and reruns what its edits could affect. Improve then reviews the step, tracing
+  each changed entry point, and ShipLoop commits it
+  ([commit stage](navigator.md#step-commits)). `verify` is retired.
 - `carry-forward` updates the knowledge home and the queue and records a
   [skill decision](#carry-forward-skill-decision).
 
-From `test-spec` through `verify`, a goal that proves wrong goes back to the
+From `test-spec` through `document`, a goal that proves wrong goes back to the
 step plan ([Send-back](#send-back-back-to-the-step-plan)).
 
 ## Stage Until Loops
@@ -66,9 +65,8 @@ At `complete` ShipLoop reads the receipt that the result names in `evidence_refs
 and compares it with the contract rebuilt from run state, never the file on disk
 (`loops.check_terminal`). It refuses an outcome the stage does not accept,
 a missing or still-active receipt and a packet from another contract; `blocked`
-needs no receipt when the loop never started. `verify` exits only after one
-complete iteration that finds only trivial issues; every other stage exits on
-its first iteration whose exit assessment holds. There is no iteration limit.
+needs no receipt when the loop never started. Every stage exits on its first
+iteration whose exit assessment holds. There is no iteration limit.
 
 `complete --check-only` runs the stage's script gates on a result without
 completing the action or saving anything, and prints each refusal as `complete`
@@ -109,7 +107,7 @@ and on accept commits the skill's directory. When to create or update a skill:
 
 A fixable problem is never `blocked`. When a work item's goal proves wrong or
 unachievable while it is being built, from `test-spec` through
-`verify`, the stage reports `send-back`: the item goes back to
+`document`, the stage reports `send-back`: the item goes back to
 `step-plan` with that result as evidence, and its earlier results from the step
 plan on stop counting as current. No count of send-backs stops an item;
 state.md `revisions` records how many there were. A script-run loop has no iteration limit: it runs until its

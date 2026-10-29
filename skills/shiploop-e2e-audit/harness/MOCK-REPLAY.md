@@ -130,4 +130,4 @@ owners, action IDs, state hashes and packets. The CLI composition test reports
 failing command outputs in its assertion diagnostics; its internal trace is
 temporary and is removed during cleanup. Capture the unittest stdout/stderr when
 retained diagnostics are needed. These checks do not claim exhaustive branch
-coverage merely because all 24 stages were visited.
+coverage merely because all 23 stages were visited.

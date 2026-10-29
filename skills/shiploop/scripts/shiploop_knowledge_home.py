@@ -77,7 +77,7 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # (an AD-<n>); each step's document reflects on what the step showed in all three (design T §9.1 2b-3, option C:
 # requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
-# differs (D2).  verify reads the architecture and writes nothing, so it has no entry.  A key that is no stage of the graph is
+# differs (D2).  A key that is no stage of the graph is
 # a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
@@ -106,7 +106,7 @@ _S, _E, _A = "spec.md", "environment.md", ARCHITECTURE
 READS: Dict[str, Tuple[str, ...]] = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
-    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A), "verify": (_E, _A),
+    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
@@ -447,7 +447,8 @@ def unnamed_commands(state: Mapping[str, Any], commands: Sequence[str]) -> List[
 
 
 def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[str]:
-    """One counted notice line when commands that passed at verify are not named in environment.md (plan row VR-3); else [].
+    """One counted notice line when commands that passed at the test stage of its item are not named in environment.md
+    (plan row VR-3); else [].
 
     Printed when carry-forward is accepted, which it never refuses: ``NOTICE_PREFIX``, the file's absolute path, the count and
     the one heading quoted before the first semicolon (so the heading count of references/project-knowledge.md counts it once),
@@ -458,7 +459,7 @@ def command_notices(state: Mapping[str, Any], commands: Sequence[str]) -> List[s
         return []
     path = Path(str(state["repo"])) / HOME / "environment.md"
     return [NOTICE_PREFIX + str(path) + " does not name " + str(len(unnamed)) + " command"
-            + ("" if len(unnamed) == 1 else "s") + " that passed at verify under 'Commands' (this carry-forward is "
+            + ("" if len(unnamed) == 1 else "s") + " that passed at the test stage of its item under 'Commands' (this carry-forward is "
             "accepted); a later stage that keeps environment.md writes each there, or records why it does not belong: "
             + "; ".join("`" + command + "`" for command in unnamed)]
 

@@ -144,10 +144,10 @@ class SendBackTests(unittest.TestCase):
                 nav.validate(after)
 
     def test_send_back_is_allowed_only_where_the_stage_table_allows_it(self) -> None:
-        # The INNER stages from test-spec to verify send an item back to its step plan; two OUTER stages send the run back
-        # to the stage that wrote their plan (run-insights N5, build plan S1.5).
+        # The INNER stages from test-spec to document send an item back to its step plan (verify is retired, design T
+        # §9.1 2b-4); two OUTER stages send the run back to the stage that wrote their plan (run-insights N5, S1.5).
         self.assertEqual(spec.with_outcome("send-back"),
-                         ("test-spec", "validate-existing", "implement", "test", "document", "verify", "system-test",
+                         ("test-spec", "validate-existing", "implement", "test", "document", "system-test",
                           "release-verify"))
         for stage in ("intake", "plan", "step-plan", "carry-forward", "system-test-author", "release-plan", "release"):
             with self.subTest(stage=stage):
@@ -305,9 +305,9 @@ class SendBackTests(unittest.TestCase):
             self.assertIn(token, head)
         self.assertNotIn("carried over from the previous implement result", head)  # there is none to carry over
 
-        # The amended plan's second step is no revisit: its implement result after the send-back exists.  S1 is not the
-        # item's last step, so no Improve child follows it (rule item, 2026-10-26).
-        state = walk(state, [row for row in rows[until:] if row["at"] == "implement"][:1])
+        # The amended plan's second step is no revisit: its implement result after the send-back exists.  S1 runs its
+        # whole iteration first, implement, test, document and the review after it (design T §8), then S2 is built.
+        state = walk(state, rows[until:until + 4])
         self.assertEqual(nav.current_stage(state), "implement")
         self.assertIn("Step S2 (2 of 2)", head_of(state))
         self.assertNotIn("Revisit: ", head_of(state))
@@ -321,8 +321,10 @@ class SendBackTests(unittest.TestCase):
         two_steps = dict(produced, steps=[*produced["steps"], {"id": "S2", "task": "Second synthetic step.", "deps": ["S1"]}])
         test_spec = next(i for i, row in enumerate(rows) if row["at"] == "test-spec")
         until = next(i for i, row in enumerate(rows) if row["at"] == "implement")
-        step = [row for row in rows[until:] if row["at"] in ("implement", nav.IMPROVE_STAGE)][:2]
-        not_last = step[:1]  # rule item (2026-10-26): S1 is not the item's last step, so no Improve child follows it
+        # One step's iteration (design T §8): implement, test, document and the review after it.
+        iteration = rows[until:until + 4]
+        self.assertEqual([row["at"] for row in iteration], ["implement", "test", "document", nav.IMPROVE_STAGE])
+        build = iteration[:1]
 
         def plan_to_implement(state: dict) -> dict:
             state = submit(state, two_steps)
@@ -330,9 +332,9 @@ class SendBackTests(unittest.TestCase):
             return walk(state, rows[test_spec:until])
 
         state = plan_to_implement(drive_to("step-plan"))
-        state = walk(state, not_last)
+        state = walk(state, iteration)
         first = last_action(state, "implement", "done")
-        state = walk(state, step)
+        state = walk(state, build)
         second = last_action(state, "implement", "done")
         self.assertEqual(nav.current_stage(state), "test")
         state = plan_to_implement(submit(state, SEND_BACK))
@@ -341,7 +343,7 @@ class SendBackTests(unittest.TestCase):
         self.assertIn("Step S1 (1 of 2)", head)
         self.assertIn("Step S1's previous accepted result, before the send-back: " + result_path(first), head)
         self.assertNotIn(result_path(second), head)
-        state = walk(state, not_last)
+        state = walk(state, iteration)
         head = head_of(state)
         self.assertIn("Step S2 (2 of 2)", head)
         self.assertIn("Step S2's previous accepted result, before the send-back: " + result_path(second), head)
@@ -398,12 +400,15 @@ class SendBackTests(unittest.TestCase):
         # reason too; no Proof is ever made up for it.
         # N5 (four outcomes, `awaiting`): a run saved by state version 7 is refused by the version check like any other.
         # R1 (2026-10-24, a step's `proof`, an open item's `settle`): a run saved by state version 8 has its own reason.
-        for version, reason in ((3, "state version 3 is not the supported version 9"),
+        # Design T §9.1 2b-4 (verify retired): a run saved by state version 9 built every step before testing and closed
+        # each item at verify, and has its own reason.
+        for version, reason in ((3, "state version 3 is not the supported version 10"),
                                 (4, "seventeen-stage inner loop \\(state version 4\\)"),
-                                (5, "state version 5 is not the supported version 9"),
+                                (5, "state version 5 is not the supported version 10"),
                                 (6, "before each implementation step recorded its Proof \\(state version 6\\)"),
-                                (7, "state version 7 is not the supported version 9"),
-                                (8, "saved with state version 8, whose step plans call each step's command `check`")):
+                                (7, "state version 7 is not the supported version 10"),
+                                (8, "saved with state version 8, whose step plans call each step's command `check`"),
+                                (9, "saved with state version 9, whose inner loop closed each item at a verify stage")):
             wrong_version = deepcopy(state)
             wrong_version["version"] = version
             with self.subTest(version=version), self.assertRaisesRegex(

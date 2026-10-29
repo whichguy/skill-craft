@@ -1123,6 +1123,31 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("invalid choice", refused.stderr)
         self.assertIn("improve-complete", refused.stderr)
 
+    def test_a_step_review_commits_nothing_and_improve_commit_refuses_it_naming_improve_pass(self):
+        """Design T §8 (2b-4): a step's review leaves its edits for the commit stage, which refuses any other commit
+        inside the step, so the step review's improve-commit is refused, with the pass's command, before any commit."""
+        if not self.inline():
+            self.skipTest("an inline step's review")
+        self.commit_architecture()
+        steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
+                  "skills": []}]
+        record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
+                  "environment": "none: no new command"}
+        self._start_parent_at_stage("document", [str(self.product_contract)],
+                                    producer_extra={"knowledge": record, "assumptions": []},
+                                    predecessors={"step-plan": {"paths": ["src/**"], "steps": steps}})
+        handoff = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertNotIn("improve-commit --run-dir", handoff)
+        message = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        message.parent.mkdir(parents=True, exist_ok=True)
+        message.write_text("fix: a review edit\n\nKey learnings: none\n", encoding="utf-8")
+        before = self.home_git("rev-parse", "HEAD").strip()
+        refused = self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve, "--message",
+                              message, status=2).stderr
+        self.assertIn("This step review commits nothing.", refused)
+        self.assertIn("improve-pass --run-dir=", refused)
+        self.assertEqual(self.home_git("rev-parse", "HEAD").strip(), before)
+
     def test_improve_commit_commits_only_the_reviews_uncommitted_changes(self):
         """The model writes the message with a file tool; ShipLoop stages and commits."""
         if not self.inline():
