@@ -176,10 +176,14 @@ def host_process() -> dict | None:
 
 def owner_process_alive(process: Any) -> bool | None:
     """Whether a recorded owner's host process still runs: the same pid with the same start time (a reused pid is
-    another process).  None when nothing was recorded, so only time can tell."""
+    another process).  None when nothing was recorded or ``ps`` could not list processes (an empty table says nothing
+    about this one), so only time can tell."""
     if not isinstance(process, Mapping) or not isinstance(process.get("pid"), int):
         return None
-    row = _processes().get(process["pid"])
+    table = _processes()
+    if not table:
+        return None
+    row = table.get(process["pid"])
     return row is not None and row["start"] == process.get("start")
 
 
@@ -192,12 +196,14 @@ def claim_owner(run_dir: str, host: str, session: str) -> bool:
         owner = _load_owner(run_dir)
         now = time.time()
         ours = owner.get("owner") in (None, my_owner_id)
-        alive = owner_process_alive(owner.get("process")) if owner.get("process") else None
+        recorded = owner.get("process")
+        alive = owner_process_alive(recorded)
         if not ours and now - owner.get("seen", 0) < OWNER_STALE_SECONDS and alive is not False:
             return False
-        # Our own record keeps its live process; a new claim, a record with none yet, or a session resumed in another
-        # process looks it up.
-        process = owner["process"] if ours and alive else host_process()
+        # Our own record keeps its process unless that process is known to be gone (a hook that cannot read the process
+        # table keeps it too); a new claim, a record with none yet, or a session resumed in another process looks it up.
+        kept = ours and alive is not False and isinstance(recorded, Mapping) and isinstance(recorded.get("pid"), int)
+        process = recorded if kept else host_process()
         _write_json(path, {"run_dir": run_dir, "owner": my_owner_id, "seen": now, "process": process})
         return True
 

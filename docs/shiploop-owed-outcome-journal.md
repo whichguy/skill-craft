@@ -813,6 +813,14 @@ Codex and Grok each have 2.21.0 installed.
   it, ancestry only. The gap that would have closed: a LEARNINGS commit, once rebased, vouches for runs built
   before the change (`bff6f0f4` records runs pinned at `8aa6e1fe`, shiploop 1.17.0, which has neither the takeover
   nor the session-end hook). So the discipline is manual: a round runs on a build that contains what it vouches for.
+- **Defect found in the shipped takeover (firm, 2026-10-29).** `owner_process_alive` read an empty process table as
+  "the owner is gone". `_processes` returns `{}` when `ps` is missing, times out or is hidden by a sandbox, so any
+  session whose hook could not list processes could take a live owner's run at once, and the owner's own hook in that
+  state overwrote its recorded process with none. Found by a read of the code against the takeover rule, not in a run.
+  Fix: an unreadable table is unknown (`None`), so only the 30-minute rule frees the claim, and the owner keeps the
+  process it recorded. Two `OwnerProcessTests` fail on the shipped code and pass on the fix
+  (`test/shiploop-keepalive.test.py`, 77 OK). It rides the next release with the session-end hook and is covered by
+  the same evidence round, since it is committed before that round's LEARNINGS entry.
 
 ## Session end releases the run (2026-10-28, owner: "Yes, build it"; firm for Claude, constructed for the others)
 
@@ -987,3 +995,4 @@ tree hash excludes.
 - 2026-10-28: E6 (dry runs per stage, from the run traces), F18-F19 and the phases B and C plan added.
 - 2026-10-29: correction: the dead-session takeover shipped in 1.20.0 (`3d7b83a3`) on its own `No-E2E-Round`; `917e0c2b` and `1961f4c5` said it was pending. Live evidence still owed.
 - 2026-10-29: owner decisions: keep the takeover live; leave the release preflight ancestry-only.
+- 2026-10-29: defect in the shipped takeover: an unreadable process table read as a dead owner; fixed so it reads as unknown.

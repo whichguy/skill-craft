@@ -670,6 +670,21 @@ class OwnerProcessTests(unittest.TestCase):
             self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
         self.assertEqual(keepalive._load_owner(self.run_dir)["process"], found)
 
+    def test_a_process_table_that_cannot_be_read_says_nothing_about_a_live_owner(self) -> None:
+        # `ps` missing, timed out or hidden by a sandbox gives an empty table: that is unknown, not "the owner is gone".
+        self.owned_by("busy", {"pid": 70, "start": self.START})
+        with self.table(), mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertIsNone(keepalive.owner_process_alive({"pid": 70, "start": self.START}))
+            self.assertFalse(keepalive.claim_owner(self.run_dir, "claude", "next"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["owner"], "claude:busy")
+
+    def test_the_owner_keeps_its_recorded_process_through_a_hook_that_cannot_read_the_table(self) -> None:
+        recorded = {"pid": 70, "start": self.START}
+        self.owned_by("owner", recorded)
+        with self.table(), mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["process"], recorded)
+
 
 class HealthNoticeTests(KeepaliveTestCase):
     """A session that keeps printing packets without ever binding is told its hooks are off."""
