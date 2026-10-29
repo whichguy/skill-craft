@@ -1639,8 +1639,9 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
     """Classify one base run: a focused command's new IDs must not pass; every command is counted for the floor.
 
     ``status`` is ``red`` (accepted), ``counted`` (a regression command: only its count matters), ``passes-on-base``
-    (a new ID passed, or a focused command without ids exited 0), ``unread`` (a new ID is named but no line says how it
-    ended) or ``not-run`` (a new ID is missing and no load failure names a file the item adds).
+    (a new ID passed, or a focused command without ids exited 0 with no reporter-recognised failure in its tally),
+    ``unread`` (a new ID is named but no line says how it ended) or ``not-run`` (a new ID is missing and no load
+    failure names a file the item adds).
     """
     tally = counts.count(output, code)
     verdict: Dict[str, Any] = {"counts": tally}
@@ -1651,7 +1652,8 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
         return verdict
     ids = [test_id for test_id in row.get("ids") or () if test_id not in exempt]
     if not row.get("ids"):
-        verdict["status"] = "passes-on-base" if code == 0 else "red"
+        masked_failure = code == 0 and tally is not None and tally["failed"] > 0
+        verdict["status"] = "red" if code != 0 or masked_failure else "passes-on-base"
         return verdict
     per_id = counts.outcomes(output, ids)
     verdict["id_outcomes"] = per_id

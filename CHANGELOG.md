@@ -4,6 +4,34 @@ Written by scripts/release.py.
 
 ## 2026-10-28
 
+### skill-craft 2.20.0
+
+- Skills: shiploop 1.19.0
+
+### shiploop 1.19.0
+
+- The base-run judge (`_judge_base`'s no-ids path) no longer calls a command
+  "passes-on-base" when it exits 0 but its own output reports a failed test —
+  the same wrapper-swallowed-exit masking that `judge()` was fixed against is
+  now also closed here, so a genuinely discriminating test is correctly
+  reported `red` instead of being told it does not detect the change.
+- The keepalive stop hook asks for `shiploop next` again; the owed-report wording added in 1.18.0 is gone.
+  - A refused stop says "run `next` and follow the packet it prints", as before 1.18.0. `next` reprints the step's
+    packet, which carries its Until Loop commands and its callback.
+  - `hook-status` no longer has `loop`, `callback` or `delegation`.
+  - Kept from 1.18.0: each reported Until Loop iteration counts as progress (`progress` is `<revision>.<callback
+    attempts>.<loop iteration>`), and running `next` re-binds the run without wiping the stop's memory.
+  - Why: in the phase A E2E round on DeepSeek flash, both texts got the loop reported in 6 of 6 cleared steps with
+    nothing redone, and the owed text took more commands. The round's two real early stops came where no loop was open,
+    so the owed text would have printed the generic sentence anyway (test/shiploop_e2e/LEARNINGS.md, 2026-10-28).
+- Test-strategy's `test_layers` and `targets` have one size bound again: their printed lines together (1,200
+  characters). The per-field limits are gone: code 60, harness 80, reason 160, target 60, base_state_route 240.
+  - The printed lines are what the step-plan head carries, and the combined bound already keeps them inside the host's
+    output cut. A single long field is accepted while the lines fit.
+  - Why: in the phase A E2E round the per-field limits refused 6 fields (for example a 61-character target and a
+    293-character base_state_route). Each cost a rewrite and a resubmit, and none protected the head
+    (test/shiploop_e2e/LEARNINGS.md, 2026-10-28).
+
 ### skill-craft 2.19.0
 
 - Skills: shiploop 1.18.0

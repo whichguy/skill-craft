@@ -41,9 +41,9 @@ CONFIRMS = ("executed", "searched", "inspected")
 YES_NO = ("yes", "no")
 # Programs that only read text: a command made of these (and cd) confirms no behaviour.
 SEARCH_PROGRAMS = frozenset(("grep", "egrep", "fgrep", "rg", "ag", "ack", "findstr", "select-string"))
-# Each field's limit, and the printed Test layers and Test targets lines together: the step-plan head carries them as
-# required text below the host's output cut, so the gate keeps them short instead of the print cutting them.
-FIELD_LIMITS = {"code": 60, "harness": 80, "reason": 160, "target": 60, "base_state_route": 240}
+# The printed Test layers and Test targets lines together: the step-plan head carries them as required text below the
+# host's output cut, so the gate keeps them short instead of the print cutting them. One field may be long while the
+# lines fit.
 TEXT_LIMIT = 1_200
 
 ROW_TEMPLATE = {"code": "<code the run writes: a module, component or page>", "layer": "unit", "harness": "<runner>",
@@ -68,13 +68,11 @@ def _need(condition: bool, message: str) -> None:
         raise LayerError(message)
 
 
-def _text(value: Any, where: str, limit: Optional[int] = None) -> str:
+def _text(value: Any, where: str) -> str:
     _need(isinstance(value, str) and bool(value.strip()), where + " must be nonblank text")
     text = " ".join(value.split())
     _need(not (text.startswith("<") and text.endswith(">")), where + " still holds the template placeholder " + text
           + ": write the real value")
-    _need(limit is None or len(text) <= limit, where + " is " + str(len(text)) + " characters; keep it within "
-          + str(limit) + " (the packets print it whole)")
     return text
 
 
@@ -87,7 +85,7 @@ def canonical_rows(value: Any) -> List[Dict[str, str]]:
         _need(isinstance(row, Mapping) and set(row) == set(ROW_TEMPLATE), where + " is " + ROW_SHAPE)
         _need(row["layer"] in LAYERS, where + ".layer is one of " + ", ".join(LAYERS))
         _need(row["status"] in STATUSES, where + ".status is one of " + ", ".join(STATUSES))
-        rows.append({key: _text(row[key], where + "." + key, FIELD_LIMITS.get(key)) for key in ROW_TEMPLATE})
+        rows.append({key: _text(row[key], where + "." + key) for key in ROW_TEMPLATE})
     return rows
 
 
@@ -114,7 +112,7 @@ def canonical_targets(value: Any) -> List[Dict[str, str]]:
         where = "targets[" + str(index) + "]"
         _need(isinstance(row, Mapping) and set(row) == set(TARGET_TEMPLATE), where + " is " + TARGET_SHAPE)
         _need(row["keeps_state"] in YES_NO, where + ".keeps_state is yes or no")
-        found = {key: _text(row[key], where + "." + key, FIELD_LIMITS.get(key)) for key in TARGET_TEMPLATE}
+        found = {key: _text(row[key], where + "." + key) for key in TARGET_TEMPLATE}
         _need(row["keeps_state"] == "no" or found["base_state_route"].lower() not in ("n/a", "na", "none"),
               where + " keeps state between runs, so base_state_route says how a test still fails on an item's base "
               "there: a clean target, a destructive or ordered deploy, or an inventory check")
@@ -228,7 +226,7 @@ def packet_lines(rows: Optional[Sequence[Mapping[str, str]]], targets: Optional[
     return lines
 
 
-__all__ = ("BUILD_LAYERS", "CONFIRMS", "FIELD_LIMITS", "HARNESS_RUN_SHAPE", "HARNESS_RUN_TEMPLATE", "LAYERS",
+__all__ = ("BUILD_LAYERS", "CONFIRMS", "HARNESS_RUN_SHAPE", "HARNESS_RUN_TEMPLATE", "LAYERS",
            "LayerError", "ROW_SHAPE", "ROW_TEMPLATE", "SEARCH_PROGRAMS", "STATUSES", "TARGET_SHAPE", "TARGET_TEMPLATE",
            "TEXT_LIMIT", "canonical_rows", "canonical_targets", "check_confirms", "check_harness_output",
            "check_harness_runs", "check_rows", "check_text", "criterion_label", "packet_lines", "search_only")
