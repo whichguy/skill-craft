@@ -1,0 +1,307 @@
+[
+ {
+  "slice": "pb-hook-owed-1-232e69",
+  "pass": true,
+  "verdicts": {
+   "process": true,
+   "stopped": true,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-owed",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3.15 until_loop_ephemeral.py next --state /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-xa6oklic.json",
+   "python3 shiploop next --run-dir /Users/dadleet/e2e-runs/20261028/pb-hook-owed-1-232e69/.shiploop-runs/seed/run",
+   "cd /Users/dadleet/e2e-runs/20261028/pb-hook-owed-1-232e69/.shiploop-runs/seed/worktree && git status --short && echo \"--"
+  ],
+  "first_is_loop_next": true,
+  "first_is_shiploop_next": false,
+  "s_to_loop_report": 115.2,
+  "completes": [
+   [
+    168.7,
+    true,
+    "ShipLoop check-only: every script gate for implement accepts this result (the Until Loop receipt is checked only on the real complete). The "
+   ],
+   [
+    178.9,
+    false,
+    "ShipLoop committed step W1/S1 as 4841364e9bd1.\nShipLoop navigator | improve | revision 17 | the implement result\n1. Run the improve skill on"
+   ],
+   [
+    292.0,
+    false,
+    ""
+   ]
+  ],
+  "s_to_accept": 178.9,
+  "refused_completes": 0,
+  "commands_before_accept": 15
+ },
+ {
+  "slice": "pb-hook-generic-1-232e69",
+  "pass": true,
+  "verdicts": {
+   "process": true,
+   "stopped": true,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-generic",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3 shiploop next --run-dir /Users/dadleet/e2e-runs/20261028/pb-hook-generic-1-232e69/.shiploop-runs/seed/run",
+   "cat /Users/dadleet/e2e-runs/20261028/pb-hook-generic-1-232e69/.shiploop-runs/seed/worktree/src/paginate.js; echo \"---\"; ",
+   "cd /Users/dadleet/e2e-runs/20261028/pb-hook-generic-1-232e69/.shiploop-runs/seed/worktree && cat docs/shiploop/spec.md; "
+  ],
+  "first_is_loop_next": false,
+  "first_is_shiploop_next": true,
+  "s_to_loop_report": 90.5,
+  "completes": [
+   [
+    105.2,
+    false,
+    "ShipLoop committed step W1/S1 as ae72f77c415f.\nShipLoop navigator | improve | revision 14 | the implement result\n1. Run the improve skill on"
+   ],
+   [
+    206.2,
+    false,
+    "ShipLoop navigator | test | revision 15\nLost context, or unsure? Run python3 /Users/dadleet/e2e-runs/20261028/pb-hook-generic-1-232e69/build"
+   ]
+  ],
+  "s_to_accept": 105.2,
+  "refused_completes": 0,
+  "commands_before_accept": 10
+ },
+ {
+  "slice": "pb-hook-owed-2-232e69",
+  "pass": true,
+  "verdicts": {
+   "process": true,
+   "stopped": true,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-owed",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3.15 until_loop_ephemeral.py next --state /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-8jdpf8wu.json",
+   "cd /Users/dadleet/e2e-runs/20261028/pb-hook-owed-2-232e69/.shiploop-runs/seed/worktree && ls -la && echo \"--- src ---\" &",
+   "ls -la /Users/dadleet/e2e-runs/20261028/pb-hook-owed-2-232e69/.shiploop-runs/seed/run/notes/ 2>/dev/null; echo \"---notes"
+  ],
+  "first_is_loop_next": true,
+  "first_is_shiploop_next": false,
+  "s_to_loop_report": 101.1,
+  "completes": [
+   [
+    105.3,
+    false,
+    "ShipLoop committed step W1/S1 as 9084da1d3764.\nShipLoop navigator | improve | revision 14 | the implement result\n1. Run the improve skill on"
+   ],
+   [
+    220.9,
+    false,
+    "ShipLoop navigator | test | revision 15\nLost context, or unsure? Run python3 /Users/dadleet/e2e-runs/20261028/pb-hook-owed-2-232e69/build/pl"
+   ]
+  ],
+  "s_to_accept": 105.3,
+  "refused_completes": 0,
+  "commands_before_accept": 9
+ },
+ {
+  "slice": "pb-hook-generic-2-232e69",
+  "pass": true,
+  "verdicts": {
+   "process": true,
+   "stopped": true,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-generic",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3 shiploop next --run-dir /Users/dadleet/e2e-runs/20261028/pb-hook-generic-2-232e69/.shiploop-runs/seed/run",
+   "cat /Users/dadleet/e2e-runs/20261028/pb-hook-generic-2-232e69/.shiploop-runs/seed/run/loops/nav-3c33dc26b81940be8cd1bba7",
+   "cat /Users/dadleet/e2e-runs/20261028/pb-hook-generic-2-232e69/.shiploop-runs/seed/run/loops/nav-3c33dc26b81940be8cd1bba7"
+  ],
+  "first_is_loop_next": false,
+  "first_is_shiploop_next": true,
+  "s_to_loop_report": 84.0,
+  "completes": [
+   [
+    104.9,
+    false,
+    "ShipLoop committed step W1/S1 as 51a4dde3964d.\nShipLoop navigator | improve | revision 14 | the implement result\n1. Run the improve skill on"
+   ],
+   [
+    321.4,
+    false,
+    "ShipLoop navigator | test | revision 15\nLost context, or unsure? Run python3 /Users/dadleet/e2e-runs/20261028/pb-hook-generic-2-232e69/build"
+   ]
+  ],
+  "s_to_accept": 104.9,
+  "refused_completes": 0,
+  "commands_before_accept": 10
+ },
+ {
+  "slice": "pb-hook-owed-3-232e69",
+  "pass": true,
+  "verdicts": {
+   "process": true,
+   "stopped": true,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-owed",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3.15 until_loop_ephemeral.py next --state /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-rnhtnz6a.json",
+   "python3 shiploop next --run-dir /Users/dadleet/e2e-runs/20261028/pb-hook-owed-3-232e69/.shiploop-runs/seed/run",
+   "ls -la /Users/dadleet/e2e-runs/20261028/pb-hook-owed-3-232e69/.shiploop-runs/seed/worktree && echo \"---\" && cat /Users/d"
+  ],
+  "first_is_loop_next": true,
+  "first_is_shiploop_next": false,
+  "s_to_loop_report": 103.3,
+  "completes": [
+   [
+    158.8,
+    true,
+    "ShipLoop check-only: every script gate for implement accepts this result (the Until Loop receipt is checked only on the real complete). The "
+   ],
+   [
+    165.0,
+    false,
+    "ShipLoop committed step W1/S1 as 7cdb8fd66b4b.\nShipLoop navigator | improve | revision 14 | the implement result\n1. Run the improve skill on"
+   ],
+   [
+    246.2,
+    true,
+    "Exit code 2\nShipLoop navigator: --check-only previews a producer stage's draft result; the Improve stage has no draft to check, and its comp"
+   ],
+   [
+    265.3,
+    false,
+    "ShipLoop navigator | test | revision 15\nLost context, or unsure? Run python3 /Users/dadleet/e2e-runs/20261028/pb-hook-owed-3-232e69/build/pl"
+   ]
+  ],
+  "s_to_accept": 165.0,
+  "refused_completes": 0,
+  "commands_before_accept": 17
+ },
+ {
+  "slice": "pb-hook-generic-3-232e69",
+  "pass": true,
+  "verdicts": {
+   "process": true,
+   "stopped": true,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-generic",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3 shiploop next --run-dir /Users/dadleet/e2e-runs/20261028/pb-hook-generic-3-232e69/.shiploop-runs/seed/run",
+   "python3.15 until_loop_ephemeral.py next --state /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-jon2n8_8.json",
+   "cd /Users/dadleet/e2e-runs/20261028/pb-hook-generic-3-232e69/.shiploop-runs/seed/worktree && node -e \"const {paginate}=r"
+  ],
+  "first_is_loop_next": false,
+  "first_is_shiploop_next": true,
+  "s_to_loop_report": 110.6,
+  "completes": [
+   [
+    148.5,
+    true,
+    "ShipLoop check-only: every script gate for implement accepts this result (the Until Loop receipt is checked only on the real complete). The "
+   ],
+   [
+    156.2,
+    false,
+    "ShipLoop committed step W1/S1 as 80b8391b9fb8.\nShipLoop navigator | improve | revision 14 | the implement result\n1. Run the improve skill on"
+   ],
+   [
+    274.5,
+    true,
+    "Exit code 2\nShipLoop navigator: --check-only previews a producer stage's draft result; the Improve stage has no draft to check, and its comp"
+   ],
+   [
+    279.0,
+    false,
+    "ShipLoop navigator | test | revision 15\nLost context, or unsure? Run python3 /Users/dadleet/e2e-runs/20261028/pb-hook-generic-3-232e69/build"
+   ]
+  ],
+  "s_to_accept": 156.2,
+  "refused_completes": 0,
+  "commands_before_accept": 10
+ },
+ {
+  "slice": "pb-hook-owed-3-232e69.owner-defect",
+  "pass": false,
+  "verdicts": {
+   "process": false,
+   "stopped": false,
+   "no_overshoot": true,
+   "no_redo": true
+  },
+  "redone": [],
+  "condition": "hook-owed",
+  "loop_at_clear": {
+   "kind": "stage",
+   "status": "active",
+   "iteration": 1
+  },
+  "first_commands": [
+   "python3.15 until_loop_ephemeral.py next --state /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-1urivu81.json",
+   "python3 shiploop next --run-dir /Users/dadleet/e2e-runs/20261028/pb-hook-owed-3-232e69/.shiploop-runs/seed/run",
+   "cd /Users/dadleet/e2e-runs/20261028/pb-hook-owed-3-232e69/.shiploop-runs/seed/worktree && git status --short && echo \"--"
+  ],
+  "first_is_loop_next": true,
+  "first_is_shiploop_next": false,
+  "s_to_loop_report": 77.3,
+  "completes": [
+   [
+    96.5,
+    true,
+    "ShipLoop check-only: every script gate for implement accepts this result (the Until Loop receipt is checked only on the real complete). The "
+   ],
+   [
+    101.6,
+    false,
+    "ShipLoop committed step W1/S1 as 4684b955aaca.\nShipLoop navigator | improve | revision 14 | the implement result\n1. Run the improve skill on"
+   ]
+  ],
+  "s_to_accept": 101.6,
+  "refused_completes": 0,
+  "commands_before_accept": 14
+ }
+]

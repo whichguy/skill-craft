@@ -502,6 +502,259 @@ the same way after a genuine fix, and the fix taught nothing new about why. It r
 - Evidence: the quick tier with `--changed-from c076485c` passed, 67 suites, after two expected fixes: test-groups
   (a keepalive change now also selects shiploop-loops) and the head table above.
 
+## Phase A E2E round: plan (2026-10-28, awaiting the owner's go)
+
+Purpose: verify phase A live before its release (the release preflight needs a LEARNINGS.md entry), and answer the
+owner's question with a live model: when a step's report is owed and the model stops, does the hook's text get it
+reported.
+
+Facts the plan rests on:
+- The two latest live runs (`/Users/dadleet/e2e-runs/20261027/v2170-ds-battleship-759a03`, `v2180-sonnet-battleship-
+  36036c`) each logged one hook event, "allow: run is done": no model ended a turn early, so a natural run alone would
+  likely leave phase A's stop text unexercised, as the 1.12.0 and 1.13.1 traces did.
+- The clear probe (`slice.py --clear-at <stage>:inside`) already stops a host inside a stage and continues it; hosts
+  accept `resume=<session id>` for the same session; `run.py --source checkout` tests unreleased code.
+- Latest DeepSeek baseline (`baselines.jsonl`): battleship, host claude, backend ollama,
+  `deepseek-v4.1-flash:1017-cloud`, ShipLoop 1.16.0: PASS 4 of 4 checks, about 166 minutes (39 planning), 3,870 turns,
+  32 refused callbacks; launched with `--timeout 14400`. Ollama 0.40.12 answers on :11434.
+
+| Arm | What | Measures |
+|---|---|---|
+| A, natural run | battleship, host claude, backend ollama, DeepSeek v4.1 flash, `--source checkout` (main with phase A), permission mode auto; one run as a background task, resumed in place (`--resume-run`) when the task is killed near 120 minutes | the 4 case checks and the baseline's minutes, turns and refusals; every hook event in `RUN/trace.jsonl` with its text class (loop report, step callback, generic) and what the model ran next; any send-back citing the stuck criterion; any loop that repeats on one failing check |
+| B, emulated refused stop | the clear probe stops the host at `implement:inside` (the loop started, its iteration unreported), then resumes the same session with the stop hook's text: treatment = phase A's text from the real code (`shiploop hook-status` + `_continue_reason`), control = the pre-phase-A sentence "run `next` and follow the packet it prints"; case hello, same host and model | whether the model runs the named loop command and reports the iteration (treatment) or reprints the packet first (control); redone work (the probe's S-6 `redone`); turns and seconds from the resume to the next loop report or accepted callback; any second stop |
+
+Arm B needs a small harness addition (a same-session `hook-reason` continue condition with a `hook-generic` control),
+admitted under SPEC "Change admission" with its tests. A kill is not the same as a model ending its turn; resuming the
+same session with the hook's own text is the closest emulation available without a host API that forces a stop.
+
+Before the release, phase A gets the SPEC change-admission record its commits lack (adversarial evaluation, anchor,
+non-regression for each of the three changes); it is written with the round's results.
+
+Owner decisions, 2026-10-28: both arms; no wall-clock timeout on arm A; three samples per arm B condition.
+
+Arm A launched 2026-10-28 from a detached worktree at `337b09c5` (`.claude/worktrees/e2e-phase-a-4ed4e3`) as a
+background task: output `/Users/dadleet/e2e-runs/20261028/pa-ds-battleship-4ed4e3`, `--source checkout` (the
+candidate build; a checkout run skips the marketplace version gate, which refuses while phase A's notes are
+unreleased).
+
+Arm B blocker, found while building it: the Claude host runs every session with `--no-session-persistence` and its
+`argv` ignores `resume` (`hosts.py`, Claude host `argv`), so a stopped Claude session cannot be resumed in place, and
+`:inside` positions fire only on Claude's stream. Two designs: B1, continue in a fresh session whose prompt is the stop
+hook's text (a small `slice.py` change; tests whether the text alone gets the report, the driver's situation); B2,
+persist the Claude session and resume it with the hook's text (a Claude host change; the faithful emulation of a
+refused stop, but resuming a killed `claude -p` session is unproven).
+
+**Folded in, 2026-10-28 (owner via the progress-status session, "Fold them in"; main `1575832b`).** Every run's three
+trace checks (keepalive_text, packet_reprint, owner_note; "not exercised" is not a pass) are recorded for this round.
+Arms A and B started from `337b09c5`, before that commit: arm A is regraded with main's `run.py --grade-only
+--resume-run` when it finishes, and arm B's slices get `run_trace.checks` computed over their traces. One extra case
+run with `--owner-note-at implement` (not a baseline arm) waits for the owner's go on its case, host and model;
+owner_note is read after the step that follows any held callback.
+
+**Harness defect found launching the owner-note run (2026-10-28, firm).** `run.py` refused to start: SPEC "The
+resource lifecycle" flagged arm B's live slice host (pid 46499, parent `slice.py` pid 45632) and four hosts of another
+session's E6D2 slices as orphans "whose harness is not running", and suggested `lifecycle.py cleanup`, which would have
+killed live runs (not run). Cause: `listeners.case_alive` judges a harness alive by the case lock `.harness-lock`, which
+`run.py` holds (`listeners.hold_case`) but `slice.py` never takes, so every live slice reads as orphaned and blocks any
+`run.py` launch under the same runs root.
+
+**Owner's choice, 2026-10-28: "Separate runs root".** The owner-note run was launched at 19:45Z from main `4e1c8df0`:
+hello, Claude host, DeepSeek flash on Ollama, `--source checkout --owner-note-at implement`, no timeout. Its output is
+`/Users/dadleet/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87`, with
+`SHIPLOOP_E2E_RUNS_ROOT=/Users/dadleet/e2e-runs-owner-note`, so the orphan scan sees only its own root. Caveat: the
+same root decides which runs count as its neighbours, so this run's environment record does not see arms A and B
+running at the same time; its overlap figures understate the load on the machine.
+
+**Laptop sleep, 2026-10-28 20:00:24Z–20:47:39Z (47 min 15 s; firm, from `pmset -g log`).** The battery ran out ("Low
+Power Sleep … Charge:1%", then a wake from hibernate when the owner plugged it in). Every process paused and resumed.
+- Excluded from timings: any duration that spans the gap. The Live Run Card marks it as a timeline band on every job.
+  The builder's finish estimates (`status_card` progress `eta`) still count it, so they run about 47 min late.
+- Arm A: the W2 implement Improve submission (`shiploop complete`, 20:00:26Z) was in flight. On wake, auto mode's
+  safety check timed out against the model backend and refused it. The model retried at 20:48:31Z (a `--check-only`,
+  then the real call) and was accepted: test, revision 27. At 20:49:16Z the host auto-compacted the context (168,006
+  → 27,664 tokens); that came from context size, not the sleep. The model then re-opened the packet file and started
+  the test loop. A natural lost-context event for this round's trace checks. Evidence: arm A `events.jsonl` lines
+  485634–485709.
+- Arm B generic 3: paused in test-spec, before its clear. The clear and the fresh session came after the wake, so its
+  continuation timings are unaffected.
+- Owner-note run: paused in test-strategy. No errors; the note fires at implement, after the wake.
+- The other session's E6D2 slices on this machine paused too; their wall-clock times include the gap.
+
+### Arm B results (2026-10-28, interim: n = 3 per condition, one case, one model)
+
+Setup: node-fix-bug, Claude host, DeepSeek flash on Ollama; seed at step-plan, clear at `implement:inside`. A fresh
+session continues with the stop hook's text as its prompt: `hook-owed` is phase A's text, `hook-generic` the
+sentence it replaced. The plugin is built from `fd65120f`, plus the harness fixes `b2a53912` and `c8bcb464`. Every
+sample was cleared with the stage loop active and iteration 1 unreported.
+
+| sample | first command | loop reported | implement accepted | commands to accept | redone | pass |
+|---|---|---|---|---|---|---|
+| owed 1 | the named loop `next` | 115 s | 179 s | 15 | 0 | yes |
+| owed 2 | the named loop `next` | 101 s | 105 s | 9 | 0 | yes |
+| owed 3 | the named loop `next` | 103 s | 165 s | 17 | 0 | yes |
+| generic 1 | `shiploop next` | 91 s | 105 s | 10 | 0 | yes |
+| generic 2 | `shiploop next` | 84 s | 105 s | 10 | 0 | yes |
+| generic 3 | `shiploop next` | 111 s | 156 s | 10 | 0 | yes |
+
+Medians: owed reports at 103 s and is accepted at 165 s after 15 commands; generic reports at 91 s and is accepted at
+105 s after 10 commands. No sample had a refused callback. Set aside: generic 1 (seed defect), the first owed 3
+(owner defect; its first move was the loop `next`, report 77 s, accepted 102 s), and the cut owed 2 and generic 3.
+
+Findings:
+- **B1-o1 (interim).** The owed text changes the first move: 3 of 3 samples ran the exact loop command it names.
+- **B1-g1 (interim).** The old sentence reaches the same outcome. `shiploop next` reprints the implement packet,
+  and the packet carries the loop's own `done` command and the callback. All 3 samples rechecked, reported and were
+  accepted with nothing redone.
+- **Phase A's text is not shown to help on this model.** Both conditions reached the report in every sample. The
+  owed samples took more commands, and two of three spent one on a `--check-only` dry run. The accept times overlap
+  (owed 105–179 s, generic 105–156 s), so n = 3 cannot separate them. No harm to outcomes was seen either.
+- **Not tested.** A model that ignores `next`. A stop the hook continues within the same session: no valid sample
+  stopped, so `keepalive_text` is "not exercised" everywhere. The owed text's other branch, "loop finished, callback
+  owed". Hosts other than Claude.
+- **Trace checks** (`arm-b-trace-checks.json`, computed with main's `run_trace.checks`): keepalive_text,
+  packet_reprint and owner_note are "not exercised" on every slice, and "not exercised" is not a pass.
+  packet_reprint counts only identical reprints (same action and hash, `shiploop_trace`). The fresh session's
+  `next` reprint is 52 characters longer than the first print (19,471 vs 19,419), so it is traced as a new packet with
+  its own kept copy.
+- Evidence: `docs/shiploop-owed-outcome-evidence/arm-b-results.json` (written by `arm_b_metrics.py` from each slice's
+  `sessions.jsonl` and `events.jsonl`) and `arm-b-trace-checks.json`.
+
+### Owner-note run: owner_note passes live (2026-10-28, firm, n = 1)
+
+hello, Claude host, DeepSeek flash, `--owner-note-at implement`, main `4e1c8df0`. The run went as the design
+(`shiploop_owner_notes`) says:
+- 21:13:11Z: the implement packet was printed.
+- 21:13:12Z: the harness wrote N1. It came after the packet, so the packet does not quote it.
+- 21:16:04Z: the `--check-only` callback was held once, and the hold printed N1.
+- 21:16:23Z: implement was accepted. Its summary cites the note: "Owner note N1 (21:13Z) was read and changes
+  nothing about the step".
+- A held callback shows a note but never delivers it, since only a packet survives a context clear. So the test
+  packet (`nav-1c83…`) quoted N1 again.
+- 21:22:14Z: the test step delivered it (step 12), and its summary cites N1.
+
+`run_trace.checks` owner_note: **pass**, "N1 delivered by nav-1c83…, cited". This is the first live pass of any of
+the three trace checks.
+
+Cost of the design: the model was asked twice, and it cited the note in two summaries. Not a defect; the design pays
+that cost so the note survives a clear.
+
+Result (run end 22:18Z): **PASS**. Every verdict passed, ShipLoop reached done, and both of the case's checks pass.
+- Clock time 9,178.6 s (153 min); about 106 min active, since the 47-min sleep is inside it.
+- 12 ShipLoop refusals, none repeated. Among them are `--check-only` field-length bounds, one improve-pass called
+  before the improve skill ran, and one improve-pass with an unknown `--final-result` flag.
+- Trace checks from the run's own `run.py` (main `4e1c8df0`):
+  - owner_note **pass**.
+  - packet_reprint **pass**: one identical reprint, of the `done` packet at 22:17:58Z, names its kept copy
+    `packets/sent/2f29e721….md`. The first live pass of this check.
+  - keepalive_text not exercised: no stop was continued.
+- Evidence: `/Users/dadleet/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87.log`, and under that folder
+  `metrics.json`, the run's `run/trace.jsonl`, `results/nav-a6c8….md` and `results/nav-1c83….md`.
+
+### Arm A: battleship passes; the hook continues once, at a stage boundary (2026-10-28, firm, n = 1)
+
+battleship, Claude host, DeepSeek flash, built from the phase A checkout (`337b09c5`), no timeout. The run started
+17:32Z and ended about 23:45Z.
+
+Result: **PASS**. Every verdict passed, ShipLoop reached done, and all four battleship checks pass, including HTTP play
+against the served game.
+- Clock time 22,355.5 s (372 min); about 325 min active, since the 47-min sleep is inside it.
+- Work: 48 stages; 15 Improve children with 37 passes; 49 ShipLoop refusals, 25 of them `--check-only` dry runs.
+- Mutation: 122 of 261 caught.
+- Release-verify ran the released tree and returned `add-work`: the README said an invalid PORT exits non-zero, but
+  spec R-2.3 and `server.js` resolve it to 3000. The corrective item W4 ran its own inner loop. W4's test sent its plan
+  back once, because its floor of 4 focused tests was unreachable (ST-1 is opt-in). Then the release stages ran again.
+- Through the sleep: on wake, auto mode's safety check refused one `complete`. The model retried and was accepted. A
+  host auto-compaction at 20:49Z was recovered from the packet.
+- Trace checks, regraded with main's `run.py --grade-only` (`35ec5366`):
+  - **keepalive_text pass.** One continuation with its text, at 23:35:20Z, at release-check (revision 68). The hook
+    gave the generic "run `next`" text: release-check has no stage loop, so phase A's owed text would have added
+    nothing. The run went on to done, and the final stop at 23:44:39Z was allowed ("run is done").
+  - packet_reprint not exercised.
+  - owner_note not exercised (no note was written).
+- Correction: at 15:31 local I reported that arm A's stop hook "never fired". That held for the first 252 active
+  minutes only; the continuation above came later.
+- Evidence: `/Users/dadleet/e2e-runs/20261028/pa-ds-battleship-4ed4e3.log` and `.regrade.log`, and that run's
+  `run/trace.jsonl` (hook events) and `results/nav-a6292ace….md` (the add-work result).
+
+### shiploop 1.18.0 shipped phase A before these results (2026-10-28)
+
+Release `6828acb9`, at 16:40 local, under the owner's git identity but not from this session, shipped all three phase
+A notes: the owed-report stop text, the driver's lifted ceiling, and the stuck-rule criterion. The release preflight
+passed on earlier LEARNINGS entries. This round's results (above) arrived after it. The trims plan
+(`docs/shiploop-trims-plan-2026-10-28.md`, approved by the owner) removes the owed text in the next release, under a new
+change note, because the release consumed the old one.
+
+**Owner's choice, 2026-10-28: B1.** Change admission for the harness addition (SPEC "Change admission"), on branch
+`feat/e2e-hook-text-232e69`:
+
+- **Change.** `slice.py` gains two `--resume-prompt` conditions. `hook-owed`: the stop hook's reason as the plugin
+  under test writes it (its own `shiploop_keepalive._continue_reason` on the run's `hook-status`). `hook-generic`:
+  the pre-phase-A sentence ("run `next` and follow the packet it prints", from `_continue_reason` at `04c45dce`),
+  filled from the same `hook-status` fields. Both continue in a fresh session, as `names-next` and `withheld` do;
+  `sessions.jsonl` `told` records the condition and the loop state and callback at the continuation.
+- **Adversarial evaluation.**
+  - Weakens S-6? It measures redone work after the clear exactly as before; the condition is recorded in
+    `invocation.json` and `told`, the default stays `names-next`. Mitigated; tested by the parser test.
+  - Tests the wrong text? `hook-owed` is built by the plugin build under test, in a subprocess whose path is that
+    build's scripts directory, never the harness checkout's import. Mitigated; a test compares it with the plugin's
+    own function.
+  - Fails silently? A `hook-status` failure, or a text the plugin cannot build, ends the slice with the reason; a hook
+    condition never falls back to another prompt. Mitigated; tested.
+  - Uninformative samples: when the clear fires before the loop starts, both conditions print the generic ask. Accepted
+    and made visible: `told` records the loop state, and the analysis counts such samples separately.
+  - Other hosts: `:inside` fires on Claude only (unchanged); the conditions themselves need only the CLI. Accepted.
+  - Cost, secrets, user work: two local subprocess calls per clear; no network, no repository writes. Accepted.
+  - Gamed: both conditions read the same `hook-status`, and the control is a frozen copy of the old text. Mitigated.
+- **Anchor.** The owner's question (2026-10-27: does a stopped step get its report made) and S-6's clear probe; evidence:
+  the two latest live runs logged no stop-hook continuation, so phase A's text is unexercised live.
+- **Non-regression.** `names-next` and `withheld` are unchanged; the parser's default is unchanged; the slice suite and
+  the release-slice suite pass.
+
+**Arm B seed defect (2026-10-28, firm; my launch error, not ShipLoop).** Arm B first ran with `--seed-at test-spec`.
+node-fix-bug has no `seed_records` (`step_cases.json`), so the seed recorded step-plan with no steps
+(`results/nav-bb73570b….md`: outcome done, a synthetic summary, no `steps`). `shiploop_loops.current_step` then returns
+None, implement cannot build its loop, and every done result is refused.
+- hook-generic 1 (18:11Z) ended with implement **blocked**. The model named the cause correctly: "W1's accepted step
+  plan records no implement step". `told.hook.loop` was `{}`.
+- hook-owed 1 is kept as a valid sample. Its test-spec sent the plan back, so step-plan ran for real and implement had a
+  step and a loop: loop iteration 1 was active at the clear.
+- Set aside as evidence: `pb-hook-generic-1-232e69.seed-defect` and `pb-hook-owed-2-232e69.seed-defect-cut` (stopped
+  in test-spec).
+- The batch was relaunched at 18:25Z with `--seed-at step-plan` (same case, host and model), which runs the real
+  step-plan.
+- Harness change, on branch `feat/e2e-hook-text-232e69`: `slice.seed_gap` refuses, before anything is built, a seed
+  past step-plan whose merged records give step-plan no steps.
+- Tests: three `SeedGapTests` (refused through `main` with no output folder made; seeds up to step-plan pass; every
+  test-spec experiment in `experiments.json` still passes, each giving one step). The slice suite passes, 67 tests;
+  ruff findings match HEAD. No fail-first run: without the guard, `main` would build and start a real host session.
+  Commit `b2a53912`.
+
+**Arm B keepalive-owner defect (2026-10-28, firm; harness, not ShipLoop).** hook-owed 3 (19:16Z) failed `process`.
+- What the fresh session did: it ran the named loop `next` first, found the fix not yet made (the clear came before
+  the first session edited anything), made it, reported at 77 s, and implement was accepted at 102 s.
+- Where it stopped: at the implement Improve packet, the model ended its turn with a status narrative (`end_turn`).
+  The keepalive Stop hook fired but allowed the stop: `run/trace.jsonl` records `"decision": "allow", "why":
+  "another session owns this run"`.
+- Cause: the keepalive keeps only the run's owner going (`shiploop_keepalive.claim_owner`). A claim ends when the
+  owner's turn ends normally, when the driver finishes a session (`drive` calls `release_owner` after every
+  session), or after `OWNER_STALE_SECONDS` (30 min) with no activity. The slice kills the cleared session with
+  SIGKILL, so its claim stayed: `~/.local/state/shiploop/keepalive/runs/f4cc1c6b….json` still named the first
+  session, last seen 19:23:49Z. (The Claude host keeps the real HOME, so slice keepalive state is the user's own.)
+- Effect on earlier samples: none. Owed 1–2 and generic 1–2 never stopped before the slice ended them.
+- For the stop-text measures, owed 3 still counts: its first move, report and acceptance match owed 1–2. Its pass
+  verdict does not count.
+- Fix (`c8bcb464`, branch `feat/e2e-hook-text-232e69`): `slice.release_keepalive_owner` runs the build's own
+  `release_owner` at every clear, in the hooks' environment, as the driver does. Tests: a clear frees a dead
+  session's claim (1 failure with the release patched out); with no clear the claim stays. Slice suite 69 OK.
+- Owed 3 and the cut generic 3 are set aside (`*.owner-defect`, `*.owner-defect-cut`). Both reran at 19:35Z on the
+  fixed harness.
+- Same exposure for arm A: `run.py --resume-run` starts a new session while the killed one may still hold the claim.
+  Before any arm A resume, release its owner the same way (record it here).
+- **Open for the owner.** Outside the driver, a crashed or killed session leaves the next session unkept for up to
+  30 minutes. That is the documented trade-off, which stops two live sessions fighting over a run. Should a
+  session that runs a driving command (`next`, `complete`) take over a claim whose owner process is gone? Not
+  changed; it needs a decision.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in

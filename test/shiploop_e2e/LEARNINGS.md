@@ -3996,3 +3996,67 @@ is shown by reading the page, as in 491d9a. Cost $9.32 and 365 turns, against 01
 - The design's premise is weaker than written (depth varies by run, not one pass always). The measured case for
   per-step review rests on the page defect: per-step reviews caught it in 1 of 1 run; item reviews caught it in 0 of
   2 runs that had it.
+
+## Owed-outcome phase A round: stop text, owner note and battleship on DeepSeek flash (2026-10-28) — status: firm for the verdicts and the trace checks; interim for the stop-text comparison (n = 3 per condition)
+
+**Question.** Phase A (337b09c5) made the stop hook name the report a run is owed: the loop's next report, or the
+step's callback once its loop has ended. It shipped in 1.18.0, released at 16:40 by another session before these
+results existed.
+- Does a cleared or stopped step still get its report made?
+- Does phase A's text beat the sentence it replaced?
+- Do the three live trace checks pass?
+
+Setup:
+- Every run is on the Claude host with DeepSeek flash on Ollama, and none has a timeout.
+- **Arm A:** a natural battleship run on the phase A checkout build.
+- **Arm B (B1):** node-fix-bug slices, seeded at step-plan and cleared inside implement, each continued in a fresh
+  session with the stop text as its prompt. Three with phase A's text (`hook-owed`), three with the old sentence
+  (`hook-generic`). Harness on `feat/e2e-hook-text-232e69`.
+- **Owner-note run:** hello with `--owner-note-at implement` on main 4e1c8df0, under its own runs root.
+- The laptop slept 20:00:24Z–20:47:39Z (battery). Every timing that spans the gap excludes it.
+
+**Result** (`docs/shiploop-owed-outcome-journal.md`: "Arm B results", "Owner-note run", "Laptop sleep", "Arm A";
+evidence in `docs/shiploop-owed-outcome-evidence/arm-b-*`. The two baseline rows are in this commit.)
+
+| run | verdict | stages | active min | Improve children / passes | refusals | keepalive text | packet reprint | owner note |
+|---|---|---|---|---|---|---|---|---|
+| arm A, battleship | PASS | 48 (release-verify added W4) | ~325 | 15 / 37 | 49 | pass (1 continuation) | not exercised | not exercised |
+| owner note, hello | PASS | 24 | ~106 | 8 / 17 | 12 | not exercised | pass (1) | pass (N1 cited) |
+| arm B, 6 slices | 6 of 6 | to implement | — | — | 0 refused callbacks | not exercised | not exercised | not exercised |
+
+**What it shows.**
+- **Phase A's stop text changes the first move, not the outcome.**
+  - All 3 owed samples first ran the named loop `next`. All 3 generic samples ran `shiploop next`, whose reprint
+    carries the loop's done command.
+  - All 6 reported and were accepted with nothing redone.
+  - Medians, owed then generic: report at 103 s and 91 s, accept at 165 s and 105 s, commands 15 and 10.
+  - No gain.
+- **The two real early stops both came at a stage boundary with no loop open.**
+  - Arm B owed 3, first try: the model stopped at the Improve packet after implement was accepted. Replayed,
+    `hook-status` gives `loop: {}` and the owed text is empty.
+  - Arm A, release-check at revision 68: the hook continued the turn with "run `next`", and the run finished.
+  - Phase A's owed text never applied to a stop that actually happened. The trims plan (T1) removes it.
+- **The keepalive held live.** Arm A had one continuation with its text recorded: the first live pass of
+  `keepalive_text`.
+- **The owner note held once, was cited, and was delivered by the next packet's step.** That is the design: a hold
+  shows a note and never delivers it.
+- **The last gate worked.** Release-verify ran the released tree, found the README's claim about an invalid PORT false
+  (spec R-2.3 resolves it to 3000), and added a corrective item, W4. W4's test then sent its plan back once, because
+  its floor of 4 focused tests was unreachable (ST-1 is opt-in).
+- **Arm A came through the sleep.**
+  - On wake, auto mode's safety check timed out and refused one `complete`. The model retried it and was accepted.
+  - A host auto-compaction (168,006 → 27,664 tokens) was recovered from the packet, with nothing redone.
+- **Harness defects found.**
+  - Seeding at test-spec without step-plan steps left implement with no step. Guard: b2a53912.
+  - A slice clear left the killed session owning the run, so the hook let the fresh session stop. Fix: c8bcb464.
+  - Lifecycle's orphan check flags live slices, which hold no case lock. Recorded, not fixed.
+- **Refusals.** The per-field test-layer limits caused 6 refusals over the two full runs (trims T2). Arm A spent 25
+  of its 49 on `--check-only` dry runs.
+- **Mutation.** Arm A caught 122 of 261. hello declares no mutation command.
+
+**Next.**
+- The trims (`docs/shiploop-trims-plan-2026-10-28.md`, T1–T4).
+- The slice case-lock defect.
+- Owner decisions:
+  - Should a session that runs `next` or `complete` take over a dead owner's claim?
+  - Should Improve scale to the request's size?

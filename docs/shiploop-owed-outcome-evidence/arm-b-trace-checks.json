@@ -1,0 +1,121 @@
+{
+ "pb-hook-owed-1-232e69": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ },
+ "pb-hook-generic-1-232e69": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ },
+ "pb-hook-owed-2-232e69": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ },
+ "pb-hook-generic-2-232e69": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ },
+ "pb-hook-owed-3-232e69": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ },
+ "pb-hook-generic-3-232e69": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ },
+ "pb-hook-owed-3-232e69.owner-defect": {
+  "keepalive_text": {
+   "verdict": "not exercised",
+   "evidence": "no stop decision continued a turn",
+   "lines": []
+  },
+  "packet_reprint": {
+   "verdict": "not exercised",
+   "evidence": "no packet was printed twice for one action",
+   "lines": []
+  },
+  "owner_note": {
+   "verdict": "not exercised",
+   "evidence": "no owner note was written to the run",
+   "lines": []
+  }
+ }
+}
