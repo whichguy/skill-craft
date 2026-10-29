@@ -293,6 +293,17 @@ accessibility, and other risks when the behavior makes them relevant; do not
 generate irrelevant cases to fill a checklist. A bug fix should have a regression
 case that distinguishes broken from intended behavior where feasible.
 
+**Mocks before system tests.** A case whose code calls a dependency (the
+network, the clock, randomness, storage, a child process, a browser API)
+names the mock it runs against in its `mock` field: `simulates`, what the
+mock stands in for, and `plays`, the slow, failing or out-of-order behaviour
+it plays (for example a `fetch` that holds a reply until the test releases
+it). The test stage builds each named mock before that case's test, and the
+mock's own header states what it stands in for and what it plays, because a
+mock proves the code only against the behaviour it simulates. The real
+boundary stays a system or real-boundary check
+([layers and real boundaries](#layers-and-real-boundaries)).
+
 Example, not a universal requirement:
 
 | Case | Given / when | Expected | Layer / runner | Observed |

@@ -5019,7 +5019,8 @@ _KNOWLEDGE_PLACEHOLDERS = {"spec": "<the lines this step added inside its R-<n> 
                            "environment": "<the commands, harnesses and facts this step proved, or why none>"}
 _STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
                            "decisions": "<choice made and why, or none>"}
-HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
+HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), *expectations.MOCK_PLACEHOLDERS.values(),
+                        _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
                         *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values(),
                         *_KNOWLEDGE_PLACEHOLDERS.values())
 # Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
@@ -6725,6 +6726,10 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
                 lines += ["- " + str(case.get("id")) + " (criterion " + str(case.get("criterion")) + ", requirement "
                           + str(case.get("requirement")) + ")",
                           *(QUOTE + field + ": " + _one_line(case.get(field)) for field in ("oracle", "red", "green"))]
+                mock = case.get("mock")
+                if isinstance(mock, Mapping):   # the mock the test stage builds before this case's test (F5)
+                    lines.append(QUOTE + "mock: " + _one_line(mock.get("simulates")) + " | plays: "
+                                 + _one_line(mock.get("plays")))
         return lines
     if source.key == "not_covered":
         return [label + ":", *_not_covered_rows(value)]

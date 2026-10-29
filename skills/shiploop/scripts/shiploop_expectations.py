@@ -100,7 +100,15 @@ TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
 CASE_PLACEHOLDERS = {"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement": "R-<n>",
                      "oracle": "<what observes the behaviour, and where>", "red": "<the assertion that fails on the item's base because the behaviour is missing, not because a file is>",
                      "green": "<what the case shows once the change works>"}
-_TEST_CASE_SHAPE = "test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
+# A case may name the mock it runs against (design T §8.2, F5): what the mock stands in for, and the slow, failing or
+# out-of-order behaviour it plays.  The test stage builds it before the case's test.  The placeholders are refused as
+# the case's are.
+MOCK_KEYS = ("simulates", "plays")
+MOCK_PLACEHOLDERS = {"simulates": "<the dependency the mock stands in for>",
+                     "plays": "<the slow, failing or out-of-order behaviour it plays>"}
+_MOCK_SHAPE = '"mock": ' + json.dumps(MOCK_PLACEHOLDERS)
+_TEST_CASE_SHAPE = ("test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
+                    + "; a case whose code calls a dependency adds " + _MOCK_SHAPE)
 # The test-spec template prints at most this many skeleton rows (about 220 characters each); the focused IDs after them are
 # named in one line.  A plan with dozens of IDs would otherwise push the head past the host's 20,000-character print, and a
 # host that elides the middle of a long print would drop template rows that the gate requires.
@@ -454,12 +462,13 @@ def _check_minimum_suite(result: Mapping[str, Any]) -> None:
           "with the reason there is none")
 
 
-def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]]:
+def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, Any]]:
     """A done test-spec result's ``test_cases``: shape only (the gate, ``check_test_cases``, checks meaning).
 
-    Each case has exactly ``TEST_CASE_KEYS``, every value non-blank text; ``id`` and ``criterion`` hold no whitespace;
-    ids are unique; ``requirement`` names at least one R-<n>.  A value that is still the template's placeholder
-    (``CASE_PLACEHOLDERS``) passes this shape check, so the navigator's placeholder gate names every one at once.
+    Each case has exactly ``TEST_CASE_KEYS``, every value non-blank text, and may add ``mock``: exactly ``MOCK_KEYS``,
+    each non-blank text; ``id`` and ``criterion`` hold no whitespace; ids are unique; ``requirement`` names at least one
+    R-<n>.  A value that is still the template's placeholder (``CASE_PLACEHOLDERS``, ``MOCK_PLACEHOLDERS``) passes this
+    shape check, so the navigator's placeholder gate names every one at once.
     Raises ExpectationError, whose message ends with the route-free next step (a shape refusal cannot know whether
     complete or improve-complete submitted it); ``spec_hint`` (``requirement_ids_text``), when given, follows a refusal
     about a row with no ``requirement`` or one that names no R-<n> as a line of its own.
@@ -469,11 +478,11 @@ def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]
     said = tail + ("\n" + spec_hint if spec_hint else "")      # the ending of a refusal about the requirement
     _need(isinstance(value, list), "test_cases must be a list (empty only when the item's focused commands list no "
           "IDs); " + _TEST_CASE_SHAPE + tail)
-    rows: List[Dict[str, str]] = []
+    rows: List[Dict[str, Any]] = []
     for index, entry in enumerate(value):
         label = "test_cases[" + str(index) + "]"
-        _need(isinstance(entry, Mapping) and set(entry) == set(TEST_CASE_KEYS),
-              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + "; " + _TEST_CASE_SHAPE
+        _need(isinstance(entry, Mapping) and set(entry) - {"mock"} == set(TEST_CASE_KEYS),
+              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + ", and may add mock; " + _TEST_CASE_SHAPE
               + (said if isinstance(entry, Mapping) and "requirement" not in entry else tail))
         row = {}
         for key in TEST_CASE_KEYS:
@@ -485,6 +494,12 @@ def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]
                   label + "." + key + " has no spaces" + tail)
         _need(row["requirement"] == CASE_PLACEHOLDERS["requirement"] or knowledge.requirement_ids(row["requirement"]),
               label + ".requirement names no R-<n>: write the ID of the requirement the case proves" + said)
+        if "mock" in entry:
+            mock = entry["mock"]
+            _need(isinstance(mock, Mapping) and set(mock) == set(MOCK_KEYS)
+                  and all(isinstance(mock[key], str) and mock[key].strip() and "\0" not in mock[key] for key in MOCK_KEYS),
+                  label + ".mock needs exactly " + " and ".join(MOCK_KEYS) + ", each nonblank text: " + _MOCK_SHAPE + tail)
+            row["mock"] = {key: mock[key].strip() for key in MOCK_KEYS}
         rows.append(row)
     ids = [row["id"] for row in rows if row["id"] != CASE_PLACEHOLDERS["id"]]
     _need(len(set(ids)) == len(ids), "test_cases ids must be unique" + tail)

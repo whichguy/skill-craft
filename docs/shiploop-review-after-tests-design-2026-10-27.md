@@ -1316,7 +1316,9 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
   - **Evidence.** Four fail-first tests in shiploop-lint `CoverageLineTests`, each seen failing before the code (no
     `coverage_line` key, no off line, refusals without the line): the result's coverage line and the digest that
     keeps it; a tool unavailable, timed out, and a configured linter not run; both refusals and a pass that could not
-    run; the off line at each gate stage and its absence elsewhere. shiploop-lint passes (105 tests), and so do
+    run; the off line at each gate stage and its absence elsewhere. A spot check after the first cut found that a file
+    two linters covered named only the first ("linted by eslint (…), prettier (…)"); the labels are now dropped before
+    the names are read, pinned by "1 file linted by eslint, prettier". shiploop-lint passes (105 tests), and so do
     shiploop-packet-recut and shiploop-step-packets with the new pins.
   - **Kept out.**
     - The run's report. Its achievement report reads no lint record, so the line would need a new reader (§8.2a
@@ -1324,6 +1326,37 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - The environment.md coverage line (8.2b). That belonged to option A's knowledge stage; under option C document
       reflects, and a reviewer reads the coverage in the step's lint records.
     - A gate on coverage. A syntax-only or unlinted file still never refuses: the line informs, as §8.5 recommends.
+- **F5. Mocks before system tests, done 2026-10-28** (the owner's go on §8.5's recommended form: a test-spec field
+  and a stage duty, no gate).
+  - **What landed.**
+    - **The field.** A `test_cases` row may add `"mock": {"simulates": …, "plays": …}`: what the mock stands in for,
+      and the slow, failing or out-of-order behaviour it plays (`expectations.MOCK_KEYS`, `normalise_test_cases`).
+      Both are nonblank text. A mock of any other shape is refused with the shape; one still holding the shape's
+      placeholders (`MOCK_PLACEHOLDERS`) is refused as a placeholder, as a case's are (`HANDOFF_PLACEHOLDERS`).
+    - **Test-spec's duty**, item 6: a case whose code calls a dependency (the network, the clock, randomness,
+      storage, a child process, a browser API) names the mock it runs against.
+    - **The test stage's duty**, item 1 opens with "Mocks first": before a case's test, build the mock it names,
+      playing what it says the dependency does; the mock's own header states what it stands in for and what it
+      plays. The loop's Work cites the numbered items, so the duty lives inside item 1, not in a lead paragraph.
+    - **Quoting.** Every packet that quotes the cases (implement, test, document, system-test-author) prints the
+      mock under its case: `| mock: <simulates> | plays: <plays>` (`_source_lines`).
+    - `references/testing-and-documentation.md#test-cases` gains "Mocks before system tests".
+  - **Packet size** (`test/shiploop_e2e/head_table.json`), measured on the integration tip e767c171. Test-spec +269
+    on both routes (inline whole 15,438 -> 15,707; ask-agent head 13,719 -> 13,988); test +295 on both routes (head
+    18,531 -> 18,826; whole inline 20,429 -> 20,724, ask-agent 21,997 -> 22,292). Every head fits the 20,000 cut; the
+    test head, at 18,826, is the tightest of the heads this changes.
+  - **Evidence.** Four fail-first tests in shiploop-handoff `MockCaseTests`, each seen failing before the code: the
+    field accepted and five malformed mocks refused with its shape; a copied placeholder refused at
+    `test_cases[0].mock.simulates` and `.plays`; the test packet's mock line, and none for a case without one; both
+    duty sentences on both routes. `test_every_template_placeholder_is_refused` now reads the case refusal's shape
+    beside `HANDOFF_SHAPES`, since the mock's placeholders are printed there. The quick and shiploop tier over both
+    F6 and F5 (`--changed-from 917e0c2b`) ran on the tree F5 commits; its summary is in F5's commit message.
+  - **Kept out.**
+    - **A gate.** None until a live run shows a case skipping its mock (§8.5). What a gate could check is structural
+      only: that a test file names the mock. Whether a test runs against it is a review's judgement (§9 row 7).
+    - **Mapping each mock to a real system case and its owner** (§9 row 6). That belongs with step 3's obligation
+      aggregation.
+    - **Run Review's case table** shows no mock column yet.
 
   **2d done (2026-10-28).** What landed:
   - **The field.** A regression command takes `"minimum": true` (`test_loop.COMMAND_KEYS`). It is valid only as true, on

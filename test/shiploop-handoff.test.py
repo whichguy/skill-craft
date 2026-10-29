@@ -1131,7 +1131,8 @@ class HandoffGateTests(GateCase):
         # "stage" is outside the inner loop (build plan S2.2's concerns preview needs it once "accepted" is present):
         # _current_work_item short-circuits on it without touching work_items/work_index.
         bare = {"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}, "stage": "plan"}
-        shapes = str(navigator.HANDOFF_SHAPES)
+        # A case's optional mock (design T F5) is printed by the case refusal's shape, not the template.
+        shapes = str(navigator.HANDOFF_SHAPES) + expectations._TEST_CASE_SHAPE
         for value in navigator.HANDOFF_PLACEHOLDERS:
             self.assertTrue(value == "R-<n>" or value.startswith("<") and value.endswith(">"), value)
             self.assertIn(value, shapes)                       # every placeholder is one a printed shape carries
@@ -1622,6 +1623,67 @@ def long_architecture() -> str:
     for n in range(1, 9):
         out += [f"### AD-{n} Decision {n}", "", "Choice: " + f"a plain module for concern {n}. " * 6, ""]
     return "\n".join(out + ["## Superseded", "", "### AD-9 Old way", "", "Replaced.", ""]) + "\n"
+
+
+MOCK = {"simulates": "fetch to /api/fire",
+        "plays": "holds each reply until the test releases it, so a new game starts while a shot is in flight"}
+
+
+class MockCaseTests(RepoCase):
+    """Design T §8.2 and F5: a test-spec case may name the mock it runs against (what it simulates, and the slow, failing
+    or out-of-order behaviour it plays), and the test stage builds those mocks first.  No battleship run built a mock of
+    a dependency; Sonnet's stale fire reply, which shipped twice, needed exactly a held fetch (§8.3)."""
+
+    def test_a_case_may_name_its_mock_and_a_malformed_mock_is_refused_with_the_shape(self) -> None:
+        done = canonical({"outcome": "done", "summary": "s", "test_cases": [dict(CASE, mock=MOCK)]}, "test-spec")
+        self.assertEqual(done["test_cases"], [dict(CASE, mock=MOCK)])
+        self.assertEqual(canonical(done, "test-spec"), done)                     # a saved state reloads unchanged
+        shape = '"mock": {"simulates": "' + expectations.MOCK_PLACEHOLDERS["simulates"] + '", "plays": "'
+        self.assertIn(shape, expectations._TEST_CASE_SHAPE)
+        for bad in ("a held fetch", {"simulates": "fetch"}, dict(MOCK, plays="  "), dict(MOCK, owner="me"),
+                    {"simulates": 3, "plays": "x"}):
+            with self.subTest(mock=bad), self.assertRaises(navigator.NavigatorError) as caught:
+                canonical({"outcome": "done", "summary": "s", "test_cases": [dict(CASE, mock=bad)]}, "test-spec")
+            first = str(caught.exception).splitlines()[0]
+            self.assertIn("test_cases[0].mock", first)
+            self.assertIn(shape, first)
+            self.assertTrue(first.endswith("then run the same command again."), first)
+        # Any other extra key is still refused, and the refusal names the optional mock beside the six fields.
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            canonical({"outcome": "done", "summary": "s", "test_cases": [dict(CASE, surface="http")]}, "test-spec")
+        self.assertIn("needs exactly id, criterion, requirement, oracle, red, green, and may add mock", str(caught.exception))
+
+    def test_a_mock_copied_from_the_shape_is_refused_as_a_placeholder(self) -> None:
+        copied = dict(CASE, mock=dict(expectations.MOCK_PLACEHOLDERS))
+        self.assertEqual(navigator._placeholders({"test_cases": [copied]}),
+                         ["test_cases[0].mock.simulates", "test_cases[0].mock.plays"])
+
+    def test_the_test_packet_quotes_the_mock_a_case_names(self) -> None:
+        state = ConsumesTests.fixture(self, "test")
+        state["accepted"]["ts2"]["test_cases"][0]["mock"] = MOCK
+        lines = navigator.handoff_lines(self.root, state, "test")
+        green = lines.index(navigator.QUOTE + "green: 200 with a game id")
+        self.assertEqual(lines[green + 1], navigator.QUOTE + "mock: fetch to /api/fire | plays: holds each reply until "
+                         "the test releases it, so a new game starts while a shot is in flight")
+        # A case that names none prints no mock line.
+        del state["accepted"]["ts2"]["test_cases"][0]["mock"]
+        self.assertFalse([line for line in navigator.handoff_lines(self.root, state, "test") if "mock:" in line])
+
+    def test_test_spec_names_each_cases_mock_and_the_test_stage_builds_it_first(self) -> None:
+        import shiploop_prompts as prompts
+        for route in prompts.DELEGATIONS:
+            with self.subTest(route=route):
+                spec = " ".join(prompts.duty("test-spec", delegation=route).split())
+                self.assertIn("A case whose code calls a dependency (the network, the clock, randomness, storage, a "
+                              "child process, a browser API) names the mock it runs against in `mock`: `simulates`, "
+                              "what it stands in for, and `plays`, the slow, failing or out-of-order behaviour it "
+                              "plays.", spec)
+                test = " ".join(prompts.duty("test", delegation=route).split())
+                item = test[test.index("1. **Write the cases.**"):test.index("2. **")]
+                self.assertIn("Mocks first: before a case's test, build the mock it names in `mock`, playing what it "
+                              "says the dependency does, slow, failing or out of order included. The mock's own header "
+                              "states what it stands in for and what it plays: a mock proves the code only against the "
+                              "behaviour it simulates.", item)
 
 
 class LongHomeCase(RepoCase):

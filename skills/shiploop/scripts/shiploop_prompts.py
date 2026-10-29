@@ -1348,7 +1348,10 @@ Write no test code in this stage.
    (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state,
    and one case per documented throw or refusal branch.
 6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
-   it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
+   it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build. A case
+   whose code calls a dependency (the network, the clock, randomness, storage, a child process, a browser API) names
+   the mock it runs against in `mock`: `simulates`, what it stands in for, and `plays`, the slow, failing or
+   out-of-order behaviour it plays.
 7. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
    `assumption`; `settle`; `due_stage` = that outer stage; owner). A criterion confirmed `searched` or `inspected`: no
    case; list it with its command or Test layers row in the summary. Untestable as written: report send-back naming it.
@@ -1414,7 +1417,10 @@ preparatory commit); a mismatch there is a send-back.
    Report blocked, with awaiting, only when a person (a decision or a grant) or an outside service must resolve it.
 """ + _IMPLEMENT_CHAIN,
     "test": """\
-1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
+1. **Write the cases.** Mocks first: before a case's test, build the mock it names in `mock`, playing what it says
+   the dependency does, slow, failing or out of order included. The mock's own header states what it stands in for
+   and what it plays: a mock proves the code only against the behaviour it simulates. Each quoted test case becomes a
+   test titled with its ID as its own word, in the suite and
    command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
    never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities). Build a
    missing facility within this item and validate it before the tests that use it; record it in
