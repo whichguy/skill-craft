@@ -794,6 +794,22 @@ dropped in favour of it: it also closes the lock in a `finally` and tests the or
   from the detached progress observer that `shiploop init` starts, which rewrites the run folder every 2 seconds. The
   suite now sets `SHIPLOOP_PROGRESS=off`, as run_suites.py already does for the tier.
 
+**Correction (2026-10-29, firm): the takeover shipped in 1.20.0, not "with the next round".** Release `3d7b83a3`
+(skill-craft 2.21.0, shiploop 1.20.0, 2026-10-28 20:08) shipped `f82da379` on that commit's own `No-E2E-Round` trailer:
+"host process lookup checked live on a real Claude session (host_process_probe.out); the takeover rule is unit-tested;
+no E2E case crashes a session". The release deleted `changes/shiploop/keepalive-dead-owner-takeover.md`, and Claude,
+Codex and Grok each have 2.21.0 installed.
+- **What said otherwise.** `917e0c2b` (20:16: "its change note is pending and release.py's preflight (eba6d983) refuses
+  a release until a LEARNINGS commit descends from it") was written from a check made minutes before that release
+  landed. A rebase before the push pulled the release in and the claim was not rechecked. `1961f4c5` repeats it ("as
+  the owner chose for the takeover"). The owner's "Ship with next batch's round" (2026-10-28) rested on that premise.
+- **What is still owed.** Live evidence for the takeover: a run whose dead owner's claim is left in place, and the next
+  session taking it at once. It is earned in the evidence round shared with the session-end hook (`1961f4c5`, below).
+  `run.py --interrupt-at` already kills a host and leaves its claim in place (`run.py` never frees one); a slice clear
+  frees the claim itself, so it cannot show the takeover.
+- **Open for the owner.** Keep the takeover live and earn that evidence (recommended: with no process found, only the
+  30-minute rule frees a claim, and it fixes a stall seen in the phase A round), or revert it.
+
 ## Session end releases the run (2026-10-28, owner: "Yes, build it"; firm for Claude, constructed for the others)
 
 The follow-up named in batch 2. A `/clear` or a normal exit leaves the host process alive, so the process check cannot
@@ -871,3 +887,4 @@ tree hash excludes.
 - 2026-10-28: corrected the experiments' provenance: E3-E5 were rerun at `821db5c0` before the commit, not only run
   at `b0d29284`; four commits from other sessions had landed on main in between, none touching the traced code.
 - 2026-10-28: E6 (dry runs per stage, from the run traces), F18-F19 and the phases B and C plan added.
+- 2026-10-29: correction: the dead-session takeover shipped in 1.20.0 (`3d7b83a3`) on its own `No-E2E-Round`; `917e0c2b` and `1961f4c5` said it was pending. Live evidence still owed.
