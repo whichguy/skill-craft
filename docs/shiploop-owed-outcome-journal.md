@@ -813,6 +813,14 @@ Codex and Grok each have 2.21.0 installed.
   it, ancestry only. The gap that would have closed: a LEARNINGS commit, once rebased, vouches for runs built
   before the change (`bff6f0f4` records runs pinned at `8aa6e1fe`, shiploop 1.17.0, which has neither the takeover
   nor the session-end hook). So the discipline is manual: a round runs on a build that contains what it vouches for.
+- **Defect found in the shipped takeover (firm, 2026-10-29).** `owner_process_alive` read an empty process table as
+  "the owner is gone". `_processes` returns `{}` when `ps` is missing, times out or is hidden by a sandbox, so any
+  session whose hook could not list processes could take a live owner's run at once, and the owner's own hook in that
+  state overwrote its recorded process with none. Found by a read of the code against the takeover rule, not in a run.
+  Fix: an unreadable table is unknown (`None`), so only the 30-minute rule frees the claim, and the owner keeps the
+  process it recorded. Two `OwnerProcessTests` fail on the shipped code and pass on the fix
+  (`test/shiploop-keepalive.test.py`, 77 OK). It rides the next release with the session-end hook and is covered by
+  the same evidence round, since it is committed before that round's LEARNINGS entry.
 
 ## Session end releases the run (2026-10-28, owner: "Yes, build it"; firm for Claude, constructed for the others)
 
@@ -841,6 +849,136 @@ free the run; the host's own session-end event can.
   - the installer writes and removes the entries;
   - each host's generated hooks file runs the session-end script and releases.
   - Fail-first: with `session_end` stubbed, all three behaviour tests fail.
+
+## Session-end evidence path (2026-10-29, lane B of the owner-approved completion plan; Claude firm, other hosts unprobed)
+
+The release preflight holds `1961f4c5` until an E2E round runs after it, and no E2E path could show the hook working, so
+a round would have passed by ancestry alone. What was wrong (read from the code 2026-10-28):
+- **(a)** nothing about a session end reached `RUN/trace.jsonl`: `run_hook`'s session-end branch only wrote
+  `decisions.log`; only stop decisions reached `trace.record_stop`;
+- **(b)** the Claude E2E host keeps the real HOME, so its `decisions.log` is the user's shared file and cannot be tied to
+  one run;
+- **(c)** `run.py` never calls `release_owner`: the release after each session is in `_drive_sessions`, and `slice.py`
+  copies it at each clear (`release_keepalive_owner`);
+- **(d)** a slice clear SIGKILLs the host's whole process group, so SessionEnd never runs, and `slice.py` then frees the run
+  anyway;
+- **(e)** after a normal exit the stop hook has already released the owner, so SessionEnd matters only when a session ends
+  mid-turn.
+
+**Probe: which signal makes a mid-turn `claude -p` run SessionEnd** ([`session_end_probe.py`](shiploop-owed-outcome-evidence/session_end_probe.py),
+[`.out`](shiploop-owed-outcome-evidence/session_end_probe.out); Claude Code 2.1.312, DeepSeek flash on the harness's Ollama
+route, the harness's scrubbed environment, the probe refuses to start with any other `ANTHROPIC_*` or `CLAUDE*` variable).
+Each mode is a fresh session that is mid-turn (a `PreToolUse` hook shows the Bash `sleep 120` started) when the signal goes
+to the host's own pid; the SessionEnd hook is registered with the keepalive's 10 s timeout.
+
+| mode | SessionEnd | from signal to hook | host exit |
+|---|---|---|---|
+| graceful (no signal) | fired, `reason: other` | | 0 |
+| SIGTERM | **fired**, `reason: other` | 0.1 s | 143, 0.5 s |
+| SIGINT | **fired** | 0.1 s | 0, 0.3 s |
+| SIGHUP | **fired** | 0.1 s | 129, 0.5 s |
+| SIGKILL | **never** | | signal 9 |
+| wrapped (`caffeinate -d -i`, as `run.launch` starts it) SIGTERM | **fired** | 0.1 s | 143, 0.5 s |
+| wrapped SIGINT | **fired** | 0.1 s | 0, 0.5 s |
+
+- **F20, firm for Claude Code 2.1.312:** SIGTERM, SIGINT and SIGHUP each make a mid-turn session run its SessionEnd hook
+  (payload as the graceful end's, with `session_id`) before it exits, in under a second; SIGKILL never does. `caffeinate`
+  forwards the signal, so the leader of the harness's process group can be signalled as it is. Two earlier attempts of
+  `wrapped:SIGINT` had no turn in flight (the model answered without running the command) and sent no signal; the probe
+  now repeats such a mode (`attempts`).
+- **Decision (routine, AGENTS.md "Decisions"):** the slice's host-release mode sends **SIGTERM**, the conventional
+  end-this-process signal and the one a closing host app or `kill` sends; SIGINT and SIGHUP proved equal, so the choice
+  carries no evidence weight. The same switch with SIGKILL is the dead-owner case (the takeover evidence reuses it): no
+  hook runs, so the claim stays and only the process check frees the run.
+- **Not probed:** Grok, Codex and Cursor. Their binaries name a session-end event (journal "Session end releases the run"),
+  but whether a signal mid-turn runs it is open; the harness mode is host-neutral and its check reads `released: false`
+  (never a pass) where the hook did not run.
+
+**Design, built 2026-10-29 (status: interim until a live round shows it; the unit and fake-host tests pass).**
+- **Product** (`skills/shiploop/`, change note `changes/shiploop/session-end-evidence.md`: the 1.21.0 release consumed `session-end-releases-run.md`, so this change has its own): `release_owner` returns
+  whether it removed a claim; `session_end` returns the bound run, the host it was bound under and `released`;
+  `trace.record_session_end` writes a `hook` row (`hook=session-end`, `decision=release`, `released`, the payload's
+  `reason`, the session as the 12-character hash the stop rows use), and `run_hook`'s session-end branch calls it. A session
+  bound to no run writes nothing (it has no run), and a second registration of one host (Grok's global and plugin hooks)
+  finds the binding gone and writes nothing, so the row is once per session. Tests (`test/shiploop-keepalive.test.py`,
+  `SessionEndTests`, 8 in all, 5 of them new): `release_owner` says whether it removed a claim; the owner's end records `released: true` and its reason; a codex session bound to a
+  claude-owned run, and an end after the stop hook's release, record `released: false`; the next session's claim follows
+  the row inside the stale window; with `trace.record_session_end` stubbed out the three tests that read the row fail
+  (1 failure, 2 errors).
+- **Harness check** (`run_trace.checks`, fourth check `session_end`; `status_card.CHECK_LABELS` gives it a tile): `pass`
+  when a released row is followed by another session's stop decision that continued its turn within
+  `CLAIM_WITHIN_SECONDS` (900 s, half of `OWNER_STALE_SECONDS`); `fail` when that decision let the host stop or came
+  later; `not exercised` (never a pass) when no session end is in the trace, none freed a claim, or no other session
+  decided after the release. **Why a stop decision is the claim:** the trace holds no claim row, and only the owner gets
+  a `continue`. A claim row would make the check exact (the next session's claim could be timed to the second instead
+  of by its first turn end); it is a product change this task did not make and is left as a follow-up.
+- **Slice mode** (`slice.py --clear-signal SIGTERM|SIGINT|SIGHUP|SIGKILL`, default none and unchanged): a clear sends the
+  signal to the host's leader (`run.end_host`; through `caffeinate`, which forwards it), waits until the host's whole
+  group has gone, at most 15 s (the hook's 10 s timeout plus margin), ends the group as before, and
+  `release_after_clear` leaves the owner alone. SIGKILL is not waited for and leaves the dead owner's claim in place. The
+  signal is recorded in each clear's record (`end_signal`) and `invocation.json` (`clear_signal`). The fake-host tests
+  (`test/shiploop-e2e-slice.test.py`, `ClearSignalTests`, `ClearThroughMainTests`) run the real keepalive and trace: a
+  fake Claude session claims the run, runs its session-end hook on SIGTERM and exits; after the clear the trace holds the
+  `released: true` row, no harness release ran, the next fake session takes the run, and `session_end` reads `pass`. With
+  SIGKILL the trace has no row and the claim stays.
+- **Verification before any push (2026-10-29):** quick tier `--changed-from 7f21c0e7 --jobs 4`: 57 suites, 56 OK in 1131 s.
+  `shiploop-e2e` failed once, `StopFileTest.test_a_stop_requested_as_a_session_ends_stops_the_resume_loop_and_reads_as_stopped_everywhere`
+  (`['stopped'] != ['exited']`: the fake host's own exit races the stop poll) at load average about 45 with six other
+  sessions running. It passes alone 3 of 3 and the whole suite passes on a rerun (470 OK, 317 s). The new `run.launch`
+  branch runs only with `end_signal`, which that test never sets, so this reads as load, not the change (exploratory: the
+  failure did not reproduce, and it was not run on a checkout without the change). The push waited for the phase B release, whose preflight a late
+  `skills/shiploop/` commit would block. After the rebase onto that release (`e064e875`, shiploop 1.21.0) the quick tier
+  (`--changed-from e064e875`) ran 58 suites, 57 OK in 712 s; `shiploop-e2e-lifecycle`'s
+  `test_a_session_that_ends_takes_what_it_left_in_its_group_with_it` failed once (an extra pid in the group snapshot, at
+  load average about 42), and passes alone 3 of 3 and as a whole suite (19 OK). That code path is unchanged by this lane.
+- **Not done here:** the evidence round itself and the 1.21.0 release (Stage 2). The release preflight still holds
+  `1961f4c5` and this change until an E2E round runs after them; this change adds no `LEARNINGS.md` entry on purpose (an
+  entry before the round would satisfy the preflight by ancestry, the thing this path exists to prevent).
+
+## Session-end and takeover: live round (2026-10-29, firm for Claude on Sonnet; n = 1 per mechanism)
+
+**Why Sonnet.** At 08:11 PDT Ollama's monthly usage limit ended every DeepSeek run (`API Error: Request rejected (429)`),
+so this round is a one-off on `--backend anthropic` (Claude Sonnet 5.5, the CLI's own effort). The owner chose it on
+2026-10-29; the E2E default is unchanged and no baseline row was written.
+
+**Setup.** `slice.py --case node-fix-bug --host claude --backend anthropic --seed-at step-plan --clear-at <position>
+--clear-signal <SIGNAL> --max-budget-usd 5 --timeout 2400`, from `2fa82212`: release 2.22.0 / shiploop 1.21.0 plus the
+two ShipLoop commits since it, the trace row (`1f0bc835`) and the takeover fix for an unreadable process table
+(`2e62367a`). `owner_watch.py` read the run's claim file every 0.25 s beside each slice and logged every change. No slice
+reached its $5 cap: each ended by the slice's own stop. The host reports no cost; turns were 61, 89 and 100.
+
+| slice | clear | first session | trace hook row | the claim after it | next session's claim | slice verdicts |
+|---|---|---|---|---|---|---|
+| `round-se-sigterm-1-e35e7d` | `implement:inside`, never fired | none cleared; the slice's own stop | none | none | none | all pass, no evidence |
+| `round-se-sigterm-2-b14d8c` | `implement`, SIGTERM | ended after 120.4 s, exit 143 | `session-end` → `release`, `released: true`, reason `other` | removed 0.46 s before the harness recorded the end | +10.8 s | all pass, `no_redo` too |
+| `round-se-sigkill-1-708d75` | `implement`, SIGKILL | ended after 132.0 s, exit -9 | none (SIGKILL runs no hook) | stayed, its owner's process dead | +5.2 s, replacing it | all pass, `no_redo` too |
+
+**Findings**
+- **The SessionEnd hook frees a run live (firm, n = 1).** In the SIGTERM slice the host ran the hook from the plugin built
+  for the slice (`--plugin-dir`, from `2fa82212`), and the trace holds its row. The claim file lost the owner 0.46 s before the harness wrote the
+  session's end, and the harness releases nothing when `--clear-signal` is set, so the host's hook did it. The next
+  session claimed the run 10.8 s later, against a 1,800 s stale window.
+- **The takeover works live (firm, n = 1).** In the SIGKILL slice no hook ran and the dead owner's claim stayed, its
+  recorded process gone (`pid_alive: false`). The next session's claim replaced it 5.2 s after the end, with the dead
+  claim's last refresh 6.2 s old. Time did not free it; the process check did. This build carries `2e62367a`.
+- **The `session_end` check read "not exercised" in all three slices.** It passes only when another session's stop
+  decision that continued its turn follows the release. The fresh sessions never ended a turn, so no stop decision
+  existed, and the check, by design, never counts that as a pass (the SIGTERM slice's reason: "1 session end freed the
+  run, but no other session's stop decision followed"). The claim log is the direct record. A claim row in the trace would
+  make the check exact; it stays a follow-up.
+- **`implement:inside` is model-dependent.** It waits for a call that is not ShipLoop's inside the stage. Sonnet made four
+  Bash calls there and no Edit or Write, and the harness counts all four as ShipLoop calls (two are shell lines that write a
+  note or a result and also run a ShipLoop command), so the position never fired and the first slice produced no
+  evidence. A stage-boundary position (`--clear-at implement`) is state-based and fired in both later slices.
+- `packet_copies` passed in all three slices (12, 13 and 13 prints; 0, 1 and 1 reprints).
+
+**Not covered.** Grok, Codex and Cursor session ends (not probed on a live host). A model that ends a turn after a release
+(`keepalive_text` and the `session_end` pass stayed "not exercised"). The takeover fix's own case, an unreadable process
+table: unit-tested, and no E2E case hides `ps`. One slice per mechanism.
+
+**Evidence.** `docs/shiploop-owed-outcome-evidence/live-round-2026-10-29.json` (all three slices through
+`round_summary.py`), `live-round-2026-10-29-owner-watch-sigterm-2.jsonl`, `live-round-2026-10-29-owner-watch-sigkill-1.jsonl`
+(the claim logs), `owner_watch.py` and `round_summary.py`. The run folders are under `~/e2e-runs/20261029/`.
 
 ## Phases B and C: plan (2026-10-28, awaiting the owner's approval)
 
@@ -987,3 +1125,7 @@ tree hash excludes.
 - 2026-10-28: E6 (dry runs per stage, from the run traces), F18-F19 and the phases B and C plan added.
 - 2026-10-29: correction: the dead-session takeover shipped in 1.20.0 (`3d7b83a3`) on its own `No-E2E-Round`; `917e0c2b` and `1961f4c5` said it was pending. Live evidence still owed.
 - 2026-10-29: owner decisions: keep the takeover live; leave the release preflight ancestry-only.
+- 2026-10-29: live round on Claude Sonnet: the SessionEnd hook freed a run and the takeover replaced a dead owner's claim; the `session_end` check read not exercised (no stop decision followed).
+- 2026-10-29: defect in the shipped takeover: an unreadable process table read as a dead owner; fixed so it reads as unknown.
+- 2026-10-29: session-end evidence path (lane B): probe of mid-turn signals against `claude -p` (F20), the decision to end
+  a cleared slice session with SIGTERM, and the design of the trace row and check.

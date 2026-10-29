@@ -21,22 +21,23 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import metrics  # noqa: E402
+import run_choice
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "skills/shiploop/scripts"))
 import shiploop_store as store  # noqa: E402
 
 
-def run_state(out: Path) -> tuple[Path | None, dict]:
-    for path in sorted(out.rglob("state.md")):
-        if path.relative_to(out).parts[0] in ("home", "build"):
-            continue
-        try:
-            state = store.read_record(path)
-        except Exception:
-            continue
-        if isinstance(state, dict) and "status" in state:
-            return path.parent, state
-    return None, {}
+def run_state(out: Path) -> tuple[Path | None, dict, list[dict]]:
+    """The run the monitor reports, its state, and the runs that tie for it when nothing tells them apart. It is the run the
+    verdict and the measurements name (run_choice.choose): a first run the model paused and replaced is not shown."""
+    picked = run_choice.choose(out)
+    if picked.chosen is None:
+        return None, {}, picked.tied
+    run_dir = Path(picked.chosen["run_dir"])
+    try:
+        return run_dir, store.read_record(run_dir / "state.md"), []
+    except Exception:  # noqa: BLE001 - a record being rewritten is read again at the next poll
+        return None, {}, []
 
 
 def last_remark(out: Path) -> str:
@@ -56,17 +57,22 @@ def report(out: Path) -> str:
         memo = json.loads(memo_path.read_text())
     except (OSError, ValueError):
         memo = {}
-    run_dir, state = run_state(out)
+    run_dir, state, tied = run_state(out)
     m = metrics.collect(out, run_dir)
     started = (out / "invocation.json").stat().st_mtime if (out / "invocation.json").is_file() else time.time()
     items = f"{len(state.get('completed_work_items') or [])}/{len(state.get('work_items') or [])}"
     peak = m["tokens"]["input_peak"]
+    if state:
+        position = (f"{state.get('status')}, rev {state.get('revision')}, "
+                    f"stage {metrics.current_stage(state) or state.get('stage')}, items {items}")
+    elif tied:
+        position = run_choice.ambiguity(tied)
+    else:
+        position = "no run state yet"
     lines = [f"[{int(time.time() - started) // 60} min] turns {metrics.turns_text(m)}, peak context "
              f"{'n/a' if peak is None else str(peak // 1000) + 'K'}, "
              f"cost {('$' + format(m['cost_usd'], '.2f') + (' (lower bound)' if metrics.lower_bound(m) else '')) if m['cost_usd'] else 'n/a'} | "
-             + (f"{state.get('status')}, rev {state.get('revision')}, "
-                f"stage {metrics.current_stage(state) or state.get('stage')}, items {items}"
-                if state else "no run state yet")]
+             + position]
     # The in-progress stage is on the first line (the item's own stage, not the navigator's
     # `inner-loop` label), and its row moves with every poll, so only accepted stages are listed here.
     # Stage minutes are wall clock: a resume, a sleep or a credit stop inside a stage counts in it.

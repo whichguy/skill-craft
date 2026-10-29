@@ -54,6 +54,12 @@ RUN = ".shiploop-runs/work-trace/run"
 INTAKE = '```shiploop-state\n{"outcome": "done", "summary": "S1 outcome: greet.py prints Hello and the name (fact).", ' \
          '"headline": "Scope: one greeting script", "evidence_refs": []}\n```\n'
 CONTINUED = "ShipLoop run is active: continue with the packet's next step; do not end the turn."
+# Hook rows as the reader gives them, for the session_end check: a session end that freed the run, and the next session's
+# stop decision 30 s later that continued its turn.
+RELEASED_END = {"i": 40, "ts": 5000.0, "hook": "session-end", "decision": "release", "host": "claude",
+                "session": "old000000000", "reason": "other", "released": True}
+NEXT_CLAIM = {"i": 41, "ts": 5030.0, "hook": "stop", "decision": "continue", "host": "claude", "session": "new000000000",
+              "text": CONTINUED}
 
 
 def traced_output(base: Path) -> Path:
@@ -229,7 +235,8 @@ class TracedRun(unittest.TestCase):
     def test_the_checks_pass_the_keepalive_text_and_reprints_and_say_no_note_was_written(self):
         found = self.metrics["run_trace"]["checks"]
         self.assertEqual({name: row["verdict"] for name, row in found.items()},
-                         {"keepalive_text": "pass", "packet_copies": "pass", "owner_note": "not exercised"})
+                         {"keepalive_text": "pass", "packet_copies": "pass", "owner_note": "not exercised",
+                          "session_end": "not exercised"})
         self.assertIn(CONTINUED[:60], found["keepalive_text"]["evidence"])
         prints = sum(len(sends) for sends in run_trace.read(self.run_dir)["packets"].values())
         self.assertGreater(prints, 2)  # every print is checked, not only the two reprints
@@ -237,7 +244,52 @@ class TracedRun(unittest.TestCase):
         self.assertEqual(self.metrics["run_trace"]["notes"], {"written": 0, "held": 0, "delivered": 0, "cited": 0})
         line = run_trace.checks_line(found)
         self.assertTrue(line.startswith("keepalive text pass ("), line)
-        self.assertTrue(line.endswith("owner note not exercised"), line)
+        self.assertTrue(line.endswith("owner note not exercised; session end not exercised"), line)
+        self.assertEqual(found["session_end"]["evidence"], "no session end reached the run's trace")
+
+    # --- the session_end check: the host's session-end hook freed the run, and the next session took it ----------------
+
+    def session_end_check(self, *rows: dict) -> dict:
+        """The check over ``rows`` as the run's hooks (hook rows as the reader gives them: i, ts, session, ...), the rest of
+        this fixture's trace as it is."""
+        traced = run_trace.read(self.run_dir)
+        traced["hooks"] = [dict(row) for row in rows]
+        return run_trace.checks(traced)["session_end"]
+
+    def test_a_release_followed_by_the_next_sessions_claim_passes(self):
+        found = self.session_end_check(RELEASED_END, NEXT_CLAIM)
+        self.assertEqual(found["verdict"], "pass", found)
+        self.assertEqual(found["lines"], [40, 41])
+        self.assertEqual(found["evidence"], "freed the run at line 40 (claude, other); the next session continued it 30 s later")
+
+    def test_a_release_the_next_session_never_claimed_is_a_failure_or_not_exercised(self):
+        refused = {**NEXT_CLAIM, "decision": "allow", "why": "another session owns this run"}
+        found = self.session_end_check(RELEASED_END, refused)
+        self.assertEqual(found["verdict"], "fail", found)
+        self.assertIn("was allow: another session owns this run", found["evidence"])
+        late = {**NEXT_CLAIM, "ts": RELEASED_END["ts"] + run_trace.CLAIM_WITHIN_SECONDS + 1}
+        self.assertEqual(self.session_end_check(RELEASED_END, late)["verdict"], "fail")      # past the stale-claim path's margin
+        edge = {**NEXT_CLAIM, "ts": RELEASED_END["ts"] + run_trace.CLAIM_WITHIN_SECONDS}
+        self.assertEqual(self.session_end_check(RELEASED_END, edge)["verdict"], "pass")
+        # No other session decided after the release (the run ended, or the harness did): not a pass.
+        found = self.session_end_check(RELEASED_END)
+        self.assertEqual((found["verdict"], found["lines"]), ("not exercised", [40]), found)
+        same = {**NEXT_CLAIM, "session": RELEASED_END["session"]}                              # the ended session's own earlier word
+        self.assertEqual(self.session_end_check(RELEASED_END, same)["verdict"], "not exercised")
+
+    def test_a_session_end_that_freed_nothing_is_never_a_pass_and_never_a_failure(self):
+        normal_exit = {**RELEASED_END, "released": False}      # the stop hook had freed the run before the host ended the session
+        found = self.session_end_check(normal_exit, NEXT_CLAIM)
+        self.assertEqual(found["verdict"], "not exercised", found)
+        self.assertIn("1 session end recorded, none freed a claim", found["evidence"])
+        self.assertEqual(self.session_end_check()["verdict"], "not exercised")
+
+    def test_a_later_released_end_does_not_hide_an_earlier_one_the_next_session_missed(self):
+        refused = {**NEXT_CLAIM, "decision": "allow", "why": "another session owns this run"}
+        second = {**RELEASED_END, "i": 50, "ts": 6000.0, "session": "new000000000"}
+        taken = {**NEXT_CLAIM, "i": 51, "ts": 6020.0, "session": "third0000000"}
+        found = self.session_end_check(RELEASED_END, refused, second, taken)
+        self.assertEqual(found["verdict"], "fail", found)
 
     def test_the_checks_fail_a_continuation_without_text_and_a_reprint_whose_copy_changed(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-checks-") as temp:

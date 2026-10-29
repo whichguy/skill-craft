@@ -151,12 +151,14 @@ import metrics  # noqa: E402
 import owner_note  # noqa: E402
 import quality  # noqa: E402
 import release_slice  # noqa: E402
+import run_choice
 import run_trace  # noqa: E402
 import runrecord  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
+from run_choice import RUN_IDENTITY, run_identity, shiploop_runs, state_digest
 
 CASES = HERE / "cases.json"
 SUITES = HERE / "suites.json"
@@ -166,6 +168,9 @@ PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
 EXIT_POLL_SECONDS = 0.1  # how soon the end of a host session is seen (its leader is polled, not reaped, until its group is ended)
+# What a host gets to run its SessionEnd hooks after it is signalled (end_host): the keepalive registers its session-end hook
+# with a 10 s timeout, so a host that is still there after this long has not run it in time and is ended with the group.
+SESSION_END_SECONDS = 15
 # With no resume limit by default, a host that cannot run (its auth expired, its binary broke) or a model that ends every
 # turn without moving the run would be resumed forever. Evidence, not a count of work: this many resumed sessions in a row
 # that left ShipLoop's revision where it was end the loop (the owner's rule for autonomous runs: stop on three
@@ -807,10 +812,37 @@ def declared_needs(name: str, args, earlier: dict | None = None) -> list[str]:
     return list(dict.fromkeys(found))
 
 
+def end_host(leader: int, signum: int, grace: float = SESSION_END_SECONDS) -> bool:
+    """Signal the host's leader with ``signum`` and wait, up to ``grace`` seconds, until its whole process group has gone: the
+    host runs its SessionEnd hooks while it ends itself (docs/shiploop-owed-outcome-evidence/session_end_probe.out: SIGTERM,
+    SIGINT and SIGHUP do, under `caffeinate` too, in under a second; SIGKILL never does). True when the group went by itself.
+    The caller ends the group afterwards either way (listeners.end_group). SIGKILL is not waited for: nothing runs after it."""
+    if listeners.unreaped(leader) != "running":
+        return True
+    try:
+        os.kill(leader, signum)
+    except ProcessLookupError:
+        return True
+    if signum == signal.SIGKILL:
+        return False
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline:
+        if listeners.unreaped(leader) != "running":
+            with contextlib.suppress(listeners.Unobserved):
+                if not [row for row in lifecycle.table().values() if row["pgid"] == leader and row["pid"] != leader]:
+                    return True
+        time.sleep(EXIT_POLL_SECONDS)
+    return False
+
+
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
            first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None,
-           before_start=None) -> dict:
+           before_start=None, end_signal=None) -> dict:
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
+
+    `end_signal()`, asked once when `stop_when` ended the session, may name a signal to send the host first (end_host): the
+    host runs its session-end hooks and exits, and the group is ended after it as always. Unset, or None from it, the group
+    is killed at once. The result's ``end_signal`` names the signal sent.
 
     `before_start(line)` is called once the checks above pass and before the host is spawned, with the number of events.jsonl
     lines already written (the session's first event will be that line): the session record's start row, which therefore
@@ -882,6 +914,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         deadline = time.monotonic() + timeout
         status = None
         left: list = []  # what a session that ended left in its own group, ended with it
+        sent_signal = None  # the signal end_signal named, once sent
         try:
             # The leader is watched without being reaped (listeners.unreaped), so once it has ended its number is still its group's.
             next_check = 0.0
@@ -901,6 +934,9 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                 with contextlib.suppress(listeners.Unobserved):
                     left = [{"pid": row["pid"], "command": row["command"][:200]}
                             for row in lifecycle.table().values() if row["pgid"] == proc.pid and row["pid"] != proc.pid]
+            if status == "interrupted" and end_signal is not None and (sent := end_signal()):
+                sent_signal = signal.Signals(sent).name
+                end_host(proc.pid, sent)
             # The whole process group: the host and any native workers it started, or what a session that ended left in it (SPEC
             # "The resource lifecycle"). Sent while the leader is unreaped, so the number is still its group's; reaped right after.
             listeners.end_group(proc.pid)
@@ -917,7 +953,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
-            "elapsed_seconds": round(time.time() - start, 1), "stop": stop, "left_behind": listeners.reap(out)}
+            "elapsed_seconds": round(time.time() - start, 1), "stop": stop, "left_behind": listeners.reap(out),
+            **({"end_signal": sent_signal} if sent_signal else {})}
 
 
 def summarize_events(path: Path) -> dict:
@@ -1121,51 +1158,10 @@ def grade_claude_plugin(plugins: list[dict], plugin_dir: Path | None) -> dict:
     return {"pass": paths == [wanted], "loaded": paths, "wanted": wanted}
 
 
-# Which ShipLoop run this output folder's invocations created, written by the harness: the runs that were already there when
-# the first invocation started (`preexisting`: a follow-on's copy can bring one along) and, once known, the run itself
-# (`run_dir`, with its `basis`). A resume and a regrade read it back, so every invocation grades the same run.
-RUN_IDENTITY = "shiploop-run.json"
-
-
-def run_identity(out: Path) -> dict:
-    try:
-        found = json.loads((out / RUN_IDENTITY).read_text())
-    except (OSError, ValueError):
-        return {}
-    return found if isinstance(found, dict) else {}
-
-
+# Which ShipLoop run an output folder holds, and the one rule that picks it from several, is run_choice.py: this module
+# records the identity (below) and run_choice reads it back, with metrics.run_dir_of and the progress monitor.
 def record_run_identity(out: Path, **fields) -> None:
     (out / RUN_IDENTITY).write_text(json.dumps({**run_identity(out), **fields}, indent=2) + "\n")
-
-
-def shiploop_runs(out: Path) -> list[dict]:
-    """Every ShipLoop run state under the output directory, wherever the agent put it: inside the repository
-    (work/.shiploop) or in an external workspace root beside it (<out>/.shiploop-runs/<name>/run). The throwaway home/ and
-    the plugin build/ are not searched."""
-    runs = []
-    for state_path in sorted(out.rglob("state.md")):
-        relative = state_path.relative_to(out).parts
-        if relative[0] in ("home", "build"):
-            continue
-        try:
-            state = store.read_record(state_path)
-        except store.StorageError:
-            continue
-        if isinstance(state, dict) and "status" in state:
-            runs.append({"run_dir": str(state_path.parent), "status": state.get("status"),
-                         "stage": state.get("stage"), "revision": state.get("revision"),
-                         "report_html": (state_path.parent / "report.html").is_file()})
-    return runs
-
-
-def state_digest(run_dir: str) -> str | None:
-    """A run's state.md as it stands: its content digest and modification time (a rewrite with the same bytes is a change)."""
-    try:
-        path = Path(run_dir) / "state.md"
-        return f"{hashlib.sha256(path.read_bytes()).hexdigest()}@{path.stat().st_mtime_ns}"
-    except OSError:
-        return None
 
 
 def record_preexisting_runs(out: Path) -> None:
@@ -1175,66 +1171,41 @@ def record_preexisting_runs(out: Path) -> None:
 
 
 def live_run_dir(out: Path) -> str | None:
-    """While the host drives it, the run this invocation created: the one RUN_IDENTITY binds, else the only run that was not
-    already there (record_preexisting_runs); None while there is none, or several that nothing tells apart."""
-    identity = run_identity(out)
-    if identity.get("run_dir"):
-        return identity["run_dir"]
-    before = identity.get("preexisting") if isinstance(identity.get("preexisting"), dict) else {}
-    new = [found["run_dir"] for found in shiploop_runs(out) if found["run_dir"] not in before]
-    return new[0] if len(new) == 1 else None
-
-
-def named_run_dirs(out: Path) -> set[str]:
-    """The run directories the host's ShipLoop commands named (`--run-dir`), as resolved paths."""
-    try:
-        text = (out / "events.jsonl").read_text(errors="replace").replace('\\"', '"')
-    except OSError:
-        return set()
-    return {str(Path(found.group("dir")).expanduser().resolve()) for found in metrics.RUN_DIR_ARG.finditer(text)}
+    """While the host drives it, the run this invocation created, by the one rule (run_choice.choose); None while there is
+    none, or several that nothing tells apart."""
+    chosen = run_choice.choose(out).chosen
+    return chosen["run_dir"] if chosen else None
 
 
 def grade_shiploop(out: Path) -> dict:
     """The state of the ShipLoop run this output folder's invocation created (SPEC: a verdict is earned by the run graded).
 
-    The run is the one RUN_IDENTITY records. Until one is recorded it is the only run that was not already there when the
-    invocation started, or, among several, the only one the host's ShipLoop commands named; that run is then recorded.
-    Several candidates that nothing tells apart are reported as ambiguous and never pass: an unrelated finished run is
-    never preferred (2026-10-16 E2E audit, docs/experiments/shiploop-e2e-audit-20261016/grading/).
+    The run is the one run_choice.choose picks: the run RUN_IDENTITY records, else the only run that was not already there
+    when the invocation started, else, among several, the live one (not paused or halted) and then the one the host's ShipLoop
+    commands named. A choice that holds whatever the runs' statuses become is then recorded; a choice that follows statuses is
+    made again at every grade. Several candidates that nothing tells apart are reported as ambiguous and never pass: a run
+    that was already there when the invocation started is never a candidate (2026-10-16 E2E audit,
+    docs/experiments/shiploop-e2e-audit-20261016/grading/), and nothing is picked at random. The runs not chosen are listed as `other_runs`.
     """
-    runs = shiploop_runs(out)
-    if not runs:
+    picked = run_choice.choose(out)
+    if not picked.runs:
         return {"pass": False, "reason": "no ShipLoop state.md under the output directory"}
-    identity = run_identity(out)
-    before = identity.get("preexisting") if isinstance(identity.get("preexisting"), dict) else {}
-    mine = [found for found in runs
-            if found["run_dir"] not in before or state_digest(found["run_dir"]) != before[found["run_dir"]]]
-    bound = identity.get("run_dir")
-    # A recorded run whose state is gone is not a choice any more: the rules below pick again (still never a run that was
-    # there before the invocation started) and record what they pick.
-    chosen = next((found for found in mine if found["run_dir"] == bound), None) if bound else None
-    basis = "recorded"
-    if chosen is None and len(mine) == 1:
-        chosen, basis = mine[0], "the only run that was not there before the invocation"
-    elif chosen is None and len(mine) > 1:
-        named = named_run_dirs(out) & {found["run_dir"] for found in mine}
-        if len(named) == 1:
-            chosen, basis = next(found for found in mine if found["run_dir"] in named), "the run the host's commands named"
+    chosen = picked.chosen
     if chosen is None:
-        if not mine:
-            return {"pass": False, "runs": len(runs), "reason": "no ShipLoop run of this invocation: every state.md was "
-                    "there before it started (" + ", ".join(sorted(before)) + ")"}
-        return {"pass": False, "runs": len(runs), "ambiguous": [found["run_dir"] for found in mine],
-                "reason": f"ambiguous: {len(mine)} ShipLoop runs under the output directory and nothing records or names "
-                          "the one this invocation created"}
-    if basis != "recorded":
-        record_run_identity(out, run_dir=chosen["run_dir"], basis=basis)
+        if not picked.mine:
+            return {"pass": False, "runs": len(picked.runs), "reason": "no ShipLoop run of this invocation: every state.md was "
+                    "there before it started (" + ", ".join(sorted(picked.before)) + ")"}
+        return {"pass": False, "runs": len(picked.runs), "ambiguous": [found["run_dir"] for found in picked.tied],
+                "reason": f"ambiguous: {len(picked.tied)} ShipLoop runs under the output directory{picked.why} and nothing "
+                          "records or names the one this invocation created"}
+    if picked.basis != "recorded" and picked.bind:
+        record_run_identity(out, run_dir=chosen["run_dir"], basis=picked.basis)
     # ShipLoop builds in its own worktree beside the run and returns it to the
     # source only at release; name it so an unreturned product can be inspected.
     worktree = Path(chosen["run_dir"]).parent / "worktree"
-    others = [found["run_dir"] for found in runs if found is not chosen]
-    return {"pass": chosen["status"] == "done" and chosen["report_html"], **chosen, "runs": len(runs),
-            "identity": basis, **({"other_runs": others} if others else {}),
+    others = [found["run_dir"] for found in picked.runs if found is not chosen]
+    return {"pass": chosen["status"] == "done" and chosen["report_html"], **chosen, "runs": len(picked.runs),
+            "identity": picked.basis, **({"other_runs": others} if others else {}),
             "worktree": str(worktree) if worktree.is_dir() else None}
 
 

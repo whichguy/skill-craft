@@ -1,0 +1,389 @@
+[
+ {
+  "output": "/Users/dadleet/e2e-runs/20261029/round-se-sigterm-1-e35e7d",
+  "build": {
+   "local_head": "2fa822125ff86bd6e78d0ab0380956204cb10d85",
+   "plugin_versions": {
+    "plugin_version": "2.22.0",
+    "shiploop_version": "1.21.0",
+    "plugin_sha256": "2fb29f9b064d"
+   },
+   "host": "claude",
+   "backend": "anthropic",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "clear_at": [
+    "implement:inside"
+   ],
+   "clear_signal": "SIGTERM"
+  },
+  "result": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "sessions": [
+    {
+     "status": "slice-complete",
+     "returncode": -9,
+     "elapsed_seconds": 256.8,
+     "end_signal": null
+    }
+   ],
+   "cost_usd": null,
+   "turns": 61,
+   "clear_records": []
+  },
+  "trace": {
+   "status": "active",
+   "counts": {
+    "accepted": 15,
+    "commands": 24,
+    "packets": 12,
+    "reprints": 0,
+    "refusals": 1,
+    "held": 0,
+    "checks_failed": 1,
+    "continuations": 0,
+    "stops": 0,
+    "skills": 3
+   },
+   "hook_rows": []
+  },
+  "checks": {
+   "keepalive_text": {
+    "verdict": "not exercised",
+    "evidence": "no stop decision continued a turn",
+    "lines": []
+   },
+   "packet_copies": {
+    "verdict": "pass",
+    "evidence": "12 prints (0 reprints), each with its kept copy",
+    "lines": []
+   },
+   "owner_note": {
+    "verdict": "not exercised",
+    "evidence": "no owner note was written to the run",
+    "lines": []
+   },
+   "session_end": {
+    "verdict": "not exercised",
+    "evidence": "no session end reached the run's trace",
+    "lines": []
+   }
+  },
+  "claim_timeline": [
+   {
+    "seconds_after_first_session_end": -256.38,
+    "at": "2026-10-29T16:12:31.023+00:00",
+    "owner": null,
+    "pid": null,
+    "pid_alive": null
+   },
+   {
+    "seconds_after_first_session_end": -251.77,
+    "at": "2026-10-29T16:12:35.628+00:00",
+    "owner": "claude:6f63bb30-d75e-4185-ad83-045f6c672ead",
+    "pid": 36066,
+    "pid_alive": true
+   },
+   {
+    "seconds_after_first_session_end": -0.05,
+    "at": "2026-10-29T16:16:47.349+00:00",
+    "owner": "claude:6f63bb30-d75e-4185-ad83-045f6c672ead",
+    "pid": 36066,
+    "pid_alive": false
+   }
+  ]
+ },
+ {
+  "output": "/Users/dadleet/e2e-runs/20261029/round-se-sigterm-2-b14d8c",
+  "build": {
+   "local_head": "2fa822125ff86bd6e78d0ab0380956204cb10d85",
+   "plugin_versions": {
+    "plugin_version": "2.22.0",
+    "shiploop_version": "1.21.0",
+    "plugin_sha256": "2fb29f9b064d"
+   },
+   "host": "claude",
+   "backend": "anthropic",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "clear_at": [
+    "implement"
+   ],
+   "clear_signal": "SIGTERM"
+  },
+  "result": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true,
+    "no_redo": true
+   },
+   "sessions": [
+    {
+     "status": "cleared",
+     "returncode": 143,
+     "elapsed_seconds": 120.4,
+     "end_signal": "SIGTERM"
+    },
+    {
+     "status": "slice-complete",
+     "returncode": -9,
+     "elapsed_seconds": 227.7,
+     "end_signal": null
+    }
+   ],
+   "cost_usd": null,
+   "turns": 89,
+   "clear_records": [
+    {
+     "n": 1,
+     "stopped": {
+      "stage": "implement",
+      "action": "nav-4a9364282e454359967adcbe0a66b385",
+      "revision": 13,
+      "events_line": 64,
+      "last_answered_line": 63
+     },
+     "end_signal": "SIGTERM"
+    }
+   ]
+  },
+  "trace": {
+   "status": "active",
+   "counts": {
+    "accepted": 15,
+    "commands": 20,
+    "packets": 13,
+    "reprints": 1,
+    "refusals": 0,
+    "held": 0,
+    "checks_failed": 1,
+    "continuations": 0,
+    "stops": 0,
+    "skills": 3
+   },
+   "hook_rows": [
+    {
+     "i": 22,
+     "at": "2026-10-29T16:20:44Z",
+     "host": "claude",
+     "hook": "session-end",
+     "decision": "release",
+     "released": true,
+     "reason": "other",
+     "why": "the host ended the session; the run it owned is released",
+     "session": "f686df66f0b6"
+    }
+   ]
+  },
+  "checks": {
+   "keepalive_text": {
+    "verdict": "not exercised",
+    "evidence": "no stop decision continued a turn",
+    "lines": []
+   },
+   "packet_copies": {
+    "verdict": "pass",
+    "evidence": "13 prints (1 reprint), each with its kept copy",
+    "lines": [
+     23
+    ]
+   },
+   "owner_note": {
+    "verdict": "not exercised",
+    "evidence": "no owner note was written to the run",
+    "lines": []
+   },
+   "session_end": {
+    "verdict": "not exercised",
+    "evidence": "1 session end freed the run, but no other session's stop decision followed",
+    "lines": [
+     22
+    ]
+   }
+  },
+  "claim_timeline": [
+   {
+    "seconds_after_first_session_end": -120.36,
+    "at": "2026-10-29T16:18:44.467+00:00",
+    "owner": null,
+    "pid": null,
+    "pid_alive": null
+   },
+   {
+    "seconds_after_first_session_end": -112.17,
+    "at": "2026-10-29T16:18:52.659+00:00",
+    "owner": "claude:68287f00-3ec5-43df-98aa-6cf379539aa7",
+    "pid": 49058,
+    "pid_alive": true
+   },
+   {
+    "seconds_after_first_session_end": -0.46,
+    "at": "2026-10-29T16:20:44.367+00:00",
+    "owner": null,
+    "pid": null,
+    "pid_alive": null
+   },
+   {
+    "seconds_after_first_session_end": 10.82,
+    "at": "2026-10-29T16:20:55.643+00:00",
+    "owner": "claude:0753087c-b42b-42d4-acda-89ce56d99b01",
+    "pid": 76968,
+    "pid_alive": true
+   },
+   {
+    "seconds_after_first_session_end": 227.8,
+    "at": "2026-10-29T16:24:32.620+00:00",
+    "owner": "claude:0753087c-b42b-42d4-acda-89ce56d99b01",
+    "pid": 76968,
+    "pid_alive": false
+   }
+  ]
+ },
+ {
+  "output": "/Users/dadleet/e2e-runs/20261029/round-se-sigkill-1-708d75",
+  "build": {
+   "local_head": "2fa822125ff86bd6e78d0ab0380956204cb10d85",
+   "plugin_versions": {
+    "plugin_version": "2.22.0",
+    "shiploop_version": "1.21.0",
+    "plugin_sha256": "2fb29f9b064d"
+   },
+   "host": "claude",
+   "backend": "anthropic",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "clear_at": [
+    "implement"
+   ],
+   "clear_signal": "SIGKILL"
+  },
+  "result": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true,
+    "no_redo": true
+   },
+   "sessions": [
+    {
+     "status": "cleared",
+     "returncode": -9,
+     "elapsed_seconds": 132.0,
+     "end_signal": "SIGKILL"
+    },
+    {
+     "status": "slice-complete",
+     "returncode": -9,
+     "elapsed_seconds": 270.5,
+     "end_signal": null
+    }
+   ],
+   "cost_usd": null,
+   "turns": 100,
+   "clear_records": [
+    {
+     "n": 1,
+     "stopped": {
+      "stage": "implement",
+      "action": "nav-e21e7e1b471b40c3bc68b7b5647ec08a",
+      "revision": 13,
+      "events_line": 70,
+      "last_answered_line": 69
+     },
+     "end_signal": "SIGKILL"
+    }
+   ]
+  },
+  "trace": {
+   "status": "active",
+   "counts": {
+    "accepted": 15,
+    "commands": 20,
+    "packets": 13,
+    "reprints": 1,
+    "refusals": 0,
+    "held": 0,
+    "checks_failed": 2,
+    "continuations": 0,
+    "stops": 0,
+    "skills": 3
+   },
+   "hook_rows": []
+  },
+  "checks": {
+   "keepalive_text": {
+    "verdict": "not exercised",
+    "evidence": "no stop decision continued a turn",
+    "lines": []
+   },
+   "packet_copies": {
+    "verdict": "pass",
+    "evidence": "13 prints (1 reprint), each with its kept copy",
+    "lines": [
+     23
+    ]
+   },
+   "owner_note": {
+    "verdict": "not exercised",
+    "evidence": "no owner note was written to the run",
+    "lines": []
+   },
+   "session_end": {
+    "verdict": "not exercised",
+    "evidence": "no session end reached the run's trace",
+    "lines": []
+   }
+  },
+  "claim_timeline": [
+   {
+    "seconds_after_first_session_end": -132.23,
+    "at": "2026-10-29T16:25:43.755+00:00",
+    "owner": null,
+    "pid": null,
+    "pid_alive": null
+   },
+   {
+    "seconds_after_first_session_end": -126.61,
+    "at": "2026-10-29T16:25:49.376+00:00",
+    "owner": "claude:b243560f-8ee9-482e-8696-f058678df073",
+    "pid": 30560,
+    "pid_alive": true
+   },
+   {
+    "seconds_after_first_session_end": -0.15,
+    "at": "2026-10-29T16:27:55.832+00:00",
+    "owner": "claude:b243560f-8ee9-482e-8696-f058678df073",
+    "pid": 30560,
+    "pid_alive": false
+   },
+   {
+    "seconds_after_first_session_end": 5.23,
+    "at": "2026-10-29T16:28:01.213+00:00",
+    "owner": "claude:2a37aba7-fe8e-4d76-bd0f-99096c91a223",
+    "pid": 64210,
+    "pid_alive": true
+   },
+   {
+    "seconds_after_first_session_end": 270.72,
+    "at": "2026-10-29T16:32:26.703+00:00",
+    "owner": "claude:2a37aba7-fe8e-4d76-bd0f-99096c91a223",
+    "pid": 64210,
+    "pid_alive": false
+   }
+  ]
+ }
+]

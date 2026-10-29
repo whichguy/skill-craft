@@ -14,7 +14,7 @@ optional; runs work without it.
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
-| `scripts/shiploop-hook session-end` | When the host ends the session (Claude, Codex and Grok `SessionEnd`, Cursor `sessionEnd`: a `/clear`, an exit): drop the session's binding and release the run it owned, so the next session takes it at once. A killed session sends nothing; the process check below covers it. |
+| `scripts/shiploop-hook session-end` | When the host ends the session (Claude, Codex and Grok `SessionEnd`, Cursor `sessionEnd`: a `/clear`, an exit): drop the session's binding and release the run it owned, so the next session takes it at once, and record the end in the run's `trace.jsonl` (a `hook` row, `hook=session-end`; `released` is true when it removed this session's claim, false when the stop hook had already released it or another session owns the run). A session killed with SIGKILL sends nothing; the process check below covers it. Claude Code runs it for SIGTERM, SIGINT and SIGHUP too, mid-turn, in under a second. |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
 `hook-status` is the only place that decides whether a run can move.
@@ -122,23 +122,36 @@ only the run's owner session is ever kept alive.
 
 A marketplace install of the ShipLoop plugin carries the hooks. ShipLoop
 declares them in `host-hooks.json` (`keepalive-observe` on `after-shell`,
-`keepalive-stop` on `turn-end`, and for Claude Code only `skill-calls` on `after-skill`), and the package generator writes each host's
+`keepalive-stop` on `turn-end`, `keepalive-session-end` on `session-end`, and for Claude Code only `skill-calls` on `after-skill`), and the package generator writes each host's
 own file: `hooks/hooks.json` for Claude and Grok, `hooks/codex.json`,
 `hooks/cursor.json`. Their argument-free entry scripts
-(`scripts/shiploop-keepalive-observe`, `scripts/shiploop-keepalive-stop`) run
+(`scripts/shiploop-keepalive-observe`, `scripts/shiploop-keepalive-stop`, `scripts/shiploop-keepalive-session-end`) run
 `shiploop-hook … --host auto`, which tells Grok (`GROK_PLUGIN_ROOT`), Cursor
 (`CURSOR_PLUGIN_ROOT`), Codex and Claude apart. Claude Code runs them as
 installed. Codex asks you once, in an interactive session, to trust the new
 plugin hooks; approve the ShipLoop entries.
 
-Grok (1.0.41) lists a plugin's hooks but never runs them, headless or
-interactive, even for a plugin installed with `--trust` (observed 2026-09-25).
-So ShipLoop installs its Grok hooks itself: any `shiploop` command that runs
+Grok runs a trusted plugin's hooks, but a Grok session loads them only when its
+leader process starts: a plugin installed (or updated) while a leader is running
+is not loaded by it. The 2026-09-25 observation that Grok 1.0.41 "never runs"
+plugin hooks was made against such a running leader, and was corrected the same
+day. Grok 1.0.70 runs them: its hooks log (`~/.grok/logs/hooks.log`) shows plugin
+hooks dispatched (`plugin/skill-craft/hooks:stop`, and other plugins'
+`session_end` hooks), and its user guide lists `SessionEnd`, which runs for at
+most 1.5 s beside a session-end `Stop` (the keepalive's session-end hook takes
+tens of milliseconds). Checked 2026-10-29 against `~/.grok` and the installed
+binary; whether Grok runs ShipLoop's own `session-end` entry is not yet seen in
+that log (it predates the entry).
+So ShipLoop still installs its Grok hooks itself, for the session whose leader
+started before the plugin: any `shiploop` command that runs
 under Grok (`GROK_AGENT=1`, which Grok sets for every shell command) writes
 `~/.grok/hooks/shiploop-keepalive.json` when it is missing, or repairs it when
 its script is gone, and says so on stderr. Global hooks are always trusted. New
 Grok sessions load them; a session that is already open picks them up from
-`/hooks`, then `r`. `SHIPLOOP_KEEPALIVE=off` skips this, and
+`/hooks`, then `r`. Once a leader has loaded both, the global entries and the
+plugin's run side by side: two stops get one answer (the duplicate window) and
+the second session-end finds the binding gone and records nothing.
+`SHIPLOOP_KEEPALIVE=off` skips this, and
 `scripts/shiploop-hook uninstall --host grok` removes it.
 
 A skill-directory install adds them with `scripts/shiploop-hook install --host HOST`
@@ -148,10 +161,10 @@ Hermes is not supported.
 
 | Host | Registered in | Continue signal | Unattended (headless) |
 |------|---------------|-----------------|-----------------------|
-| Claude Code | `~/.claude/settings.json` (`PostToolUse` Bash and Skill, `Stop`) | `{"decision":"block","reason":…}` | Hook alone keeps `claude -p` going. |
-| Codex | `~/.codex/hooks.json` (`PostToolUse`, `Stop`); approve once when Codex asks | `{"decision":"block","reason":…}` | Hook alone keeps `codex exec` going. |
+| Claude Code | `~/.claude/settings.json` (`PostToolUse` Bash and Skill, `Stop`, `SessionEnd`) | `{"decision":"block","reason":…}` | Hook alone keeps `claude -p` going. |
+| Codex | `~/.codex/hooks.json` (`PostToolUse`, `Stop`, `SessionEnd`); approve once when Codex asks | `{"decision":"block","reason":…}` | Hook alone keeps `codex exec` going. |
 | Grok | `~/.grok/hooks/shiploop-keepalive.json`, written by ShipLoop on its first command under Grok | `{"decision":"block","reason":…}`; at most 8 per turn | Hook alone keeps `grok -p` going. |
-| Cursor | `~/.cursor/hooks.json` (`afterShellExecution`, `stop`) | `{"followup_message":…}` | `cursor-agent -p` never fires `stop`: use `shiploop-drive`, which resumes the chat. |
+| Cursor | `~/.cursor/hooks.json` (`afterShellExecution`, `stop`, `sessionEnd`) | `{"followup_message":…}` | `cursor-agent -p` never fires `stop`: use `shiploop-drive`, which resumes the chat. |
 | OpenCode | `~/.config/opencode/plugins/shiploop-keepalive.js` | The plugin sends the next message on `session.idle` | `opencode run` exits first: use `shiploop-drive`, which resumes the session. |
 
 Grok also runs `~/.cursor/hooks.json` and a project's `.claude/settings.json`.

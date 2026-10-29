@@ -8,6 +8,7 @@ Runs are real ShipLoop runs in temporary directories; no host CLI is launched.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
 import json
 import shlex
 import os
@@ -27,6 +28,7 @@ sys.path.insert(0, str(SCRIPTS))
 import shiploop_keepalive as keepalive  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_trace as trace  # noqa: E402
 from shiploop_packet_view import assert_top_block, head_packet_path  # noqa: E402
 
 RECORDED_HOSTS = ("claude", "codex", "cursor", "grok")
@@ -670,6 +672,21 @@ class OwnerProcessTests(unittest.TestCase):
             self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
         self.assertEqual(keepalive._load_owner(self.run_dir)["process"], found)
 
+    def test_a_process_table_that_cannot_be_read_says_nothing_about_a_live_owner(self) -> None:
+        # `ps` missing, timed out or hidden by a sandbox gives an empty table: that is unknown, not "the owner is gone".
+        self.owned_by("busy", {"pid": 70, "start": self.START})
+        with self.table(), mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertIsNone(keepalive.owner_process_alive({"pid": 70, "start": self.START}))
+            self.assertFalse(keepalive.claim_owner(self.run_dir, "claude", "next"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["owner"], "claude:busy")
+
+    def test_the_owner_keeps_its_recorded_process_through_a_hook_that_cannot_read_the_table(self) -> None:
+        recorded = {"pid": 70, "start": self.START}
+        self.owned_by("owner", recorded)
+        with self.table(), mock.patch.object(keepalive, "host_process", return_value=None):
+            self.assertTrue(keepalive.claim_owner(self.run_dir, "claude", "owner"))
+        self.assertEqual(keepalive._load_owner(self.run_dir)["process"], recorded)
+
 
 class HealthNoticeTests(KeepaliveTestCase):
     """A session that keeps printing packets without ever binding is told its hooks are off."""
@@ -814,6 +831,60 @@ class SessionEndTests(KeepaliveTestCase):
         self.hook("session-end", "auto", self.payload("claude", "session-end", "never-bound"))
         self.assertEqual(keepalive._load_owner(run_dir).get("owner"), "claude:owner")
         self.assertIsNotNone(keepalive.load_binding("claude", "owner"))
+
+    def session_end_rows(self) -> list[dict]:
+        """The run trace's session-end rows (RUN/trace.jsonl), oldest first: the evidence a harness reads."""
+        lines = (self.run_dir / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+        return [row for row in map(json.loads, lines) if row.get("kind") == "hook" and row.get("hook") == "session-end"]
+
+    def test_release_owner_says_whether_it_removed_a_claim(self) -> None:
+        run_dir = str(self.run_dir)
+        self.assertFalse(keepalive.release_owner(run_dir))                     # no one owns it
+        self.assertFalse(keepalive.release_owner(run_dir, "claude", "ghost"))
+        self.assertTrue(keepalive.claim_owner(run_dir, "claude", "owner"))
+        self.assertFalse(keepalive.release_owner(run_dir, "claude", "other"))  # another session's claim stays
+        self.assertFalse(keepalive.release_owner(run_dir, "codex", "owner"))   # the same id under another host is another
+        self.assertEqual(keepalive._load_owner(run_dir).get("owner"), "claude:owner")
+        self.assertTrue(keepalive.release_owner(run_dir, "claude", "owner"))
+        self.assertFalse(keepalive.release_owner(run_dir, "claude", "owner"))  # already released
+        self.assertTrue(keepalive.claim_owner(run_dir, "claude", "owner"))
+        self.assertTrue(keepalive.release_owner(run_dir))                      # the driver's release, whoever owns it
+        self.assertFalse(keepalive.release_owner(run_dir))
+
+    def test_a_session_end_on_an_owned_run_records_the_release_in_the_trace(self) -> None:
+        run_dir = self.bind("claude", "owner")
+        self.assertEqual(self.session_end_rows(), [])
+        self.hook("session-end", "auto", self.payload("claude", "session-end", "owner"))
+        (row,) = self.session_end_rows()
+        self.assertEqual((row["decision"], row["released"], row["host"], row["reason"]), ("release", True, "claude", "other"))
+        self.assertEqual(row["session"], hashlib.sha256(b"owner").hexdigest()[:12])   # a hash, never the session id
+        self.assertEqual(keepalive._load_owner(run_dir), {})
+        self.assertIn("session-end → release", trace.event_line({**row, "i": 1}))
+
+    def test_a_session_end_that_freed_nothing_records_released_false(self) -> None:
+        run_dir = self.bind("claude", "owner")
+        self.bind("codex", "worker")                       # bound to the run, owned by the claude session
+        self.hook("session-end", "auto", self.payload("codex", "session-end", "worker"))
+        self.assertEqual([(row["host"], row["released"]) for row in self.session_end_rows()], [("codex", False)])
+        self.assertEqual(keepalive._load_owner(run_dir).get("owner"), "claude:owner")
+        keepalive.release_owner(run_dir)                   # the stop hook (or the driver) freed the run first
+        self.hook("session-end", "auto", self.payload("claude", "session-end", "owner"))
+        self.assertEqual([(row["host"], row["released"]) for row in self.session_end_rows()],
+                         [("codex", False), ("claude", False)])
+
+    def test_the_next_sessions_claim_follows_the_recorded_release(self) -> None:
+        self.bind("claude", "cleared")
+        self.hook("session-end", "auto", self.payload("claude", "session-end", "cleared"))
+        self.bind("claude", "after-clear")
+        (row,) = self.session_end_rows()
+        self.assertTrue(row["released"])
+        self.assertEqual(keepalive._load_owner(str(self.run_dir)).get("owner"), "claude:after-clear")
+        self.assertLess(keepalive._load_owner(str(self.run_dir))["seen"] - row["ts"], keepalive.OWNER_STALE_SECONDS)
+
+    def test_a_session_bound_to_no_run_writes_nothing(self) -> None:
+        before = (self.run_dir / "trace.jsonl").read_bytes()
+        self.hook("session-end", "auto", self.payload("claude", "session-end", "never-bound"))
+        self.assertEqual((self.run_dir / "trace.jsonl").read_bytes(), before)
 
 
 class InstallTests(KeepaliveTestCase):

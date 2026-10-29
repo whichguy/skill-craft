@@ -143,10 +143,25 @@ pre-created. It grades five verdicts into `result.json`:
   its `report.html`. Which run that is, is recorded in `shiploop-run.json` (added
   2026-10-16): the runs already in the folder when it was created (a follow-on's copy can
   bring one) are never candidates, and the run itself is the one seeded by the harness,
-  else the only new run, else the only new run the host's `--run-dir` commands named.
-  A resume and a regrade grade that same run. Several runs that nothing tells apart are
-  `ambiguous` (the result lists them) and fail; an unrelated finished run is never
-  preferred;
+  else the only new run. A model that abandons its first run and starts a second leaves
+  several; then the runs it did not pause or halt are the candidates (a finished or blocked
+  run is still in play), one candidate is the run, and several are told apart only by the
+  one the host's `--run-dir` commands named. When every run was paused or halted, the run
+  whose `state.md` changed last is the run if it changed strictly after the others.
+  The runs not chosen are listed as `other_runs`. A resume and a regrade grade the
+  recorded run again; a choice that follows the runs' statuses is made again at every
+  grade and is not recorded, because a model can resume the run it paused. Several runs
+  that nothing tells apart (two live runs, or a finished run beside a live one) are
+  `ambiguous` (the result lists them) and fail; a run that was already there when the
+  invocation started is never a candidate. The same rule (`run_choice.py`) names the run for each of these readers:
+  the verdict, every measurement that reads the run's files (`metrics.run_dir_of`), the
+  live monitor (`progress.py`), the Live Run Card (`status_card.py build e2e`, and the
+  worktree its action inspector reads reviews from) and the reader behind the flow
+  viewer, the packet report and the owner page (`packets.find_run_dir`, which exits
+  saying `ambiguous` where the verdict would). The Run Review exporter
+  (`skills/shiploop-run-review/scripts/export.py`) may not import from `test/`: it takes
+  the run `result.json` names, which the verdict wrote from this rule, else the newest
+  `state.md`;
 - **committed**: the source checkout ends committed: HEAD moved past where the
   run started, holds at least one file (ShipLoop's own empty baseline commit is not
   product; any file counts, so this is a floor, not a check of what the product is),
@@ -331,13 +346,23 @@ compound command), the exit for the four the model piped, and the stage the run 
 before reading a refusal difference between a run before 1.12.0 and a later one.
 
 **Live checks** (`run_trace.checks`, in `metrics.json` as `run_trace.checks` and printed as the run's `trace checks` line).
-Three behaviours the fixtures prove; each first passed on a real run on 2026-10-28, and every run reads them:
+Four behaviours the fixtures prove; the first three first passed on a real run on 2026-10-28, and every run reads them:
 - `keepalive_text`: each keepalive stop decision that continued a turn recorded the text it put into the turn;
 - `packet_copies`: each printed packet names a kept copy (`packets/sent/<sha>.md`) whose text has that hash, the
   copy the Run Review page reads; reprints are counted. It was `packet_reprint` until 2026-10-28 and read identical
   reprints only, which the reprint a fresh session gets from `next` never is;
 - `owner_note`: each owner note was delivered, that is, a step was accepted after its packet quoted the note. The
   evidence names the step, the action whose `complete` was held to show it, and whether the step's summary cites it.
+- `session_end`: the host's session-end hook freed the run, and the next session took it at once. The trace holds each
+  session end the host reported (`hook=session-end`, `released`, `reason`; from the release after 1.20.0). `released` is true
+  when the hook removed that session's claim, false when the stop hook had already freed the run (a normal exit) or another
+  session owned it. The next session's claim is its first stop decision after the release, which continued its turn (only
+  the owner's does). `pass`: a released row, and that decision within `run_trace.CLAIM_WITHIN_SECONDS` (900 s, half of
+  the keepalive's 30-minute stale window: a later claim is indistinguishable from the stale path). `fail`: the next
+  session's first decision let the host stop ("another session owns this run") or came later than that.
+  `not exercised`, never a pass: no session end in the trace, none that freed a claim, or no other session's stop decision
+  after the release. Only a clear ended with `slice.py --clear-signal` (above) exercises it in a slice; a full run's
+  sessions end through the driver, which releases the owner itself.
 
 Each verdict is `pass`, `fail`, `not exercised` (the run never did it, which is not a pass) or, for a note the run had not
 delivered when it stopped short of done, `open`. The Live Run Card shows them while the run is going: `status_card.py build
@@ -1748,6 +1773,19 @@ python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --cl
   clear fired). `invocation.json` holds `clear_at` and `resume_prompt`, and the `told` of each session in `sessions.jsonl`
   is null when nothing was named. A position that cannot fire (out of the run's order, a stage the slice never reaches)
   blocks the ones after it. An older run's single-record `clear.json` is refused, not read as empty.
+- `--clear-signal SIGTERM|SIGINT|SIGHUP|SIGKILL` (default: none) says how a clear ends the host. Without it the harness
+  kills the host's process group with SIGKILL and frees the run's keepalive owner itself (`release_keepalive_owner`, as the
+  driver does between sessions). With it the harness sends that signal to the host's process, waits until the host's group
+  has gone (at most `run.SESSION_END_SECONDS`, 15 s: the keepalive registers its session-end hook with a 10 s timeout),
+  ends the group, and releases nothing. The host's own SessionEnd hook then frees the run, and the run trace holds the
+  proof: a `hook` row `session-end` with `released: true`, which the `session_end` check (below) reads together with the
+  next session's continued turn. Each clear's record in `clear.json` names the signal (`end_signal`), and `invocation.json`
+  holds `clear_signal`. Which signal runs a session-end hook is a host fact: for Claude Code 2.1.312 SIGTERM, SIGINT and SIGHUP
+  do, in under a second, also through the `caffeinate` wrapper, and SIGKILL never does
+  (`docs/shiploop-owed-outcome-evidence/session_end_probe.out`); Grok, Codex and Cursor are unprobed, so on them the check
+  reads `released: false` (not exercised) where the hook did not run. `--clear-signal SIGKILL` is the same switch for a
+  host that dies without a hook: the dead owner's claim stays in place, and the next session takes the run only through the
+  keepalive's process check (the takeover evidence).
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
 `queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
