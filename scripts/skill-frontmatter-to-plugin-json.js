@@ -266,7 +266,9 @@ const HOOK_HOSTS = ["claude", "codex", "cursor", "grok"];
 // after-shell: after a shell command. turn-end: when the host is about to end
 // the agent's turn (Claude-format Stop; Cursor stop). after-skill: after a Skill-tool
 // call (Claude-format PostToolUse matching Skill); only Claude Code has that tool event.
-const HOOK_EVENTS = new Set(["after-shell", "turn-end", "after-skill"]);
+// session-end: when the host ends the session (Claude-format SessionEnd, which Claude
+// Code, Codex and Grok run; Cursor sessionEnd).
+const HOOK_EVENTS = new Set(["after-shell", "turn-end", "after-skill", "session-end"]);
 const AFTER_SKILL_HOSTS = ["claude"];
 // Cursor stops re-prompting after loop_limit follow-ups (default 5); a turn-end
 // hook owns its own loop limits, so the host limit is only a backstop.
@@ -346,12 +348,14 @@ function buildHostHooks(leaves) {
     const shell = hooks.filter((hook) => hook.event === "after-shell");
     const skill = hooks.filter((hook) => hook.event === "after-skill");
     const turnEnd = hooks.filter((hook) => hook.event === "turn-end");
+    const sessionEnd = hooks.filter((hook) => hook.event === "session-end");
     const events = {};
     const afterTool = [];
     if (shell.length) afterTool.push({ matcher: "Bash", hooks: shell.map((hook) => entry(variable, hook)) });
     if (skill.length) afterTool.push({ matcher: "Skill", hooks: skill.map((hook) => entry(variable, hook)) });
     if (afterTool.length) events.PostToolUse = afterTool;
     if (turnEnd.length) events.Stop = [{ hooks: turnEnd.map((hook) => entry(variable, hook)) }];
+    if (sessionEnd.length) events.SessionEnd = [{ hooks: sessionEnd.map((hook) => entry(variable, hook)) }];
     return { hooks: events };
   };
   const forHost = (...hosts) => decl.hooks.filter((hook) => hosts.some((h) => hook.hosts.includes(h)));
@@ -364,6 +368,7 @@ function buildHostHooks(leaves) {
     const events = {};
     const shell = cursor.filter((hook) => hook.event === "after-shell");
     const turnEnd = cursor.filter((hook) => hook.event === "turn-end");
+    const sessionEnd = cursor.filter((hook) => hook.event === "session-end");
     if (shell.length) {
       events.afterShellExecution = shell.map((hook) => ({
         command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout,
@@ -374,6 +379,9 @@ function buildHostHooks(leaves) {
         command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout,
         loop_limit: CURSOR_TURN_END_LOOP_LIMIT,
       }));
+    }
+    if (sessionEnd.length) {
+      events.sessionEnd = sessionEnd.map((hook) => ({ command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout }));
     }
     files[HOOK_FILES.cursor] = { version: 1, hooks: events };
   }

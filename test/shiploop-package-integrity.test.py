@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills" / "shiploop"
 
 _LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
-_HOOK_EVENTS = {"after-shell", "turn-end", "after-skill"}
+_HOOK_EVENTS = {"after-shell", "turn-end", "after-skill", "session-end"}
 
 
 def _texts(package: Path) -> dict[Path, str]:

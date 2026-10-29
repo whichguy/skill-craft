@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "session_end_payloads": [
+  {
+   "session_id": "622efd3d-1c2c-4a05-b88a-7e6c7c83d640",
+   "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-qxmx-scn/622efd3d-1c2c-4a05-b88a-7e6c7c83d640.jsonl",
+   "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-qxmx_scn",
+   "prompt_id": "4150e668-74ef-450a-8b69-c7a225cc6451",
+   "hook_event_name": "SessionEnd",
+   "reason": "other"
+  }
+ ],
+ "fired": true,
+ "has_session_id": true
+}

@@ -14,13 +14,17 @@ Hook events per host:
 * skill   -- after a Skill-tool call (Claude Code only).  Append the call to the
   bound run's ``skill-calls.jsonl`` (shiploop_skill_calls), which the Improve
   stage's ``complete`` reads; it never blocks the call.
+* session-end -- when the host ends the session (Claude, Codex and Grok
+  ``SessionEnd``, Cursor ``sessionEnd``: a ``/clear``, an exit).  Release the run
+  the session owned and drop its binding, so the next session takes it at once.
 
 Several agents can touch one run: a parallel-chain worker, a second terminal,
 consecutive driver sessions.  Only one session, the run's owner, is ever kept
 alive.  The first session to bind a free run owns it; ownership is released when
-the owner's turn ends normally, when the driver finishes a session, when the
-owner's host process is gone (``claim_owner``), or after OWNER_STALE_SECONDS
-without any activity from the owner.  Every read-modify-write of a binding or
+the owner's turn ends normally, when the host ends the owner's session
+(``session_end``), when the driver finishes a session, when the owner's host
+process is gone (``claim_owner``), or after OWNER_STALE_SECONDS without any
+activity from the owner.  Every read-modify-write of a binding or
 owner record holds an exclusive file lock.
 
 Every failure allows the stop: a broken hook must never trap a session.  The
@@ -612,6 +616,27 @@ def _log_error(event: str, host: str, exc: BaseException) -> None:
         pass
 
 
+def session_end(host: str, payload: Mapping[str, Any]) -> str | None:
+    """The host ended this session (a ``/clear``, an exit): drop its binding and release the run if it owned it, so the
+    next session takes the run at once instead of waiting OWNER_STALE_SECONDS.  Returns the run's directory, or None."""
+    session = session_of(payload)
+    if session is None or _is_subagent(payload):
+        return None
+    # A session-end payload may lack the per-turn fields that tell hosts apart (Codex's turn_id), so the session id,
+    # which each host makes unique, is looked up under every host.
+    for bound_host in dict.fromkeys((host, *HOSTS)):
+        path = _binding_path(bound_host, session)
+        if not path.exists():
+            continue
+        with _locked(path):
+            binding = load_binding(bound_host, session)
+            path.unlink(missing_ok=True)
+        if binding is not None:
+            release_owner(binding["run_dir"], bound_host, session)  # only this session's own claim
+            return binding["run_dir"]
+    return None
+
+
 def run_hook(event: str, host: str, raw: str) -> str:
     """Handle one hook call; returns what to print (may be empty).  Never raises."""
     try:
@@ -631,6 +656,10 @@ def run_hook(event: str, host: str, raw: str) -> str:
             return ""
         if event == "skill":
             skill_call(host, payload)
+            return ""
+        if event == "session-end":
+            if session_end(host, payload):
+                _log_decision(host, payload, {"decision": "release", "why": "the host ended the session"})
             return ""
         decision = stop(host, payload)
         _log_decision(host, payload, decision)
@@ -679,6 +708,7 @@ def _claude_style_entries(host: str) -> dict:
     return {
         "PostToolUse": post,
         "Stop": [{"hooks": [{"type": "command", "command": hook_command("stop", host), "timeout": 30}]}],
+        "SessionEnd": [{"hooks": [{"type": "command", "command": hook_command("session-end", host), "timeout": 10}]}],
     }
 
 
@@ -687,6 +717,7 @@ def _cursor_entries() -> dict:
         "afterShellExecution": [{"command": hook_command("observe", "cursor"), "timeout": 30}],
         # ShipLoop's own no-progress rule ends loops; the host limit is a backstop.
         "stop": [{"command": hook_command("stop", "cursor"), "timeout": 30, "loop_limit": 50}],
+        "sessionEnd": [{"command": hook_command("session-end", "cursor"), "timeout": 10}],
     }
 
 
@@ -1069,12 +1100,12 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
 # ---------------------------------------------------------------- CLIs
 
 def hook_main(argv: list[str] | None = None) -> int:
-    """Entry point of ``shiploop-hook``: host events (observe, stop) and install, uninstall, status."""
+    """Entry point of ``shiploop-hook``: host events (observe, stop, skill, session-end) and install, uninstall, status."""
     parser = argparse.ArgumentParser(
         prog="shiploop-hook",
         description="Keep a ShipLoop run moving across host turns (see references/keepalive.md).")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("observe", "stop", "skill"):
+    for name in ("observe", "stop", "skill", "session-end"):
         event = sub.add_parser(name, help=f"host hook event: {name} (reads the payload on stdin)")
         event.add_argument("--host", choices=(*HOSTS, AUTO), required=True)
     for name in ("install", "uninstall", "status"):
@@ -1083,7 +1114,7 @@ def hook_main(argv: list[str] | None = None) -> int:
         if name != "status":
             action.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in ("observe", "stop", "skill"):
+    if args.command in ("observe", "stop", "skill", "session-end"):
         try:
             payload = sys.stdin.read()
         except (AttributeError, OSError, ValueError):  # no stdin, or bytes that are not text: nothing to read, never a failure

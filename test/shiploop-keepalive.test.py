@@ -775,6 +775,47 @@ class ConcurrencyTests(KeepaliveTestCase):
                 self.assertIn("followup_message" if expected == "cursor" else "decision", reply)
 
 
+class SessionEndTests(KeepaliveTestCase):
+    """The host ends a session (a /clear, an exit): the run it owned is released at once, so the next session need not
+    wait OWNER_STALE_SECONDS (owner, 2026-10-28). A killed session sends nothing; OwnerProcessTests covers that."""
+
+    def bind(self, host: str, session: str) -> str:
+        self.hook("observe", host, self.payload(host, "observe", session))
+        return keepalive.load_binding(host, session)["run_dir"]
+
+    def test_each_hosts_session_end_releases_the_run_its_session_owned(self) -> None:
+        for host in ("claude", "codex", "cursor", "grok"):
+            with self.subTest(host=host):
+                session = f"ending-{host}"
+                run_dir = self.bind(host, session)
+                self.assertEqual(keepalive._load_owner(run_dir).get("owner"), f"{host}:{session}")
+                # As the plugin's hook runs it: the host is read from the payload. Codex's has no turn_id at session
+                # end, so it reads as Claude's; the session id is looked up under every host.
+                self.hook("session-end", "auto", self.payload(host, "session-end", session))
+                self.assertIsNone(keepalive.load_binding(host, session))
+                self.assertEqual(keepalive._load_owner(run_dir), {})
+
+    def test_the_next_session_takes_the_run_at_once(self) -> None:
+        self.bind("claude", "cleared")
+        self.hook("session-end", "auto", self.payload("claude", "session-end", "cleared"))
+        self.bind("claude", "after-clear")
+        self.assertEqual(self.stop_decision("claude", "after-clear")["decision"], "continue")
+
+    def stop_decision(self, host: str, session: str) -> dict:
+        return keepalive.stop(host, self.payload(host, "stop", session))
+
+    def test_another_sessions_end_or_a_subagents_leaves_the_owner_alone(self) -> None:
+        run_dir = self.bind("claude", "owner")
+        self.bind("codex", "worker")
+        self.hook("session-end", "auto", self.payload("codex", "session-end", "worker"))
+        self.assertIsNone(keepalive.load_binding("codex", "worker"))
+        child = {**self.payload("claude", "session-end", "owner"), "agent_id": "a1", "agent_type": "general"}
+        self.hook("session-end", "auto", child)
+        self.hook("session-end", "auto", self.payload("claude", "session-end", "never-bound"))
+        self.assertEqual(keepalive._load_owner(run_dir).get("owner"), "claude:owner")
+        self.assertIsNotNone(keepalive.load_binding("claude", "owner"))
+
+
 class InstallTests(KeepaliveTestCase):
     def home(self) -> Path:
         return self.temp / "home"
@@ -791,9 +832,11 @@ class InstallTests(KeepaliveTestCase):
         data = json.loads(settings.read_text())
         self.assertEqual(len(data["hooks"]["Stop"]), 2)
         self.assertEqual(data["hooks"]["PostToolUse"][0]["matcher"], "Bash")
+        self.assertIn("session-end --host claude", data["hooks"]["SessionEnd"][0]["hooks"][0]["command"])
         cursor = json.loads((self.home() / ".cursor" / "hooks.json").read_text())
         self.assertEqual(cursor["version"], 1)
         self.assertIn("afterShellExecution", cursor["hooks"])
+        self.assertIn("session-end --host cursor", cursor["hooks"]["sessionEnd"][0]["command"])
         plugin = (self.home() / ".config" / "opencode" / "plugins" / "shiploop-keepalive.js").read_text()
         self.assertIn(json.dumps(str(SCRIPTS / "shiploop-hook")), plugin)
         for host in keepalive.HOSTS:
@@ -908,7 +951,8 @@ class MarketplacePackageTests(KeepaliveTestCase):
                 cursor = file_name == "cursor.json"
                 observe = self.commands(hooks, "afterShellExecution" if cursor else "PostToolUse")
                 stop = self.commands(hooks, "stop" if cursor else "Stop")
-                self.assertEqual((len(observe), len(stop)), (1, 1))
+                ended = self.commands(hooks, "sessionEnd" if cursor else "SessionEnd")
+                self.assertEqual((len(observe), len(stop), len(ended)), (1, 1, 1))
                 # Every packet is full, so no host needs a compaction hook.
                 self.assertNotIn("SessionStart", hooks["hooks"])
                 # Grok does not strip quotes: a quoted command becomes a file name
@@ -931,6 +975,10 @@ class MarketplacePackageTests(KeepaliveTestCase):
                 text = reply["followup_message"] if cursor else reply["reason"]
                 self.assertIn(str(plugin), text)
                 self.assertIsNotNone(keepalive.load_binding(host, session))
+                ended_run = subprocess.run(["bash", "-c", ended[0]], input=json.dumps(self.payload(host, "session-end", session)),
+                                           capture_output=True, text=True, env=env, check=False)
+                self.assertEqual((ended_run.returncode, ended_run.stdout), (0, ""), ended_run.stderr)
+                self.assertIsNone(keepalive.load_binding(host, session))  # the host ended the session: run released
 
 
 class DriverTests(KeepaliveTestCase):

@@ -793,6 +793,34 @@ dropped in favour of it: it also closes the lock in a `finally` and tests the or
   from the detached progress observer that `shiploop init` starts, which rewrites the run folder every 2 seconds. The
   suite now sets `SHIPLOOP_PROGRESS=off`, as run_suites.py already does for the tier.
 
+## Session end releases the run (2026-10-28, owner: "Yes, build it"; firm for Claude, constructed for the others)
+
+The follow-up named in batch 2. A `/clear` or a normal exit leaves the host process alive, so the process check cannot
+free the run; the host's own session-end event can.
+- **Host support, from the installed binaries:**
+  - Codex 0.165.0 has `hooks/src/events/session_end.rs` and "failed to flush transcript before SessionEnd hook";
+  - Grok 1.0.70 lists `SessionEnd` among its known hook events, and its validator rejects only unknown names, so the
+    shared Claude-format `hooks/hooks.json` stays valid for Grok;
+  - cursor-agent 2026.09.23 knows `sessionEnd`;
+  - Claude Code runs `SessionEnd`, as the owner's own global hooks already use.
+- **Probe on a real Claude session** (`docs/shiploop-owed-outcome-evidence/session_end_probe.py`, `.out`): a `claude -p`
+  session's `SessionEnd` hook fired on exit with `session_id`, `prompt_id`, `transcript_path` and `reason: "other"`. That
+  payload is the test fixture. The Codex, Grok and Cursor fixtures are constructed, as their README says.
+- **Change:**
+  - `shiploop_keepalive.session_end` drops the session's binding and releases the run only when that session owns it.
+    It looks the session id up under every host, because a Codex session-end payload may lack the `turn_id` that tells
+    Codex apart;
+  - the plugin declares a `session-end` hook (`host-hooks.json`, new generator event mapped to `SessionEnd` and Cursor
+    `sessionEnd`);
+  - `shiploop-hook install` writes the same entries.
+- **Tests** (shiploop-keepalive, 75 OK; package-integrity 11 OK; skill-frontmatter PASS):
+  - each host's session end releases its own run;
+  - the next session takes it at once;
+  - another session's end, a subagent's, or an unbound session's changes nothing;
+  - the installer writes and removes the entries;
+  - each host's generated hooks file runs the session-end script and releases.
+  - Fail-first: with `session_end` stubbed, all three behaviour tests fail.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in
