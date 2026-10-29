@@ -4272,3 +4272,73 @@ Setup: a detached worktree pinned at e79c39aa (the 1.21.0 release e064e875 plus 
 - **Not aimed at.** The session-end hook (1961f4c5), its trace row (1f0bc835) and the takeover (f82da379, 2e62367a) have their
   own live round in the entry above (Sonnet 5.5, build 2fa82212). The rounds in this entry ran on trees containing the hook
   and did not aim at it, so this entry claims no live proof of the hook or the takeover; 1f0bc835 landed after R2's pin.
+
+## Per-step iteration pilot: inline, per-step ask-agent and item-level ask-agent on Codex Terra 6.1 (2026-10-29) — status: firm for the verdicts, the commit shape and the worker count; interim for the cost ratios (one case, one run per arm)
+
+**Question.** Design T (`docs/shiploop-review-after-tests-design-2026-10-27.md` §8, §9.1 step 5, the pilot proposed at 2c-3) made every
+step an iteration: built, tested, documented, reviewed and committed before the next starts, on both routes.
+- Does the lifecycle run end to end on the inline route and on the ask-agent route, with one commit per step in plan order?
+- What does the ask-agent route cost now that it starts a fresh worker for each stage of each step, against the item-level route it
+  replaced and against the inline control?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh (the owner's choice, 2026-10-29, after the Ollama route hit its monthly limit: not the
+  DeepSeek default, so these are not comparable with the earlier rounds' timings).
+- Case `stand-in-parser`, a step slice seeded at `step-plan` (`slice.py`, no `--stop-after`), planned as two steps in every run.
+- **Inline** and **per-step ask-agent**: the stack at `f0127708`. **Item-level ask-agent**: `a949ee29`, the commit before 2c-1. The
+  tip published differs from `f0127708` only in the two `SKILL.md` version fields of the 2.22.1 release and in the README and
+  docs; no navigator script or packet text changed after the runs.
+- Counts are each run's own: `slice-result.json`, `metrics.json` and the run trace; threads and tokens from the Codex rollouts under
+  each run's home by `tally_threads.py`.
+
+**Not covered.**
+- What a fresh worker was told (context fidelity): the messages between Codex agents are encrypted, so only each worker's name, count
+  and fresh context (`fork_turns: none`) are visible.
+- The four crash points inside the commit stage, and a killed implement worker: the slice harness has no trigger for either. The
+  three tests of 2c-0 part 1 (`EightStageInnerLoopCliTests`) inject the crash points; the killed-worker rule (wait, ask, or replace
+  when the parent cannot show a worker stopped) stays an open question.
+- The bases after a preparatory fix and after a send-back: neither occurred in any run. `shiploop-step-edges` and
+  `test_red_at_a_later_step_holds_when_the_item_has_a_preparatory_commit` cover them.
+- A second case, or a second run of any arm.
+
+**Result** (evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`).
+
+| | inline | ask-agent, per step | ask-agent, item level (before 2c-1) |
+|---|---|---|---|
+| verdicts | all five pass | all five pass | all five pass |
+| first accept to last accept | 5.3 min | 21.6 min | 17.3 min |
+| Codex threads (parent + workers) | 1 | 14 (13 fresh workers) | 9 (8 workers) |
+| input tokens (cached) | 8.06 M (7.89 M) | 23.11 M (22.23 M) | 19.94 M (19.30 M) |
+| output tokens | 23.5 k | 105.2 k | 85.1 k |
+| ShipLoop refusals (run trace) | 3, all `check` | 0 | 6 (`check` 4, `complete` 2) |
+| commits on the product | `feat(W1/S1)`, `feat(W1/S2)` | `feat(W1/S1)`, `feat(W1/S2)`, one review fix | one `feat: W1 ...` item commit, one review fix |
+
+**What it shows.**
+- **The lifecycle works on both routes (firm, for this case).** Each step commit is ShipLoop's commit stage's, in plan order, and the
+  ledger shows S2's base is S1's commit (`iteration-ledger.json`). The item-level route made one commit for the item.
+- **The ask-agent route's worker count is the design's "4n" (firm).** The 13 workers are four per step (implement, test, document and
+  the step's review: `implement_parse`, `test_parse`, `document_parse`, `parser_improve`, then the same for the selector) plus five for
+  the item (`step_plan`, `plan_improve`, `test_spec`, `carry_forward`, `final_improve`), every one started with no inherited context.
+  The old route started 8 and none for implement.
+- **The per-step route costs about a quarter more than the route it replaced, and about four times the control (interim).** Against the
+  old route: 1.25x the time, 1.16x the input tokens, 1.24x the output tokens, 1.4x the packet bytes. Against the control: 4.1x, 2.9x,
+  4.5x. The main-thread figures (model calls 124, 110 and 74; context peak 137 k, 137 k and 161 k) leave the workers out; the thread
+  tally does not.
+- **The final review earns its place on the new route (one observation).** It found and fixed an input-validation defect in
+  `records.js` (with a test and a doc line) that the step reviews had not; the control's mutation check caught a surviving mutant in
+  its own test stage. All three pass the case's held-out checks.
+- **The `check` verb is used and its refusals are real catches (firm).** The control's three refusals were a leftover `check_na`, a
+  surviving mutant and a spec write-back; it fixed each and went on.
+- **Run Review reads all three (firm).** It exports stage model v6, planned and executed steps 2 and 2 on the version-11 runs, and
+  says "not measured" for the executed steps of the older saved run, as designed.
+
+**Decision.**
+- Adopt the per-step ask-agent route (owner decision G1, 2026-10-29): its measured cost over the route it replaces is modest, and it
+  gives the per-step commits and bases the inline route already had.
+- The unmeasured items above stay open and are recorded as known limits, not as passes. The killed-worker question needs a harness
+  trigger before it can be answered.
+- A multi-case, repeated round would turn the cost ratios from indicative to firm; none is scheduled.
+
+**Verified by.** The evidence directory's `README.md` lists the commands; every number above is in a file there. Full test tiers on
+the tip: all 154 hermetic suites pass on the tree before the last cleanup, and the changed-file selections plus the apparatus group
+pass after it.
