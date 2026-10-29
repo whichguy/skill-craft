@@ -850,6 +850,50 @@ free the run; the host's own session-end event can.
   - each host's generated hooks file runs the session-end script and releases.
   - Fail-first: with `session_end` stubbed, all three behaviour tests fail.
 
+## Session-end evidence path (2026-10-29, lane B of the owner-approved completion plan; Claude firm, other hosts unprobed)
+
+The release preflight holds `1961f4c5` until an E2E round runs after it, and no E2E path could show the hook working, so
+a round would have passed by ancestry alone. What was wrong (read from the code 2026-10-28):
+- **(a)** nothing about a session end reached `RUN/trace.jsonl`: `run_hook`'s session-end branch only wrote
+  `decisions.log`; only stop decisions reached `trace.record_stop`;
+- **(b)** the Claude E2E host keeps the real HOME, so its `decisions.log` is the user's shared file and cannot be tied to
+  one run;
+- **(c)** `run.py` never calls `release_owner`: the release after each session is in `_drive_sessions`, and `slice.py`
+  copies it at each clear (`release_keepalive_owner`);
+- **(d)** a slice clear SIGKILLs the host's whole process group, so SessionEnd never runs, and `slice.py` then frees the run
+  anyway;
+- **(e)** after a normal exit the stop hook has already released the owner, so SessionEnd matters only when a session ends
+  mid-turn.
+
+**Probe: which signal makes a mid-turn `claude -p` run SessionEnd** ([`session_end_probe.py`](shiploop-owed-outcome-evidence/session_end_probe.py),
+[`.out`](shiploop-owed-outcome-evidence/session_end_probe.out); Claude Code 2.1.312, DeepSeek flash on the harness's Ollama
+route, the harness's scrubbed environment, the probe refuses to start with any other `ANTHROPIC_*` or `CLAUDE*` variable).
+Each mode is a fresh session that is mid-turn (a `PreToolUse` hook shows the Bash `sleep 120` started) when the signal goes
+to the host's own pid; the SessionEnd hook is registered with the keepalive's 10 s timeout.
+
+| mode | SessionEnd | from signal to hook | host exit |
+|---|---|---|---|
+| graceful (no signal) | fired, `reason: other` | | 0 |
+| SIGTERM | **fired**, `reason: other` | 0.1 s | 143, 0.5 s |
+| SIGINT | **fired** | 0.1 s | 0, 0.3 s |
+| SIGHUP | **fired** | 0.1 s | 129, 0.5 s |
+| SIGKILL | **never** | | signal 9 |
+| wrapped (`caffeinate -d -i`, as `run.launch` starts it) SIGTERM | **fired** | 0.1 s | 143, 0.5 s |
+| wrapped SIGINT | **fired** | 0.1 s | 0, 0.5 s |
+
+- **F20, firm for Claude Code 2.1.312:** SIGTERM, SIGINT and SIGHUP each make a mid-turn session run its SessionEnd hook
+  (payload as the graceful end's, with `session_id`) before it exits, in under a second; SIGKILL never does. `caffeinate`
+  forwards the signal, so the leader of the harness's process group can be signalled as it is. Two earlier attempts of
+  `wrapped:SIGINT` had no turn in flight (the model answered without running the command) and sent no signal; the probe
+  now repeats such a mode (`attempts`).
+- **Decision (routine, AGENTS.md "Decisions"):** the slice's host-release mode sends **SIGTERM**, the conventional
+  end-this-process signal and the one a closing host app or `kill` sends; SIGINT and SIGHUP proved equal, so the choice
+  carries no evidence weight. The same switch with SIGKILL is the dead-owner case (the takeover evidence reuses it): no
+  hook runs, so the claim stays and only the process check frees the run.
+- **Not probed:** Grok, Codex and Cursor. Their binaries name a session-end event (journal "Session end releases the run"),
+  but whether a signal mid-turn runs it is open; the harness mode is host-neutral and its check reads `released: false`
+  (never a pass) where the hook did not run.
+
 ## Phases B and C: plan (2026-10-28, awaiting the owner's approval)
 
 [The plan](shiploop-check-phases-bc-plan-2026-10-28.md) names every file, symbol, test and removal for B (one
@@ -996,3 +1040,5 @@ tree hash excludes.
 - 2026-10-29: correction: the dead-session takeover shipped in 1.20.0 (`3d7b83a3`) on its own `No-E2E-Round`; `917e0c2b` and `1961f4c5` said it was pending. Live evidence still owed.
 - 2026-10-29: owner decisions: keep the takeover live; leave the release preflight ancestry-only.
 - 2026-10-29: defect in the shipped takeover: an unreadable process table read as a dead owner; fixed so it reads as unknown.
+- 2026-10-29: session-end evidence path (lane B): probe of mid-turn signals against `claude -p` (F20), the decision to end
+  a cleared slice session with SIGTERM, and the design of the trace row and check.

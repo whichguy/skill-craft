@@ -1,15 +1,158 @@
 {
- "exit": 0,
- "session_end_payloads": [
+ "model": "deepseek-v4.1-flash:1017-cloud",
+ "hook_timeout_seconds": 10,
+ "results": [
   {
-   "session_id": "622efd3d-1c2c-4a05-b88a-7e6c7c83d640",
-   "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-qxmx-scn/622efd3d-1c2c-4a05-b88a-7e6c7c83d640.jsonl",
-   "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-qxmx_scn",
-   "prompt_id": "4150e668-74ef-450a-8b69-c7a225cc6451",
-   "hook_event_name": "SessionEnd",
-   "reason": "other"
+   "mode": "graceful",
+   "signal_sent": null,
+   "turn_in_flight": false,
+   "host_exited_by_itself": true,
+   "exit": 0,
+   "seconds_from_signal_to_exit": null,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": true,
+   "seconds_from_signal_to_session_end": null,
+   "session_end_payloads": [
+    {
+     "session_id": "ec166a4c-2a18-46af-8f3c-023fbad83dbe",
+     "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-4odgtt-f/ec166a4c-2a18-46af-8f3c-023fbad83dbe.jsonl",
+     "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-4odgtt_f",
+     "prompt_id": "e1a4c41a-4836-4e31-bb72-ed3a2bca1d71",
+     "hook_event_name": "SessionEnd",
+     "reason": "other"
+    }
+   ],
+   "has_session_id": true,
+   "attempts": 1
+  },
+  {
+   "mode": "SIGTERM",
+   "signal_sent": "SIGTERM",
+   "turn_in_flight": true,
+   "host_exited_by_itself": true,
+   "exit": 143,
+   "seconds_from_signal_to_exit": 0.5,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": true,
+   "seconds_from_signal_to_session_end": 0.1,
+   "session_end_payloads": [
+    {
+     "session_id": "0e7edf72-37d5-484f-a700-6c8e9615234b",
+     "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-ee9g1kd9/0e7edf72-37d5-484f-a700-6c8e9615234b.jsonl",
+     "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-ee9g1kd9",
+     "prompt_id": "b4923957-8342-4281-ba16-1ddc6b24db16",
+     "hook_event_name": "SessionEnd",
+     "reason": "other"
+    }
+   ],
+   "has_session_id": true,
+   "attempts": 1
+  },
+  {
+   "mode": "SIGINT",
+   "signal_sent": "SIGINT",
+   "turn_in_flight": true,
+   "host_exited_by_itself": true,
+   "exit": 0,
+   "seconds_from_signal_to_exit": 0.3,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": true,
+   "seconds_from_signal_to_session_end": 0.1,
+   "session_end_payloads": [
+    {
+     "session_id": "af6269e4-b7e2-46f4-ac6e-fe8a35f6b40a",
+     "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-henx4ypk/af6269e4-b7e2-46f4-ac6e-fe8a35f6b40a.jsonl",
+     "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-henx4ypk",
+     "prompt_id": "18d57f66-4713-49b9-a7fa-4ae5fbee5d09",
+     "hook_event_name": "SessionEnd",
+     "reason": "other"
+    }
+   ],
+   "has_session_id": true,
+   "attempts": 1
+  },
+  {
+   "mode": "SIGHUP",
+   "signal_sent": "SIGHUP",
+   "turn_in_flight": true,
+   "host_exited_by_itself": true,
+   "exit": 129,
+   "seconds_from_signal_to_exit": 0.5,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": true,
+   "seconds_from_signal_to_session_end": 0.1,
+   "session_end_payloads": [
+    {
+     "session_id": "6177a626-be50-4682-9ad8-7ba5282bb298",
+     "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-2ph9jnyr/6177a626-be50-4682-9ad8-7ba5282bb298.jsonl",
+     "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-2ph9jnyr",
+     "prompt_id": "423d0728-550d-4362-89a5-17b1cb9dc293",
+     "hook_event_name": "SessionEnd",
+     "reason": "other"
+    }
+   ],
+   "has_session_id": true,
+   "attempts": 1
+  },
+  {
+   "mode": "SIGKILL",
+   "signal_sent": "SIGKILL",
+   "turn_in_flight": true,
+   "host_exited_by_itself": true,
+   "exit": "signal 9",
+   "seconds_from_signal_to_exit": 0.3,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": false,
+   "seconds_from_signal_to_session_end": null,
+   "session_end_payloads": [],
+   "has_session_id": false,
+   "attempts": 1
+  },
+  {
+   "mode": "wrapped:SIGTERM",
+   "signal_sent": "SIGTERM",
+   "turn_in_flight": true,
+   "host_exited_by_itself": true,
+   "exit": 143,
+   "seconds_from_signal_to_exit": 0.5,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": true,
+   "seconds_from_signal_to_session_end": 0.1,
+   "session_end_payloads": [
+    {
+     "session_id": "80cb21a0-d4d7-46e0-95f2-a159aa4706c7",
+     "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-5489ks3t/80cb21a0-d4d7-46e0-95f2-a159aa4706c7.jsonl",
+     "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-5489ks3t",
+     "prompt_id": "6c9aa9ca-23cb-4dea-b117-25acb63b2f99",
+     "hook_event_name": "SessionEnd",
+     "reason": "other"
+    }
+   ],
+   "has_session_id": true,
+   "attempts": 1
+  },
+  {
+   "mode": "wrapped:SIGINT",
+   "signal_sent": "SIGINT",
+   "turn_in_flight": true,
+   "host_exited_by_itself": true,
+   "exit": 0,
+   "seconds_from_signal_to_exit": 0.5,
+   "left_in_group_when_leader_exited": [],
+   "session_end_fired": true,
+   "seconds_from_signal_to_session_end": 0.1,
+   "session_end_payloads": [
+    {
+     "session_id": "3384aca2-521d-4b7e-b024-c510985cd8fc",
+     "transcript_path": "/Users/dadleet/.claude/projects/-private-var-folders--n-cth41tgs171367b-gghs0kgm0000gn-T-session-end-probe-6yreec0i/3384aca2-521d-4b7e-b024-c510985cd8fc.jsonl",
+     "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/session-end-probe-6yreec0i",
+     "prompt_id": "330a4b02-368e-4c78-a951-95974f0107b0",
+     "hook_event_name": "SessionEnd",
+     "reason": "other"
+    }
+   ],
+   "has_session_id": true,
+   "attempts": 1
   }
- ],
- "fired": true,
- "has_session_id": true
+ ]
 }
