@@ -702,8 +702,15 @@ the review leaves its edits uncommitted and the knowledge home waits for it. It
 runs in the call whose gates accepted the step's last stage (document's complete,
 or its review's import), so it commits the tree those gates ran on, as one commit
 on the iteration's base. It writes a pending record (the iteration, its parent and
-the tree to commit) in `RUN/iterations/<item>.json` before it commits. A call that
-stopped after Git committed is retried without a second commit, and a HEAD that
+the tree to commit) in `RUN/iterations/<item>.json` before it commits, and records
+the commit (the row's `commit`, the `commits/<action>.txt` file) and drops `pending`
+in the same journaled save as the state that advances past the step. A call that
+stopped after Git committed, at any point before that save, is retried without a
+second commit; a call that stopped part way through the save is completed by the
+next run, with the state. A call that stopped after the save and before it recorded
+the next step's base is repaired by the next call of any command but `status` and
+`report`, which records the base from HEAD (inside an iteration only the commit
+stage commits, so HEAD is the commit the entry would have recorded). A HEAD that
 anything else moved inside the step is refused, with the way back
 (`git reset --soft <base>`, which keeps the changes). When the commit cannot land,
 the call is refused and nothing is saved: the step does not advance with its

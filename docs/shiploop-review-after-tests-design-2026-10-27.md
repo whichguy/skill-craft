@@ -1284,6 +1284,37 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     - **Open: the killed implement worker.** The route must say what the parent does when it cannot show a worker
       stopped: wait, or ask the person. The pilot's killed-worker case decides whether a rule is needed beyond the
       generic producer boundary.
+  - **Built (2026-10-29, on the feature tip `08782c48`).**
+    - **2c-0 part 1: the commit stage's crash windows (done; both routes).** Two windows, both fixed.
+      - *The call stops after Git commits and before the state is saved.* `_commit_stage` wrote the ledger row's `commit`
+        and dropped `pending` inside `_transition`, before `dispatch` saved. A retry found HEAD on its own commit with no
+        pending record, and `commit_decision` refused it. Now `_commit_stage` writes only `pending`, before Git commits.
+        It returns the ledger row and the commit file (`_commit_records`), which `_transition` hands to `save` with the
+        state. The save is one journaled transaction (`shiploop_store.transaction`), which the next run completes
+        (`store.recover` runs under every run lock). So a call that stops anywhere leaves the old state with `pending`
+        still in the ledger, and the retry takes `commit_decision`'s "done"; or it leaves the journal, and the next run
+        writes the ledger row and the state together.
+      - *The call stops after the save and before `_iteration_entry`.* The step was current with no ledger row, so
+        `_commit_stage` printed "has no iteration record" and never committed it. `dispatch` now calls
+        `_iteration_recover` first, for every command but `status` and `report`: a step in implement, test or document
+        with no row gets its base from HEAD, which is the commit the entry would have recorded, since inside an iteration
+        only the commit stage commits.
+      - *Evidence.* Three tests in `EightStageInnerLoopCliTests`
+        (`test/shiploop-navigator-contract.test.py`), each seen failing before the code, for the reasons Astra gave:
+        `test_a_step_commit_that_landed_before_shiploop_saved_it_is_recognised_on_retry_not_made_again` (before: "HEAD is
+        not the iteration's base … or its pending commit: only the commit stage commits inside an iteration");
+        `test_a_save_cut_part_way_rolls_the_step_commit_forward_with_the_state_and_the_next_step_is_committed` and
+        `test_a_step_entered_by_a_call_that_stopped_before_recording_its_base_gets_one_from_the_next_call` (before: "the
+        next step has an iteration record" was None). The crash is injected in the call (`store.transaction` or
+        `_iteration_entry` raising `OSError`), as a killed process would leave it; the recovery is the real CLI's
+        (`shiploop next`, `store.recover` and the dispatch hook); S2 is then built, tested, documented and committed on
+        S1's commit. The suite imports the Improve child in process, as its other tests do, so the crashed call is the
+        in-process tail of the Improve import (`finish_improve`), not a `complete` through the CLI.
+      - *Found, not fixed (not on Astra's list; read in `dispatch`, not tested).* `_preparatory_commit` and
+        `_skill_commit` run after the save too. A call killed between the save and either leaves the preparatory fix or
+        the skill record uncommitted, and the retry does not run them again, since a repeated `complete` of an accepted
+        action changes nothing. They are not part of a step's commit stage; they need their own record before they can
+        recover.
   - **Found on the way** (reference text, not changed here). chain-route.md's inline paragraph still says "An Improve
     stage reviews each accepted step, and the callback after the last step's review moves to `test`".
     parallel-chain.md's diagram still ends in "The item's Improve stage, then the test stage". Both predate 2b-2.

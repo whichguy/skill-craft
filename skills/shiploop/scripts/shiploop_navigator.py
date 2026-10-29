@@ -2951,9 +2951,12 @@ def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any, command: 
 # Run-relative file holding an inline implement step's commit (``_commit_stage``): a revisit of the step names it.
 STEP_COMMIT = "commits/{action}.txt"
 # Run-relative file holding a work item's per-step iterations (design T §9.1 step 2b-1): {"plans": {<step plan action>:
-# {<step>: {"number", "base", "commit"}}}}.  ``base`` is the commit the step's entry left (``_iteration_entry``),
-# ``commit`` the step's own commit (``_commit_stage``); ``current_iteration`` reads it.  While the commit stage is
-# committing, the step's row also holds ``pending`` (``iteration.pending_record``), which a retry reads.
+# {<step>: {"number", "base", "commit"}}}}.  ``base`` is the commit the step's entry left (``_iteration_entry``, or
+# ``_iteration_recover`` when the call that entered the step stopped first), ``commit`` the step's own commit
+# (``_commit_stage``); ``current_iteration`` reads it.  While the commit stage is committing, the step's row also holds
+# ``pending`` (``iteration.pending_record``), which a retry reads.  The commit stage writes ``pending`` before Git commits,
+# and records ``commit`` and drops ``pending`` in the state's own save (``_commit_records``), so the ledger and the state
+# a step advances never disagree.
 ITERATION_LEDGER = "iterations/{item}.json"
 
 
@@ -2966,14 +2969,33 @@ def _iteration_ledger(root: Path, item: str) -> dict[str, Any]:
     return ledger if isinstance(ledger, dict) and isinstance(ledger.get("plans"), dict) else {"plans": {}}
 
 
-def _iteration_record(root: Path, item: str, plan: str, step: str, *, drop: tuple[str, ...] = (), **fields: Any) -> None:
+def _iteration_ledger_text(root: Path, item: str, plan: str, step: str, drop: tuple[str, ...],
+                           fields: Mapping[str, Any]) -> str:
+    """The item's ledger with ``fields`` set on the step's row and ``drop`` removed from it; nothing is written."""
     ledger = _iteration_ledger(root, item)
     row = ledger["plans"].setdefault(plan, {}).setdefault(step, {})
     row.update(fields)
     for name in drop:
         row.pop(name, None)
+    return json.dumps(ledger, indent=2, sort_keys=True) + "\n"
+
+
+def _iteration_record(root: Path, item: str, plan: str, step: str, *, drop: tuple[str, ...] = (), **fields: Any) -> None:
     store.atomic_write_text(Path(root) / ITERATION_LEDGER.format(item=item),
-                            json.dumps(ledger, indent=2, sort_keys=True) + "\n")
+                            _iteration_ledger_text(root, item, plan, step, drop, fields))
+
+
+def _commit_records(root: Path, item: str, view: StepView, action_id: str | None, commit: str) -> dict[str, str]:
+    """The records that say a step is committed, for the save of the state that advances past it: its ledger row with
+    ``commit`` set and ``pending`` dropped (just ``pending`` dropped when ``commit`` is empty), and the commit file.  The
+    save is one journaled transaction, so a call that stops anywhere leaves either the old state with ``pending`` still
+    in the ledger, which a retry recognises as a commit already made, or all of it (design T §9.1 2c-0, Astra's finding 2)."""
+    step = str(view.step.get("id"))
+    records = {ITERATION_LEDGER.format(item=item): _iteration_ledger_text(
+        root, item, view.plan_action, step, ("pending",), {"commit": commit} if commit else {})}
+    if commit and action_id:
+        records[STEP_COMMIT.format(action=action_id)] = commit + "\n"
+    return records
 
 
 def _head(repo: Path) -> str | None:
@@ -3000,6 +3022,29 @@ def _iteration_entry(root: Path, before: Mapping[str, Any], after: Mapping[str, 
     if head is not None:
         _iteration_record(root, str(item), view.plan_action, str(view.step.get("id")),
                           number=view.number, base=head, commit=None, drop=("pending",))
+
+
+def _iteration_recover(root: Path, state: Mapping[str, Any]) -> None:
+    """Record the base of the inline step the run stands in when its row is missing: the call that entered the step saved
+    the state and stopped before ``_iteration_entry`` ran (design T §9.1 2c-0, Astra's finding 2).  The row is what the
+    step's commit stage, base run, mutation check and review read; without it the step was left uncommitted.  Inside an
+    iteration only the commit stage commits, so HEAD is still the commit the entry would have recorded.  Nothing is
+    recorded outside Git, before the step's build, or when the row exists."""
+    stage, _action, item = _active_cursor(state)
+    if state.get("status") != "active" or item is None or stage not in ("implement", *AFTER_BUILD):
+        return
+    view = step_view(state, item)
+    if view is None:
+        return
+    step = str(view.step.get("id"))
+    row = _iteration_ledger(root, str(item))["plans"].get(view.plan_action, {}).get(step)
+    head = _head(Path(state["repo"]))
+    if head is None or (isinstance(row, Mapping) and row.get("base")):
+        return
+    _iteration_record(root, str(item), view.plan_action, step, number=view.number, base=head, commit=None,
+                      drop=("pending",))
+    print("ShipLoop recorded step " + str(item) + "/" + step + "'s base (" + head[:12] + "): the call that entered the "
+          "step stopped before it did.", file=sys.stderr)
 
 
 def current_iteration(root: Path, state: Mapping[str, Any]) -> iteration.Iteration | None:
@@ -3047,7 +3092,7 @@ STEP_REVIEW_NO_COMMIT = ("design T §8: the step's iteration commit, made once t
 _RETRY = "run the same callback again"
 
 
-def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, str]:
     """The iteration's commit stage (design T §8, §9 row 3; owner 2026-10-27: "We should commit on every iteration right
     after the documentation"), run when an inline step's document stage is accepted, after its review: ShipLoop commits
     the step's code, tests, docs, knowledge home and the review's edits as one commit on the iteration's base, so the
@@ -3061,25 +3106,30 @@ def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any
     refuses the call: nothing is saved, the step does not advance with its change uncommitted, and the same callback
     retries it.  A step whose changes cannot be read (no base was captured) is not committed and not held, as the gates
     that need the base are skipped.  Every changed file the commit leaves is named (``_left_notice``).  On the ask-agent
-    route the item is committed whole (``_item_commit_stage``)."""
+    route the item is committed whole (``_item_commit_stage``).
+
+    It returns the records that say the step is committed (``_commit_records``), for the save of the state that advances
+    past it, and writes only ``pending``, before Git commits.  So a call that stops after Git commits and before that save
+    leaves ``pending`` in the ledger and the old state, and its retry recognises the commit (``commit_decision``'s
+    "done"); the save is one journaled transaction, which the next run completes (design T §9.1 2c-0)."""
     if before.get("status") != "active":
-        return
+        return {}
     item = _current_work_item(before)
     rows = after["history"][len(before["history"]):]
     if item is None or not any(row["stage"] == "document" and row["outcome"] == "done" and row["workitem"] == item
                                for row in rows):
-        return
+        return {}
     view = step_view(before, item)
     if view is None:
         if _ask_agent(before):
             _item_commit_stage(root, before, after, item, rows)
-        return
+        return {}
     step = str(view.step.get("id"))
     current = current_iteration(root, before)
     if current is None:
         print("ShipLoop document: step " + item + "/" + step + " has no iteration record (its run has no commit to start "
               "from), so ShipLoop does not commit it.", file=sys.stderr)
-        return
+        return {}
     repo = Path(after["repo"])
     row = _iteration_ledger(root, item)["plans"].get(view.plan_action, {}).get(step) or {}
     head = _head(repo)
@@ -3103,7 +3153,7 @@ def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any
             # the mutation check, the commit is skipped and says why.
             print("ShipLoop document: step " + item + "/" + step + " is not committed: its changes cannot be read ("
                   + why + ").", file=sys.stderr)
-            return
+            return {}
         chosen, left = item_scope.commit_scope(changed, item_scope.declared(after, item),
                                                item_scope.withheld(root, after))
         _left_notice(after, left)
@@ -3120,13 +3170,9 @@ def _commit_stage(root: Path, before: Mapping[str, Any], after: Mapping[str, Any
                 raise NavigatorError("ShipLoop could not commit step " + item + "/" + step + " (" + str(exc) + "). Its "
                                      "change stays in the checkout, and the step advances only once its commit lands: "
                                      "fix the cause, then " + _RETRY + ".") from exc
-    if not commit:
-        _iteration_record(root, item, view.plan_action, step, drop=("pending",))
-        return
-    _iteration_record(root, item, view.plan_action, step, commit=commit, drop=("pending",))
-    if action_id:
-        store.atomic_write_text(root / STEP_COMMIT.format(action=action_id), commit + "\n")
-    print("ShipLoop committed step " + item + "/" + step + " as " + commit[:12] + ".", file=sys.stderr)
+    if commit:
+        print("ShipLoop committed step " + item + "/" + step + " as " + commit[:12] + ".", file=sys.stderr)
+    return _commit_records(root, item, view, action_id, commit)
 
 
 def _left_notice(state: Mapping[str, Any], left: Sequence[str]) -> None:
@@ -4399,8 +4445,9 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     after, writes = _validate_existing_entry(root, before, after)
     after = _document_entry(root, after)
     after = _step_entry(root, before, after)
-    # The step's commit stage runs against its own base, before the next step's base replaces it.
-    _commit_stage(root, before, after)
+    # The step's commit stage runs against its own base, before the next step's base replaces it.  Its records are saved
+    # with the state they advance.
+    writes = {**writes, **_commit_stage(root, before, after)}
     writes = {**writes, **_iteration_base(root, before, after)}
     after, bind_writes = _improve_entry(root, after)
     writes = {**writes, **bind_writes}
@@ -9535,8 +9582,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         planning_revision.validate_archives(state, root)
     except planning_revision.PlanningRevisionError as exc:
         raise NavigatorError(str(exc)) from exc
+    if command not in ("status", "report"):
+        _iteration_recover(root, state)
     # `complete` on an Improve stage imports its review (owner, 2026-10-11: Improve is a stage of its own).
-    improve_import = command == "complete" and _reviewed_action(state, getattr(args, "action", None)) is not None
+    improve_import =command == "complete" and _reviewed_action(state, getattr(args, "action", None)) is not None
     if command in ("complete", "halt") and state.get("chain_bindings"):
         import shiploop_chain
         try:

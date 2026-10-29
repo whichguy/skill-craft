@@ -4503,23 +4503,84 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.settle()
         self.assert_step_one_committed_once_on(base, action)
 
-    def test_a_step_commit_that_landed_before_shiploop_recorded_it_is_recognised_on_retry_not_made_again(self) -> None:
+    def stops_before_the_state_is_saved(self, *, after_targets: int | None = None):
+        """A ``store.transaction`` that stops the call carrying the step's state, as a process killed there would: with
+        ``after_targets`` None before the transaction writes anything; else once that many of its files are written,
+        which leaves the journal for the next run's ``store.recover``."""
+        real = store.transaction
+
+        def transaction(root: Path, writes: dict, *args: Any, **options: Any) -> None:
+            if "state.md" not in writes:
+                return real(root, writes, *args, **options)
+            if after_targets is None:
+                raise OSError("the call stopped after Git committed and before the state was saved")
+
+            def stop(kind: str, index: int) -> None:
+                if index >= after_targets:
+                    raise OSError("the call stopped part way through the save")
+            return real(root, writes, *args, fault=stop, **options)
+
+        return patch.object(store, "transaction", transaction)
+
+    def test_a_step_commit_that_landed_before_shiploop_saved_it_is_recognised_on_retry_not_made_again(self) -> None:
         # Design T §9 row 3: the commit stage writes a pending record (the iteration, its parent, the tree to commit)
-        # before it commits, so a call that stops after Git's commit and before ShipLoop records it is retried without a
-        # second commit (``iteration.commit_decision``'s "done").
+        # before it commits, so a call that stops after Git's commit and before ShipLoop saves it is retried without a
+        # second commit (``iteration.commit_decision``'s "done").  Astra's finding 2 (design T §9.1 2c-0): the record
+        # that the commit happened and the state it advances must be saved together.  Before, the call recorded the
+        # commit in the ledger and dropped ``pending`` first, so a retry after this stop found HEAD on its own commit with
+        # no pending record and refused it.
         base, action = self.to_first_step_review()
-        record = navigator._iteration_record
-
-        def stops_once_committed(*args: Any, **fields: Any) -> None:
-            if fields.get("commit"):
-                raise OSError("the call stopped after Git committed")
-            record(*args, **fields)
-
-        with patch.object(navigator, "_iteration_record", stops_once_committed), self.assertRaises(OSError):
+        with self.stops_before_the_state_is_saved(), self.assertRaises(OSError):
             self.finish_improve()
         self.assertEqual(self.git("rev-parse", "HEAD^").strip(), base, "Git committed the step")
+        self.assertEqual(navigator.current_stage(self.state()), "document", "the state was not saved")
         self.settle()
         self.assert_step_one_committed_once_on(base, action)
+
+    def test_a_save_cut_part_way_rolls_the_step_commit_forward_with_the_state_and_the_next_step_is_committed(self) -> None:
+        # The same stop with the save under way (Astra's finding 2): the journal holds the ledger row, the commit file and
+        # the state together, and the next `shiploop` run completes all of it before anything reads either.  The call also
+        # never reached the next step's entry, so the run's next call records that step's base (finding 2's second
+        # window); S2 is then built, tested, documented and committed on S1's commit.
+        base, action = self.to_first_step_review()
+        with self.stops_before_the_state_is_saved(after_targets=1), self.assertRaises(OSError):
+            self.finish_improve()
+        self.assertEqual(navigator.current_stage(self.state()), "document", "the state is still the old one")
+        shown = self.cli("next", "--run-dir", str(self.run_dir))
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assert_step_one_committed_once_on(base, action)
+        self.assert_next_step_committed_on_the_step_before(action)
+
+    def assert_next_step_committed_on_the_step_before(self, previous_action: str) -> None:
+        """S2 of the three-step plan has a base row on S1's commit, and is built and committed on it."""
+        first = navigator.step_commit(self.run_dir, previous_action)
+        state = self.state()
+        self.assertEqual(navigator.current_stage(state), "implement")
+        current = navigator.current_iteration(self.run_dir, state)
+        self.assertIsNotNone(current, "the next step has an iteration record")
+        self.assertEqual((current.step, current.base), ("S2", first))
+        action = navigator.current_action(state)["id"]
+        (self.repo / "todo.md").write_text("# todo.md\n")
+        self.accept(result(summary="Wrote todo.md."))
+        self.settle()
+        commit = navigator.step_commit(self.run_dir, action)
+        self.assertTrue(commit, "S2 was committed")
+        self.assertEqual(self.git("rev-list", first + ".." + commit).split(), [commit])
+        self.assertEqual(self.git("show", "--name-only", "--format=", commit).split(), ["todo.md"])
+
+    def test_a_step_entered_by_a_call_that_stopped_before_recording_its_base_gets_one_from_the_next_call(self) -> None:
+        # Astra's finding 2, second window (design T §9.1 2c-0): ``_iteration_entry`` runs after the save, so a call killed
+        # between them leaves the next step current with no ledger row, and ``_commit_stage`` skipped a step without one:
+        # S2 was never committed.  The next call to any command records the base from HEAD, as the entry would have.
+        _base, action = self.to_first_step_review()
+        with patch.object(navigator, "_iteration_entry", side_effect=OSError("the call stopped after the save")), \
+                self.assertRaises(OSError):
+            self.finish_improve()
+        self.assertEqual(navigator.current_stage(self.state()), "implement", "the state was saved")
+        self.assertIsNone(navigator.current_iteration(self.run_dir, self.state()), "and the entry did not run")
+        shown = self.cli("next", "--run-dir", str(self.run_dir))
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assert_next_step_committed_on_the_step_before(action)
 
     def test_a_commit_made_inside_a_step_by_anything_but_the_commit_stage_is_refused(self) -> None:
         # Design T §9 row 3: inside an iteration only the commit stage commits. A commit made during the step (here by
