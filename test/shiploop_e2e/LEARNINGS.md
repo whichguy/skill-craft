@@ -4168,3 +4168,107 @@ per mechanism.
 **Next.** The SessionEnd hook and the takeover now have live evidence on Claude; the release may proceed. Ollama's
 limit still blocks DeepSeek rounds; the brownfield and phase B reruns need credits or the monthly reset. Build the claim row
 when a round needs the check to pass.
+## Brownfield D7 before-runs: user-listing, ticket-assignment and its follow-on on DeepSeek flash (2026-10-28) — status: firm for the verdicts; interim for the time split (n = 1 per case)
+
+**Question.** D7 of the brownfield-baseline design (owner-accepted 2026-10-28) asked for evidence before section 10 is
+built:
+- On an existing repository, does today's ShipLoop lose or break behaviour the request does not name?
+- Does a follow-on run lose what the first run learned?
+
+Setup:
+- Claude host, DeepSeek flash on Ollama, `--permission-mode auto`, no timeout.
+- `--source checkout` from one detached worktree pinned at 8aa6e1fe: origin/main 4e1c8df0 plus the design, the entry-start
+  fix (D8) and the new case pair.
+- The case pair: `ticket-assignment`, on the 3,631-line `fixtures/node-tickets` (8 decision records, one planted OR
+  defect), and its follow-on `ticket-escalation` (`--continue-from`).
+- Output under a runs root of our own, `~/e2e-runs-brownfield`. Step slices then held no case lock, so `run.py`
+  refused to start beside a live E6 slice; fixed on main in 98e7aff0.
+
+**Result** (`docs/shiploop-brownfield-baseline-journal.md` "The before-runs";
+`docs/experiments/brownfield-baseline-20261028/results/d7/before-runs.json`; the three baseline rows were committed with
+the branch).
+
+| run | verdict | held-out | planning window (Improve) | run min | refusals |
+|---|---|---|---|---|---|
+| user-listing (first live run of the case) | PASS | 11/11 | 17.4 (10.0) | 68.1 | 25 |
+| ticket-assignment | PASS | 18/18 | 30.1 (17.2) | 110.5 | 27 |
+| ticket-escalation (follow-on) | PASS | 14/14, 7 kept from run 1 | 48.7 (25.7) | 138.6 | 18 |
+
+**What it shows.**
+- **No correctness gap.** Every latent fact was kept and both planted defects fixed, and the follow-on lost nothing
+  of run 1. The cases fit in the host's context (peak 157-160K), so "too big to read" is untested.
+- **Improve is 53-58% of every planning window.** The spec stage wrote for 0.5-1.4 min, and its review took 2.2-7.5 min.
+- **The follow-on's extra planning sits in the stages that work over growing living files.** Test-strategy took 16.1
+  min against 7.5, step-plan 12.0 against 5.3, carry-forward 14.7 against 9.5, while `environment.md` grew from 72 KB
+  to 87 KB. Its harness plan named only its own requirements (R-13 to R-20).
+- **Refusals, all recovered.** Size caps: 3-5 per run. Lint at Improve: 7 of 7 lint calls named the Improve action
+  instead of the reviewed step's (fixed in c89c8c20; the harness now keeps such refusals' text, 47e99461). Repeated
+  habits: `--check-only` at Improve, and a skipped skill call at a new Improve. TS1's coverage refusal at the last
+  test-spec ("Missing: R-20. Add a case …") attached a test to a step whose intention it was not.
+
+## R1: the same three cases on the pushed tip, after the Ollama limit, on Codex with Terra 6.1 at xhigh (2026-10-29) — status: firm for the verdicts and the lint result; interim for the speed comparison (one subject, n = 1 per case)
+
+**Question.** Do the changes pushed on 2026-10-29 (the entry-start fix 300ef968, the Improve-lint fix c89c8c20 with its
+harness part 47e99461, `quality.Product` d9a92f05, and the node-tickets pair 5851bf5b and c51e218a) leave the three D7
+cases passing, and does the Improve handoff's printed lint command get used without a refusal?
+
+Setup:
+- A detached worktree pinned at 8a8f1e59, the pushed tip. It contains the session-end hook (1961f4c5) and the case-lock fix
+  (98e7aff0). The rounds ran on a tree containing the hook and did not aim at it: this entry claims no live proof of the
+  hook or of the dead-session takeover.
+- **First attempt, DeepSeek flash on Ollama, not a result.** `ticket-assignment` died at 44.9 min on Ollama's monthly usage
+  limit (`api_error 429 … monthly usage limit, upgrade for higher limits`), so its host session ended and the harness graded
+  it FAILED. Its model had also abandoned a first run after a shell-quoting error, leaving two run folders and an
+  "ambiguous" grade; the harness now picks the live run (abac209f). The other two launches were stopped. That row is not in
+  `baselines.jsonl`.
+- **Second attempt, flags for this round only:** `run.py --host codex --model gpt-6.1-terra --effort xhigh --source checkout`
+  (the Codex catalog now lists `gpt-6.1-terra`; the harness default is unchanged). `ticket-assignment` and `user-listing`
+  ran in parallel and `ticket-escalation` followed on `ticket-assignment`'s delivery. No Ollama load, no stagger.
+
+**Result** (`docs/experiments/brownfield-baseline-20261028/results/d7/r1-codex-runs.json`; three baseline rows in this commit).
+
+| run | verdict | held-out | planning window (Improve) | run min | refusals |
+|---|---|---|---|---|---|
+| user-listing | PASS | 11/11 | 5.6 (2.3) | 19.1 | 4 |
+| ticket-assignment | PASS | 18/18 | 4.5 (1.3) | 19.5 | 4 |
+| ticket-escalation (follow-on) | PASS | 14/14, 7 kept from run 1 | 4.7 (1.4) | 17.1 | 4 |
+
+**What it shows.**
+- **Every case passed and the follow-on kept run 1.** All three reached `done`, one run folder each.
+- **The lint fix worked in practice.** The printed lint line is in 9, 11 and 10 Improve handoff files, the reviewers ran
+  `shiploop lint` throughout, and no run has a "lint could not run" line; D7 had 7 of 7 refused.
+- **This subject plans in about 5 minutes with Improve at 29-41% of it,** against 17-49 minutes and 53-58% on DeepSeek
+  flash. It is a different subject, so the speed is not a Wave A or fix effect. The model wrote about 21,000 output
+  tokens for the first planning window, 4% of them reasoning.
+- **Refusals fell from 18-27 to 4 per run.** The remaining ones: a 1,200-character concern-rows cap once (Wave A removes it),
+  a headline and a result-format slip, and protocol misses.
+- **What is not shown.** The runs fit in the host's context, so "too big to read" is untested; the as-is account is not
+  needed on these cases (the D7 conclusion stands). A before-and-after for Wave A needs a Terra baseline on this host.
+
+## R2: the same three cases on main e79c39aa, on Codex with Terra 6.1 at xhigh (2026-10-29) — status: firm for the verdicts and the `check` verb's use; interim for the baseline figures (one subject, n = 1 per case)
+
+**Question.** After 1.21.0 and the fixes that followed it, do the three cases still pass on a tree that contains the released
+`check` verb, the Improve-lint fix, the entry-start fix and the dead-session safety fix 2e62367a?
+
+Setup: a detached worktree pinned at e79c39aa (the 1.21.0 release e064e875 plus the harness run-choice fix abac209f and
+2e62367a); `run.py --host codex --model gpt-6.1-terra --effort xhigh --source checkout`; `ticket-assignment` and
+`user-listing` in parallel, `ticket-escalation` on `ticket-assignment`'s delivery. Nothing else was running.
+
+**Result** (`docs/experiments/brownfield-baseline-20261028/results/d7/r2-codex-runs.json`; three baseline rows in this commit).
+
+| run | verdict | held-out | planning window (Improve) | run min | refusals |
+|---|---|---|---|---|---|
+| user-listing | PASS | 11/11 | 4.8 (1.8) | 16.7 | 0 |
+| ticket-assignment | PASS | 18/18 | 5.4 (2.3) | 23.1 | 3 |
+| ticket-escalation (follow-on) | PASS | 14/14, 7 kept from run 1 | 5.5 (2.5) | 16.9 | 6 |
+
+**What it shows.**
+- **The released `check` verb is used and the removed form never is:** `shiploop check` appears 16, 26 and 24 times in the
+  three streams and `complete --check-only` never. No refusal says a lint action is not current.
+- **The follow-on's six refusals include four size caps** (the 1,200-character limits on model text) that plan F2 removes;
+  the other two are a result-format slip and a quality gate.
+- **These two rounds are the Terra baseline for Wave A** on this host: planning 4.5-5.6 min, 0-6 refusals per run, 17-23 min
+  per case. A Wave A comparison should rerun the cases on the same host and model.
+- **Not aimed at.** The session-end hook (1961f4c5), its trace row (1f0bc835) and the takeover (f82da379, 2e62367a) have their
+  own live round in the entry above (Sonnet 5.5, build 2fa82212). The rounds in this entry ran on trees containing the hook
+  and did not aim at it, so this entry claims no live proof of the hook or the takeover; 1f0bc835 landed after R2's pin.
