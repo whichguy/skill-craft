@@ -72,7 +72,9 @@ NEW_STATES = ("absent",)
 # false and the steps must change (a needed repair becomes an earlier step).
 ROUTES = ("check", "steps")
 KEYS = frozenset(("id", "state", "statement", "steps", "paths", "check", "from"))
-SKILL_KEYS = frozenset(("name", "why", "locator"))
+SKILL_KEYS = frozenset(("name", "why", "locator", "stages"))
+# The stages of a step's iteration that print its skills (design T §8.2c, F9); a skill that names none is implement's.
+SKILL_STAGES = ("implement", "test", "document", "improve")
 FAILED_KEYS = frozenset(("id", "actual", "route"))
 CHECK_TIMEOUT_SECONDS = 60.0
 OUTPUT_LIMIT = 64 * 1024
@@ -98,7 +100,15 @@ TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
 CASE_PLACEHOLDERS = {"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement": "R-<n>",
                      "oracle": "<what observes the behaviour, and where>", "red": "<the assertion that fails on the item's base because the behaviour is missing, not because a file is>",
                      "green": "<what the case shows once the change works>"}
-_TEST_CASE_SHAPE = "test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
+# A case may name the mock it runs against (design T §8.2, F5): what the mock stands in for, and the slow, failing or
+# out-of-order behaviour it plays.  The test stage builds it before the case's test.  The placeholders are refused as
+# the case's are.
+MOCK_KEYS = ("simulates", "plays")
+MOCK_PLACEHOLDERS = {"simulates": "<the dependency the mock stands in for>",
+                     "plays": "<the slow, failing or out-of-order behaviour it plays>"}
+_MOCK_SHAPE = '"mock": ' + json.dumps(MOCK_PLACEHOLDERS)
+_TEST_CASE_SHAPE = ("test_cases are " + json.dumps([{key: CASE_PLACEHOLDERS[key] for key in TEST_CASE_KEYS}])
+                    + "; a case whose code calls a dependency adds " + _MOCK_SHAPE)
 # The test-spec template prints at most this many skeleton rows (about 220 characters each); the focused IDs after them are
 # named in one line.  A plan with dozens of IDs would otherwise push the head past the host's 20,000-character print, and a
 # host that elides the middle of a long print would drop template rows that the gate requires.
@@ -110,7 +120,9 @@ _SHAPE = ('expectations are [{"id": "E1", "state": "works" | "absent" | "broken"
           'from the repository root that exits 0 when the state holds>", "from": "<open plan assumption id, '
           'optional>"}]')
 _SKILL_SHAPE = ('a step\'s skills are [{"name": "<skill>", "why": "<the concrete use in this step>", "locator": '
-                '"<absolute path, or repository-relative path, of its SKILL.md or card; optional>"}], or []')
+                '"<absolute path, or repository-relative path, of its SKILL.md or card; optional>", "stages": '
+                '["<the stages that use it: implement, test, document or improve; optional, implement when absent>"]}], '
+                'or []')
 # First words that write; a check is read-only.  The runtime git-status comparison is the backstop.
 _WRITERS = frozenset(("rm", "rmdir", "mv", "cp", "touch", "mkdir", "tee", "chmod", "chown", "ln", "dd", "truncate",
                       "install", "sudo", "patch", "unlink", "shred"))
@@ -253,6 +265,12 @@ def normalise_skills(value: Any, step: str = "") -> List[Dict[str, str]]:
             locator = _text(entry["locator"], label + " " + name + " locator")
             _need("\n" not in locator, label + " " + name + " locator must be one path")
             row["locator"] = locator
+        if "stages" in entry:
+            stages = entry["stages"]
+            _need(isinstance(stages, list) and stages and all(stage in SKILL_STAGES for stage in stages)
+                  and len(set(stages)) == len(stages),
+                  label + " " + name + " stages must list only implement, test, document or improve, each once")
+            row["stages"] = list(stages)
         rows.append(row)
     names = [row["name"] for row in rows]
     _need(len(set(names)) == len(names), label + " must not repeat a skill")
@@ -337,14 +355,16 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
     command; an expectation naming an unknown step; an existing step path with no works or broken expectation, or a
     new one with no absent expectation; a works or broken path missing on the base, or an absent path present there;
     an open plan assumption whose due_item is this item and that no expectation cites in ``from`` (or a ``from``
-    naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a step
-    without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.
+    naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a plan of two
+    or more steps with test commands but no regression command marked ``minimum`` and no ``minimum_na`` (or both); a
+    step without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.
     """
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     repo = Path(str(state["repo"]))
     work_item, _action = _cursor(state)
     _check_check_suite(result)
+    _check_minimum_suite(result)
     steps = [step for step in result.get("steps") or () if isinstance(step, Mapping)]
     step_ids = {str(step.get("id")) for step in steps}
     for step in steps:
@@ -420,12 +440,35 @@ def _check_check_suite(result: Mapping[str, Any]) -> None:
     _need(not (has_check and "check_na" in result), "test_commands has a check row, so drop check_na")
 
 
-def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]]:
+def _check_minimum_suite(result: Mapping[str, Any]) -> None:
+    """A plan of two or more steps with test commands marks a regression command ``minimum``, or ``minimum_na`` says
+    why it has none (design T §9.1 2d): a step before the last runs only the minimum regression, and every unmarked
+    regression command runs at the item's last step."""
+    commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
+    steps = [step for step in result.get("steps") or () if isinstance(step, Mapping)]
+    marked = any(row.get("minimum") for row in commands)
+    if "minimum_na" in result:
+        _need(isinstance(result["minimum_na"], str) and result["minimum_na"].strip(), "minimum_na must be nonblank "
+              "text: why no fast regression command shows that nothing basic broke")
+        _need(commands, "minimum_na applies only beside test commands; with none, test_commands_na gives the reason")
+        _need(not marked, 'a regression command is marked "minimum": true, so drop minimum_na')
+    if len(steps) < 2 or not commands or marked or "minimum_na" in result:
+        return
+    _need(False, 'test_commands marks no regression command "minimum": true. A step before the last ('
+          + ", ".join(str(step.get("id")) for step in steps[:-1]) + ") runs its own cases, the earlier steps' cases "
+          "and only the minimum regression; every unmarked regression command runs at the last step ("
+          + str(steps[-1].get("id")) + ') alone. Mark the fast regression command that shows nothing basic broke '
+          '"minimum": true (add one from KNOWLEDGE/environment.md\'s suites if none is recorded), or give minimum_na '
+          "with the reason there is none")
+
+
+def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, Any]]:
     """A done test-spec result's ``test_cases``: shape only (the gate, ``check_test_cases``, checks meaning).
 
-    Each case has exactly ``TEST_CASE_KEYS``, every value non-blank text; ``id`` and ``criterion`` hold no whitespace;
-    ids are unique; ``requirement`` names at least one R-<n>.  A value that is still the template's placeholder
-    (``CASE_PLACEHOLDERS``) passes this shape check, so the navigator's placeholder gate names every one at once.
+    Each case has exactly ``TEST_CASE_KEYS``, every value non-blank text, and may add ``mock``: exactly ``MOCK_KEYS``,
+    each non-blank text; ``id`` and ``criterion`` hold no whitespace; ids are unique; ``requirement`` names at least one
+    R-<n>.  A value that is still the template's placeholder (``CASE_PLACEHOLDERS``, ``MOCK_PLACEHOLDERS``) passes this
+    shape check, so the navigator's placeholder gate names every one at once.
     Raises ExpectationError, whose message ends with the route-free next step (a shape refusal cannot know whether
     complete or improve-complete submitted it); ``spec_hint`` (``requirement_ids_text``), when given, follows a refusal
     about a row with no ``requirement`` or one that names no R-<n> as a line of its own.
@@ -435,11 +478,11 @@ def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]
     said = tail + ("\n" + spec_hint if spec_hint else "")      # the ending of a refusal about the requirement
     _need(isinstance(value, list), "test_cases must be a list (empty only when the item's focused commands list no "
           "IDs); " + _TEST_CASE_SHAPE + tail)
-    rows: List[Dict[str, str]] = []
+    rows: List[Dict[str, Any]] = []
     for index, entry in enumerate(value):
         label = "test_cases[" + str(index) + "]"
-        _need(isinstance(entry, Mapping) and set(entry) == set(TEST_CASE_KEYS),
-              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + "; " + _TEST_CASE_SHAPE
+        _need(isinstance(entry, Mapping) and set(entry) - {"mock"} == set(TEST_CASE_KEYS),
+              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + ", and may add mock; " + _TEST_CASE_SHAPE
               + (said if isinstance(entry, Mapping) and "requirement" not in entry else tail))
         row = {}
         for key in TEST_CASE_KEYS:
@@ -451,6 +494,12 @@ def normalise_test_cases(value: Any, spec_hint: str = "") -> List[Dict[str, str]
                   label + "." + key + " has no spaces" + tail)
         _need(row["requirement"] == CASE_PLACEHOLDERS["requirement"] or knowledge.requirement_ids(row["requirement"]),
               label + ".requirement names no R-<n>: write the ID of the requirement the case proves" + said)
+        if "mock" in entry:
+            mock = entry["mock"]
+            _need(isinstance(mock, Mapping) and set(mock) == set(MOCK_KEYS)
+                  and all(isinstance(mock[key], str) and mock[key].strip() and "\0" not in mock[key] for key in MOCK_KEYS),
+                  label + ".mock needs exactly " + " and ".join(MOCK_KEYS) + ", each nonblank text: " + _MOCK_SHAPE + tail)
+            row["mock"] = {key: mock[key].strip() for key in MOCK_KEYS}
         rows.append(row)
     ids = [row["id"] for row in rows if row["id"] != CASE_PLACEHOLDERS["id"]]
     _need(len(set(ids)) == len(ids), "test_cases ids must be unique" + tail)
@@ -554,7 +603,7 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
             focused += [ident for ident in row.get("ids") or () if ident not in focused]
     cases = list(result.get("test_cases") or ())
     shape = ('Shape: {"id", "criterion", "requirement", "oracle", "red", "green"}, one per ID this item\'s focused '
-             'commands list. The implement, test, verify and system-test-author packets quote them.')
+             'commands list. The implement, test, document and system-test-author packets quote them.')
     if not cases:
         if not focused:
             return None

@@ -10,11 +10,11 @@ inside its Markdown file, and there is no writable JSON mirror.
 
 | File or directory | Authority / purpose |
 |---|---|
-| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `backchain_passes` option (`one`, `converge` or `none`; a saved run without it is refused) and the required run-level `planning_review` option (`stage` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`; `revisions` counts how many times each work item went back to `step-plan` (at most 2). State version 5, the 8-stage inner loop, is the only supported `version`: a run saved by the 17-stage loop (version 4) is refused with a reason, never migrated. |
+| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `backchain_passes` option (`one`, `converge` or `none`; a saved run without it is refused) and the required run-level `planning_review` option (`stage` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`; `revisions` counts how many times each work item went back to `step-plan` (at most 2). State version 5, the 8-stage inner loop, is the only supported `version`: a run saved by the 17-stage loop (version 4) is refused with a reason, never migrated. |
 | `notes/` | Host-written run notes. ShipLoop creates the empty directory whenever it prints a packet, so a model never needs `mkdir`; the notes and the pass log stay the host's to write. Notes named in results' `evidence_refs` include the canonical `notes/environment-lifecycle.md`. `notes/<action>.md` is the optional pass log: the host creates it when a pass starts and appends what each pass checked and what is left. Every packet names this action's pass log with the same conditional rule (open it first after a reset if it exists; if it does not, nothing was logged) and the context index lists it under "In progress"; neither reads the file, so neither can say whether it exists. It is a recovery aid, never a completion gate and never evidence: ShipLoop's own test-run records are the evidence, and every inner stage keeps its iteration state in its Until Loop receipt. |
 | `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. It stays after acceptance for two uses: replay (a repeated `complete` of the same action is compared with `accepted`) and the pending draft after a kill. It is refused as a planning dependency because it is mutable. |
 | `results/<action>.md` | The accepted result for one action, written by the script in the same transaction as `state.md`, and the "Read first" copy a packet points at. `state.md` `accepted[<action>]` stays the authority: on a planning-return path `planning_context.collect` fails when the file's parsed content differs from state (parsed equality, not bytes; an ordinary run does not check it). |
-| `commits/<action>.txt` | The commit ShipLoop made for one accepted inline `implement` step (its ID alone); a revisit of that step names it. Absent when the step changed nothing or its commit failed (verify's item commit then takes the change). |
+| `commits/<action>.txt` | The commit ShipLoop made for one accepted inline `implement` step (its ID alone); a revisit of that step names it. Absent when the step changed nothing; a commit Git refuses refuses the step's own commit stage instead of being left for later, and the same callback retries it once the cause is fixed ([Step commits](navigator.md#step-commits)). |
 | `improve/<action>/` | The imported Improve review record, keyed by the reviewed action (the Improve stage has its own action id, but its files stay under the reviewed one): its `receipt.md` (ShipLoop's import record), the child's final receipt (`terminal.json`), the trivial-pass review files (two, or one for an unchanged first pass) and copied evidence. |
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the return plan whose dispositions `review-return` records, and the guarded return receipt that completion requires. |
 | `report.html` | Derived report written for done and halted runs; not workflow state. For a worktree run it lists, read live from Git, the branches and worktrees the run left in the source repository with the command to remove each; ShipLoop never removes them itself. |
@@ -32,7 +32,6 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `expectations/` | `validate-existing`'s records: `<action>.md` lists each expectation check's result at entry, one `.txt` per check holds its command and output, and `<item>-preparatory-commit.txt` names the preparatory fix commit the test stage's base run starts from. |
 | `tests/` | ShipLoop's own test runs: `<action>-base<N>.md` (the test stage's base run), `<action>-verify<N>.md` (candidate runs and reruns), `<action>-red-check.md` (the latest `shiploop red-check`), and the latest `shiploop check`'s runs: `<action>-base-check.md` (its base run, whose counts set its floors), `<action>-check.md` (its candidate run) and `<action>-mutation-check.md`; these are replaced on each call and never counted. When `complete` takes the check's yes (`checks/`), it writes each as the next numbered record, which says so under `reused`; without a yes, `complete` still takes a passed candidate check run whose command list and working tree are unchanged. An inline `implement` step's Proof (its step-plan `check`) is `<action>-step-proof<N>.md`, bound to the action, the step, the command and the candidate's working trees, with `<action>-step-proof-check.md` for `shiploop check`; a passed record of the same step and command on an unchanged tree is taken instead of running again, at `complete` and at the step's Improve import, which reruns it when the review changed the candidate. A base-run or mutation-check record whose gate did nothing (no focused command, no item base, no mutant) says `disposition: skipped` with `passed: true` and the reason under `skipped`; `complete` prints a `Gates:` line for each gate after the packet. |
 | `checks/` | `<action>.md`: the latest `shiploop check` answer for that action, yes or no with the first refusal, the key it was given on (revision, package version, loop contract, draft, working tree, item base, the counted runs the floors read, lint option), its `Gates:` lines and the check records it made. `complete` takes a yes whose key still matches. |
-| `quality/code-craft.md` | The *Code craft* rubric file ShipLoop writes on entry to `verify`, which its review reads. |
 | `lint/` | Script-owned lint output, never exit-criteria evidence: per-item base snapshots (`items/`), per-action records and patches, byte-exact tool logs (`logs/`, mode 0600), scratch space (`tmp/`) and pending fix journals. See the [lint catalog](lint-catalog.md). |
 
 The live Improve child keeps its own receipt at
@@ -42,9 +41,7 @@ ShipLoop writes `opening.md`, `start.json` and `parent-return.md` when it starts
 transition into the Improve stage: the `improve-commit` command with its
 message rules (the one command the child runs), then the Improve stage's `complete`
 callback the parent runs; the child's commit message goes to `commit-message.md`
-there. Implementation
-chains keep their own append-only ledger; see
-[parallel implementation chains](parallel-chain.md).
+there.
 
 ## Test decisions in `state.md`
 
@@ -125,7 +122,7 @@ lacks it. An Improve packet that asks for a bind or a restart keeps the `next` p
 carries neither pointer. Active packets also print, in
 their References block, **Results this stage builds on**: the accepted results
 and durable products of the stages named by the script-owned `STAGE_READS` map in
-`shiploop_context_index.py` (for example `verify` reads the spec, test strategy
+`shiploop_context_index.py` (for example `document` reads the spec, the plan
 and the item's step-plan, test-spec, implement and test products), each as
 `<item> <stage> <product>: RUN/...`. A stage reads those before acting and
 reports a conflict with them rather than choosing silently.
@@ -156,7 +153,7 @@ fresh-run hint like any other missing key. See the
 Every run records the run-level `planning_review` key: `stage` or `none` (`stage` is the
 default for new runs). `stage` starts an Improve stage after each of `spec`, `test-strategy`,
 `plan`, `step-plan` and `test-spec`; `none` starts none, so a `none` run's `improve_results` holds
-only the records of each `implement` step, `system-test-author`, `release-plan` and the last `carry-forward`. It is
+only the records of each step's `document` stage, `system-test-author`, `release-plan` and the last `carry-forward`. It is
 set once, by `--planning-review` on `init`
 or `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the

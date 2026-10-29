@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.21.1
+# ShipLoop navigator 1.22.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -33,10 +33,9 @@ run from its next issued action; see the [command reference](#command-reference)
 Read [Improve context ownership](references/improve-context.md) for capability,
 exclusive writer, interruption and retention rules. A worktree alone does not
 create a separate model session. Shell model-CLI launching belongs only to the external
-E2E harness, not normal ShipLoop CLI operation. Optional bound implementation
-chains, available only on ask-agent runs, may still use a selected compatible
-Ask-Agent adapter through host-native delegation; inline runs execute reviewed
-steps directly in the main conversation. The `shiploop` CLI never launches a
+E2E harness, not normal ShipLoop CLI operation. Each implement step runs in one
+fresh worker on an ask-agent run, and in the main conversation on an inline run;
+ShipLoop has no implementation chain (retired, design T section 9.1 2c-2). The `shiploop` CLI never launches a
 model: the former `drive` command and model transports are removed. The optional
 [keepalive](#keepalive-keep-a-run-moving) driver, `scripts/shiploop-drive`, is a
 separate script you start yourself.
@@ -49,7 +48,7 @@ host session after an update so it loads the selected package's current card.
 
 New runs use navigator protocol 4: the script persists and traverses the SDLC
 graph and issues one producer prompt at a time. After a planning result the run's
-`planning_review` option reviews, an `implement` step, or the last carry-forward, it parks that parent action
+`planning_review` option reviews, a step's `document` stage, or the last carry-forward, it parks that parent action
 for the selected actual Improve skill; every other result advances directly. The script owns navigation; the
 model is a library call that performs the current step and runs the printed
 callback. Improve follows the Until Loop runtime bound by
@@ -72,36 +71,6 @@ evidence, budget limitations and recovery. No separate experiment loop is added.
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [House style: evidenced conventions and per-item exemplar match contracts](references/house-style.md)
 - [Plan record: what a step plan records when the item touches code or stored data, a pinned value, or interactions, UI or service state](references/plan-record.md)
-- [Optional parallel or serial implementation chains](references/parallel-chain.md) — on
-  a `delegation: ask-agent` run, bind the selected Plan Dispatcher/Ask-Agent
-  packages to one current implementation action; `chain bind` refuses a fresh
-  binding on an inline run, which executes its reviewed steps directly. New
-  chains use the per-step managed-workspace flow only. The Ask-Agent helper
-  must declare the full current capability set (helper-managed-worktree,
-  prepared-inspection, returned-commit-delivery, fingerprint-bound-close,
-  ignored-output-report); there is no version floor. Its helper identity and
-  selected package bytes are frozen for the run; caller-prepared worktrees are
-  not supported.
-  The Dispatcher must advertise `planning_context: "shiploop-planning-artifacts/v1"`
-  and `graph_validation: "execution-graph/v1"`; [chain preflight](references/parallel-chain.md#planning-artifact-handoff)
-  rejects invalid graphs before binding. In a `stage` run the initial steps and their graph must
-  complete the planning Improve loop (a `none` run has none); later material revisions require review.
-  Both execution modes prepare through the selected Ask-Agent workspace helper.
-  Parallel mode grants native launches. `chain bind --mode serial` executes one
-  ready step in the main context, with a managed preparation receipt and no
-  native handle. Neither mode adopts an arbitrary caller-created worktree.
-  The parent imports worker results, verifies the current combined candidate,
-  integrates and accepts the exact attempt, then refills safe ready capacity
-  before helper-owned cleanup. Accepted is the sole stored done state; the
-  derived `completion` view lists done/not-done. `chain done` is the one
-  verified settlement transition. Read-only `chain history` and `chain pending`
-  expose timestamped evidence, unfinished steps, dependencies and capacity.
-  Final completion requires all contributions integrated and cleanup resolved.
-  Superseded managed attempts remain an explicit retained-workspace blocker;
-  their unsuccessful work is not silently discarded. A pre-v6 binding is
-  refused on every chain operation; preserve its worktrees and ledger and bind
-  a new managed chain. Binding schema v6 records this capability proof and lifecycle;
-  its number is independent of the selected Ask-Agent package version.
 
 The planning-artifact handoff published at `c33a103` and its bounded native
 Codex Ask-Agent `A/B → C` pilot were verified; see the [Native Ask-Agent
@@ -156,19 +125,20 @@ of the prelude, per-item inner loop and outer loop, with their gates and
 loops.
 
 Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
-`system-test-author`, `release-plan`), every accepted `implement` step and the
+`system-test-author`, `release-plan`), every accepted step review and the
 successful `carry-forward` that leaves no work item pending follow this
 sequence; every other producer result is accepted on its own checks and the
 script selects the next producer directly (see "When Improve
 runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs)). That is the default of the run option `--planning-review stage|none`;
 with `none` the first five of those (`spec` through `test-spec`) are accepted on
-ShipLoop's checks at `complete` too, and only each `implement` step,
+ShipLoop's checks at `complete` too, and only each step's review,
 `system-test-author`, `release-plan` and the last `carry-forward` follow this
-sequence. The 24 producers' full flat order is: `intake`, `discovery`,
+sequence. The 23 producers' full flat order is: `intake`, `discovery`,
 `research`, `spec`, `test-strategy`, `plan`, `prepare`; then, for each ready
-item, the 8 inner stages in 5 phases: Plan (`step-plan`, `test-spec`), Validate
-existing (`validate-existing`), Build (`implement` once per step, `test`,
-`document`), Verify (`verify`) and Carry forward (`carry-forward`); then
+item, the 7 inner stages in 4 phases: Plan (`step-plan`, `test-spec`), Validate
+existing (`validate-existing`), Build (`implement`, `test` and `document`, run
+once per step, each step committed before the next begins) and Carry forward
+(`carry-forward`); then
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
@@ -188,18 +158,57 @@ would accept a draft result now, without completing it; `complete` takes its yes
   check matches, ShipLoop records the stage without a packet. A works
   expectation found broken with a known small fix is fixed there, and ShipLoop
   commits that fix on accept as its own preparatory commit.
-- `implement` runs once per step, gated by lint on every step, and one Improve
-  child reviews the item's whole change after its last step (in both planning review modes).
-  A wide item, whose steps work on separate paths, has each step that changed a
-  file reviewed instead.
-- `test` writes the specified tests after the build, each asserting its case's
-  oracle. ShipLoop then runs them on the item's base
-  (no new test ID may pass there unless `red_na` names it; `shiploop red-check`
-  runs this check on demand) and on the candidate, holding each command to its
-  floor (`retired_tests` declares a deliberate removal).
-- `document` is issued only when the item's diff touches a code or test path;
-  `verify` reruns every command and reviews the whole diff, and ShipLoop commits
-  the item when it is accepted.
+- A step is one iteration: `implement`, `test` and `document` run for it, one
+  Improve child reviews it, and ShipLoop commits it before the next step's
+  `implement` begins. There is no `verify` stage: what it checked once per item
+  is checked inside each step, below.
+- `implement` builds the step. ShipLoop runs the step's proof on the candidate
+  and the lint gate on the lines the step changed. A step plan's `skills`
+  entries take `stages` (`implement` by default, `test`, `document` or
+  `improve`), and each stage's packet lists the skills meant for it.
+- `test` writes this step's part of the test spec: a test per case due at the
+  step (a case is due at the last step that lists its criterion), each asserting
+  the case's oracle. A case may name the mock it runs against
+  (`"mock": {"simulates", "plays"}`); the test stage builds each named mock
+  before its case's test. ShipLoop then runs the commands on the step's base and
+  on the candidate:
+  - On the step's base, no test ID new at this step may pass there unless
+    `red_na` names it (a characterisation test). An earlier step's cases pass on
+    that base; they are run and counted, not judged. `shiploop red-check` runs
+    this check on demand. A step's base is where its iteration began; a
+    preparatory fix moves only the first step's base.
+  - A step runs its own cases in detail, every earlier step's cases and the
+    minimum regression (the step plan marks one regression command `minimum`, or
+    says why it has none). The full regression runs only at the item's last step.
+  - Each command is held to a floor that adds up across steps
+    (`retired_tests` declares a deliberate removal).
+- `document` is issued only when the step's diff touches a code or test path. It
+  records the step's change and what the step showed in the knowledge home
+  (there is no stage of its own for that), and it is gated on its own edits: lint
+  on the lines it changed, and a rerun of what those edits could affect (nothing
+  after no edit, the step's check commands after a documentation edit, every
+  command of the test stage after a code or test edit). A test it adds is
+  registered in the result's `added_tests`, so every later run of that command
+  must show it.
+- One Improve child then reviews the step's code, tests and docs after its
+  `document` stage (in both planning review modes) from the tree the step began from, and
+  commits nothing.
+  When the review changed a file, its import lints the lines it changed and
+  reruns the step's commands before the review is accepted. A step that changed
+  no file starts no review.
+- ShipLoop commits the step in the call that accepts it (document's, or its
+  review's import) as one commit on the step's base. If Git refuses, the call is
+  refused and nothing is saved; the same callback commits once the cause is
+  fixed. A pending record in `RUN/iterations/<item>.json` makes a retry after a
+  crash commit once, and a commit made inside the step by anything else is
+  refused.
+- A send-back to planning ends the iteration, commits nothing and keeps the
+  earlier steps' commits. The redone plan starts from the last commit and counts
+  its steps afresh, so a case an earlier plan committed is new again at its first
+  step and goes in `red_na`.
+- The ask-agent route has the same step boundaries: one `implement` action per step, built by a fresh worker in the
+  shared execution checkout, which makes no commit and advances no callback; the parent submits it and ShipLoop commits
+  the step. Only who executes each stage differs from the inline route.
 - `carry-forward` records a skill decision (`none`, `reuse`, `update` or
   `create`); ShipLoop commits a created or updated skill.
 
@@ -209,13 +218,15 @@ from the graph. `test` and `document` are recorded as not applicable to an item
 only on the script's proof. Release and verification never replay an uncertain
 external operation merely to make traversal continue.
 
-A run saved by the earlier 17-stage inner loop (state version 4) is refused with
-a reason; start the request again in a fresh run directory.
+A run saved by an earlier inner loop (state version 10 or older: version 9 closed each
+item at a `verify` stage, version 10 built every step of an ask-agent run in one action) is refused with a reason; start
+the request again in a fresh run directory.
 
 [Reusable product skills](references/testing-and-documentation.md#reusable-product-skills)
 stay in the product repository. `discovery` inspects the local index before
 planning; each `step-plan` rereads it for skills learned by earlier items and
-lists each step's helper `skills`, which the implement packet prints. Prefer
+lists each step's helper `skills` with the stages they are for, which each
+stage's packet prints. Prefer
 unchanged reuse with supported inputs/defaults, then a compatible local update,
 or a separate skill when contracts differ. `carry-forward` decides, with repeat
 evidence, whether to reuse, update or create a skill, makes the warranted skill
@@ -238,7 +249,7 @@ route; unavailable remote checks remain unrun even when local tests pass.
 
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card (`--planning-review none` requires it: no planning child binds the card before the first
-`implement` step's Improve child). If omitted, `init` records the card installed beside ShipLoop when it
+step's Improve child, after its `document` stage). If omitted, `init` records the card installed beside ShipLoop when it
 validates, and ShipLoop binds that card to each Improve stage itself; only when the recorded card
 no longer resolves does the Improve packet print `improve-bind --action <improve id> --skill-card ...`
 with the path, and where none validates the stage stays pending on a marked blank. The
@@ -256,6 +267,56 @@ the selected Improve policy, unless an explicit user or repository no-commit
 override applies. The parent verifies the commit evidence and owns integration;
 a child commit alone does not prove caller delivery. ShipLoop's `state.md` remains SDLC-state authority;
 the selected Until Loop runtime remains child-execution authority.
+
+### Status: building the per-step iteration
+
+The lifecycle above is design T (`docs/shiploop-review-after-tests-design-2026-10-27.md`, section 8; the build order
+is section 9.1). Saved runs from before it are refused (state version 11).
+
+**Plan.** The build order, in the design's numbering:
+1. The iteration contract: identity, producer ownership, retry invalidation and the final-tree commit invariant.
+2. One lifecycle for every step: due cases (2a), the stages, gates, commit stage and skills (2b), the ask-agent route's
+   step boundaries (2c) and test gradations (2d).
+3. Per-step bookkeeping: cumulative floors, tests a review adds, shared baselines and one aggregate of every step's
+   results.
+4. The edge cases: send-back, commit failure and retry, test-only steps, cross-step cases and tests a review adds.
+5. Packets and Run Review (v6, older runs still read), then two pilots with stage-level defect and cost attribution.
+6. This README.
+
+**Accomplished** (each with its evidence in the design doc's records):
+- 1: `shiploop_iteration.py`, pinned by `test/shiploop-iteration.test.py` (35 tests, written first).
+- 2a and 2b: the per-step lifecycle, verify retired, the commit stage, per-step gates on document and its review, step
+  skills, and Run Review v6 and the harness counters.
+- 2d: the minimum regression at every step and the full regression at the last.
+- 3: floors that add up, tests a review registers, one preparatory base and the per-step aggregate.
+- 4: `test/shiploop-step-edges.test.py` drives the edges through the real `complete`. It found a defect from 2b-2: a
+  step after the first was refused because the base run judged an earlier step's cases as new. Fixed and pinned.
+- F5 (a test case names its mock, built first) and F6 (every lint result says how each file was covered).
+- 2c: the ask-agent route runs one implement action per step in a fresh worker (owner decision G1, "adopt a2"), and
+  ShipLoop's chain is retired: its code, commands, guides and tests. The commit stage saves its record with the state,
+  so a call that stops anywhere is retried.
+- The pilots (Codex `gpt-6.1-terra` at xhigh, one two-step case, 2026-10-29): the inline control and the per-step
+  ask-agent route both pass, each committing its steps in plan order with S2 based on S1's commit. The per-step route
+  used 13 fresh workers against the 8 of the item-level route it replaced, about 1.25 times the time and 1.16 times the
+  input tokens; one run per arm, so the cost is indicative. Evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`.
+
+**In progress.** Nothing in the code. The release is cut once the full test tier is green on the exact tip.
+
+**Pending.**
+- Still unmeasured, said openly: what a fresh worker was told (the messages between agents are encrypted on Codex), a
+  killed implement worker (the slice harness has no trigger for it, so what the parent does when it cannot show a worker
+  stopped is open), and the bases after a preparatory fix or a send-back (none occurred in the pilots; tests cover them).
+  How faithful the mocks are, and whether the review and the entry-point trace catch what verify caught, need more runs
+  than one case gives.
+- The owner's framing decision (G2: present the lifecycle as a quality and feedback-speed pilot).
+- Landing: `shiploop check` (phase B) landed on main first (ShipLoop 1.21.0) and this stack has merged main.
+
+```mermaid
+flowchart LR
+  S1[1 contract] --> S2[2 lifecycle] --> S3[3 bookkeeping] --> S4[4 edge cases]
+  S4 --> C2[2c ask-agent steps] --> P[5 pilots] --> R[6 README] --> L[release]
+  F[F5 mocks, F6 lint line] --> P
+```
 
 ### Current Improve and Until Loop binding
 
@@ -615,7 +676,7 @@ runtime own child iterations. ShipLoop has no second review counter.
 The navigator applies the actual-skill handoff to the planning stages (spec, test
 strategy, plan, step plan, test spec, system-test authoring and release plan; with
 `--planning-review none`, only system-test authoring and release plan), to each
-accepted implement step, and to the last carry-forward, whose review covers all
+step's accepted document stage, and to the last carry-forward, whose review covers all
 executed steps before OUTER work. See "When Improve runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs). The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
@@ -1007,8 +1068,6 @@ shiploop delegation --run-dir RUN --set=inline|ask-agent   # from the next issue
 shiploop lint-mode --run-dir RUN --set=fix|report|off      # later lint passes
 shiploop lint     --run-dir RUN --action ACTION [--show --part N [--rerun N | --gate N]]   # report-only rerun
 shiploop backchain-check --candidate PLAN.json [--run-dir RUN]   # record-only Backchain graph check
-# Implementation chains within the current implement action (ask-agent runs)
-shiploop chain {bind,planning-inputs,next,history,pending,claim,start,launched,import-handoff,prepare,done,retry,packet,cleanup,finish} ...
 # Keepalive (see references/keepalive.md)
 shiploop hook-status --run-dir RUN                        # read-only JSON; never locks or writes
 scripts/shiploop-hook install|status|uninstall --host HOST [--dry-run]
@@ -1019,9 +1078,6 @@ scripts/shiploop-drive --host HOST --run-dir RUN [--max-minutes N] [--session-ti
 shiploop graph-dry-run [--list] [--scenario NAME | --script STEPS.json] [--delegation=inline|ask-agent] [--format=summary|json|markdown]
 ```
 
-`chain` subcommands are packet-issued on `delegation: ask-agent` runs; see
-[parallel implementation chains](references/parallel-chain.md). Without
-`--mode`, a new binding is parallel and a replay keeps its recorded mode.
 `delegation` applies from the next issued action; the pending action and its
 Improve checkpoint keep their issued route. It is refused on halted or done runs;
 setting the recorded value is a no-op.
@@ -1080,7 +1136,6 @@ phase diagram.
 | How does isolated work return to the source checkout? | [Workspace start, return plan and guarded return](scripts/shiploop_workspace.py). |
 | How are consumer-delivery declarations checked? | [Consumer-delivery contract](scripts/shiploop_consumer_delivery.py). |
 | How does the navigator rerun invalidated planning? | [Planning revision archives](scripts/shiploop_planning_revision.py). |
-| How do implementation chains run? | [Chain bridge](scripts/shiploop_chain.py), [Git](scripts/shiploop_chain_git.py), [handoff](scripts/shiploop_chain_handoff.py), [ledger](scripts/shiploop_chain_ledger.py) and [planning inputs](scripts/shiploop_planning_context.py). |
 | How are routes inspected without project work? | [Graph dry run](scripts/shiploop_navigator_dry_run.py). |
 | What does the script-owned lint pass run, fix and record? | [Lint pass and implement gate](scripts/shiploop_lint.py) and its [lint catalog](references/lint-catalog.md). |
 

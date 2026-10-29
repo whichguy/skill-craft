@@ -21,7 +21,7 @@ refused with an error naming it.
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
-  R -->|Reviewed planning stage, item's last implement step or last carry-forward| I[Improve stage: actual Improve skill]
+  R -->|Reviewed planning stage, a step's document stage or last carry-forward| I[Improve stage: actual Improve skill]
   R -->|Any other stage| F
   I --> U[Bound Until Loop cycle]
   U -->|Incomplete| U
@@ -29,7 +29,7 @@ flowchart LR
   C --> F[Script routes the final result]
   F -->|done| N[Next producer]
   F -->|blocked| B[Wait for resume, then same stage]
-  F -->|send-back, test-spec to verify| SB[The item goes back to its step plan]
+  F -->|send-back, test-spec to document| SB[The item goes back to its step plan]
   F -->|send-back, system-test or release-verify| SO[The stage that wrote the plan reruns]
   F -->|add-work, outer only| W[New work items enter the inner loop]
   N --> P
@@ -39,19 +39,21 @@ The route is the same for a direct result and an Improve stage's final result.
 The Improve review can change the result the stage imports, so a reviewed `done` can become
 `blocked`, `send-back` where the stage allows it or, at an outer stage, `add-work`.
 
-The 24 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
+The 23 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
 prelude `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
 `prepare`; inner `step-plan`, `test-spec`, `validate-existing`, `implement`,
-`test`, `document`, `verify`, `carry-forward`; and outer `system-test-author`,
+`test`, `document`, `carry-forward`; and outer `system-test-author`,
 `system-test`, `product-acceptance`, `release-plan`, `release-check`, `release`,
-`release-verify`, `operations`, `handoff`. The 8 inner stages form 5 phases:
+`release-verify`, `operations`, `handoff`. The 7 inner stages form 4 phases:
 Plan (`step-plan`, `test-spec`), Validate existing (`validate-existing`), Build
-(`implement` once per step, `test`, `document`), Verify (`verify`) and Carry
-forward (`carry-forward`). Every instantiated producer records a result,
+(`implement`, `test` and `document`, once per step, each step then committed by
+ShipLoop's [commit stage](#step-commits)) and Carry forward (`carry-forward`).
+`verify` is retired (design T §9.1 2b-4): its gates run inside each step, and its
+entry-point trace is each step review's. Every instantiated producer records a result,
 including a justified N/A output. The planning producers (`spec`,
 `test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
 `release-plan`; `step-plan` and `test-spec` only for the first work item and for an
-item that was sent back), every accepted `implement` step and the successful
+item that was sent back), each step's accepted `document` stage and the successful
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
@@ -61,9 +63,9 @@ packet's literal command, with a ShipLoop-authored contract and receipt under `l
 `done` only with a receipt that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at
 `validate-existing`, the [lint gate](run-options.md#script-owned-lint) at
-`implement`, `test` and `verify`, ShipLoop's base and candidate
-[test runs](test-loop.md#test-loop) at `test`, and its rerun of every recorded
-command at `verify`. Each loop prints its own repeat condition; the
+`implement`, `test` and `document` (document's on its own lines), ShipLoop's base and candidate
+[test runs](test-loop.md#test-loop) at `test`, and at `document` a rerun of what
+its own edits could affect. Each loop prints its own repeat condition; the
 `implement` and `test` loops carry the
 [pass-or-stop rule](test-loop.md#tests-pass-or-the-step-stops).
 No stage contains a copied Improve policy or independently counts review passes.
@@ -80,12 +82,11 @@ flowchart TD
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor; every stage runs one Until Loop]
     SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec ✦]
     TS --> VE[validate-existing ⛔ expectation checks; all match: no packet]
-    VE --> IM[implement, per step ✦ ⛔ lint gate; step commit]
-    IM -->|next step| IM
+    VE --> IM[implement, per step ⛔ lint gate]
     IM --> TE[test ⛔ lint gate, base run, candidate run]
-    TE --> DOC[document, only when behavioural]
-    DOC --> VF[verify ⛔ lint gate, test rerun; item commit]
-    VF --> CF[carry-forward, skill decision]
+    TE --> DOC[document ✦ ⛔ lint gate, rerun; then the step's commit]
+    DOC -->|next step| IM
+    DOC --> CF[carry-forward, skill decision]
     CF -->|more items| SP
   end
   CF -->|"last item ✦ end review"| STA
@@ -99,13 +100,14 @@ flowchart TD
 
 ✦ starts an Improve stage. A run recorded with `planning_review: none` starts no Improve
 stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
-ShipLoop's checks at `complete` and the graph advances; every `implement` step, `system-test-author`,
+ShipLoop's checks at `complete` and the graph advances; each step's `document`, `system-test-author`,
 `release-plan` and the last `carry-forward` keep their Improve stage. ⛔ is script-enforced:
 `validate-existing` is not accepted while an expectation check does not match its state;
-`implement`, `test` and `verify` are not accepted while the lint gate reports an unwaived new
+`implement`, `test` and `document` are not accepted while the lint gate reports an unwaived new
 finding; `test` is not accepted until ShipLoop's base run finds no new test ID passing on the
-item's base and its candidate run passes every recorded command at its floor; and `verify` is not
-accepted until ShipLoop has rerun every recorded command and each exited 0. The outer
+step's base and its candidate run passes every recorded command at its floor; `document` is not
+accepted until what its edits could affect has rerun and exited 0; and a step's review is not
+imported while a line it changed has a new finding or a step command fails. The outer
 `system-test` and `release-verify` rerun their own recorded commands the same way. No count of
 refused runs stops `done`: a failing command is fixed and resubmitted, or, when the plan is what
 is wrong, the stage takes its own remedy: `send-back` back to `step-plan` at an INNER stage, or
@@ -119,7 +121,7 @@ resolve).
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
-| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each item's last `implement` step (one review of the item's whole change; each changed step of a wide item), last `carry-forward` | `system-test-author`, `release-plan` |
+| Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each step's `document` stage (one review of the step's code, tests and docs before ShipLoop commits the step), last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
 | Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
@@ -204,9 +206,9 @@ so a later shell cwd cannot change which card the checkpoint selects.
 Every run records its execution `delegation`. `workspace start` and direct
 `init` record `inline` for a new run unless `--delegation=ask-agent` is passed.
 Under `inline`, this conversation executes every producer and the whole Improve
-invocation itself, and `implement` runs reviewed steps directly without a chain.
-Under the opt-in `ask-agent` route, INNER producers and Improve prefer native
-fresh workers and `implement` can bind a [parallel or serial chain](parallel-chain.md#parallel-implementation-chains).
+invocation itself, and `implement` runs each step directly. Under the opt-in
+`ask-agent` route, INNER producers and Improve prefer native fresh workers, and `implement` is
+issued once per step, built by one fresh worker in the shared checkout.
 A saved run without the setting is refused with an error naming the
 missing `delegation` key. Retrying `init` or `workspace start` cannot change the setting. Use the
 `delegation` command instead. It applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with
@@ -229,7 +231,7 @@ Every run also records its `planning_review` option (`stage` or `none`; `stage` 
 Improve stage: `stage` is every planning result, as before, and no packet changes with it;
 `none` is no Improve stage after `spec`, `test-strategy`, `plan` or `step-plan` (`test-spec` has none in either mode),
 so the Improve line of those packets says none starts and no reconcile route or plan-time
-experiment locator is printed. The Improve stages after each item's last `implement` step, `system-test-author`,
+experiment locator is printed. The Improve stages after each step's `document` stage, `system-test-author`,
 `release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
 [Planning review option](run-options.md#planning-review-option).
@@ -298,25 +300,21 @@ conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
 reprinted packet. ShipLoop issues one `implement` packet per step of the
 accepted step plan, in its order, in the execution checkout. Each packet, its
-printed head and, at the item's last step, the item's Improve hand-off carry the same Step block (task,
+printed head and the step's Improve hand-off, after its document stage, carry the same Step block (task,
 criteria, Proof, dependencies, later steps) and end with the step's Until Loop;
-ShipLoop runs the step's Proof, its step-plan `proof`, at done. It binds no chain
-and uses no Ask Agent, native worker or Plan Dispatcher; `step-plan` records
-ordered `steps` rather than a dispatcher execution graph.
+ShipLoop runs the step's Proof, its step-plan `proof`, at done. On the inline route it uses
+no Ask Agent, native worker or Plan Dispatcher; on both routes `step-plan` records
+ordered `steps` rather than a dispatcher execution graph, and ShipLoop has no
+implementation chain.
 
 Under the opt-in `delegation: ask-agent` route, every active INNER producer
 packet begins with
 **Execute the prompt in a fresh context.**
 This is the serial execution instruction for the producer only.
-For an `implement` producer, select the chain route first. During that producer,
-its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
-explicit serial chains execute in the main context without spawning workers.
-Do not wrap a chain in another worker. Both modes recover the existing attempt
-rather than rerunning `start`. Serial chains execute in this conversation; the
-[chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
-remains authoritative. Chain precedence ends at producer completion. Improve follows
-its own selected context and ownership policy even when the historical chain binding
-remains. For other serial work where delegation is permitted,
+An `implement` worker builds the step packet's one step in the shared checkout: it makes
+no commit, runs no callback, starts no later step and leaves no delegate writing.
+Improve follows its own selected context and ownership policy.
+For serial work where delegation is permitted,
 save the recovery locators and prefer one native fresh worker at a time, without
 inherited conversation. It needs the assignment's tools, the existing workspace
 and a return route to the live parent. The parent supplies the current packet,
@@ -678,28 +676,70 @@ that the host included all prerequisites or actually prepared a remote target.
 
 ### Step commits
 
-On the inline route ShipLoop commits each accepted `implement` step before its
-Improve stage starts, as `feat(<item>/<step>): <headline>` with the step's
+On the inline route ShipLoop commits each step once its `document` stage and
+that stage's Improve review are accepted, as one commit of the step's code,
+tests, docs and knowledge: `feat(<item>/<step>): <headline>` with the step's
 summary and its Key learnings, Key decisions, Evidence and Related commits
-sections, from the result's `learned`, `decisions`, `evidence_refs` and
-`learned_from`. Each inline implement packet's head quotes the last two commits
+sections, from the implement result's `learned`, `decisions`, `evidence_refs` and
+`learned_from`, then a Knowledge home section from the document result's
+`knowledge`. Each inline implement packet's head quotes the last two commits
 that are not ShipLoop records (knowledge or leftover commits) as its look-back,
 one line each: the subject and its Key learnings. A
 redone step after a send-back names its own previous result and commit. A step
 may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
-`(<item>/<step>)`, which its commit carries; any other spec change at implement is
-refused, and its refusal opens that action's send-back even though the step's
-Until Loop has completed.
+`(<item>/<step>)`, which its commit carries; any other spec change is refused, at
+implement's and document's complete and at the import of the step's review, and a
+refusal at a complete opens that action's send-back even though the step's Until
+Loop has completed.
+
+**The commit stage** (design T §9 row 3, 2b-4). The step's commit is ShipLoop's
+stage, the last of its iteration, and inside an iteration nothing else commits:
+the review leaves its edits uncommitted and the knowledge home waits for it. It
+runs in the call whose gates accepted the step's last stage (document's complete,
+or its review's import), so it commits the tree those gates ran on, as one commit
+on the iteration's base. It writes a pending record (the iteration, its parent and
+the tree to commit) in `RUN/iterations/<item>.json` before it commits, and records
+the commit (the row's `commit`, the `commits/<action>.txt` file) and drops `pending`
+in the same journaled save as the state that advances past the step. A call that
+stopped after Git committed, at any point before that save, is retried without a
+second commit; a call that stopped part way through the save is completed by the
+next run, with the state. A call that stopped after the save and before it recorded
+the next step's base is repaired by the next call of any command but `status` and
+`report`, which records the base from HEAD (inside an iteration only the commit
+stage commits, so HEAD is the commit the entry would have recorded). A HEAD that
+anything else moved inside the step is refused, with the way back
+(`git reset --soft <base>`, which keeps the changes). When the commit cannot land,
+the call is refused and nothing is saved: the step does not advance with its
+change uncommitted, and the same callback, run again once the cause is fixed,
+commits it. A step whose changes cannot be read (no base was captured) is not
+committed, with a note, as the gates that need the base are skipped.
+
+**Each step's reflection** (design T §9.1 2b-3, option C, owner 2026-10-28). There
+is no knowledge stage: a step's `document` stage is its one place to reflect. With
+the step built and tested, it records what the step showed in the knowledge home,
+where the next steps' packets read it: a clarified requirement or the files that now
+meet it (a marked line in `spec.md`), a decision implement did not record (an
+`AD-<n>`), a command, harness or platform fact (`environment.md`). Its result's
+`knowledge` names each of the three files with what changed in it or why nothing
+did. New work the step showed goes where it belongs: a defect in the step's change
+is fixed now, work the step plan lacks is a send-back, work a later step holds is
+left to it, and work outside the item is an open item due at the item's
+`carry-forward`; every step's open items stay listed until then. The step's review
+reads the knowledge edits with the code, tests and docs and corrects them in place.
+A step whose change touches no code or test path records `document` as not
+applicable: implement's and test's own write-backs stand, and `carry-forward`
+reconciles the knowledge home at the item's end. The skill decision stays once per
+item, at `carry-forward`.
 
 The inner path makes post-code quality visible: the expectations are checked
-before any change, each item's implemented change is reviewed by one Improve stage after its last step
-(each changed step of a wide item, whose steps work on separate paths),
-the tests are written from the test spec and must fail on the item's base and
-pass on the candidate, documentation follows observed behaviour, and `verify`
-reruns every command and reviews the whole diff with justified fixes and
-rechecks. ShipLoop's step commits at `implement` and its item commit at
-`verify` are authorized Git work in the execution checkout; they do not assert
-a merge, push, or deployment. `carry-forward`
+before any change, each step is built, tested and documented and then reviewed
+by one Improve stage before the next step starts, the tests are written from
+the test spec and must fail on the step's base and pass on the candidate,
+documentation follows observed behaviour, and each step's review traces every
+changed entry point with justified fixes and rechecks. ShipLoop's step commits
+after each step's review are
+authorized Git work in the execution checkout; they do not assert a merge, push,
+or deployment. `carry-forward`
 reviews broad scope, dependencies, future system-test requirements, and the
 skill decision without pretending future work is complete.
 
@@ -787,7 +827,7 @@ do not repeat all discovery or blindly preserve the old pattern.
 #### Implementation quality indicator
 
 The planning and code-quality prompts (`plan`, `step-plan`, `implement`,
-`test`, `document` and `verify`) carry
+`test` and `document`) and each step's review carry
 error-checking, opt-in diagnostic and concise code-contract duties. This is
 prompt guidance for the current assignment, not a result field or a scripted
 pass/fail gate.
@@ -848,15 +888,15 @@ and cannot prove that the host performed the checks or wrote good documentation.
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
 | Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-spec`, `test` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
-| Own delegated work | `step-plan`, `implement`, `verify` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
-| Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
-| Select relevant operational checks | `step-plan`, `verify` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
-| Review the resulting candidate | Improve campaigns, `verify` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
+| Own delegated work | `step-plan`, `implement`, each step's review (ask-agent route) | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
+| Diagnose persistent failure | `test`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
+| Select relevant operational checks | `step-plan`, `document` (later checks as open items) | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
+| Review the resulting candidate | Improve campaigns (each step's review) | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
 | Place validated learnings | `document`, `carry-forward` (its skill decision), `product-acceptance` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
 
 For example, suppose two step contributions each pass their local tests, but
-one emits milliseconds while its consumer interprets seconds. At `verify`,
-the owner checks the shared specification and runs the combined path. The
+one emits milliseconds while its consumer interprets seconds. At the item's
+review, the owner checks the shared specification and runs the combined path. The
 observed unit mismatch prompts a scoped repair, review and affected rechecks;
 only then is an honest completion submitted. This hypothetical trace explains
 the duty, not a claim that the script detects units or runs these tests.
@@ -896,8 +936,7 @@ New workspace/direct entries record their selected actual Improve binding, the
 The reviewed action is `active_improve` while a bound child is active, and the
 sequence stage is `improve`; ShipLoop
 does not duplicate the child's cursor or review counter. The `delegation`
-command never re-owns a bound Improve child or switches a bound chain's frozen
-mode. A saved run the current code cannot load (navigator v1/v2/v3, the removed
+command never re-owns a bound Improve child. A saved run the current code cannot load (navigator v1/v2/v3, the removed
 managed and legacy modes, or a protocol 4 state with unexpected or missing keys) is
 refused with an error naming the protocol, mode or keys; start a fresh run
 directory for that request. A malformed/missing selected card or child evidence

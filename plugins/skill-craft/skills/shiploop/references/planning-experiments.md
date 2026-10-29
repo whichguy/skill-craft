@@ -151,7 +151,7 @@ wrote that receipt and no candidate write is in progress. Only then can it
 accept, reconcile, or replace work.
 
 The return path is available only for the initial `plan` Improve child before
-any preparation, work-item execution, chain binding or workspace return, when
+any preparation, work-item execution or workspace return, when
 that child selected the bundled ephemeral Until runtime. Other children remain
 on their recorded incomplete route
 rather than receive a fabricated stopped-child settlement.

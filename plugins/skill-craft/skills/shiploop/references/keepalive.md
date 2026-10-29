@@ -98,7 +98,7 @@ records the calls and the Improve stage's `complete` checks them.
 ShipLoop's run lock already serializes CLI commands. Keepalive adds one rule:
 only the run's owner session is ever kept alive.
 
-- The first session to bind a free run owns it. A parallel-chain worker, a
+- The first session to bind a free run owns it. An implement or review worker, a
   second terminal or any other session that binds the same run is let go at its
   turn end ("another session owns this run").
 - Ownership is released when the owner's turn ends normally, when the host ends

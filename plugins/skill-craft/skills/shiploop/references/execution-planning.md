@@ -41,7 +41,7 @@ Classify non-passing observations before any repair:
 | --- | --- |
 | Required behavior already passes | Retain the scope and evidence as a feature prerequisite; continue planning. |
 | Affected foundation fails | Name an earliest scoped repair item and its required passing rerun. Dependent feature items wait for that evidence. Do not repair source or tests during discovery. |
-| The failing behavior is the requested repair | Preserve its expected failure as the repair baseline. The repair's own step plan records it as a `broken` expectation, which `validate-existing` confirms; its later test and verify runs must pass. Do not require the defect to be fixed before its repair can begin. |
+| The failing behavior is the requested repair | Preserve its expected failure as the repair baseline. The repair's own step plan records it as a `broken` expectation, which `validate-existing` confirms; its later test and document runs must pass. Do not require the defect to be fixed before its repair can begin. |
 | Apparently unrelated existing failure | Retain the failing evidence and an explicit impact/scope disposition. Scoped continuation requires demonstrated separation, a passing check of the feature's actual prerequisites, and applicable authority. Unknown relatedness blocks dependent edits; do not silently waive failures or broaden the request into unrelated cleanup. |
 | Setup/access missing, timeout or uncertain target | Keep the baseline blocked/inconclusive and plan its concrete prerequisite. Existing preparation ownership resolves authorized setup/access, then reruns the original check against unchanged product/tests before dependent feature edits. A source defect requires a repair item, not an environment preparation shortcut. |
 | Existing implementation lacks adequate executable tests | Record no existing executable baseline, not N/A or green. Reuse an adequate established behavior check when available; otherwise name an earliest test-bootstrap item. Under its execution plan and existing authority it may make the smallest justified test/harness, test-only dependency and configuration changes, while testing unchanged application behavior. Keep its post-bootstrap characterization result separate from the original missing-suite observation. Discovery and its review do not author the missing tests. |
@@ -102,9 +102,9 @@ available can confirm it ([authoring rule](backchain-planning.md#outcomes)).
 The result's own `criteria` list is stricter: an entry there is confirmed by a
 recorded test command, so a condition no command can confirm is not listed in it
 but recorded as an open item in the result's summary (who does what, and what
-they report back). These criteria are `implement`'s exit criteria and what
-`verify` checks item by item; a plan check can flag a criterion that has neither
-form.
+they report back). These criteria are `implement`'s exit criteria and what each
+step's `document` stage checks item by item; a plan check can flag a criterion
+that has neither form.
 
 ## Local microplan and backchain
 

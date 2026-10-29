@@ -176,7 +176,7 @@ are not promoted to completed sources. Their own result/Improve context
 continues to describe that attempt.
 
 Each INNER plan revalidates the relevant strategy and item context. The `test`
-stage's authoring and refinement and `verify`'s rerun use those decisions and retain justified changes in
+stage's authoring and refinement and `document`'s rerun use those decisions and retain justified changes in
 ordinary plan/result evidence. Carry the originating strategy locator plus the
 current item-specific decisions into repository test documentation and future
 item context; whole-system testing reconciles that retained coverage. A missing
@@ -385,7 +385,7 @@ runner does not expand) is fixed in the stage that finds it.
 ## Review test assets through Improve
 
 In the navigator, the selected actual standalone Improve skill reviews each
-planning result the run's `planning_review` option reviews, each work item's implemented change (after its last `implement` step), and the end-of-work candidate. Within that
+planning result the run's `planning_review` option reviews, each step's change (after its `document` stage), and the end-of-work candidate. Within that
 candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,
 platform/library testing-system fit, browser inspection versus retained test

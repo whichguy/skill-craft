@@ -4,6 +4,213 @@ Written by scripts/release.py.
 
 ## 2026-10-29
 
+### skill-craft 2.23.0
+
+- Skills: improve 0.7.3, shiploop 1.22.0, shiploop-e2e-audit 0.7.13, shiploop-run-review 0.5.0
+
+### improve 0.7.3
+
+- The ShipLoop route cases name send-back at the inner stages test-spec to document: ShipLoop's verify stage is retired.
+- The ShipLoop ask-agent route no longer says chain precedence ends at producer completion: ShipLoop's implement stage
+  runs one step at a time in a worker and binds no chain (design T section 9.1, 2c-1).
+
+### shiploop 1.22.0
+
+- The ask-agent route has the same step boundaries as the inline route (design T section 9.1, 2c-1; owner decision G1,
+  2026-10-29: "Adopt (a2)").
+  - ShipLoop issues one implement action per planned step on both routes. On the ask-agent route a fresh worker builds the
+    step in the shared execution checkout; it makes no commit, runs no callback, starts no later step and leaves no
+    delegate writing. The step is then tested, documented, reviewed and committed by ShipLoop before the next one starts.
+    Before, one implement action built every step with a chain, and ShipLoop committed the item once at the end.
+  - The step plan records no execution graph on either route, and no packet asks for one or for a chain.
+  - A saved run from before it is refused with a reason (state version 11): an ask-agent run's single implement action
+    would otherwise be read as the first step.
+  - The item-level commit stage, the several-steps wording and the ask-agent branches of the step view, the test loop and
+    the Improve hand-off are gone.
+- ShipLoop's implementation chain is retired (design T section 9.1, 2c-2; owner decision G1, 2026-10-29: "Adopt (a2)").
+  - The `shiploop chain` command, the chain's four modules (`shiploop_chain`, `_git`, `_handoff`, `_ledger`), the
+    `chain_bindings` field of the run state, the completion guard that held `complete` until a chain finished, and the chain
+    orientation blocks of the packets are gone. Every route builds one step per implement action (2c-1), so nothing binds a
+    Plan Dispatcher graph to an implement action.
+  - The chain's guides are gone: `chain-route.md`, `chain-navigation.md` and `parallel-chain.md`, and every link to them in
+    the card, the README and the references. The step exit criteria are read in the stage Until Loops guide.
+  - The progress view no longer shows a run's chain activity or bound graphs; it shows the accepted step plan's steps.
+  - Plan Dispatcher and Ask-Agent stay as skills of their own. Old runs' chain ledgers, receipts and worktrees are kept on
+    disk; ShipLoop no longer reads them, and a saved run from before this change is refused (state version 11).
+- A step's commit survives a call that stops anywhere between Git's commit and the saved state (design T section 9.1,
+  2c-0, Astra's finding 2).
+  - The commit stage still writes its pending record before it commits. It now records the commit (the ledger row's
+    `commit`, the `commits/<action>.txt` file) and drops `pending` in the same journaled save as the state that advances
+    past the step. Before, it did that first, so a call killed after Git committed and before the state was saved left
+    HEAD on the step's own commit with no pending record, and the retry refused it.
+  - The call that enters the next step records the step's base after its save. A call killed between them left that step
+    with no iteration record, and the commit stage skipped it. The next call of any command but `status` and `report`
+    now records the base from HEAD, so the step is committed like the others.
+- Each step's commit is the iteration's commit stage, and the step advances only once it lands (design T section 9.1,
+  2b-4).
+  - It runs in the call that accepts the step's last stage (document's complete, or its review's import), so it commits
+    the tree those gates ran on, as one commit on the step's base. Inside a step nothing else commits.
+  - When Git refuses the commit, the call is refused and nothing is saved. The change stays in the checkout, and the same
+    callback, run again once the cause is fixed, commits it. Before, the step moved on uncommitted.
+  - A pending record (`RUN/iterations/<item>.json`) is written before the commit. A call that stopped after Git committed
+    is retried without a second commit, and a commit something else made inside the step is refused, naming
+    `git reset --soft <base>`, which keeps the changes.
+- Every lint result says how each changed file was covered, so a syntax check is never read as a lint (design T
+  section 8.2a, F6).
+  - A lint pass prints a `Lint coverage:` line right after its `Result:` line. It counts the files a linter covered
+    and names the linters, then lists each other file with its coverage: syntax only (a parse, or a linter that was
+    unavailable or timed out), not linted, or linted in part (another linter the repository configures did not run).
+    Deleted files are left out.
+  - The packet's lint digest keeps this line, though it still leaves the per-file Coverage section to the stored record.
+    Both lint gate refusals (after an auto-fix, and on an unwaived finding) print it, and so does a pass that could not
+    run ("Lint coverage: none").
+  - With lint off, the implement, test and document packets say so: no linter and no lint gate run, so the step
+    chooses and runs its own static checks.
+- A test-spec case may name the mock it runs against, and the test stage builds those mocks first (design T sections
+  8.2 and 8.5, F5).
+  - A `test_cases` row may add `"mock": {"simulates": "...", "plays": "..."}`: what the mock stands in for, and the
+    slow, failing or out-of-order behaviour it plays. Both are nonblank text; a mock of any other shape, or one still
+    holding the shape's placeholders, is refused.
+  - The test-spec duty says a case whose code calls a dependency (the network, the clock, randomness, storage, a child
+    process, a browser API) names its mock. Every packet that quotes the cases prints it under its case.
+  - The test duty opens with "Mocks first": build each named mock before its case's test, and give the mock a header
+    that states what it stands in for and what it plays.
+  - No new gate: one is added only if a live run shows cases skipping their mock.
+- Each inline step is built, tested, documented and reviewed before the next step starts (design T section 8, a pilot).
+  - Each step runs implement, test and document, then its Improve review; the next step's implement follows. Before,
+    every step was implemented first and the item was tested and documented once.
+  - The test stage builds out the step's part of the test spec. A case is due at the last step that lists its
+    criterion. The focused command runs the cases due so far, earlier steps' included; a check runs from the last step
+    its criteria are due at; the regression command runs at every step. RED applies only to the cases new at the step,
+    against the step's base.
+  - Rule `item` moves from implement to document: one review per step covers its code, its tests and its docs, and
+    leaves its edits uncommitted. When it changed a file, ShipLoop reruns the step's focused command at import. A step
+    that changed no file starts no review. This replaces the wide-item rule.
+  - ShipLoop commits each step once its document stage and review are accepted. The next step's lint, mutation check,
+    base check, document's left-out rule and review diff start from that commit. The item ends at carry-forward:
+    verify is retired, and its checks run inside each step (see the verify-retired note).
+  - Each step's iteration (number, base and commit) is recorded in `RUN/iterations/<item>.json`.
+- The read-only planning-context collector (`shiploop_planning_context`) is removed: it existed to bind planning material into ShipLoop's
+  implementation chain, which is retired, and nothing else read it. Its suites go with it (`shiploop-planning-context`,
+  `shiploop-v4-consumers`).
+- The README describes the lifecycle the code runs: each step is built, tested, documented, reviewed and committed before the
+  next begins, and there is no `verify` stage (23 producers, 7 inner stages in 4 phases). It states the step's gates (lint on
+  the lines changed, the proof, the base run on the step's base, graded tests, the commit stage and its retry), the ask-agent
+  route as it stands, and a status section: the build order, what is accomplished, in progress and pending, with a small
+  dependency picture.
+- A step's spec write-back can no longer add a requirement. A marked line counted as inside an R-n entry even when the
+  step's own edit had added that entry, so a step could add `R-2` and pass the gate. Now only an entry the committed
+  spec holds takes a step's lines. A new requirement is refused as "outside an R-n entry the committed spec holds", and
+  the refusal names send-back.
+- Each step's tests are held to what the earlier steps proved (design T section 9.1 step 3).
+  - A later step's base run holds only the IDs due at that step to failing. Before, an earlier step's case, which passes
+    on the next step's base, was refused there as "passes on the base", and `red_na` could not name it, so a step after
+    the first could not finish a test stage whose command spans steps.
+  - Floors add up across steps: a step's test stage runs at least an earlier step's accepted count of the command plus
+    the IDs newly due at this step. A new ID in `red_na` is not added, since its test may already be in that count.
+  - A command whose IDs a step narrows is held to its `min_tests` only from the step at which all of them are due.
+  - A test the step's document stage or its review adds is registered in the result's `added_tests` (`id`, `command`),
+    and every later run of that command must show it. It is never held to failing on a base.
+  - validate-existing's preparatory fix moves the base of the item's first step only. Before, from the second step on,
+    the base run, the mutation check and red-check ran on the tree before the first step whenever the item had a
+    preparatory fix.
+  - The packets that reconcile an item (carry-forward, system-test-author) list every step's test and document
+    results, not only the last step's. Open items, these lists and the not-covered hand-off read one per-step list of
+    results (`planning_revision.step_actions`).
+- A step after the first no longer fails its test stage because an earlier step's tests pass on its base. The base run
+  checks RED only for the cases new at the step; an earlier step's cases are run and counted, not judged, and are recorded
+  as `earlier_steps` in the base record. A focused command that holds only earlier steps' cases, with IDs or with only
+  criteria, is counted too. Before this, a multi-step item with code was refused at its second step's test stage, and
+  `red_na` could not exempt those tests.
+  - `red_na` names only a test ID new at this step, and `retired_tests` refuses an ID a focused command still lists,
+    an earlier step's included; both refusals say so. The packet's base rule says no test ID new at this step may pass
+    and that an earlier step's IDs are not judged. After a send-back the redone plan's first step sees a committed case as
+    new; the refusal names `red_na` for "a case a step committed before a send-back".
+  - A step plan's refusal of a step that only changes test files now says the test stage writes the tests for the
+    behaviour the steps build, true on both routes.
+- Each step's document stage and its review are gated on their own edits (design T section 9.1, 2b-4b).
+  - Document's done lints the lines document changed since it began, and reruns what those edits could affect: nothing
+    after no edit, the step's check commands after a documentation edit, and every command the step's test stage ran
+    after a code or test edit. A document result may carry `lint_waivers`.
+  - The step review's import lints the lines the review changed before ShipLoop reruns the step's commands. A new,
+    unwaived finding refuses the import.
+  - Before, only verify linted and reran, once per item and against the last step's base, so an earlier step's review
+    edits were never linted by a gate.
+- Each step's document stage reflects on what the step showed (design T section 9.1, 2b-3, option C). There is no
+  separate knowledge stage.
+  - Document records in the knowledge home what the step showed:
+    - a clarified requirement, or the files that now meet it, as a marked line in spec.md;
+    - a decision implement did not record, as an `AD-<n>`;
+    - a command, harness or platform fact, in environment.md.
+  - Its result gains a required `knowledge` record: `spec`, `architecture` and `environment`, each with what the step
+    changed in that living file or why nothing did. The step commit prints it as a Knowledge home section. Document's
+    packet now names the step and its spec mark (`<item>/<step>`), and lists all three living files.
+  - Document is an open-item stage. It records work found outside the item as an open item due at the item's
+    carry-forward, and every step's open items stay listed until then.
+  - The spec write-back gate runs at document's complete and again when the step's review is imported, so the step
+    commit holds a tree a gate ran on. The step review's focus covers the knowledge edits.
+  - The skill decision stays once per item, at carry-forward.
+- Each stage of a step lists the skills meant for it (design T section 8.2c, F9).
+  - A step plan's skill entry takes an optional `stages` list: implement, test, document or improve. Without one, a
+    skill is implement's, as before.
+  - The test and document packets print the step just built and their "Skills for this stage" line, and the step
+    review's handoff prints "Skills for this review". Each names the skill's use and locator, or says none is listed
+    and points at KNOWLEDGE/environment.md `## Skills`.
+  - The test stage uses each skill its packet lists; it still never assumes an unlisted skill or MCP is available.
+  - Lint records say "changed since the base" instead of "this item changed", since each gate measures from its own
+    base. An inline step's lint refusal says "on lines this step changed".
+- Each step runs graded tests instead of the whole regression every time (design T section 9.1 2d).
+  - A step plan's regression command may carry `"minimum": true`. That minimum regression, a fast suite that shows
+    nothing basic broke, runs at every step. An unmarked regression command, the full regression, runs only at the
+    item's last step, so no earlier step runs an exhaustive regression.
+  - A plan of two or more steps with test commands marks one regression command minimum, or gives `minimum_na` with the
+    reason it has none. The refusal names both routes.
+  - Each step's test stage runs its own cases in detail, every earlier step's cases and the minimum regression. A step
+    before the last that owes nothing runs no command, and its packet says why.
+  - The test packet names the full regression it leaves to the last step, and asks where each new test belongs: a new
+    suite, the minimum suite or the full suites. It says that an MCP server or skill may test the new code in more
+    detail, beside the unit and mock tests, once the model has checked this host offers it.
+- The `verify` stage is retired (design T section 9.1, 2b-4). Each work item now runs 7 inner stages: step-plan,
+  test-spec, validate-existing, then implement, test and document once per step, then carry-forward.
+  - Verify's gates run inside each step: document's done lints its own lines and reruns what its edits could affect,
+    and the step review's import lints the review's lines and reruns the step's commands.
+  - Verify's entry-point trace, where every finding it made came from, is each step review's: one valid, one boundary
+    and one invalid input per new or changed public entry point. The test stage writes those three cases.
+  - Later-phase checks are document's open items, due at the stage that makes them.
+  - Verify's item commit is gone: each step's commit stage commits the step. On the ask-agent route the item is
+    committed whole when its document stage and review are accepted, and Git refusing that commit refuses the callback.
+    The commit names the changed files it leaves.
+  - Carry-forward follows the last step and reads the item's test and document results.
+  - Removed with verify: the change inventory, the advisory lint pass at its entry, its Code craft rubric file
+    (`RUN/quality/`) and its single trivial-review loop. Send-back is accepted from test-spec through document.
+  - A step's review commits nothing: its handoff no longer prints the improve-commit command or the commit-message rules
+    (it told the review to commit since 2b-2, against its own focus), and `improve-commit` refuses at a step review,
+    naming improve-pass.
+
+### shiploop-e2e-audit 0.7.13
+
+- The Grok adapter no longer credits the retired `chain` verb as a direct ShipLoop command: its allowlist matches the verbs
+  the current `shiploop --help` lists (ShipLoop's implementation chain is retired, design T 2c-2).
+- The mock DAG replay's literal schedule parks each step's document stage for Improve instead of its implement stage,
+  following ShipLoop's per-step iteration (each step is reviewed after its document stage).
+- The mock DAG replay walks ShipLoop's 23 stages: verify is retired, and an item's carry-forward follows its last document stage.
+  The behaviour capture keeps verify among its stage names only for captures of runs recorded before it retired.
+
+### shiploop-run-review 0.5.0
+
+- A run on the ask-agent route saved at ShipLoop state version 11 or later pairs its steps with its visits as an inline run
+  does: ShipLoop now issues one implement packet per step on that route too. A run saved before it (state version 10 or
+  earlier) keeps its reading, with the reason that no visit is tied to a step.
+- The stage catalog follows ShipLoop's per-step iteration: rule `item` is on document, so the document card says one
+  Improve child reviews each step's code, tests and docs after that stage, before ShipLoop commits the step, and the
+  implement card no longer claims a review. The wide-item wording is gone.
+- Runs of ShipLoop's 7-stage inner loop (no verify stage, state version 10) read as stage model v6, with 7 phases and the
+  engine's current catalog. Saved 8-stage runs (state versions 5 to 9, or a verify visit) still read as v5 from the frozen
+  `defaults/stages-v5.json` catalog, phases and phase texts, and 17-stage runs as v4.
+  A v6 run is read per step: each visit of a step names it (`step`), each work item's steps carry their `number`, `visits`
+  and the `commit` ShipLoop recorded in RUN/iterations/<item>.json, and the stage cards and visits table group the visits
+  under one header per step ("Step S1 · implement → test → document → review · commit 1a2b3c4").
+
 ### skill-craft 2.22.1
 
 - Skills: shiploop 1.21.1, shiploop-e2e-audit 0.7.12

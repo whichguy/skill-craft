@@ -14,18 +14,17 @@ import shiploop_stage_spec as stage_spec
 
 # Independently declared expected paths: do not derive these from routing code.
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
-WORK3 = ('step-plan test-spec validate-existing implement test document verify '
-         'carry-forward').split()
+WORK3 = ('step-plan test-spec validate-existing implement test document carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
 # Stages whose result starts an Improve stage, besides the last carry-forward, for each
-# planning_review option.  Declared independently of the navigator's tables.  implement's
-# per-item Improve (after the item's last step; one synthetic step here) runs in every mode
+# planning_review option.  Declared independently of the navigator's tables.  Each step's
+# review follows its document stage (design T §8; one synthetic step here) in every mode
 # (planning_review none does not skip it); test-spec has no Improve review (owner, 2026-10-26).
 REVIEWED3 = {
-    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'implement',
+    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'document',
               'system-test-author', 'release-plan'},
-    'none': {'implement', 'system-test-author', 'release-plan'},
+    'none': {'document', 'system-test-author', 'release-plan'},
 }
 SCOPE = 'SIMULATION ONLY: actual navigator routes and packets; no project work, checks, commits, or delivery performed.'
 CORE = SimpleNamespace(PACKAGE_ROOT=Path(__file__).resolve().parents[1],
@@ -50,7 +49,7 @@ def _improve_receipt(stage: str) -> dict[str, Any]:
 def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[str, Any]]:
     """Explicit producer/Improve declarations for the navigator graph.
 
-    Improve follows only the planning stages the option reviews, each item's last implement step and
+    Improve follows only the planning stages the option reviews, each step's document stage and
     the last item's carry-forward.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3

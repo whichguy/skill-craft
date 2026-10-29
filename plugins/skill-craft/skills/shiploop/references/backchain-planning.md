@@ -22,11 +22,9 @@ separate broader review.
 After the initial steps are created, both `plan` and `step-plan` must complete
 their actual Improve handoff before consumers use the plan, when the run has one: in a
 `planning_review: none` run neither stage has an Improve stage, so the graph's only checks before
-consumers use it are ShipLoop's at `complete` and the structural `backchain-check`. Include any serial
-or parallel execution graph in that review's candidate and evidence locators;
-Backchain's result does not bypass this broader planning review. Follow the
-[chain review requirement](parallel-chain.md#required-review-after-step-creation)
-when a graph is first created or materially changed after the checkpoint.
+consumers use it are ShipLoop's at `complete` and the structural `backchain-check`. Include any
+execution graph in that review's candidate and evidence locators;
+Backchain's result does not bypass this broader planning review.
 
 Use [question-driven history investigation](project-knowledge.md#investigate-git-history-for-planning)
 when a decision depends on prior rationale. Continue relevant history as needed,
@@ -127,8 +125,9 @@ Split independently schedulable work when prerequisites or deliverables diverge;
 do not require a separate work item for every assertion or cosmetic
 improvement. Local checks come from each step's own completion criteria and
 their `Confirm by:` confirmations: `implement` (or a chain worker) loops until
-each is confirmed as far as the environment allows, and `verify` (or chain
-parent verification) reruns or inspects them. A criterion without a
+each is confirmed as far as the environment allows, and the step's `document`
+stage and its Improve review (or chain parent verification) rerun or inspect
+them. A criterion without a
 confirmation has no local check. Plan a
 separate system/integration producer only when a check genuinely needs multiple
 steps, another environment, or a later lifecycle boundary.

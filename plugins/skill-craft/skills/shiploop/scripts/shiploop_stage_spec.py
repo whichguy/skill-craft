@@ -34,8 +34,6 @@ ENTRY_RUNS = frozenset({
     "lint-base",           # snapshot the work item's lint base when the item starts
     "loop-contract",       # write the stage's Until Loop contract (every inner stage)
     "expectation-check",   # run the step plan's expectation checks on the item base; all match: no packet
-    "change-inventory",    # record the item's changed files for the review loop
-    "advisory-lint",       # lint the item's changes, auto-fixing on the first entry
 })
 COMPLETE_RUNS = frozenset({
     "loop-terminal",       # check the stage's Until Loop receipt against the contract rebuilt from state
@@ -58,12 +56,11 @@ ADD_WORK_SHAPE = ('{"outcome": "add-work", "summary": "<what the corrective item
                   '[{"id": "<new id>", "title": "...", "context": "..."}]}')
 
 # Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
-# and "item" once per work item, after its last accepted implement step, over the item's whole change, whatever the
-# planning review option says (owner, 2026-10-26, design 560c396f P0; it was "step", one review per step, owner
-# 2026-10-10: a live three-item run on DeepSeek flash ran 12 step reviews in 28 minutes for 3 real code fixes).  A wide
-# item, one whose steps work on separate paths (``shiploop_loops.step_path_groups`` > 1), has each step that changed a
-# file reviewed instead (owner, 2026-10-27, design 8e9d2d55: Sonnet makes one finding pass per review, so one review of a
-# three-part item missed the three defects its step reviews had fixed).
+# and "item" once per step, after the step's document stage, over the step's code, tests and docs, whatever the planning
+# review option says (owner, 2026-10-27/28, design T §8: "build one step, then test, improve, and document, and then
+# build step number two", with Improve "after document"; each step is built, tested, documented, reviewed and committed
+# before the next).  It replaces one review per item after its last step (2026-10-26, design 560c396f P0), which on
+# Sonnet missed the three defects a per-step review fixed (design 8e9d2d55).
 # "first-item" starts one only for the first work item, and for an item that was sent back (its redone plan is
 # reviewed): later items follow the pattern the first item's review set (owner, 2026-10-19: in a live four-item run
 # the step plan's review took 5-14 min on every item, and Improve was 42% of the run).  The planning review option governs it as it
@@ -84,12 +81,12 @@ OUTER_SEND_BACK_TO: Mapping[str, str] = MappingProxyType({"system-test": "system
 def send_back_target(stage: str) -> str:
     """The stage a send-back from ``stage`` reruns: an OUTER stage's plan writer, else the item's step plan."""
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
-# The inline implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
+# The implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
 STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
                            "by a command or file after the last edit, and no later step's work is in the change")
-# Implement's second exit condition on both routes (one step inline, every step on the ask-agent route): each step's Proof
-# is its step plan `check`.  ShipLoop runs it at done on the inline route only (``complete_runs`` step-proof).
+# Implement's second exit condition on every route: the step's Proof is its step plan `proof`.  ShipLoop runs it at done
+# (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
 # The step exit criteria's stopping rule (SPEC S-10, owner decision 2026-10-10; a criterion, not a count, since the owner
 # chose it on 2026-10-28 in place of the old seven-attempt count): a genuine fix that leaves the same check failing the
@@ -121,8 +118,6 @@ class Stage:
     outcomes: tuple[str, ...] = ("done", "blocked")
     short_goal: str = ""                   # what a status line shows ("specify this item's tests"); default: goal up to its first colon
     cases: bool = False                    # the test text ends with case_end_states (added once outcomes are final)
-    steps_goal: str | None = None          # the goal for an action that builds several steps at once ({steps}, {paths})
-    steps_done_when: tuple[str, ...] = ()  # the done-when conditions for that action, one per condition above
 
     def __post_init__(self) -> None:
         if self.phase not in PHASES:
@@ -139,9 +134,6 @@ class Stage:
                 raise ValueError(f"{self.name}: unknown {label} {sorted(unknown)}")
         if self.improve not in (None, *IMPROVE_RULES):
             raise ValueError(f"{self.name}: unknown improve rule {self.improve!r}")
-        if (self.steps_goal is None) != (not self.steps_done_when) or (
-                self.steps_goal is not None and len(self.steps_done_when) != len(self.done_when)):
-            raise ValueError(f"{self.name}: the several-steps wording needs a goal and one condition per done-when")
         if not set(self.outcomes) <= OUTCOMES or "done" not in self.outcomes:
             raise ValueError(f"{self.name}: outcomes must include done and use known outcomes")
 
@@ -192,10 +184,11 @@ RETURN_LEFTOVERS = "plan-return commits files left uncommitted, so commit nothin
 # Who commits an item's files (SPEC S-4, S-5): one rule, printed by every stage that adds files to the item.  The first
 # sentence mirrors ``item_scope.commit_scope`` (declared paths, the docs path class and docs/shiploop/); the second
 # depends on the run: a worktree run's plan-return commits what is left, an in-place run has no return.
-ITEM_COMMIT_STAGES = ("document", "verify")
+ITEM_COMMIT_STAGES = ("document",)
 ITEM_COMMITS = (
-    "When verify is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its "
-    "changed documentation files (for example README.md or files under docs/) and docs/shiploop/."
+    "When the document stage and its review are accepted, ShipLoop commits the changed files the step plan's paths "
+    "declare, the changed documentation files (for example README.md or files under docs/) and docs/shiploop/, as one "
+    "commit for the step, and the step advances only once that commit lands."
 )
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
                     + " Delete generated output the product does not need.")
@@ -216,15 +209,6 @@ def develop(name: str, execution_mode: str) -> str | None:
         return text
     rule = ITEM_COMMITS + " " + item_left(execution_mode)
     return text + " " + rule if text else rule
-
-
-def for_steps(row: Stage, steps: str, paths: str) -> Stage:
-    """``row`` worded for an action that builds several steps of the plan at once, named ``steps`` (for example "S1 to
-    S2") with their ``paths``; a row without that wording is returned as it is."""
-    if row.steps_goal is None:
-        return row
-    return replace(row, goal=row.steps_goal.format(steps=steps, paths=paths),
-                   done_when=tuple(text.format(steps=steps, paths=paths) for text in row.steps_done_when))
 
 
 _ROWS = (
@@ -338,8 +322,9 @@ _ROWS = (
         reads=("plan", "test-strategy"),
     ),
     # ------------------------------------------------------------------ inner
-    # Owner decision 2026-10-10: eight stages in five phases (Plan: step-plan, test-spec; Validate existing; Build:
-    # implement per step with an Improve stage after each, test, document; Verify; Carry forward).  Each stage's work
+    # Seven stages in four phases (owner decision 2026-10-10, eight in five; design T §8 and §9.1 2b-4, 2026-10-28: verify
+    # retired): Plan (step-plan, test-spec); Validate existing; Build (implement, test and document once per step, an
+    # Improve stage after each document, then ShipLoop's commit of the step); Carry forward.  Each stage's work
     # runs as one Until Loop with a ShipLoop-written contract (entry run loop-contract); its exit conditions are the
     # done_when lines below, and the gate rechecks by script what it can.  Evidence and the coverage review of the
     # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
@@ -363,7 +348,7 @@ _ROWS = (
             "the files the item will change are declared in paths",
         ),
         develop="Name target files, interfaces and conventions; follow the house-style match contract.",
-        test="Record the item's test commands; the test stage and verify run them exactly.",
+        test="Record the item's test commands; the test stage runs them exactly.",
         deploy="Note integration impact and any release prerequisite.",
         tools="ShipLoop records the item's lint base when the item starts; name the linters, type checks and build "
               "commands that cover the changed files.",
@@ -426,38 +411,24 @@ _ROWS = (
             "the result lists each behaviour the change added that no test-spec case covers (or none), and whether "
             "each of the step's skills was used",
         ),
-        # The ask-agent route issues one implement action for every step of the plan, so a plan of several steps is
-        # worded for those steps and their paths (``for_steps``); the inline route keeps the per-step wording above.
-        steps_goal="Make the change of steps {steps} on their paths ({paths}) in WORKTREE; exit codes go to "
-                   "RUN/notes/<action>.md, uncovered behaviour to `not_covered`.",
-        steps_done_when=(
-            "only the paths of steps {steps} ({paths}) changed since the first of them began, and no work outside "
-            "those steps is in them",
-            STEP_PROOF_CONDITION,
-            "after the last edit, the lint gate reports no unwaived new finding on a line these steps changed",
-            "the result lists each behaviour the changes added that no test-spec case covers (or none), and whether "
-            "each step's skills were used",
-        ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
         test="After each meaningful change, run the step's Proof; change the work, never the Proof or what it "
              "expects. Tests are written in the test stage.",
         tools="Run `shiploop lint --action` after each edit; the lint gate runs at complete, on every step.",
         edits=frozenset({"code"}),
         entry_runs=("loop-contract",),
-        # step-proof runs on the inline route only: the ask-agent action builds every step and keeps the item's checks.
         complete_runs=("loop-terminal", "lint-gate", "step-proof"),
-        improve="item",
         reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),
         outcomes=("done", "blocked"),
     ),
     Stage(
         "test", "inner",
-        goal='Write a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.',
-        short_goal="write and run this item's tests",
+        goal="Build out this step's part of the test spec: a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.",
+        short_goal="build out and run this step's tests",
         done_when=(
-            "every case in the test spec is a test the focused command runs, with its ID in the name",
-            "no new test ID passes on the item's base checkout, unless red_na names it",
+            "every case quoted for this step is a test the focused command runs, with its ID in the name",
+            "no test ID new at this step passes on the step's base checkout, unless red_na names it",
             "one complete iteration after the last edit ran every recorded command, each exiting 0, running every "
             "listed ID and at least the floor of tests",
             "every test change made to pass a run has a recorded independent reason",
@@ -475,41 +446,25 @@ _ROWS = (
     ),
     Stage(
         "document", "inner",
-        goal='Update the docs this change affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.',
-        short_goal="document this item's change",
+        goal="Update the docs this step's change affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.",
+        short_goal="document this step's change",
         done_when=(
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
+            # Design T §9.1 2b-3, option C (owner 2026-10-28): document is the step's one place to reflect.
+            "the knowledge home records what this step showed, and `knowledge` names each living file with what "
+            "changed in it or why nothing did",
         ),
         develop="Update code, API, user and operator documentation from observed behaviour.",
+        # Design T §8.2 (2b-4b): verify's lint gate and rerun moved into the step, scoped to this stage's own edits.
+        tools="On done ShipLoop lints the lines this stage changed and reruns what those edits could affect.",
         edits=frozenset({"docs"}),
         entry_runs=("loop-contract",),
-        complete_runs=("loop-terminal",),
-        reads=("spec", "plan", "item:step-plan", "item:implement", "item:test"),
-        blocks=frozenset(),        outcomes=("done", "blocked"),
-    ),
-    Stage(
-        "verify", "inner",
-        goal='Accept the item: confirm each criterion after the last edit, trace entry points; review the diff; notes in RUN/notes/<action>.md.',
-        short_goal='verify and accept this item',
-        done_when=(
-            "every completion criterion is confirmed on the current candidate, with evidence made after the last edit",
-            "every recorded command exits 0 on the candidate after the last edit",
-            "each changed public entry point was traced with a valid, a boundary and an invalid input, and the "
-            "latest review iteration found only trivial issues",
-            "later-phase checks are marked pending with their owner",
-        ),
-        develop="Review the whole item's diff for what the per-step reviews could not see; on chained work, assemble "
-                "the steps' results and check the shared interfaces.",
-        test="Confirm each criterion; reconcile every selected case.",
-        tools="ShipLoop records the change inventory and lints the item's changes on entry (auto-fixing once); on "
-              "done it lints again and reruns every recorded command.",
-        edits=frozenset({"code", "tests"}),
-        entry_runs=("change-inventory", "advisory-lint", "loop-contract"),
         complete_runs=("loop-terminal", "lint-gate", "test-rerun"),
-        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
-        blocks=frozenset({"reconciliation"}),
-        outcomes=("done", "blocked"),
+        improve="item",
+        # test-spec: the step's due cases its hand-off quotes (CONSUMES), which its review judges.
+        reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
+        blocks=frozenset(),        outcomes=("done", "blocked"),
     ),
     Stage(
         "carry-forward", "inner",
@@ -527,7 +482,8 @@ _ROWS = (
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal",),
         improve="last-item",
-        reads=("spec", "plan", "item:verify"),
+        # test and document: the last step's test result and every step's reflection, which the item closes on.
+        reads=("spec", "plan", "item:test", "item:document"),
         blocks=frozenset({"test-facility", "backchain", "work-items"}),
         outcomes=("done", "blocked"),
     ),
@@ -651,13 +607,13 @@ _ROWS = (
 def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     """Add the outcomes that follow from a stage's place in the graph.
 
-    INNER stages from test-spec through verify build the item against its step
+    INNER stages from test-spec through document build the item against its step
     plan, so a goal that proves wrong there goes back to the step plan (send-back).  OUTER stages route missing product
     work as add-work, and the two that run another stage's plan send a wrong plan back to it (``OUTER_SEND_BACK_TO``).
     A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
-    first, last = names.index("test-spec"), names.index("verify")
+    first, last = names.index("test-spec"), names.index("document")
     finished = []
     for index, row in enumerate(rows):
         if first <= index <= last:
@@ -745,8 +701,8 @@ def reviewed_stages(mode: str) -> frozenset[str]:
 
 def _check_table() -> None:
     names = [row.name for row in _ROWS]
-    if len(names) != 24 or len(set(names)) != 24:
-        raise RuntimeError("the stage table must list 24 unique stages")
+    if len(names) != 23 or len(set(names)) != 23:
+        raise RuntimeError("the stage table must list 23 unique stages")
     order = {name: index for index, name in enumerate(names)}
     for row in _ROWS:
         for read in row.reads:

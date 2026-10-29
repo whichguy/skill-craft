@@ -12,6 +12,8 @@ review's changes, and the empty baseline of a new repository.  The helper
 * makes an empty commit (a recorded remote change) with ``--allow-empty --only``, which leaves whatever else is
   staged staged;
 * resolves a commit ID a model typed (``resolve_commit``): Git decides what it names, never the text;
+* builds the tree a commit would hold without touching the real index (``planned_tree``), which the iteration's
+  commit stage records before it commits;
 * runs Git without hooks and without ambient GIT_DIR-style redirection.
 """
 
@@ -21,6 +23,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 from typing import List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
 WORKSPACE_IDENTITY = {
@@ -75,10 +78,7 @@ def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty:
         if done.returncode:
             raise CommitError("cannot create the commit: " + (done.stderr or done.stdout).strip())
         return Committed(git(repo, "rev-parse", "HEAD").stdout.strip(), [])
-    # A path that is neither on disk nor known to Git has nothing to stage (a deletion is known to Git).
-    tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.split("\0")) if paths else set()
-    paths = [path for path in paths if (repo / path).exists() or path in tracked
-             or any(name.startswith(path.rstrip("/") + "/") for name in tracked)]
+    paths = _stageable(repo, paths)
     if not paths:
         return Committed("", [])
     added = git(repo, "add", "-A", "--", *paths)
@@ -92,6 +92,28 @@ def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty:
     if done.returncode:
         raise CommitError("cannot commit " + ", ".join(staged) + ": " + (done.stderr or done.stdout).strip())
     return Committed(git(repo, "rev-parse", "HEAD").stdout.strip(), staged)
+
+
+def _stageable(repo: Path, paths: Sequence[str]) -> List[str]:
+    """``paths`` less those with nothing to stage: neither on disk nor known to Git (a deletion is known to Git)."""
+    tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.split("\0")) if paths else set()
+    return [path for path in paths if (repo / path).exists() or path in tracked
+            or any(name.startswith(path.rstrip("/") + "/") for name in tracked)]
+
+
+def planned_tree(repo: Path, paths: Sequence[str]) -> str:
+    """The tree ``commit_paths(repo, paths, ...)`` would commit now: HEAD's tree with ``paths`` as the checkout holds
+    them, built in a temporary index, so the real one is untouched.  "" when Git cannot build it."""
+    repo = Path(repo)
+    paths = _stageable(repo, paths)
+    with tempfile.TemporaryDirectory(prefix="shiploop-tree-") as scratch:
+        env = {"GIT_INDEX_FILE": str(Path(scratch) / "index")}
+        if git(repo, "read-tree", "HEAD", env=env).returncode:
+            return ""
+        if paths and git(repo, "add", "-A", "--", *paths, env=env).returncode:
+            return ""
+        written = git(repo, "write-tree", env=env)
+        return "" if written.returncode else written.stdout.strip()
 
 
 _COMMIT_ID = re.compile(r"[0-9a-fA-F]{7,64}")
@@ -126,4 +148,5 @@ def resolve_commit(repo: Path, token: str) -> Tuple[str, str]:
     return commits[0], ""
 
 
-__all__ = ("CommitError", "Committed", "WORKSPACE_IDENTITY", "commit_paths", "git", "identity_env", "resolve_commit")
+__all__ = ("CommitError", "Committed", "WORKSPACE_IDENTITY", "commit_paths", "git", "identity_env", "planned_tree",
+           "resolve_commit")
