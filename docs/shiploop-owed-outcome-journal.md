@@ -928,6 +928,27 @@ firm).** Three real findings:
 all six verdicts passed; the trace shows 7 `check` calls, 10 `complete` calls and no use of the old flag, so a model uses
 the verb. It does not cover the final wording above; the B round runs on the final tip.
 
+### Phase B round: results against the pre-registered predictions (2026-10-29)
+
+Full entry: `test/shiploop_e2e/LEARNINGS.md`, "Phase B round". Evidence:
+[bc-before-per-stage.json](shiploop-owed-outcome-evidence/bc-before-per-stage.json) and
+[bc-b-per-stage.json](shiploop-owed-outcome-evidence/bc-b-per-stage.json). The B arm is two counted slices; a third was cut
+by Ollama's monthly usage limit (`API Error 429`, 08:11 PDT) in carry-forward's Improve child and is not a result.
+
+| # | Prediction (plan "Measure of success") | Result | Status |
+|---|---|---|---|
+| M1 | Commands to accept per inner action unchanged within one command per stage; overall median not above before | **Missed.** Per-stage medians before (n = 3) and B arm (n = 2): step-plan 39, 35; test-spec 6, 8.5; implement 12, 14; test 10, 13; document 6, 6; verify 7, 9; carry-forward 6, 8. Per slice: 89, 108, 86 against 95, 92. The ranges overlap and the extra commands are mostly ordinary ones | interim (n = 2 against 3); stop rule applies: phase C stays paused |
+| M2 | The accepted `complete` is faster at test and verify | **Met.** test 2,961 ms to 646 ms, verify 1,386 ms to 478 ms; 4 records per counted slice carry `reused.answer`. Other stages did not fall (several rose; not explained) | firm for test and verify |
+| M3 | No refused `complete` right after a yes with nothing changed | **Met.** 0 cases; the one refused `complete` (a spec write-back gate) had no check before it | firm |
+| M4, M5 | Phase C's post-loop refusals and packet sizes | Not applicable to phase B. Packet heads: the final wording is 23 characters shorter than main at step-plan on both routes and at most 16 longer at test and 13 at verify | firm (measured) |
+| M6 | Every sample passes its verdicts | 2 of 2 counted slices pass all six; the third was cut by infrastructure | firm for the counted two |
+| M7, M8 | Phase C's pilot; outer-stage dry runs (D3) | Not run. The outer-stage count after D3 is unmeasured | open |
+
+Also found by this round: the first full quick-tier runs failed because of phase B's own rename (seven suites on the
+second run, three on the first), all test and harness fallout; the targeted runs I chose after the rename had missed
+them, and a task's exit code (`tail`'s) had hidden a failing tier. The tier that qualifies the release passed 71 of 71
+(receipt `bc-final2-ebdaab`) with its exit code read from the log.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in
