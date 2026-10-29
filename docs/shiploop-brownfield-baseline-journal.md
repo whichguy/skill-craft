@@ -330,7 +330,7 @@ follows that evidence and is measured against it.
   AD-1. The handoff, knowledge and callback-contract suites pass (124, 135 and 87 tests).
 - **Change note.** `changes/shiploop/entry-start-prefers-heading.md` (patch).
 
-### D7: E2E evidence on today's ShipLoop — in progress
+### D7: E2E evidence on today's ShipLoop — firm for these cases (n=1 per case)
 
 Recorded below as the runs finish: the `user-listing` live run, and the medium brownfield case with its follow-on, both
 on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN_DEFAULT_BACKEND`).
@@ -377,3 +377,59 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
 - **Runs.** None yet: the owner launches them. `python3 test/shiploop_e2e/run.py --case ticket-assignment --output <out>`,
   then `python3 test/shiploop_e2e/run.py --case ticket-escalation --continue-from <out> --output <out2>`, both on the E2E
   subject by default. The same pair runs again after section 10's build.
+
+#### The before-runs: no correctness gap; planning is slow, and Improve is most of it — firm for these cases (n=1)
+
+- **Conditions.**
+  - Subject: DeepSeek flash (`deepseek-v4.1-flash:1017-cloud`) on Ollama through the Claude host, `--permission-mode auto`.
+  - Source: `--source checkout` from one detached worktree pinned at 8aa6e1fe (origin/main 4e1c8df0, plus the design, its
+    results, D8 and the medium case).
+  - Output: under `~/e2e-runs-brownfield/20261028/`, a runs root of our own. Under `~/e2e-runs` the E6D2 slices hold no
+    run lock, so the orphan check refused. The runs sharing Ollama at each launch are in
+    [results/d7/](experiments/brownfield-baseline-20261028/results/d7/).
+  - Tokens and cost are not measured on this host, so cost compares in minutes and turns only.
+  - Laptop sleep: the machine slept 13:00-13:47 before any of these runs started, so none of them include it.
+- **Evidence.** [before-runs.json](experiments/brownfield-baseline-20261028/results/d7/before-runs.json), built by
+  [d7_summary.py](experiments/brownfield-baseline-20261028/d7_summary.py) from each run's `result.json` and `metrics.json`.
+
+  | Run | Held-out checks | Visible checks | Planning window (Improve) | Run | Refusals |
+  |---|---|---|---|---|---|
+  | `user-listing` (149 lines) | 11/11 (2 pass-to-pass, 9 fail-to-pass) | 3/3 | 17.4 min (10.0) | 68.1 min | 25 |
+  | `ticket-assignment` (3,631 lines) | 18/18 (6, 12) | 3/3 | 30.1 min (17.2) | 110.5 min | 27 |
+  | `ticket-escalation` (follow-on) | 14/14 (7 kept from run 1, 7 new) | 9/9, with 4 retention | 48.7 min (25.7) | 138.6 min | 18 |
+
+- **Correctness: no gap.**
+  - Every latent fact was kept: LA1-LA8, and LB1-LB5 on the follow-on.
+  - Both planted defects were fixed: `paginate`'s partial last page, and the OR filter.
+  - The follow-on broke none of run 1's behaviour.
+  - This repeats X3 and X3b (Sonnet) on the E2E subject. On these cases, neither a single run nor a second run needed a
+    recorded baseline to stay correct.
+  - Limit of the instrument: 3,631 lines fit in the host's context (peak 157-160K), so "too big to read" is untested.
+- **Discovery is not where the reading happens.** Discovery took 0.6, 1.6 and 2.4 minutes. The model read the code in
+  spec, step-plan and implement.
+- **Planning: Improve is 53-58% of the window** (10.0 of 17.4, 17.2 of 30.1, 25.7 of 48.7 min).
+  - The spec stage's own authoring took 0.6, 0.5 and 1.4 min; its Improve review took 2.2, 6.2 and 7.5 min.
+  - The 2026-10-05 ledger found the same share on Luna xhigh (54%).
+- **The follow-on's planning grows where it works on larger living files.**
+  - Authoring: test-strategy 6.6 against 2.3 min, step-plan 5.5 against 2.8 min.
+  - Improve: test-strategy 9.5 against 5.2 min, step-plan 6.5 against 2.5 min.
+  - Carry-forward: 14.7 against 9.5 min in total.
+  - `environment.md` was 72 KB after run 1 and 87 KB after run 2. The spec went from R-1..R-12 to R-1..R-20.
+  - Run 2's harness plan names only its own requirements (R-13 to R-18, R-20), so test-strategy did not re-plan run 1's.
+    The growth is in reading and reviewing bigger files, not in re-testing old requirements. Status: interim; one
+    follow-on.
+- **Refusals.**
+  - Size limits: 3-5 per run.
+  - Improve protocol: `--check-only` at Improve, and a skipped skill call at a new Improve.
+  - Lint at Improve: 6 of 6 lint refusals named the Improve action while lint wanted the reviewed step's. Fixed on
+    `claude/priceless-hertz-be6123`, d0916465. The harness stored those refusals without their text; fixed there too,
+    e740819b.
+  - Quality gates: mutation, expectations, evidence, and the primary-coverage gate.
+  - Every refusal was recovered.
+- **What it means for the design.**
+  - Section 10's as-is account has no correctness gap to close on these cases.
+  - The measured costs are Improve at planning and growing living files.
+  - D6's "30-minute planning window" was a misreading of the owner's alarm threshold.
+  - The owner's answer, 2026-10-28: "I don't want to have a 30-minute planning session at all." The plan that follows
+    is [docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md](shiploop-planning-speed-and-caps-plan-2026-10-28.md).
+
