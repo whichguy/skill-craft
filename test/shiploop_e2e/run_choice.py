@@ -114,7 +114,13 @@ def named_run_dirs(out: Path) -> set[str]:
         text = (out / "events.jsonl").read_text(errors="replace").replace('\\"', '"')
     except OSError:
         return set()
-    return {str(Path(found.group("dir")).expanduser().resolve()) for found in RUN_DIR_ARG.finditer(text)}
+    named = set()
+    for found in RUN_DIR_ARG.finditer(text):
+        try:
+            named.add(str(Path(found.group("dir")).expanduser().resolve()))
+        except (OSError, RuntimeError, ValueError):
+            continue  # "~nobody/run" and the like cannot be resolved, so they name no run
+    return named
 
 
 def choose(out: Path) -> Choice:

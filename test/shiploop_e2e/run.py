@@ -1149,9 +1149,9 @@ def grade_shiploop(out: Path) -> dict:
     The run is the one run_choice.choose picks: the run RUN_IDENTITY records, else the only run that was not already there
     when the invocation started, else, among several, the live one (not paused or halted) and then the one the host's ShipLoop
     commands named. A choice that holds whatever the runs' statuses become is then recorded; a choice that follows statuses is
-    made again at every grade. Several candidates that nothing tells apart are reported as ambiguous and never pass: an
-    unrelated finished run is never preferred (2026-10-16 E2E audit, docs/experiments/shiploop-e2e-audit-20261016/grading/),
-    and nothing is picked at random. The runs not chosen are listed as `other_runs`.
+    made again at every grade. Several candidates that nothing tells apart are reported as ambiguous and never pass: a run
+    that was already there when the invocation started is never a candidate (2026-10-16 E2E audit,
+    docs/experiments/shiploop-e2e-audit-20261016/grading/), and nothing is picked at random. The runs not chosen are listed as `other_runs`.
     """
     picked = run_choice.choose(out)
     if not picked.runs:

@@ -152,8 +152,8 @@ pre-created. It grades five verdicts into `result.json`:
   recorded run again; a choice that follows the runs' statuses is made again at every
   grade and is not recorded, because a model can resume the run it paused. Several runs
   that nothing tells apart (two live runs, or a finished run beside a live one) are
-  `ambiguous` (the result lists them) and fail; an unrelated finished run is never
-  preferred. The same rule (`run_choice.py`) names the run for each of these readers:
+  `ambiguous` (the result lists them) and fail; a run that was already there when the
+  invocation started is never a candidate. The same rule (`run_choice.py`) names the run for each of these readers:
   the verdict, every measurement that reads the run's files (`metrics.run_dir_of`), the
   live monitor (`progress.py`), the Live Run Card (`status_card.py build e2e`, and the
   worktree its action inspector reads reviews from) and the reader behind the flow

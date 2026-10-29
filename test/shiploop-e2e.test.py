@@ -1877,6 +1877,16 @@ class MultipleRunsTest(unittest.TestCase):
         (self.out / "events.jsonl").write_text(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) + "\n")
         self.assert_chosen(live, 5)
 
+    def test_a_run_dir_naming_an_unknown_user_does_not_crash_a_reader(self):
+        first = self.make("work-1", "active", 1)
+        second = self.make("work-2", "active", 5)
+        commands = ['python3 "/x/shiploop" next --run-dir "~no_such_user_for_this_test/run"',
+                    f'python3 "/x/shiploop" next --run-dir "{first}"']
+        (self.out / "events.jsonl").write_text(
+            "\n".join(json.dumps({"type": "tool_call", "rawInput": {"command": command}}) for command in commands) + "\n")
+        graded = self.assert_chosen(first, 1)
+        self.assertEqual(graded["other_runs"], [second])
+
     # ---- no run is live
 
     def test_when_every_run_was_set_aside_the_one_changed_last_is_the_run(self):
