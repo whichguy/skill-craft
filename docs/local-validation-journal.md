@@ -473,5 +473,10 @@ and the private `XDG_STATE_HOME`. The tar sites are left alone: the fixtures alr
 
 **Findings**
 - F20 (interim): the cause is inferred and GNU tar was not run here. The fix is proven at the runner: a child suite no
-  longer creates bytecode in the tree. The CI quick job on the fix commit and a full-tier dispatch on main are the
-  confirmation; this entry is updated with their results.
+  longer creates bytecode in the tree.
+- CI on the fix commit `7f21c0e7` (2026-10-29): the push run (40889687968) and a full-tier dispatch (40889741622, all
+  five groups) are green. The quick job ran only `test-groups` and `ci-policy`, so it did not repeat the failing
+  condition. The full tier's core group (53 suites, `--jobs 4`, catalog order) ran `sync-plugin-views` and
+  `native-marketplace-adapters` and both passed on the Linux runner. That is the nearest repeat so far, but the log
+  prints each suite's output at the end, so it does not show whether they started beside the Python suites. F20
+  stays interim until a quick run that selects both suites, as the 1.21.0 release's hook changes will, is also green.
