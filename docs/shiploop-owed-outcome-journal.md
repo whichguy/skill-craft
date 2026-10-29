@@ -807,8 +807,12 @@ Codex and Grok each have 2.21.0 installed.
   session taking it at once. It is earned in the evidence round shared with the session-end hook (`1961f4c5`, below).
   `run.py --interrupt-at` already kills a host and leaves its claim in place (`run.py` never frees one); a slice clear
   frees the claim itself, so it cannot show the takeover.
-- **Open for the owner.** Keep the takeover live and earn that evidence (recommended: with no process found, only the
-  30-minute rule frees a claim, and it fixes a stall seen in the phase A round), or revert it.
+- **Decided (owner, 2026-10-29).** Keep the takeover live and earn that evidence (with no process found, only the
+  30-minute rule frees a claim, and it fixes a stall seen in the phase A round). Asked whether the release
+  preflight should also check which build the journaled runs used, the owner said no: it stays as `eba6d983` left
+  it, ancestry only. The gap that would have closed: a LEARNINGS commit, once rebased, vouches for runs built
+  before the change (`bff6f0f4` records runs pinned at `8aa6e1fe`, shiploop 1.17.0, which has neither the takeover
+  nor the session-end hook). So the discipline is manual: a round runs on a build that contains what it vouches for.
 
 ## Session end releases the run (2026-10-28, owner: "Yes, build it"; firm for Claude, constructed for the others)
 
@@ -888,3 +892,4 @@ tree hash excludes.
   at `b0d29284`; four commits from other sessions had landed on main in between, none touching the traced code.
 - 2026-10-28: E6 (dry runs per stage, from the run traces), F18-F19 and the phases B and C plan added.
 - 2026-10-29: correction: the dead-session takeover shipped in 1.20.0 (`3d7b83a3`) on its own `No-E2E-Round`; `917e0c2b` and `1961f4c5` said it was pending. Live evidence still owed.
+- 2026-10-29: owner decisions: keep the takeover live; leave the release preflight ancestry-only.
