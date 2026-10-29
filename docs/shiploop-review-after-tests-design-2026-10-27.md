@@ -1060,8 +1060,17 @@ case's step. So step 2 runs as three sub-steps, each a commit whose tests pass, 
     none), fixed by following the code's own predicate; and `shiploop-package-integrity`, because `references/test-loop.md`
     went from 8,186 to 8,990 bytes against the 8,192 card bound across three lanes' additions, trimmed to 8,096 in step 3.
     A lesson for the next integration: run the quick tier on the merged tip, not the lanes' own lists.
-  - **The whole shiploop group** runs once on `cc3acd27`, four suites at a time, after the machine's load average is
-    below 30 (a timeout under load proves nothing); its result is recorded below when it ends.
+  - **The whole shiploop group on `cc3acd27`** (109 suites, four at a time, started once the load average was below 30):
+    107 passed in 2,062 s of wall time. Two did not:
+    - `shiploop-e2e-brownfield-tickets` failed one follow-on check in the parallel run (the case starts a product server
+      while another session's round held ports). It passes alone, in full (24 tests, 90 s).
+    - `shiploop-chain-lifecycle` hit the runner's 1,800 s limit. Alone it passes (52 tests, 1,744 s). Run at the same time
+      on design T and on main `e064e875`, it took 1,529 s and 1,527 s, with the same user and system time, so the stack
+      does not slow it; the suite needs about 1,500 s on this machine and sits near its limit on main as well (an earlier
+      measurement on a calmer machine was 803 s). That is a CI risk for main, not for this stack.
+    The README and the fix to two of its sentences came after that run; every suite that reads the README passes with
+    them (navigator-contract 142, callback-contract 88, delegation, cross-run, chain-handoff, domain-words, confirmation,
+    package-integrity).
 - **2c. The ask-agent route** gets the same step boundaries (G1).
   **2c design, 2026-10-28: nothing built. The owner decided G1 on 2026-10-29: adopt (a2)** (the decision and what it
   builds are at the end of this item). The question G1 left open: the iteration is serial, but the chain builds
