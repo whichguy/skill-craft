@@ -24,6 +24,7 @@ began, through `c59c4809`.
 | E3 | Where does a packet tell the model to call back? | [packet_position.py](shiploop-owed-outcome-evidence/packet_position.py), `graph-dry-run --scenario delivery --format markdown`, W1 verify packet | 18,317 characters; callback at 5%; 7 mentions, all at or before 57%; nothing after the RULES block repeats it ([output](shiploop-owed-outcome-evidence/packet_position.out)) | firm for the dry-run rendering |
 | E4 | Does a ShipLoop command between two stops reset the hook's memory? | [rebind_repro.py](shiploop-owed-outcome-evidence/rebind_repro.py), real run in a temp dir, recorded Claude payloads, no live host | Yes: `shiploop next` between stops empties the binding's `last_block_progress` and `turn_blocks`, so the next stop blocks again; a loop-runtime command does not, so the next stop is released ([output](shiploop-owed-outcome-evidence/rebind_repro.out)) | firm |
 | E5 | Can the Until Loop runtime tell finished work from work not started? | [loop_next_probe.py](shiploop-owed-outcome-evidence/loop_next_probe.py), real `start --receipt`, work done without `done` | No: `next_argv` returns a byte-identical instruction; it is execute-then-report with a "recheck artifacts" guard ([output](shiploop-owed-outcome-evidence/loop_next_probe.out)) | firm |
+| E6 | Where do models dry-run `complete --check-only`, and is a `complete` refused after a passing one? (2026-10-28) | [trace_check_pairs.py](shiploop-owed-outcome-evidence/trace_check_pairs.py) over the run traces of arm A, the owner-note hello run and the six arm B slices | Inner stages: about one dry run per `complete`, and every inner `complete` accepted (arm A 35 of 35). Outer stages: a dry run before each `complete` (arm A 29, hello 17). Refused right after a passing dry run: 5; 4 outer in the full runs, and 1 inner in arm B owed 1 (test-spec, an outcome the stage does not allow: that rule is in `check_terminal`, which the dry run skips) ([output](shiploop-owed-outcome-evidence/trace_check_pairs.out)) | firm counts, two full runs and six slices |
 
 ## Findings
 
@@ -821,6 +822,19 @@ free the run; the host's own session-end event can.
   - each host's generated hooks file runs the session-end script and releases.
   - Fail-first: with `session_end` stubbed, all three behaviour tests fail.
 
+## Phases B and C: plan (2026-10-28, awaiting the owner's approval)
+
+[The plan](shiploop-check-phases-bc-plan-2026-10-28.md) names every file, symbol, test and removal for B (one
+evaluator, `shiploop check`) and C (the loop ends when the check says yes), the measure and the decisions D1-D8.
+
+- **F18, firm (E6).** A dry run before an inner `complete` is already the norm, and no inner `complete` was refused
+  in arm A. The `verify_script` that C makes mandatory takes the dry run's place, so commands per inner step should
+  not fall; the plan pre-registers M1 as unchanged within ±1. The repeated gates are at the outer stages, where the
+  callback line (`shiploop_prompts.CALLBACK_REASON`) invites a dry run before every `complete` (plan decision D3).
+- **F19, firm.** No live ShipLoop run has run an Until Loop `verify_script` (0 `UNTIL-LOOP-RECORDED` lines in arm A's
+  and arm B's event streams), so C's mechanism is untested on any model; the plan puts a one-slice pilot before
+  C's batch.
+
 ## Review: Astra at max effort on v2 and v3 (2026-10-27)
 
 Two runs, `gpt-6-astra`, effort max, no fallback; questions and answers in
@@ -856,3 +870,4 @@ tree hash excludes.
 - 2026-10-28: intent audit I1-I13 added, anchored in code with four test files and the new retry-carry probe.
 - 2026-10-28: corrected the experiments' provenance: E3-E5 were rerun at `821db5c0` before the commit, not only run
   at `b0d29284`; four commits from other sessions had landed on main in between, none touching the traced code.
+- 2026-10-28: E6 (dry runs per stage, from the run traces), F18-F19 and the phases B and C plan added.
