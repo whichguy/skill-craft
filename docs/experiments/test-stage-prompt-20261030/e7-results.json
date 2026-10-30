@@ -1,6 +1,1524 @@
 {
- "about": "E7 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §7b): each scored sample of ~/e2e-runs/e7-20261030 (Codex gpt-6.1-terra xhigh, arms on 7fce12e4) and each decision record; value = the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines the slice wrote (evaluators/e7_tests.py).",
+ "about": "E7 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §7b, §7c): each scored sample of ~/e2e-runs/e7-20261030 (Codex gpt-6.1-terra xhigh, arms on 7fce12e4) and each decision record; value = the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines against the seed commit (evaluators/e7_tests.py). E7-K2 rows add implement_sites: the limit and guard sites on implement's own tree (its step proof), 0 or 1 when implement wrote no load guard and the test stage did. E7-F rows (seeded at the test stage from E7-K2 A/6, tree a45625d3) add product_as_recorded: the test stage left the recorded implementation's files byte for byte and changed no other src/ file.",
  "samples": [
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 1,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 9.0,
+   "stand_in_fraction": null,
+   "test_seconds": 92.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 93.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 2,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 88.0,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 88.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 3,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 93.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 4,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 79.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 80.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 5,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 94.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.9,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 90.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 91.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 7,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 76.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 77.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 14.33,
+   "stand_in_fraction": null,
+   "test_seconds": 110.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 111.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 1,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 80.0,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 80.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 2,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.5,
+   "stand_in_fraction": null,
+   "test_seconds": 82.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 82.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 3,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 7,
+   "mean_titles_per_id": 2.33,
+   "asserts_per_title": 6.57,
+   "stand_in_fraction": null,
+   "test_seconds": 78.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 78.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 4,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.67,
+   "asserts_per_title": 8.4,
+   "stand_in_fraction": null,
+   "test_seconds": 77.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 78.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 5,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 68.5,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 69.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 11.5,
+   "stand_in_fraction": null,
+   "test_seconds": 100.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 100.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 7,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 87.9,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 89.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.67,
+   "asserts_per_title": 7.8,
+   "stand_in_fraction": null,
+   "test_seconds": 76.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 77.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 1,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 14.0,
+   "stand_in_fraction": null,
+   "test_seconds": 97.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 97.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 2,
+   "value": 0.8333,
+   "target_total": 6,
+   "target_survived": 1,
+   "all_total": 14,
+   "all_survived": 1,
+   "all_ratio": 0.9286,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.75,
+   "stand_in_fraction": null,
+   "test_seconds": 106.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 106.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 3,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.67,
+   "stand_in_fraction": null,
+   "test_seconds": 94.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 4,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 13.0,
+   "stand_in_fraction": null,
+   "test_seconds": 89.5,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 90.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 5,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.67,
+   "asserts_per_title": 6.6,
+   "stand_in_fraction": null,
+   "test_seconds": 95.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 96.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 93.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 7,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 97.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 97.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.25,
+   "stand_in_fraction": null,
+   "test_seconds": 106.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 107.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true
+  },
   {
    "experiment": "E7-K1",
    "arm": "A",
@@ -1031,7 +2549,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1103,7 +2622,8 @@
      "op": "logic-flip",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 1
   },
   {
    "experiment": "E7-K2",
@@ -1181,7 +2701,8 @@
      "op": "logic-flip",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -1235,7 +2756,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1313,7 +2835,8 @@
      "op": "logic-flip",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -1379,7 +2902,8 @@
      "op": "rel-bound",
      "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -1457,7 +2981,8 @@
      "op": "logic-flip",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -1517,7 +3042,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1571,7 +3097,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1631,7 +3158,8 @@
      "op": "rel-bound",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1685,7 +3213,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1739,7 +3268,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 0
   },
   {
    "experiment": "E7-K2",
@@ -1793,7 +3323,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 0
   },
   {
    "experiment": "E7-K2",
@@ -1853,7 +3384,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -1919,7 +3451,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee !== ticket.assignee.trim() || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -1979,7 +3512,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2033,7 +3567,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2093,7 +3628,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2171,7 +3707,8 @@
      "op": "logic-flip",
      "text": "ticket.assignee.length > 64 || ticket.assignee !== ticket.assignee.trim() || /[\\u0000-\\u001f\\u007f]/"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2237,7 +3774,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee !== ticket.assignee.trim() || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2291,7 +3829,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2345,7 +3884,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2405,7 +3945,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2465,7 +4006,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2531,7 +4073,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 0
   },
   {
    "experiment": "E7-K2",
@@ -2597,7 +4140,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2663,7 +4207,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee === '' || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assigne"
     }
-   ]
+   ],
+   "implement_sites": 0
   },
   {
    "experiment": "E7-K2",
@@ -2710,7 +4255,8 @@
     "src/templates.js",
     "src/tickets/validate.js"
    ],
-   "target_survivors": []
+   "target_survivors": [],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2764,7 +4310,8 @@
      "op": "rel-bound",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2830,7 +4377,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -2884,7 +4432,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -2950,7 +4499,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 1
   },
   {
    "experiment": "E7-K2",
@@ -3016,7 +4566,8 @@
      "op": "rel-bound",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
     }
-   ]
+   ],
+   "implement_sites": 6
   },
   {
    "experiment": "E7-K2",
@@ -3070,7 +4621,8 @@
      "op": "logic-flip",
      "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -3130,7 +4682,8 @@
      "op": "rel-bound",
      "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
     }
-   ]
+   ],
+   "implement_sites": 5
   },
   {
    "experiment": "E7-K2",
@@ -3202,10 +4755,68 @@
      "op": "logic-flip",
      "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
     }
-   ]
+   ],
+   "implement_sites": 7
   }
  ],
  "decisions": [
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    0.58335
+   ],
+   "spread": 0.0,
+   "difference": -0.020837499999999953,
+   "verdict": "contradicts",
+   "reason": "no better: mean 0.58 vs 0.60"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "D"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    0.6250125
+   ],
+   "spread": 0.0,
+   "difference": 0.020824999999999982,
+   "verdict": "supports",
+   "reason": "mean 0.63 vs 0.60: +0.02 beyond the A/A spread 0.00"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "D",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6250125,
+    0.58335
+   ],
+   "spread": 0.16664999999999996,
+   "difference": -0.041662499999999936,
+   "verdict": "contradicts",
+   "reason": "no better: mean 0.58 vs 0.63"
+  },
   {
    "experiment": "E7-K1",
    "arms": [
