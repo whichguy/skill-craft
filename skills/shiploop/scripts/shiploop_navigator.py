@@ -219,6 +219,7 @@ __all__ = [
     "handoff_sources",
     "PROTOCOL_VERSION",
     "STATE_VERSION",
+    "accept_effects",
     "apply",
     "control",
     "current_action",
@@ -9493,6 +9494,46 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     return gate_lines, preparatory
 
 
+def accept_effects(core: Any, root: Path, before: Mapping[str, Any], after: dict[str, Any], *,
+                   action_id: str | None = None, preparatory: list[str] | None = None,
+                   extra_writes: Mapping[str, str] | None = None, terminal_closed: bool = False,
+                   advance: bool = True) -> dict[str, Any]:
+    """Run the script-owned effects of a state change whose gates have passed, and return the state saved.
+
+    ``dispatch`` calls it for each change it accepts: a producer's ``complete``, an Improve import and a control verb.  A
+    harness that records synthetic results calls it once per recorded stage, with the state before ``apply`` as ``before``
+    and the state after ``apply`` (and ``finish_improve``, when the stage starts an Improve stage) as ``after``, so a seeded
+    run carries what a real one does.  It runs no gate, and the caller holds the run lock.  The order is the transition
+    hooks, the save, the lint finish, the two commits, the knowledge commit, then the iteration record.
+
+    - ``action_id``: the accepted action, which the two commits read in ``after["accepted"]``; required with ``advance``.
+    - ``preparatory``: the paths validate-existing's gate returned for its preparatory fix; a seed has none.
+    - ``extra_writes``: run-directory files saved with the state (the Improve import's evidence); they win a clash.
+    - ``terminal_closed``: the caller already ran the fail-closed terminal knowledge close; skips the close after the save.
+    - ``advance`` False (a control verb): no transition hooks, no commit of an accepted result; the save, lint finish,
+      knowledge close and iteration record still run.
+
+    ``core`` is read only for ``PACKAGE_ROOT``, which an Improve stage's files use to name callbacks and references.  A
+    harness passes ``types.SimpleNamespace(PACKAGE_ROOT=<the shiploop skill folder>)``; ``None`` names the bare ``shiploop``
+    command there.  A stage the transition records done by script (validate-existing with every check matching) is never
+    issued: find it among ``after["history"][len(before["history"]):]``, where ``current_stage`` already stands past it.
+    """
+    _need(not advance or action_id is not None, "accept_effects needs the accepted action id to advance")
+    payload = None
+    writes: dict[str, str] = {}
+    if advance:
+        after, writes, payload = _transition(core, root, before, after)
+    save(root, after, {**writes, **(extra_writes or {})})
+    _lint_finish(root, payload)
+    if advance:
+        _preparatory_commit(root, before, after, action_id, preparatory or [])
+        _skill_commit(root, before, after, action_id)
+    if not terminal_closed:
+        _knowledge_close(before, after, root)
+    _iteration_entry(root, before, after)
+    return after
+
+
 def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
              *, completion_guard: Any = None) -> int:
     """Execute one navigator CLI verb; callers hold the run lock."""
@@ -9659,15 +9700,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         raise NavigatorError("selected Improve bridge lacks stopped-child settlement") from exc
                     updated = reconcile(state, action_id, record, receipt)
             if updated != state:
-                # An Improve completion can start a new work item's inner loop
-                # (the end review may add work items); the hook captures its base.
-                updated, lint_writes, lint_payload = _transition(core, root, state, updated)
-                save(root, updated, {**lint_writes, **extra_writes})
-                _lint_finish(root, lint_payload)
-                # The last item's carry-forward is accepted only when its end review completes: commit its skill here.
-                _skill_commit(root, state, updated, action_id)
-                _knowledge_close(state, updated, root)
-                _iteration_entry(root, state, updated)
+                # An Improve completion can start a new work item's inner loop (the end review may add work items); the
+                # transition captures its base.  The last item's carry-forward is accepted only when its end review
+                # completes: its skill is committed here.
+                updated = accept_effects(core, root, state, updated, action_id=action_id, extra_writes=extra_writes)
             if not_enforced is not None:
                 import shiploop_skill_calls as skill_calls
                 skill_calls.note_not_enforced(root, improve_id(state), not_enforced)
@@ -9781,17 +9817,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     if updated != state:
         # Only ``complete`` advances the graph here; an Improve import runs its own transition above.
         if command == "complete":
-            updated, lint_writes, lint_payload = _transition(core, root, state, updated)
+            updated = accept_effects(core, root, state, updated, action_id=action_id, preparatory=preparatory,
+                                     terminal_closed=terminal_knowledge_closed)
         else:
-            lint_writes, lint_payload = {}, None
-        save(root, updated, lint_writes)
-        _lint_finish(root, lint_payload)
-        if command == "complete":
-            _preparatory_commit(root, state, updated, action_id, preparatory)
-            _skill_commit(root, state, updated, action_id)
-        if not terminal_knowledge_closed:
-            _knowledge_close(state, updated, root)
-        _iteration_entry(root, state, updated)
+            updated = accept_effects(core, root, state, updated, advance=False)
     emit(core, root, updated)
     # After the packet, not before it: the status display reads a print that starts at the packet's header.
     for line in gate_lines:
