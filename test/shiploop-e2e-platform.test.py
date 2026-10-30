@@ -204,7 +204,10 @@ class PlatformCase(unittest.TestCase):
         auth.write_text("{}")
         saved, hosts.GROK_AUTH = hosts.GROK_AUTH, auth
         self.addCleanup(setattr, hosts, "GROK_AUTH", saved)
-        patched = mock.patch.dict(os.environ, {"HOME": str(self.real_home), "PLAT_LOG": str(self.plat_log),
+        # Lease bookkeeping belongs to this test, outside the credential HOME whose shell files we inspect.
+        patched = mock.patch.dict(os.environ, {"HOME": str(self.real_home),
+                                               "XDG_STATE_HOME": str(self.tmp / "state"),
+                                               "PLAT_LOG": str(self.plat_log),
                                                "PLAT_MODEL_MARK": str(self.tmp / "model-started")})
         patched.start()
         self.addCleanup(patched.stop)
@@ -2692,7 +2695,7 @@ class ResumeGateTest(PlatformCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.object(run, "released_versions", return_value=self.AHEAD):
-            run.main(["--host", "grok", f"--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
         return printed.getvalue()
 

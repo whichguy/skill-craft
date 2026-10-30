@@ -188,6 +188,21 @@ class LifecycleCase(unittest.TestCase):
 
 
 class LeaseTest(LifecycleCase):
+    def test_different_prefixes_on_one_org_cannot_overlap_but_another_org_can(self):
+        first_keys = lifecycle.lease_keys({"kind": "salesforce", "org": "de", "prefix": "RunA"})
+        second_keys = lifecycle.lease_keys({"kind": "salesforce", "org": "de", "prefix": "RunB"})
+        first = lifecycle.take(first_keys, {"pid": os.getpid(), "case": "first"})
+        self.addCleanup(first.close)
+        with self.assertRaises(lifecycle.Refused):
+            unexpected = lifecycle.take(second_keys, {"pid": os.getpid(), "case": "second"})
+            self.addCleanup(unexpected.close)
+        other = lifecycle.take(lifecycle.lease_keys({"kind": "salesforce", "org": "other", "prefix": "RunB"}),
+                               {"pid": os.getpid(), "case": "other"})
+        self.addCleanup(other.close)
+        first.close()
+        following = lifecycle.take(second_keys, {"pid": os.getpid(), "case": "following"})
+        following.close()
+
     def test_a_conflicting_lease_is_refused_naming_its_holder_and_is_free_once_the_holder_dies(self):
         holder = self.hold("platform-salesforce-de-SLChess")
         with self.assertRaises(lifecycle.Refused) as refused:
@@ -243,7 +258,7 @@ class LeaseTest(LifecycleCase):
 
     def test_the_keys_are_the_platform_state_and_the_declared_ports(self):
         self.assertEqual(lifecycle.lease_keys({"kind": "salesforce", "org": "de", "prefix": "SLChess"}, [3000, 3000]),
-                         ["platform-salesforce-de-SLChess", "port-3000"])
+                         ["platform-salesforce-de", "platform-salesforce-de-SLChess", "port-3000"])
         self.assertEqual(lifecycle.lease_keys(None, []), [])
         self.assertEqual(run.case_quality("battleship-scoring").get("refuse_ports"), [3000], "a follow-on inherits the ports")
 

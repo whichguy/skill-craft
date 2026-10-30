@@ -111,27 +111,62 @@ def roles_for(prediction: dict, exposing: str, generality: str | None) -> dict[s
 
 
 def launch_all(root: Path, plugins: dict[str, Path], parallel: int, logs: Path) -> list[str]:
-    """Launch every not-yet-launched attempt, at most `parallel` at once, each in its own epoch.py process (the run
-    harness is not shared between threads). Returns the attempts whose launch process failed."""
+    """Launch ready attempts, at most `parallel` at once, each in its own epoch.py process.
+
+    Attempts for one declared platform target wait for the prior run's sealed clean cleanup. Attempts that stay blocked
+    after unrelated work finishes remain undispatched and have the reason written to their launch log. The return value
+    remains the IDs of processes that exited unsuccessfully.
+    """
     logs.mkdir(parents=True, exist_ok=True)
     pending = [row for row in epoch.state(root)["attempts"] if row["status"] == "not_launched"]
-    running: list[tuple[str, subprocess.Popen]] = []
+    reg = epoch.registration(root)
+    targets: dict[str, tuple[str | None, str | None]] = {}
+    running: list[tuple[str, str | None, subprocess.Popen]] = []
+    active_targets: dict[str, str] = {}
     failed = []
     while pending or running:
         while pending and len(running) < parallel:
-            row = pending.pop(0)
-            log = (logs / f"{row['id']}.log").open("w")
-            process = subprocess.Popen([sys.executable, "-B", str(HERE / "epoch.py"), "launch", "--output", str(root),
-                                        "--attempt", row["id"], "--plugin-dir", str(plugins[row["arm"]])],
-                                       cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
-            running.append((row["id"], process))
+            ledger_rows = epoch.events(root)
+            reasons = {}
+            selected = None
+            for index, row in enumerate(pending):
+                key, problem = epoch.target_launch_state(root, row["id"], reg=reg, rows=ledger_rows, targets=targets)
+                if problem:
+                    reasons[row["id"]] = problem
+                    continue
+                if key is not None and key in active_targets:
+                    reasons[row["id"]] = f"platform target {key} is active for {active_targets[key]}"
+                    continue
+                selected = (index, row, key)
+                break
+            if selected is None:
+                if not running:
+                    for row in pending:
+                        reason = reasons.get(row["id"]) or "platform target state is unresolved"
+                        with (logs / f"{row['id']}.log").open("a") as log:
+                            log.write(f"launch blocked: {reason}\n")
+                    pending.clear()
+                break
+            index, row, key = selected
+            pending.pop(index)
+            command = [sys.executable, "-B", str(HERE / "epoch.py"), "launch", "--output", str(root),
+                       "--attempt", row["id"], "--plugin-dir", str(plugins[row["arm"]])]
+            with (logs / f"{row['id']}.log").open("w") as log:
+                process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
+                                           stdin=subprocess.DEVNULL)
+            running.append((row["id"], key, process))
+            if key is not None:
+                active_targets[key] = row["id"]
             time.sleep(2)  # distinct run starts: promotion refuses two attempts with the same start
-        for attempt, process in list(running):
+        for attempt, key, process in list(running):
             if process.poll() is not None:
-                running.remove((attempt, process))
+                running.remove((attempt, key, process))
+                if key is not None and active_targets.get(key) == attempt:
+                    del active_targets[key]
                 if process.returncode != 0:
                     failed.append(attempt)
-        time.sleep(5)
+        if running:
+            time.sleep(5)
     return failed
 
 
@@ -169,12 +204,28 @@ def qualify_built(root: Path, record: str, prediction_file: Path, control_plugin
     predicted = epoch.state(root)["prediction"]
     learning_records.append("predicted", record, ledger, prediction=predicted, candidate=candidate_ref or candidate,
                             epoch=str(root))
-    failed = launch_all(root, {"control": control_plugin, "candidate": candidate_plugin}, args.parallel,
-                        root.parent / f"{root.name}-launch-logs")
+    launch_logs = root.parent / f"{root.name}-launch-logs"
+    failed = launch_all(root, {"control": control_plugin, "candidate": candidate_plugin}, args.parallel, launch_logs)
     unknown = [row["id"] for row in epoch.state(root)["attempts"] if row["status"] in ("unknown_launch", "not_launched")]
     if unknown:
-        return {"decision": "UNKNOWN_LAUNCH", "reasons": [f"attempts not sealed: {', '.join(unknown)} (launch failures "
-                f"{', '.join(failed) or 'none'}); reconcile them, never retry"], "opened": [],
+        target_blocks = []
+        blocked_ids = set()
+        for attempt in unknown:
+            try:
+                lines = (launch_logs / f"{attempt}.log").read_text().splitlines()
+            except OSError:
+                continue
+            for line in lines:
+                if line.startswith("launch blocked: "):
+                    blocked_ids.add(attempt)
+                    target_blocks.append(f"{attempt}: {line.removeprefix('launch blocked: ').strip()}")
+        details = []
+        if target_blocks:
+            details.append("target blocks: " + "; ".join(target_blocks))
+        process_failures = [attempt for attempt in failed if attempt not in blocked_ids]
+        details.append("launch failures: " + (", ".join(process_failures) or "none"))
+        return {"decision": "UNKNOWN_LAUNCH", "reasons": [f"attempts not sealed: {', '.join(unknown)} ({'; '.join(details)}); "
+                "reconcile them, never retry"], "opened": [],
                 "control_build": control, "candidate_build": candidate}
     opened = [] if args.skip_reviews else review_all(root, ledger, cases_generality(cases, args))
     with epoch.locked(root, epoch.INTENT_WAIT):

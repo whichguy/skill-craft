@@ -4497,3 +4497,36 @@ free of product documentation?
 - P1-P6 of `docs/shiploop-document-stage-proposal-2026-10-30.md`: this round checks P0 alone.
 
 This entry is the commit after the P0 change, which is what `scripts/release.py`'s E2E-round preflight reads.
+
+## Deployed state between attempts (2026-10-30) — status: dispatch barrier verified; full reset remains unmet
+
+The owner requires clearing test data, schema and deployed artifacts between iterations. Fresh local files and browser
+profiles do not establish that a deployed system is clean. The shared Salesforce helpers currently check a bounded
+metadata inventory and permission state; they cannot establish a full schema, record and deployed-source reset while
+preserving unrelated apps. A disposable target versus bounded shared-org cleanup remains an owner decision.
+
+The first fix prevents consuming the next attempt before cleanup. The stage-2 scheduler from `d8f25be5` could overlap
+different prefixes on one org, and an epoch accepted another launch without requiring the prior cleanup. A frozen
+fail-first run reproduced five epoch rejection subcase failures, two scheduler failures and one lease failure. One
+unclean target spawned four attempts instead of one. Physical leases now include the declared kind/org as well as the
+legacy prefix key. Campaigns queue same-target attempts and require prior sealed results recording cleanup that ran,
+succeeded and did not keep the platform. Blocked attempts remain unlaunched; local and other-target work can continue.
+A product failure with successful cleanup releases the target.
+
+Verification: epoch 27, cycle 11, lifecycle 20 and platform 166 tests pass (224 total); Ruff F/E9 and diff checks pass.
+The independent review found no correctness or deadlock issue and prompted an explicit unfinished-kept cleanup subcase.
+The initial green execution retained an epoch exit-capture gap and an incorrect Ruff environment invocation; the focused
+correction captured epoch exit 0 and used the installed Ruff binary. Both executions remain retained. Two pre-existing
+platform fixture failures were fixed by isolating XDG_STATE_HOME outside the simulated credential home; assertions were
+preserved. Source fingerprints were unchanged within each execution.
+
+Evidence: `~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/`, directories
+`state-barrier-fail-first-01`, `state-barrier-green-01` and `state-barrier-green-02`. The first green snapshot is
+`da6855d0cfee6ee124e522db34ebbf75f984b95f6cdd98d1ca9918eedc9ee9f5`; the focused snapshot is
+`1179616d24def2864ebcbcd3354d3d6a4b49a2d68d3f88b448cf4b58ed2cc4a5`. The difference is the added epoch test subcase
+and explanatory SPEC/README lines; production code is identical. This journal entry follows those checks.
+
+The measured benefit is preventing unsafe dispatch in the hermetic fixtures. No live reset, throughput improvement,
+token savings or dollar savings was measured. Same-org execution is deliberately serialized. Declared aliases are not
+canonical org identity, and older harness versions do not take the new org-wide lease. This change does not broaden
+deletion, qualify incomplete reset coverage, alter historical verdicts or adopt the unqualified ShipLoop product candidate.

@@ -800,6 +800,22 @@ E2E runs are long, so the loop spends its waiting time in parallel.
 
 ## The resource lifecycle (added 2026-10-26)
 
+**Deployed state between iterations (owner requirement, 2026-10-30).** A deployed E2E attempt must start from its declared
+clean baseline and finish with verified cleanup before another attempt reuses that target. The state boundary includes
+test data, custom schema, deployed artifacts and permissions, not only the local workspace or browser session. Missing,
+failed, incomplete or deliberately skipped cleanup is not a clean finish; a kept app must not silently become the next
+attempt's baseline. Preserve the failed attempt and its evidence rather than consuming another attempt on a dirty target.
+
+State ownership and coverage must be explicit. Cleanup must preserve unrelated state in a shared system. A prefix and a
+metadata-name comparison do not establish that all records, fields or deployed bytes were reset. Uncovered state remains
+unverified; a full-system reset requires a target and reset mechanism that can actually establish it. The current shared-org
+Salesforce helpers do not establish a full schema-and-data reset. That requirement remains unmet until its target strategy
+and coverage are verified; do not describe the dispatch barrier alone as complete state isolation.
+
+Fresh local files or browser data also do not establish a fresh deployed variant for an inner baseline or mutation check.
+Record which executable target was exercised, and leave unavailable discrimination unmeasured. This requirement changes
+neither historical frozen verdicts nor ShipLoop's loop limits.
+
 Anchor: build step 7 of the final verdict on the loop's design (`docs/shiploop-e2e-loop-recommendations-2026-10-25.md`, R19
 and R20 as Astra amended them), and the owner's rule that no run starts polluted
 (`docs/shiploop-e2e-self-improving-loop-design-2026-10-25.md`, "Setup and teardown"). Basis: the Grok host that worked for
@@ -840,8 +856,15 @@ steps. `lifecycle.py` is the one place that does both.
   What it removed is recorded in the ledger. Disposal is never automatic: whoever inspects the run decides when.
 - **Leases (R20).** Before a host starts, the harness leases the controlled resources another run would conflict on, all or
   none:
-  - the case's platform state, by kind, org and prefix (`platform-salesforce-de-SLChess`);
+  - the case's declared platform target, by kind and org (`platform-salesforce-de`), and its existing prefix key
+    (`platform-salesforce-de-SLChess`). Different prefixes on one declared target cannot overlap; retaining the prefix
+    key also preserves the existing exact-prefix exclusion;
   - the case's declared fixed ports (`quality.refuse_ports`, inherited by a follow-on: 3000 for Battleship and Checkers).
+
+  Within an epoch, the campaign queues attempts on the same declared target. Before recording another launch intent, it
+  requires every earlier launch on that target to have sealed run evidence whose cleanup ran, succeeded and did not keep
+  the platform. A failed product test can release a cleaned target. Blocked attempts stay unlaunched with a recorded reason;
+  independent targets may continue. This checks the cleanup receipt, not the completeness of the case's reset coverage.
 
   A lease is an exclusive `flock` on a file in one folder for the machine: `$SHIPLOOP_E2E_LEASES`, else
   `${XDG_STATE_HOME:-~/.local/state}/shiploop-e2e/leases`. The harness holds it while it lives, so the kernel gives it back
