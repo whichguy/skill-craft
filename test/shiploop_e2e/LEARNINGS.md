@@ -4691,3 +4691,26 @@ corrections the answer made to earlier claims, so that they live in the reposito
 **Evidence.** cycle.py and epoch.py at 63370382654f9e517b1c70e27b84b29713cb4c82; baselines.jsonl; spread.py's tests
 (test/shiploop-e2e-learning-records.test.py, SpreadTest); `git diff --numstat d98451fbacaafec18c874f25aa4a69f15b9dbc0c
 2ec11f846a5f196db4372c8badfc7c05807827c3` and the per-file line counts at both commits for the size figures; the plan's "Where it stands" section below its build order.
+
+## Would a stack-reference cache or lint skill pay? Offline check on stored runs (2026-10-29) — status: firm for Terra brownfield; interim elsewhere
+
+**Question.** Owner asked whether prepackaged lookups (a cached stack-reference file, a find-linters skill) would speed up ShipLoop's discovery and
+planning. **Method (no new run).** `metrics.json` `stages` of the 12 stored Codex Terra xhigh brownfield runs under
+`~/e2e-runs-brownfield/20261029/` (r1, r2, hooks-before, hooks-after; versions 1.20.0-1.22.0), cold (`ticket-assignment`, `user-listing`) against warm
+(`ticket-escalation`, which follows `ticket-assignment` and inherits its `docs/shiploop/` home — the cache already built, by the knowledge home).
+Also the two stored hello traces (1.12.0, 1.13.1) and the Luna/DeepSeek journal entries above.
+
+**Result (firm for Terra brownfield, n = 12 runs).**
+- Planning (intake to prepare) takes 2.7-4.1 min of 9.7-24.1 min per run; `discovery` + `research` together take 27-49 s (5-9 tool calls), about 3-4% of the run.
+- Warm against cold, same model: `discovery` + `research` 35, 35, 33, 27 s against 49, 43, 44, 32 s, so a populated home saves 5-14 s a run (1-2 tool calls).
+  The ceiling for any lookup cache on these cases is therefore about 10 s; a new cold-versus-warm A/B would measure noise (stage times vary 2x between identical reruns).
+- hello (greenfield, Sonnet): `discovery` + `research` are 2-4% of wall time; Improve children are 41%. Luna xhigh heavy runs (older entries): Improve children 54%,
+  `test-strategy` up to 142 min, `discovery` 12-18 min — that time is reasoning and reading, not lookup, per the 2026-10 tiling entry.
+- Lint is already script-owned (`shiploop_lint.py`, `lint-catalog.md`: item-base snapshot, changed-line gate, 14 discovered linters). The catalog's own gaps are Rust,
+  Dockerfile (name matching), C#, Java, SQL.
+
+**Decision (routine, session-owned).** No cache mechanism and no new skill; no A/B launched (no headroom, avoids spend). Revisit only on a stack-heavy case whose
+`discovery`/`research` exceed ~5 min (hosted-platform runs, `chess-salesforce`): then seed `docs/shiploop/environment.md` with as-of-dated facts and compare stage seconds.
+Next-biggest levers are the Improve review children and packet size (15-33 KB per packet), not lookups.
+
+Evidence: `metrics.json` of the runs named above; `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.1{2.0,3.1}/trace.jsonl`; memory `todo-cached-stack-references` (the TODO this answers).
