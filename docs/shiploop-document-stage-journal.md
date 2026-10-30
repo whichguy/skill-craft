@@ -124,3 +124,34 @@ allowed for exploratory rounds; one Opus 5.5 judge per round.
   output and a historical audit; no real stale mention in a living doc.
 - **Finding E2-1 (measured).** High recall on renames, low noise on ordinary commits, judgement needed after large
   refactors: advisory packet text, never a gate.
+
+## 5. Changes made
+
+### C1: P0, the document loop's scope names the documentation files, 2026-10-30
+
+- **What changed.** `shiploop_loops._build` gives the document stage its own `scope`: the step plan's paths, the
+  documentation files this step's change affects (`shiploop_loops.DOC_FILES`, the `docs` path class's globs), and
+  docs/shiploop/ for the knowledge record, with "Product documentation (README, API, user and operator docs) stays
+  with the product, never in docs/shiploop/". The other stages that used the default scope (test-spec,
+  validate-existing, test, carry-forward) are unchanged. Change note:
+  `changes/shiploop/document-loop-scope-names-docs.md` (patch).
+- **Design choice.** The first version read the globs from `references/path-classes.json` at contract time. The
+  quick tier refused it: `test/shiploop-guidance.test.py` (`_knowledge_reads_only`) lets a packet render read only
+  the knowledge home and the run baseline, and 9 of its tests failed with "render read evidence: .../path-classes.json".
+  The globs are now a constant, and the test pins them equal to the catalog's `docs` class, so the two cannot drift.
+- **Why.** L3: the old scope allowed only the step plan's paths and docs/shiploop/, while `ITEM_COMMITS` and
+  `commit_scope` commit changed documentation files outside the declared paths. Codex Terra on the ask-agent route
+  followed the scope.
+- **Test.** `test/shiploop-loops.test.py`,
+  `test_document_scope_admits_every_file_the_item_commit_takes_and_no_undeclared_code`: runs the real
+  `commit_scope` over declared code, README.md, docs/api.md, an .rst guide, CHANGELOG.md, LICENSE, a nested README,
+  docs/shiploop/spec.md and one undeclared code file, then checks that the scope admits each committed path and that
+  its globs do not admit the undeclared code file. It also checks that the scope's glob list equals `DOC_FILES` and
+  the catalog's `docs` class. Quick tier (`test/run-all.sh --group quick --changed-from 7fce12e4`): 30 of 30 suites
+  pass, among them shiploop-loops, shiploop-guidance and shiploop-navigator-contract. It fails on the old scope (no documentation globs listed) and
+  passes on the new one.
+- **Known gap (not fixed).** The `test` path class comes before `docs`, so an undeclared Markdown file under a test
+  folder matches the scope's `**/*.md` but `commit_scope` leaves it uncommitted. No run has written one; the test checks
+  the direction that bit (everything committed is in scope).
+- **Not yet verified live.** No E2E round has run on the new scope. The proposal's §5 round on Codex Terra (ask-agent
+  and inline) would show whether the README is now updated; status of L3's fix: interim until that round.
