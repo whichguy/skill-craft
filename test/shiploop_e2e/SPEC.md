@@ -23,9 +23,9 @@ generically; nothing in the engine may know which probe exposed it.
 Each iteration: run a case on exactly what the marketplace publishes, measure,
 review against this spec, fix ShipLoop generically, release and refresh the
 marketplace install (see the harness rules), rerun,
-record what was learned (one commit per run; read the last three commit
-messages before the next run or change), and update the Run Review page with
-the run's data.
+record what was learned (one commit per run; before the next run or change,
+read the open learning records and the last three commit messages), and update
+the Run Review page with the run's data.
 
 ## Design clauses
 
@@ -54,6 +54,15 @@ The active spec is curated accepted guidance. Learning/decision records are time
 supporting and contrary evidence. A lesson's admission decision and its implementation/verification status are separate:
 an accepted requirement can remain unmet. Candidate fixes stay within current authority; harness/measurement proposals
 follow a separate evaluator experiment. Semantic judgment cannot manufacture a passing script-run check.
+
+**Learning records and predictions (amended 2026-10-30; docs/shiploop-e2e-closed-loop-plan-2026-10-30.md, owner
+decision D2).** The learning records live in `test/shiploop_e2e/learning-records.jsonl`, appended only by the harness. They
+are read alongside the last three commit messages, never in their place. Until that file exists, the commit messages are
+the only record read. A candidate change carries one prediction, registered before its first attempt runs: the measure
+it is expected to move, on which case, in which direction and by at least how much. "No worse" alone is not a
+prediction. The prediction's verdict (confirmed, refuted, no effect or unknown) is recorded beside the promotion decision
+and never replaces it. A promoted change whose prediction is not confirmed keeps its learning record open, because the
+gain is not yet explained.
 
 New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
 are separate Astra xhigh sessions; Sol 6.1 xhigh is the improver and Terra 6.1 xhigh is the default test subject. The
@@ -402,6 +411,12 @@ the plan item and summarised in the commit message:
   suite that confirms it live (see below). A change that alters behaviour on
   purpose names the behaviour, the clause that asks for it, and the runs whose
   results it is expected to change.
+- **Purpose** (added 2026-10-30; S-13): in a qualified iteration, a candidate
+  is registered only after its purpose check. No line it adds names a probe's
+  product (a curated list of each case's product terms). It applies exactly one
+  learning record. A fresh review, which sees only the record, its anchor
+  clause, the prediction and the diff, finds that every hunk serves that
+  record. A candidate that fails is rejected before any run.
 
 A reviewer (or the review step of `iterate.py`) rejects a change whose anchor
 does not hold or whose non-regression statement is missing or contradicted by
@@ -642,6 +657,13 @@ and two decisions are compared only under the same id.
       is something the second run lost.
     - The latent facts, the documents and code they are in, and the checks that read them are in
       docs/experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md, never shown to a model.
+- **Qualified iteration (added 2026-10-30; docs/shiploop-e2e-closed-loop-plan-2026-10-30.md).** An iteration that
+  qualifies its changes builds each candidate from one learning record and compares it with the loop tip, the last
+  promoted commit of the loop branch, in a `promotion/5` epoch registered for that candidate alone.
+  - The tip advances only on PROMOTE. A DROP or UNDECIDED candidate is kept as a ref, and nothing is built on it.
+  - Its cases are the one that exposed the record and one of another style. Where no case of another style is affordable,
+    the decision says its claim covers the exposing style only.
+  - Exploration (`iterate.py` without qualification) is unchanged, and its final candidate stays unevaluated.
 - **It decides promotion, never a run's verdict.** A run's `pass`, exit code and baseline rows are unchanged by it. The
   records it reads (quality, fidelity, validity) stay records beside the verdicts ("A record of the machine … is not a
   verdict"). The contract is the one place that turns them into a promotion decision.
@@ -905,6 +927,12 @@ stands at the commit under test.
   temporary files) needs two runs at once. The map lives in the `batch` suite
   (`gate`, `cases`, `covers`) and the plan; the gate runs first and alone and a
   failed gate stops the costlier runs.
+- **A comparison that promotes is one registered epoch (added 2026-10-30).** A
+  before-and-after round whose arms are not attempts of one registered
+  `promotion/5` epoch, or were graded under different evaluator digests, is a
+  diagnostic. Its table may be reported and reasoned about, never used as
+  promotion evidence. Wave A's round (2026-10-29) is the example: `metrics.py`
+  changed between its arms, so it was compared by hand.
 - **The driver is a parameter, not a code path.** The host (Grok, Claude,
   Codex), its model and its effort are chosen per run; everything that differs
   between hosts lives in one host class, and the rest of the harness reads one
