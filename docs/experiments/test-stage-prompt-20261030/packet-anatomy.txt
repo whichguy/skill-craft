@@ -1,0 +1,24 @@
+Test-stage packet anatomy, 2026-10-30. Source: ~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/.shiploop-runs/work-20261030-004732-321bfd/run/packets/nav-58d53cd198e84341adf66a18097d187d.md (ShipLoop 2.23.0, Codex Terra xhigh, hooks on).
+Words by packet section (whitespace-split; absolute paths count as one word, so tokens are higher: 31.7 KB ~ 8k tokens).
+total words 3926
+  474  lines 1-14  header: delegation, recovery, callback, owner rule, goal, Checked-by
+  598  lines 17-45  Until Loop block, argument, floors, red-check
+   47  lines 47-50  keepalive, where
+  211  lines 53-64  duty 1 and 3 (craft)
+   70  lines 69-72  duty 3 cont.
+   60  lines 65-68  duty 2 and 4-8
+  339  lines 73-95  duty 4-8
+   91  lines 98-104  RULES
+  625  lines 107-130  work item, layers, targets, Pass, Floor, Base run, lint, template, outcomes
+  263  lines 132-153  references, results list, progress, pause
+  116  lines 154-180  knowledge listing
+  694  lines 181-212  hand-offs: R-6, R-7, AD-2, test_cases, not_covered
+  335  lines 213-238  tail
+
+Repeated-rule counts (grep -c -i, lines):
+   14  base
+    9  floor
+    5  own word\|with its ID\|ID in the name\|titled with
+    5  weaken\|independent reason
+    6  send-back\|send back
+    6  blocked
