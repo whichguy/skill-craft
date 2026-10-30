@@ -92,6 +92,7 @@ PASSING = ("passed", "passed-uncounted")
 UNAVAILABLE = ("timeout", "error")
 # The hang guard of one command (it stops that command, never the run).
 COMMAND_TIMEOUT_SECONDS = 600.0
+# Display: the end of one command's output a test record keeps; the cut says the command (in the same row) shows the rest.
 TAIL_CHARS = 6000
 SCHEMA = "shiploop-test-loop/v1"
 BASE_SCHEMA = "shiploop-test-base/v1"
@@ -793,7 +794,8 @@ def observed_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
 
 def _tail(data: bytes) -> str:
     text = data.decode("utf-8", "replace")
-    return text if len(text) <= TAIL_CHARS else "[... " + str(len(text) - TAIL_CHARS) + " chars]\n" + text[-TAIL_CHARS:]
+    return text if len(text) <= TAIL_CHARS else ("[... " + str(len(text) - TAIL_CHARS) + " earlier characters not kept: "
+                                                 "rerun the command to see them]\n" + text[-TAIL_CHARS:])
 
 
 def judge(row: Mapping[str, Any], code: Optional[int], output: str) -> Dict[str, Any]:

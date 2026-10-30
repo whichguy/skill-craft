@@ -259,9 +259,9 @@ it showed (a live run repeated that narrative on 8 of 11 Improve packets until
 **⏱ Pace** — 3 steps in 11 min
 ```
 
-- **Achieved** lists each accepted step's `headline`: one line of at most 100
-  characters that the step writes for the user in its result. A result without
-  one falls back to its summary's first sentence. During work items it lists
+- **Achieved** lists each accepted step's `headline`: one line that the step
+  writes for the user in its result, of any length; the row shows its first 100
+  characters. A result without one falls back to its summary's first sentence. During work items it lists
   the completed items with their `carry-forward` headline and the current
   item's latest step; during release, the accepted release stages.
 - **Ahead** names the next stages with their purpose, then the remaining

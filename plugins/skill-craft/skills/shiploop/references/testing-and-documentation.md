@@ -878,7 +878,8 @@ run (`scripts/shiploop_test_layers.py`). "Surface" keeps its meaning above: wher
   unverified row).
 
 The prepare, step-plan, test-spec and test packets print both lists as required text, grouped by layer, harness and
-status; their printed lines are kept within 1,200 characters, so the step-plan head still fits the host's cut.
+status. Lists of any length are accepted; past 1,200 characters of printed lines a packet prints the lines that fit and
+names `RUN/fields/<action>-test-layers.md`, which holds them all, so the step-plan head still fits the host's cut.
 
 ## Design basis
 

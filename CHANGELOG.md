@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-10-29
 
+### skill-craft 2.24.0
+
+- Skills: shiploop 1.23.0
+
+### shiploop 1.23.0
+
+- ShipLoop checks that the plan covers the request at plan time, and a step's tests follow that step. Each work item now carries an optional `follows` (the R-<n> it serves and the AD-<n> it follows), and a plan, or a carry-forward queue that replaces the future queue, is refused unless every primary requirement of the spec is in some work item's `follows` (widen the item that serves it or add one). The last test-spec is no longer refused for missing cases of requirements other steps own, so a step is tested for its own intention. The `suite_requirements` row of that last test-spec is retired, with its refusal.
+- ShipLoop no longer refuses the model's own text for its length. A step's task, Proof and criteria, a work item's context, its open assumptions and concern rows, a step's notes, the test layers and a result headline were each refused past a size (3-5 refusals per run in the brownfield before-runs, each costing a rewrite). The gates accept any length. A packet still prints such a field whole within its print budget; past it the packet prints what fits and names `RUN/fields/<action>-<field>.md`, which ShipLoop writes before it prints and which holds the field as written. A headline stays one line and is cut for display only. A test now fails when a new size constant has no kind (print budget, display cut or guard) or a refusal states a limit.
+- A deliverable with a user interface now gets a deliberately designed, polished one by default, stated as criteria a capture can show. The spec adds a non-functional requirement with a consistent visual system (spacing and type scales, a light and a dark theme), designed empty, loading and error states, a layout that works at a narrow and a wide width without horizontal overflow, visible focus states with WCAG AA contrast, motion only where it explains a change (honoring reduced motion) and one icon set. A step plan's Design basis names the ones its step meets, and the first UI step records the design system as an AD-<n>. A test-spec row for a UI criterion, and product acceptance, close it only on the rendered interface in both themes and at both widths. No stack or toolkit is named.
+
 ### skill-craft 2.23.0
 
 - Skills: improve 0.7.3, shiploop 1.22.0, shiploop-e2e-audit 0.7.13, shiploop-run-review 0.5.0

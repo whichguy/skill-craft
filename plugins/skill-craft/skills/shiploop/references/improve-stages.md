@@ -20,8 +20,9 @@ a missing evidence file.
 Three kinds of result start an Improve stage:
 
 - Every result of a planning stage the run's `planning_review` option reviews. With
-  `stage` (the default) those are `spec`, `test-strategy`, `plan`, `step-plan`,
-  `test-spec`, `system-test-author` and `release-plan`; with `none`, only
+  `stage` (the default) those are `spec`, `test-strategy`, `plan`, `step-plan`
+  (for the first work item and an item that was sent back), `system-test-author`
+  and `release-plan`; `test-spec` is not reviewed in either mode; with `none`, only
   `system-test-author` and `release-plan` (see [Planning review option](run-options.md#planning-review-option)).
   These stages write the
   contracts that later work is built on, where a sentence, example or expected

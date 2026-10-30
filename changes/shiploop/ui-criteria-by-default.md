@@ -1,4 +1,0 @@
----
-bump: minor
----
-A deliverable with a user interface now gets a deliberately designed, polished one by default, stated as criteria a capture can show. The spec adds a non-functional requirement with a consistent visual system (spacing and type scales, a light and a dark theme), designed empty, loading and error states, a layout that works at a narrow and a wide width without horizontal overflow, visible focus states with WCAG AA contrast, motion only where it explains a change (honoring reduced motion) and one icon set. A step plan's Design basis names the ones its step meets, and the first UI step records the design system as an AD-<n>. A test-spec row for a UI criterion, and product acceptance, close it only on the rendered interface in both themes and at both widths. No stack or toolkit is named.

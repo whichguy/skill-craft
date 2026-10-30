@@ -87,11 +87,13 @@ GATE_STAGE = GATE_STAGES[0]
 # Hang guards: one tool call, one Git plumbing call, one private-index snapshot.  Each stops that call, never the pass.
 TOOL_TIMEOUT_SECONDS = 60.0
 SNAPSHOT_TIMEOUT_SECONDS = 120.0
+# Guard: a file larger than this (a binary, a generated bundle) is read by no linter; the record says it is out of scope.
 MAX_FILE_BYTES = 2_000_000
-# Line-diff cells (before x after, after trimming the common prefix and suffix)
+# Guard: line-diff cells (before x after, after trimming the common prefix and suffix)
 # above which changed-line attribution is not computed: difflib is superlinear.
 DIFF_CELL_CAP = 4_000_000
 GIT_TIMEOUT_SECONDS = 30.0
+# Display: one printed part of a lint block; the packet names the `lint --show --part` command for each further part.
 PAGE_BYTES = 12000
 DELETION_RULES = ("F401", "F811", "F841")
 CONSERVATIVE_RUFF = ("--isolated", "--select", "F,E9")

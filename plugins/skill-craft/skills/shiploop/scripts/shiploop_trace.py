@@ -42,12 +42,13 @@ SENT_DIR = "packets/sent"
 PAGE = "trace.html"
 SCHEMA = "shiploop-trace/v1"
 SKILL_CALLS = "skill-calls.jsonl"
-# Past this size the trace stops growing and the reader says so; a long run writes a few megabytes.
+# Guard: a runaway run cannot grow the append-only trace without end.  Past this size it stops growing and the reader
+# says so; a long run writes a few megabytes.
 TRACE_LIMIT = 32 * 1024 * 1024
-TEXT_LIMIT = 4000  # characters of refusal or hook text kept in one line
+TEXT_LIMIT = 4000  # guard: characters of refusal or hook text one trace line keeps (the line says how many it left out)
 # The page embeds each packet's text as sent, screened line by line, up to these bounds; past them it names the file.
 PAGE_PACKET_LIMIT = 256 * 1024
-PAGE_TEXT_LIMIT = 12 * 1024 * 1024
+PAGE_TEXT_LIMIT = 12 * 1024 * 1024  # guard: the page stays openable in a browser however many packets a run sent
 # Commands that only read or display; they are not run activity.
 UNTRACED = frozenset(("view", "hook-status", "trace", "graph-dry-run", "-h", "--help"))
 # Set by the CLI while a traced command runs on a current run; packets printed at any other time (a routed verb such as
@@ -63,9 +64,10 @@ def _stamp(now: float | None = None) -> dict[str, Any]:
     return {"ts": round(ts, 3), "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))}
 
 
-def _clip(value: Any, limit: int = TEXT_LIMIT) -> Any:
+def _clip(value: Any, limit: int = TEXT_LIMIT, where: str = "") -> Any:
+    """``value`` cut to ``limit`` characters, saying how many it left out and, given ``where``, the file holding them."""
     if isinstance(value, str) and len(value) > limit:
-        return value[:limit] + f"… [{len(value) - limit} more characters]"
+        return value[:limit] + f"… [{len(value) - limit} more characters" + (f" in {where}" if where else "") + "]"
     return value
 
 
@@ -506,9 +508,9 @@ _SENTENCE_READING = re.compile(
 _READING_KIND = re.compile(r"(?i)(outcomes?|boundar(?:y|ies)|open questions?|questions?|defaults?|assumptions?|"
                            r"constraints?)(?:\s+\d+)?(?:\s*\([^()]{0,40}\))?\s*(?:[:=–-]|is\b)\s*")
 _REQUIREMENT = re.compile(r"^###\s+(R-\d+)\.?\s*(.*)$")
-SPEC_LIMIT = 256 * 1024          # bytes of the living spec the reader reads
-FIELD_LIMIT = 2000               # characters of one expanded field the model keeps
-ANSWER_LIMIT = 8 * 1024          # bytes of one owner answer
+SPEC_LIMIT = 256 * 1024          # guard: the bytes of the living spec the reader reads, so a runaway file cannot stall it
+FIELD_LIMIT = 2000               # display: characters of one expanded field the page shows; the cut names its file
+ANSWER_LIMIT = 8 * 1024          # guard: the bytes of one owner answer the reader reads (the page names its file)
 
 
 def sentence_readings(summary: str) -> dict[int, list[dict[str, str]]]:
@@ -564,7 +566,7 @@ def requirements(path: Path) -> list[dict[str, Any]]:
         elif current is not None:
             current["body"].append(line)
     for each in found:
-        each["body"] = _clip("\n".join(each["body"]).strip(), FIELD_LIMIT)
+        each["body"] = _clip("\n".join(each["body"]).strip(), FIELD_LIMIT, str(path))
     return found
 
 
@@ -594,7 +596,8 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
         stages.append({
             "stage": stage, "action": action, "state": "accepted" if action else "pending",
             "headline": _headline(result, None) if action else None,
-            "summary": _clip(" ".join(str(result.get("summary") or "").split()), FIELD_LIMIT) if action else None,
+            "summary": _clip(" ".join(str(result.get("summary") or "").split()), FIELD_LIMIT, f"results/{action}.md")
+            if action else None,
             "at": _iso(accepted_at.get(action)) if action else None, "improve": action in improve_results,
         })
     planning = set(EXPANDING) | {"step-plan"}
@@ -606,12 +609,16 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
     plan = results.get(current.get((None, "plan"))) or {}
     items = []
     for row in state.get("work_items") or []:
-        step_plan = results.get(current.get((row.get("id"), "step-plan"))) or {}
+        planned = current.get((row.get("id"), "step-plan"))
+        step_plan = results.get(planned) or {}
         steps = step_plan.get("steps") if isinstance(step_plan.get("steps"), list) else []
-        items.append({"id": row.get("id"), "title": row.get("title"), "context": _clip(row.get("context") or "", FIELD_LIMIT),
-                      "steps": [{"id": step.get("id"), "task": _clip(str(step.get("task") or ""), 600),
+        items.append({"id": row.get("id"), "title": row.get("title"),
+                      "context": _clip(row.get("context") or "", FIELD_LIMIT, "state.md work_items"),
+                      "steps": [{"id": step.get("id"),
+                                 "task": _clip(str(step.get("task") or ""), 600, f"results/{planned}.md"),
                                  "deps": step.get("deps") or []} for step in steps if isinstance(step, dict)]})
-    assumptions = [{"id": each.get("id"), "assumption": _clip(str(each.get("assumption") or ""), 600),
+    plan_file = f"results/{current.get((None, 'plan'))}.md"
+    assumptions = [{"id": each.get("id"), "assumption": _clip(str(each.get("assumption") or ""), 600, plan_file),
                     "disposition": each.get("disposition")}
                    for each in plan.get("assumptions") or [] if isinstance(each, dict)]
     answers = []

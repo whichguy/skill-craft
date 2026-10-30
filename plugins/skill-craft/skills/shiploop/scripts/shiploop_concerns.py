@@ -45,8 +45,10 @@ CONCERNS = (
 CONCERN_IDS = tuple(name for name, _ in CONCERNS)
 # The stages that can own an applicable concern: step-plan maps it to steps; a later stage delivers it there.
 OWNER_STAGES = ("step-plan", "test", "document", "system-test-author", "release-plan", "operations")
-# One work item's rows together (run-insights T-D2): the step-plan packet prints them whole.
-ROWS_LIMIT = 1_200
+# The print budget of one work item's applicable rows as the step-plan packet prints them (run-insights T-D2).  No gate
+# refuses longer rows (owner, 2026-10-28, plan F2): past the budget the packet prints the rows that fit and names the
+# run file that holds them all (shiploop_navigator._concern_lines, shiploop_fields).
+ROWS_PRINT = 1_200
 
 
 class ConcernError(ValueError):
@@ -99,15 +101,11 @@ def canonical_plan(value: Any) -> Dict[str, List[Dict[str, str]]]:
 
 
 def check_plan(concerns: Mapping[str, Sequence[Mapping[str, str]]], item_ids: Sequence[str]) -> None:
-    """Every work item of the queue has its rows, no other item has any, and one item's rows stay within the limit."""
+    """Every work item of the queue has its rows, and no other item has any.  Rows of any length are accepted."""
     missing = [item for item in item_ids if item not in concerns]
     _need(not missing, "a done plan maps every concern for every work item: concerns lacks " + ", ".join(missing))
     extra = sorted(set(concerns) - set(item_ids))
     _need(not extra, "concerns names items that are not in work_items: " + ", ".join(extra))
-    for item, rows in concerns.items():
-        size = sum(len(row.get("decision", "") + row.get("anchor", "") + row.get("reason", "")) for row in rows)
-        _need(size <= ROWS_LIMIT, f"{item}'s concern rows are {size:,} characters together; the limit is "
-              f"{ROWS_LIMIT:,} because its step plan prints them whole: one clause each")
 
 
 def owned_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: str) -> List[Mapping[str, str]]:
@@ -161,5 +159,5 @@ def packet_lines(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item:
     return lines
 
 
-__all__ = ("CONCERNS", "CONCERN_IDS", "ConcernError", "OWNER_STAGES", "ROWS_LIMIT", "canonical_plan",
+__all__ = ("CONCERNS", "CONCERN_IDS", "ConcernError", "OWNER_STAGES", "ROWS_PRINT", "canonical_plan",
            "canonical_step_plan", "check_plan", "check_step_plan", "owned_rows", "packet_lines")

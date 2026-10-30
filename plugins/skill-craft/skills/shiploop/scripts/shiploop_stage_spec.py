@@ -277,7 +277,8 @@ _ROWS = (
         goal='Map each requirement to the checks that prove it: harnesses and commands in KNOWLEDGE/environment.md, boundaries in KNOWLEDGE/architecture.md.',
         short_goal='plan the test strategy',
         done_when=(
-            "every criterion maps to a check, its surface and the stage it is due",
+            "every acceptance line the spec changes add or change, and each preserved behaviour they touch, maps to a "
+            "check, its surface and the stage it is due, and the existing suite covers the rest",
             "the test harness is selected or revalidated, with setup and isolation stated",
             "planned checks are marked planned, not passed",
             "each case that needs a host tool (a browser, a device, an account, a service) names it and cites the "

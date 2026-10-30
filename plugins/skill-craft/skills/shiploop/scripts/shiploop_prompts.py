@@ -761,7 +761,7 @@ ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed nam
 _CARRY_FORWARD_ONE_STEP = """\
 2. **Queue** (Carry-forward mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
-   queue, rows `{"id", "title", "context"}`, and say why in the summary.
+   queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary.
 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
    the repository skill index (KNOWLEDGE/environment.md ## Skills) and your host's skills and list them in evidence_refs,
    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n> says the
@@ -803,7 +803,8 @@ _PLAN_RECORD_INTERACTIONS = """\
      Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
      plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
      component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     the spec's UI criteria this step meets (the first UI step records the design system, tokens, components and
+     theme, as an AD-<n>), and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
      defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
      animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
      ownership guide); locators of sources and checks.
@@ -972,7 +973,12 @@ DUTIES = {
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
-   keeps dependent work unready.
+   keeps dependent work unready. A deliverable with a user interface (a page, an app screen, a rendered report, a
+   terminal interface) gets a non-functional requirement for a deliberately designed, polished interface, never a
+   default one, with observable criteria: a consistent visual system (spacing and type scales, a palette with a light
+   and a dark theme); designed empty, loading and error states; a layout that works at a narrow and a wide width with
+   no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
+   honoring reduced motion; one icon set.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
@@ -992,15 +998,16 @@ DUTIES = {
     requirement section and source used.
 """,
     "test-strategy": """\
-1. Build a risk-based strategy from KNOWLEDGE/spec.md and the spec changes since the run began (quoted below) before any
-   code. Under KNOWLEDGE/environment.md
-   ## Harnesses and suites plan, per requirement: its layers (unit, component, e2e, as in `test_layers`) and any
-   consumer check, negative cases, fixtures and data, environment and authorization needs, required surface, due
-   stage, owner, prerequisites; for a
-   state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
-   is not a pass). Name an expected-failure control where test-first applies.
-2. Plan checks for new and preserved behaviour from the spec changes since the run began and RUN/notes/current-system-baseline.md. An
-   unknown existing behaviour needs discovery before a preservation target; an old pass is not a current pass.
+1. Build a risk-based strategy from KNOWLEDGE/spec.md for the spec changes since the run began (quoted below) and
+   the preservation set they touch, before any code; the existing suite, run as is, covers the rest. Under
+   KNOWLEDGE/environment.md ## Harnesses and suites plan, per requirement in that scope: its layers (unit, component,
+   e2e, as in `test_layers`) and any consumer check, negative cases, fixtures and data, environment and authorization
+   needs, required surface, due stage, owner, prerequisites; for a state or data change, its before and after checks
+   (State and data assessment). Mark every check planned (planned is not a pass). Name an expected-failure control
+   where test-first applies.
+2. The preservation set: each existing behaviour a spec change touches, from those changes and
+   RUN/notes/current-system-baseline.md; plan a check that it still holds. An unknown existing behaviour needs
+   discovery before a preservation target; an old pass is not a current pass.
 3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
    evidence or access is not N/A.
 4. Select or revalidate harnesses and suite entry points (Repeatable test-suite guide); reuse a prior harness only
@@ -1119,7 +1126,7 @@ DUTIES = {
 9. KNOWLEDGE/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
    ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
    and ## Interfaces and boundaries where this plan changes them.
-10. Give each work item a compact `context` (at most 2,500 characters) a fresh reader can act on, full locators in
+10. Give each work item a compact `context` a fresh reader can act on, full locators in
     `evidence_refs`, longer notes in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
     revalidation condition:
     - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
@@ -1155,10 +1162,9 @@ DUTIES = {
     parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it
-    (1,200 characters per item).
-17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
-    approved outcome, including required independent work with no downstream consumer.
+    open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
+17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (the R-<n>/AD-<n> it serves) and
+    optional `context`, covering every approved outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
     `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
@@ -1227,8 +1233,7 @@ Change no product file in this stage.
      is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
-     some step. Its `paths` (inside the item's) name every file it changes. Limits: task 700 characters, proof 600,
-     its criteria 1,200.
+     some step. Its `paths` (inside the item's) name every file it changes.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
      artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
@@ -1287,7 +1292,9 @@ Write no test code in this stage.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put its
    Test layers row (code and layer), its surface (public interface, real boundary or rendered UI; Real-boundary test
    guidance), due phase, setup and fixture, action, teardown (or "stateless"), command row, registering suite and
-   smoke membership in those fields or the summary.
+   smoke membership in those fields or the summary. A UI criterion's row observes the rendered interface in both
+   themes and at both widths (a contrast measurement, an overflow check, a focus-state capture); structure alone does
+   not close it.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
@@ -1469,9 +1476,10 @@ preparatory commit); a mismatch there is a send-back.
      transcript, invent no decision ledger; a context summary is not proof);
    - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
      loop and report blocked; it is no queue edit.
-   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prerequisite
-   order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or supersession in
-   the summary. Omit `work_items` to keep the queue.
+   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "context"}` in
+   prerequisite order, no completed or current ID, keeping unrelated pending work and each primary requirement in
+   some item's `follows` (a completed or current item counts). Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the
+   queue.
 3. **Skill decision**, in `skill`:
    1. *Inspect* the repository skill index (the directory KNOWLEDGE/environment.md ## Skills names, or README or AGENTS.md
       skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence_refs.
@@ -1615,7 +1623,8 @@ preparatory commit); a mismatch there is a send-back.
 5. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A; reconcile each
    affected requirement clause with its case, required surface and due phase, checked surface, candidate, status
    and evidence. A pass on another surface only supports; source, HTTP or DOM structure alone cannot close a
-   rendered interaction. Missing evidence for a due case stays incomplete. Check that no clause or case was
+   rendered interaction. A UI criterion closes only on the rendered interface, captured in both themes and at both
+   widths. Missing evidence for a due case stays incomplete. Check that no clause or case was
    dropped; claim no requirement met while a required observation is unrun.
 6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to add-work with one
    corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked

@@ -1,5 +1,5 @@
-"""The request's primary requirements, and the lower-layer check of an outcome no executed check observed (run-5
-batch F6).
+"""The request's primary requirements: the work items that serve them, and the lower-layer check of an outcome no
+executed check observed (run-5 batch F6).
 
 A live run (2026-10-24) let product-acceptance accept the request's main outcome for a person on source words and
 deferred assumptions: nothing executed showed it.  The owner's answer is structure, not prose:
@@ -14,14 +14,15 @@ deferred assumptions: nothing executed showed it.  The owner's answer is structu
   no such check exists instead;
 - the refusal's exit is add-work, with a corrective work item that adds the missing lower-layer test.
 
-TS1 (2026-10-26, docs/shiploop-judgement-stage-checks-proposal-2026-10-26.md section 0) checks the trace where it is
-made.  At the last work item's done test-spec, every primary requirement has a test case naming it in some item's current
-test-spec, or a ``suite_requirements`` row: a requirement that a recorded command's own run observes rather than one
-case (a test suite, "the tests run with node --test"; a deploy; a check), naming one of the run's recorded test commands.
-A run whose step plans record no test command (documentation only) is not checked: it has no executed test to trace.  A
-replay of the eight saved runs since ``primary`` exists found three such requirements and one primary requirement no
-case named.  The owner widened the wording from "about the tests themselves" on 2026-10-27: a run's recorded deploy
-or check can observe a structural requirement no single case does.
+Coverage of the primary requirements is a property of the plan (F3 of docs/shiploop-planning-speed-and-caps-plan-
+2026-10-28.md; owner, 2026-10-28: a test covers "the primary requirements for that particular stage of the build").
+Each work item names in ``follows`` the R-<n> it serves and the AD-<n> it follows.  A done plan, and a done
+carry-forward that replaces the future queue, leave every primary requirement in some work item's ``follows``, each ID
+there with an entry in the living files; the exit is to widen a work item or add one.  A test-spec stays relative to its
+step: one case per ID its step plan's focused commands list.  This replaces TS1 (2026-10-26), which asked the last work
+item's test-spec for a case naming every primary requirement: in the D7 follow-on run (ticket-escalation, 2026-10-28)
+it refused that test-spec for R-20 (existing behaviour and tests preserved), which no ID of the step's focused commands
+served, and asked it to add a case.
 
 Where "ran and saw pass" comes from: ShipLoop's own test records, ``tests/<action>-verify<N>.md``, of the accepted
 inner actions (the test stage's candidate run and document's rerun).  A record that passed, a run in it whose status is
@@ -44,8 +45,10 @@ import shiploop_test_loop as test_loop
 STAGE = "spec"
 FIELD = "primary"
 ACCEPTANCE = "product-acceptance"
-TEST_SPEC = "test-spec"
-SUITE_FIELD = "suite_requirements"
+# The stages whose done result sets the work queue: plan writes it whole, carry-forward may replace its future part.
+QUEUE_STAGES = ("plan", "carry-forward")
+# Display: how many primary IDs one plan or carry-forward packet lists; a spec with more says so and names where the rest are.
+PRIMARY_SHOWN = 6
 # The template's one entry, which states the bar; a text wrapped in angle brackets is a placeholder.
 PLACEHOLDER = "<R-<n> that carries an outcome the user asked for directly>"
 _REQUIREMENT = re.compile(r"^R-\d+$")
@@ -67,24 +70,6 @@ def canonical(value: Any) -> List[str]:
     _need(isinstance(value, list) and all(isinstance(ident, str) and ident.strip() for ident in value),
           'primary is a list of the R-<n> that carry the request\'s primary outcomes, such as ["R-1"]')
     return [ident.strip() for ident in value]
-
-
-def canonical_suite(value: Any) -> List[Dict[str, str]]:
-    """The stored ``suite_requirements``: rows ``{"requirement": "R-<n>", "command": "<a recorded test command>"}``, each
-    requirement once (shape only; ``check_test_spec`` checks the requirement and the command against the run)."""
-    shape = ('suite_requirements is a list of {"requirement": "R-<n>", "command": "<one of the run\'s recorded test '
-             'commands>"}: a requirement that command\'s own recorded run observes (a test suite, a deploy or a check)')
-    _need(isinstance(value, list), shape)
-    rows: List[Dict[str, str]] = []
-    for row in value:
-        _need(isinstance(row, Mapping) and set(row) == {"requirement", "command"}
-              and all(isinstance(row[key], str) and row[key].strip() for key in row), shape)
-        rows.append({"requirement": row["requirement"].strip(), "command": row["command"].strip()})
-    bad = [row["requirement"] for row in rows if not _REQUIREMENT.fullmatch(row["requirement"])]
-    _need(not bad, "suite_requirements names " + ", ".join(bad) + ": one requirement ID per row, R-<n>")
-    named = [row["requirement"] for row in rows]
-    _need(len(set(named)) == len(named), "suite_requirements lists a requirement twice: one row per R-<n>")
-    return rows
 
 
 def _spec_path(repo: Path) -> Path:
@@ -162,86 +147,65 @@ def passed_cases(root: Path, state: Mapping[str, Any]) -> Dict[str, List[str]]:
     return found
 
 
-def _current_item(state: Mapping[str, Any]) -> Optional[str]:
-    items, index = state.get("work_items") or [], state.get("work_index")
-    return str(items[index].get("id")) if isinstance(index, int) and 0 <= index < len(items) else None
+def _follows(row: Any) -> List[str]:
+    value = row.get("follows") if isinstance(row, Mapping) else None
+    return [str(ident) for ident in value] if isinstance(value, list) else []
 
 
-def _is_last_item(state: Mapping[str, Any]) -> bool:
-    index = state.get("work_index")
-    return isinstance(index, int) and index + 1 >= len(state.get("work_items") or [])
+def queue_after(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> Optional[List[Mapping[str, Any]]]:
+    """The work queue a done ``result`` at ``stage`` leaves, or None when it leaves the queue as it was: at plan, its
+    ``work_items`` (the retained queue when it gives none); at carry-forward, the completed and current items and then
+    the future queue it gives."""
+    if stage == "plan":
+        rows = result.get("work_items", state.get("work_items"))
+    elif stage == "carry-forward" and "work_items" in result:
+        index = state.get("work_index")
+        kept = list(state.get("work_items") or ())[: index + 1] if isinstance(index, int) else []
+        rows = [*kept, *(result.get("work_items") or ())]
+    else:
+        return None
+    return [row for row in rows or () if isinstance(row, Mapping)]
 
 
-def _current_result(state: Mapping[str, Any], item: str, stage: str) -> Optional[Mapping[str, Any]]:
-    action = planning_revision.current_actions(state).get((item, stage))
-    result = (state.get("accepted") or {}).get(action) if action else None
-    return result if isinstance(result, Mapping) else None
-
-
-def _recorded_commands(state: Mapping[str, Any]) -> List[str]:
-    """Every test command the run's current step plans record, in item order, each once."""
-    commands: List[str] = []
-    for item in state.get("work_items") or ():
-        result = _current_result(state, str(item.get("id")), "step-plan") if isinstance(item, Mapping) else None
-        for row in (result.get("test_commands") or ()) if result else ():
-            command = str(row.get("command") or "").strip() if isinstance(row, Mapping) else ""
-            if command and command not in commands:
-                commands.append(command)
-    return commands
-
-
-def test_spec_coverage(state: Mapping[str, Any], submitted: Optional[Mapping[str, Any]] = None) -> Dict[str, List[str]]:
-    """Per requirement, the case IDs (or ``suite: <command>``) that name it across the items' current test-spec
-    results; ``submitted`` stands in for the current item's test-spec."""
+def followers(queue: List[Mapping[str, Any]]) -> Dict[str, List[str]]:
+    """Per R-<n> or AD-<n>, the IDs of the work items whose ``follows`` names it, in queue order."""
     found: Dict[str, List[str]] = {}
-    current = _current_item(state)
-    for item in state.get("work_items") or ():
-        ident = str(item.get("id")) if isinstance(item, Mapping) else ""
-        result = submitted if submitted is not None and ident == current else _current_result(state, ident, TEST_SPEC)
-        if not result:
-            continue
-        for case in result.get("test_cases") or ():
-            if isinstance(case, Mapping):
-                for requirement in knowledge.requirement_ids(str(case.get("requirement") or "")):
-                    found.setdefault(requirement, []).append(str(case.get("id")))
-        for row in result.get(SUITE_FIELD) or ():
-            if isinstance(row, Mapping):
-                found.setdefault(str(row.get("requirement")), []).append("suite: " + str(row.get("command")))
+    for row in queue:
+        for ident in _follows(row):
+            found.setdefault(ident, []).append(str(row.get("id")))
     return found
 
 
-def check_test_spec(state: Mapping[str, Any], stage: str, result: Any) -> None:
-    """TS1: a done test-spec's ``suite_requirements`` name current requirements and recorded test commands; at the last
-    work item, every primary requirement has a case naming it, or a suite row (see the module docstring)."""
-    if stage != TEST_SPEC or not isinstance(result, Mapping) or result.get("outcome") != "done":
+def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """A done plan, or a done carry-forward that replaces the future queue: each ``follows`` ID its work items give has
+    an entry in the living files, and every primary requirement is in the ``follows`` of some work item of the queue it
+    leaves (see the module docstring)."""
+    if stage not in QUEUE_STAGES or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    queue = queue_after(state, stage, result)
+    if queue is None:
         return
     repo = Path(str(state["repo"]))
-    rows = canonical_suite(result[SUITE_FIELD]) if SUITE_FIELD in result else []
-    if rows:
-        held = knowledge.entries(repo, "spec.md")
-        commands = _recorded_commands(state)
-        for row in rows:
-            _need(row["requirement"] in held and not held[row["requirement"]].retired,
-                  "suite_requirements: " + row["requirement"] + " has no current entry in " + str(_spec_path(repo)))
-            _need(row["command"] in commands,
-                  "suite_requirements: " + row["command"] + " is not one of this run's recorded test commands ("
-                  + (", ".join(commands) or "none: the step plans record no test_commands") + "): name the command "
-                  "whose recorded run observes " + row["requirement"])
+    architecture = repo / knowledge.HOME / knowledge.ARCHITECTURE
+    known = {**knowledge.entries(repo, "spec.md"), **knowledge.entries(repo, knowledge.ARCHITECTURE)}
+    absent = list(dict.fromkeys(ident for row in result.get("work_items") or () for ident in _follows(row)
+                                if ident not in known))
+    _need(not absent, "work_items follows names " + ", ".join(absent) + ", with no entry (a line that starts with the "
+          "ID) in " + str(_spec_path(repo)) + " (R-) or " + str(architecture) + " (AD-): cite only IDs with an entry, "
+          "or write the entry first")
     ids = primary_ids(state)
-    # A run whose step plans record no test command (documentation only, every one test_commands_na) has no executed
-    # test to trace and no command a suite row could name: its acceptance stays product-acceptance's judgement.
-    if not ids or not _is_last_item(state) or not _recorded_commands(state):
+    if not ids:
         return
-    covered = test_spec_coverage(state, result)
-    missing = [ident for ident in ids if not covered.get(ident)]
+    served = followers(queue)
+    missing = [ident for ident in ids if ident not in served]
     if missing:   # the message names missing[0], so it is built only for a refusal
         raise PrimaryError(
-            "every primary requirement (spec primary) needs a test case naming it in some work item's test-spec, and this "
-            "is the last work item's. Missing: " + ", ".join(missing) + ". Add a case whose requirement names it; or, when "
-            "a recorded command's own run observes it rather than one case (a test suite, a deploy or a check, such as "
-            "\"the tests run with node --test\"), add " + SUITE_FIELD + ': [{"requirement": "' + missing[0]
-            + '", "command": "<one of: ' + (", ".join(_recorded_commands(state)) or "the step plans' test_commands")
-            + '>"}]: that command\'s recorded run observes it.')
+            "every primary requirement (spec primary) is served by a work item whose follows names it, and no work item "
+            + ("of this plan" if stage == "plan" else "of the queue this result leaves (the completed and current "
+               "items, then the work_items given)") + " names " + ", ".join(missing) + ". Widen "
+            + ("the work item" if stage == "plan" else "a future work item") + " that serves it (its follows and context) or "
+            "add a work item that serves it, such as "
+            '{"id": "W<n>", "title": "...", "follows": ["' + missing[0] + '"], "context": "..."}')
 
 
 def _listed(ids: List[str]) -> str:
@@ -286,25 +250,25 @@ def check_unverified(root: Path, state: Mapping[str, Any], stage: str, result: A
 
 
 def packet_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[str]:
-    """The required lines of two stages, so each gate's rule is read before the result is written: the last work item's
-    test-spec gets the spec's primary requirements with the cases naming each so far (TS1); product-acceptance gets them
-    with the tests that passed for each."""
+    """The required lines of the stages whose gate reads the primary requirements, so the rule is read before the result
+    is written: plan and carry-forward get them with the work items whose follows name each so far; product-acceptance
+    gets them with the tests that passed for each."""
     if state.get("status") != "active" or state.get("active_improve"):
         return []
-    if stage == TEST_SPEC:
-        ids = primary_ids(state)
-        if not ids or not _is_last_item(state) or not _recorded_commands(state):
+    ids = primary_ids(state)
+    if stage in QUEUE_STAGES:
+        if not ids:
             return []
-        covered = test_spec_coverage(state)
-        return (["Primary requirements (spec primary): this is the last work item, so every one needs a test case naming "
-                 "it in some work item's test-spec, or a " + SUITE_FIELD + ' row {"requirement": "R-<n>", "command": '
-                 '"<a recorded test command>"} when that command\'s own run observes it (a test suite, a deploy or a '
-                 'check). The cases so far:']
-                + ["- " + ident + ": " + (_listed(covered[ident]) if covered.get(ident) else "no case yet")
-                   for ident in ids])
+        shown = ids[:PRIMARY_SHOWN]
+        more = ("; +" + str(len(ids) - len(shown)) + " more (spec primary)") if len(ids) > len(shown) else ""
+        if stage == "plan":   # one short line: the plan head has the least room, and no item exists yet to follow anything
+            return ["Primary requirements (spec primary), each in a work item's follows: " + " ".join(shown) + more + "."]
+        served = followers([row for row in state.get("work_items") or () if isinstance(row, Mapping)])
+        return ["Primary requirements (spec primary) and the work items following each now: "
+                + "; ".join(ident + " " + (", ".join(served[ident]) if served.get(ident) else "none") for ident in shown)
+                + more + ". The queue you leave keeps each in some work item's follows."]
     if stage != ACCEPTANCE:
         return []
-    ids = primary_ids(state)
     if not ids:
         return ["Primary requirements: the spec result records none (spec primary), so no unverified row needs a "
                 "passed lower-layer test."]
@@ -315,6 +279,6 @@ def packet_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[str]:
             + ["- " + ident + ": " + (_listed(passed[ident]) if passed.get(ident) else "none passed") for ident in ids])
 
 
-__all__ = ("ACCEPTANCE", "FIELD", "PLACEHOLDER", "PRINTED_IDS", "PrimaryError", "STAGE", "SUITE_FIELD", "TEST_SPEC",
-           "canonical", "canonical_suite", "check_spec", "check_test_spec", "check_unverified", "packet_lines",
-           "passed_cases", "primary_ids", "test_spec_coverage")
+__all__ = ("ACCEPTANCE", "FIELD", "PLACEHOLDER", "PRINTED_IDS", "PrimaryError", "QUEUE_STAGES", "STAGE", "canonical",
+           "check_queue", "check_spec", "check_unverified", "followers", "packet_lines", "passed_cases", "primary_ids",
+           "queue_after")
