@@ -103,6 +103,12 @@ class ImproveCliFixture(unittest.TestCase):
             # meet that session's real bindings.
             **{name: value for name, value in os.environ.items()
                if name not in ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID")},
+            # No progress observer.  Each packet the CLI prints starts a detached observer that rewrites progress.html,
+            # trace.html and progress-observer.json in the run directory every couple of seconds and outlives the test; one
+            # that wakes while tearDown removes the directory leaves those files behind, and cleanup() fails with
+            # "Directory not empty".  The hermetic runner sets this for every suite; a plain `python3 -B test/<name>.test.py`
+            # run must not depend on it.
+            "SHIPLOOP_PROGRESS": "off",
             "SHIPLOOP_KEEPALIVE_HOME": str(self.base / "keepalive"),
             "PATH": "/Library/Developer/CommandLineTools/usr/bin:" + os.environ.get("PATH", ""),
             "PYTHONDONTWRITEBYTECODE": "1",
