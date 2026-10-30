@@ -1,0 +1,88 @@
+diff --git a/README.md b/README.md
+index b201620..781b534 100644
+--- a/README.md
++++ b/README.md
+@@ -4,7 +4,7 @@ A small Node.js project with no dependencies.
+ 
+ - `src/strings.js`: text helpers
+ - `src/paginate.js`: split a list into pages
+-- `src/users.js`: an in-memory user store; `getUser(id)` returns the user or null, `listUsers()` every user
++- `src/users.js`: an in-memory user store; `findUser(id)` returns the user or null, `listUsers()` every user
+ - `src/server.js`: an HTTP server (`node:http`) that serves the users (see [docs/api.md](docs/api.md))
+ 
+ Run the tests with `npm test`, which runs `node --test`.
+diff --git a/docs/api.md b/docs/api.md
+index 4046d90..be7dd6a 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -3,6 +3,6 @@
+ | Route | Answer |
+ |---|---|
+ | `GET /users` | 200, every user as a JSON array (`listUsers()`) |
+-| `GET /users/:id` | 200 with the user found by `getUser(id)`, or 404 `{"error":"not found"}` |
++| `GET /users/:id` | 200 with the user found by `findUser(id)`, or 404 `{"error":"not found"}` |
+ 
+ Any other route answers 404 `{"error":"not found"}`.
+diff --git a/src/server.js b/src/server.js
+index bcf2fad..2b737f6 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -1,7 +1,7 @@
+ 'use strict';
+ 
+ const http = require('node:http');
+-const { getUser, listUsers } = require('./users');
++const { findUser, listUsers } = require('./users');
+ 
+ function send(res, status, body) {
+   res.writeHead(status, { 'content-type': 'application/json' });
+@@ -15,7 +15,7 @@ function createServer() {
+     if (req.method === 'GET' && url.pathname === '/users') return send(res, 200, listUsers());
+     const match = /^\/users\/(\d+)$/.exec(url.pathname);
+     if (req.method === 'GET' && match) {
+-      const user = getUser(Number(match[1]));
++      const user = findUser(Number(match[1]));
+       return user ? send(res, 200, user) : send(res, 404, { error: 'not found' });
+     }
+     return send(res, 404, { error: 'not found' });
+diff --git a/src/users.js b/src/users.js
+index 28fa02d..758cd4b 100644
+--- a/src/users.js
++++ b/src/users.js
+@@ -6,8 +6,8 @@ const USERS = [
+   { id: 3, name: 'Alan Turing', email: 'alan@example.com' },
+ ];
+ 
+-/** The user with `id`, or null. */
+-function getUser(id) {
++/** The user whose numeric `id` is `id`, or null; a non-number never matches and nothing throws. */
++function findUser(id) {
+   return USERS.find((user) => user.id === id) || null;
+ }
+ 
+@@ -16,4 +16,4 @@ function listUsers() {
+   return USERS.slice();
+ }
+ 
+-module.exports = { getUser, listUsers };
++module.exports = { findUser, listUsers };
+diff --git a/test/users.test.js b/test/users.test.js
+index 5403e12..0ee498c 100644
+--- a/test/users.test.js
++++ b/test/users.test.js
+@@ -2,11 +2,11 @@
+ 
+ const test = require('node:test');
+ const assert = require('node:assert/strict');
+-const { getUser, listUsers } = require('../src/users');
++const { findUser, listUsers } = require('../src/users');
+ 
+-test('getUser finds a user by id and returns null otherwise', () => {
+-  assert.equal(getUser(2).name, 'Grace Hopper');
+-  assert.equal(getUser(99), null);
++test('findUser finds a user by id and returns null otherwise', () => {
++  assert.equal(findUser(2).name, 'Grace Hopper');
++  assert.equal(findUser(99), null);
+ });
+ 
+ test('listUsers returns every user', () => {

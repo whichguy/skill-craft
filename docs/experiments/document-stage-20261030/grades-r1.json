@@ -1,0 +1,266 @@
+[
+ {
+  "arm": "s1-basket-A-r1",
+  "scenario": "s1-basket",
+  "variant": "A",
+  "rep": "1",
+  "passed": 16,
+  "total": 17,
+  "checks": {
+   "tests_pass": true,
+   "no_commit": true,
+   "result_parses": true,
+   "knowledge_three_keys": true,
+   "spec_add_only": true,
+   "spec_lines_marked": true,
+   "file_purpose_line": false,
+   "vacuous_docstrings_gone": true,
+   "restating_comments_gone": true,
+   "ctor_doc_limit_and_typeerror": true,
+   "add_doc_count_and_rangeerror": true,
+   "tombstone_count": true,
+   "caveat_items_public": true,
+   "readme_lists_basket": true,
+   "arch_records_departure": true,
+   "env_focused_command": true,
+   "env_no_transient": true
+  },
+  "info": {
+   "spec_added": 3,
+   "changed": [
+    " M README.md",
+    " M docs/shiploop/architecture.md",
+    " M docs/shiploop/environment.md",
+    " M docs/shiploop/spec.md",
+    "?? src/basket.js",
+    "?? test/basket.test.js"
+   ],
+   "product_md_lines_added": 15,
+   "knowledge": {
+    "architecture": "Added AD-2 (the constructor throws TypeError for 0 and negative limits, a departure from the RangeError convention that R-1 and the request fix) and AD-3 (the count is items.length with no separate counter, because one drifted when callers pushed into the public items array). Conventions and Structure unchanged: Basket follows them.",
+    "environment": "Added the single-file command `node --test test/<concept>.test.js` and the by-ID command `node --test --test-name-pattern=TC-2 test/basket.test.js`, both run here, plus the platform seen (Node v26.12.1, npm 12.2.1 against engines >= 20).",
+    "spec": "Added one line each inside R-1, R-2 and R-3, each ending (W1/S1): R-1 lists the limits observed to throw the TypeError and what TC-1 and TC-2 cover; R-2 records that any value is an item and that a full basket throws RangeError `basket is full (limit N)` with its contents kept (TC-3, TC-4); R-3 records that test/basket.test.js joins npm test. No committed line changed."
+   },
+   "result_outcome": "done",
+   "basket_comment_lines": 27,
+   "basket_code_lines": 18,
+   "knowledge_lines_added": 8,
+   "total_lines_added": "105"
+  }
+ },
+ {
+  "arm": "s1-basket-B-r1",
+  "scenario": "s1-basket",
+  "variant": "B",
+  "rep": "1",
+  "passed": 16,
+  "total": 17,
+  "checks": {
+   "tests_pass": true,
+   "no_commit": true,
+   "result_parses": true,
+   "knowledge_three_keys": true,
+   "spec_add_only": true,
+   "spec_lines_marked": true,
+   "file_purpose_line": false,
+   "vacuous_docstrings_gone": true,
+   "restating_comments_gone": true,
+   "ctor_doc_limit_and_typeerror": true,
+   "add_doc_count_and_rangeerror": true,
+   "tombstone_count": true,
+   "caveat_items_public": true,
+   "readme_lists_basket": true,
+   "arch_records_departure": true,
+   "env_focused_command": true,
+   "env_no_transient": true
+  },
+  "info": {
+   "spec_added": 2,
+   "changed": [
+    " M README.md",
+    " M docs/shiploop/architecture.md",
+    " M docs/shiploop/environment.md",
+    " M docs/shiploop/spec.md",
+    "?? src/basket.js",
+    "?? test/basket.test.js"
+   ],
+   "product_md_lines_added": 13,
+   "knowledge": {
+    "architecture": "Added AD-2: Basket's constructor throws TypeError for every invalid limit, 0 and negatives included, departing from the Argument-errors convention because R-1 and the request say so; owner maintainer, revalidate when R-1 changes or a second class takes a size or range argument. AD-1 and the Structure and Conventions lines need no change.",
+    "environment": "Added the focused command `node --test test/<concept>.test.js` with `--test-name-pattern=TC-<n>` to pick cases, run on test/basket.test.js; `npm test` and the harness line need no change.",
+    "spec": "Added one line each inside R-1 (which invalid limits throw the TypeError; files and tests TC-1, TC-2) and R-2 (full means limit items, the RangeError leaves the basket unchanged, any item is accepted; TC-3, TC-4), both ending (W1/S1). R-3 needs no line: this step made no clause of it more precise."
+   },
+   "result_outcome": "done",
+   "basket_comment_lines": 16,
+   "basket_code_lines": 18,
+   "knowledge_lines_added": 4,
+   "total_lines_added": "88"
+  }
+ },
+ {
+  "arm": "s2-rename-A-r1",
+  "scenario": "s2-rename",
+  "variant": "A",
+  "rep": "1",
+  "passed": 10,
+  "total": 10,
+  "checks": {
+   "tests_pass": true,
+   "no_commit": true,
+   "result_parses": true,
+   "knowledge_three_keys": true,
+   "spec_add_only": true,
+   "spec_lines_marked": true,
+   "no_stale_getUser": true,
+   "readme_names_findUser": true,
+   "api_names_findUser": true,
+   "arch_unchanged": true
+  },
+  "info": {
+   "spec_added": 3,
+   "changed": [
+    " M README.md",
+    " M docs/api.md",
+    " M docs/shiploop/environment.md",
+    " M docs/shiploop/spec.md",
+    " M src/server.js",
+    " M src/users.js",
+    " M test/users.test.js"
+   ],
+   "product_md_lines_added": 2,
+   "knowledge": {
+    "architecture": "No change: a pure rename under the existing named-export convention; no new decision and no AD-<n> departed from.",
+    "environment": "Added under Commands the focused run `node --test test/users.test.js`, the rename check `! grep -rn <name> src test`, and the harness-free route check (createServer().listen(0) then fetch /users, /users/2, /users/99); each was run and worked.",
+    "spec": "Added one line each, marked (W1/S1), inside R-1 (files that meet it), R-2 (export list and where the old name is absent; this requirement is the only mention) and R-3 (observed findUser results, 200/404 route answers, npm test 7 pass)."
+   },
+   "result_outcome": "done",
+   "stale_hits": [],
+   "src_lines_added": 4,
+   "knowledge_lines_added": 6,
+   "total_lines_added": "16"
+  }
+ },
+ {
+  "arm": "s2-rename-B-r1",
+  "scenario": "s2-rename",
+  "variant": "B",
+  "rep": "1",
+  "passed": 10,
+  "total": 10,
+  "checks": {
+   "tests_pass": true,
+   "no_commit": true,
+   "result_parses": true,
+   "knowledge_three_keys": true,
+   "spec_add_only": true,
+   "spec_lines_marked": true,
+   "no_stale_getUser": true,
+   "readme_names_findUser": true,
+   "api_names_findUser": true,
+   "arch_unchanged": true
+  },
+  "info": {
+   "spec_added": 0,
+   "changed": [
+    " M README.md",
+    " M docs/api.md",
+    " M src/server.js",
+    " M src/users.js",
+    " M test/users.test.js"
+   ],
+   "product_md_lines_added": 2,
+   "knowledge": {
+    "architecture": "No AD-<n>: the rename follows AD-1 and the ## Conventions (one-line JSDoc on each exported function) and sets no new structure, dependency, interface rule or convention.",
+    "environment": "No change: `npm test` is already recorded, the focused `node --test test/users.test.js` is derivable from it, and `npm start` with PORT is in package.json; this step proved `npm test` (7 pass) and the focused run (2 pass).",
+    "spec": "No line added: R-1 (findUser exported from src/users.js, used by src/server.js and the tests), R-2 (no getUser name) and R-3 (findUser returns the user or null; GET /users/:id answers 200 or 404; npm test passes) were already precise and the code shows which files meet them; the new JSDoc detail (a non-number never matches) is a docstring fact no requirement concerns."
+   },
+   "result_outcome": "done",
+   "stale_hits": [],
+   "src_lines_added": 5,
+   "knowledge_lines_added": 0,
+   "total_lines_added": "11"
+  }
+ },
+ {
+  "arm": "s3-health-A-r1",
+  "scenario": "s3-health",
+  "variant": "A",
+  "rep": "1",
+  "passed": 12,
+  "total": 12,
+  "checks": {
+   "tests_pass": true,
+   "no_commit": true,
+   "result_parses": true,
+   "knowledge_three_keys": true,
+   "spec_add_only": true,
+   "spec_lines_marked": true,
+   "readme_start_command": true,
+   "readme_port": true,
+   "readme_health": true,
+   "caveat_head_404": true,
+   "createServer_doc_updated": true,
+   "env_start_and_probe": true
+  },
+  "info": {
+   "spec_added": 2,
+   "changed": [
+    " M README.md",
+    " M docs/shiploop/environment.md",
+    " M docs/shiploop/spec.md",
+    " M src/server.js",
+    " M test/server.test.js"
+   ],
+   "product_md_lines_added": 21,
+   "knowledge": {
+    "architecture": "No change: the health route is a branch in the existing createServer handler using node:http only, so it follows AD-1 and the recorded Structure and Conventions; no new decision and no departure.",
+    "environment": "Added two commands under ## Commands (W1/S1): the focused `node --test test/server.test.js` (2 tests, TC-1 included; `npm test` ran 8, all passing) and `PORT=4123 npm start` with `curl -si http://127.0.0.1:4123/health`, plus how to stop a started server (by its PID; a pkill -f pattern kill was refused by this host's classifier).",
+    "spec": "R-1: one line stating that only an exact GET /health is routed, the query string is ignored and /health/, HEAD and POST answer 404 {\"error\":\"not found\"}, met by src/server.js and TC-1 (W1/S1). R-2: one line recording the observed unchanged routes and that GET /users has no HTTP test (W1/S1)."
+   },
+   "result_outcome": "done",
+   "knowledge_lines_added": 4,
+   "total_lines_added": "41"
+  }
+ },
+ {
+  "arm": "s3-health-B-r1",
+  "scenario": "s3-health",
+  "variant": "B",
+  "rep": "1",
+  "passed": 12,
+  "total": 12,
+  "checks": {
+   "tests_pass": true,
+   "no_commit": true,
+   "result_parses": true,
+   "knowledge_three_keys": true,
+   "spec_add_only": true,
+   "spec_lines_marked": true,
+   "readme_start_command": true,
+   "readme_port": true,
+   "readme_health": true,
+   "caveat_head_404": true,
+   "createServer_doc_updated": true,
+   "env_start_and_probe": true
+  },
+  "info": {
+   "spec_added": 1,
+   "changed": [
+    " M README.md",
+    " M docs/shiploop/environment.md",
+    " M docs/shiploop/spec.md",
+    " M src/server.js",
+    " M test/server.test.js"
+   ],
+   "product_md_lines_added": 15,
+   "knowledge": {
+    "architecture": "No change: the health route is one more branch in the existing flat handler; no structure, dependency, interface or convention moved, so no AD-<n>.",
+    "environment": "Added three commands under ## Commands: the focused `node --test test/server.test.js`, `PORT=<port> npm start` (default 3000, prints `listening on <port>`) and the health-check curl with its expected answer; all three were run here.",
+    "spec": "Added one line inside R-1 naming the files and test that meet it (the /health branch of createServer, TC-1 in test/server.test.js), ending with the mark (W1/S1). R-2 unchanged: still true, and no step line is owed."
+   },
+   "result_outcome": "done",
+   "knowledge_lines_added": 4,
+   "total_lines_added": "37"
+  }
+ }
+]

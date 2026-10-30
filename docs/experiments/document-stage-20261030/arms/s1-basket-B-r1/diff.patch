@@ -1,0 +1,145 @@
+diff --git a/README.md b/README.md
+index 68ec0ac..7b4f24d 100644
+--- a/README.md
++++ b/README.md
+@@ -6,5 +6,22 @@ A small Node.js project with no dependencies.
+ - `src/paginate.js`: split a list into pages
+ - `src/users.js`: an in-memory user store
+ - `src/server.js`: an HTTP server (`node:http`) that serves the users
++- `src/basket.js`: `Basket`, a container that holds at most `limit` items
+ 
+ Run the tests with `npm test`, which runs `node --test`.
++
++## Basket
++
++```js
++const { Basket } = require('./src/basket');
++
++const basket = new Basket({ limit: 2 });
++basket.add('apple'); // 1, the new count
++basket.add('pear'); // 2
++basket.add('plum'); // throws RangeError: basket is full (limit 2)
++new Basket({ limit: 0 }); // throws TypeError: limit must be a positive integer
++```
++
++The contract of each entry point (argument constraints, errors, what a failed call leaves
++unchanged) is in the docstrings of `src/basket.js`; the requirements are R-1 and R-2 in
++`docs/shiploop/spec.md`.
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 091b534..413da64 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -10,5 +10,6 @@
+ 
+ ## Decisions
+ - AD-1: No runtime dependencies; Node >= 20 built-ins only (node:test, node:assert). Owner: maintainer. Revalidate when a dependency is proposed.
++- AD-2: `Basket`'s constructor throws a TypeError for every invalid `limit`, including the out-of-range 0 and negative integers that the Argument-errors convention would make RangeErrors, because the request and R-1 name TypeError (TC-2); the source carries a one-line tombstone. Owner: maintainer. Revalidate when R-1 changes or a second class takes a size or range argument.
+ 
+ ## Superseded
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 8b88e1d..ee762a0 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -2,6 +2,7 @@
+ 
+ ## Commands
+ - `npm test`: runs `node --test`, every test/*.test.js; exit 0 is a pass.
++- `node --test test/<concept>.test.js`: runs one module's tests; add `--test-name-pattern=TC-<n>` to run the cases whose printed title matches (observed on `test/basket.test.js`).
+ 
+ ## Harnesses and suites
+ - node:test through `node --test`; no other harness.
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index b0b4690..93914ac 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -2,9 +2,11 @@
+ 
+ ## R-1 Basket capacity
+ `new Basket({limit})` creates a basket holding at most `limit` items; `limit` must be a positive integer, otherwise the constructor throws a TypeError.
++Observable: 0, negatives, fractions, numeric strings, NaN, Infinity and an omitted `limit` all throw the TypeError; met by `src/basket.js`, tested in `test/basket.test.js` (TC-1, TC-2). (W1/S1)
+ 
+ ## R-2 Adding items
+ `add(item)` appends the item and returns the new count; it throws a RangeError when the basket is full.
++Observable: full means the basket holds `limit` items; the RangeError leaves it unchanged, and any item, `undefined` included, is appended; met by `src/basket.js`, tested in `test/basket.test.js` (TC-3, TC-4). (W1/S1)
+ 
+ ## R-3 Tests
+ `npm test` passes.
+diff --git a/src/basket.js b/src/basket.js
+new file mode 100644
+index 0000000..efba5f0
+--- /dev/null
++++ b/src/basket.js
+@@ -0,0 +1,37 @@
++'use strict';
++
++/**
++ * Holds at most `limit` items, in the order added; the module exports only `Basket`.
++ * Invariant: `items.length <= limit` while callers add through `add`. `items` and `limit` are
++ * public and unguarded, so a caller who writes to either directly can break it.
++ */
++class Basket {
++  /**
++   * Creates an empty basket (TC-1). Throws TypeError unless `limit` is a positive integer,
++   * including when it is omitted (TC-2).
++   */
++  constructor({ limit } = {}) {
++    // TypeError for 0 and negatives too, not RangeError: R-1 requires it (TC-2, AD-2).
++    if (!Number.isInteger(limit) || limit < 1) {
++      throw new TypeError('limit must be a positive integer');
++    }
++    this.limit = limit;
++    this.items = [];
++  }
++
++  /**
++   * Appends `item` (any value, `undefined` included) and returns the new count (TC-3).
++   * Throws RangeError when the basket already holds `limit` items, leaving it unchanged (TC-4).
++   */
++  add(item) {
++    if (this.items.length >= this.limit) {
++      throw new RangeError(`basket is full (limit ${this.limit})`);
++    }
++    this.items.push(item);
++    // The count is items.length, never a separate counter: one drifted once a caller pushed to
++    // `items` directly (W1/S1).
++    return this.items.length;
++  }
++}
++
++module.exports = { Basket };
+diff --git a/test/basket.test.js b/test/basket.test.js
+new file mode 100644
+index 0000000..287fc8b
+--- /dev/null
++++ b/test/basket.test.js
+@@ -0,0 +1,30 @@
++'use strict';
++
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const { Basket } = require('../src/basket');
++
++test('TC-1 a basket with a positive integer limit starts empty', () => {
++  const basket = new Basket({ limit: 2 });
++  assert.equal(basket.items.length, 0);
++});
++
++test('TC-2 a limit that is not a positive integer throws a TypeError', () => {
++  for (const limit of [0, -1, 1.5, '2', undefined, NaN]) {
++    assert.throws(() => new Basket({ limit }), TypeError);
++  }
++  assert.throws(() => new Basket(), TypeError);
++});
++
++test('TC-3 add appends the item and returns the new count', () => {
++  const basket = new Basket({ limit: 2 });
++  assert.equal(basket.add('a'), 1);
++  assert.equal(basket.add(undefined), 2);
++});
++
++test('TC-4 add throws a RangeError when the basket is full and keeps the count', () => {
++  const basket = new Basket({ limit: 1 });
++  basket.add('a');
++  assert.throws(() => basket.add('b'), RangeError);
++  assert.equal(basket.items.length, 1);
++});
