@@ -1,0 +1,98 @@
+{
+ "before/user-listing": {
+  "outcome": "PASS",
+  "pass": true,
+  "hidden": "11/11",
+  "minutes": 9.8,
+  "planning": 4.3,
+  "improve": 1.9,
+  "refusals": 2,
+  "keepalive": {
+   "allow": 1
+  },
+  "hook_rows": [
+   "stop:allow"
+  ],
+  "session_end_rows": []
+ },
+ "before/ticket-assignment": {
+  "outcome": "PASS",
+  "pass": true,
+  "hidden": "18/18",
+  "minutes": 17.5,
+  "planning": 4.1,
+  "improve": 1.3,
+  "refusals": 2,
+  "keepalive": {
+   "allow": 1
+  },
+  "hook_rows": [
+   "stop:allow"
+  ],
+  "session_end_rows": []
+ },
+ "before/ticket-escalation": {
+  "outcome": "PASS",
+  "pass": true,
+  "hidden": "14/14",
+  "minutes": 17.8,
+  "planning": 5.0,
+  "improve": 2.3,
+  "refusals": 7,
+  "keepalive": {
+   "allow": 1
+  },
+  "hook_rows": [
+   "stop:allow"
+  ],
+  "session_end_rows": []
+ },
+ "after/user-listing": {
+  "outcome": "PASS",
+  "pass": true,
+  "hidden": "11/11",
+  "minutes": 13.7,
+  "planning": 4.2,
+  "improve": 1.8,
+  "refusals": 3,
+  "keepalive": {
+   "allow": 1
+  },
+  "hook_rows": [
+   "stop:allow"
+  ],
+  "session_end_rows": []
+ },
+ "after/ticket-assignment": {
+  "outcome": "PASS",
+  "pass": true,
+  "hidden": "18/18",
+  "minutes": 16.5,
+  "planning": 4.2,
+  "improve": 1.5,
+  "refusals": 3,
+  "keepalive": {
+   "allow": 1
+  },
+  "hook_rows": [
+   "stop:allow"
+  ],
+  "session_end_rows": []
+ },
+ "after/ticket-escalation": {
+  "outcome": "PASS",
+  "pass": true,
+  "hidden": "14/14",
+  "minutes": 24.3,
+  "planning": 7.0,
+  "improve": 3.2,
+  "refusals": 7,
+  "keepalive": {
+   "allow": 1
+  },
+  "hook_rows": [
+   "stop:allow"
+  ],
+  "session_end_rows": []
+ }
+}

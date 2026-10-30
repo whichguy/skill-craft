@@ -1,0 +1,784 @@
+[
+ {
+  "run": "hooks-after-user-listing",
+  "case": "user-listing",
+  "outcome": "PASS",
+  "pass": true,
+  "committed": true,
+  "minutes": 13.7,
+  "visible_checks": [
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;(async()=>{const all=await fetch(base+'/users').then(r=>r.js"
+   }
+  ],
+  "held_out": [
+   {
+    "id": "list-unchanged",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "user-by-id-unchanged",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "name-filter",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "name-plain-text",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "page-envelope",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "partial-last-page",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "page-past-end",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "page-defaults",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "filter-then-page",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "size-bounds",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "bad-page-or-size",
+    "grade": "fail-to-pass",
+    "pass": true
+   }
+  ],
+  "planning": {
+   "minutes": 4.2,
+   "improve_minutes": 1.8,
+   "stages": [
+    {
+     "stage": "intake",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "discovery",
+     "minutes": 0.4,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "research",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "spec",
+     "minutes": 1.1,
+     "improve_minutes": 0.9
+    },
+    {
+     "stage": "test-strategy",
+     "minutes": 0.5,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "plan",
+     "minutes": 0.6,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "prepare",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "minutes": 0.8,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "test-spec",
+     "minutes": 0.3,
+     "improve_minutes": 0.0
+    }
+   ]
+  },
+  "stages": {
+   "intake": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "discovery": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "research": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "spec": {
+    "count": 1,
+    "minutes": 1.1
+   },
+   "test-strategy": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "plan": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "prepare": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "step-plan": {
+    "count": 2,
+    "minutes": 1.8
+   },
+   "test-spec": {
+    "count": 2,
+    "minutes": 0.6
+   },
+   "validate-existing": {
+    "count": 2,
+    "minutes": 0.0
+   },
+   "implement": {
+    "count": 3,
+    "minutes": 1.0
+   },
+   "test": {
+    "count": 2,
+    "minutes": 1.1
+   },
+   "document": {
+    "count": 2,
+    "minutes": 1.5
+   },
+   "carry-forward": {
+    "count": 1,
+    "minutes": 0.7
+   },
+   "system-test-author": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "system-test": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "product-acceptance": {
+    "count": 1,
+    "minutes": 0.3
+   },
+   "release-plan": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "release-check": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "release": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "release-verify": {
+    "count": 1,
+    "minutes": 0.3
+   },
+   "operations": {
+    "count": 1,
+    "minutes": 0.2
+   },
+   "handoff": {
+    "count": 1,
+    "minutes": 0.5
+   }
+  },
+  "refusals": {
+   "other protocol": 3
+  },
+  "knowledge_bytes": {
+   "architecture.md": 1796,
+   "environment.md": 6277,
+   "spec.md": 3448
+  }
+ },
+ {
+  "run": "hooks-after-ticket-assignment",
+  "case": "ticket-assignment",
+  "outcome": "PASS",
+  "pass": true,
+  "committed": true,
+  "minutes": 16.5,
+  "visible_checks": [
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content"
+   }
+  ],
+  "held_out": [
+   {
+    "id": "ticket-lifecycle-unchanged",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "listing-unchanged",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "notifications-unchanged",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "restart-keeps-state",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "cli-raw-columns",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "old-data-loads",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assign-and-unassign",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignee-validation",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assign-state-and-missing",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assign-same-agent-noop",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assign-audited",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignee-notified",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignee-filter",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "filters-combine",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignee-filter-pages",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignee-persists",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "old-tickets-unassigned",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "cli-shows-assignee",
+    "grade": "fail-to-pass",
+    "pass": true
+   }
+  ],
+  "planning": {
+   "minutes": 4.2,
+   "improve_minutes": 1.5,
+   "stages": [
+    {
+     "stage": "intake",
+     "minutes": 0.2,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "discovery",
+     "minutes": 0.4,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "research",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "spec",
+     "minutes": 0.7,
+     "improve_minutes": 0.4
+    },
+    {
+     "stage": "test-strategy",
+     "minutes": 0.5,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "plan",
+     "minutes": 0.6,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "prepare",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "minutes": 1.2,
+     "improve_minutes": 0.6
+    },
+    {
+     "stage": "test-spec",
+     "minutes": 0.3,
+     "improve_minutes": 0.0
+    }
+   ]
+  },
+  "stages": {
+   "intake": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "discovery": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "research": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "spec": {
+    "count": 1,
+    "minutes": 0.7
+   },
+   "test-strategy": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "plan": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "prepare": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "step-plan": {
+    "count": 2,
+    "minutes": 2.8
+   },
+   "test-spec": {
+    "count": 2,
+    "minutes": 0.6
+   },
+   "validate-existing": {
+    "count": 2,
+    "minutes": 0.0
+   },
+   "implement": {
+    "count": 4,
+    "minutes": 1.5
+   },
+   "test": {
+    "count": 3,
+    "minutes": 1.8
+   },
+   "document": {
+    "count": 3,
+    "minutes": 2.4
+   },
+   "carry-forward": {
+    "count": 1,
+    "minutes": 1.5
+   },
+   "system-test-author": {
+    "count": 1,
+    "minutes": 0.7
+   },
+   "system-test": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "product-acceptance": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "release-plan": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "release-check": {
+    "count": 1,
+    "minutes": 0.3
+   },
+   "release": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "release-verify": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "operations": {
+    "count": 1,
+    "minutes": 0.3
+   },
+   "handoff": {
+    "count": 1,
+    "minutes": 0.3
+   }
+  },
+  "refusals": {
+   "other protocol": 2,
+   "quality gate": 1
+  },
+  "knowledge_bytes": {
+   "architecture.md": 1621,
+   "environment.md": 5499,
+   "spec.md": 3134
+  }
+ },
+ {
+  "run": "hooks-after-ticket-escalation",
+  "case": "ticket-escalation",
+  "outcome": "PASS",
+  "pass": true,
+  "committed": true,
+  "minutes": 24.3,
+  "visible_checks": [
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content"
+   },
+   {
+    "pass": true,
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content"
+   },
+   {
+    "pass": true,
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.en"
+   },
+   {
+    "pass": true,
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; "
+   },
+   {
+    "pass": true,
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stri"
+   },
+   {
+    "pass": true,
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $be"
+   },
+   {
+    "pass": true,
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \""
+   }
+  ],
+  "held_out": [
+   {
+    "id": "existing-api-kept",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignment-kept",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignment-listing-kept",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignment-notified-kept",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "assignment-persists-kept",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "cli-raw-columns-kept",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "worker-off-is-quiet",
+    "grade": "pass-to-pass",
+    "pass": true
+   },
+   {
+    "id": "reassign-moves",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "reassign-validation",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "reassign-notifies",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "reassign-audited",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "escalation-notifies-oncall",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "escalation-rules",
+    "grade": "fail-to-pass",
+    "pass": true
+   },
+   {
+    "id": "escalation-at-most-once",
+    "grade": "fail-to-pass",
+    "pass": true
+   }
+  ],
+  "planning": {
+   "minutes": 7.0,
+   "improve_minutes": 3.2,
+   "stages": [
+    {
+     "stage": "intake",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "discovery",
+     "minutes": 0.3,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "research",
+     "minutes": 0.1,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "spec",
+     "minutes": 0.6,
+     "improve_minutes": 0.4
+    },
+    {
+     "stage": "test-strategy",
+     "minutes": 0.5,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "plan",
+     "minutes": 0.6,
+     "improve_minutes": 0.3
+    },
+    {
+     "stage": "prepare",
+     "minutes": 0.2,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "minutes": 1.6,
+     "improve_minutes": 1.0
+    },
+    {
+     "stage": "test-spec",
+     "minutes": 0.4,
+     "improve_minutes": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "minutes": 2.0,
+     "improve_minutes": 1.1
+    },
+    {
+     "stage": "test-spec",
+     "minutes": 0.5,
+     "improve_minutes": 0.0
+    }
+   ]
+  },
+  "stages": {
+   "intake": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "discovery": {
+    "count": 1,
+    "minutes": 0.3
+   },
+   "research": {
+    "count": 1,
+    "minutes": 0.1
+   },
+   "spec": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "test-strategy": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "plan": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "prepare": {
+    "count": 1,
+    "minutes": 0.2
+   },
+   "step-plan": {
+    "count": 2,
+    "minutes": 3.7
+   },
+   "test-spec": {
+    "count": 2,
+    "minutes": 0.9
+   },
+   "validate-existing": {
+    "count": 1,
+    "minutes": 0.0
+   },
+   "implement": {
+    "count": 3,
+    "minutes": 1.9
+   },
+   "test": {
+    "count": 3,
+    "minutes": 3.1
+   },
+   "document": {
+    "count": 3,
+    "minutes": 5.0
+   },
+   "carry-forward": {
+    "count": 1,
+    "minutes": 1.7
+   },
+   "system-test-author": {
+    "count": 1,
+    "minutes": 0.9
+   },
+   "system-test": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "product-acceptance": {
+    "count": 1,
+    "minutes": 0.3
+   },
+   "release-plan": {
+    "count": 1,
+    "minutes": 0.9
+   },
+   "release-check": {
+    "count": 1,
+    "minutes": 0.7
+   },
+   "release": {
+    "count": 1,
+    "minutes": 0.5
+   },
+   "release-verify": {
+    "count": 1,
+    "minutes": 0.6
+   },
+   "operations": {
+    "count": 1,
+    "minutes": 0.4
+   },
+   "handoff": {
+    "count": 1,
+    "minutes": 0.4
+   }
+  },
+  "refusals": {
+   "other protocol": 5,
+   "quality gate": 2
+  },
+  "knowledge_bytes": {
+   "architecture.md": 3021,
+   "environment.md": 12006,
+   "spec.md": 5030
+  }
+ }
+]

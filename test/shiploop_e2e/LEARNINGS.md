@@ -4342,3 +4342,70 @@ step an iteration: built, tested, documented, reviewed and committed before the 
 **Verified by.** The evidence directory's `README.md` lists the commands; every number above is in a file there. Full test tiers on
 the tip: all 154 hermetic suites pass on the tree before the last cleanup, and the changed-file selections plus the apparatus group
 pass after it.
+
+## Wave A before and after: size caps, coverage at plan and the UI criteria, on Codex Terra 6.1 with hooks on (2026-10-29) — status: firm for the verdicts and for no size-limit refusal; interim for time and refusal-kind comparisons (one subject, n = 1 per cell); the `session-end` trace row not exercised
+
+**Question.** Wave A (plan F2 size caps become print budgets, plan F3 primary coverage at plan, plan P4 the UI criteria, and the review fixes
+that followed) changes the engine's gates, packets and prompts.
+- Do the three brownfield cases still pass their hidden checks, as before?
+- Do the size-limit refusals the D7 before-runs counted (11 of 70) and R2 still saw (4 of 9) go away?
+- Does a run now spill a field to `RUN/fields/` and carry on?
+- Does the first Codex run with hooks on free its run through the session-end hook?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh, hooks on (the harness default since 2f93f425), `run.py --source checkout`, the cases of
+  the D7 rounds: `user-listing` and `ticket-assignment` in parallel, `ticket-escalation` on `ticket-assignment`'s delivery.
+- **Before:** a detached worktree at 8dde0855 (main, no Wave A). **After:** a detached worktree at 9147dcca (Wave A: 232689c5 F2,
+  fdec0f6e F3, 5a65d62c P4 and 9147dcca, the fixes from an independent review). 31d627ae, which follows it, changes documentation and one
+  test only. The round covers every engine commit of Wave A.
+- The first launch of the after arm (at 5a65d62c) and the first escalation of the before arm were killed by a session restart or paused
+  (below) and are not in the table; the arms below are the relaunches. At most three runs overlapped; the launch-time process lists are in
+  `concurrent-at-launch-hooks-*.txt`.
+
+**Not covered.**
+- A case with an interface (the D7 cases have none), so the UI criteria (P4) are measured only as packet text and tests.
+- A plan that leaves a primary requirement out: no run did, so the F3 refusal is exercised by tests, not by these runs.
+- A repository beyond the model's context (plan P6), and the DeepSeek default subject.
+- Whether the model read the spilled `RUN/fields` files: the files exist and the runs passed; reading is not recorded.
+
+**Result** (`docs/experiments/brownfield-baseline-20261028/results/d7/hooks-{before,after}-codex-runs.json` and
+`hooks-arms-comparison.json`; seven baseline rows in this commit, the paused attempt included).
+
+| case | arm | verdict | held-out | planning window (Improve) | run min | refusals (size limit) |
+|---|---|---|---|---|---|---|
+| user-listing | before | PASS | 11/11 | 4.3 (1.9) | 9.8 | 2 (1) |
+| user-listing | after | PASS | 11/11 | 4.2 (1.8) | 13.7 | 3 (0) |
+| ticket-assignment | before | PASS | 18/18 | 4.1 (1.3) | 17.5 | 2 (0) |
+| ticket-assignment | after | PASS | 18/18 | 4.2 (1.5) | 16.5 | 3 (0) |
+| ticket-escalation | before (attempt 2) | PASS | 14/14 | 5.0 (2.3) | 17.8 | 7 (1) |
+| ticket-escalation | after | PASS | 14/14 | 7.0 (3.2) | 24.3 | 7 (0) |
+
+**What it shows.**
+- **The hidden checks hold (firm, n = 1 per cell):** 43 of 43 on both arms.
+- **No size-limit refusal after Wave A (firm for these runs):** the before arm had 2 of its 11 refusals, the after arm 0 of 13. The D7
+  before-runs (11 of 70), R1 (1 of 12) and R2 (4 of 9) all had them.
+- **The spill path ran live:** the after arm wrote 4 field files (1 in `user-listing`, 3 in `ticket-escalation`) and every run passed.
+- **None of the 13 after-arm refusals names `follows`, primary coverage or a field file.** The plans carried `follows` on their first
+  submission, so the new gate never had to refuse.
+- **Refusal kinds moved, the total barely did (interim):** size limit 2 to 0, quality gate 7 to 3, other protocol 2 to 10, total 11 to 13. The
+  after arm's refusals are a missing result file, a test command's criteria, a mutant survivor and a system-test rerun: none involves a Wave A rule.
+- **Time is not a result (interim):** total run time went from 45.1 to 54.5 min, planning was equal in two cases (4.3 to 4.2, 4.1 to 4.2)
+  and 2.0 min longer in `ticket-escalation` (5.0 to 7.0, Improve 2.3 to 3.2), whose run also took 6.5 min longer. One run per cell, and the
+  overlap differed (the after arm's `user-listing` ran beside both before-arm `ticket-escalation` attempts). No cause is
+  established, so this is neither a cost nor a gain of Wave A.
+- **Hooks (6 of 6):** the Stop hook fired once per run and allowed ("run is done"). No trace holds a `session-end` row: all six runs
+  finished cleanly and had nothing to release. Codex logged the notice that it clamps SessionEnd's timeout to 3 s, so the hook is
+  registered; the other session's cold probe puts it at 0.19 s median (d985f40f). Whether SessionEnd runs at the end of a Codex session
+  stays unobserved here.
+- **One pause (interim, n = 1):** the first before-arm `ticket-escalation` ended in 4 minutes with the run paused: at `step-plan` the model
+  ran `shiploop pause`, citing the fixture's issue-first rule in CONTRIBUTING.md and "no tracker is configured". The Stop hook allowed
+  the end. The rerun passed. R1 and R2 (hookless) did not pause on the same case and model. If it recurs, the packet should say that an
+  unattended run records such an exception as an assumption and proceeds (S-14); that is a separate change.
+
+**Supersedes nothing.** The evaluator digest differs between the arms (`metrics.py` gained a refusal-classifier row for the primary-coverage
+gate), so the harness does not compare these rows for promotion; the comparison above is by hand.
+
+Evidence: the three JSON files above, `concurrent-at-launch-hooks-*.txt`, `hooks-before-escalation-attempt1-paused.md`, and the runs
+under `~/e2e-runs-brownfield/20261029/hooks-{before,after}-*`. Related commits: 232689c5, fdec0f6e, 5a65d62c, 9147dcca, 31d627ae, 8dde0855,
+2f93f425 (hooks on for Codex), d985f40f (the SessionEnd probe), ba45b9d2 (the hookless R1 and R2 rows).
+Committed last on purpose: it follows every ShipLoop commit the round covers, so the release preflight's ancestry rule holds for the right reason.

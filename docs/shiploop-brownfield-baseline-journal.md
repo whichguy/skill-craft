@@ -433,3 +433,19 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
   - The owner's answer, 2026-10-28: "I don't want to have a 30-minute planning session at all." The plan that follows
     is [docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md](shiploop-planning-speed-and-caps-plan-2026-10-28.md).
 
+
+## 2026-10-29: Wave A before and after on Codex Terra with hooks on
+
+- **Question.** Does Wave A (plan F2 size caps, F3 coverage at plan, P4 UI criteria, and the review fixes) keep the three cases passing and
+  remove the size-limit refusals the D7 before-runs counted?
+- **Result.** Status: firm for the verdicts and for no size-limit refusal; interim for time and refusal kinds (one subject, n = 1 per cell).
+  - Hidden checks 43 of 43 on both arms (before: 11, 18, 14; after: 11, 18, 14).
+  - Size-limit refusals: 2 of 11 before, 0 of 13 after. D7 had 11 of 70, R1 1 of 12 and R2 4 of 9.
+  - The after arm wrote 4 `RUN/fields` files across two runs and passed.
+  - Run time 45.1 min before, 54.5 min after, not read as a result: planning was equal in two cases and 2.0 min longer in the third, with
+    different overlap.
+  - One run paused (the model ran `shiploop pause` over the fixture's issue-first rule); its rerun passed.
+  - No `session-end` trace row: all six runs finished cleanly with nothing to release.
+- **Evidence.** `test/shiploop_e2e/LEARNINGS.md` ("Wave A before and after"), `docs/experiments/brownfield-baseline-20261028/results/d7/hooks-*`,
+  seven rows in `test/shiploop_e2e/baselines.jsonl`.
+- **Commits.** Wave A 232689c5, fdec0f6e, 5a65d62c, 9147dcca; documentation 31d627ae; base 8dde0855.
