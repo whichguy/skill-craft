@@ -1,7 +1,7 @@
 ---
 Execute: ask
-Status: E7 running, 2026-10-30 (owner: "Yes, build E7", D1). Nothing in ShipLoop is changed; the arms are
-  overlays on a pinned build (§7a).
+Status: E7 decided 2026-10-30 (owner: "Yes, build E7", D1): no arm adopted, nothing in ShipLoop changed (§7b).
+  The next step, a rerun with the implementation held fixed, awaits the owner (D4–D6 in §9).
 Opened: 2026-10-30
 Consumer: the owner, who decides §9; then whoever builds experiment E7 (§7) and, on its verdict, the test-stage
   prompt change. Later: anyone who proposes more test-stage prose and needs the bar it must clear.
@@ -384,12 +384,74 @@ Smaller points:
 
 | | |
 |---|---|
-| Arms | A = 7fce12e4 (origin/main, ShipLoop 1.23.1); P, C, M = A + overlays/e7-p.json, e7-c.json, e7-m.json |
+| Arms | A = 7fce12e4 (origin/main, ShipLoop 1.23.1); P, C, M = A + overlays/e7-p.json, e7-c.json, e7-m.json; D (round 2, E7-K2 only) = A + e7-d.json, arm C's packet lines on today's duty |
 | Experiments | E7-K1 (`stand-in-rules`), E7-K2 (`tickets-assign`); 4 samples per arm; seed at test-spec, stop after test |
 | Host | Codex, gpt-6.1-terra at xhigh (hosts.RUN_DEFAULT_HOST) |
-| Run | `experiment.py queue E7-K2 E7-K1 --arms C,M,A,P --jobs 5 --out ~/e2e-runs/e7-20261030` |
+| Run | round 1: `experiment.py queue E7-K2 E7-K1 --arms C,M,A,P --jobs 5 --out ~/e2e-runs/e7-20261030` (32 slices); round 2: `queue E7-K2 --arms D,C,A,M --samples 8 --jobs 6` (20 slices: D 1–8, A, C and M 5–8). All 52 exited 0 and passed their slice verdicts |
 | Verified | the overlays apply to A (`experiment.py verify E7-K1`); the evaluator scores weak tests 0.625 and boundary tests 0.875 on the reference (test/shiploop-e2e-experiments.test.py) |
 | Decide | `decide E7-Kn A P`, `decide E7-Kn P C`, `decide E7-Kn A M` |
+
+### 7b. Results, 2026-10-30: no arm adopted, and the noise is as large as the effects
+
+Value = the killed fraction of `rel-bound` and `logic-flip` mutants on the product lines the slice wrote. "Harness" is
+`experiment.py decide` against A, with the A/A spread from A's samples 1–2 against 3–4. "A-condition" pools A with the 7
+arm-M runs whose test stage saw exactly A's packet and feedback (below). p is a one-sided permutation test.
+
+| Case | Arm | n | Mean | sd | Survivors per run | Harness vs A | Over the A-condition, p |
+|---|---|---:|---:|---:|---:|---|---|
+| stand-in-rules | A | 4 | 0.836 | 0.097 | 2.75 | | |
+| | P | 4 | 0.811 | 0.148 | 2.00 | contradicts | −0.04, 0.73 |
+| | C | 4 | 0.831 | 0.065 | 2.00 | contradicts | −0.02, 0.68 |
+| | M | 4 | 0.862 | 0.044 | 2.00 | inconclusive | +0.01, 0.47 |
+| tickets-assign | A | 8 | 0.454 | 0.270 | 3.25 | | |
+| | P | 4 | 0.582 | 0.161 | 2.50 | inconclusive | +0.05, 0.37 |
+| | C | 8 | 0.688 | 0.125 | 1.62 | supports | +0.15, 0.06 |
+| | D | 8 | 0.633 | 0.215 | 2.12 | supports | +0.10, 0.17 |
+| | M | 8 | 0.646 | 0.194 | 2.12 | supports | +0.11, 0.14 |
+
+1. **On `stand-in-rules`, nothing separates.** Every arm kills 0.81–0.86 and leaves 2–3 limit or guard mutants per
+   run, whatever the prompt.
+2. **On `tickets-assign`, the harness's three "supports" are within noise.** Arm M's stage check found a survivor in
+   1 of 8 runs, and its packet never names the operators. So the other 7 runs saw exactly A's packet and feedback, and
+   they still scored 0.17 above A (p 0.08). That gap is an A/A difference. The harness's spread (0.13) understated A's
+   sd of 0.27. Against all 15 A-condition runs, C is +0.15 (p 0.06) and D +0.10 (p 0.17).
+3. **The rewritten duty (P) changed neither the score nor the tests' shape.** One test per behaviour was followed in 1
+   of 20 P and C runs (C's first `stand-in-rules` run, 13 tests). Every other run wrote one test per case ID; on
+   `tickets-assign` each held 10–14 assertions. A sentence asking for a different shape did not move the shape, which is
+   the owner's doubt about prose, measured.
+4. **The packet lines (C, D) are the only change with a visible mechanism, and they are not established.**
+   - C has the lowest spread: it never scored below 0.5, and 1.6 limit or guard mutants survived per run against A's 3.25.
+   - In C's first run the tests write a 65-character assignee into the data file and expect the load to refuse it.
+     That guard is one the code introduced and only the diff shows. A's tests tried 65 characters only over HTTP.
+   - But the load-path 64-character bound still survived in 4 of 8 C runs (A: 5 of 8), and D and C overlap
+     (C − D = +0.05, p 0.31).
+5. **Arm M as built cannot act.** The stage check samples 8 mutants spread across the changed files.
+   - On `stand-in-rules` it drew 2–6 limit or guard mutants per run, all already killed.
+   - On `tickets-assign` it drew 0–2, all killed. They were often on the same load-path guard line as the evaluator's
+     survivors, but on other clauses of it.
+   - The gate's one survivor in 12 runs was an `integer` mutant (64 → 65 in validate.js), which A's catalog also has.
+   So the new operators never produced feedback, and M's scores are A's scores.
+6. **Most of the variance comes from implement, not the test stage.** Each run's implement writes different code: 5–7
+   limit or guard sites, with or without a validator on load. That changes both how many mutants there are and how hard
+   they are to kill. A sample that varies the code cannot isolate a change to the test prompt.
+
+By §7's rule nothing is adopted. P contradicts on `stand-in-rules`. C does not support over P on either case at n=8
+(P n=4). M's gain cannot come from its gate. Nothing ships (D3).
+
+What would decide it (D4–D6):
+- **Hold the implementation fixed.** Seed at the test stage with a recorded implement result and one Terra delivery's
+  product files laid over the worktree after the item base, so only the test stage varies. `release_slice.copy_home`
+  already lays files over a run's worktree after its base is recorded, for a delivered item. Rerun A, D and C there.
+  P's oracle change needs test-spec in the loop and has shown nothing, so it can wait.
+- **Fix the decision rule's noise estimate.** A 2-against-2 spread called three A/A-sized gaps "supports". A
+  permutation test over all control samples, or the spread over all of them, would not. Earlier E-decisions would
+  read differently, so the change is the owner's call.
+- **Targeted sampling for M.** Only if the stage check prefers limit and guard mutants on changed lines would §6d act.
+  That changes a gate's cost.
+
+Evidence: e7-results.json (52 scored samples and 10 decision records); e7_analysis.py prints the table's p values
+from it; decision records under ~/e2e-runs/e7-20261030/E7-K*/decision-*.json; journal lines in
+docs/shiploop-template-experiments-journal.md.
 
 ## 8. Out of scope here: the UI verification route (Salesforce run, 2026-10-30)
 
@@ -413,6 +475,15 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
   experiment arm until E7 decides, or adopt it now on §3a/§3c's evidence? (Recommended: experiment arm first.)
 - **D3.** On E7's verdict, ship the winning arm in one release, with a change note and a journal entry citing E7's
   decision files.
+- *Outcome, 2026-10-30:* D1 was run, with M as an experiment arm only (D2). No arm won, so nothing ships under D3
+  (§7b).
+- **D4.** Rerun E7's test-stage arms (A, D, C) with the implementation held fixed: a new slice seed at the test stage
+  that lays one delivery's product files over the worktree after the item base. (Recommended: harness work only, and
+  the one design that can separate a test-prompt change from implement's variance.)
+- **D5.** Replace `decide`'s 2-against-2 A/A spread with a permutation test over all control samples. Earlier
+  experiment verdicts would read differently.
+- **D6.** Give the stage mutation check targeted sampling (limit and guard mutants on changed lines first), so §6d can
+  act. This is a gate-cost change.
 
 ## 10. Journal
 
@@ -427,3 +498,7 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | Proposal: §6a duty (474 words against 680), §6b oracle as `input → value`, §6c diff and example test, §6d two operators; E7 to decide | interim, awaiting the owner's decisions | §6, §7, §9 |
 | 2026-10-30 | E7 built: evaluator e7_tests.py (limit-and-guard kill fraction), case `tickets-assign`, overlays e7-p/c/m on 7fce12e4; queue launched on Codex Terra | interim, running | §7a; e1b-trees-e7.json |
 | 2026-10-30 | E1b's stand-in score is at its ceiling (12 of 12 samples killed every stand-in), while the same trees kill 0.57–1.00 of their limit and guard mutants | firm for those 12 Grok 4.7 samples | e1b-trees-e7.json |
+| 2026-10-30 | E7 decided: no arm adopted. `stand-in-rules`: all arms 0.81–0.86, none separates. `tickets-assign` (n=8): the harness says C, D and M support over A, but 7 arm-M runs that behaved as A scored +0.17 over A (p 0.08); over the 15 A-condition runs C +0.15 (p 0.06), D +0.10 (p 0.17) | firm for these runs (one model, two cases); supersedes the round-1 reading "C supports over P" (n=4) | §7b; e7-results.json; e7_analysis.py |
+| 2026-10-30 | Prose did not change test shape: one test per behaviour in 1 of 20 P and C runs | firm for these runs | e7-results.json (mean_titles_per_id) |
+| 2026-10-30 | The 8-mutant stage sample never drew a surviving limit or guard mutant (0–6 drawn per run, all killed, in 12 of 12 runs); the gate's one survivor was an `integer` mutant | firm for these runs | RUN/tests/*-mutation-check.md of ~/e2e-runs/e7-20261030/E7-K*/M/* |
+| 2026-10-30 | `experiment.py decide`'s 2-against-2 A/A spread understated A's sd (0.13 against 0.27) and labelled A/A-sized gaps "supports" | firm (E7-K2) | §7b item 2 |

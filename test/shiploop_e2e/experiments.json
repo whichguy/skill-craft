@@ -82,7 +82,8 @@
     "arms": {"A": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d"},
              "P": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-p.json"},
              "C": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-c.json"},
-             "M": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-m.json"}},
+             "M": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-m.json"},
+             "D": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-d.json"}},
     "evaluator": "evaluators/e7_tests.py", "samples": 4,
     "metric": "the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines the slice wrote, under the case's mutation command; all-class ratio, stand-in fraction, titles per case ID and stage seconds beside it"
   }
