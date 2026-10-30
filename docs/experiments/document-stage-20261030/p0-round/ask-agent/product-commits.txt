@@ -1,0 +1,28 @@
+c3da8ed Strengthen W1 step plan and supporting reference
+    A	docs/shiploop/w1-plan-reference.md
+6c2c7a5 docs(shiploop): record in-this-node-js-project-add-f69a8f knowledge after step-plan
+    A	docs/shiploop/architecture.md
+ae6774d feat(W1/S1): Implemented record parsing with numbered validation errors
+    M	README.md
+    M	docs/shiploop/architecture.md
+    M	docs/shiploop/environment.md
+    M	docs/shiploop/spec.md
+    A	src/records.js
+    A	test/records.test.js
+deeeea1 Clarify the amended W1 plan baseline
+    M	docs/shiploop/w1-plan-reference.md
+f6c1f6b docs(shiploop): record in-this-node-js-project-add-f69a8f knowledge after step-plan
+    M	docs/shiploop/environment.md
+    M	docs/shiploop/spec.md
+d2d205a feat(W1/S1): Revalidated the existing parser against the amended S1 criteria
+    M	README.md
+    M	docs/shiploop/environment.md
+    M	src/records.js
+    M	test/records.test.js
+8af8e92 feat(W1/S2): Revalidated the existing ordered selector and its contract
+    M	test/records.test.js
+7983fed Correct the mutation evidence in the environment knowledge
+    M	docs/shiploop/environment.md
+d603fd0 docs(shiploop): record in-this-node-js-project-add-f69a8f knowledge after carry-forward
+    M	docs/shiploop/architecture.md
+    M	docs/shiploop/spec.md

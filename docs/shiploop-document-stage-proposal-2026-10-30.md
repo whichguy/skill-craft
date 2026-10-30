@@ -1,7 +1,7 @@
 # ShipLoop document stage: review and proposal (2026-10-30)
 
-Status: proposal for the owner. P0 is fixed on this branch (journal §5, C1; owner go 2026-10-30); P1-P6 await a
-decision. Evidence and experiments: [shiploop-document-stage-journal.md](shiploop-document-stage-journal.md).
+Status: proposal for the owner. P0 is fixed and verified live on Codex Terra (journal §5, C1; owner go 2026-10-30);
+P1-P6 await a decision. Evidence and experiments: [shiploop-document-stage-journal.md](shiploop-document-stage-journal.md).
 
 ## 1. Verdict
 

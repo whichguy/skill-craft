@@ -1,0 +1,13 @@
+1361a24 feat(W1/S1): Parse and validate records with line-numbered errors
+    M	README.md
+    M	docs/shiploop/environment.md
+    M	docs/shiploop/spec.md
+    A	src/records.js
+    A	test/records.test.js
+d50572f feat(W1/S2): Select matching records in input order
+    M	README.md
+    M	docs/shiploop/spec.md
+    M	src/records.js
+    M	test/records.test.js
+7064053 docs(shiploop): record in-this-node-js-project-add-7f5b7a knowledge after carry-forward
+    M	docs/shiploop/environment.md

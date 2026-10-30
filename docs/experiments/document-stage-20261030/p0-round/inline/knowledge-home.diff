@@ -1,0 +1,28 @@
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 71c925f..4b1dd3e 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -5,6 +5,13 @@ Seeded by the E2E harness from the case's own checks; discovery did not run.
+ ## Commands
+ 
+ ```sh
++node --test --test-reporter=spec test/records.test.js
++npm test
++rg -q 'Parse records' src/records.js && rg -q 'Select records' src/records.js
+ node --test
+ node -e "const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\n\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)"
+ ```
++
++## Harnesses and suites
++
++The local stateless unit suite uses Node's built-in node:test and node:assert in test/records.test.js. Run `npm test` for the full suite; revalidate when the runtime or test script changes.
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index fe64c5a..fdfc899 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -5,3 +5,5 @@ Seeded by the E2E harness: the stages before step-plan are recorded without doin
+ ## Requirements
+ 
+ R-1: In this Node.js project, add a new module src/records.js exporting parseRecords(text) and select(records, field, value). parseRecords reads one record per non-blank line; a line holds fields `key=value` joined by `;`, a key is a lower-case letter followed by lower-case letters, digits or underscores, and values are trimmed: parseRecords('name=ada;team=x\n\nname=bob;team=y') returns [{name:'ada',team:'x'},{name:'bob',team:'y'}]. It rejects malformed input: a field with no `=`, an empty or invalid key, or a key repeated on one line throws a SyntaxError whose message names the 1-based line number; a non-string argument throws a TypeError. select returns the records whose field equals value, in input order (select(rows,'team','x') on the rows above returns the first record only); a non-array records throws a TypeError. Cover it with node:test tests; npm test must pass.
++The parser is implemented in src/records.js and its cases in test/records.test.js. (W1/S1)
++Selection is implemented in src/records.js and tested in test/records.test.js. (W1/S2)

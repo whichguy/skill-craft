@@ -153,5 +153,10 @@ allowed for exploratory rounds; one Opus 5.5 judge per round.
 - **Known gap (not fixed).** The `test` path class comes before `docs`, so an undeclared Markdown file under a test
   folder matches the scope's `**/*.md` but `commit_scope` leaves it uncommitted. No run has written one; the test checks
   the direction that bit (everything committed is in scope).
-- **Not yet verified live.** No E2E round has run on the new scope. The proposal's §5 round on Codex Terra (ask-agent
-  and inline) would show whether the README is now updated; status of L3's fix: interim until that round.
+- *Superseded 2026-10-30 by the live round below:* "Not yet verified live … interim until that round."
+- **Verified live, 2026-10-30 (firm, n = 1 per arm).** The pilot's case and command on Codex Terra 6.1 xhigh with hooks
+  on, built at the P0 commit: the ask-agent arm, which left README.md unchanged under the old scope, now adds 39 README
+  lines over 2 of its 3 step commits and writes no product API reference into docs/shiploop/ (the pilot wrote 27 lines
+  of `records.md` there); the inline arm still updates the README (10 lines). Both pass all five slice verdicts. Entry
+  "P0 document-loop scope" in `test/shiploop_e2e/LEARNINGS.md`; evidence `experiments/document-stage-20261030/p0-round/`.
+  The ask-agent run also took two planning send-backs, unrelated to the scope, so its time is not compared.

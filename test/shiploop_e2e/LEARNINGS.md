@@ -4447,3 +4447,53 @@ the model's steps stood in), 5 new in `shiploop-e2e-epoch`; `test-groups` pins t
 
 **Not covered.** No live run: stage 3's A/A calibration (Codex Terra 6.1 xhigh) gives the first `calibration.json`, and
 nothing can register a qualified cycle until it does. The purpose review's prompt has not met a real model.
+
+## P0 document-loop scope: the per-step pilot's case again, ask-agent and inline, on Codex Terra 6.1 xhigh with hooks on (2026-10-30) — status: firm for the README and knowledge-home outcome (n = 1 per arm); timings not comparable (the ask-agent run took two send-backs)
+
+**Question.** The 2026-10-29 per-step pilot's ask-agent arm left README.md unchanged in both steps and wrote the product's
+API reference into `docs/shiploop/records.md`, because the document loop's `scope` named only the step plan's paths and
+docs/shiploop/ (`docs/shiploop-document-stage-journal.md`, L3). The fix (`shiploop_loops.DOC_FILES` and the `document`
+branch of `_build`; journal §5, C1) names the documentation files the step commit takes and keeps product docs out of
+the knowledge home. On the same cell, does the document stage now update the README, and does the knowledge home stay
+free of product documentation?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh, hooks on (the owner's runner, 2026-10-29); `slice.py --case stand-in-parser
+  --delegation <ask-agent|inline> --timeout 14400`, the pilot's command.
+- Built from this branch at the P0 commit (`invocation.json` `local_head` 650d5c85, plugin 2.24.1, ShipLoop 1.23.1 version
+  fields). It was rebased afterwards onto main 63370382 unchanged: `git diff` of skills/, changes/ and the test between
+  the two commits is empty.
+- Compared with the pilot's arms on the old scope (`~/e2e-runs/20261029/pilot-terra-{ask-agent,inline}-32f436`).
+
+**Result** (evidence: `docs/experiments/document-stage-20261030/p0-round/{ask-agent,inline}/`).
+
+| | ask-agent, old scope (pilot) | ask-agent, new scope | inline, old scope (pilot) | inline, new scope |
+|---|---|---|---|---|
+| verdicts | all five pass | all five pass | all five pass | all five pass |
+| README.md lines added | 0 | 39 | 11 | 10 |
+| step commits touching README.md | 0 of 2 | 2 of 3 | 2 of 2 | 2 of 2 |
+| product API reference in docs/shiploop/ | `records.md`, 27 lines | none | none | none |
+| document contract `scope` names the documentation files | no | yes | no | yes |
+
+**What it shows.**
+- **The ask-agent route now documents the product where the product keeps it (firm, this case).** S1's first commit
+  added a "Parsing records" README section (24 lines), the re-done S1 added "Selecting records" (15 lines), and S2's
+  commit changed only its test because the README already described the selector. No file in docs/shiploop/ restates
+  the API; the one new non-standard file there, `w1-plan-reference.md`, is the step plan's own reference, written at
+  step-plan.
+- **The inline route is unchanged (firm, this case):** it updated the README under the old scope and still does.
+- **The README text is accurate and compact on both routes:** each function, its errors, and strict equality for
+  `select`, with an example on the ask-agent route (`readme.diff`).
+- **A send-back, seen for the first time on this route.** S2's test stage sent the item back to step-plan, and the
+  re-planned validate-existing sent it back once more: its expectation E1 assumed S2's `select` already worked on the item
+  base (`item-history.json`). Both steps were then redone and committed in plan order. This is planning, not the document
+  scope; it is why the run took about 39 minutes against the pilot's 22, with 174 main-thread model calls against 124 and
+  7 Improve children against 4.
+
+**Not covered.**
+- A second case or a second run of either arm.
+- An undeclared Markdown file under a test folder: in the new scope, but the commit's test class takes it first, so
+  ShipLoop would not commit it (journal C1, "known gap"). No run wrote one.
+- P1-P6 of `docs/shiploop-document-stage-proposal-2026-10-30.md`: this round checks P0 alone.
+
+This entry is the commit after the P0 change, which is what `scripts/release.py`'s E2E-round preflight reads.
