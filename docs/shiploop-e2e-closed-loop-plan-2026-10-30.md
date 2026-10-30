@@ -56,7 +56,7 @@ AGENTS.md makes launching verification runs routine (stages 3 and 4). These are 
 | # | Decision | Proposed | Why it is the owner's |
 |---|---|---|---|
 | D1 | Sample and tolerance rule | Attempts per arm (k) and the efficiency tolerance (t) come from stage 3. t is the smallest value at which at most 10% of A/A splits decide PROMOTE or DROP. `quality_tolerance` stays 0 unless the A/A failure rate makes a false DROP likelier than 20% at k | Open decision 4 of the 10-29 plan |
-| D2 | Learning records as the loop's memory | Added to the last three commit messages, not replacing them | Amends SPEC's Purpose |
+| D2 | Learning records as the loop's memory | **Decided by the owner, 2026-10-30: alongside** the last three commit messages, not replacing them | Amends SPEC's Purpose |
 | D3 | Cycle resource policy | At most 3 subject runs at once. Stop after 2 consecutive cycles without PROMOTE, or at `--cycles`. Token budget per cycle: 2 x the A/A median per attempt x attempts; an unknown measurement leaves the cycle UNDECIDED | Open decision 4 of the 10-29 plan |
 | D4 | Review every attempt before PROMOTE | Keep it. `epoch.decide` already requires it. It is 24 of about 38 model sessions a cycle | The owner's 10-29 design |
 | D5 | Reuse a promoted candidate's sealed attempts as the next cycle's control | Defer until after the pilot. If adopted: every attempt of that arm, none chosen | Relaxes "registration precedes dispatch" |
