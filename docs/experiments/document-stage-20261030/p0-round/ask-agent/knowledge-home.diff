@@ -1,0 +1,81 @@
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+new file mode 100644
+index 0000000..b91a502
+--- /dev/null
++++ b/docs/shiploop/architecture.md
+@@ -0,0 +1,15 @@
++# Architecture
++
++## Decisions
++
++AD-1: Implement the requested functions as a local CommonJS module at src/records.js, using Node built-ins and the existing node:test suite; no storage or service boundary is involved.
++
++## Structure
++
++src/ contains independent CommonJS helpers; test/ contains node:test cases.
++
++## Real-boundary checks
++
++Retain the local Node unit boundary: parsing is a pure in-process operation with no external service or storage boundary. The tests import the public CommonJS module directly; no separate remote check applies.
++
++The system-test owner must rerun the full `npm test` suite at the outer system-test stage; the product-acceptance owner must verify the request examples and public module boundary. Revalidate this boundary assessment if a service, persistence, or a different consumer is introduced.
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 71c925f..9eb47a2 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -6,5 +6,28 @@ Seeded by the E2E harness from the case's own checks; discovery did not run.
+ 
+ ```sh
+ node --test
++node --test --test-reporter=spec --test-name-pattern='TC-1|TC-2|TC-3|TC-4' test/records.test.js
++npm test
++rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js
+ node -e "const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\n\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)"
+ ```
++
++On the item base, the final seeded command reached `TypeError: select is not a
++function`. With the inherited selector work present, it passes and checks both
++exports. This observation does not change the recorded item-base expectation.
++
++## Harnesses and suites
++
++Retain the built-in node:test harness: test/records.test.js imports the CommonJS module and uses strict assertions; no fixtures or mocks are needed. The focused command selects TC-1 through TC-4, while npm test includes them in the regression suite. The test stage owns the suite; revalidate both commands after changes to the module, suite, or Node environment. The selection cases use fresh local arrays and require no external boundary.
++
++The full suite and smoke command are `npm test` (equivalently `node --test`); the focused command is above. On 2026-10-30 the focused command passed seven tests and `npm test` passed nine. Tests create local inputs per case and need no setup or teardown. No lint, type, or build command is configured. The S1 mutation run killed one selector comparison mutant; the later S2 run had no changed product line matching an operator. This limited evidence does not establish overall mutation strength. The system-test owner must revalidate the full suite at the outer system-test stage and after relevant code, test, or runtime changes.
++
++## Baseline and conventions
++
++At run baseline `91e8a6066a31`, `src/text.js`, `test/text.test.js`, and `package.json` supplied a small CommonJS module, node:test tests and `npm test`; there was no records module. At item base `5bcf1b8ea31a`, the parser existed but the selector export did not. W1 added the ordered selector and its cases; the current parser and selector contracts are in `spec.md` and public usage is in `../../README.md`. These snapshots are historical, not current expectations. Recheck the actual tree and commands before later work.
++
++Follow the existing strict-mode CommonJS style in `src/text.js` and `src/records.js`, concise public contracts and named node:test cases with strict assertions in `test/text.test.js` and `test/records.test.js`. Revalidate these references when changing the module or test conventions.
++
++## Skills
++
++No repository skill index or repository-local skill was found. The module, tests and README capture the procedure; no new skill is needed for this item.
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index fe64c5a..f4fecab 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -5,3 +5,7 @@ Seeded by the E2E harness: the stages before step-plan are recorded without doin
+ ## Requirements
+ 
+ R-1: In this Node.js project, add a new module src/records.js exporting parseRecords(text) and select(records, field, value). parseRecords reads one record per non-blank line; a line holds fields `key=value` joined by `;`, a key is a lower-case letter followed by lower-case letters, digits or underscores, and values are trimmed: parseRecords('name=ada;team=x\n\nname=bob;team=y') returns [{name:'ada',team:'x'},{name:'bob',team:'y'}]. It rejects malformed input: a field with no `=`, an empty or invalid key, or a key repeated on one line throws a SyntaxError whose message names the 1-based line number; a non-string argument throws a TypeError. select returns the records whose field equals value, in input order (select(rows,'team','x') on the rows above returns the first record only); a non-array records throws a TypeError. Cover it with node:test tests; npm test must pass.
++Keys are validated as written, the first `=` separates key from value, empty values are accepted, and blank lines count in error line numbers. (W1/S1)
++Selection uses strict equality, preserves the input array and match order, and rejects non-array records with a TypeError identifying records. (W1/S2)
++
++The module works on local in-memory values. Parsing creates new records and selection creates a new array without changing the input array; there is no persistent state, migration, or external service involved. Errors leave no persistent changes.
+diff --git a/docs/shiploop/w1-plan-reference.md b/docs/shiploop/w1-plan-reference.md
+new file mode 100644
+index 0000000..f4251e3
+--- /dev/null
++++ b/docs/shiploop/w1-plan-reference.md
+@@ -0,0 +1,9 @@
++# W1 planning reference
++
++The accepted requirement is R-1 in `docs/shiploop/spec.md`, sourced from the run's `request.md`. Each nonblank line is a record; field keys match a lowercase letter followed by lowercase letters, digits or underscores, values are trimmed, and malformed fields or duplicate keys report their 1-based source line via SyntaxError. Non-string parser input and non-array selector input throw TypeError. Selection preserves input order and matches the requested field and value. The exact Ada/Bob example and its first-record selection are acceptance oracles.
++
++AD-1 in `docs/shiploop/architecture.md` chooses a local CommonJS module, Node built-ins, and the existing `node:test` suite. `src/text.js`, `test/text.test.js`, and `package.json` are the house-style and harness references. There is no persistence, migration, external service, or shared test state. The test stage owns `test/records.test.js` and its four named cases; it must use independent assertions and avoid treating a matching test title as evidence of behavior. The focused runner must execute all four IDs, with at least four tests; `npm test` supplies regression coverage. The step proofs are independent of that later test file. Split a field at its first `=` so remaining equals are value text; validate keys as written. This is a planning assumption, not an additional user requirement.
++
++S1 supplies parser and parser contract; S2 depends on S1's module and supplies selection and selector contract. Both steps operate on `src/records.js`. The test stage owns the later test path and suite; a missing test file at planning time is expected, not a passing test. The record is stateless and cleanup is unnecessary. Revalidate the harness and its focused case counts after the test file is authored.
++
++On the amended plan baseline, `src/records.js` and `test/records.test.js` already exist. S1 has been accepted; the selector and focused cases are present in inherited uncommitted work. The test stage retains ownership of its resumed checks, including mutation verification. The earlier absent-path expectations describe the original baseline only.

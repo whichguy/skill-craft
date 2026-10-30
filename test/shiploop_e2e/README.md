@@ -1485,9 +1485,19 @@ The rules:
 
 #### Keeping what a run made (`--keep-platform`)
 
-The cleanup is the default and stays the default: a run leaves the platform as it found it. `--keep-platform` is the one option that
-changes that, for a person who wants to use what the run built (the Salesforce chess case: open the tab and play) before removing it.
-It is valid only for a case with a `platform` (a case without one, a custom `--prompt`, `--suite`, `--preflight-only` and
+Cleanup is the default: its command verifies the case's covered state against the before snapshot. This is a scoped check,
+not a whole-system reset. The shared-org Salesforce helpers currently compare covered metadata names and limited permission
+state; they do not establish that every record, custom field or deployed source byte was restored. Full schema-and-data
+reset remains unverified until a suitable target and reset mechanism are provided.
+
+Campaigns queue attempts sharing a declared platform kind and org. The next launch needs the earlier run's sealed result
+to show cleanup ran and succeeded without keeping the platform. Otherwise it stays unlaunched with a reason, while other
+targets may continue. This barrier does not expand what the case's cleanup covers.
+
+`--keep-platform` leaves that state for inspection (the Salesforce chess case: open the tab and play). A kept delivery is
+not a clean finish for iterative reuse: another attempt must not silently inherit it. Fresh local files or browser sessions
+also do not make a fresh deployed-code variant for baseline or mutation checks.
+The option is valid only for a case with a `platform` (a case without one, a custom `--prompt`, `--suite`, `--preflight-only` and
 `--baseline-report` are refused before anything starts). A new run also needs `--output <a durable folder>` (refused otherwise, before any folder is made):
 the snapshot the later cleanup compares with lives in `<output>/platform`, and the default output is under `$TMPDIR`, which macOS purges after days, so
 the cleanup would then refuse to delete anything. A resume reuses its run's folder and needs no `--output`.

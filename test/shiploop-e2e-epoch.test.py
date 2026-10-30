@@ -43,6 +43,37 @@ class EpochTest(unittest.TestCase):
         self.template.write_text(json.dumps(self.reg))
         epoch.initialise(self.root, self.template)
 
+    def target_epoch(self, name, cases):
+        registration = json.loads(self.template.read_text())
+        registration["cases"] = {case: {"role": "regression", "attempts": count}
+                                  for case, count in cases.items()}
+        registration["attempts"] = [
+            {"id": f"{arm}-{case}-{number}", "arm": arm, "case": case}
+            for case, count in cases.items() for arm in ("control", "candidate")
+            for number in range(1, count + 1)
+        ]
+        registration["qualification"] = boundary.qualification_snapshot(
+            ROOT / "test" / "shiploop_e2e", list(cases))
+        template = self.temp / f"{name}-registration.json"
+        template.write_text(json.dumps(registration))
+        root = self.temp / name
+        epoch.initialise(root, template)
+        return root
+
+    def complete_target_attempt(self, root, attempt_id, cleanup=None, *, passed=False):
+        intent = epoch.launch_intent(root, attempt_id, self.plugin)
+        output = Path(intent["output"])
+        output.mkdir()
+        attempt = next(row for row in epoch.registration(root)["attempts"] if row["id"] == attempt_id)
+        result = {"case": attempt["case"], "pass": passed}
+        if cleanup is not None:
+            result["platform"] = {"cleanup": cleanup}
+            platform = output / "platform"
+            platform.mkdir()
+            (platform / "cleanup-record.json").write_text(json.dumps(cleanup))
+        (output / "result.json").write_text(json.dumps(result))
+        return epoch.record_run(root, attempt_id)
+
     def intent(self, arm="control"):
         return epoch.launch_intent(self.root, arm + "-hello", self.plugin)
 
@@ -69,6 +100,72 @@ class EpochTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "remains unknown"):
             epoch.record_run(self.root, "control-hello")
         self.assertEqual(len([r for r in epoch.events(self.root) if r["kind"] == "launch_intent"]), 1)
+
+    def test_an_unsealed_platform_target_blocks_a_different_prefix_without_consuming_its_intent(self):
+        root = self.target_epoch("same-org", {"chess-salesforce": 1, "battleship-salesforce": 1})
+        chess = runner.case_platform("chess-salesforce")
+        battleship = runner.case_platform("battleship-salesforce")
+        self.assertEqual((chess["kind"], chess["org"]), (battleship["kind"], battleship["org"]))
+        self.assertNotEqual(chess["prefix"], battleship["prefix"])
+        epoch.launch_intent(root, "control-chess-salesforce-1", self.plugin)
+        before = epoch.events(root)
+
+        with self.assertRaises(ValueError):
+            epoch.launch_intent(root, "control-battleship-salesforce-1", self.plugin)
+
+        self.assertEqual(epoch.events(root), before)
+        self.assertFalse((root / "runs" / "control-battleship-salesforce-1").exists())
+
+    def test_only_a_sealed_clean_cleanup_releases_a_platform_target(self):
+        cases = (
+            ("missing", None),
+            ("not-ran", {"ran": False, "ok": True}),
+            ("failed", {"ran": True, "ok": False}),
+            ("kept", {"ran": True, "ok": True, "kept": True}),
+            ("kept-unfinished", {"ran": True, "ok": True, "kept_unfinished": True}),
+        )
+        for label, cleanup in cases:
+            with self.subTest(cleanup=label):
+                root = self.target_epoch(f"unclean-{label}", {"chess-salesforce": 1, "battleship-salesforce": 1})
+                self.complete_target_attempt(root, "control-chess-salesforce-1", cleanup)
+                before = epoch.events(root)
+
+                with self.assertRaises(ValueError):
+                    epoch.launch_intent(root, "control-battleship-salesforce-1", self.plugin)
+
+                self.assertEqual(epoch.events(root), before)
+                self.assertFalse((root / "runs" / "control-battleship-salesforce-1").exists())
+                self.assertEqual(next(row for row in epoch.state(root)["attempts"]
+                                      if row["id"] == "control-battleship-salesforce-1")["status"], "not_launched")
+
+    def test_clean_cleanup_releases_target_even_when_the_product_failed(self):
+        root = self.target_epoch("clean-after-failure", {"chess-salesforce": 1, "battleship-salesforce": 1})
+        self.complete_target_attempt(root, "control-chess-salesforce-1", {"ran": True, "ok": True}, passed=False)
+        output, _receipt = epoch.sealed_run(root, "control-chess-salesforce-1")
+        self.assertFalse(json.loads((output / "result.json").read_text())["pass"])
+
+        intent = epoch.launch_intent(root, "control-battleship-salesforce-1", self.plugin)
+
+        self.assertEqual(intent["attempt_id"], "control-battleship-salesforce-1")
+
+    def test_local_and_different_org_targets_can_launch_beside_an_unsealed_platform_target(self):
+        root = self.target_epoch("independent-targets", {
+            "chess-salesforce": 1, "battleship-salesforce": 1, "hello": 1,
+        })
+        epoch.launch_intent(root, "control-chess-salesforce-1", self.plugin)
+        real_case_platform = runner.case_platform
+
+        def another_org(case):
+            spec = real_case_platform(case)
+            return {**spec, "org": "another-org"} if case == "battleship-salesforce" else spec
+
+        with mock.patch.object(runner, "case_platform", side_effect=another_org):
+            local = epoch.launch_intent(root, "control-hello-1", self.plugin)
+            other_org = epoch.launch_intent(root, "control-battleship-salesforce-1", self.plugin)
+
+        self.assertEqual(local["attempt_id"], "control-hello-1")
+        self.assertEqual(other_org["attempt_id"], "control-battleship-salesforce-1")
+        self.assertEqual(len([row for row in epoch.events(root) if row["kind"] == "launch_intent"]), 3)
 
     def test_runner_is_dispatched_only_after_durable_intent(self):
         def fake(argv):

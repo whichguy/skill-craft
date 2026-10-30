@@ -1,0 +1,66 @@
+{
+  "case": "stand-in-parser",
+  "kind": "step-slice",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "delegation": "ask-agent",
+  "plugin_dir": "/Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/build/plugins/skill-craft",
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.24.1"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/build/plugins/skill-craft",
+    "path": "/Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/home/.codex/plugins/cache/whichguy/skill-craft/2.24.1"
+  },
+  "versions": {
+    "plugin_version": "2.24.1",
+    "shiploop_version": "1.23.1",
+    "plugin_sha256": "45bdfbb0359e"
+  },
+  "local_head": "650d5c8505529b42aa811fb9e21ec860d4d7afa9",
+  "seeded": {
+    "stage": "step-plan",
+    "run_dir": "/Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/.shiploop-runs/seed/run",
+    "start_head": "91e8a6066a313d92bb5724e00552b355599fb213",
+    "home": [
+      "docs/shiploop/spec.md",
+      "docs/shiploop/environment.md"
+    ],
+    "skipped": [
+      "intake",
+      "discovery",
+      "research",
+      "spec",
+      "test-strategy",
+      "plan",
+      "prepare"
+    ],
+    "action": "nav-49a22f541c1b4ca4af8b7e062965166d",
+    "delegation": "ask-agent",
+    "item_bases": [
+      "W1"
+    ]
+  },
+  "checks": [
+    "node --test",
+    "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\""
+  ],
+  "expect_paths": [
+    "src/records.js",
+    "test/*.test.js"
+  ],
+  "clear_at": [],
+  "clear_signal": null,
+  "resume_prompt": "names-next",
+  "seed_at": "step-plan",
+  "stop_after": null,
+  "ref": null,
+  "overlay": null,
+  "opening_note": null,
+  "seed_state": null,
+  "fake_sf": null,
+  "planning_review": "stage"
+}

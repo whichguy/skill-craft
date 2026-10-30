@@ -1,0 +1,108 @@
+{
+  "case": "stand-in-parser",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "delegation": "inline",
+  "output": "/Users/dadleet/e2e-runs/20261030/p0-terra-inline-3071d4",
+  "run_dir": "/Users/dadleet/e2e-runs/20261030/p0-terra-inline-3071d4/.shiploop-runs/seed/run",
+  "worktree": "/Users/dadleet/e2e-runs/20261030/p0-terra-inline-3071d4/.shiploop-runs/seed/worktree",
+  "pass": true,
+  "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+  },
+  "item": "W1",
+  "item_history": [
+    {
+      "stage": "step-plan",
+      "outcome": "done"
+    },
+    {
+      "stage": "test-spec",
+      "outcome": "done"
+    },
+    {
+      "stage": "validate-existing",
+      "outcome": "done"
+    },
+    {
+      "stage": "implement",
+      "outcome": "done"
+    },
+    {
+      "stage": "test",
+      "outcome": "done"
+    },
+    {
+      "stage": "document",
+      "outcome": "done"
+    },
+    {
+      "stage": "implement",
+      "outcome": "done"
+    },
+    {
+      "stage": "test",
+      "outcome": "done"
+    },
+    {
+      "stage": "document",
+      "outcome": "done"
+    },
+    {
+      "stage": "carry-forward",
+      "outcome": "done"
+    }
+  ],
+  "overshoot": [],
+  "queue_growth": 0,
+  "run_status": "active",
+  "stage_at_stop": "system-test-author",
+  "assembled": {
+    "pass": true,
+    "changed": [
+      "README.md",
+      "src/records.js",
+      "test/records.test.js"
+    ],
+    "missing": [],
+    "committed_since_seed": [
+      "README.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "src/records.js",
+      "test/records.test.js"
+    ],
+    "uncommitted_product": [],
+    "reason": null
+  },
+  "checks": [
+    {
+      "command": "node --test",
+      "pass": true,
+      "returncode": 0,
+      "output": "\u2714 TC-1 (a) parses nonblank lines and trims values (0.603292ms)\n\u2714 TC-1 (b) rejects malformed fields and non-string input (0.223833ms)\n\u2714 TC-2 selects matching records in order using strict equality (0.089834ms)\n\u2714 squash collapses whitespace (0.306708ms)\n\u2714 squash rejects a non-string (0.145292ms)\n\u2139 tests 5\n\u2139 suites 0\n\u2139 pass 5\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 88.231167\n"
+    },
+    {
+      "command": "node -e \"const {parseRecords,select}=require('./src/records');const a=require('assert');a.deepStrictEqual(parseRecords('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepStrictEqual(select(parseRecords('a=1\\na=2'),'a','2'),[{a:'2'}]);a.throws(()=>parseRecords('a=1\\nbad'),e=>e instanceof SyntaxError&&/line 2/.test(e.message));a.throws(()=>parseRecords(1),TypeError)\"",
+      "pass": true,
+      "returncode": 0,
+      "output": ""
+    }
+  ],
+  "sessions": [
+    {
+      "status": "slice-complete",
+      "returncode": -9,
+      "elapsed_seconds": 312.2,
+      "stop": null
+    }
+  ],
+  "clear": [],
+  "clear_unfired": [],
+  "stop_after": null,
+  "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"
+}

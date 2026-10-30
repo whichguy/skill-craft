@@ -1,0 +1,93 @@
+diff --git a/README.md b/README.md
+index 68ec0ac..b4f3cd3 100644
+--- a/README.md
++++ b/README.md
+@@ -5,6 +5,27 @@ A small Node.js project with no dependencies.
+ - `src/strings.js`: text helpers
+ - `src/paginate.js`: split a list into pages
+ - `src/users.js`: an in-memory user store
+-- `src/server.js`: an HTTP server (`node:http`) that serves the users
++- `src/server.js`: an HTTP server (`node:http`) that serves the users and a health check (see [Server](#server))
+ 
+ Run the tests with `npm test`, which runs `node --test`.
++
++## Server
++
++Start it with `npm start`, which prints `listening on <port>`. It listens on `PORT` (default 3000).
++
++| Route | Answer |
++| --- | --- |
++| `GET /health` | 200, `{"ok":true}` |
++| `GET /users` | 200, every user |
++| `GET /users/:id` | 200 and the user, or 404 `{"error":"not found"}` |
++
++Every answer is `application/json`. Check that it is up:
++
++```sh
++curl -i http://127.0.0.1:3000/health   # HTTP/1.1 200 OK, content-type: application/json, {"ok":true}
++```
++
++Known limit: only `GET` is routed, so `HEAD` and `POST` on any path, `/health` included, answer 404, not 405,
++and a `HEAD /health` probe reads as down.
++
++The requirements are in [docs/shiploop/spec.md](docs/shiploop/spec.md).
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 8b88e1d..01022d4 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -2,6 +2,9 @@
+ 
+ ## Commands
+ - `npm test`: runs `node --test`, every test/*.test.js; exit 0 is a pass.
++- `node --test test/server.test.js`: the server tests alone (TC-1 included); exit 0 is a pass.
++- `PORT=<port> npm start`: runs `node src/server.js`, which prints `listening on <port>` (port 3000 when PORT is unset); stop it by killing the process.
++- `curl -si http://127.0.0.1:<port>/health`: the health check; a healthy server answers `HTTP/1.1 200 OK`, `content-type: application/json` and `{"ok":true}`. Only GET is routed, so `curl -I` (HEAD) answers 404.
+ 
+ ## Harnesses and suites
+ - node:test through `node --test`; no other harness.
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index 5ce67bc..f56d209 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -2,6 +2,7 @@
+ 
+ ## R-1 Health route
+ GET /health answers 200 with the JSON body {"ok":true} and content-type application/json.
++Met by the `/health` branch of `createServer` in `src/server.js` and TC-1 in `test/server.test.js`. (W1/S1)
+ 
+ ## R-2 Existing routes unchanged
+ GET /users and GET /users/:id answer as before; `npm test` passes.
+diff --git a/src/server.js b/src/server.js
+index bcf2fad..6b4abcd 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -8,10 +8,11 @@ function send(res, status, body) {
+   res.end(JSON.stringify(body));
+ }
+ 
+-/** An HTTP server for the user store; not listening until the caller calls listen(). */
++/** Returns an HTTP server, not yet listening, that serves GET /health, /users and /users/:id as JSON and answers any other method or path 404 {"error":"not found"}. */
+ function createServer() {
+   return http.createServer((req, res) => {
+     const url = new URL(req.url, 'http://localhost');
++    if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
+     if (req.method === 'GET' && url.pathname === '/users') return send(res, 200, listUsers());
+     const match = /^\/users\/(\d+)$/.exec(url.pathname);
+     if (req.method === 'GET' && match) {
+diff --git a/test/server.test.js b/test/server.test.js
+index 38f9c89..146daf7 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -22,3 +22,12 @@ test('GET /users/:id returns the user or 404', async () => {
+     assert.equal((await fetch(`${base}/users/42`)).status, 404);
+   });
+ });
++
++test('TC-1 GET /health answers 200 with {"ok":true} as application/json', async () => {
++  await withServer(async (base) => {
++    const res = await fetch(`${base}/health`);
++    assert.equal(res.status, 200);
++    assert.match(res.headers.get('content-type'), /^application\/json/);
++    assert.deepEqual(await res.json(), { ok: true });
++  });
++});

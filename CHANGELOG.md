@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-10-30
+
+### skill-craft 2.24.2
+
+- Skills: shiploop 1.23.2
+
+### shiploop 1.23.2
+
+- The document stage's loop scope now lists the documentation files ShipLoop commits with the step (README and other Markdown, files under docs/, LICENSE, CHANGELOG), next to the step plan's paths and docs/shiploop/. It also says product documentation never goes in docs/shiploop/. The old scope allowed only the step plan's paths and docs/shiploop/, so a model that followed it left the README unchanged and wrote the product's API reference into ShipLoop's knowledge home.
+
 ## 2026-10-29
 
 ### skill-craft 2.24.1

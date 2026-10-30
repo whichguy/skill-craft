@@ -1,0 +1,47 @@
+diff --git a/README.md b/README.md
+index 3c296c8..0a7463e 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,42 @@
+ # records
+ 
+ Small text-record helpers. Run the tests with `npm test` (node:test).
++
++## Parsing records
++
++`parseRecords(text)` is exported from `src/records.js` as a CommonJS function:
++
++```js
++const { parseRecords } = require('./src/records');
++console.log(parseRecords('name=ada;team=x\n\nname=bob;team=y'));
++// [{ name: 'ada', team: 'x' }, { name: 'bob', team: 'y' }]
++```
++
++Each non-blank line becomes an object. Fields are separated by `;`; each key must
++start with a lowercase letter and contain only lowercase letters, digits, or
++underscores. Keys are validated as written, while values are trimmed. The first
++`=` separates the key from the value, so later `=` characters are part of the
++value; an empty value is allowed. Blank lines are ignored, including in otherwise
++empty input.
++
++A non-string input throws `TypeError`. A missing `=`, invalid or empty key, or
++duplicate key on a line throws `SyntaxError` with the 1-based source line number;
++blank lines count toward that number. Errors do not include the input text. There
++is no diagnostics setting or external service: the function runs locally and has
++no side effects. See the [parser tests](test/records.test.js) for examples and the
++[living specification](docs/shiploop/spec.md) for the accepted requirements.
++
++## Selecting records
++
++`select(records, field, value)` is exported from the same module:
++
++```js
++const { parseRecords, select } = require('./src/records');
++const rows = parseRecords('name=ada;team=x\n\nname=bob;team=y');
++console.log(select(rows, 'team', 'x'));
++// [{ name: 'ada', team: 'x' }]
++```
++
++It returns a new array of records whose field is strictly equal to `value`, in
++input order, without changing the input array. A non-array `records` argument
++throws `TypeError`. See the [selection tests](test/records.test.js) for examples.

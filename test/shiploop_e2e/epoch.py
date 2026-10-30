@@ -28,6 +28,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import boundary
 import hosts
+import lifecycle
 import listeners
 import prediction as predictions
 import promotion
@@ -239,6 +240,9 @@ def launch_intent(root: Path, attempt_id: str, plugin: Path) -> dict:
     current = next(row for row in state(root)["attempts"] if row["id"] == attempt_id)
     if current["status"] != "not_launched":
         raise ValueError("attempt already dispatched; reconcile it rather than retry")
+    _key, problem = target_launch_state(root, attempt_id, reg=reg)
+    if problem:
+        raise ValueError(problem)
     expected = reg["arms"][spec["arm"]]
     if runner.tree_digest(plugin) != expected["shiploop_build"]:
         raise ValueError("plugin bytes differ from the registered ShipLoop build")
@@ -286,6 +290,76 @@ def sealed_run(root: Path, attempt_id: str) -> tuple[Path, dict]:
     if observed != record.get("evidence"):
         raise ValueError(f"sealed attempt evidence changed: {attempt_id}/review sources or delivered work")
     return output, record
+
+
+def target_launch_state(root: Path, attempt_id: str, *, reg: dict | None = None, rows: list[dict] | None = None,
+                        targets: dict | None = None) -> tuple[str | None, str | None]:
+    """Return a declared platform key and its blocking reason, if any, for one not-yet-dispatched attempt.
+
+    A target is reusable only after every prior launch on the same declared kind/org has a sealed result recording a
+    successful cleanup. A product failure does not make a cleaned platform dirty. `reg`, `rows`, and `targets` let the
+    cycle scheduler share frozen inputs while it scans its queue; direct launch callers may omit them.
+    """
+    import run as runner
+    reg = registration(root) if reg is None else reg
+    spec = attempt_spec(reg, attempt_id)
+    cache = {} if targets is None else targets
+
+    def case_target(case: str) -> tuple[str | None, str | None]:
+        if case not in cache:
+            try:
+                platform = runner.case_platform(case)
+            except (OSError, ValueError, SystemExit) as exc:
+                cache[case] = (None, f"case {case} platform target cannot be resolved: {str(exc).strip()}")
+            else:
+                if platform is None:
+                    cache[case] = (None, None)
+                else:
+                    key = lifecycle.platform_target_key(platform)
+                    cache[case] = (key, "declared platform target has no stable key"
+                                   if not key or not platform.get("org") else None)
+        return cache[case]
+
+    key, problem = case_target(spec["case"])
+    if problem or key is None:
+        return key, problem
+
+    attempts = {row["id"]: row for row in reg["attempts"]}
+    ledger_rows = events(root) if rows is None else rows
+    launches = [row for row in ledger_rows
+                if row.get("kind") == "launch_intent" and row.get("attempt_id") != attempt_id]
+    recorded = {row.get("attempt_id") for row in ledger_rows if row.get("kind") == "recorded"}
+    for launch_row in launches:
+        prior_id = launch_row.get("attempt_id")
+        prior_spec = attempts.get(prior_id)
+        if prior_spec is None:
+            return key, f"platform target state is unknown after unregistered launch intent {prior_id!r}"
+        prior_key, prior_problem = case_target(prior_spec["case"])
+        if prior_problem:
+            return key, f"platform target state is unknown for prior attempt {prior_id}: {prior_problem}"
+        if prior_key != key:
+            continue
+        if prior_id not in recorded:
+            return key, f"platform target is blocked by {prior_id}: its launch has no sealed run receipt"
+        try:
+            output, _receipt = sealed_run(root, prior_id)
+        except (OSError, ValueError) as exc:
+            return key, f"platform target is blocked by {prior_id}: its sealed run receipt is invalid ({exc})"
+        try:
+            result = json.loads((output / "result.json").read_text())
+        except (OSError, ValueError) as exc:
+            return key, f"platform target is blocked by {prior_id}: its sealed result is unreadable ({exc})"
+        platform_result = result.get("platform") if isinstance(result, dict) else None
+        cleanup = platform_result.get("cleanup") if isinstance(platform_result, dict) else None
+        if not isinstance(cleanup, dict):
+            return key, f"platform target is blocked by {prior_id}: its sealed result has no cleanup receipt"
+        if cleanup.get("ran") is not True:
+            return key, f"platform target is blocked by {prior_id}: cleanup did not run"
+        if cleanup.get("ok") is not True:
+            return key, f"platform target is blocked by {prior_id}: cleanup failed"
+        if cleanup.get("kept", False) is not False or cleanup.get("kept_unfinished", False) is not False:
+            return key, f"platform target is blocked by {prior_id}: the platform was kept"
+    return key, None
 
 
 def launch(root: Path, attempt_id: str, plugin: Path) -> dict:

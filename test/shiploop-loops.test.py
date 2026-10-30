@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_inner_fixture as fx  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
 from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
+import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -254,6 +255,31 @@ class ContractTests(Synthetic):
         state["history"].append({"stage": "implement", "workitem": "W1", "action": "A-i2", "outcome": "done"})
         with self.assertRaisesRegex(loops.LoopError, "no implement step left"):
             loops.contract(self.root, state, "A-implement")
+
+    def test_document_scope_admits_every_file_the_item_commit_takes_and_no_undeclared_code(self):
+        """The document loop may edit what ``item_scope.commit_scope`` commits after it: the declared paths, changed
+        documentation files and docs/shiploop/. A scope of only the declared paths and docs/shiploop/ kept a Codex Terra
+        pilot's README unchanged and put its API reference in docs/shiploop/ (document-stage journal L3)."""
+        state = self.state_for("document")
+        state["accepted"]["A-sp"]["paths"] = ["src/a.py", "src/b.py", "src/c.py"]
+        scope = loops.contract(self.root, state, "A-document")["context"]["scope"]
+        listed = re.search(r"documentation files this step's change affects \(([^)]*)\)", scope)
+        self.assertIsNotNone(listed, scope)
+        globs = listed.group(1).split(", ")
+        self.assertEqual(globs, list(loops.DOC_FILES))
+        self.assertEqual(globs, item_scope._catalog()["classes"]["docs"])
+        declared = item_scope.declared(state, "W1")
+        changed = ["src/a.py", "README.md", "docs/api.md", "docs/guide/setup.rst", "CHANGELOG.md", "LICENSE",
+                   "pkg/README.md", "docs/shiploop/spec.md", "src/undeclared.py"]
+        committed, left = item_scope.commit_scope(changed, declared)
+        self.assertEqual(left, ["src/undeclared.py"])
+        for path in committed:
+            with self.subTest(path=path):
+                self.assertTrue(path in declared or path.startswith("docs/shiploop/")
+                                or any(item_scope._matches(path, glob) for glob in globs), (path, globs))
+        self.assertFalse(any(item_scope._matches("src/undeclared.py", glob) for glob in globs))
+        self.assertIn("the paths its accepted step plan declares", scope)
+        self.assertIn("never in docs/shiploop/", scope)
 
     def test_no_contract_resource_or_scope_names_a_feature_folder_test_strategy_or_test_spec(self):
         """Consumer contract 4b: the engine's part of every inner contract (scope and resources) names only the living files.

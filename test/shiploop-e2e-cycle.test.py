@@ -16,11 +16,13 @@ import state_home
 state_home.isolate()
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import boundary
 import cycle
 import epoch
 import iterate
 import learning_records as lr
 import purpose_check
+import run as runner
 import spread
 
 CASES = ("hello", "csv-report")
@@ -91,6 +93,102 @@ class CycleTest(unittest.TestCase):
         (plugin / "skills" / "shiploop").mkdir(parents=True)
         (plugin / "skills" / "shiploop" / "SKILL.md").write_text("built from " + self.git("rev-parse", "HEAD"))
         return plugin
+
+    def scheduler_epoch(self, name, cases):
+        plugin = self.temp / f"{name}-plugin"
+        (plugin / "skills" / "shiploop").mkdir(parents=True)
+        (plugin / "skills" / "shiploop" / "SKILL.md").write_text("scheduler fixture")
+        driver = {"host": "codex", "model": "test-model", "effort": "high"}
+        build = runner.tree_digest(plugin)
+        registration = {
+            "contract": "promotion/5", "purpose": "calibration",
+            "cases": {case: {"role": "regression", "attempts": count} for case, count in cases.items()},
+            "arms": {arm: {"shiploop_build": build, "driver": driver} for arm in ("control", "candidate")},
+            "attempts": [{"id": f"{arm}-{case}-{number}", "arm": arm, "case": case}
+                         for case, count in cases.items() for arm in ("control", "candidate")
+                         for number in range(1, count + 1)],
+            "qualification": boundary.qualification_snapshot(ROOT / "test" / "shiploop_e2e", list(cases)),
+        }
+        template = self.temp / f"{name}-registration.json"
+        template.write_text(json.dumps(registration))
+        root = self.temp / f"{name}-epoch"
+        epoch.initialise(root, template)
+        return root, {"control": plugin, "candidate": plugin}
+
+    def run_scheduler(self, root, plugins, cleanup_by_case=None):
+        spawned, started, finished, violations = [], [], set(), []
+        active, previous = {}, {}
+        cleanup_by_case = cleanup_by_case or {}
+
+        class Child:
+            def __init__(child, argv, **_kwargs):
+                child.attempt_id = argv[argv.index("--attempt") + 1]
+                child.output = None
+                child.returncode = None
+                child.polls = 0
+                row = next(item for item in epoch.registration(root)["attempts"]
+                           if item["id"] == child.attempt_id)
+                child.case = row["case"]
+                platform = runner.case_platform(child.case)
+                child.target = (platform.get("kind"), platform.get("org")) if platform else None
+                spawned.append(child.attempt_id)
+                if child.target is not None:
+                    if child.target in active:
+                        violations.append(f"{child.attempt_id} spawned while {active[child.target]} was running")
+                        child.returncode = 1
+                        return
+                    prior = previous.get(child.target)
+                    if prior is not None:
+                        try:
+                            output, _receipt = epoch.sealed_run(root, prior)
+                            cleanup = (json.loads((output / "result.json").read_text()).get("platform") or {}).get("cleanup")
+                        except (OSError, ValueError):
+                            cleanup = None
+                        if (prior not in finished or not isinstance(cleanup, dict) or cleanup.get("ran") is not True
+                                or cleanup.get("ok") is not True or cleanup.get("kept") is True):
+                            violations.append(f"{child.attempt_id} started before {prior} had a sealed clean receipt")
+                            child.returncode = 1
+                            return
+                    active[child.target] = child.attempt_id
+                intent = epoch.launch_intent(root, child.attempt_id, plugins[row["arm"]])
+                child.output = Path(intent["output"])
+                started.append(child.attempt_id)
+
+            def poll(child):
+                if child.returncode is not None:
+                    return child.returncode
+                child.polls += 1
+                if child.polls < 2:
+                    return None
+                child.output.mkdir()
+                result = {"case": child.case, "pass": child.target is None}
+                if child.target is not None:
+                    cleanup = cleanup_by_case.get(child.case, {"ran": True, "ok": True})
+                    if cleanup is not None:
+                        result["platform"] = {"cleanup": cleanup}
+                        platform_dir = child.output / "platform"
+                        platform_dir.mkdir()
+                        (platform_dir / "cleanup-record.json").write_text(json.dumps(cleanup))
+                (child.output / "result.json").write_text(json.dumps(result))
+                epoch.record_run(root, child.attempt_id)
+                finished.add(child.attempt_id)
+                if child.target is not None:
+                    active.pop(child.target, None)
+                    previous[child.target] = child.attempt_id
+                child.returncode = 0
+                return child.returncode
+
+        ticks = 0
+        def fast_sleep(_seconds):
+            nonlocal ticks
+            ticks += 1
+            if ticks > 200:
+                raise AssertionError("launch_all did not stop with only blocked targets pending")
+
+        with mock.patch.object(cycle.subprocess, "Popen", side_effect=Child), \
+                mock.patch.object(cycle.time, "sleep", side_effect=fast_sleep):
+            cycle.launch_all(root, plugins, parallel=2, logs=root.parent / f"{root.name}-logs")
+        return spawned, started, violations
 
     def launch_all(self, root, plugins, parallel, logs):
         for row in epoch.state(root)["attempts"]:
@@ -177,6 +275,62 @@ class CycleTest(unittest.TestCase):
         self.assertEqual(result["decision"], "UNKNOWN_LAUNCH")
         self.assertIn("never retry", result["reasons"][0])
         self.assertEqual(self.git("rev-parse", "HEAD~1"), self.tip)
+
+    def test_launch_all_serializes_same_org_attempts_until_a_clean_receipt_is_sealed(self):
+        cases = {"chess-salesforce": 1, "battleship-salesforce": 1, "hello": 1}
+        root, plugins = self.scheduler_epoch("clean-target-queue", cases)
+        chess = runner.case_platform("chess-salesforce")
+        battleship = runner.case_platform("battleship-salesforce")
+        self.assertEqual((chess["kind"], chess["org"]), (battleship["kind"], battleship["org"]))
+        self.assertNotEqual(chess["prefix"], battleship["prefix"])
+
+        spawned, started, violations = self.run_scheduler(root, plugins)
+
+        attempts = epoch.registration(root)["attempts"]
+        expected = {row["id"] for row in attempts}
+        self.assertEqual(violations, [])
+        self.assertEqual(set(spawned), expected)
+        self.assertEqual(set(started), expected)
+        self.assertEqual({row["attempt_id"] for row in epoch.events(root) if row["kind"] == "launch_intent"}, expected)
+        self.assertTrue(all(row["status"] == "recorded" for row in epoch.state(root)["attempts"]))
+
+    def test_launch_all_leaves_unclean_targets_queued_while_other_targets_and_local_runs_complete(self):
+        cases = {"chess-salesforce": 2, "battleship-salesforce": 2, "csv-report": 2, "hello": 1}
+        root, plugins = self.scheduler_epoch("blocked-target-queue", cases)
+        real_case_platform = runner.case_platform
+        base = real_case_platform("chess-salesforce")
+        declarations = {
+            "chess-salesforce": {**base, "org": "org-a"},
+            "battleship-salesforce": {**base, "org": "org-b", "prefix": "SLBattle"},
+            "csv-report": {**base, "org": "org-c", "prefix": "SLReport"},
+        }
+        cleanup = {"chess-salesforce": None,
+                   "battleship-salesforce": {"ran": True, "ok": False},
+                   "csv-report": {"ran": True, "ok": True, "kept": True}}
+
+        def declared_target(case):
+            return declarations.get(case, real_case_platform(case))
+
+        with mock.patch.object(runner, "case_platform", side_effect=declared_target):
+            spawned, started, violations = self.run_scheduler(root, plugins, cleanup)
+
+        attempts = epoch.registration(root)["attempts"]
+        launch_intents = {row["attempt_id"] for row in epoch.events(root) if row["kind"] == "launch_intent"}
+        states = {row["id"]: row["status"] for row in epoch.state(root)["attempts"]}
+        for case in declarations:
+            launched = [row["id"] for row in attempts if row["case"] == case and row["id"] in started]
+            self.assertEqual(len(launched), 1, case)
+            self.assertEqual(len([attempt for attempt in spawned
+                                  if f"-{case}-" in f"-{attempt}-"]), 1, case)
+            for row in attempts:
+                if row["case"] == case and row["id"] != launched[0]:
+                    self.assertNotIn(row["id"], launch_intents)
+                    self.assertEqual(states[row["id"]], "not_launched")
+        local = {row["id"] for row in attempts if row["case"] == "hello"}
+        self.assertTrue(local.issubset(set(started)))
+        self.assertTrue(all(states[attempt] == "recorded" for attempt in local))
+        self.assertTrue(all(states[attempt] == "recorded" for attempt in started))
+        self.assertEqual(violations, [])
 
     def test_a_case_is_capability_only_when_the_prediction_raises_its_floor(self):
         self.assertEqual(cycle.roles_for(self.prediction, "hello", "csv-report"),
