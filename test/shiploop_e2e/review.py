@@ -30,6 +30,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import boundary
 import hosts  # noqa: E402
+import learning_records  # noqa: E402
 import runrecord  # noqa: E402
 
 SPEC = Path(__file__).resolve().parent / "SPEC.md"
@@ -96,7 +97,8 @@ DISCOVERY = {
   "files": ["candidate repository paths; required and in-scope for eligible findings"],
   "proposal": "the concrete change or investigation proposed",
   "implementation_eligible": true or false,
-  "proposed_disposition": "implement, owner_review, investigate or defer"
+  "proposed_disposition": "implement, owner_review, investigate or defer",
+  "same_as": "optional: the learning record (LR-...) this discovery recurs, from the records listed above"
 }
 There is no novelty quota: return an empty discoveries array when the run reveals none. A material design challenge is not a
 rejection; route it to owner_review or investigate. Only an aligned discovery anchored to an existing clause may be
@@ -147,7 +149,7 @@ def source_line(source: dict) -> str:
     return f"- {label}: {roots} (SKILL.md, references/, scripts/)"
 
 
-def reviewer_prompt(run_dir: Path, skill_root: Path | dict, prior_learnings: str = "") -> str:
+def reviewer_prompt(run_dir: Path, skill_root: Path | dict, prior_learnings: str = "", records: str = "") -> str:
     source = skill_root if isinstance(skill_root, dict) else {"roots": [skill_root], "basis": "given by the caller",
                                                               "reason": None}
     prior = (f"""
@@ -157,11 +159,19 @@ finding that was already applied unless this run shows it did not work.
 
 {prior_learnings.strip()}
 """ if prior_learnings.strip() else "")
+    # Read alongside the commit messages, never in their place (SPEC Purpose, owner decision D2).
+    recorded = (f"""
+The learning records so far (test/shiploop_e2e/learning-records.jsonl): each lesson's status. When a discovery is the
+same lesson as a record listed here, set its `same_as` to that record's id instead of reporting it as new; do not
+propose a settled record again unless this run shows new evidence.
+
+{records.strip()}
+""" if records.strip() else "")
     return f"""You are reviewing one end-to-end run of the ShipLoop skill so the skill can be improved.
 Do not modify any file. Read only.
 
 {PREMISE}
-{prior}
+{prior}{recorded}
 The run: a headless agent was started in an empty directory and asked to run ShipLoop
 on the request in {run_dir / 'prompt.txt'}.
 - Graded result: {run_dir / 'result.json'}
@@ -451,6 +461,9 @@ def _discovery_problems(finding, index: int) -> list[str]:
         problems.append(f"{where} targets the harness but claims ShipLoop implementation eligibility")
     if challenge_route and disposition not in ("owner_review", "investigate"):
         problems.append(f"{where} challenge must route to owner_review or investigate")
+    same_as = finding.get("same_as")
+    if same_as is not None and (not isinstance(same_as, str) or not learning_records.RECORD_ID.fullmatch(same_as)):
+        problems.append(f"{where}.same_as is not a learning-record id (LR-YYYYMMDD-xxxxxx)")
     return problems
 
 
@@ -479,7 +492,7 @@ def _assessment_paths(run_dir: Path, assessment_id: str | None) -> tuple[Path, P
 def review(run_dir: Path, *, host: str | None = None, model: str | None = None, effort: str | None = None,
            skill_root: Path | None = None, max_turns: int = 60, timeout: int = 1200,
            prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude",
-           codex_bin: str = "codex", assessment_id: str | None = None) -> dict:
+           codex_bin: str = "codex", assessment_id: str | None = None, records: str = "") -> dict:
     run_dir = run_dir.resolve()
     role = hosts.resolve_role("reviewer", {"host": host, "model": model, "effort": effort})
     agent = hosts.host(role["host"], {"grok": grok_bin, "claude": claude_bin, "codex": codex_bin}[role["host"]])
@@ -487,7 +500,7 @@ def review(run_dir: Path, *, host: str | None = None, model: str | None = None, 
     stage.mkdir(exist_ok=False)
     env = agent.env(stage / "home")
     source = ran_source(run_dir, skill_root)
-    argv = agent.argv(prompt=reviewer_prompt(run_dir, source, prior_learnings),
+    argv = agent.argv(prompt=reviewer_prompt(run_dir, source, prior_learnings, records),
                       prompt_file=stage / "prompt.txt", cwd=run_dir, model=role["model"],
                       effort=role["effort"], permission_mode="auto", max_turns=max_turns)
     if role["host"] == "codex":
@@ -525,11 +538,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skill-root", type=Path, help="the ShipLoop source the run used (default: the plugin_dir its launch "
                    "records name; where they name none that exists, this checkout's, reported as a source mismatch)")
     p.add_argument("--no-prior-learnings", action="store_true",
-                   help="do not give the reviewer the last three commit messages of this checkout")
+                   help="do not give the reviewer the last three commit messages or the learning records of this "
+                   "checkout")
     args = p.parse_args(argv)
     prior = "" if args.no_prior_learnings else last_commit_messages(ROOT)
+    records = "" if args.no_prior_learnings else learning_records.reviewer_view()
     result = review(args.run_dir, host=args.host, model=args.model, effort=args.effort,
-                    skill_root=args.skill_root, prior_learnings=prior)
+                    skill_root=args.skill_root, prior_learnings=prior, records=records)
     print(Path(result["review_receipt"]["review_markdown"]).read_text())
     source = result["skill_source"]
     if source["basis"] == "mismatch":

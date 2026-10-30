@@ -1,0 +1,75 @@
+{
+  "_doc": "The purpose check's probe terms (SPEC Change admission, Purpose; S-13): for each case in cases.json, regular expressions (matched case-insensitively) for words of its product that ShipLoop's source has no reason to name. A candidate that adds a line matching one is rejected before any run. Platforms are not probe terms (the Salesforce platform cards name Salesforce on purpose), and a bare word that is also generic is not one: 'checkers' already appears as 'type checkers' in shiploop_stage_spec.py. Only added lines are matched, and skills/shiploop/README.md (the developer guide, which S-8 does not cover) never is. Every case has an entry, and no term matches skills/shiploop outside README.md except the hits listed under `known`, each with the learning record that tracks it (test: PurposeCheckTest).",
+  "terms": {
+    "hello": [
+      "\\bhello,? world\\b"
+    ],
+    "battleship": [
+      "\\bbattleships?\\b",
+      "\\bfleet\\b",
+      "\\bsunk\\b",
+      "\\bgame ?over\\b"
+    ],
+    "battleship-scoring": [
+      "\\bbattleships?\\b",
+      "\\bsunk\\b",
+      "\\bshots? fired\\b"
+    ],
+    "csv-report": [
+      "\\bcsv[- ]report\\b"
+    ],
+    "seat-reservations": [
+      "\\bseat[- ]reservations?\\b",
+      "\\bseat map\\b"
+    ],
+    "temperature-report": [
+      "\\btemperatures?\\b",
+      "\\bcelsius\\b",
+      "\\bfahrenheit\\b"
+    ],
+    "unit-converter": [
+      "\\bunit[- ]converter\\b"
+    ],
+    "word-report": [
+      "\\bword[- ]report\\b"
+    ],
+    "temperature-plain": [
+      "\\btemperatures?\\b",
+      "\\bcelsius\\b",
+      "\\bfahrenheit\\b"
+    ],
+    "checkers": [
+      "\\bcheckers? (game|board|pieces?)\\b",
+      "\\bdraughts\\b",
+      "\\bking me\\b"
+    ],
+    "chess-salesforce": [
+      "\\bchess\\b"
+    ],
+    "battleship-salesforce": [
+      "\\bSLBattle",
+      "\\bbattleships?\\b"
+    ],
+    "user-listing": [
+      "\\buser[- ]listing\\b"
+    ],
+    "ticket-assignment": [
+      "\\bhelp[- ]?desk\\b",
+      "\\bticket[- ]assignment\\b"
+    ],
+    "ticket-escalation": [
+      "\\bhelp[- ]?desk\\b",
+      "\\bticket[- ]escalation\\b"
+    ]
+  },
+  "exempt": [
+    "skills/shiploop/README.md"
+  ],
+  "known": [
+    {
+      "path": "skills/shiploop/scripts/shiploop_primary.py",
+      "case": "ticket-escalation",
+      "record": "LR-20261030-8ff7a9"
+    }
+  ]
+}
