@@ -1,6 +1,8 @@
 ---
 Execute: ask
-Status: proposal; nothing built or run. Track A and SG1 need no model run; SG2 waits for D3.
+Status: **approved 2026-10-30 as recommended (D1–D8)**: owner, "Recommend and proceed". Track A and the SG1 replay
+  tooling are being built (no model run). SG2 is declared and waits for a Codex Terra host. This container has no
+  Codex CLI, and the Ollama route is at its monthly limit.
 Opened: 2026-10-30
 Consumer: the owner, who approves, strikes or re-scopes each decision in §7 before anything is built or run; later,
   whoever proposes a ShipLoop gate from outside research and needs the bar it must meet
@@ -212,6 +214,13 @@ SG4 (same failure on an unchanged tree) was planned and is dropped: the audit in
    preflight.
 
 ## 7. Decisions for the owner
+
+**Decided 2026-10-30.** Owner: "Recommend and proceed". Each decision below is taken as recommended:
+- D1, D2, D7, D8: as written.
+- D3: approved. D3b waits for SG2's result.
+- D4: D-10 is kept.
+- D5: V4 is not adopted.
+- D6: waits for SG1's replay on the full saved runs.
 
 - **D1. The principle.** Outside research justifies measuring a failure mode; a gate still waits for a live ShipLoop
   run that shows it (CHANGELOG.md:96). Agree, or name a class to gate on outside evidence alone.
