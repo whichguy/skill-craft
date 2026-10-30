@@ -265,7 +265,7 @@ packets and verbose logs behind their existing locators rather than copying
 them into child context.
 
 For the initial Plan Improve child (only a `planning_review: stage` run has one; `none` starts no
-Improve stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`), retain the packet's experiment objective
+Improve stage at `spec`, `test-strategy`, `plan` or `step-plan`), retain the packet's experiment objective
 and exit criteria, applicable original constraints, current source/action
 locators, and decision consequences in that compact context. Keep essential
 findings and rationale inline; locators cannot replace critical reasoning.

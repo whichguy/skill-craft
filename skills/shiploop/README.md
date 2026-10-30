@@ -64,6 +64,7 @@ Read [experiments during planning](references/planning-experiments.md) for effec
 evidence, budget limitations and recovery. No separate experiment loop is added.
 
 - [Navigator guide and flat SDLC diagram](references/navigator.md)
+- [One stage in detail, and where each part of the map lives in code](references/navigator.md#one-stage-in-detail)
 - [Graph dry-run commands and examples](references/graph-dry-run.md)
 - [Skill entrypoint](SKILL.md)
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
@@ -124,13 +125,13 @@ routing pattern and the [whole-run map](references/navigator.md#whole-run-map)
 of the prelude, per-item inner loop and outer loop, with their gates and
 loops.
 
-Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
-`system-test-author`, `release-plan`), every accepted step review and the
+Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `system-test-author`,
+`release-plan`; `test-spec` is not reviewed), every accepted step review and the
 successful `carry-forward` that leaves no work item pending follow this
 sequence; every other producer result is accepted on its own checks and the
 script selects the next producer directly (see "When Improve
 runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs)). That is the default of the run option `--planning-review stage|none`;
-with `none` the first five of those (`spec` through `test-spec`) are accepted on
+with `none` the first four of those (`spec` through `step-plan`) are accepted on
 ShipLoop's checks at `complete` too, and only each step's review,
 `system-test-author`, `release-plan` and the last `carry-forward` follow this
 sequence. The 23 producers' full flat order is: `intake`, `discovery`,
@@ -300,7 +301,7 @@ is section 9.1). Saved runs from before it are refused (state version 11).
   used 13 fresh workers against the 8 of the item-level route it replaced, about 1.25 times the time and 1.16 times the
   input tokens; one run per arm, so the cost is indicative. Evidence: `docs/experiments/shiploop-per-step-pilot-20261029/`.
 
-**In progress.** Nothing in the code. The release is cut once the full test tier is green on the exact tip.
+**In progress.** Nothing. Released as ShipLoop 1.22.0 (skill-craft 2.23.0).
 
 **Pending.**
 - Still unmeasured, said openly: what a fresh worker was told (the messages between agents are encrypted on Codex), a
@@ -309,7 +310,7 @@ is section 9.1). Saved runs from before it are refused (state version 11).
   How faithful the mocks are, and whether the review and the entry-point trace catch what verify caught, need more runs
   than one case gives.
 - The owner's framing decision (G2: present the lifecycle as a quality and feedback-speed pilot).
-- Landing: `shiploop check` (phase B) landed on main first (ShipLoop 1.21.0) and this stack has merged main.
+- Landing: done. `shiploop check` (phase B) landed first (ShipLoop 1.21.0); this stack followed in 1.22.0.
 
 ```mermaid
 flowchart LR

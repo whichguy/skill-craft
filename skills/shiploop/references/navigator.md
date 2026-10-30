@@ -51,8 +51,8 @@ ShipLoop's [commit stage](#step-commits)) and Carry forward (`carry-forward`).
 `verify` is retired (design T §9.1 2b-4): its gates run inside each step, and its
 entry-point trace is each step review's. Every instantiated producer records a result,
 including a justified N/A output. The planning producers (`spec`,
-`test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
-`release-plan`; `step-plan` and `test-spec` only for the first work item and for an
+`test-strategy`, `plan`, `step-plan`, `system-test-author`,
+`release-plan`; `step-plan` only for the first work item and for an
 item that was sent back), each step's accepted `document` stage and the successful
 `carry-forward` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
@@ -80,7 +80,7 @@ flowchart TD
   end
   prepare --> SP
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor; every stage runs one Until Loop]
-    SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec ✦]
+    SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec]
     TS --> VE[validate-existing ⛔ expectation checks; all match: no packet]
     VE --> IM[implement, per step ⛔ lint gate]
     IM --> TE[test ⛔ lint gate, base run, candidate run]
@@ -99,7 +99,7 @@ flowchart TD
 ```
 
 ✦ starts an Improve stage. A run recorded with `planning_review: none` starts no Improve
-stage at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
+stage at `spec`, `test-strategy`, `plan` or `step-plan`: those four are accepted on
 ShipLoop's checks at `complete` and the graph advances; each step's `document`, `system-test-author`,
 `release-plan` and the last `carry-forward` keep their Improve stage. ⛔ is script-enforced:
 `validate-existing` is not accepted while an expectation check does not match its state;
@@ -122,9 +122,9 @@ resolve).
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `add-work` reopens it |
 | Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each step's `document` stage (one review of the step's code, tests and docs before ShipLoop commits the step), last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
+| Outcomes | `done`, `blocked`; from `test-spec` to `document` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
-| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
+| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `document`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; a rerun of what the edits could affect at `document`, then the step commit once its review is accepted; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a
@@ -141,6 +141,46 @@ records actual outcomes. `product-acceptance` assesses due pre-release evidence
 and retains pending release verification. `release-verify` observes the required
 post-release consumer behavior. Carry the same clause/case locators through
 Improve and recovery; these duties add neither graph nodes nor semantic counters.
+
+### One stage, in detail
+
+Every stage of the map runs this loop. The scripts hold the route; the model does one step and returns one result.
+
+```mermaid
+flowchart TD
+  PK["Packet: duties, result template, callback"] --> WK["Model does one step and writes the result file"]
+  WK --> CB["Model runs the callback: complete, or check first"]
+  CB --> GT{"Script gates"}
+  GT -->|"refused: the message names the exit"| WK
+  GT -->|accepted| RV{"Reviewed by Improve?"}
+  RV -->|"yes (✦ in the map)"| IM["Improve stage: review, then complete imports it"]
+  RV -->|no| SV
+  IM --> SV["Script saves state.md and the trace, picks the next stage"]
+  SV --> PK
+  HK(["Hooks: keepalive Stop, session end, status"]) -.-> WK
+```
+
+A refusal changes nothing: the run stays on the same action, and the model fixes the cause and runs the same callback
+again. `check` runs the same gates, accepts and counts nothing, and records one answer that `complete` takes while nothing
+it read has changed. A field too long for its place in the packet is printed cut and written whole to
+`RUN/fields/<action>-<field>.md`; no gate refuses a field for its length.
+
+### Where each part of the map lives in code
+
+| Part of the map | Source of truth |
+| --- | --- |
+| The 23 stages and their three phases | `shiploop_stage_spec.STAGES`, `PRELUDE`, `INNER`, `OUTER` |
+| ✦ Improve stages | `shiploop_stage_spec.reviewed_stages` (planning stages; `none` drops the four in `PLANNING_CHOICE_STAGES`), `with_improve` rule `item` (each step's `document`) and rule `last-item` (`carry-forward`) |
+| Send-back and add-work | `shiploop_stage_spec.SEND_BACK_TO` (inner stages go back to `step-plan`), `OUTER_SEND_BACK_TO`, `with_outcome` |
+| The step commit after `document` | `shiploop_stage_spec.ITEM_COMMIT_STAGES`, `shiploop_navigator.step_commit_message` |
+| Packet, callback and gates | `shiploop_navigator.emit` (prints the packet), `dispatch` (runs the callback), `_evaluate` (the gates) |
+| Fields cut from a packet | `shiploop_fields.path`, `shiploop_navigator.write_field_files` |
+| Primary-requirement coverage at plan | `shiploop_primary.check_queue` |
+| Hooks and the trace | `shiploop_keepalive`, `shiploop_trace` |
+| The knowledge home | `shiploop_knowledge_home.HOME` |
+
+`test/shiploop-improve-schedule.test.py` (`DocsMatchTheStageTableTests`) fails when the map, the README or the Improve
+schedule list a stage the table does not, or when a symbol in this table no longer exists.
 
 ## Run it
 
@@ -438,7 +478,7 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done` or `blocked` (with `awaiting`: a person's decision, a person's action, or an outside service) at every stage; `send-back` from `test-spec` through `verify` (to `step-plan`) and at `system-test` and `release-verify` (to the stage that wrote their plan); outer stages also allow `add-work` with new corrective work items (the four outcomes; `repeat` is retired: `next` reprints a stage's packet); `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
+| `outcome` | `done` or `blocked` (with `awaiting`: a person's decision, a person's action, or an outside service) at every stage; `send-back` from `test-spec` through `document` (to `step-plan`) and at `system-test` and `release-verify` (to the stage that wrote their plan); outer stages also allow `add-work` with new corrective work items (the four outcomes; `repeat` is retired: `next` reprints a stage's packet); `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved, showing its first 100 characters (the result file keeps it whole). The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `KNOWLEDGE/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |

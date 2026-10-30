@@ -21,6 +21,7 @@ CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
+import shiploop_stage_spec as spec_table  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shiploop_inner_fixture import fixture_follows, fixture_intake, fixture_primary, no_concerns_map, fixture_test_layers  # noqa: E402,E501
@@ -885,6 +886,78 @@ class FirstItemReviewTests(unittest.TestCase):
                                               if key != action})
         with self.assertRaisesRegex(nav.NavigatorError, SCHEDULED_RECORDS):
             nav.validate(broken)
+
+
+class DocsMatchTheStageTableTests(unittest.TestCase):
+    """The whole-run map, the README and the Improve schedule describe the stage table (``shiploop_stage_spec``); each was
+    found to list a stage the table does not (``test-spec`` as reviewed, the retired ``verify``).  The table is the source
+    of truth, and the architecture note beside the map names the symbols behind each part."""
+
+    import re as _re
+    import importlib as _importlib
+
+    @staticmethod
+    def read(relative: str) -> str:
+        return (PACKAGE / relative).read_text(encoding="utf-8")
+
+    def map_block(self) -> str:
+        text = self.read("references/navigator.md")
+        start = text.index("## Whole-run map")
+        found = self._re.search(r"```mermaid\n(.*?)```", text[start:], self._re.S)
+        self.assertIsNotNone(found, "the whole-run map has no mermaid block")
+        return found.group(1)
+
+    @staticmethod
+    def names(text: str) -> set:
+        return set(__import__("re").findall(r"`([a-z][a-z-]*)`", text))
+
+    def test_the_map_names_every_stage_and_no_retired_one(self) -> None:
+        block = self.map_block()
+        for stage in spec_table.STAGES:
+            with self.subTest(stage=stage):
+                self.assertRegex(block, rf"(?<![\w-]){self._re.escape(stage)}(?![\w-])")
+        self.assertNotRegex(block, r"(?<![\w-])verify(?![\w-])")
+
+    def test_the_stages_the_map_marks_as_reviewed_are_the_ones_the_table_reviews(self) -> None:
+        marked = set()
+        for label in self._re.findall(r"\[([^\]]+)\]", self.map_block()):
+            for part in label.split("→"):
+                first = self._re.match(r"[a-z][a-z-]*", part.strip())
+                if first and first.group(0) in spec_table.STAGES and "✦" in part:
+                    marked.add(first.group(0))
+        self.assertEqual(marked, spec_table.reviewed_stages("stage") | spec_table.with_improve("item"))
+        self.assertEqual(spec_table.with_improve("last-item"), {"carry-forward"})   # the map marks it on the edge
+
+    def test_the_prose_lists_of_reviewed_stages_match_the_table(self) -> None:
+        navigator = self.read("references/navigator.md")
+        none_list = self.names(self._re.search(r"starts no Improve\s+stage at (.*?): those", navigator, self._re.S).group(1))
+        self.assertEqual(none_list, set(spec_table.PLANNING_CHOICE_STAGES))
+        readme = self.read("README.md")
+        reviewed = self.names(self._re.search(r"Planning results \((.*?);", readme, self._re.S).group(1))
+        self.assertEqual(reviewed, set(spec_table.reviewed_stages("stage")))
+        schedule = self.read("references/improve-stages.md")
+        listed = self.names(self._re.search(r"those are (.*?);\s+`test-spec` is not reviewed", schedule, self._re.S).group(1))
+        self.assertEqual(listed, set(spec_table.reviewed_stages("stage")))
+
+    def test_every_symbol_the_anchor_table_cites_exists(self) -> None:
+        text = self.read("references/navigator.md")
+        table = text[text.index("### Where each part of the map lives in code"):text.index("## Run it")]
+        cited = set(self._re.findall(r"`(shiploop_[a-z_]+(?:\.[A-Za-z_]+)?)`", table))
+        self.assertGreaterEqual(len(cited), 12, cited)
+        for symbol in sorted(cited):
+            with self.subTest(symbol=symbol):
+                module, _, attribute = symbol.partition(".")
+                loaded = self._importlib.import_module(module)
+                if attribute:
+                    self.assertTrue(hasattr(loaded, attribute), symbol + " no longer exists")
+        # a bare name after a module in the same row (`dispatch`, `_evaluate`, `PRELUDE`) is checked on its row's module
+        for row in table.splitlines():
+            if "shiploop_navigator.emit" in row:
+                for attribute in self._re.findall(r"`(dispatch|_evaluate)`", row):
+                    self.assertTrue(hasattr(nav, attribute), attribute)
+            if "shiploop_stage_spec.STAGES" in row:
+                for attribute in self._re.findall(r"`(PRELUDE|INNER|OUTER)`", row):
+                    self.assertTrue(hasattr(spec_table, attribute), attribute)
 
 
 if __name__ == "__main__":
