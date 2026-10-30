@@ -1,8 +1,10 @@
 ---
 Execute: ask
-Status: **approved 2026-10-30 as recommended (D1–D8)**: owner, "Recommend and proceed". Track A and the SG1 replay
-  tooling are being built (no model run). SG2 is declared and waits for a Codex Terra host. This container has no
-  Codex CLI, and the Ollama route is at its monthly limit.
+Status: **approved 2026-10-30 as recommended (D1–D8)**: owner, "Recommend and proceed".
+  - Built in this PR: Track A as a reader (P1, P2 and P5–P7; P3 read from metrics.json; P4 not built) and the SG1
+    replay tool. Its verdict needs the owner's saved runs.
+  - SG2 is declared in PR #27, which moves the harness digests, so merge it between epochs. It waits for a Codex Terra
+    host: this container has no Codex CLI, and the Ollama route is at its monthly limit.
 Opened: 2026-10-30
 Consumer: the owner, who approves, strikes or re-scopes each decision in §7 before anything is built or run; later,
   whoever proposes a ShipLoop gate from outside research and needs the bar it must meet
@@ -121,6 +123,21 @@ Legend: 📏 measure (§4) · 🔵 side experiment (§5) · ⚪ owner decision o
 
 ## 4. Track A — measure in the E2E harness
 
+**As built, 2026-10-30.** Mapping the harness corrected three points in the plan below.
+- **Most of the evidence is already kept.**
+  - A finished run's `delivery/work.bundle` (`git bundle --all`, test/shiploop_e2e/delivery.py) holds every commit, and
+    the return plan survives `lifecycle.py dispose`.
+  - Only the Improve review texts (`worktree/.shiploop-improve/*/reviews/`) are lost at disposal. Keeping them needs the
+    harness's scrub rules, and `run.scrub` covers only platform cases' top-level files. This is left open.
+- **P3 was already measured**, by `commits.other` (counters.history) and the fidelity block's `model_commits` and
+  `script_owned` edits in metrics.json. The reader reports those; it does not recount them.
+- **A top-level harness module is in the evaluator digest.** The probes are therefore a reader in
+  test/shiploop_e2e/probes/ that run.py never calls, not a scorecard line. Wiring them into metrics.json or the
+  scorecard would move the digest, and is a later decision.
+
+P4 is not built. SG2 moved to PR #27, because its experiment.py change and its evaluator move the digests. The folder
+docs/experiments/sdlc-gates-20261030/ lists what each probe reports.
+
 **First, keep the evidence.** Make sure each finished E2E run keeps what the probes read: each ShipLoop commit's
 diff, any commit ShipLoop did not make, the return plan and its dispositions, and the review texts. The copies in this
 repository do not (§2b). If the owner's full saved runs do, run the probes over them first, for base rates without a
@@ -168,6 +185,10 @@ is found only by the step-proof gate at `implement`, after a whole Until Loop.
 **Then:** met → D6. Missed → record the check's limits and close.
 
 ### SG2. Review recall: inline against fresh (seeded-defect stage slices)
+
+**Declared in PR #27** (2026-10-30). Merge it between epochs:
+- its experiment.py change moves the evaluator digest, c93825a9dbca → 21fbd7efd2cd;
+- its evaluator moves the qualification snapshot, 20ee95208fbf → a9be3f3e3f34.
 
 **Question** (docs/shiploop-improve-value-journal.md:455): do step reviews find defects that exist, and does a fresh
 context find more?

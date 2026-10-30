@@ -9,9 +9,8 @@
     python3 test/shiploop_e2e/experiment.py list
 
 experiments.json holds each experiment: its claim, step case, seed and stop points, arms and evaluator. An arm builds
-its plugin from a git ref (read-only, overlay.build_ref) and may lay a prompt overlay over that build copy (overlay.py),
-add seeded records, and run its slices under another ShipLoop delegation (``delegation``, slice.py --delegation: SG2's
-fresh-context review arm). ``run`` starts one slice.py per sample into ``<out>/<id>/<arm>/<n>/slice`` (a sample whose slice
+its plugin from a git ref (read-only, overlay.build_ref) and may lay a prompt overlay over that build copy (overlay.py)
+and add seeded records. ``run`` starts one slice.py per sample into ``<out>/<id>/<arm>/<n>/slice`` (a sample whose slice
 finished is skipped; one cut off is moved aside to ``slice.cut-<time>`` and run again): samples 1..``--samples`` (default
 the experiment's ``samples``, 4 everywhere), or with ``--sample N`` exactly sample N, so a coordinator can give each
 sample its own background task and a task time limit costs at most one sample. ``score`` runs the evaluator on
@@ -109,8 +108,6 @@ def slice_argv(exp: dict, arm: dict, output: Path, host: str, extra_records: Pat
         argv += ["--ref", arm["ref"]]
     if arm.get("overlay"):
         argv += ["--overlay", str(HERE / arm["overlay"])]
-    if arm.get("delegation"):
-        argv += ["--delegation", arm["delegation"]]
     if exp.get("opening_note"):
         argv += ["--opening-note", str(HERE / exp["opening_note"])]
     if extra_records:
@@ -476,8 +473,7 @@ def queue(exp_ids: list[str], arm_names: list[str], count: int, jobs: int, host:
 def journal_line(exp_id: str, exp: dict, x: str, y: str, report: dict, record: Path) -> str:
     def arm_text(name):
         arm = exp["arms"][name]
-        return (f"{name}={arm.get('ref')}" + (f"+{Path(arm['overlay']).name}" if arm.get("overlay") else "")
-                + (f"+{arm['delegation']}" if arm.get("delegation") else ""))
+        return f"{name}={arm.get('ref')}" + (f"+{Path(arm['overlay']).name}" if arm.get("overlay") else "")
 
     def num(v):
         return "-" if v is None else f"{v:.2f}"

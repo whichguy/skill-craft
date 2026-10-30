@@ -40,8 +40,12 @@ gate, after a whole Until Loop (skills/shiploop/scripts/shiploop_navigator.py:46
 
 ## SG2: review recall, inline against fresh (seeded-defect step slices)
 
-SG2 is declared in test/shiploop_e2e/experiments.json as `SG2-K1` to `SG2-K4`, one per seeded-defect step case:
-`node-seeded-case-compare`, `node-seeded-numeric-sort`, `node-seeded-empty-guard`, `node-seeded-early-validation`.
+SG2 is declared in **PR #27**, kept apart from this folder's PR because it moves the harness's digests:
+- the evaluator digest moves, because experiment.py is a top-level harness file;
+- the qualification snapshot moves, because evaluators/ is part of it.
+
+Merge it between epochs. It adds `SG2-K1` to `SG2-K4` to test/shiploop_e2e/experiments.json, one per seeded-defect step
+case: `node-seeded-case-compare`, `node-seeded-numeric-sort`, `node-seeded-empty-guard`, `node-seeded-early-validation`.
 
 - **Arms.** A is release 1.23.1 (`d98451fb`) inline. B is the same commit with `delegation: ask-agent`, so the review
   runs in one fresh worker (experiment.py passes an arm's `delegation` to slice.py).
@@ -65,5 +69,24 @@ python3 test/shiploop_e2e/experiment.py decide SG2-K1 A B      # then each K
 Start with a 2-case smoke (`run SG2-K1 --arm A --sample 1`, and the same for B) to measure minutes per slice before the
 full queue.
 
-**Status, 2026-10-30:** declared and verified with no model; not run. This container has no Codex CLI, and the
+**Status, 2026-10-30:** declared in PR #27 and verified with no model; not run. This container has no Codex CLI, and the
 `--host claude` route (DeepSeek flash on Ollama) is at its monthly limit.
+
+## Track A: the SDLC probes (a reader, no model)
+
+`test/shiploop_e2e/probes/sdlc_probes.py OUT [OUT ...]` prints the probes for finished runs' output folders. It sits
+below the harness's top level, so it is in neither the evaluator digest nor the qualification snapshot, and run.py never
+calls it. It reads `<out>/work`, or the delivery bundle after `lifecycle.py dispose`.
+
+| Probe | What it reports | Status |
+|---|---|---|
+| P1 | Suppression comments added to code or tests | built |
+| P2 | A later step or item editing a test an earlier one created, with the assertion lines removed and added | built |
+| P3 | Read from the run's own metrics.json: `commits.other` (counters.history) and the fidelity block's `model_commits` and `script_owned` edits | already measured by the harness; the reader reports it |
+| P4 | An earlier item's test IDs missing from a later item's full regression | not built: it needs every item's IDs mapped across the verify records |
+| P5 | Dependencies a manifest gained | built |
+| P6 | Known credential formats, reporting the format and path but never the value | built |
+| P7 | Swallowed errors in product code | built |
+
+Run it over the owner's saved runs for base rates. A probe that fires on a live run is the evidence the gate rule asks
+for (proposal §4).

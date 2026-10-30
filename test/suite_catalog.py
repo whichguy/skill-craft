@@ -360,8 +360,8 @@ _DURATION_SECONDS = {
     # The template-field experiments (experiment.py, overlay.py, evaluators/): 22 tests, three seeds on the checkout's CLI, an
     # overlaid plugin copy and each evaluator's verify (real node). 13 s locally on 2026-10-24.
     "test/shiploop-e2e-experiments.test.py": 14.0,
-    # The SDLC probes (sdlc_probes.py; docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4): 9 tests on one temporary Git
-    # repository that plants each probe's case. 0.3 s locally on 2026-10-30.
+    # The SDLC probes (test/shiploop_e2e/probes/sdlc_probes.py; docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4): 12 tests
+    # on one temporary output folder, its work repository and its delivery bundle. 0.2 s locally on 2026-10-30.
     "test/shiploop-e2e-sdlc-probes.test.py": 0.5,
     # The harness's reading of ShipLoop's run trace (run_trace.py; metrics, fidelity, flow, owner page, arms; the live checks and
     # --owner-note-at's watcher, owner_note.py): 18 tests on two real-CLI runs in temporary E2E folders. Local wall seconds,
