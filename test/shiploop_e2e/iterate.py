@@ -34,6 +34,11 @@ iteration appends to LEARNINGS.md in the output directory.
 Nothing is published. The loop ends with a branch whose commits you can review,
 merge, release (scripts/release.py) and push (scripts/release-push.py).
 
+--qualify runs qualified iteration instead (cycle.py; SPEC promotion contract, 2026-10-30): one learning record per
+candidate, compared with the loop tip in its own promotion/5 epoch on --case and --generality-case, with attempts and
+tolerance from --calibration (spread.py); the tip advances only on PROMOTE. Without it, this exploration loop is
+unchanged and its final candidate stays unevaluated.
+
   python3 test/shiploop_e2e/iterate.py --case battleship --iterations 3
 """
 
@@ -53,6 +58,7 @@ sys.path.insert(0, str(HERE))
 import boundary  # noqa: E402
 import hosts  # noqa: E402
 import judge
+import learning_records  # noqa: E402
 import review as reviewer  # noqa: E402
 import run as runner  # noqa: E402
 
@@ -114,7 +120,8 @@ End with exactly one ```json fenced block:
 """
 
 
-def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
+def improve(worktree: Path, findings: list[dict], stage: Path, args, prompt: str | None = None) -> dict:
+    """Run the improver in the worktree; `prompt` replaces the findings prompt (cycle.py's one-record prompt)."""
     stage.mkdir()
     cases = json.loads(runner.CASES.read_text())
     graded_before = boundary.fingerprint(HERE, cases.get(args.case))
@@ -123,7 +130,7 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args) -> dict:
     git_config = Path.home() / ".gitconfig"
     env = agent.env(stage / "home", git_config if git_config.is_file() else None)
     base = git(worktree, "rev-parse", "HEAD")
-    argv = agent.argv(prompt=improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
+    argv = agent.argv(prompt=prompt or improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
                       prompt_file=stage / "prompt.txt", cwd=worktree, model=profile["model"],
                       effort=profile["effort"], permission_mode=args.permission_mode,
                       max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
@@ -231,6 +238,9 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
         row = harness.get(key) if isinstance(harness.get(key), dict) else {}
         lines.append(f"- {key.replace('_', ' ')}: {row.get('answer', 'not answered')}")
         lines += [f"  proposal: {proposal}" for proposal in row.get("proposals") or []]
+    if verdict.get("learning_records"):
+        lines += ["", "Learning records: " + ", ".join(verdict["learning_records"])
+                  + " (test/shiploop_e2e/learning-records.jsonl)"]
     actionable = verdict.get("actionable") or []
     lines += ["", "Next", ""]
     lines += ([f"- apply: {f.get('title')}" for f in actionable] if actionable
@@ -279,7 +289,9 @@ def record_learnings(worktree: Path, message: str, stage: Path) -> str:
         out.write(f"\n## {heading}\n\n{body}\n")
     (stage / "learnings-commit.txt").write_text(message)
     evidence = review_evidence(worktree, stage)
-    git(worktree, "add", "test/shiploop_e2e/LEARNINGS.md", *([evidence] if evidence else []))
+    ledger = f"test/shiploop_e2e/{learning_records.LEDGER.name}"
+    records = [ledger] if (worktree / ledger).is_file() else []
+    git(worktree, "add", "test/shiploop_e2e/LEARNINGS.md", *([evidence] if evidence else []), *records)
     git(worktree, "commit", "-q", "-F", str(stage / "learnings-commit.txt"))
     return git(worktree, "rev-parse", "--short", "HEAD")
 
@@ -315,9 +327,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--run-timeout", type=int, default=None)  # no time limit unless asked
     p.add_argument("--improve-timeout", type=int, default=2700)
     p.add_argument("--output", type=Path)
+    p.add_argument("--qualify", action="store_true", help="qualified iteration (cycle.py): one record per candidate, "
+                   "promoted only by its own epoch")
+    p.add_argument("--generality-case", help="--qualify: a case of another style, run beside --case")
+    p.add_argument("--calibration", type=Path, help="--qualify: spread.py's report of an A/A calibration epoch")
+    p.add_argument("--parallel", type=int, default=3, help="--qualify: attempts run at once")
+    p.add_argument("--skip-reviews", action="store_true",
+                   help="--qualify: no review or judgment of the attempts, so no cycle can PROMOTE")
     args = p.parse_args(argv)
     if args.iterations < 1:
         raise SystemExit("--iterations must be at least 1")
+    if args.qualify:
+        import cycle
+        return cycle.loop(args)
 
     name = f"auto-shiploop-e2e-{secrets.token_hex(3)}"
     out = (args.output or Path(tempfile.gettempdir()) / "shiploop-e2e" / name).resolve()
@@ -382,14 +404,20 @@ def main(argv: list[str] | None = None) -> int:
             break
 
         print(f"== iteration {index}: review", flush=True)
+        ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
         verdict = reviewer.review(stage / "run", **role_profile(args, "reviewer"),
-                                  skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings)
+                                  skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings,
+                                  records=learning_records.reviewer_view(ledger))
         if (verdict.get("validity") or {}).get("discovery_qualified"):
             judged = judge.judge(stage / "run", verdict, **role_profile(args, "judge"))
             routes = judge.admitted(verdict, judged)
             verdict["judge"] = judged
             verdict["actionable"] = routes["implementation"]
             (stage / "dispositions.json").write_text(json.dumps(routes, indent=2) + "\n")
+            # The judged material discoveries become learning records, committed with the learnings below.
+            verdict["learning_records"] = learning_records.ingest(verdict, routes, {
+                "run": str(stage / "run"), "review_sha256": judged.get("review_sha256"), "exposure": "development"},
+                ledger)
         else:
             # Historical reviews are readable diagnostics, not fresh discovery/judge evidence.
             verdict["actionable"] = []

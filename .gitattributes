@@ -3,3 +3,6 @@
 # plugin view.
 skills/backchain/** -text -whitespace
 plugins/backchain/** -text -whitespace
+
+# Learning records are append-only rows with unique ids; two branches that append merge by keeping both.
+test/shiploop_e2e/learning-records.jsonl merge=union

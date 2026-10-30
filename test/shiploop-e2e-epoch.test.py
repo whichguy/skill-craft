@@ -233,5 +233,80 @@ class EpochTest(unittest.TestCase):
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
 
 
+class EpochLaunchAndPredictionTest(unittest.TestCase):
+    """Launches hold the lock only around their intent and seal; a prediction is bound before any attempt."""
+
+    setUp = EpochTest.setUp
+
+    def test_two_attempts_run_side_by_side_and_both_seal(self):
+        import threading
+        inside = threading.Barrier(2, timeout=20)
+
+        def fake(argv):
+            inside.wait()  # both runs are inside the runner at once: neither holds the epoch's lock
+            output = Path(argv[argv.index("--output") + 1])
+            output.mkdir()
+            (output / "result.json").write_text('{"pass": true}')
+            return 0
+        errors = []
+
+        def launch(arm):
+            try:
+                epoch.launch(self.root, arm + "-hello", self.plugin)
+            except Exception as error:  # noqa: BLE001 - reported below
+                errors.append(error)
+        with mock.patch.object(runner, "main", side_effect=fake):
+            threads = [threading.Thread(target=launch, args=(arm,)) for arm in ("control", "candidate")]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(30)
+        self.assertEqual(errors, [])
+        self.assertEqual([row["status"] for row in epoch.state(self.root)["attempts"]], ["recorded", "recorded"])
+        self.assertEqual([row["sequence"] for row in epoch.events(self.root)], list(range(1, len(epoch.events(self.root)) + 1)))
+
+    def test_a_second_launch_of_a_running_attempt_is_refused(self):
+        def fake(argv):
+            with self.assertRaisesRegex(ValueError, "already dispatched"):
+                epoch.launch(self.root, "control-hello", self.plugin)
+            output = Path(argv[argv.index("--output") + 1])
+            output.mkdir()
+            (output / "result.json").write_text('{"pass": true}')
+            return 0
+        with mock.patch.object(runner, "main", side_effect=fake):
+            epoch.launch(self.root, "control-hello", self.plugin)
+        self.assertEqual(len([r for r in epoch.events(self.root) if r["kind"] == "launch_intent"]), 1)
+
+    def test_a_held_lock_waits_when_asked_and_refuses_after_its_wait(self):
+        with epoch.locked(self.root), self.assertRaises(BlockingIOError), epoch.locked(self.root, wait=0.5):
+            self.fail("second lock entered")
+
+    def prediction(self, **change):
+        return {"contract": "prediction/1", "record": "LR-20261030-abcdef", "anchor": "S-7",
+                "because": "a shorter packet head costs fewer tokens",
+                "effects": [{"case": "hello", "measure": "tokens", "direction": "down", "at_least": 0.15}], **change}
+
+    def test_a_prediction_is_bound_before_any_attempt_and_cannot_change(self):
+        root, path = self.temp / "predicted", self.temp / "prediction.json"
+        path.write_text(json.dumps(self.prediction()))
+        registered = epoch.initialise(root, self.template, path)
+        self.assertEqual(registered["contract"], "shiploop-epoch/2")
+        self.assertIn("prediction_sha256", registered)
+        self.assertEqual(epoch.state(root)["prediction"]["record"], "LR-20261030-abcdef")
+        (root / "prediction.json").chmod(0o644)
+        (root / "prediction.json").write_text(json.dumps(self.prediction(because="edited after the runs")))
+        with self.assertRaisesRegex(ValueError, "frozen prediction.json changed"):
+            epoch.registration(root)
+
+    def test_a_prediction_the_epoch_cannot_resolve_refuses_the_registration(self):
+        root, path = self.temp / "refused", self.temp / "prediction.json"
+        path.write_text(json.dumps(self.prediction(effects=[{"case": "hello", "measure": "tokens", "direction": "down",
+                                                             "at_least": 0.01}])))
+        with self.assertRaisesRegex(ValueError, "prediction refused: .*tolerance"):
+            epoch.initialise(root, self.template, path)
+        self.assertEqual(epoch.events(root)[-1]["kind"], "registration_refused")
+        self.assertFalse((root / "prediction.json").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

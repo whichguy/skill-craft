@@ -2345,3 +2345,33 @@ No-model suites exercise malformed findings, unsupported judgments, snapshot dri
 interrupted dispatch, stale final candidates and review routing. They qualify controller mechanics only. The future live
 reviewer calibration should use a consequential surprise in an otherwise green trace and a matched ordinary trace; no
 novelty is required on the ordinary trace. No live discovery-sensitivity or broad enterprise claim follows from fixtures.
+
+## Qualified iteration: the closed loop (2026-10-30)
+
+The plan is `docs/shiploop-e2e-closed-loop-plan-2026-10-30.md`; the SPEC clauses are the mission clause's "Learning records
+and predictions", the promotion contract's "Qualified iteration" and Change admission's "Purpose". One learning record, one
+candidate, one decision: the loop tip advances only on PROMOTE.
+
+- **Learning records** (`learning_records.py`, `learning-records.jsonl`): each lesson's history, appended only by the
+  harness and read alongside the last three commit messages (owner decision D2). `review.py` gives the reviewer the
+  records' view, and a discovery that recurs a record names it in `same_as`; `iterate.py` records every judged material
+  discovery and commits the ledger with its learnings. Union-merged (`.gitattributes`); not in the evaluator digest.
+  `python3 test/shiploop_e2e/learning_records.py view` prints what a reviewer reads.
+- **Predictions** (`prediction.py`): what a candidate will move, bound by `epoch.py init --prediction` before any attempt;
+  after `decide`, each effect is confirmed, refuted, no effect or unknown, recorded beside the decision, never instead of it.
+- **Spread** (`spread.py EPOCH_DIR --out calibration.json`): reads an A/A calibration epoch and replays promotion's own
+  comparison over every k-against-k split to find the smallest tolerance with at most 10% false decisions (owner decision
+  D1). Its `scoring` digest covers only what scores a run, so a later harness can still use it until scoring changes.
+- **Purpose check** (`purpose_check.py`, `probe_terms.json`): no added line names a probe's product (S-13), one
+  `Learning-Record:` trailer, and a fresh read-only review of the diff against the record's anchor clause. It fails closed.
+- **Launches side by side**: `epoch.py launch` holds the epoch's lock only while it records its intent and seals its
+  result, so one epoch's attempts run at once; the same attempt is still refused once dispatched.
+- **Cycles** (`cycle.py`, `iterate.py --qualify --case C --generality-case G --calibration calibration.json`): improver,
+  purpose check, both builds, a promotion/5 epoch on C and G, every attempt (at most `--parallel` at once), each review and
+  judgment, the decision, the prediction's verdict, a LEARNINGS entry. A DROP or UNDECIDED candidate is kept as
+  `refs/shiploop-loop/<loop>/<record>`. A review of G's attempts is confirmation exposure, never offered to the improver.
+  `cycle.py --control-plugin --candidate-plugin --prediction` runs a hand-built candidate (the stage 4 pilot).
+
+No-model suites: `shiploop-e2e-learning-records` and `shiploop-e2e-cycle` (a real worktree, ledger and epoch, with the
+model's steps stood in), and `shiploop-e2e-epoch`'s launch and prediction tests. Nothing here has run live yet: stage 3's
+A/A calibration comes first.

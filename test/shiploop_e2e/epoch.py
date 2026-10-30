@@ -5,6 +5,11 @@ Every dispatch is recorded before calling the existing runner. An interrupted
 dispatch is unknown until reconciled; next/resume never retry it automatically.
 Candidate construction belongs to exploration (iterate.py); registration binds
 the candidate before this controller compares it with its control.
+
+A launch holds the epoch's lock only while it records its intent and while it
+seals its result, so different attempts of one epoch run at once; a second
+launch of the same attempt is still refused under the lock. `init --prediction`
+binds the candidate's prediction (prediction.py) before any attempt runs.
 """
 from __future__ import annotations
 
@@ -24,11 +29,14 @@ sys.path.insert(0, str(HERE))
 import boundary
 import hosts
 import listeners
+import prediction as predictions
 import promotion
 import scorecard
 
-CONTRACT = "shiploop-epoch/1"
+CONTRACT = "shiploop-epoch/2"  # /2 binds an optional prediction; /1 epochs stay readable
 LEDGER = "events.jsonl"
+INTENT_WAIT = 30.0  # seconds a launch waits for another launch's intent or seal to finish
+SEAL_WAIT = 3600.0  # a finished run waits this long to seal, past a review that holds the lock
 SEALED_FILES = ("result.json", "metrics.json", "timeline.jsonl", "invocation.json")
 
 
@@ -46,9 +54,18 @@ def write_json(path: Path, value: dict) -> None:
 
 
 @contextlib.contextmanager
-def locked(root: Path):
+def locked(root: Path, wait: float = 0.0):
+    """The epoch's lock. A held lock raises BlockingIOError at once, or after `wait` seconds of retrying."""
     with (root / ".epoch.lock").open("a") as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        deadline = time.monotonic() + wait
+        while True:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.2)
         try:
             yield
         finally:
@@ -81,7 +98,7 @@ def append(root: Path, kind: str, **fields) -> dict:
     return row
 
 
-def initialise(root: Path, template: Path) -> dict:
+def initialise(root: Path, template: Path, prediction: Path | None = None) -> dict:
     root = root.resolve()
     checkout = HERE.parents[1]
     if root == checkout or checkout in root.parents:
@@ -110,15 +127,29 @@ def initialise(root: Path, template: Path) -> dict:
         (root / LEDGER).touch(exist_ok=False)
         append(root, "registration_refused", registration_sha256=digest(root / "registration.json"))
         raise
+    predicted = None
+    if prediction is not None:
+        try:
+            predicted = predictions.validate(json.loads(prediction.read_text()), registration)
+        except (OSError, ValueError) as exc:
+            (root / LEDGER).touch(exist_ok=False)
+            append(root, "registration_refused", registration_sha256=digest(root / "registration.json"),
+                   reason=f"prediction: {exc}")
+            raise ValueError(f"prediction refused: {exc}") from exc
     (root / LEDGER).touch(exist_ok=False)
     (root / "runs").mkdir()
     (root / "receipts").mkdir()
     write_json(root / "roles.json", hosts.ROLE_DEFAULTS)
     write_json(root / "specification.json", {"sha256": digest(HERE / "SPEC.md"),
                                             "text": (HERE / "SPEC.md").read_text()})
+    bound = {}
+    if predicted is not None:
+        # Written once, before any attempt: the candidate's claim cannot be edited after its runs are seen.
+        write_json(root / "prediction.json", predicted)
+        bound = {"prediction_sha256": digest(root / "prediction.json")}
     return append(root, "registered", contract=CONTRACT, registration_sha256=digest(root / "registration.json"),
                   roles_sha256=digest(root / "roles.json"), specification_sha256=digest(root / "specification.json"),
-                  attempts=len(registration["attempts"]))
+                  attempts=len(registration["attempts"]), **bound)
 
 
 def registration(root: Path) -> dict:
@@ -129,6 +160,9 @@ def registration(root: Path) -> dict:
                       ("specification.json", "specification_sha256")):
         if digest(root / name) != rows[0][key]:
             raise ValueError(f"frozen {name} changed; begin a new registration")
+    if "prediction_sha256" in rows[0] and (not (root / "prediction.json").is_file()
+                                           or digest(root / "prediction.json") != rows[0]["prediction_sha256"]):
+        raise ValueError("frozen prediction.json changed; begin a new registration")
     try:
         reg = promotion.load_registration(root / "registration.json")
     except SystemExit as exc:
@@ -174,7 +208,9 @@ def state(root: Path) -> dict:
         attempts.append({**spec, "status": status})
     decisions = [row for row in rows if row["kind"] == "decision"]
     discoveries = [row for row in rows if row["kind"] == "discovery_disposition"]
-    return {"contract": CONTRACT, "attempts": attempts, "decision": decisions[-1] if decisions else None,
+    predicted = json.loads((root / "prediction.json").read_text()) if (root / "prediction.json").is_file() else None
+    return {"contract": CONTRACT, "purpose": reg.get("purpose"), "attempts": attempts,
+            "decision": decisions[-1] if decisions else None, "prediction": predicted,
             "discoveries": discoveries, "publication": "not_performed",
             "generalisation": "unobserved unless independently qualified by the registered coverage"}
 
@@ -253,18 +289,22 @@ def sealed_run(root: Path, attempt_id: str) -> tuple[Path, dict]:
 
 
 def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
+    """Dispatch one attempt. The lock is held while the intent is recorded and while the result is sealed, never
+    while the run itself runs, so the epoch's other attempts can be launched beside it."""
     import run as runner
-    intent = launch_intent(root, attempt_id, plugin)
+    with locked(root, INTENT_WAIT):
+        intent = launch_intent(root, attempt_id, plugin)
     driver = intent["driver"]
     argv = ["--case", intent["case"], "--host", driver["host"], "--model", driver["model"],
             "--effort", driver["effort"], "--plugin-dir", intent["plugin"], "--output", intent["output"]]
     # No retries: a crash after dispatch leaves an intent for explicit reconciliation.
     result = runner.main(argv)
-    append(root, "runner_returned", attempt_id=attempt_id, returncode=result)
-    return record_run(root, attempt_id)
+    with locked(root, SEAL_WAIT):
+        append(root, "runner_returned", attempt_id=attempt_id, returncode=result)
+        return record_run(root, attempt_id)
 
 
-def review_attempt(root: Path, attempt_id: str) -> dict:
+def review_attempt(root: Path, attempt_id: str, records: str = "") -> dict:
     import judge
     import review
     registration(root)
@@ -276,7 +316,7 @@ def review_attempt(root: Path, attempt_id: str) -> dict:
     exposure = append(root, "exposure", attempt_id=attempt_id, case=spec["case"], kind_of_feedback="detailed_review")
     assessment_id = f"epoch-{exposure['sequence']}"
     roles = json.loads((root / "roles.json").read_text())
-    reviewed = review.review(output, **roles["reviewer"], assessment_id=assessment_id)
+    reviewed = review.review(output, **roles["reviewer"], assessment_id=assessment_id, records=records)
     judged = judge.judge(output, reviewed, **roles["judge"], assessment_id=assessment_id)
     sealed_run(root, attempt_id)  # Reviews cannot silently change the evidence that they interpret.
     routes = judge.admitted(reviewed, judged)
@@ -350,6 +390,8 @@ def main(argv=None) -> int:
     parser.add_argument("command", choices=("init", "status", "next", "resume", "launch", "record", "reconcile", "review", "decide", "disposition"))
     parser.add_argument("--output", type=Path, required=True, help="external epoch directory")
     parser.add_argument("--registration", type=Path)
+    parser.add_argument("--prediction", type=Path, help="init: the candidate's prediction (prediction/1), bound before "
+                        "any attempt runs")
     parser.add_argument("--attempt")
     parser.add_argument("--plugin-dir", type=Path)
     parser.add_argument("--finding")
@@ -362,9 +404,16 @@ def main(argv=None) -> int:
         if args.command == "init":
             if args.registration is None:
                 parser.error("init requires --registration")
-            result = initialise(root, args.registration)
+            result = initialise(root, args.registration, args.prediction)
         elif args.command in ("status", "next", "resume"):
             result = state(root) if args.command == "status" else next_action(root)
+        elif args.command == "launch":
+            # Takes the lock only around its intent and its seal (launch()), so attempts run side by side.
+            if not args.attempt:
+                parser.error("launch requires --attempt")
+            if args.plugin_dir is None:
+                parser.error("launch requires --plugin-dir")
+            result = launch(root, args.attempt, args.plugin_dir)
         else:
             with locked(root):
                 if args.command == "decide":
@@ -374,10 +423,6 @@ def main(argv=None) -> int:
                         parser.error(f"{args.command} requires --attempt")
                     if args.command == "disposition":
                         result = disposition(root, args.attempt, args.finding, args.disposition, args.reason, args.owner_decision)
-                    elif args.command == "launch":
-                        if args.plugin_dir is None:
-                            parser.error("launch requires --plugin-dir")
-                        result = launch(root, args.attempt, args.plugin_dir)
                     elif args.command in ("record", "reconcile"):
                         result = record_run(root, args.attempt)
                     else:

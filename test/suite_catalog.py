@@ -145,6 +145,8 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-qualification.test.py",
     "test/shiploop-e2e-roles.test.py",
     "test/shiploop-e2e-epoch.test.py",
+    "test/shiploop-e2e-learning-records.test.py",
+    "test/shiploop-e2e-cycle.test.py",
     "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-e2e-slice.test.py",
     "test/shiploop-e2e-fidelity.test.py",
@@ -300,7 +302,10 @@ _DURATION_SECONDS = {
     "test/shiploop-e2e-discovery.test.py": 2.0,
     "test/shiploop-e2e-qualification.test.py": 2.0,
     "test/shiploop-e2e-roles.test.py": 2.0,
-    "test/shiploop-e2e-epoch.test.py": 3.0,
+    "test/shiploop-e2e-epoch.test.py": 4.0,
+    # 2026-10-30 (closed-loop stage 2): 26 tests, 3.0 s locally; the cycle campaign, 9 tests with real git, 4.2 s.
+    "test/shiploop-e2e-learning-records.test.py": 3.0,
+    "test/shiploop-e2e-cycle.test.py": 4.5,
     "test/shiploop-e2e-runrecord.test.py": 0.2,
     # 140 tests on the compact extracts of fourteen saved runs (test/fixtures/fidelity) and the harness's own fake hosts: 8.1 s locally on
     # 2026-10-09 at load average about 6 (the replays are memoised; the through-main class runs fake-host cases).
