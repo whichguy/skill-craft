@@ -60,7 +60,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:end -->
 
-Operator guides: [ShipLoop](skills/shiploop/README.md),
+Operator guides: [ShipLoop developer guide and design record](skills/shiploop/README.md),
 [historical planning-artifact handoff implementation/qualification record](docs/shiploop-planning-artifact-handoff-plan-2026-09-19.md)
 (supporting references; dispatcher step contracts remain the worker assignment),
 [Improve and release-candidate limits](skills/improve/README.md), and

@@ -1,5 +1,688 @@
 # ShipLoop navigator 1.23.0
 
+> **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
+> see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
+> design record for people who change ShipLoop itself. If the two ever disagree, the current packet wins, then the maintainer
+> reference, then this guide: report the difference.
+
+- [What ShipLoop is](#what-shiploop-is) · [Install](#install-and-invoke) · [Quick start](#quick-start) · [How it works](#how-it-works)
+- [Use cases](#use-cases) · [A real run, stage by stage](#a-real-run-stage-by-stage) · [Options](#options-you-choose-at-the-start)
+- [Steer a run](#steer-a-run) · [Command cheat-sheet](#command-cheat-sheet) · [Troubleshooting](#troubleshooting) · [FAQ](#faq)
+
+## What ShipLoop is
+
+ShipLoop turns one sentence of intent ("add a `--version` flag", "build a small URL shortener") into a **delivered, tested, committed
+change**, through the stages of a normal software lifecycle: understand, specify, plan, build, test, document, review, release.
+
+It exists for the failure that long agent sessions share: the model loses the thread. Its context is compacted or cleared, it
+skips the tests, or it declares victory early. ShipLoop moves the thread out of the model and into files and a script:
+
+- **A script owns navigation.** It keeps the run's state in Markdown, decides which stage comes next, and prints a *packet*: the
+  stage's goal, what must hold before it counts as done, and the one command to submit the result. The model never picks a
+  successor.
+- **The model does one step.** It reads the packet, does the work, writes a result, and runs the printed callback. The script
+  checks the result before it advances, and refuses it with a reason when a check fails.
+- **Every packet stands alone.** After a clear, a compaction or a crash, `shiploop next` reprints the current packet from saved
+  state and the run continues where it stopped.
+- **Evidence beats assertion.** The script runs the tests, lint and base checks itself; a passing run it observed is the proof, not
+  the model's statement.
+
+| | An ordinary agent session | A ShipLoop run |
+|---|---|---|
+| Where the plan lives | In the conversation | In `state.md` and the knowledge home, committed beside your code |
+| After a context clear | You re-explain | `shiploop next` reprints the current step |
+| "Done" means | The model said so | The script ran the recorded checks and they passed |
+| Tests | Written when remembered | Specified before the code; each new test must fail on the unchanged base first |
+| Review | On request | An Improve review of the planning results (with the default `--planning-review stage`), each step and the release plan |
+| Your checkout | Edited in place | Untouched until an explicit, guarded return |
+| History | Whatever the session left | One commit per step, and a stage-by-stage trace |
+
+```mermaid
+flowchart LR
+  You["You: one request"] --> Host["Host conversation<br/>(Claude Code, Codex, Grok, Cursor)"]
+  Host -- "result file, then callback" --> Script["shiploop script<br/>validates and advances"]
+  Script -- "next packet" --> Host
+  Script <--> State[("Run files<br/>state.md, packets, results")]
+  Script --> Repo["Isolated worktree<br/>your code, tests, docs"]
+  Repo -- "guarded return, last" --> Source["Your checkout"]
+```
+
+**When to use it:** a feature or project that deserves a spec, tests and review, runs longer than one sitting, or must survive
+interruptions. **When not to:** a one-line fix, an exploratory spike, or anything you want to steer turn by turn yourself. Ask the
+host directly for those.
+
+ShipLoop is a *skill*: it adds no daemon and launches no model. Your host conversation does the work; the `shiploop` Python script
+(standard library only; needs `python3` and `git`) does the bookkeeping.
+
+## Install and invoke
+
+Every skill-craft skill ships in one plugin, `skill-craft`, from the `whichguy` marketplace. ShipLoop needs the Improve skill, and the
+same plugin carries it.
+
+```sh
+# Claude Code
+claude plugin marketplace add whichguy/skill-craft
+claude plugin install skill-craft@whichguy
+
+# Codex
+codex plugin marketplace add whichguy/skill-craft
+codex plugin add skill-craft@whichguy
+```
+
+Start a new session after installing, then invoke it:
+
+| Host | Invocation | Notes |
+|---|---|---|
+| Claude Code | `/skill-craft:shiploop <request>` | Keepalive hooks install with the plugin |
+| Codex | `$skill-craft:shiploop <request>` | Approve the hooks once when Codex asks |
+| Grok | select the ShipLoop skill | Writes its own keepalive hook file on first use |
+| Cursor | select the ShipLoop skill | Hooks install with the plugin; headless runs need `shiploop-drive` |
+| OpenCode | `install.sh`, then `scripts/shiploop-hook install --host opencode` | Headless runs need `shiploop-drive` |
+
+Keep **one** installed copy of each skill. A development checkout is source, not a second install; do not add skill-directory links
+beside the marketplace package. Details: [host matrix](references/host-matrix.md).
+
+## Quick start
+
+You give the request to your host; the model runs the commands. In a repository you want changed:
+
+```text
+/skill-craft:shiploop Add a --version flag to cli.py that prints the package version and exits 0.
+Cover it with a test.
+```
+
+What happens next, in order:
+
+1. **Isolation.** The skill runs `shiploop workspace start --repo <your repo> --prompt=<your request>`. ShipLoop snapshots your
+   current tracked content, including staged and unstaged edits, into a new Git worktree under `<repo-parent>/.shiploop-runs/`,
+   and prints the first packet. Your checkout is not touched again until the final return.
+2. **Stages.** The model works the packets one at a time. After each, the script prints a one-line milestone you can read as it
+   goes. Nothing asks you to approve a stage.
+3. **Review.** With the default `--planning-review stage`, the spec, test strategy, plan and first step plan, each step's code, tests
+   and docs, and the release plan get an Improve review before they count ([which results](#which-results-are-reviewed)).
+4. **Commit.** Each accepted step lands as one `feat(<item>/<step>)` commit in the worktree.
+5. **Return.** The script shows what the run changed and what it will leave behind. It returns the accepted files to your checkout
+   only through the guarded `workspace return`, then writes `report.html`.
+
+Watch it without interrupting:
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN"   # where it is, what is done, what is next
+open "$RUN/progress.html"                                        # live page; no server needed
+```
+
+`$SKILL_ROOT` is the directory holding the loaded `SKILL.md` and `$RUN` is the run directory the first packet prints
+(`<workspace-root>/run`). Ask the host "where is the ShipLoop run?" if you lose them.
+
+If the host asks for a write permission, the script has exited **3** with a `SHIPLOOP-GRANT-NEEDED` block naming the path and the
+host's way to grant it ([sandbox grants](references/host-matrix.md#sandbox-write-grants)). Grant it and rerun the printed command.
+
+## How it works
+
+### Who owns what
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant M as Host model
+  participant S as shiploop script
+  participant F as Run files (state.md, inbox, results)
+  M->>S: next (or the previous callback's output)
+  S->>F: read state, pick the one current stage
+  S-->>M: packet: goal, done-when, template, callback
+  M->>M: do the stage's work in the worktree
+  M->>F: write the result to inbox/ACTION.md
+  M->>S: complete --action ACTION (the printed callback)
+  S->>S: run the stage's checks (tests, lint, expectations)
+  alt checks pass
+    S->>F: write results/ACTION.md and the new state
+    S-->>M: the next packet
+  else a check fails
+    S-->>M: refusal with the reason, so fix the work and run the same callback
+  end
+```
+
+The model reports one of four **outcomes** in each result: `done`; `blocked` (only a person or an outside service can
+unblock it); `send-back` (an earlier stage's record is wrong, so that stage reruns); `add-work` (product work is missing, so new
+work items are built). The script, never the model, decides what each outcome leads to.
+
+### The stages
+
+A run has 23 stages in three phases. Each stage's packet states its goal and its *Done when* conditions.
+
+| Phase | Stages | What they settle |
+|---|---|---|
+| **Prelude** (once) | `intake` → `discovery` → `research` → `spec` → `test-strategy` → `plan` → `prepare` | The request mapped to outcomes; the repository and a baseline test run; unknowns resolved; requirements `R-n`; which checks prove each one; an ordered queue of work items; a ready environment |
+| **Inner loop** (per work item) | `step-plan` → `test-spec` → `validate-existing` → `implement` → `test` → `document` → `carry-forward` | One change, planned, specified, built, tested and documented; then the knowledge home updated and the queue revised |
+| **Outer loop** (once) | `system-test-author` → `system-test` → `product-acceptance` → `release-plan` → `release-check` → `release` → `release-verify` → `operations` → `handoff` | The assembled product tested end to end, accepted against the request, then released and verified where its consumers use it |
+
+```mermaid
+flowchart TD
+  subgraph PRE["Prelude"]
+    direction LR
+    I[intake] --> D[discovery] --> R[research] --> SP[spec] --> TS[test-strategy] --> PL[plan] --> PR[prepare]
+  end
+  PRE --> LOOP
+  subgraph LOOP["Inner loop, once per work item"]
+    direction LR
+    S1[step-plan] --> S2[test-spec] --> S3[validate-existing] --> S4[implement] --> S5[test] --> S6[document] --> S7[carry-forward]
+    S6 -- "next step" --> S4
+    S7 -- "more items" --> S1
+  end
+  LOOP -- "last item" --> OUT
+  subgraph OUT["Outer loop"]
+    direction LR
+    O1[system-test-author] --> O2[system-test] --> O3[product-acceptance] --> O4[release-plan] --> O5[release-check] --> O6[release] --> O7[release-verify] --> O8[operations] --> O9[handoff]
+  end
+  O3 -. "add-work: new items" .-> S1
+  OUT --> Done(["done: report.html"])
+```
+
+The full map, with every gate and the Improve stages, is the [whole-run map](references/navigator.md#whole-run-map).
+
+### Inside one work item
+
+```mermaid
+flowchart TD
+  SP["step-plan<br/>criteria, steps, test commands"] --> TS["test-spec<br/>one case per test ID: oracle, RED, GREEN"]
+  TS --> VE{"validate-existing<br/>do the expectation checks match?"}
+  VE -- "all match" --> IM
+  VE -- "mismatch: small fix, or send-back" --> SP
+  IM["implement one step<br/>lint gate"] --> TE
+  TE["test<br/>base run: each new test must FAIL on the unchanged base<br/>candidate run: every recorded command passes"] --> DOC
+  DOC["document<br/>lint gate, rerun what the edits affect"] --> IMP
+  IMP["Improve review of the step<br/>code, tests and docs"] --> COMMIT
+  COMMIT["step commit<br/>feat(item/step)"] -- "next step" --> IM
+  COMMIT -- "last step" --> CF["carry-forward<br/>update knowledge home, revise the queue"]
+  CF -- "more items" --> SP
+  TE -. "plan is wrong: send-back" .-> SP
+```
+
+The script, not the model, enforces the gates drawn above:
+
+- **Expectation checks.** `validate-existing` is not accepted while a recorded check disagrees with the base.
+- **Lint gate.** `implement`, `test` and `document` are refused once after an auto-fix, and while a new finding on a changed line
+  has no waiver. Details: [run options](references/run-options.md#script-owned-lint).
+- **Red, then green.** `test` is refused if any new test passes on the step's base (it proves nothing), or if a recorded command
+  fails on the candidate.
+- **Reruns.** `document` is refused until what its edits could affect has rerun and exited 0.
+
+### Which results are reviewed
+
+With the default `--planning-review stage`, the **Improve** skill reviews `spec`, `test-strategy` and `plan`; the first work item's
+`step-plan` (and any item that was sent back); every step's `document` result; `system-test-author`; `release-plan`; and the last
+`carry-forward`. A review repeats its own passes until a pass finds only trivial changes. The script imports the review's evidence
+before moving on. `--planning-review none` skips the four planning reviews; the rest stay. See [when Improve runs](references/improve-stages.md#when-improve-runs).
+
+### What survives a context clear
+
+```mermaid
+stateDiagram-v2
+  [*] --> active: workspace start
+  active --> active: complete accepted, next packet
+  active --> paused: pause --reason
+  paused --> active: resume
+  active --> blocked: result outcome blocked
+  blocked --> active: resume --answer or --observed
+  active --> halted: halt --reason (your explicit stop)
+  active --> done: handoff accepted, return receipt recorded
+  halted --> [*]
+  done --> [*]
+```
+
+Whatever interrupts the model (a `/clear`, compaction, a crash, a closed laptop) leaves `state.md` intact. The recovery command
+is always:
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" next --run-dir "$RUN"
+```
+
+`next` rereads the saved state and reprints the current packet. It never advances the run. Every packet prints this command and the
+absolute paths it needs, so a fresh context can pick up from the packet alone. The host never "clears" for you: no packet or hook
+can reset a conversation, and ShipLoop does not pause waiting for one.
+
+### Keeping a run moving
+
+A host ends a turn when the model chooses, even with work left. **Keepalive** hooks ask `shiploop hook-status` at each turn end
+and, while the run is active and progressing, refuse the stop and name the next command. For unattended runs where hooks cannot
+help (Cursor and OpenCode headless modes), `scripts/shiploop-drive` starts and resumes host sessions until the run is done, paused,
+blocked or stuck. A run stops when you say stop or pause, not when you ask a question about it. `SHIPLOOP_KEEPALIVE=off` turns the
+hooks off. See [keepalive](references/keepalive.md).
+
+### Your checkout and the guarded return
+
+```mermaid
+flowchart LR
+  A["Your checkout<br/>branch, tracked edits"] -- "workspace start<br/>snapshot" --> B["Run worktree<br/>.shiploop-runs/REPO-STAMP"]
+  B --> C["Prelude, inner and outer loops<br/>one commit per step"]
+  C -- "plan-return" --> D["Return plan:<br/>what to keep, what to leave"]
+  D -- "review-return" --> E["Dispositions recorded"]
+  E -- "return" --> A
+  E --> F["return-receipt.md<br/>required before done"]
+```
+
+Until the return, your checkout is exactly as you left it. The return plan lists what the run created (for example its knowledge
+home under `docs/shiploop/`) and lets the run keep or leave each path. The run is `done` only after the return receipt exists. An
+in-place run (`init` without a worktree) has no such protection; use it only on purpose. See
+[workspace lifecycle](references/workspace-lifecycle.md).
+
+### What a run leaves behind
+
+Everything a run writes lives in one workspace root next to your repository, so your checkout stays clean. This listing is from the
+recorded run in [A real run](#a-real-run-stage-by-stage); `RUN` below means the `run/` directory.
+
+```text
+<repo-parent>/.shiploop-runs/<repo>-<stamp>/   the workspace root
+  workspace.md          your original checkout, its branch and the baseline commit
+  worktree/             the run's checkout: all product work happens here
+    hello.py  test_hello.py
+    docs/shiploop/      the knowledge home: spec.md, environment.md, architecture.md
+  run/                  the navigator's state
+    state.md            the authoritative state (never edit it)
+    request.md          your request, split into sentences S1..Sn
+    packets/            every packet; packets/sent/ holds each print exactly as sent
+    inbox/  results/    the result the model wrote, and the result ShipLoop accepted
+    tests/  checks/  lint/  expectations/  loops/  improve/  iterations/  commits/  notes/
+    status.md  context-index.md  reference.md  timeline.json  trace.jsonl
+    progress.html  trace.html  report.html     the views you open in a browser
+  return-plan.md        what the run will keep or leave when it returns to your checkout
+  return-receipt.md     the script's record of the return; the run is done only after it exists
+```
+
+The **knowledge home**, `docs/shiploop/` in your repository, holds the living `spec.md`, `environment.md` and `architecture.md`. It is
+committed with your code, so the next run starts from what the last one decided. The model's per-run notes and the packets stay in
+the run directory, outside your repository. File-by-file reference: [state files](references/state-files.md).
+
+## Use cases
+
+Each recipe shows the request you give the host and what ShipLoop does with it.
+
+### 1. Add a feature to an existing repository
+
+```text
+/skill-craft:shiploop Add rate limiting to the /upload endpoint: 10 requests per minute per user,
+429 with a Retry-After header. Add tests and update docs/api.md.
+```
+
+The default and the best-tested path. Discovery runs your existing suite on the unchanged checkout first, so a failing baseline is
+recorded rather than blamed on the change. Output: commits in the worktree, an updated knowledge home, a return plan for you to
+review.
+
+### 2. Start a project in an empty directory
+
+```text
+/skill-craft:shiploop Build a small URL shortener served by a Node.js HTTP server with no npm
+dependencies: POST /shorten returns a short code, GET /<code> redirects. Cover it with node:test tests.
+```
+
+`workspace start` initialises an empty directory as a Git repository on `main` with one empty baseline commit. Do not run `git init`
+yourself. The prelude spends more effort here, because there is no existing code to read.
+
+### 3. A second feature on the same project
+
+Start a **new** run with the new request. Do not reuse an old run: it tracks one request, and a retry with different text is
+refused. The new run inherits the first one's `docs/shiploop/` knowledge home, so it plans against what exists. Finished runs stay
+on disk as a record.
+
+### 4. Resume after a clear, a crash or a reboot
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" next --run-dir "$RUN"
+```
+
+If you do not know the run directory, list `<repo-parent>/.shiploop-runs/*/run/state.md`. Use `next` only for the *same* request.
+Never start a replacement run to "make progress".
+
+### 5. Steer a run in flight
+
+Leave an instruction for the next step without stopping anything:
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" note --run-dir "$RUN" --text "Reuse the existing date helper; do not add a library."
+```
+
+The next packet quotes the note until a step that showed it is accepted. `note` takes no lock, so it never waits for a command the
+model is running.
+
+### 6. Pause for the night, resume in the morning
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" pause  --run-dir "$RUN" --reason "Stopping for the day"
+python3 "$SKILL_ROOT/scripts/shiploop" resume --run-dir "$RUN"
+```
+
+A pause keeps the action pending. Context housekeeping ("clear", "compaction") is not an accepted reason.
+
+### 7. Answer a question the run could not default
+
+ShipLoop runs unattended: it records a default and continues, and it asks only when nothing else can proceed. A `blocked` run waiting
+on you prints the question, or the steps you must do, and stops. Reply with your own words:
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" resume --run-dir "$RUN" --answer "Use the staging account"
+python3 "$SKILL_ROOT/scripts/shiploop" resume --run-dir "$RUN" --observed "Created the API key and stored it in the vault"
+```
+
+"Continue" is not an answer.
+
+### 8. Run unattended
+
+On Claude Code, Codex and Grok, keepalive keeps the session going. For Cursor and OpenCode, or to survive host crashes:
+
+```sh
+"$SKILL_ROOT/scripts/shiploop-drive" --host claude --run-dir "$RUN" --max-minutes 240 -- --model sonnet
+```
+
+The driver stops when the run is done, paused, blocked or stuck, and prints which. Review the branch and the trace afterwards.
+
+### 9. See what a run actually did
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN"            # the fixed status block
+python3 "$SKILL_ROOT/scripts/shiploop" trace  --run-dir "$RUN" --request  # your request beside its expansion
+python3 "$SKILL_ROOT/scripts/shiploop" trace  --run-dir "$RUN" --html     # a self-contained page
+python3 "$SKILL_ROOT/scripts/shiploop" trace  --run-dir "$RUN" --action ID  # one action's packets as sent
+```
+
+`trace` shows every stage done, current or pending, each packet as sent, refusals and hook continuations. See
+[run trace](references/status-display.md#run-trace).
+
+### 10. Rehearse the route without a model
+
+```sh
+python3 "$SKILL_ROOT/scripts/shiploop" graph-dry-run --list
+python3 "$SKILL_ROOT/scripts/shiploop" graph-dry-run --scenario send-back --format markdown
+```
+
+`graph-dry-run` drives the real navigator with synthetic results and prints its actual packets. No model runs, no project work
+happens, and nothing is created in your repository. Use it to learn the packets or to check a route after changing the skill.
+
+### 11. Run it in an environment with a sandbox
+
+Hosts such as Codex (`workspace-write`), Grok sandbox profiles and Claude's Bash sandbox can refuse the two places ShipLoop writes
+outside your repo. The script detects this before creating anything and exits 3 with the grant to give. See
+[host grants](references/host-matrix.md#sandbox-write-grants).
+
+### 12. Delegate steps to fresh workers
+
+```text
+/skill-craft:shiploop <request>. Use ask-agent delegation.
+```
+
+Name the option in your request and the skill passes `--delegation ask-agent` to `workspace start`. The default `inline` route runs every step in the conversation you started. `ask-agent` runs each implementation step and each
+Improve review in a fresh native worker. Switch an existing run from its next action with
+`shiploop delegation --run-dir "$RUN" --set ask-agent`. See [run options](references/run-options.md#execution-delegation).
+
+## A real run, stage by stage
+
+This is a recorded run, not a mock-up. It was made on 2026-10-29 with ShipLoop 1.23.0 (skill-craft 2.24.0), default options, in an
+empty directory, on the Codex host with `gpt-6.1-terra`. The request was one sentence:
+
+```text
+$skill-craft:shiploop Create hello.py that prints exactly "Hello, world!" when run, plus a unittest
+test in test_hello.py that verifies that output.
+```
+
+It is the smallest case ShipLoop has, so every stage is short. A real feature has the same stages with more in them. The run took
+about 13 minutes, accepted 27 results, printed 36 packets and ran 60 ShipLoop commands. Nothing was refused and one work item was
+sent back once. `shiploop trace` printed this plan, where `+I` marks a result that had an Improve review in this `--planning-review stage` run and `↩1` means sent back once:
+
+```text
+Preparation  ✓intake ✓discovery ✓research ✓spec+I ✓test-strategy+I ✓plan+I ✓prepare
+W1 Create greeting script…  ✓step-plan×2+I ✓test-spec×2 ✓validate-existing×2 ✓implement(1 step)↩1 ✓test ✓document+I ✓carry-forward+I
+Release      ✓system-test-author+I ✓system-test ✓product-acceptance ✓release-plan+I ✓release-check ✓release ✓release-verify ✓operations ✓handoff
+```
+
+### The 27 accepted results
+
+Each headline below is the one-line summary the model wrote for its stage, and the time is how long the stage took.
+
+| # | Stage | What the model reported | Time |
+|---|---|---|---|
+| 1 | `intake` | Mapped the requested script and test to local delivery | 8 s |
+| 2 | `discovery` | Established the empty baseline and local Python environment | 17 s |
+| 3 | `research` | Resolved the local implementation and verification approach | 12 s |
+| 4 | `spec` +I | Specified the greeting and its executable test (`R-1`, `R-2`) | 44 s |
+| 5 | `test-strategy` +I | Selected a subprocess unittest and local verification | 34 s |
+| 6 | `plan` +I | Planned one local implementation and verification item | 48 s |
+| 7 | `prepare` | Verified the local test runner is ready | 11 s |
+| 8 | `step-plan` +I | Plan the greeting and the unittest, verified by subprocess and unittest discovery | 65 s |
+| 9 | `test-spec` | Specified the exact-output subprocess test | 25 s |
+| 10 | `validate-existing` | ShipLoop ran every expectation check on the unchanged checkout; each matched | 0 s |
+| 11 | `implement` | **send-back:** the plan asks for a check that cannot run yet | 46 s |
+| 12–14 | `step-plan` +I, `test-spec`, `validate-existing` | The same three stages, rerun with the corrected plan | 76 s |
+| 15 | `implement` | Verified the greeting implementation | 22 s |
+| 16 | `test` | Added and verified the greeting unittest | 57 s |
+| 17 | `document` +I | Recorded observed script and test behavior | 53 s |
+| 18 | `carry-forward` +I | Carried the verified item into release | 49 s |
+| 19 | `system-test-author` +I | Selected the existing real-boundary test for system verification | 35 s |
+| 20 | `system-test` | Passed the assembled local system check | 8 s |
+| 21 | `product-acceptance` | Accepted the locally tested candidate | 8 s |
+| 22 | `release-plan` +I | Planned the guarded local return and verification | 46 s |
+| 23 | `release-check` | Confirmed local return readiness | 23 s |
+| 24 | `release` | Returned the candidate to the source checkout | 33 s |
+| 25 | `release-verify` | Verified the returned local result | 11 s |
+| 26 | `operations` | Confirmed local operational scope | 8 s |
+| 27 | `handoff` | Completed the local handoff | 10 s |
+
+Nine of those results got an Improve review (the `+I` rows). The rest were accepted on ShipLoop's own checks.
+
+### One packet, one result
+
+The first packet the model saw, trimmed to its essentials (paths shortened; the real print also carries the callback, references and
+the original request):
+
+```text
+ShipLoop navigator | intake | revision 0
+Lost context, or unsure? Run python3 …/scripts/shiploop next --run-dir=RUN (it reprints this step).
+Callback for this stage (run once after its work, with the result written to RUN/inbox/<action>.md): …/shiploop complete --run-dir=RUN --action=<action>
+Goal: Map the request to outcomes, boundaries and open questions in this result's `summary`.
+Done when (confirm each before calling done; keep going until all hold):
+- every sentence of the request maps to an outcome, a boundary or an open question
+- each open question names who answers it (discovery, or a recorded default) and what it blocks
+- the result says where the outcome will be visible, and when
+Checked by: at done ShipLoop refuses the usual faults (no outcome or summary, or an absolute evidence_refs path that does not exist).
+It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause and run the same command again.
+```
+
+The model wrote its answer to `RUN/inbox/<action>.md`, in the packet's result template, and ran the callback. ShipLoop accepted it and
+stored it as `RUN/results/<action>.md`:
+
+```json
+{
+  "outcome": "done",
+  "headline": "Mapped the requested script and test to local delivery",
+  "summary": "S1: Create hello.py and a unittest in test_hello.py verifying its exact stdout. Fact: the consumer runs the script and test locally in the requested repository. Assumption: the conventional print newline is part of the output. The isolated candidate becomes visible in the source checkout at final return. Discovery will verify the Python environment and repository conventions; no external delivery or additional authority is required.",
+  "evidence_refs": []
+}
+```
+
+Notice what the model did and did not do. It mapped the sentence (`S1`), separated a fact from an assumption, and said where the
+outcome becomes visible. It did not choose the next stage: the callback's output was the discovery packet.
+
+### The plan is checked before it is built
+
+The `step-plan` result carries the checks ShipLoop will run itself: a criterion with a `Confirm by:` method, one step whose `proof`
+is a command, and an *expectation* that `hello.py` does not exist yet:
+
+```json
+{
+  "outcome": "done",
+  "criteria": [{"id": "C1", "confirm": "executed",
+                "text": "R-1: The script emits exactly the greeting and exits successfully. Confirm by: python3 -m unittest -v test_hello; pass when TC_1 executes and succeeds with exact stdout and zero script exit."}],
+  "expectations": [{"id": "E1", "state": "absent", "statement": "The script path is free",
+                    "check": "test ! -e hello.py", "paths": ["hello.py"], "steps": ["S1"]}],
+  "steps": [{"id": "S1", "paths": ["hello.py"], "criteria": ["C1"], "task": "Implement C1 in hello.py.",
+             "proof": "python3 -c \"import subprocess,sys; p=subprocess.run([sys.executable,'hello.py'],capture_output=True); assert p.returncode==0 and p.stdout==b'Hello, world!\\n'\""}],
+  "paths": ["hello.py", "test_hello.py"]
+}
+```
+
+At `validate-existing`, ShipLoop ran `test ! -e hello.py` itself on the unchanged checkout and found it matched the recorded state, so
+that stage issued no packet at all (row 10, 0 s).
+
+### The send-back
+
+At row 11 the `implement` stage found a flaw in its own plan: criterion `C1` is confirmed by running the unittest, but the unittest
+is written later, at `test`, and `implement` is not allowed to write tests. The model did not work around it. It reported:
+
+```json
+{
+  "outcome": "send-back",
+  "headline": "Correct the implementation confirmation order",
+  "summary": "C1 requires the unittest command before the test stage writes it, while implement cannot write tests. Change C1 confirmation to its direct subprocess proof and retain TC_1 as required later. Script was written and direct proof and lint passed; unittest remains pending."
+}
+```
+
+ShipLoop returned the item to `step-plan` (the stage that wrote the faulty plan), reran `step-plan`, `test-spec` and
+`validate-existing` (rows 12–14, about 76 seconds, including the second Improve review that `--planning-review stage` gives a sent-back plan), and then accepted `implement`.
+That is the loop doing its job: a wrong plan is repaired where it was made, not patched at the end.
+
+### The gates at `test`
+
+At `test` the model wrote `test_hello.py` with one test, `TC_1`. Before accepting the stage, ShipLoop ran the recorded commands
+itself, twice. First on the step's base (a copy of the checkout from before the change), where a new test must fail because the
+behaviour is not there yet. It did: `python3 -m unittest -v test_hello` ran 1 test, 1 failed, exit 1, `TC_1: failed`. Then on the
+candidate, where every command must pass. ShipLoop kept both runs under `RUN/tests/`. The last rerun, at `release-verify` against the
+returned result, shows what it captured:
+
+```text
+command: python3 -B -m unittest discover -v     exit 0, 1 test ran, 0 failed, ids: TC_1
+test_greeting (test_hello.HelloTest)
+TC_1: The script prints the requested greeting. ... ok
+Ran 1 test in 0.021s   OK
+```
+
+### What was committed
+
+`git log` in the run's worktree, oldest first (the empty baseline commit is ShipLoop's, made at `workspace start`):
+
+```text
+68c01d6 Empty baseline for the first ShipLoop run
+ec0e8ea docs(shiploop): record create-hello-py-that-prints-exactly-0de30d knowledge after discovery
+4f665cf docs(shiploop): record … knowledge after spec
+f1dfad5 docs(shiploop): record … knowledge after test-strategy
+0fc2727 docs(shiploop): record … knowledge after plan
+de91a67 docs(shiploop): record … knowledge at prepare
+11c026a feat(W1/S1): Verified the greeting implementation
+d5b0f6c docs(shiploop): record … knowledge after carry-forward
+6f33146 docs(shiploop): record … knowledge after system-test-author
+8608147 docs(shiploop): record … knowledge at release-plan
+eed33ac docs(shiploop): record … knowledge at release-verify
+```
+
+One `feat(W1/S1)` commit for the single step, plus a `docs(shiploop)` commit each time a stage changed the knowledge home. After
+`release` the source checkout had been fast-forwarded to the same history: five files, `hello.py`, `test_hello.py` and the three
+`docs/shiploop/` files. None of the run's own working directories (`.shiploop-improve/…`) were kept.
+
+### The end
+
+The last callback returned a short `done` packet, and `shiploop status` printed:
+
+```text
+=== ShipLoop status ===
+Where:     Run complete
+Run:       Preparation ✓ | Work items 1/1 ✓ | Release ✓
+Done:      handoff: Source: hello.py and test_hello.py returned to main with a verified fast-forward receipt.
+Next:      nothing; the run is complete. Report: report.html
+=== end ShipLoop status ===
+```
+
+`RUN/report.html` summarises the run. As its own header says, it records the agent's declared completion and does not independently
+prove the checks, so read the trace and the recorded test runs, not only the report.
+
+**What this run does not show.** It had one work item, so there was no carry-forward revision of a queue. Nothing was `blocked`,
+nothing was refused, and the release was a local return with no deployment or consumer to verify. A larger feature adds work items,
+more steps per item, refusals from the lint and test gates, and (when delivery needs it) a question for you.
+
+## Options you choose at the start
+
+Options are recorded when the run starts and cannot be changed by a retry. You choose them by naming them in your request ("use `--planning-review none`"); the skill passes them to `workspace start`.
+
+| Option | Values (default first) | Choose another when | Change mid-run |
+|---|---|---|---|
+| `--delegation` | `inline`, `ask-agent` | You want each step in a fresh worker's context | `delegation --set` |
+| `--lint` | `fix`, `report`, `off` | `report` to see fixes without applying them; `off` for a repo whose linters you do not trust | `lint-mode --set` |
+| `--planning-review` | `stage`, `none` | `none` to skip the four planning reviews (needs `--improve-skill=<absolute path>`) | no: start a fresh run |
+| `--backchain-passes` | `one`, `converge`, `none` | `converge` for a plan whose dependencies matter; `none` to skip the plan graph check | no: start a fresh run |
+| `--delivery-contract` | off | The change must reach a consumer (an app, an endpoint) and you want that stated up front | no |
+
+`--planning-review none` together with `--backchain-passes none` removes every model-run second look at the plan. It is allowed,
+and it is the highest-risk combination. See [run options](references/run-options.md).
+
+## Steer a run
+
+| You want to | Do this | What it does |
+|---|---|---|
+| See where it is | `status`, `progress.html` | Read-only |
+| Tell it something | `note --text` | The next packet quotes it; delivered once a step that showed it is accepted |
+| Stop for now | `pause --reason` | Keeps the pending action; `resume` continues |
+| Answer a question | `resume --answer` | Only your own words count |
+| Stop for good | `halt --reason` | Terminal |
+| Recover after a clear | `next` | Reprints the packet; never advances |
+| Check a result before submitting | `check --run-dir RUN --action ACTION` | Would `complete` accept this now? Counts nothing |
+
+## Command cheat-sheet
+
+The packet is authoritative for every command and argument. This is the short list; the
+[command reference](#command-reference) has the full syntax.
+
+| Command | When | Prints or changes |
+|---|---|---|
+| `workspace start --repo R --prompt=…` | The model starts a run | Worktree, run directory, first packet |
+| `init --repo R --run-dir D --prompt=…` | An explicit in-place or non-Git run | Run directory, first packet |
+| `next --run-dir D` | After any interruption | The current packet; no state change |
+| `complete --run-dir D --action A` | The packet's callback | Accepts the result and prints the next packet, or refuses with the reason |
+| `status`, `report`, `trace`, `view` | Any time | Read-only views |
+| `note`, `pause`, `resume`, `halt` | You steer | Run control |
+| `workspace plan-return`, `review-return`, `return` | The return steps the packets print | Guarded return to your checkout |
+| `graph-dry-run` | Rehearsal | Synthetic walk of the real navigator |
+| `delegation`, `lint-mode`, `lint` | Option changes and lint reruns | Described in [run options](references/run-options.md) |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| The script exited **3** with `SHIPLOOP-GRANT-NEEDED` | The host sandbox refused a write. Grant the named path with the host's mechanism, then rerun the printed command. |
+| A callback was **refused** | The reason names the failed check. Fix the work (not the check), rerun every check, and run the same callback again. A refusal never advances the run. |
+| A packet print ends without `=== end ShipLoop print ===` | The host or a pipe cut it. Run `next` with no pipe, or read the packet file named by `Full packet:` with a file tool. |
+| The model stopped mid-run | Run `next --run-dir D`. With keepalive installed this should be rare; check `shiploop hook-status --run-dir D`. |
+| "run saved by an older protocol" | ShipLoop keeps one supported version and does not migrate. Keep the old run as evidence and start the request again. |
+| The run is `blocked` | Read the question, answer with `resume --answer` (a decision) or `--observed` (what you did). "Continue" does not count. |
+| Two sessions are fighting over a run | Only one session per run is kept alive. Stop the second one; ownership passes on when the owner's turn ends. |
+| You want to edit `state.md` | Don't. The script writes it in transactions. Use `note`, `pause`, `resume` or `halt`. |
+| The baseline failed | Discovery records it and finishes; dependent feature work is left unready. Fix or accept the baseline, then start a new run. |
+
+## FAQ
+
+**Does ShipLoop call a model itself?** No. The `shiploop` CLI never launches a model. Your host conversation does the work. Only the
+optional `shiploop-drive` script starts host sessions, and only when you run it.
+
+**Will it touch my checkout while it works?** No. It works in a worktree. The guarded return is the only step that writes to your
+checkout, and it follows a return plan you can review.
+
+**Can I use it without Git?** Yes, explicitly: `init` runs in place and states why isolation is not used. You lose the automatic
+return protection.
+
+**Does "done" mean it is deployed?** No. Completion records the host's declaration. Whether a release reached its consumer is
+checked by the `release-verify` stage, and remote writes need an explicit grant first. Absence of the word "publish" in your request
+does not make hosted delivery optional, and it does not grant permission to write remotely.
+
+**How long does it take?** Minutes for a tiny change, hours for a project with several work items and reviews. The cost is mostly
+the Improve reviews and the test runs. `--planning-review none` cuts planning time at the price of unreviewed plans.
+
+**What does it commit?** One commit per accepted step in the worktree, a knowledge-home commit when a planning result is accepted,
+and the guarded return into your checkout. ShipLoop does not push your branch.
+
+**Where do I report a problem with the docs?** Record it as a ShipLoop improvement proposal; the packet is authoritative when it
+differs from this guide.
+
+## Maintainer reference
+
+Everything below this point is the design record for ShipLoop's maintainers. Its headings and anchors are referenced from the
+skill's guides and tests and are kept as written.
+
+
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
 > does so even when the previous packet said the same thing. Repetition from one packet to the next is how a cleared model is grounded;
