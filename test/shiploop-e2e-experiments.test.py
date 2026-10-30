@@ -320,6 +320,27 @@ class Evaluators(unittest.TestCase):
             found = e1b.score(Path("unused"))
         self.assertEqual((found["value"], found["all_killed"]), (0.25, 0))
 
+    def test_e7_weak_tests_kill_fewer_limit_and_guard_mutants_than_boundary_tests(self):
+        self.check("E7-K1")
+
+    def test_e7_mutates_tracked_changes_and_untracked_source_but_never_a_test_file(self):
+        import e7_tests  # noqa: PLC0415
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "src").mkdir()
+            (tree / "test").mkdir()
+            (tree / "src" / "a.js").write_text("const a = 1;\nconst b = 2;\n")
+            subprocess.run(["git", "init", "-q", str(tree)], check=True)
+            subprocess.run(["git", "-C", str(tree), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(tree), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit",
+                            "-qm", "seed"], check=True)
+            seed = e7_tests._git(tree, "rev-parse", "HEAD").strip()
+            (tree / "src" / "a.js").write_text("const a = 1;\nconst b = a > 1 || a < 0;\n")
+            (tree / "src" / "b.js").write_text("module.exports = (n) =>\n  n >= 64\n  && n !== 0;\n")
+            (tree / "test" / "b.test.js").write_text("require('node:assert').ok(true);\n")
+            self.assertEqual(e7_tests.changed_lines(tree, seed), {"src/a.js": {2}, "src/b.js": {1, 2, 3}})
+            self.assertEqual(e7_tests.new_test_files(tree, seed), ["test/b.test.js"])
+
     def test_e2_flags_run_4s_strategy_and_step_plan_and_credits_a_planted_good_record(self):
         self.check("E2", needs_run4=True)
 

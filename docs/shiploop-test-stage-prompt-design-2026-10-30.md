@@ -1,6 +1,7 @@
 ---
 Execute: ask
-Status: proposal, 2026-10-30, awaiting the owner's decisions in §9. Nothing in ShipLoop is changed.
+Status: E7 running, 2026-10-30 (owner: "Yes, build E7", D1). Nothing in ShipLoop is changed; the arms are
+  overlays on a pinned build (§7a).
 Opened: 2026-10-30
 Consumer: the owner, who decides §9; then whoever builds experiment E7 (§7) and, on its verdict, the test-stage
   prompt change. Later: anyone who proposes more test-stage prose and needs the bar it must clear.
@@ -355,6 +356,41 @@ mutants (§3b), leaving 1–3 survivors per run. An A/A spread at that level can
 - if A and P both sit at the ceiling there, build a step case whose code must introduce a limit and a compound guard
   that the request leaves open (a body-size cap, a name-length bound). That is where §3a's survivors come from.
 
+### 7a. As built, 2026-10-30
+
+The owner chose D1 ("Yes, build E7"). Three things changed from the plan above; each has its evidence.
+
+- **The score is the limit-and-guard kill fraction on both cases, not E1b's stand-in fraction.** The 12 saved E1b
+  samples (Grok 4.7, 2026-10-24) all killed 4 of 4 stand-ins, a ceiling. Scored by the new evaluator, the same trees
+  killed 0.57–1.00 of their `rel-bound` and `logic-flip` mutants; arm A's two sample pairs averaged 0.69 and 0.75.
+  So `value` is that fraction on the product lines the slice wrote (evaluators/e7_tests.py), and the stand-in fraction
+  is recorded beside it. Evidence: e1b-trees-e7.json.
+- **The brownfield case is ticket assignment, not escalation.** In the four 2026-10-29 Terra assignment runs all 10
+  changed-line survivors are `rel-bound` or `logic-flip`, against 5 of 9 in the escalation runs (four are `bool-flip`
+  on a `save` flag). The new step case `tickets-assign` (step_cases.json) is ticket-assignment without the listing
+  filter and the command line, as one step on the pinned `node-tickets` fixture. Its hidden check fails on the base and
+  passes on two Terra deliveries.
+- **Arm M replaces the four relational negations with boundary shifts** instead of adding beside them. A stage mutant
+  is named `file:line:column` (`mutant_id`), so two operators on one token would share a name. The negations were also
+  killed 77 of 79 times (§3c). `logic-flip` is added.
+
+Smaller points:
+- Arm P also adds one clause to test-spec's duty item 3 (`input or action → expected value`). The placeholder alone
+  shows only in the result template.
+- Arm C's two lines were checked in the first live test packets of both cases. The diff file held the five changed
+  product files on `tickets-assign`, and the example tests named were the existing tests of those files.
+- On Terra a slice took about 3 min (the test stage 35–80 s), within the plan's 2–5. The Grok 4.7 E1b slices took
+  20–30 min.
+
+| | |
+|---|---|
+| Arms | A = 7fce12e4 (origin/main, ShipLoop 1.23.1); P, C, M = A + overlays/e7-p.json, e7-c.json, e7-m.json |
+| Experiments | E7-K1 (`stand-in-rules`), E7-K2 (`tickets-assign`); 4 samples per arm; seed at test-spec, stop after test |
+| Host | Codex, gpt-6.1-terra at xhigh (hosts.RUN_DEFAULT_HOST) |
+| Run | `experiment.py queue E7-K2 E7-K1 --arms C,M,A,P --jobs 5 --out ~/e2e-runs/e7-20261030` |
+| Verified | the overlays apply to A (`experiment.py verify E7-K1`); the evaluator scores weak tests 0.625 and boundary tests 0.875 on the reference (test/shiploop-e2e-experiments.test.py) |
+| Decide | `decide E7-Kn A P`, `decide E7-Kn P C`, `decide E7-Kn A M` |
+
 ## 8. Out of scope here: the UI verification route (Salesforce run, 2026-10-30)
 
 The owner relayed feedback on the Codex Salesforce Battleship run (`~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d`):
@@ -389,3 +425,5 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | Brownfield changed-line `js-1` on 12 Codex Terra runs: 196 of 217 killed (0.903); 17 of 21 survivors are `logic-flip` or `rel-bound` (`length > 64` in 6 runs); 40 of 57 product survivors across both settings | firm for these runs (one model, one product family) | brownfield-mutation.json, changed_line_mutation.py |
 | 2026-10-30 | Literature: oracles fixed before the code is seen find the most bugs (L9); feedback with surviving mutants and an allowed abort are the measured levers (L2, L6, L19); length and distractors cost accuracy (L22). No study ablates test-writing prose in an agent prompt | firm for the cited results; the prose question stays open, hence E7 | literature.md |
 | 2026-10-30 | Proposal: §6a duty (474 words against 680), §6b oracle as `input → value`, §6c diff and example test, §6d two operators; E7 to decide | interim, awaiting the owner's decisions | §6, §7, §9 |
+| 2026-10-30 | E7 built: evaluator e7_tests.py (limit-and-guard kill fraction), case `tickets-assign`, overlays e7-p/c/m on 7fce12e4; queue launched on Codex Terra | interim, running | §7a; e1b-trees-e7.json |
+| 2026-10-30 | E1b's stand-in score is at its ceiling (12 of 12 samples killed every stand-in), while the same trees kill 0.57–1.00 of their limit and guard mutants | firm for those 12 Grok 4.7 samples | e1b-trees-e7.json |

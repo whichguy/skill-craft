@@ -953,5 +953,114 @@
       "about": "sf-chess-engine's item on a local Node route: separates the platform from the model."
     },
     "source": "chess-sf-w1 ported to Node.js by build_fixtures.py (NODE_REPLACE)"
+  },
+  "tickets-assign": {
+    "about": "E7 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §7): the brownfield ticket-assignment case cut to one step, the assignment route without the listing filter and the command line. Its code introduces a name limit (at most 64 characters) and compound guards (only open and in-progress tickets), where 17 of 21 changed-line survivors of twelve Codex Terra brownfield runs were (docs/experiments/test-stage-prompt-20261030/brownfield-mutation.json).",
+    "fixture": "node-tickets",
+    "prompt": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable. Add ticket assignment. `PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it; an agent is a non-empty name of at most 64 characters. Only open and in-progress tickets can be assigned or unassigned. Assigning a ticket to the agent it already has changes nothing. Every ticket shows its `assignee` (null when unassigned). The agent a ticket is assigned to is notified that it was assigned to them. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add ticket assignment: PUT /tickets/:id/assignee",
+      "context": "An agent is a non-empty name of at most 64 characters; only open and in-progress tickets can be assigned or unassigned; the same agent again changes nothing; the new agent is notified; every ticket shows its assignee (null when unassigned)."
+    },
+    "expect_paths": [
+      "src/*",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "npm test",
+      "node -e \"const {withService,ticketBody}=require('./test/helpers');const a=require('assert');withService({},async(api)=>{const t=(await api.post('/tickets',ticketBody())).body;a.strictEqual(t.assignee,null);const p=await api.put('/tickets/'+t.id+'/assignee',{assignee:'check.agent'});a.ok(p.status>=200&&p.status<300,'assign '+p.status);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');a.strictEqual((await api.put('/tickets/'+t.id+'/assignee',{assignee:'x'.repeat(65)})).status,400);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');const u=await api.put('/tickets/'+t.id+'/assignee',{assignee:null});a.ok(u.status>=200&&u.status<300,'unassign '+u.status);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,null)}).then(()=>process.exit(0),e=>{console.error(e);process.exit(1)})\""
+    ],
+    "focused": "npm test",
+    "mutation": "npm test",
+    "seed_records": {
+      "step-plan": {
+        "criteria": [
+          {
+            "id": "C1",
+            "text": "PUT /tickets/:id/assignee with {\"assignee\": \"<agent>\"} assigns an open or in-progress ticket to that agent and {\"assignee\": null} unassigns it; every ticket shows its assignee (null when unassigned), kept in the data file across a restart. Confirm by: the focused command; pass when TC-1 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C2",
+            "text": "An agent is a non-empty name of at most 64 characters: any other assignee answers 400 invalid and changes nothing; a ticket that is not open or in progress answers 409 conflict and changes nothing; an unknown ticket answers 404. Confirm by: the focused command; pass when TC-2 passes. Exercised. Serves R-1."
+          },
+          {
+            "id": "C3",
+            "text": "Assigning a ticket to the agent it already has changes nothing (no audit entry, no notification); each real assignment is recorded in the audit log and notifies the new agent through the notification outbox. Confirm by: the focused command; pass when TC-3 passes. Exercised. Serves R-1."
+          }
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "task": "Add ticket assignment: the assignee field in the store and its data file, PUT /tickets/:id/assignee with its validation, and the assignment notification (C1-C3).",
+            "deps": [],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3"
+            ],
+            "proof": "node -e \"const {withService,ticketBody}=require('./test/helpers');const a=require('assert');withService({},async(api)=>{const t=(await api.post('/tickets',ticketBody())).body;a.strictEqual(t.assignee,null);const p=await api.put('/tickets/'+t.id+'/assignee',{assignee:'check.agent'});a.ok(p.status>=200&&p.status<300,'assign '+p.status);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');a.strictEqual((await api.put('/tickets/'+t.id+'/assignee',{assignee:'x'.repeat(65)})).status,400);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');const u=await api.put('/tickets/'+t.id+'/assignee',{assignee:null});a.ok(u.status>=200&&u.status<300,'unassign '+u.status);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,null)}).then(()=>process.exit(0),e=>{console.error(e);process.exit(1)})\"",
+            "skills": []
+          }
+        ],
+        "test_commands": [
+          {
+            "command": "node --test --test-reporter=spec test/assignment.test.js",
+            "suite": "focused",
+            "ids": [
+              "TC-1",
+              "TC-2",
+              "TC-3"
+            ],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3"
+            ]
+          },
+          {
+            "command": "npm test",
+            "suite": "regression"
+          }
+        ],
+        "expectations": [
+          {
+            "id": "E1",
+            "state": "absent",
+            "statement": "the service has no ticket assignment yet: no assignee field or route",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "src/app.js",
+              "src/store.js"
+            ],
+            "check": "! grep -rqi assignee src"
+          },
+          {
+            "id": "E2",
+            "state": "works",
+            "statement": "the existing suite passes",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "test"
+            ],
+            "check": "npm test --silent"
+          }
+        ],
+        "paths": [
+          "src/*",
+          "test/assignment.test.js",
+          "docs/api.md",
+          "README.md",
+          "CHANGELOG.md"
+        ],
+        "follows": [
+          "R-1"
+        ]
+      }
+    }
   }
 }

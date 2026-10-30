@@ -1,0 +1,349 @@
+{
+ "about": "E7 pre-check, 2026-10-30: the 12 saved E1b samples (~/e2e-runs/experiments-r2-20261024/E1b, Grok 4.7 medium, arms A=288075c9, T=9ed4ec24, B=T+e1b overlay), each final tree scored with evaluators/e7_tests.py. Every one killed all four stand-ins (E1b value 1.0); value here is the killed fraction of js-1 rel-bound and logic-flip mutants on the lines the slice wrote.",
+ "fields": [
+  "arm",
+  "sample",
+  "value",
+  "target_total",
+  "target_survived",
+  "all_ratio",
+  "test_titles",
+  "mean_titles_per_id",
+  "target_survivors"
+ ],
+ "rows": [
+  [
+   "A",
+   "1",
+   0.6667,
+   12,
+   4,
+   0.8276,
+   5,
+   1.0,
+   [
+    [
+     "logic-flip",
+     49,
+     "if (order === null || typeof order !== 'object' || typeof or"
+    ],
+    [
+     "logic-flip",
+     49,
+     "if (order === null || typeof order !== 'object' || typeof or"
+    ],
+    [
+     "logic-flip",
+     49,
+     "if (order === null || typeof order !== 'object' || typeof or"
+    ],
+    [
+     "rel-bound",
+     62,
+     "if (eq < 0) {"
+    ]
+   ]
+  ],
+  [
+   "A",
+   "2",
+   0.7222,
+   18,
+   5,
+   0.8378,
+   9,
+   1.8,
+   [
+    [
+     "logic-flip",
+     65,
+     "|| typeof order !== 'object'"
+    ],
+    [
+     "logic-flip",
+     66,
+     "|| typeof order.qty !== 'number'"
+    ],
+    [
+     "logic-flip",
+     67,
+     "|| typeof order.price !== 'number'"
+    ],
+    [
+     "logic-flip",
+     68,
+     "|| !Number.isFinite(order.qty)"
+    ],
+    [
+     "logic-flip",
+     69,
+     "|| !Number.isFinite(order.price)"
+    ]
+   ]
+  ],
+  [
+   "A",
+   "3",
+   0.6923,
+   13,
+   4,
+   0.7714,
+   6,
+   1.2,
+   [
+    [
+     "logic-flip",
+     68,
+     "if (order === null || typeof order !== 'object') {"
+    ],
+    [
+     "logic-flip",
+     72,
+     "if (typeof order.qty !== 'number' || !Number.isFinite(order."
+    ],
+    [
+     "logic-flip",
+     75,
+     "if (typeof order.price !== 'number' || !Number.isFinite(orde"
+    ],
+    [
+     "rel-bound",
+     91,
+     "if (eq < 0) syntax(line, `a field has no '=', received ${JSO"
+    ]
+   ]
+  ],
+  [
+   "A",
+   "4",
+   0.8,
+   15,
+   3,
+   0.7955,
+   10,
+   2.0,
+   [
+    [
+     "logic-flip",
+     45,
+     "if (!order || typeof order !== 'object' || !Number.isFinite("
+    ],
+    [
+     "logic-flip",
+     122,
+     "if (typeof value === 'string' || typeof value === 'number' |"
+    ],
+    [
+     "logic-flip",
+     122,
+     "if (typeof value === 'string' || typeof value === 'number' |"
+    ]
+   ]
+  ],
+  [
+   "T",
+   "1",
+   0.7647,
+   17,
+   4,
+   0.8485,
+   5,
+   1.0,
+   [
+    [
+     "rel-bound",
+     45,
+     "if (eq < 0) {"
+    ],
+    [
+     "logic-flip",
+     113,
+     "if (typeof qty !== 'number' || typeof price !== 'number' || "
+    ],
+    [
+     "logic-flip",
+     113,
+     "if (typeof qty !== 'number' || typeof price !== 'number' || "
+    ],
+    [
+     "logic-flip",
+     113,
+     "if (typeof qty !== 'number' || typeof price !== 'number' || "
+    ]
+   ]
+  ],
+  [
+   "T",
+   "2",
+   0.7692,
+   13,
+   3,
+   0.8333,
+   6,
+   1.2,
+   [
+    [
+     "logic-flip",
+     47,
+     "|| typeof order !== 'object'"
+    ],
+    [
+     "logic-flip",
+     48,
+     "|| !Number.isFinite(order.qty)"
+    ],
+    [
+     "rel-bound",
+     63,
+     "if (eq < 0) {"
+    ]
+   ]
+  ],
+  [
+   "T",
+   "3",
+   1.0,
+   11,
+   0,
+   0.963,
+   6,
+   1.2,
+   []
+  ],
+  [
+   "T",
+   "4",
+   0.9167,
+   12,
+   1,
+   0.871,
+   7,
+   1.4,
+   [
+    [
+     "rel-bound",
+     69,
+     "if (eq < 0) {"
+    ]
+   ]
+  ],
+  [
+   "B",
+   "1",
+   0.8667,
+   15,
+   2,
+   0.85,
+   12,
+   2.4,
+   [
+    [
+     "logic-flip",
+     79,
+     "if (order === null || typeof order !== 'object' || !Number.i"
+    ],
+    [
+     "rel-bound",
+     92,
+     "if (eq < 0) {"
+    ]
+   ]
+  ],
+  [
+   "B",
+   "2",
+   0.9,
+   10,
+   1,
+   0.913,
+   6,
+   1.2,
+   [
+    [
+     "rel-bound",
+     31,
+     "if (eq < 0) {"
+    ]
+   ]
+  ],
+  [
+   "B",
+   "3",
+   0.6429,
+   14,
+   5,
+   0.75,
+   5,
+   1.0,
+   [
+    [
+     "logic-flip",
+     53,
+     "const qty = order !== null && typeof order === 'object' ? or"
+    ],
+    [
+     "logic-flip",
+     54,
+     "const price = order !== null && typeof order === 'object' ? "
+    ],
+    [
+     "logic-flip",
+     55,
+     "if (typeof qty !== 'number' || typeof price !== 'number' || "
+    ],
+    [
+     "logic-flip",
+     55,
+     "if (typeof qty !== 'number' || typeof price !== 'number' || "
+    ],
+    [
+     "logic-flip",
+     55,
+     "if (typeof qty !== 'number' || typeof price !== 'number' || "
+    ]
+   ]
+  ],
+  [
+   "B",
+   "4",
+   0.5714,
+   14,
+   6,
+   0.6053,
+   7,
+   1.4,
+   [
+    [
+     "logic-flip",
+     49,
+     "if (order == null || typeof order !== 'object' || Array.isAr"
+    ],
+    [
+     "logic-flip",
+     49,
+     "if (order == null || typeof order !== 'object' || Array.isAr"
+    ],
+    [
+     "logic-flip",
+     54,
+     "if (typeof order.qty !== 'number' || !Number.isFinite(order."
+    ],
+    [
+     "logic-flip",
+     59,
+     "if (typeof order.price !== 'number' || !Number.isFinite(orde"
+    ],
+    [
+     "logic-flip",
+     135,
+     "if (typeof value === 'string' || typeof value === 'number' |"
+    ],
+    [
+     "logic-flip",
+     135,
+     "if (typeof value === 'string' || typeof value === 'number' |"
+    ]
+   ]
+  ]
+ ]
+}
