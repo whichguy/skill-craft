@@ -47,8 +47,10 @@ SG2 is declared in **PR #27**, kept apart from this folder's PR because it moves
 Merge it between epochs. It adds `SG2-K1` to `SG2-K4` to test/shiploop_e2e/experiments.json, one per seeded-defect step
 case: `node-seeded-case-compare`, `node-seeded-numeric-sort`, `node-seeded-empty-guard`, `node-seeded-early-validation`.
 
-- **Arms.** A is release 1.23.1 (`d98451fb`) inline. B is the same commit with `delegation: ask-agent`, so the review
-  runs in one fresh worker (experiment.py passes an arm's `delegation` to slice.py).
+- **Arms.** A is release 1.23.2 (`4e9cf843`) inline. B is the same commit with `delegation: ask-agent`, so the review
+  runs in one fresh worker (experiment.py passes an arm's `delegation` to slice.py). Both arms were repinned on
+  2026-10-30 from release 1.23.1 (`d98451fb`): 1.23.2 changes three skill files, among them the document loop's scope
+  in `shiploop_loops.py`, and the skill has not changed since that release.
 - **Shape.** Each slice runs from step-plan to carry-forward, 4 samples per arm.
 - **Scoring.** `evaluators/sg2_recall.py` scores 1 when the defect is absent from the final tree. Beside it, it counts
   the Improve fix commits, which tell a review's fix from a defect that was never written.
