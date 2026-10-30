@@ -1,0 +1,5 @@
+{
+  "headline": "E1 fixed in src/strings.js; E2 and E3 left alone",
+  "outcome": "done",
+  "summary": "E1 did not match: capitalize('') threw 'text must be a string' because the guard in src/strings.js also rejected the empty string (`|| !text`). Removed that clause (one line, src/strings.js, E1's only path); the type check stays. E1 now exits 0. E2 (the paginate failure reproduces) and E3 (the regression test file is free) matched and were left alone. Nothing committed; src/paginate.js and the tests are untouched."
+}

@@ -1,0 +1,5 @@
+{
+  "headline": "E1 fixed",
+  "outcome": "done",
+  "summary": "E1 did not match: capitalize('') threw. Removed the guard line of capitalize. E1 now exits 0. E2 and E3 were left alone. Nothing committed."
+}

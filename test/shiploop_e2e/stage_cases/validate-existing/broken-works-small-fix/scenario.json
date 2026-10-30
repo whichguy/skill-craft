@@ -1,0 +1,230 @@
+{
+  "stage": "validate-existing",
+  "about": "A works expectation the step relies on fails on the item base because of a small, known fault in a file outside the item's own change; the broken and absent expectations match.",
+  "tags": [
+    "catch",
+    "prep-fix"
+  ],
+  "tiers": [
+    "verify",
+    "render"
+  ],
+  "fixture": "node-base",
+  "request_from": "node-fix-bug",
+  "options": {
+    "delegation": "inline"
+  },
+  "seed_records": {
+    "step-plan": {
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "paginate returns the last partial page and counts it in pages. Confirm by: the focused command; pass when TC-1 and TC-2 pass. Exercised. Serves R-1."
+        }
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Count a partial last page in paginate's page total (C1).",
+          "deps": [],
+          "criteria": [
+            "C1"
+          ],
+          "paths": [
+            "src/paginate.js"
+          ],
+          "proof": "node -e \"const {paginate}=require('./src/paginate');require('assert').deepEqual(paginate([1,2,3,4,5],3,2),{page:3,pages:3,items:[5]})\"",
+          "skills": []
+        }
+      ],
+      "test_commands": [
+        {
+          "command": "node --test test/paginate-last-page.test.js",
+          "suite": "focused",
+          "ids": [
+            "TC-1",
+            "TC-2"
+          ],
+          "criteria": [
+            "C1"
+          ]
+        },
+        {
+          "command": "node --test",
+          "suite": "regression"
+        }
+      ],
+      "check_na": "The project has no lint, type or build step.",
+      "expectations": [
+        {
+          "id": "E1",
+          "state": "works",
+          "statement": "PLANTED-E1: capitalize('') returns '' (the regression test labels its empty-page case through it)",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "src/strings.js"
+          ],
+          "check": "node -e \"process.exit(require('./src/strings').capitalize('')===''?0:1)\""
+        },
+        {
+          "id": "E2",
+          "state": "broken",
+          "statement": "paginate([1,2,3,4,5],3,2) returns no items and reports 2 pages, as the request says",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "src/paginate.js"
+          ],
+          "check": "node -e \"const r=require('./src/paginate').paginate([1,2,3,4,5],3,2);process.exit(r.pages===2&&r.items.length===0?0:1)\""
+        },
+        {
+          "id": "E3",
+          "state": "absent",
+          "statement": "The regression test file for the last page does not exist yet",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "test/paginate-last-page.test.js"
+          ],
+          "check": "test ! -e test/paginate-last-page.test.js"
+        }
+      ],
+      "paths": [
+        "src/paginate.js",
+        "test/paginate-last-page.test.js"
+      ],
+      "follows": [
+        "R-1"
+      ]
+    },
+    "test-spec": {
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "criterion": "C1",
+          "requirement": "R-1",
+          "oracle": "deepEqual paginate([1,2,3,4,5],3,2) to {page:3,pages:3,items:[5]}, in test/paginate-last-page.test.js",
+          "red": "pages=2 items=[]",
+          "green": "pages=3 items=[5]"
+        },
+        {
+          "id": "TC-2",
+          "criterion": "C1",
+          "requirement": "R-1",
+          "oracle": "deepEqual paginate([1,2,3,4,5],2,3) to {page:2,pages:2,items:[4,5]}, in test/paginate-last-page.test.js",
+          "red": "pages=1 items=[]",
+          "green": "pages=2 items=[4,5]"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "src/strings.js makes capitalize('') throw (a falsy-text guard), so E1, a works expectation, does not match on the base",
+      "signature": "PLANTED-E1"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "E2 (broken, reproduces) and E3 (absent, place free) match and are left alone: src/paginate.js is untouched and the regression test file is not created"
+    },
+    {
+      "id": "C2",
+      "what": "nothing outside E1's paths changes, and the item's own change (the paginate fix) is not started"
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true,
+      "why": "one expectation mismatches, so the engine does not settle the stage itself"
+    },
+    {
+      "current_stage": "validate-existing"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "E1 works .*PLANTED-E1.*-> DOES NOT MATCH"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "E2 broken .*-> MATCHES"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "E3 absent .*-> MATCHES"
+    },
+    {
+      "proves": "C1",
+      "packet_not_contains": "E[23] .*DOES NOT MATCH"
+    },
+    {
+      "proves": "C2",
+      "packet_contains": "fix it in the working tree, touching only that expectation's\\s+paths, and commit nothing"
+    },
+    {
+      "proves": "C2",
+      "packet_contains": "Start none of the item's own change"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "field": "failed_expectations",
+      "exists": false,
+      "why": "a done result names no mismatch: E1 is fixed, E2 and E3 matched (the engine refuses failed_expectations on done)"
+    },
+    {
+      "proves": "P1",
+      "command": "node -e \"process.exit(require('./src/strings').capitalize('')===''?0:1)\"",
+      "exit": 0,
+      "why": "E1's own check, as the step plan records it"
+    },
+    {
+      "proves": "P1",
+      "command": "node --test test/strings.test.js",
+      "exit": 0,
+      "why": "the fix keeps the file's other behaviour"
+    },
+    {
+      "proves": "P1",
+      "command": "node -e \"const s=require('./src/strings');const a=require('assert');a.equal(s.capitalize('hello'),'Hello');a.equal(s.capitalize('hELLO'),'HELLO');a.throws(()=>s.capitalize(5),/text must be a string/);a.throws(()=>s.capitalize(null),/text must be a string/);a.equal(s.truncate('a long sentence',6),'a lon\\u2026');a.throws(()=>s.truncate(5,3),/text must be a string/);a.throws(()=>s.truncate('x',0),RangeError)\"",
+      "exit": 0,
+      "why": "the fix is the small one: the type guards stay (their message is asserted, because without a guard JavaScript throws a TypeError anyway), the rest of capitalize is not rewritten and truncate is as it was"
+    },
+    {
+      "proves": "C1",
+      "file": "src/paginate.js",
+      "unchanged": true
+    },
+    {
+      "proves": "C1",
+      "file": "test/paginate-last-page.test.js",
+      "exists": false
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "src/strings.js",
+        "docs/shiploop/**"
+      ],
+      "why": "E1's path is src/strings.js; the knowledge home (docs/shiploop/) is the one other place the packet lets this stage write: it keeps KNOWLEDGE/environment.md up to date"
+    },
+    {
+      "proves": "C2",
+      "command": "node -e \"const r=require('./src/paginate').paginate([1,2,3,4,5],3,2);process.exit(r.pages===2&&r.items.length===0?0:1)\"",
+      "exit": 0,
+      "why": "E2's check still reproduces: the item's own fix is not started"
+    }
+  ]
+}

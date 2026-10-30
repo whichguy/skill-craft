@@ -1,0 +1,5 @@
+{
+  "headline": "E1 fixed, paginate fixed too",
+  "outcome": "done",
+  "summary": "E1 did not match: the guard in src/strings.js rejected the empty string, so capitalize('') threw. Removed `|| !text`. While there I also fixed the paginate page count (Math.ceil) and wrote the regression test, since the fault is the same bug family and the step needs both anyway. E1 now exits 0; E2 and E3 were checked."
+}

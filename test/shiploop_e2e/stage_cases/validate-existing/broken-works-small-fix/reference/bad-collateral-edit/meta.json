@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "Fixes E1 but rewrites capitalize on the way: the rest of the text is lower-cased. E1's own check passes; the small fix is not small, and the file's behaviour changed."}

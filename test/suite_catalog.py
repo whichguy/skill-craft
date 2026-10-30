@@ -168,6 +168,9 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-owner-page.test.py",
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-e2e-sdlc-probes.test.py",
+    "test/shiploop-e2e-stage-oracle.test.py",
+    "test/shiploop-e2e-stage-build.test.py",
+    "test/shiploop-e2e-stages.test.py",
     "test/shiploop-e2e-run-trace.test.py",
     "test/shiploop-e2e-brownfield.test.py",
     "test/shiploop-e2e-brownfield-tickets.test.py",
@@ -373,6 +376,14 @@ _DURATION_SECONDS = {
     # The SDLC probes (test/shiploop_e2e/probes/sdlc_probes.py; docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4): 12 tests
     # on one temporary output folder, its work repository and its delivery bundle. 0.2 s locally on 2026-10-30.
     "test/shiploop-e2e-sdlc-probes.test.py": 0.5,
+    # The stage suite (test/shiploop_e2e/stage_suite/, docs/plans/shiploop-stage-suite.md; no model), one file per module.  Local
+    # wall seconds, 2026-10-30, serial runs at load average under 1: the oracle 105 tests, 4.3 s; the builder 43 tests, 6.5 s (its
+    # seeds start real ShipLoop runs and Git); the runner 55 tests, 23 to 24 s (the render tier builds real runs, about a second
+    # each, and its class Shipped verifies and renders the shipped scenarios).  All far under QUICK_MAX_SECONDS and none in the
+    # fixed quick baseline: they run when a path under test/shiploop_e2e/ changes, like the rest of the family, and in the full tier.
+    "test/shiploop-e2e-stage-oracle.test.py": 4.5,
+    "test/shiploop-e2e-stage-build.test.py": 7.0,
+    "test/shiploop-e2e-stages.test.py": 25.0,
     # The harness's reading of ShipLoop's run trace (run_trace.py; metrics, fidelity, flow, owner page, arms; the live checks and
     # --owner-note-at's watcher, owner_note.py): 18 tests on two real-CLI runs in temporary E2E folders. Local wall seconds,
     # 2026-10-28: 3.5 s alone at load average about 6.

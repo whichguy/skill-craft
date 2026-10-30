@@ -1,0 +1,1 @@
+{"fails": ["C1", "C2"], "why": "Fixes E1 but also starts the item's own change: the paginate page count is fixed and the regression test file is written. The packet says to start none of it; E2 would no longer reproduce and E3's place is no longer free."}

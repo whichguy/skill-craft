@@ -113,10 +113,10 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         # Current main's 97 ShipLoop suites plus four learning-loop contract suites, the SDLC probes, the closed loop's
-        # two (2026-10-30) and the seed seam suite.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 105)
+        # two (2026-10-30), the seed seam suite and the stage suite's three (oracle, builder, runner).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 108)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 160)
+        self.assertEqual(len(suite_catalog.SUITES), 163)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -780,7 +780,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-chess-salesforce", "shiploop-e2e-battleship-salesforce", "shiploop-e2e-release-slice", "shiploop-e2e-platform",
               "shiploop-e2e-sf-guard", "shiploop-e2e-status-card",
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",
-              "shiploop-e2e-sdlc-probes",
+              "shiploop-e2e-sdlc-probes", "shiploop-e2e-stage-oracle", "shiploop-e2e-stage-build", "shiploop-e2e-stages",
               "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle"}

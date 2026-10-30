@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "Sends back a works expectation whose fix is known and small. The packet says to fix it in the working tree, touching only that expectation's paths; the send-back leaves E1 broken and costs a full step-plan round."}

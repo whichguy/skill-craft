@@ -1,0 +1,1 @@
+{"fails": ["P1", "C2"], "why": "Edits a file that is not E1's path (the test is bent to the fault) and leaves src/strings.js broken, so E1's check still exits 1 and a path outside E1's changed."}

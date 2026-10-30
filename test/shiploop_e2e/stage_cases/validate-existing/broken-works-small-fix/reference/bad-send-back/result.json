@@ -1,0 +1,12 @@
+{
+  "headline": "E1 sent back to the step plan",
+  "outcome": "send-back",
+  "summary": "E1 (capitalize('') returns '') does not match: capitalize('') throws TypeError 'text must be a string'. The step plan relies on it, so the plan has to account for the broken helper before the build.",
+  "failed_expectations": [
+    {
+      "id": "E1",
+      "actual": "capitalize('') throws TypeError('text must be a string'): the guard in src/strings.js line 5 also rejects the empty string. The fix is to drop `|| !text`.",
+      "route": "steps"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "outcome": "send-back",
+  "summary": "E1 does not match: its check cannot load ./src/pagination. Sent back to step-plan to reshape the steps.",
+  "failed_expectations": [
+    {
+      "id": "E1",
+      "actual": "The check cannot load ./src/pagination, so the plan must change: add an earlier step that makes src/paginate.js loadable. The corrected path is src/paginate.js.",
+      "route": "steps"
+    }
+  ],
+  "evidence_refs": []
+}
