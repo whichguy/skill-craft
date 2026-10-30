@@ -31,6 +31,7 @@ import overlay  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
+import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -105,6 +106,68 @@ class Seeds(unittest.TestCase):
         found = step_slice.seed_state(step_slice.load_step_case("stateful-target"), self.out, env)
         self.assertEqual(env["LOCAL_TARGET"], str(self.out / "target"))
         self.assertIn("src/pricing.js", found["files"])
+
+    def test_a_seed_at_test_lays_an_earlier_slices_implementation_uncommitted_after_the_item_base(self):
+        """D4 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §9): a seed at test holds implement fixed. It takes the
+        earlier slice's test-spec and implement results without their locators, and implement's change from its last passed
+        step proof, so the new run's test stage sees the same cases, hand-off and diff, and only the test stage varies."""
+        spec = step_slice.load_step_case("stand-in-parser")
+        earlier = {"test-spec": {"summary": "Cases written.", "test_cases": [
+            {"id": "TC-4", "criterion": "C3", "requirement": "R-1", "oracle": "parseRecords(7) throws TypeError ORACLE-MARK",
+             "red": "absent", "green": "throws"}]}}
+        work = self.out / "earlier" / "work"
+        work.mkdir(parents=True)
+        source = run.seed_run(CLI, work, self.out / "earlier", spec["prompt"], "implement",
+                              fixture=step_slice.FIXTURES / spec["fixture"], work_item=spec["work_item"], delegation="inline",
+                              checks=spec["checks"], records=step_slice.merged_records(spec, None, earlier))
+        run_dir = Path(source["run_dir"])
+        state = store.read_record(run_dir / "state.md")
+        repo, action = Path(state["repo"]), nav.current_action(state)["id"]
+        (repo / "src" / "records.js").write_text("module.exports = {};\n")
+        (repo / "src" / "text.js").write_text((repo / "src" / "text.js").read_text() + "// changed by implement\n")
+        (repo / "README.md").unlink()
+        index = {"GIT_INDEX_FILE": str(self.out / "proof-index")}
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True, env={**run.os.environ, **index})
+        tree = subprocess.run(["git", "-C", str(repo), "write-tree"], check=True, capture_output=True, text=True,
+                              env={**run.os.environ, **index}).stdout.strip()
+        (run_dir / "tests").mkdir(exist_ok=True)
+        for number, (passed, trees) in enumerate(((True, [tree]), (False, ["0" * 40])), 1):
+            (run_dir / "tests" / f"{action}-step-proof{number}.md").write_text(
+                store.dumps({"kind": "step-proof", "passed": passed, "trees": trees}, "ShipLoop step proof"))
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Built records.js IMPLEMENT-MARK.",
+                                          "decisions": ["Kept text.js."], "evidence_refs": [str(run_dir / "notes" / "x.md")],
+                                          "learned_from": ["abc1234"]})
+        nav.save(run_dir, state, {})
+
+        delivery = step_slice.recorded_delivery(self.out / "earlier")
+        self.assertEqual((delivery["action"], delivery["tree"]), (action, tree))
+        self.assertEqual(sorted(delivery["files"]), ["src/records.js", "src/text.js"])
+        self.assertEqual(delivery["deleted"], ["README.md"])
+        self.assertEqual(delivery["records"]["implement"],
+                         {"summary": "Built records.js IMPLEMENT-MARK.", "decisions": ["Kept text.js."]})
+        self.assertEqual(delivery["records"]["test-spec"]["test_cases"][0]["id"], "TC-4")
+
+        records = step_slice.merged_records(spec, None, delivery["records"])
+        self.assertIn("--seed-from", step_slice.seed_gap("test", records, None))
+        self.assertIn("--seed-from", step_slice.seed_gap("test-spec", records, self.out / "earlier"))
+        self.assertEqual(step_slice.seed_gap("test", records, self.out / "earlier"), "")
+        work = self.out / "test" / "work"
+        work.mkdir(parents=True)
+        seeded = run.seed_run(CLI, work, self.out / "test", spec["prompt"], "test", fixture=step_slice.FIXTURES / spec["fixture"],
+                              work_item=spec["work_item"], delegation="inline", checks=spec["checks"], records=records,
+                              implementation=delivery)
+        new_run = Path(seeded["run_dir"])
+        self.assertEqual((seeded["stage"], seeded["skipped"][-2:]), ("test", ["validate-existing", "implement"]))
+        self.assertEqual(nav.current_stage(store.read_record(new_run / "state.md")), "test")
+        new_repo = Path(store.read_record(new_run / "state.md")["repo"])
+        status = subprocess.run(["git", "-C", str(new_repo), "status", "--porcelain"], capture_output=True, text=True,
+                                check=True).stdout
+        self.assertEqual(sorted(status.splitlines()), [" D README.md", " M src/text.js", "?? src/records.js"])
+        self.assertEqual(sorted(item_scope.changed_paths(new_run, "W1")), ["README.md", "src/records.js", "src/text.js"])
+        text = _next(CLI, seeded["run_dir"])
+        self.assertIn("IMPLEMENT-MARK", text)
+        self.assertIn("ORACLE-MARK", text)
+        self.assertIn("implementation is in the run's worktree", run.seed_prompt(CLI, str(new_run), "p", "inline", "test"))
 
     def test_the_slice_command_line_takes_the_experiment_flags(self):
         args = step_slice.parser().parse_args(["--case", "stand-in-parser", "--seed-at", "test-spec", "--stop-after", "test",

@@ -8,7 +8,9 @@
     python3 test/shiploop_e2e/experiment.py decide E1 A T [--out DIR] # also: decide E1 T B; default A B, else A T
     python3 test/shiploop_e2e/experiment.py list
 
-experiments.json holds each experiment: its claim, step case, seed and stop points, arms and evaluator. An arm builds
+experiments.json holds each experiment: its claim, step case, seed and stop points, arms and evaluator; an experiment
+seeded at ``test`` also names ``seed_from``, the earlier slice whose test-spec, implement and implement files every sample
+starts from (slice.py --seed-from), so only the test stage varies. An arm builds
 its plugin from a git ref (read-only, overlay.build_ref) and may lay a prompt overlay over that build copy (overlay.py),
 add seeded records, and run its slices under another ShipLoop delegation (``delegation``, slice.py --delegation: SG2's
 fresh-context review arm). ``run`` starts one slice.py per sample into ``<out>/<id>/<arm>/<n>/slice`` (a sample whose slice
@@ -113,6 +115,8 @@ def slice_argv(exp: dict, arm: dict, output: Path, host: str, extra_records: Pat
         argv += ["--delegation", arm["delegation"]]
     if exp.get("opening_note"):
         argv += ["--opening-note", str(HERE / exp["opening_note"])]
+    if exp.get("seed_from"):
+        argv += ["--seed-from", str(Path(exp["seed_from"]).expanduser())]
     if extra_records:
         argv += ["--seed-records", str(extra_records)]
     return argv

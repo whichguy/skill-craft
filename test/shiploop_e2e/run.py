@@ -1285,7 +1285,7 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
              work_item: dict | None = None, delegation: str | None = None, checks: list[str] | None = None,
              home: bool = True, product: Path | None = None, home_fixture: Path | None = None,
              records: dict | None = None, exclude: list[str] | tuple = (), planning_review: str | None = None,
-             improve_skill: str = "") -> dict:
+             improve_skill: str = "", implementation: dict | None = None) -> dict:
     """Start a run and record its stages before `stop` as synthetic.
 
     `planning_review` and `improve_skill` are the run's `--planning-review` and `--improve-skill` options (unset: the
@@ -1303,6 +1303,10 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
     the knowledge home (release_slice.copy_home) instead of the neutral one, and `product` (a folder, less `exclude`) is
     committed in the run's worktree after the item's base was recorded, so the item reads as delivered: built after its base,
     not part of it. The source checkout holds only the baseline until the run's own return.
+
+    `implementation` ({"files": {path: bytes}, "deleted": [path]}, slice.recorded_delivery) is an earlier run's implement
+    output: the seed stops at implement, lays those files in the run's worktree uncommitted, as an implement stage leaves
+    them (after the item's base, so they read as the step's change), and then records implement and the stages up to `stop`.
     """
     delivered = release_slice.delivered(stop)
     if delivered and (product is None or home_fixture is None):
@@ -1341,15 +1345,30 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
 
     # A release slice stops at the item's first stage once: the item's base is recorded there (what it started from is the
     # baseline), and only then is the built product committed on top of it.
-    reached = advance(stage_spec.INNER[0] if delivered else stop)
-    built = None
-    if delivered:
+    reached = advance(stage_spec.INNER[0] if delivered else "implement" if implementation else stop)
+    built = laid = None
+    if delivered or implementation:
         worktree = Path(store.read_record(run_dir / "state.md")["repo"])
-        built = release_slice.commit_product(worktree, product, list(exclude), item, git_env, identity)
+        if delivered:
+            built = release_slice.commit_product(worktree, product, list(exclude), item, git_env, identity)
+        else:
+            laid = lay_files(worktree, implementation["files"], implementation.get("deleted") or [])
         later = advance(stop)
         reached = {**later, "skipped": reached["skipped"] + later["skipped"], "item_bases": reached["item_bases"]}
     return {"stage": stop, "run_dir": str(run_dir), "start_head": head, "home": written, **reached,
-            **({"product": built, "home_fixture": home_fixture.name} if built else {})}
+            **({"product": built, "home_fixture": home_fixture.name} if built else {}),
+            **({"implementation": laid} if laid else {})}
+
+
+def lay_files(worktree: Path, files: dict[str, bytes], deleted: list[str]) -> dict:
+    """Write ``files`` into ``worktree`` and remove ``deleted``, uncommitted, as an implement stage leaves its change."""
+    for relative, content in files.items():
+        target = worktree / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    for relative in deleted:
+        (worktree / relative).unlink(missing_ok=True)
+    return {"files": sorted(files), "deleted": sorted(deleted)}
 
 
 def seed_materials(name: str, stage: str | None) -> dict | None:
@@ -1363,11 +1382,19 @@ def seed_materials(name: str, stage: str | None) -> dict | None:
     return release_slice.materials(name, catalog().get(name) or {}, stage)
 
 
+# Inner stages after implement: a seed there starts with the step's implementation laid in the worktree (seed_run's
+# `implementation`), and the opening prompt says so.
+IMPLEMENTED = stage_spec.INNER[stage_spec.INNER.index("implement") + 1:]
+
+
 def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent", stage: str = "step-plan") -> str:
     route = "Ask-Agent" if delegation == "ask-agent" else "inline"
     recorded = (f"The test harness recorded its stages before {stage} without doing them: the product the request describes is "
                 "already built and committed in the run's worktree, and the request itself is the specification."
                 if release_slice.delivered(stage) else
+                f"The test harness recorded its stages before {stage} from an earlier run: the step's implementation is in the "
+                "run's worktree, uncommitted, as its implement stage left it, and the request itself is the specification."
+                if stage in IMPLEMENTED else
                 f"The test harness recorded its stages before {stage} without doing them, so the request itself is the "
                 "specification.")
     return (f"A ShipLoop run for the request below is already active, with {route} delegation. {recorded} "

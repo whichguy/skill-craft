@@ -86,5 +86,15 @@
              "D": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-d.json"}},
     "evaluator": "evaluators/e7_tests.py", "samples": 4,
     "metric": "the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines the slice wrote, under the case's mutation command; all-class ratio, stand-in fraction, titles per case ID and stage seconds beside it"
+  },
+  "E7-F": {
+    "claim": "E7 with the implementation held fixed (docs/shiploop-test-stage-prompt-design-2026-10-30.md §9 D4): on one recorded implement result, the test stage's tests kill more of the step's limit and guard mutants with the step's diff and example tests in the packet (D) than with today's packet (A), and with the shorter duty as well (C) more than D. Every sample starts at the test stage from E7-K2 arm A sample 6 (seed_from): its test-spec cases, its implement result and implement's five changed files (the load-path guard with six limit and guard sites), so only the test stage varies.",
+    "fix": "E7", "case": "tickets-assign", "seed_at": "test", "stop_after": "test",
+    "seed_from": "~/e2e-runs/e7-20261030/E7-K2/A/6/slice",
+    "arms": {"A": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d"},
+             "D": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-d.json"},
+             "C": {"ref": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d", "overlay": "overlays/e7-c.json"}},
+    "evaluator": "evaluators/e7_tests.py", "samples": 4,
+    "metric": "the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines against the seed commit (the recorded implementation plus any product edit the test stage makes), under the case's mutation command; all-class ratio, titles per case ID and stage seconds beside it"
   }
 }

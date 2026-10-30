@@ -453,6 +453,60 @@ Evidence: e7-results.json (52 scored samples and 10 decision records); e7_analys
 from it; decision records under ~/e2e-runs/e7-20261030/E7-K*/decision-*.json; journal lines in
 docs/shiploop-template-experiments-journal.md.
 
+### 7c. E7-F: the implementation held fixed (D4), as built
+
+**What the 36 E7-K2 runs show about the implementations.** Each run's implement tree was recovered from its step proof
+(`RUN/tests/<implement>-step-proof<n>.md`, `trees`):
+- Every limit and guard site on the changed lines is in one place: the compound guard added to `readTicket` in
+  src/persistence.js, which refuses a stored assignee that is not null, not a string, blank, over 64 characters or (in
+  most runs) holds a control character. Validation over HTTP reuses the existing `text(body, field, 64)`, so it adds
+  no new site.
+- So E7-K2's value counts how many kinds of bad stored assignee the tests load from the data file. Each `|| → &&`
+  mutant survives unless one test loads a record that is bad in exactly that one way.
+- Implement wrote the guard with 5 sites in 16 runs (mean value 0.75), with 6 in 13 (0.44) and with 7 in 1. In the
+  other 6 runs implement never persisted the assignee. The test stage's restart test caught that, and the test stage
+  added the persistence and the guard itself (A2, C4, C5, M1, M3, M8; mean 0.60).
+- The arms drew different shapes, and the shape moves the score as much as the arm does:
+
+  | Arm | 5-site runs: n, mean | 6-site runs: n, mean | Guard written by the test stage: n, mean |
+  |---|---|---|---|
+  | A | 3, 0.73 | 4, 0.25 | 1, 0.43 |
+  | C | 5, 0.68 | 1, 0.50 | 2, 0.80 |
+  | D | 3, 0.80 | 5, 0.53 | 0 |
+  | M | 3, 0.87 | 2, 0.50 | 3, 0.52 |
+  | P (one 7-site run, 0.43) | 2, 0.70 | 1, 0.50 | 0 |
+
+  C's lead over A in §7b is mostly the five easier implementations it drew. Among 5-site runs C is below A. Among
+  6-site runs A is lowest, three of its four at 0.17. This is a stratified reading of small cells, not a test. It is
+  why the rerun below holds the implementation fixed.
+
+**The seed.** `slice.py --seed-at test --seed-from <earlier slice>` (`recorded_delivery`, `run.seed_run`'s
+`implementation`):
+- It records test-spec and implement with the earlier run's own accepted results, less the keys that locate that
+  run's files and commits (`evidence_refs`, `learned_from`).
+- It lays implement's change, the tree of its last passed step proof against the item's base snapshot, in the new
+  worktree, uncommitted, after the item's base is recorded.
+- The opening prompt says the step's implementation is in the worktree.
+- Checked on the source chosen below: the seeded test packet equals that run's own test packet line for line, but for
+  three locators to implement's evidence the seed does not carry (its lint gate record, loop receipt and notes).
+  Both case checks pass on the seeded worktree. Hermetic test:
+  `test_a_seed_at_test_lays_an_earlier_slices_implementation_uncommitted_after_the_item_base`.
+
+**The source: E7-K2 arm A sample 6.** It was chosen before any E7-F run, by four rules:
+- an A run, so the packet before the test stage is today's;
+- the modal 6-site guard;
+- an implement that wrote no test file, and a test stage that changed no product code;
+- a mid-range score (0.5), leaving room both ways.
+A3 and A7 met the first three rules but scored 0.17.
+
+**Arms and decision rule (fixed before the runs).** Arms A, D and C on 7fce12e4 with E7's overlays, 8 samples each, Codex
+Terra at xhigh. P waits, because its oracle change acts in test-spec, which is now recorded. M waits on D6. The
+reading:
+- An arm is adopted only if it beats A by a one-sided exact permutation test at p < 0.05 over all 8 + 8 samples.
+- Its gain must also exceed A's own split-half gap (samples 1–4 against 5–8).
+- `experiment.py decide` runs as well and is reported beside it, not used.
+- C over D at the same bar would credit the shorter duty.
+
 ## 8. Out of scope here: the UI verification route (Salesforce run, 2026-10-30)
 
 The owner relayed feedback on the Codex Salesforce Battleship run (`~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d`):
