@@ -1,0 +1,97 @@
+diff --git a/README.md b/README.md
+index 68ec0ac..4562360 100644
+--- a/README.md
++++ b/README.md
+@@ -5,6 +5,31 @@ A small Node.js project with no dependencies.
+ - `src/strings.js`: text helpers
+ - `src/paginate.js`: split a list into pages
+ - `src/users.js`: an in-memory user store
+-- `src/server.js`: an HTTP server (`node:http`) that serves the users
++- `src/server.js`: an HTTP server (`node:http`) that serves the users and `GET /health` (see below)
+ 
+ Run the tests with `npm test`, which runs `node --test`.
++
++## Running the server
++
++`npm start` runs `src/server.js`. It listens on `PORT` (default 3000) and prints `listening on <port>`.
++Every answer is JSON (`content-type: application/json`):
++
++| Request | Answer |
++| --- | --- |
++| `GET /health` | `200` with `{"ok":true}`, for a liveness check |
++| `GET /users` | `200` with the list of users |
++| `GET /users/:id` | `200` with the user, or `404` with `{"error":"not found"}` |
++| any other path or method | `404` with `{"error":"not found"}` |
++
++```sh
++PORT=4123 npm start
++curl -si http://127.0.0.1:4123/health
++# HTTP/1.1 200 OK
++# content-type: application/json
++#
++# {"ok":true}
++```
++
++Only an exact `GET /health` is routed. A query string is ignored, but `/health/`, `HEAD /health` and
++`POST /health` answer `404` (not `405`). The requirement is R-1 in [docs/shiploop/spec.md](docs/shiploop/spec.md);
++its test is `TC-1` in `test/server.test.js`.
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 8b88e1d..85c5866 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -2,6 +2,8 @@
+ 
+ ## Commands
+ - `npm test`: runs `node --test`, every test/*.test.js; exit 0 is a pass.
++- `node --test test/server.test.js`: the focused run; 2 tests, including TC-1 (W1/S1). `npm test` ran 8 tests, all passing (W1/S1).
++- `PORT=4123 npm start`: runs src/server.js in the foreground on that port (default 3000) and prints `listening on 4123`; then `curl -si http://127.0.0.1:4123/health` answers 200 `{"ok":true}` and `curl -sI` shows HEAD answers 404. Stop it by the PID that `lsof -ti tcp:4123 -sTCP:LISTEN` names: a `pkill -f` pattern kill was refused by this run's host permission classifier (W1/S1).
+ 
+ ## Harnesses and suites
+ - node:test through `node --test`; no other harness.
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index 5ce67bc..bf21575 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -2,6 +2,8 @@
+ 
+ ## R-1 Health route
+ GET /health answers 200 with the JSON body {"ok":true} and content-type application/json.
++Only an exact GET /health is routed and a query string is ignored; /health/, HEAD /health and POST /health answer 404 {"error":"not found"}. Met by src/server.js and TC-1 in test/server.test.js (W1/S1)
+ 
+ ## R-2 Existing routes unchanged
+ GET /users and GET /users/:id answer as before; `npm test` passes.
++Observed unchanged: GET /users 200 with the user list, GET /users/:id 200 or 404 {"error":"not found"}, any other path 404 {"error":"not found"}; test/server.test.js asserts only /users/:id, so the GET /users route has no HTTP test (W1/S1)
+diff --git a/src/server.js b/src/server.js
+index bcf2fad..b528cb8 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -8,10 +8,11 @@ function send(res, status, body) {
+   res.end(JSON.stringify(body));
+ }
+ 
+-/** An HTTP server for the user store; not listening until the caller calls listen(). */
++/** An HTTP server for the user store and `GET /health`; not listening until the caller calls listen(). */
+ function createServer() {
+   return http.createServer((req, res) => {
+     const url = new URL(req.url, 'http://localhost');
++    if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
+     if (req.method === 'GET' && url.pathname === '/users') return send(res, 200, listUsers());
+     const match = /^\/users\/(\d+)$/.exec(url.pathname);
+     if (req.method === 'GET' && match) {
+diff --git a/test/server.test.js b/test/server.test.js
+index 38f9c89..146daf7 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -22,3 +22,12 @@ test('GET /users/:id returns the user or 404', async () => {
+     assert.equal((await fetch(`${base}/users/42`)).status, 404);
+   });
+ });
++
++test('TC-1 GET /health answers 200 with {"ok":true} as application/json', async () => {
++  await withServer(async (base) => {
++    const res = await fetch(`${base}/health`);
++    assert.equal(res.status, 200);
++    assert.match(res.headers.get('content-type'), /^application\/json/);
++    assert.deepEqual(await res.json(), { ok: true });
++  });
++});

@@ -4447,3 +4447,86 @@ the model's steps stood in), 5 new in `shiploop-e2e-epoch`; `test-groups` pins t
 
 **Not covered.** No live run: stage 3's A/A calibration (Codex Terra 6.1 xhigh) gives the first `calibration.json`, and
 nothing can register a qualified cycle until it does. The purpose review's prompt has not met a real model.
+
+## P0 document-loop scope: the per-step pilot's case again, ask-agent and inline, on Codex Terra 6.1 xhigh with hooks on (2026-10-30) — status: firm for the README and knowledge-home outcome (n = 1 per arm); timings not comparable (the ask-agent run took two send-backs)
+
+**Question.** The 2026-10-29 per-step pilot's ask-agent arm left README.md unchanged in both steps and wrote the product's
+API reference into `docs/shiploop/records.md`, because the document loop's `scope` named only the step plan's paths and
+docs/shiploop/ (`docs/shiploop-document-stage-journal.md`, L3). The fix (`shiploop_loops.DOC_FILES` and the `document`
+branch of `_build`; journal §5, C1) names the documentation files the step commit takes and keeps product docs out of
+the knowledge home. On the same cell, does the document stage now update the README, and does the knowledge home stay
+free of product documentation?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh, hooks on (the owner's runner, 2026-10-29); `slice.py --case stand-in-parser
+  --delegation <ask-agent|inline> --timeout 14400`, the pilot's command.
+- Built from this branch at the P0 commit (`invocation.json` `local_head` 650d5c85, plugin 2.24.1, ShipLoop 1.23.1 version
+  fields). It was rebased afterwards onto main 63370382 unchanged: `git diff` of skills/, changes/ and the test between
+  the two commits is empty.
+- Compared with the pilot's arms on the old scope (`~/e2e-runs/20261029/pilot-terra-{ask-agent,inline}-32f436`).
+
+**Result** (evidence: `docs/experiments/document-stage-20261030/p0-round/{ask-agent,inline}/`).
+
+| | ask-agent, old scope (pilot) | ask-agent, new scope | inline, old scope (pilot) | inline, new scope |
+|---|---|---|---|---|
+| verdicts | all five pass | all five pass | all five pass | all five pass |
+| README.md lines added | 0 | 39 | 11 | 10 |
+| step commits touching README.md | 0 of 2 | 2 of 3 | 2 of 2 | 2 of 2 |
+| product API reference in docs/shiploop/ | `records.md`, 27 lines | none | none | none |
+| document contract `scope` names the documentation files | no | yes | no | yes |
+
+**What it shows.**
+- **The ask-agent route now documents the product where the product keeps it (firm, this case).** S1's first commit
+  added a "Parsing records" README section (24 lines), the re-done S1 added "Selecting records" (15 lines), and S2's
+  commit changed only its test because the README already described the selector. No file in docs/shiploop/ restates
+  the API; the one new non-standard file there, `w1-plan-reference.md`, is the step plan's own reference, written at
+  step-plan.
+- **The inline route is unchanged (firm, this case):** it updated the README under the old scope and still does.
+- **The README text is accurate and compact on both routes:** each function, its errors, and strict equality for
+  `select`, with an example on the ask-agent route (`readme.diff`).
+- **A send-back, seen for the first time on this route.** S2's test stage sent the item back to step-plan, and the
+  re-planned validate-existing sent it back once more: its expectation E1 assumed S2's `select` already worked on the item
+  base (`item-history.json`). Both steps were then redone and committed in plan order. This is planning, not the document
+  scope; it is why the run took about 39 minutes against the pilot's 22, with 174 main-thread model calls against 124 and
+  7 Improve children against 4.
+
+**Not covered.**
+- A second case or a second run of either arm.
+- An undeclared Markdown file under a test folder: in the new scope, but the commit's test class takes it first, so
+  ShipLoop would not commit it (journal C1, "known gap"). No run wrote one.
+- P1-P6 of `docs/shiploop-document-stage-proposal-2026-10-30.md`: this round checks P0 alone.
+
+This entry is the commit after the P0 change, which is what `scripts/release.py`'s E2E-round preflight reads.
+
+## Deployed state between attempts (2026-10-30) — status: dispatch barrier verified; full reset remains unmet
+
+The owner requires clearing test data, schema and deployed artifacts between iterations. Fresh local files and browser
+profiles do not establish that a deployed system is clean. The shared Salesforce helpers currently check a bounded
+metadata inventory and permission state; they cannot establish a full schema, record and deployed-source reset while
+preserving unrelated apps. A disposable target versus bounded shared-org cleanup remains an owner decision.
+
+The first fix prevents consuming the next attempt before cleanup. The stage-2 scheduler from `d8f25be5` could overlap
+different prefixes on one org, and an epoch accepted another launch without requiring the prior cleanup. A frozen
+fail-first run reproduced five epoch rejection subcase failures, two scheduler failures and one lease failure. One
+unclean target spawned four attempts instead of one. Physical leases now include the declared kind/org as well as the
+legacy prefix key. Campaigns queue same-target attempts and require prior sealed results recording cleanup that ran,
+succeeded and did not keep the platform. Blocked attempts remain unlaunched; local and other-target work can continue.
+A product failure with successful cleanup releases the target.
+
+Verification: epoch 27, cycle 11, lifecycle 20 and platform 166 tests pass (224 total); Ruff F/E9 and diff checks pass.
+The independent review found no correctness or deadlock issue and prompted an explicit unfinished-kept cleanup subcase.
+The initial green execution retained an epoch exit-capture gap and an incorrect Ruff environment invocation; the focused
+correction captured epoch exit 0 and used the installed Ruff binary. Both executions remain retained. Two pre-existing
+platform fixture failures were fixed by isolating XDG_STATE_HOME outside the simulated credential home; assertions were
+preserved. Source fingerprints were unchanged within each execution.
+
+Evidence: `~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/`, directories
+`state-barrier-fail-first-01`, `state-barrier-green-01` and `state-barrier-green-02`. The first green snapshot is
+`da6855d0cfee6ee124e522db34ebbf75f984b95f6cdd98d1ca9918eedc9ee9f5`; the focused snapshot is
+`1179616d24def2864ebcbcd3354d3d6a4b49a2d68d3f88b448cf4b58ed2cc4a5`. The difference is the added epoch test subcase
+and explanatory SPEC/README lines; production code is identical. This journal entry follows those checks.
+
+The measured benefit is preventing unsafe dispatch in the hermetic fixtures. No live reset, throughput improvement,
+token savings or dollar savings was measured. Same-org execution is deliberately serialized. Declared aliases are not
+canonical org identity, and older harness versions do not take the new org-wide lease. This change does not broaden
+deletion, qualify incomplete reset coverage, alter historical verdicts or adopt the unqualified ShipLoop product candidate.

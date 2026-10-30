@@ -417,12 +417,22 @@ def leases_dir() -> Path:
     return Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state") / "shiploop-e2e" / "leases"
 
 
+def platform_target_key(platform: dict | None) -> str | None:
+    """The declared external target, independent of a run's metadata prefix."""
+    if not platform:
+        return None
+    parts = [platform.get("kind") or "platform", platform.get("org")]
+    return "platform-" + "-".join(str(part) for part in parts if part)
+
+
 def lease_keys(platform: dict | None, ports=()) -> list[str]:
-    """The keys a run leases: its platform state (kind, org, prefix) and its declared fixed ports."""
+    """Lease the target and its legacy prefix key, plus declared fixed ports."""
     keys = []
-    if platform:
-        parts = [platform.get("kind") or "platform", platform.get("org"), platform.get("prefix")]
-        keys.append("platform-" + "-".join(str(part) for part in parts if part))
+    target = platform_target_key(platform)
+    if target:
+        keys.append(target)
+        if platform.get("prefix"):
+            keys.append(f"{target}-{platform['prefix']}")
     return keys + [f"port-{int(port)}" for port in sorted(set(ports or ()))]
 
 

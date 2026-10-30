@@ -1,0 +1,37 @@
+{
+  "s1-basket-r1": {
+    "X": {"contract": 4, "reader_docs": 5, "drift": 4, "concision": 2, "knowledge": 2},
+    "Y": {"contract": 4, "reader_docs": 4, "drift": 4, "concision": 4, "knowledge": 4},
+    "false_statements": [
+      {"arm": "X", "file": "docs/shiploop/environment.md", "quote": "Platform seen in W1/S1: Node v26.12.1 and npm 12.2.1", "why": "Transient host observation (versions, npm notice line) stated as a durable environment fact."},
+      {"arm": "X", "file": "docs/shiploop/architecture.md", "quote": "AD-3: `Basket`'s count is `items.length`; there is no separate counter", "why": "A choice local to one unit, already carried by the source tombstone; not an architecture decision."},
+      {"arm": "X", "file": "docs/shiploop/spec.md", "quote": "a fraction, NaN, Infinity, a string or null ... all throw", "why": "Infinity and null limits are not covered by any test; observation-only claim recorded as spec."},
+      {"arm": "Y", "file": "src/basket.js", "quote": "one drifted once a caller pushed to `items` directly (W1/S1).", "why": "Run identifier in a source comment; the tombstone has no test pinning it (Y's notes admit this)."},
+      {"arm": "Y", "file": "docs/shiploop/spec.md", "quote": "0, negatives, fractions, numeric strings, NaN, Infinity and an omitted `limit` all throw", "why": "Infinity is not tested; observation-only."}
+    ],
+    "preference": "Y",
+    "reason": "Y gives the same contract (constraint, errors, unchanged-on-failure, unguarded public items invariant, both tombstones) in compact docstrings close to the house form, and keeps the knowledge home to one justified AD and a durable command line. X has a fuller README caveat, but it pays with multi-paragraph JSDoc, a unit-local AD-3, and transient platform and run facts in environment.md."
+  },
+  "s2-rename-r1": {
+    "X": {"contract": 5, "reader_docs": 5, "drift": 5, "concision": 5, "knowledge": 5},
+    "Y": {"contract": 4, "reader_docs": 5, "drift": 4, "concision": 2, "knowledge": 2},
+    "false_statements": [
+      {"arm": "Y", "file": "docs/shiploop/spec.md", "quote": "`npm test` passes 7 tests (test/users.test.js, test/server.test.js)", "why": "Transient test count, and naming only two files is unsupported; the README lists other modules (strings, paginate) whose suites likely count too."},
+      {"arm": "Y", "file": "docs/shiploop/environment.md", "quote": "Route check without a harness: `createServer().listen(0)` ... then `fetch`", "why": "A one-off probe recorded as a durable command; node:test already covers the routes."}
+    ],
+    "preference": "X",
+    "reason": "Both fix the two stale mentions. X stops there, adds one accurate one-line argument contract to findUser and leaves the knowledge home alone, as a rename warrants; Y pads spec and environment with met-by lines, test counts and one-off probe commands."
+  },
+  "s3-health-r1": {
+    "X": {"contract": 5, "reader_docs": 5, "drift": 4, "concision": 4, "knowledge": 5},
+    "Y": {"contract": 4, "reader_docs": 5, "drift": 3, "concision": 3, "knowledge": 2},
+    "false_statements": [
+      {"arm": "X", "file": "src/server.js", "quote": "answers any other method or path 404 {\"error\":\"not found\"}", "why": "A HEAD answer carries no body (X's own notes say so); the body applies only to non-HEAD methods."},
+      {"arm": "Y", "file": "docs/shiploop/spec.md", "quote": "/health/, HEAD /health and POST /health answer 404 {\"error\":\"not found\"}", "why": "HEAD responses have no body; this also turns incidental behaviour into a requirement no one asked for."},
+      {"arm": "Y", "file": "docs/shiploop/environment.md", "quote": "a `pkill -f` pattern kill was refused by this run's host permission classifier", "why": "Host or tool quirk of one run, not a durable environment fact."},
+      {"arm": "Y", "file": "docs/shiploop/environment.md", "quote": "2 tests, including TC-1 (W1/S1). `npm test` ran 8 tests", "why": "Transient test counts in the knowledge home."}
+    ],
+    "preference": "X",
+    "reason": "X fixes the stale createServer docstring with a complete one-line contract (routes, not listening, 404 for everything else), writes a concise README Server section with the HEAD-probe limit, and records three durable commands. Y's README is equally good, but its docstring is thinner, and it puts incidental routing behaviour into the spec and run-specific counts and host quirks into environment.md."
+  }
+}

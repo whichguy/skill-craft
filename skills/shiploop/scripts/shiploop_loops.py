@@ -345,6 +345,12 @@ def command_listing(commands: Sequence[Mapping[str, Any]]) -> str:
 
 COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; the packet shows each floor):"
 
+# The ``docs`` path class (references/path-classes.json), which the item commit (item_scope.commit_scope) takes outside
+# the declared paths, so the document loop's scope names it. A scope without it kept a Codex Terra pilot's README
+# unchanged and its API reference in docs/shiploop/ (docs/shiploop-document-stage-journal.md, L3). Held here because a
+# render reads no file but the knowledge home; test/shiploop-loops.test.py pins it to the catalog.
+DOC_FILES = ("**/*.md", "**/*.rst", "**/*.adoc", "docs/**", "**/LICENSE", "**/LICENSE.*", "**/CHANGELOG*")
+
 
 def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
@@ -368,6 +374,11 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
     elif stage == "step-plan":
         scope = (f"Workspace {repo}. Work item {item}: plan it; write only this action's result draft and "
                  "docs/shiploop/. Change no product file.")
+    elif stage == "document":
+        scope = (f"Workspace {repo}. Work item {item}: the paths its accepted step plan declares, the documentation "
+                 f"files this step's change affects ({_paths_text(DOC_FILES)}), which ShipLoop commits with the step, "
+                 "and docs/shiploop/ for this step's knowledge record. Product documentation (README, API, user and "
+                 "operator docs) stays with the product, never in docs/shiploop/. Preserve every other change.")
     text = WORK_ONE_STEP if one_step and stage == "carry-forward" else WORK[stage]
     repeat = REPEAT[stage]
     work = _fill(text, values)
