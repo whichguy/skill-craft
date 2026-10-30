@@ -332,6 +332,23 @@ class Evaluators(unittest.TestCase):
     def test_e5_credits_a_fix_only_when_its_test_fails_with_the_fix_reverted(self):
         self.check("E5")
 
+    def test_sg2s_four_seeded_cases_each_tell_the_naive_tree_from_the_fixed_one(self):
+        self.check("SG2-K1")
+
+    def test_sg2s_arms_differ_only_in_delegation_and_b_reaches_slice_py_as_ask_agent(self):
+        exps = {f"SG2-K{n}": experiment.load(f"SG2-K{n}") for n in range(1, 5)}
+        self.assertEqual(len({exp["case"] for exp in exps.values()}), 4)
+        for exp_id, exp in exps.items():
+            with self.subTest(exp=exp_id):
+                a, b = exp["arms"]["A"], exp["arms"]["B"]
+                self.assertEqual({k: v for k, v in b.items() if k != "delegation"}, a)
+                out = Path("/nonexistent/out")
+                argv_a = experiment.slice_argv(exp, a, out, "codex", None)
+                argv_b = experiment.slice_argv(exp, b, out, "codex", None)
+                self.assertNotIn("--delegation", argv_a)
+                self.assertEqual(argv_b[argv_b.index("--delegation") + 1], "ask-agent")
+                self.assertEqual([w for w in argv_b if w not in ("--delegation", "ask-agent")], argv_a)
+
     def test_e3s_detector_and_e2s_source_search_on_plain_commands(self):
         import e2_layers  # noqa: PLC0415
         import e3_red  # noqa: PLC0415
