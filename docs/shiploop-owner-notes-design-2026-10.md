@@ -144,6 +144,12 @@ The page is a static file opened from disk, so it cannot write a file itself. Th
   process the hooks never see, a port, and cross-site protection. Not now.
 - c. A claude.ai artifact whose shared database the run polls. That ties ShipLoop to one host. No.
 
+**Update, 2026-10-29.** The owner asked for a localhost server to follow a run's progress, so the server of option b now
+exists in a read-only form: `shiploop view --serve` ([status-display.md](../skills/shiploop/references/status-display.md#browser-viewer)).
+It has no POST and no token, so the reasons given against b for notes (a write path, cross-site protection for it) do not
+apply to it. The notes composer is still option a, a command to copy; a write path into a run is still not built.
+Journal: [shiploop-progress-viewer-journal-2026-10-29.md](shiploop-progress-viewer-journal-2026-10-29.md).
+
 ### Later, not in this change
 
 - **Standing notes** (`note --standing`, quoted in every packet until withdrawn). The plan head has no room for a block

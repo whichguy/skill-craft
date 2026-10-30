@@ -109,6 +109,7 @@ Watch it without interrupting:
 ```sh
 python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN"   # where it is, what is done, what is next
 open "$RUN/progress.html"                                        # live page; no server needed
+python3 "$SKILL_ROOT/scripts/shiploop" view --run-dir "$RUN" --serve   # the same pages in a browser, read-only, until Ctrl-C
 ```
 
 `$SKILL_ROOT` is the directory holding the loaded `SKILL.md` and `$RUN` is the run directory the first packet prints
@@ -614,7 +615,7 @@ and it is the highest-risk combination. See [run options](references/run-options
 
 | You want to | Do this | What it does |
 |---|---|---|
-| See where it is | `status`, `progress.html` | Read-only |
+| See where it is | `status`, `progress.html`, `view --serve` | Read-only; `--serve` shows the pages in a browser at `127.0.0.1` |
 | Tell it something | `note --text` | The next packet quotes it; delivered once a step that showed it is accepted |
 | Stop for now | `pause --reason` | Keeps the pending action; `resume` continues |
 | Answer a question | `resume --answer` | Only your own words count |

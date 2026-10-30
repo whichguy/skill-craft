@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from html.parser import HTMLParser
 from pathlib import Path
 import sys
 import unittest
@@ -127,6 +128,28 @@ class ProgressRenderTests(unittest.TestCase):
         self.assertIn("SHA-256", page)
         self.assertIn("stream navigator", page)
         self.assertIn("stream chain-report", page)
+
+    def test_head_meta_tags_are_closed_so_the_policy_and_color_scheme_both_apply(self) -> None:
+        # The policy tag once lacked its closing quote, so it swallowed the next tag and a browser warned that
+        # form-action had an invalid source.
+        metas = []
+
+        class Head(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                if tag == "meta":
+                    metas.append(dict(attrs))
+
+        Head().feed(progress_render.render(snapshot()))
+        policy = next(meta for meta in metas if meta.get("http-equiv") == "Content-Security-Policy")["content"]
+        self.assertTrue(policy.endswith("form-action 'none'"), policy)
+        self.assertNotIn("<", policy)
+        self.assertIn("light", [meta.get("content") for meta in metas if meta.get("name") == "color-scheme"])
+
+    def test_the_saved_report_link_can_be_pointed_at_the_viewer(self) -> None:
+        page = progress_render.render(snapshot())
+        self.assertIn('<a class="report-link" href="file:///tmp/run/report.html">Open the saved report</a>', page)
+        self.assertIn('location.protocol === "http:"', page)
+        self.assertIn('setAttribute("href", "report.html")', page)
 
     def test_watch_controls_use_escaped_data_settings_and_local_refresh_only(self) -> None:
         data = snapshot()

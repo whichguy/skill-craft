@@ -2370,9 +2370,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
                          [backchain, *cited.backchain, ""] if backchain else []))
     blocks.append(_Block("builds-on", LOOKUP, _builds_on_lines(root, state, stage, workitem)))
     blocks.append(_Block("owner-notes-delivered", LOOKUP, owner_notes.delivered_lines(root, state)))
-    blocks.append(_Block("progress-view", CHROME, [
-        f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to track "
-        "changes during this ShipLoop run."]))
+    blocks.append(_Block("progress-view", CHROME, [_progress_view_line(core, root, state)]))
     blocks.append(_Block("pause", CHROME, [
         "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
         + " (only when the user asks or a real blocker stops authorized work)"]))
@@ -6028,7 +6026,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_reference_lines(root, state, stage, workitem, core),
-        *_context_index_lines(root, state, stage, workitem),
+        *_context_index_lines(root, state, stage, workitem, core),
         "",
         # The saved run position, once (the Progress snapshot that restated it went, 2026-10-11; report.html keeps
         # it); early enough to survive head-kept Bash output.  The snapshot's untrusted notice stays: the narrative
@@ -6133,8 +6131,21 @@ def _recovery_pointer_line(core: Any, root: Path) -> str:
     return guidance.recovery_pointer(_callback(core, root, "next"))
 
 
+def _progress_view_line(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """The progress view line.  A run's first packet (no accepted step yet) also names the command that starts the
+    read-only browser viewer, for the user to run in their own terminal: later packets would only repeat it, and a
+    model that ran it would block on a server that never exits (owner, 2026-10-29)."""
+    line = (f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to track "
+            "changes during this ShipLoop run.")
+    if state["history"]:
+        return line
+    serve = " ".join(shlex.quote(part) for part in ["python3", _command(core), "view", f"--run-dir={root}", "--serve"])
+    return (f"{line} To follow it in a browser at a local address instead, the user can run this in their own "
+            f"terminal (do not run it yourself; it serves until stopped): {serve}")
+
+
 def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
-                         workitem: str | None) -> list[str]:
+                         workitem: str | None, core: Any = None) -> list[str]:
     """This action's pass log, and the progress view (what this stage builds on is in the References block).
 
     The pointer to the packet file and its References block is the producer packet's second line (``_pointer_lines``),
@@ -6147,8 +6158,7 @@ def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
                      + str(context_index.pass_log_path(root, action_id)))
     if state["status"] == "active":
         # The progress view stays (owner, 2026-10-10); with the packet printed whole it is named here, once.
-        lines.append(f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to "
-                     "track changes during this ShipLoop run.")
+        lines.append(_progress_view_line(core, root, state))
     return lines
 
 
