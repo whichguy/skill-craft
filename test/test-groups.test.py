@@ -112,10 +112,10 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        # Current main's 97 ShipLoop suites plus four learning-loop contract suites.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 101)
+        # Current main's 97 ShipLoop suites plus four learning-loop contract suites and the SDLC probes (2026-10-30).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 102)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 156)
+        self.assertEqual(len(suite_catalog.SUITES), 157)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
