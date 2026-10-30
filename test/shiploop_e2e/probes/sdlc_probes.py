@@ -1,41 +1,59 @@
 #!/usr/bin/env python3
-"""Descriptive SDLC probes for a finished run (docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4, Track A).
+"""Descriptive SDLC probes over a finished E2E run (docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4, Track A).
 
-Each probe counts something a run's kept evidence shows. It is reported beside the scorecard, never scored and outside
-every grading digest. A probe becomes a gate only after it fires on a live run, the finding is confirmed real, and a
-replay on every saved run shows the gate would refuse no honest run (proposal §4).
+This is a reader, not part of the grade. It sits below the harness's top level, so it is in neither the evaluator digest
+(boundary.evaluator_files reads the top level only) nor the qualification snapshot, and run.py never calls it. It reads an
+output folder the harness wrote (``<out>``) and prints facts. It writes nothing into the run, changes no verdict and sends
+nothing to a model.
 
-* P1 ``suppressions``: lint and type suppression comments the run added to code or tests (``# noqa``,
-  ``eslint-disable``, ``@ts-ignore``, ...).
+Its lists follow the fidelity block's rules (SPEC.md, "A fidelity block is a record, never a verdict"):
+- each probe is a list of facts for a reviewer to confirm;
+- an input the run did not keep is null, with its reason in ``unmeasured``, never 0;
+- a probe that raises is unmeasured, never a failure of the reader.
+
+The probes:
+* P1 ``suppressions``: lint and type suppression comments added to code or tests (``# noqa``, ``eslint-disable``, ...).
 * P2 ``earlier_test_edits``: a commit that changes a test file an earlier step or item of the run created, with the
   assertion lines it removed and added.
-* P3 ``foreign_commits``: commits in the run's history that no ShipLoop record of the run names (the model committed
-  by hand; seen in 7 of 12 fidelity runs).
-* P5 ``new_dependencies``: dependencies a manifest gained (package.json, requirements*.txt, pyproject.toml, go.mod).
-* P6 ``secret_like``: added lines that match a known credential format. Only the format and the path are kept, never
-  the value.
+* P3 ``model_commits``: read from the run's own metrics.json, never recounted (S-12). It reports ``commits.other.n``
+  (counters.history: commits ShipLoop did not make), and the fidelity block's ``model_commits`` and ``script_owned`` edits
+  (for example a ``sed -i`` of return-plan.md).
+* P5 ``new_dependencies``: dependency names a manifest gained (package.json, requirements*.txt, pyproject.toml, go.mod).
+* P6 ``secret_like``: added lines that match a known credential format. It reports the format and path, never the value.
 * P7 ``swallowed_errors``: added product-code lines that discard an error (``except: pass``, an empty ``catch``,
   ``|| true`` in a shell script).
 
-P4 (an earlier item's test IDs missing from a later item's full regression) reads the verify records and is not built
-here yet. A probe whose input the run did not keep says ``kept: false``, never 0: silence is not absence.
+P4 (an earlier item's test IDs missing from a later item's full regression) is not built. It needs every item's IDs mapped
+across the verify records, and fidelity.validation reads one record at a time. It is reported as unmeasured.
 
-    python3 test/shiploop_e2e/sdlc_probes.py --worktree DIR --start HEAD0 [--run RUN_DIR] [--root CHECKOUT]
+The repository is ``<out>/work`` while the run's folders exist; after ``lifecycle.py dispose`` it is the delivery bundle,
+rebuilt with ``delivery.restore``. The run's commits are those after the start head that counters reads from
+invocation.json; for a fresh run, the whole history.
+
+    python3 test/shiploop_e2e/probes/sdlc_probes.py OUT [OUT ...]
 """
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
-DEFAULT_ROOT = Path(__file__).resolve().parents[2]
-GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
-LIMIT = 20  # rows kept per probe; the count is always whole
+HARNESS = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(HARNESS))
+import counters  # noqa: E402
+import delivery  # noqa: E402
+
+GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1", "GIT_OPTIONAL_LOCKS": "0"}
+EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+LIMIT = 20  # facts kept per probe; ``n`` is always the whole count
+NOT_BUILT_P4 = ("not built: needs every item's test IDs mapped across the verify records (fidelity.validation reads one "
+                "record at a time)")
 
 SUPPRESSIONS = {
     "noqa": re.compile(r"#\s*noqa\b", re.I),
@@ -74,7 +92,7 @@ SHELL = re.compile(r"(\.(sh|bash|zsh|ksh)|(^|/)Makefile|\.mk)$")
 ASSERTION = re.compile(r"\bassert\w*\b|\bexpect\s*\(|\.should\b|\bself\.assert\w*\(|\bt\.(equal|deepEqual|ok|is|throws|"
                        r"strictEqual|deepStrictEqual)\b|\bassert\.\w+\(")
 STEP_SUBJECT = re.compile(r"^feat\((?P<item>[^/()]+)/(?P<step>[^/()]+)\):")
-HEX40 = re.compile(r"\b[0-9a-f]{40}\b")
+MANIFESTS = re.compile(r"(^|/)(package\.json|requirements[^/]*\.txt|pyproject\.toml|go\.mod)$")
 
 
 def git(tree: Path, *args: str) -> str:
@@ -83,7 +101,7 @@ def git(tree: Path, *args: str) -> str:
 
 
 def added_lines(diff: str) -> list[tuple[str, int, str]]:
-    """(path, new line number, text) for every added line of a unified diff (``git diff`` output, renames followed)."""
+    """(path, new line number, text) for every added line of a unified diff."""
     rows, path, number = [], None, 0
     for line in diff.splitlines():
         if line.startswith("+++ "):
@@ -114,7 +132,7 @@ def secret_like(added: Iterable[tuple[str, int, str]]) -> list[dict]:
 
 
 def swallowed_errors(added: list[tuple[str, int, str]], classify: Callable[[str], str]) -> list[dict]:
-    """P7: added product-code lines that discard an error, one line or an opener and its body on the next added line."""
+    """P7: added product-code lines that discard an error: one line, or an opener and its body on the next added line."""
     rows = []
     for index, (path, number, text) in enumerate(added):
         if classify(path) != "code":
@@ -142,23 +160,20 @@ def _names(manifest: str, text: str) -> set[str]:
         except ValueError:
             return set()
         return {key for field in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies")
-                for key in (data.get(field) or {}) if isinstance(data.get(field), dict)}
+                if isinstance(data.get(field), dict) for key in data[field]}
     if name.startswith("requirements") and name.endswith(".txt"):
         found = (re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", line) for line in text.splitlines()
                  if line.strip() and not line.lstrip().startswith(("#", "-")))
         return {match.group(1).lower() for match in found if match}
     if name == "pyproject.toml":
-        try:
-            import tomllib  # noqa: PLC0415 - Python 3.11+
-            data = tomllib.loads(text)
-        except Exception:  # noqa: BLE001 - an unreadable manifest names nothing
-            return set()
+        import tomllib  # noqa: PLC0415 - Python 3.11+
+        data = tomllib.loads(text)
         project = data.get("project") or {}
         listed = list(project.get("dependencies") or [])
         for extra in (project.get("optional-dependencies") or {}).values():
             listed += list(extra or [])
-        names = {re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", str(item)).group(1).lower()
-                 for item in listed if re.match(r"^\s*[A-Za-z0-9]", str(item))}
+        names = {match.group(1).lower() for match in (re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", str(item))
+                                                      for item in listed) if match}
         poetry = ((data.get("tool") or {}).get("poetry") or {}).get("dependencies") or {}
         return names | {key.lower() for key in poetry if key.lower() != "python"}
     if name == "go.mod":
@@ -166,32 +181,31 @@ def _names(manifest: str, text: str) -> set[str]:
     return set()
 
 
-MANIFESTS = re.compile(r"(^|/)(package\.json|requirements[^/]*\.txt|pyproject\.toml|go\.mod)$")
-
-
-def new_dependencies(tree: Path, start: str) -> list[dict]:
+def new_dependencies(tree: Path, start: Optional[str]) -> list[dict]:
     """P5: dependency names each manifest has at HEAD and did not have at ``start``."""
-    changed = [path for path in git(tree, "diff", "--name-only", start, "HEAD").splitlines() if MANIFESTS.search(path)]
+    base = start or EMPTY_TREE
+    changed = [path for path in git(tree, "diff", "--name-only", base, "HEAD").splitlines() if MANIFESTS.search(path)]
     rows = []
     for manifest in changed:
-        before = _names(manifest, git(tree, "show", f"{start}:{manifest}"))
+        before = _names(manifest, git(tree, "show", f"{start}:{manifest}")) if start else set()
         after = _names(manifest, git(tree, "show", f"HEAD:{manifest}"))
         rows += [{"manifest": manifest, "name": name} for name in sorted(after - before)]
     return rows
 
 
-def earlier_test_edits(tree: Path, start: str, classify: Callable[[str], str]) -> list[dict]:
+def earlier_test_edits(tree: Path, start: Optional[str], classify: Callable[[str], str]) -> list[dict]:
     """P2: a commit that modifies a test file an earlier commit of the run added under another item or step.
 
-    Each row names the file, the step that created it, the commit's own step (from ShipLoop's ``feat(item/step)``
-    subject; ``?`` for any other commit) and the assertion lines removed and added."""
+    Each fact names the file, the step that created it, the commit's own step (from ShipLoop's ``feat(item/step)``
+    subject; ``?`` for any other commit) and the assertion lines removed and added. It walks every ref (``--all``), as
+    counters.history does."""
     created: dict[str, str] = {}
     rows = []
-    for sha in git(tree, "rev-list", "--reverse", f"{start}..HEAD").split():
+    for sha in git(tree, "rev-list", "--reverse", "--topo-order", "--all", *(["--not", start] if start else [])).split():
         subject = git(tree, "log", "-1", "--format=%s", sha).strip()
         match = STEP_SUBJECT.match(subject)
         owner = f"{match.group('item')}/{match.group('step')}" if match else "?"
-        for status_line in git(tree, "diff-tree", "--no-commit-id", "-r", "--name-status", sha).splitlines():
+        for status_line in git(tree, "diff-tree", "--root", "--no-commit-id", "-r", "--name-status", sha).splitlines():
             status, _, path = status_line.partition("\t")
             if classify(path) != "test":
                 continue
@@ -208,19 +222,16 @@ def earlier_test_edits(tree: Path, start: str, classify: Callable[[str], str]) -
     return rows
 
 
-def foreign_commits(tree: Path, start: str, run: Optional[Path]) -> Optional[list[dict]]:
-    """P3: commits after ``start`` whose full ID no record under the run folder names; None without the run folder."""
-    if run is None or not run.is_dir():
-        return None
-    named: set[str] = set()
-    for path in run.rglob("*"):
-        if path.is_file() and path.suffix in (".md", ".json", ".jsonl", ".txt") and path.stat().st_size < 5_000_000:
-            try:
-                named.update(HEX40.findall(path.read_text(encoding="utf-8", errors="replace")))
-            except OSError:
-                continue
-    return [{"commit": sha[:12], "subject": git(tree, "log", "-1", "--format=%s", sha).strip()[:80]}
-            for sha in git(tree, "rev-list", "--reverse", f"{start}..HEAD").split() if sha not in named]
+def model_commits(out: Path) -> dict[str, Any]:
+    """P3, read from the run's metrics.json (counters and the fidelity block), never recounted."""
+    record = json.loads((out / "metrics.json").read_text())
+    other = ((record.get("commits") or {}).get("other") or {}).get("n")
+    edits = (record.get("fidelity") or {}).get("edits") or {}
+    if other is None and not edits:
+        raise LookupError("metrics.json has no commits or fidelity edits block (a run graded before 2026-10-10)")
+    return {"commits_other": other,
+            "model_commits": len(edits["model_commits"]) if isinstance(edits.get("model_commits"), list) else None,
+            "script_owned_edits": len(edits["script_owned"]) if isinstance(edits.get("script_owned"), list) else None}
 
 
 def _classifier(root: Path) -> Callable[[str], str]:
@@ -229,38 +240,61 @@ def _classifier(root: Path) -> Callable[[str], str]:
     return scope.classify
 
 
-def _report(rows: Optional[list[dict]]) -> dict[str, Any]:
-    if rows is None:
-        return {"kept": False}
-    return {"kept": True, "count": len(rows), "rows": rows[:LIMIT]}
+def _facts(rows: list[dict]) -> dict[str, Any]:
+    return {"n": len(rows), "facts": rows[:LIMIT]}
 
 
-def probe(worktree: Path, start: str, run: Optional[Path] = None, root: Path = DEFAULT_ROOT,
-          classify: Optional[Callable[[str], str]] = None) -> dict[str, Any]:
-    """Every probe on one finished run: ``worktree`` holds its history from ``start`` (the seeded or baseline head)."""
-    if not worktree.is_dir() or not git(worktree, "rev-parse", "--verify", f"{start}^{{commit}}").strip():
-        return {name: {"kept": False} for name in ("suppressions", "earlier_test_edits", "foreign_commits",
-                                                   "new_dependencies", "secret_like", "swallowed_errors")}
-    classify = classify or _classifier(root)
-    added = added_lines(git(worktree, "diff", "-M", "--unified=0", start, "HEAD"))
-    return {
-        "suppressions": _report(suppressions(added, classify)),
-        "earlier_test_edits": _report(earlier_test_edits(worktree, start, classify)),
-        "foreign_commits": _report(foreign_commits(worktree, start, run)),
-        "new_dependencies": _report(new_dependencies(worktree, start)),
-        "secret_like": _report(secret_like(added)),
-        "swallowed_errors": _report(swallowed_errors(added, classify)),
-    }
+def _why(exc: BaseException) -> str:
+    return "failed: " + type(exc).__name__ + ": " + " ".join(str(exc).split())[:200]
+
+
+def probe(out: Path, root: Path = ROOT, classify: Optional[Callable[[str], str]] = None) -> dict[str, Any]:
+    """Every probe on one finished run's output folder: ``{"probes": {name: value or None}, "unmeasured": {name: why}}``."""
+    out = Path(out)
+    found: dict[str, Any] = {name: None for name in ("suppressions", "earlier_test_edits", "model_commits",
+                                                     "earlier_ids_in_regressions", "new_dependencies", "secret_like",
+                                                     "swallowed_errors")}
+    unmeasured: dict[str, str] = {"earlier_ids_in_regressions": NOT_BUILT_P4}
+    try:
+        found["model_commits"] = model_commits(out)
+    except Exception as exc:  # noqa: BLE001 - a record that cannot be read is unmeasured, never 0
+        unmeasured["model_commits"] = exc.args[0] if isinstance(exc, LookupError) else _why(exc)
+    git_probes = ("suppressions", "earlier_test_edits", "new_dependencies", "secret_like", "swallowed_errors")
+    with tempfile.TemporaryDirectory(prefix="sdlc-probes-") as tmp:
+        work, why = out / "work", None
+        if not (work / ".git").exists():
+            try:
+                work = delivery.restore(out, Path(tmp) / "work")
+            except (FileNotFoundError, RuntimeError) as exc:
+                why = "no work repository and no delivery bundle: " + " ".join(str(exc).split())[:160]
+        start = None
+        if why is None:
+            start, why = counters._starting_point(out, work)  # the run's start head, read once (S-12)
+        if why is not None:
+            unmeasured.update({name: why for name in git_probes})
+            return {"probes": found, "unmeasured": unmeasured}
+        classify = classify or _classifier(root)
+        added = added_lines(git(work, "diff", "-M", "--unified=0", start or EMPTY_TREE, "HEAD"))
+        runs = {"suppressions": lambda: suppressions(added, classify),
+                "earlier_test_edits": lambda: earlier_test_edits(work, start, classify),
+                "new_dependencies": lambda: new_dependencies(work, start),
+                "secret_like": lambda: secret_like(added),
+                "swallowed_errors": lambda: swallowed_errors(added, classify)}
+        for name, run in runs.items():
+            try:
+                found[name] = _facts(run())
+            except Exception as exc:  # noqa: BLE001 - fail open: one probe that raises is unmeasured, never 0
+                unmeasured[name] = _why(exc)
+    return {"probes": found, "unmeasured": unmeasured}
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--worktree", type=Path, required=True)
-    parser.add_argument("--start", required=True, help="the commit the run started from (seeded or baseline head)")
-    parser.add_argument("--run", type=Path, help="the ShipLoop run folder, for foreign_commits")
-    parser.add_argument("--root", type=Path, default=DEFAULT_ROOT, help="the checkout whose path classes to use")
-    args = parser.parse_args(argv)
-    print(json.dumps(probe(args.worktree, args.start, args.run, args.root), indent=2))
+    folders = list(argv if argv is not None else sys.argv[1:])
+    if not folders:
+        print(__doc__.strip().splitlines()[-1].strip(), file=sys.stderr)
+        return 2
+    for folder in folders:
+        print(json.dumps({"out": str(folder), **probe(Path(folder))}))
     return 0
 
 

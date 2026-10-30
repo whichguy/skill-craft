@@ -779,6 +779,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-chess-salesforce", "shiploop-e2e-battleship-salesforce", "shiploop-e2e-release-slice", "shiploop-e2e-platform",
               "shiploop-e2e-sf-guard", "shiploop-e2e-status-card",
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",
+              "shiploop-e2e-sdlc-probes",
               "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-epoch"}
