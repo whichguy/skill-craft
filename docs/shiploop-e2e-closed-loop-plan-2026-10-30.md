@@ -79,7 +79,7 @@ refuses a calibration whose digests differ from the epoch it is applied to.
 
 ## Stage 1: SPEC amendments
 
-One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged against the amended spec:
+Done in 2b4c675. One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged against the amended spec:
 
 1. Purpose, "Each iteration": "read the last three commit messages" becomes "read the open learning records and the last
    three commit messages".
@@ -93,6 +93,12 @@ One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged aga
 5. Change admission: the purpose check (an S-13 probe-word check and a purpose review) gates registration.
 
 ## Stage 2: harness code
+
+Built on `feat/e2e-closed-loop-stage2`. Where the build differs from the text below, the text was corrected:
+calibration epochs keep `next` as it was; `same_as` is checked when a finding is recorded, not by the judge; a DROP whose
+prediction was confirmed defers the record; and a case is a capability case only when the prediction raises one of its
+floors. Building the probe-term list found an S-13 slip already in the engine: `shiploop_primary.py` names
+`ticket-escalation` in a comment. It is learning record LR-20261030-8ff7a9, pinned under `known` in `probe_terms.json`.
 
 All of it is opt-in. `iterate.py` without `--qualify` behaves as today.
 
@@ -124,8 +130,9 @@ already excludes `test/shiploop_e2e/`. It is not in the evaluator digest, which 
   dropped.
 - **`improver_view(record)`:** the one record's title, anchor, files and the reviewer's proposal. It carries no evidence
   text, so held-out detail is not passed on through it.
-- **Recurrence:** the v2 DISCOVERY schema gains an optional `same_as` (a record id). `judge.py` checks that it names an
-  existing record. A recurrence appends to that record, so evidence accumulates instead of duplicating.
+- **Recurrence:** the v2 DISCOVERY schema gains an optional `same_as` (a record id). `learning_records.ingest` checks
+  that it names a known record when the finding is recorded; an unknown id opens a new record and keeps the claimed id
+  as `same_as_unknown`. A recurrence appends to that record, so evidence accumulates instead of duplicating.
 - **Seed:** a session adds about 5 records from the last four LEARNINGS entries. Each cites its entry and carries its
   reopen condition. Example: Wave A's paused `ticket-escalation`, S-14, reopen when it recurs.
 
@@ -136,8 +143,9 @@ already excludes `test/shiploop_e2e/`. It is not in the evaluator digest, which 
   `record_run`, so that `append` keeps its sequence. `runner.main` runs unlocked.
 - **`init --prediction FILE`.** It writes `prediction.json` once (`write_json`, immutable), and the `registered` event
   carries its digest. This becomes contract `shiploop-epoch/2`; `/1` epochs stay readable.
-- **Calibration.** When the purpose is `calibration`, `next_action` no longer asks for reviews. A calibration decision is
-  diagnostic and can never PROMOTE.
+- **Calibration.** `next_action` is unchanged for a calibration epoch: an existing test pins it asking for reviews, and
+  a calibration run's review can still surface a discovery. Stage 3 simply runs none; `spread.py` reads the sealed
+  attempts. A calibration decision is diagnostic and can never PROMOTE.
 
 ### 2c. `spread.py` (no model)
 
@@ -174,7 +182,9 @@ Input: an A/A epoch folder. Output: `calibration.json`.
 |---|---|---|
 | PROMOTE | confirmed | verified |
 | PROMOTE | not confirmed | unexplained gain. The change is kept, and a new open record asks why |
-| DROP | any | refuted or no effect, with a reopen condition |
+| DROP | refuted | refuted, with a reopen condition |
+| DROP | confirmed | deferred: the effect is real but the candidate regressed something; reopen for a candidate without the regression |
+| DROP | no effect or unknown | no effect, with a reopen condition |
 | UNDECIDED | any | admitted again, naming the missing evidence |
 
 This is the mechanical form of "true to purpose": a change is kept because its measures moved, and when it is kept for
@@ -207,8 +217,8 @@ purpose, not outcome. It returns, per hunk, whether the hunk serves the record, 
 3. **Build** the tip and candidate plugins with `scripts/build-packages.py`, digested by `runner.tree_digest`.
 4. **Register** a `promotion/5` epoch:
    - purpose `product_change`;
-   - cases: the exposing case (`capability` when an effect targets it, otherwise `regression`) and a generality case of
-     another style (`regression`);
+   - cases: the exposing case and a generality case of another style, each `regression` unless the prediction raises
+     one of its floors, which makes it `capability` (a token saving must not cost quality);
    - k and t from `calibration.json`, and the budget from D3;
    - efficiency `["tokens"]`, because attempts overlap and overlapped minutes are not valid evidence. Minutes stay a
      diagnostic.

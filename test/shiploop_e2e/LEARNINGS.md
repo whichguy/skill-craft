@@ -4409,3 +4409,41 @@ Evidence: the three JSON files above, `concurrent-at-launch-hooks-*.txt`, `hooks
 under `~/e2e-runs-brownfield/20261029/hooks-{before,after}-*`. Related commits: 232689c5, fdec0f6e, 5a65d62c, 9147dcca, 31d627ae, 8dde0855,
 2f93f425 (hooks on for Codex), d985f40f (the SessionEnd probe), ba45b9d2 (the hookless R1 and R2 rows).
 Committed last on purpose: it follows every ShipLoop commit the round covers, so the release preflight's ancestry rule holds for the right reason.
+
+## Closed loop, stage 2: learning records, predictions, spread, the purpose check and cycles (2026-10-30) — status: firm for the mechanism and its no-model tests; no live run yet
+
+**Question.** Can one learning record become one candidate, one registered comparison and one decision, with the loop tip
+advancing only on PROMOTE (docs/shiploop-e2e-closed-loop-plan-2026-10-30.md, stage 2; SPEC amended in 2b4c675)?
+
+**Built.**
+- `learning_records.py` and `learning-records.jsonl`: an append-only ledger folded into one status per record, union-merged,
+  outside the evaluator digest. Seeded with six records: five open items of the last four entries (Wave A's pause, the
+  phase B command count, Wave A's protocol refusals, the session_end claim row, the killed-worker rule) and one found while
+  building (below). The reviewer reads its view alongside the last three commit messages (D2); `iterate.py` records judged
+  material discoveries and commits the ledger with its learnings.
+- `prediction.py`: a prediction is refused without a direction, below the registered tolerance, or on an unregistered case;
+  its verdict uses promotion's own outcome and per-success arithmetic.
+- `spread.py`: replays promotion's comparison over every k-against-k split of an A/A epoch. On synthetic cards, a build
+  whose tokens vary by 7% recommends a 5% tolerance and one varying by ±40% recommends 40%.
+- `purpose_check.py` and `probe_terms.json`: probe words in added lines, one `Learning-Record:` trailer, and a fresh
+  read-only review of the diff against the anchor clause; it fails closed.
+- `epoch.py`: a launch takes the lock only for its intent and its seal (a test holds two attempts inside the runner at
+  once); `init --prediction` binds `prediction.json` in the registered event (`shiploop-epoch/2`).
+- `cycle.py` and `iterate.py --qualify`: the whole cycle, and `--candidate-plugin` for the hand-built pilot.
+
+**What it shows.**
+- **The DROP path nearly lost its own records.** Resetting the worktree to the tip would have discarded the ledger rows the
+  cycle had appended but not yet committed (predicted, decided, verdict). `apply_decision` now carries them across the
+  reset; with that fix removed, `test_a_drop_keeps_the_candidate_as_a_ref_and_the_records_survive_the_reset` fails with
+  the record still `admitted`.
+- **The engine already names a probe.** The probe-term scan found `ticket-escalation` in a comment of
+  `skills/shiploop/scripts/shiploop_primary.py` (S-13: nothing in the engine may know which probe exposed it). Recorded as
+  LR-20261030-8ff7a9 (admitted, minor) and pinned under `known`, so the check stays honest until a candidate fixes it.
+- **A calibration's `next` keeps asking for reviews.** The plan proposed skipping them; an existing test pins the behaviour,
+  so stage 3 runs no reviews instead and `spread.py` reads the sealed attempts.
+
+**Evidence.** 26 tests in `shiploop-e2e-learning-records`, 9 in `shiploop-e2e-cycle` (a real worktree, ledger and epoch,
+the model's steps stood in), 5 new in `shiploop-e2e-epoch`; `test-groups` pins the two new suites.
+
+**Not covered.** No live run: stage 3's A/A calibration (Codex Terra 6.1 xhigh) gives the first `calibration.json`, and
+nothing can register a qualified cycle until it does. The purpose review's prompt has not met a real model.
