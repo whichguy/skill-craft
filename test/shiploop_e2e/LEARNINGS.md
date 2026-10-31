@@ -4794,3 +4794,87 @@ The stage suite core (c8af6a5c, built in a Linux container) failed 3 tests in qu
 
 After the fix, quick (`--changed-from origin/main`) passes all 49 suites on this Mac. The stage_suite files are outside
 `boundary.fingerprint`, so the evaluator digest is unchanged.
+
+
+## Real UI observation and generic evidence handoff — apparatus win (2026-10-30)
+
+**Question.** Can a selected hosted case retain independent phase evidence and distinguish a working screen from the
+requested backend integration, while the E2E loop stays generic? The owner requires real UI checks, history-based
+learning and only measured wins, with shared `de` limited to tracked test-owned cleanup.
+
+**Setup.** Internal apparatus commit `cefff5edabdbfb1d8600e88fe0460f422c385056`; observed source `c468b25c62012b95dbe11fa199032719d0b34501`
+plus its pre-commit changes, 6,440 files, SHA256
+`ae49b1043fc1948d1d02f58cc4a1369490a577a3e848be02c727e714fe97c8d4`. Optional
+`battleship-salesforce-ui` case, reserved `SLNavUi` namespace. One no-model reference procedure, 269.028 seconds,
+source unchanged. The original case, default suite membership, quality/fidelity floors and subject/improver defaults
+are preserved. Common-loop edits handle runtime binding, phases, output and fixture hashes; case adapters own domain facts.
+
+**Result.** The screen-only observer accepts the deliberately broken backend handoff; the new observer rejects it.
+
+| Observation | Measured outcome |
+| --- | --- |
+| Reference deploy `0Afaj00000prz81CAA` | Eight metadata components; 10/10 Apex methods and 19/19 independent rules |
+| Builder wrapper | Complete 99-shot game; 99 matched successful controller shot records |
+| Independent final | Complete 93-shot game; 93 matched successful controller shot records |
+| Informational at-stop apparatus | Complete 94-shot game; 94 matched successful controller shot records |
+| Each positive browser game | 17 hit-or-sunk shots, five sinks, affirmative game-over text, New game reset |
+| Client-only LWC deploy `0Afaj00000przkjCAA` | Old frozen DOM observer accepts a complete 93-shot game |
+| Same client-only LWC, new observer | Exit 1, first shot rejected as `controller-fire-missing`; original failure receipt retained |
+| Cleanup | Eight owned components removed, one assignment unassigned; `verified=true`, `shared-org-tracked` |
+
+Three positive phase receipts and reset/game-over screenshot hashes were retained; the parent inspected the final
+completion screenshot. Browser requests and responses are correlated by exact HTTPS target host, action ID,
+controller, method, clicked/returned coordinates, result and counters. Valid retries and cached reset remain allowed.
+A phase label does not establish original-builder invocation; actual command events remain required. The at-stop
+path here uses synthetic active-engine context to exercise the apparatus and remains informational.
+
+**Integration corrections.** Quick01 completed 60 suites in 503.412 seconds, with 56 pass and four failed suites.
+It exposed the new browser prerequisite's missing source, its inventory entry and the omitted empty failure-output key;
+these were corrected. Guard tests now place their fake CLI on the operator PATH before generating wrappers. The original
+failed guard batch did invoke the installed CLI against an empty test HOME/fake org; it produced authorization failures
+or help, not an observed successful org change. No production guard was relaxed. Main's existing
+`09a0f19c376ec49cfb933f883652071bf211054f` supplied the macOS path/CoreFoundation corrections; read its learning and
+pulled with `--ff-only`, preserving all owned work. On merged source SHA
+`92bfc94440534c3ddc691e51784290ed5f6b176bbd8f913f1ee0a4b2f03b90fa`, focused checks pass environment 12/12,
+guard 108/108, oracle 105/105, stage build 44/44, scoped Ruff F/E9 and diff check, source unchanged. Final quick02 on clean commit `cefff5edabdbfb1d8600e88fe0460f422c385056` passes all 60 selected/completed suites
+in 323.580 seconds, unchanged 6,463-file source. Quick01 remains a separately retained failure.
+
+**Checks and cost.** Fail-first regressions exposed missing final environment, runtime-hook interception (synthetic
+canary only), unfrozen fixtures, lost receipt output, inherited model PATH and external-origin controller proof.
+Focused reruns pass. The full 14-command batch remains recorded as FAIL due to test-fixture errors; its successful
+suites were platform 169, qualification 18, main 491, cycle 28, epoch 27, experiments 66, probes 16 and groups 50.
+Subsequent targeted corrections pass Salesforce 66/66, Node controller 16/16, origin 1/1 and UI 19/19, plus lint/diff.
+Local browser controls pass 28/28 expected outcomes (11 positive, 17 negative). The final quick tier passes 60/60 on `cefff5edabdbfb1d8600e88fe0460f422c385056`, recorded in
+`apparatus-quick-02/receipt.json` and this journal commit message. Original failed attempts are retained.
+
+Fixture freezing now covers 204 files/516,162 bytes. A warm-cache diagnostic with 25 interleaved samples per arm
+measured fingerprint medians 2.561 to 11.318 ms (+8.757 ms), qualification snapshot 4.872 to 17.968 ms (+13.097 ms).
+This bounded mechanical cost buys comparison integrity; it is not an E2E/token efficiency result. The initial failed
+benchmark setup is retained. Verified Opus 5.5 adversarial advice and native review motivated the fail-first controls.
+
+**What it shows and does not show.** Keep the measured apparatus improvement. No Terra subject or Sol improver ran
+in this procedure, no ShipLoop product candidate was compared or promoted, and no skill was released. Local metadata
+fingerprints do not establish remote deployed-byte identity. Cleanup preserved the watched baseline; arbitrary Apex
+DML/business records, fields on baseline objects, unwatched types, jobs and late deployments are not guaranteed reset.
+The new UI case remains optional. Passing it supports the coverage exercised, not every software-development style.
+
+History materially used: `fc2adc5e67292238e8c0694aab1d79d90a8ee379` supplied the old DOM observer;
+`67f3d92a94dbe09c675dccc4e59dcf962c223ba6` remains an UNADOPTED product proposal;
+`ba51c3f4e74ea8731ac03959675d6e47b5d91c37` and `f0c244253e3ff050ef55409ea2e632d89de1a46f` require honest
+negative learning and sealed target cleanup. `c6c810b0c17ee2259e119dee98d3a910f6519f9e` rejected score gains
+outside the request, so no exact-RPC count or novelty quota was added. `3513f915110408eb3d857c69acfcfd79d9d00c5f`
+and `39ef7afed03983f80490aa8bc639640d49780c14`, plus the owner's explicit choice in this chat, set the next
+comparison to one run per build, 25% token margin, unchanged quality/fidelity; threshold and false-decision rate
+remain **unmeasured**. This apparatus result is not that comparison.
+
+**Release hold preserved.** `c468b25c62012b95dbe11fa199032719d0b34501` records the owner's hold on the unmeasured
+Apps Script card in `dc312cd110cf1e82989bcdf89893e0329b087b3a`. This Salesforce entry does not validate it or
+authorize its release, even if chronology mechanically satisfies release preflight. Actual published control remains
+`5ef936ab8b63907cac55e7da2fbbf04bfb2c2d40` (SkillCraft 2.24.3, ShipLoop 1.23.3, tree `5bcc3ac578da`).
+
+Evidence root: `/Users/dadleet/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/`; see
+`reference-ui-01/receipt.json`, `platform/cleanup.json` within it, `reference-ui-execution-01`,
+`observer-adversarial-01`, `review-regressions-red-02`, `review-regressions-green-01`,
+`controller-origin-red-01`, `final-offline-checks-01`, `final-corrections-01`,
+`receipt-fixture-green-01`, `ui-observer-calibration-03`, `fixture-freeze-cost-01` and `-02`,
+`apparatus-corrections-02`, `apparatus-quick-01/receipt.json`, and `apparatus-quick-02/receipt.json`. Absolute paths identify retained local evidence, not portable release proof.
