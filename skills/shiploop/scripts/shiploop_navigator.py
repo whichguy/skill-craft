@@ -4557,10 +4557,15 @@ def _document_entry(root: Path, after: dict[str, Any]) -> dict[str, Any]:
     reason = item_scope.no_document_item(root, workitem)
     if not reason:
         return advanced
+    # A done document result holds the fields the step review reads (``_required_handoff_keys``): the open items it
+    # leaves and the knowledge-home record.  A left-out document leaves none and changed nothing, and says so, or the
+    # review's hand-off gate refuses it for a stage ShipLoop already settled (a live run, 2026-10-30).
     return apply(advanced, action["id"], {
         "outcome": "done",
         "summary": item_scope.NOT_APPLICABLE + ": " + reason + ". ShipLoop recorded this stage without running it.",
         "evidence_refs": [],
+        "assumptions": [],
+        "knowledge": {name: "Unchanged: " + reason + "." for name in KNOWLEDGE_RECORD},
     })
 
 

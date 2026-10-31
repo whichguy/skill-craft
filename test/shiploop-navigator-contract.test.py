@@ -4306,6 +4306,26 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         # The documentation-only item also has no test command, so the test stage is recorded the same way.
         self.assertTrue(outcomes["test"].startswith(item_scope.NOT_APPLICABLE), outcomes["test"])
 
+    def test_a_left_out_document_result_carries_what_a_done_document_result_must(self) -> None:
+        # Live run (Battleship on Terra, 2026-10-30): the automatic skip wrote a done document result with no
+        # `assumptions` and no `knowledge`, and the step review's hand-off gate refused it for a stage ShipLoop had
+        # already settled.  Its result holds the fields every done document result holds, and says nothing changed.
+        self.start()
+        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.assertEqual(self.settle(), "implement")
+        (self.repo / "notes.md").write_text("# Notes\n")
+        self.accept(result(summary="Wrote notes.md."))
+        self.assertEqual(self.settle(), "carry-forward")
+        state = self.state()
+        entry = next(row for row in state["history"] if row["stage"] == "document" and row.get("workitem") == "W1")
+        record = state["accepted"][entry["action"]]
+        self.assertEqual(record["assumptions"], [])
+        self.assertEqual(set(record["knowledge"]), set(navigator.KNOWLEDGE_RECORD))
+        for name in navigator.KNOWLEDGE_RECORD:
+            self.assertTrue(record["knowledge"][name].startswith("Unchanged: "), record["knowledge"])
+            self.assertIn("touch no code or test path: notes.md", record["knowledge"][name])
+        self.assertIsNone(navigator._handoff_fault(self.run_dir, state, "document", record, "shiploop complete"))
+
     def test_a_steps_iteration_is_one_commit_made_after_its_document_stage_and_review(self) -> None:
         # Design T §8 (owner 2026-10-27: "We should commit on every iteration right after the documentation"): an inline
         # step is built, tested, documented and reviewed before ShipLoop commits it, as one commit with the Key learnings,
