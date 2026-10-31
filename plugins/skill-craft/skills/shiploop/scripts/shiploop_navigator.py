@@ -82,7 +82,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
-    "knowledge", "added_tests",
+    "knowledge", "added_tests", "question_categories", "questions",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -130,7 +130,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "knowledge", "added_tests",
+    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1246,6 +1246,14 @@ def _canonical_result(
             result["primary"] = primary.canonical(value["primary"])
         except primary.PrimaryError as exc:
             raise NavigatorError(str(exc)) from exc
+    for key in ("question_categories", "questions"):
+        if key in value:
+            # Shape only (intake duty 9): the CLI gate checks the ledger (``_check_intake_questions``). Kept whole, so the
+            # stages after intake read it in intake's result; a first build dropped it here, and the first live run's
+            # ledger (2026-10-31: 11 categories, 3 questions) was lost from its stored result.
+            _need(stage == "intake" and outcome == "done", key + " is allowed only on a done intake result")
+            _need(isinstance(value[key], list), key + " is a list")
+            result[key] = json.loads(json.dumps(value[key]))
     if "unverified" in value:
         # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
         # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
@@ -2837,6 +2845,65 @@ def _check_focused_guards(stage: str, result: Any) -> None:
                 "tests run. On the item's base that guard fails on the missing file and prints its own message, which "
                 "is not the missing behaviour, so it fakes RED. Run the tests directly: a test of new code that fails "
                 "to load on the base is a real failure, and ShipLoop reads it. Then run the same callback again.")
+
+
+def _check_intake_questions(stage: str, result: Any) -> None:
+    """Refuse a malformed key-question ledger (intake duty 9) or one at another stage.  The ledger is optional: the
+    template asks for it, as in pilot X1-T (recall 0.49 without it, 0.91 with it, Codex Terra 6.1 high), and both live
+    runs of 2026-10-31 wrote it unasked by any gate (11 categories with 3 and 6 questions); requiring it would refuse
+    every synthetic intake the hermetic suites complete.  Checked for its shape when present: ``question_categories``
+    names each of K1-K11 once with ``applies`` yes or no (a no gives its reason); each of ``questions`` has a unique id,
+    its question and one route of QUESTION_ROUTES; no field keeps a template placeholder."""
+    if not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    present = [key for key in ("question_categories", "questions") if key in result]
+    if not present:
+        return
+    _need(stage == "intake", ", ".join(present) + " belong to intake's result (its key-question ledger), not to "
+          + stage + "'s: delete " + ("it" if len(present) == 1 else "them") + " and run the same callback again")
+    shape = ('[{"id": "K1", "applies": "yes"}, {"id": "K10", "applies": "no", "reason": "<why not, in a few words>"}] '
+             "with each of " + ", ".join(QUESTION_CATEGORIES) + " once")
+    categories = result.get("question_categories")
+    if "question_categories" in result:
+        _need(isinstance(categories, list) and all(isinstance(row, Mapping) for row in categories),
+              "question_categories is a list " + shape)
+        ids = [str(row.get("id")) for row in categories]
+        _need(sorted(ids, key=lambda ident: (len(ident), ident)) == list(QUESTION_CATEGORIES),
+              "question_categories names each of " + ", ".join(QUESTION_CATEGORIES) + " exactly once (found: "
+              + (", ".join(ids) or "none") + "); the shape is " + shape)
+        for row in categories:
+            _need(row.get("applies") in ("yes", "no"), "question_categories " + str(row.get("id")) + ": applies is yes "
+                  "or no")
+            _need(row.get("applies") == "yes" or (isinstance(row.get("reason"), str) and row["reason"].strip()
+                                                  and row["reason"].strip() != "..."),
+                  "question_categories " + str(row.get("id")) + " does not apply: give its reason in a few words")
+    if "questions" in result:
+        rows = result.get("questions")
+        _need(isinstance(rows, list) and all(isinstance(row, Mapping) for row in rows),
+              "questions is a list of {id, category, question, changes, route, default, blocks}")
+        seen: set[str] = set()
+        for row in rows:
+            ident = str(row.get("id") or "")
+            _need(re.fullmatch(r"Q\d+", ident) is not None and ident not in seen,
+                  "each question has a unique id Q1, Q2, ... (found " + (ident or "none") + ")")
+            seen.add(ident)
+            kept = [key for key, value in row.items() if value in ("...", QUESTION_ROW["route"])]
+            _need(isinstance(row.get("question"), str) and row["question"].strip() and not kept,
+                  "question " + ident + " still holds a template placeholder in " + (", ".join(kept) or "question")
+                  + ": write the question and its fields, or delete the row")
+            _need(row.get("route") in QUESTION_ROUTES, "question " + ident + "'s route is one of "
+                  + ", ".join(QUESTION_ROUTES) + " (found " + str(row.get("route")) + ")")
+
+
+def _check_proof_inputs(repo: str | Path, stage: str, result: Any) -> None:
+    """Refuse a done step plan with a step whose Proof cannot pass when that step's implement reports done (SDLC gates
+    D6, docs/shiploop-sdlc-gates-proposal-2026-10-30.md §5 SG1): ``item_scope.proof_order_refusal`` on the execution
+    checkout as step-plan sees it (tracked and untracked; step-plan changes no product file)."""
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    root = Path(repo)
+    refusal = item_scope.proof_order_refusal(result, lambda path: os.path.lexists(root / path))
+    _need(not refusal, refusal or "")
 
 
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
@@ -5086,6 +5153,12 @@ HANDOFF_SHAPES: dict[str, Any] = {
 }
 
 
+# Intake's key-question ledger (duty 9): the catalog categories and the routes a question can take, as the template
+# names them (pilot X1-T, docs/experiments/question-record-20261031).
+QUESTION_CATEGORIES = tuple(f"K{number}" for number in range(1, 12))
+QUESTION_ROUTES = ("inspect", "research", "experiment", "default", "person")
+QUESTION_ROW = {"blocks": "...", "category": "...", "changes": "...", "default": "...", "id": "Q1", "question": "...",
+                "route": "|".join(QUESTION_ROUTES)}
 STEP_PROOF_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
 # The Test targets row a test command runs on, asked for when a target keeps state (run-5 batch F3).
 TARGET_PLACEHOLDER = "<the Test targets row it runs on; delete this key for a command on the checkout>"
@@ -5107,6 +5180,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     }
     if stage == primary.STAGE:
         result["primary"] = [primary.PLACEHOLDER]
+    if stage == "intake":
+        # The key-question ledger (intake duty 9), in the shape pilot X1 and X1-T measured (docs/experiments/
+        # question-record-20261031): one row per catalog category, one per question.
+        result["question_categories"] = [{"applies": "yes", "id": "K1"}, {"applies": "no", "id": "K10", "reason": "..."}]
+        result["questions"] = [dict(QUESTION_ROW)]
     if stage == "test-strategy":
         result["test_layers"] = [dict(layers.ROW_TEMPLATE)]
         result["targets"] = [dict(layers.TARGET_TEMPLATE)]
@@ -6359,7 +6437,7 @@ _RECORDED_GATES = {
     "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
                      "command naming an unlisted one, deps that are not earlier steps, a step without its criteria "
                      "or its proof, a step path the item does not declare, a criterion no step satisfies, a step "
-                     "that only changes test files)",
+                     "that only changes test files, a Proof needing an unwritten test or a later step's file)",
     "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
     "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
                        "consumer_entry whose sources are not files in the repository",
@@ -7022,6 +7100,9 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     ``KeyError`` if a ``RECORDED_COMMANDS`` field owned by ``stage`` has no ``_RECORDED_GATES`` entry.
     """
     gates = []
+    if stage == request_file.INTAKE:
+        gates.append("a summary that leaves a sentence of the request uncited (each S<n> of RUN/request.md)")
+        gates.append("a key-question ledger that is malformed or keeps a template placeholder")
     if stage == "plan":
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
                      "open assumption without a due_item naming a work item in this plan")
@@ -9574,6 +9655,8 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_test_commands(current, submitted)
     _check_focused_ids_new(state, current, submitted)
     _check_focused_guards(current, submitted)
+    _check_proof_inputs(state["repo"], current, submitted)
+    _check_intake_questions(current, submitted)
     _check_added_tests(state, current, submitted)
     _check_submitted_consumer_entry(state["repo"], current, submitted)
     _check_submitted_recorded_commands(current, submitted)
@@ -9749,6 +9832,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_guards(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_proof_inputs(
+                        state["repo"], child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_added_tests(state, child["stage"], final_result)
                     _check_submitted_layers(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)

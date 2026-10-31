@@ -847,6 +847,30 @@ DUTIES = {
    whom; what the runtime already provides. Answer from the request, else record the default and what it rules out.
 7. A request that continues an earlier run follows Prior-run and recovery guidance.
 8. Implement nothing; add no scope. `evidence_refs`: each source used.
+9. Key questions. Ask the key questions about this request before anything is planned. For each category
+   below decide whether it applies to this request (`question_categories`; one that does not apply gives its
+   reason in a few words). For each that applies, write in `questions` the questions whose answers would
+   change a requirement, a design decision, a test or the delivery, and only those.
+   Per question: `id` (Q1, Q2, ...), `category`, the `question`, `changes` (the requirement, decision, test or
+   delivery step its answer changes), `route` (inspect: the repository or environment answers it; research:
+   documentation or other sources answer it; experiment: only running something answers it; default: no evidence
+   can answer it, so the run assumes `default` and records it; person: only a person can decide it), `default` (the
+   answer the run assumes and records if nothing settles it) and `blocks` (what cannot proceed until it is
+   settled, or "nothing: the default proceeds").
+   - K1 Outcome and consumer: who uses the result, through which entry point, and what observation shows it works?
+   - K2 Scope and preserved behaviour: what is in and out, and what existing behaviour must not change?
+   - K3 Interfaces and contracts: the exact inputs, outputs, commands, endpoints, files or messages, their names,
+     shapes, status codes and errors.
+   - K4 Rules and edge cases: the domain rules, limits, invalid inputs, boundaries and end conditions.
+   - K5 State and data: what state exists, who owns it, where it lives and for how long, who may see it, and what
+     happens on a concurrent change or a restart.
+   - K6 Runtime and dependencies: language and runtime versions, allowed or forbidden dependencies, configuration
+     (ports, environment variables, files).
+   - K7 Structure: the modules or seams the behaviour needs so it can be tested and changed in isolation.
+   - K8 Verification: the test framework, its command, and the check that observes each outcome at its real boundary.
+   - K9 Delivery: where the result must run or be delivered, and the access that needs.
+   - K10 Quality attributes: performance, security, accessibility, interface polish or other bounds.
+   - K11 Risks: what would most likely make this work fail or be rejected, and what would show it early.
 """,
     "discovery": """\
 1. Baseline first (Initial repository baseline guide): find the starting directory, its instructions and a safe

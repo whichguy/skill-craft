@@ -4,6 +4,27 @@ Written by scripts/release.py.
 
 ## 2026-10-31
 
+### skill-craft 2.26.0
+
+- Skills: shiploop 1.25.0
+
+### shiploop 1.25.0
+
+- The intake packet's Checked-by line now names the check ShipLoop already ran there: a summary that leaves a sentence of
+  the request uncited (each S<n> of RUN/request.md) is refused. The model met that rule only as a refusal before.
+- Intake asks the key questions about the request through a category catalog (K1 outcome and consumer to K11 risks) and
+  records them in its result: `question_categories` (each of K1-K11, applies or not with a reason) and `questions` (id,
+  category, question, what it changes, route, default, what it blocks). On Codex Terra 6.1 the shipped intake raised 49%
+  of the decisions a vague request leaves open (51% at xhigh effort); with the ledger it raised 91% (98% at xhigh). The
+  gain reaches the spec (spec carried 0.90 of those decisions against 0.78). The template asks for both fields; ShipLoop
+  checks their shape when present, keeps them in the stored intake result for the stages after it, and refuses them at
+  another stage.
+- Step-plan now refuses a step whose Proof cannot pass when that step's implement reports done: a Proof that runs a test
+  file the item base lacks and no earlier step declares (implement writes no tests, and the step's test stage writes them
+  only after its implement), or one that reads a file the base lacks which only a later step declares. Before, this fault
+  was found only after a whole implement Until Loop, as a send-back to step-plan: 9 of the 12 implement send-backs in the
+  saved runs of 2026-10-03 to 10-31 (8 on Codex Terra 6.1 xhigh). The step-plan Checked-by line names it.
+
 ### skill-craft 2.25.2
 
 - Skills: shiploop-e2e-audit 0.7.14

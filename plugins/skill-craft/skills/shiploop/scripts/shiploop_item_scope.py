@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import re
+import shlex
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -57,6 +59,82 @@ def classify(path: str, catalog: Optional[Mapping[str, Any]] = None) -> str:
         if any(_matches(path, pattern) for pattern in catalog["classes"][name]):
             return name
     return "code"
+
+
+_PATHLIKE = re.compile(r"^[\w.@-][\w./@+-]*$")
+_EXTENSION = re.compile(r"\.[A-Za-z][A-Za-z0-9]{0,5}$")
+_SHELL_WORDS = frozenset(("&&", "||", "|", ";", ">", ">>", "<", "2>&1", "&"))
+
+
+def command_paths(command: str) -> List[str]:
+    """The repository-relative file paths a shell command line names, best effort, in order and without repeats.
+
+    Options, words without a slash or a file extension, absolute paths, paths that leave the repository (``../``), URLs,
+    assignments and code passed inline (the one word ``node -e "..."`` quotes) are skipped; a ``file::test`` selector
+    keeps its file.  The SG1 replay tool's reading (docs/experiments/sdlc-gates-20261030/sg1_proof_order.py
+    ``proof_paths``) plus the ``../`` rule, which the shipped rule's replay needed: a Proof running
+    ``../run/scratch/proofs/W1-S1.test.js`` (a script in the run's scratch folder) is not a repository test.
+    """
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        words = command.split()
+    paths = []
+    for word in words:
+        if word in _SHELL_WORDS or word.startswith("-") or "://" in word or word.startswith("/") or "=" in word:
+            continue
+        word = word.split("::", 1)[0]
+        word = word[2:] if word.startswith("./") else word
+        if word.startswith("../") or "/../" in word:
+            continue
+        if _PATHLIKE.match(word) and ("/" in word or _EXTENSION.search(word)) and not word.endswith("/"):
+            paths.append(word)
+    return list(dict.fromkeys(paths))
+
+
+def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) -> str:
+    """Why a step plan has a step whose Proof cannot pass when that step's implement reports done, or "" (SDLC gates D6,
+    docs/shiploop-sdlc-gates-proposal-2026-10-30.md §5 SG1; replay evidence docs/experiments/question-record-20261031).
+
+    A step's Proof runs at its implement's done, before that step's test stage writes its tests, and implement writes no
+    tests.  ``exists(path)`` answers for the item base.  Rule A: a Proof that names a test-class path the base lacks
+    cannot pass unless an earlier step declares that path in its ``paths`` (that step's test stage has written it by
+    then), or the whole item is tests.  Rule B: a Proof that names a path the base lacks which only a later step declares
+    needs that later step.  Paths are read from the Proof by ``command_paths``.  In the saved runs of 2026-10-03 to 10-31,
+    9 of the 12 implement send-backs were this fault (8 on Codex Terra xhigh, 1 on DeepSeek flash), each found only after
+    a whole implement Until Loop.
+    """
+    item_paths = [str(path) for path in plan.get("paths") or ()]
+    if item_paths and all(classify(path) == "test" for path in item_paths):
+        return ""
+    steps = [step for step in plan.get("steps") or () if isinstance(step, Mapping)]
+    ids = [str(step.get("id")) for step in steps]
+    declared: Dict[str, List[str]] = {}
+    for step in steps:
+        for path in step.get("paths") or ():
+            declared.setdefault(str(path), []).append(str(step.get("id")))
+    for index, step in enumerate(steps):
+        proof = step.get("proof")
+        if not isinstance(proof, str):
+            continue
+        name, earlier, later = ids[index], set(ids[:index]), set(ids[index + 1:])
+        for path in command_paths(proof):
+            if exists(path):
+                continue
+            owners = declared.get(path, [])
+            if classify(path) == "test" and not earlier.intersection(owners):
+                return ("step " + name + "'s Proof runs " + path + ", which the item base does not have and no earlier "
+                        "step declares: implement writes no tests, and " + name + "'s test stage writes its tests only "
+                        "after its implement, so this Proof cannot pass when " + name + "'s implement reports done. "
+                        "Prove " + name + " with a command that runs its behaviour directly (a short script with "
+                        "assertions, an existing test or a recorded command), keep " + path + " in the focused command "
+                        "for the test stage, then run the same callback again.")
+            if later.intersection(owners) and name not in owners and not earlier.intersection(owners):
+                return ("step " + name + "'s Proof reads " + path + ", which the item base does not have and only a "
+                        "later step (" + ", ".join(owner for owner in owners if owner in later) + ") declares: the "
+                        "Proof needs that later step's work. Move that work into " + name + " or an earlier step, or "
+                        "prove " + name + " without it, then run the same callback again.")
+    return ""
 
 
 def behavioural_paths(paths: Sequence[str], catalog: Optional[Mapping[str, Any]] = None) -> List[str]:
@@ -281,6 +359,7 @@ def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> st
 
 __all__ = ("DOCUMENT_STAGE", "LEFT_OUT_STAGES", "NOT_APPLICABLE", "TEST_STAGES", "ItemScopeError",
            "NO_BASE", "UNREADABLE",
-           "behavioural", "behavioural_paths", "changed_paths", "changed_paths_or_reason", "changed_since", "classify", "commit_item",
+           "behavioural", "behavioural_paths", "changed_paths", "changed_paths_or_reason", "changed_since", "classify",
+           "command_paths", "commit_item", "proof_order_refusal",
            "commit_scope", "declared", "left_out", "no_document_item", "no_test_item", "normalise_paths", "outside",
            "scope_refusal", "withheld")
