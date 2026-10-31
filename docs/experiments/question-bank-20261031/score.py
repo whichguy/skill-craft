@@ -38,12 +38,13 @@ def rows_of(arm, result):
     return rows, kinds
 
 
-def collect():
-    mapping = json.loads((HERE / "judge" / "mapping.json").read_text())
+def collect(judge_dir=HERE / "judge", prefix="qb1-"):
+    """Every graded output of a judge folder (QB1's by default; QB3's is judge3 with the prefix qb3-)."""
+    mapping = json.loads((judge_dir / "mapping.json").read_text())
     runs, unverified = [], []
     for name, labels in mapping.items():
-        case_id = name.removeprefix("qb1-").rsplit("-", 1)[0]
-        verdict = judge_json(HERE / "judge" / f"{name}.out.json")["outputs"]
+        case_id = name.removeprefix(prefix).rsplit("-", 1)[0]
+        verdict = judge_json(judge_dir / f"{name}.out.json")["outputs"]
         decisions = [g["id"] for g in CASE[case_id]["ground_truth"]]
         for label, info in labels.items():
             out = HERE.parent / info["file"]

@@ -201,6 +201,45 @@ pre-registration commit; QB1's calls do not use either.
 **Reproduce:** `python3 qb2.py build && python3 qb2.py jobs`; `QB_WORK=<scratch> python3 run.py jobs-qb2.tsv --limit=codex=4`;
 `python3 qb2.py judge`; `QB_WORK=<scratch> python3 run.py jobs-judge-qb2.tsv --limit=opus=4`; `python3 qb2.py score`.
 
+## QB3: do terse answers cut the cost, and is the saving the bank's or the cap's? (registered after QB1's token counts, before any judge result)
+
+**Order of events, stated so the reader can weigh it.** QB1's 160 subject calls finished and their token counts were read
+(from the envelopes' usage; no judge involved) before QB3 was designed. No judge call, of QB1 or of QB3, had returned when
+this section was committed. QB1's judge calls are unchanged (six arms) and do not include Qt or Bt.
+
+**Why.** QB1's R3 asks a fixed bank to cut output tokens to 0.75 of the shipped ledger's or less. The token counts already
+show the full-sentence bank misses that clause. Mean output tokens per run, 32 runs per arm (reasoning tokens; uncached input
+tokens): A 636 (242; 3,102), B 2,153 (448; 3,336), Bq 2,160 (431; 3,367), Bs 2,170 (389; 3,366), Qb 1,854 (372; 3,306), Sb
+1,995 (442; 3,316). So Qb is 0.86 of B and Sb 0.93, against a ceiling of 1,615 for 0.75; and the ledger's wording changes
+nothing (Bq and Bs are within 1% of B). Where the tokens go: the bank's 20 answers average 24 words (median 22; 93% are over
+12 words), the ledger's `default` field 22 words and its `question` 15, and the `summary` every arm writes 200 to 270 words.
+The saving left is answer length, and a cap on it is the cheapest test of the owner's "lower token expense". The surveyed
+literature points the same way but is outside this repository's measure (Ghosh et al., arXiv 2605.20149: a checklist prompt
+used fewer tokens than a raw or a clarifying-question prompt; Goel et al., arXiv 2610.37830: a fixed checklist answered first,
+on smart contracts).
+
+**Arms.** **Qt:** Qb plus one sentence, "Keep each `answer` to 12 words or fewer." **Bt:** B plus one sentence, "Keep every
+field of a row to 12 words or fewer." Bt is the control: without it, a saving of Qt over B could be the cap's, not the bank's.
+4 cases and samples 1 to 4 give 16 runs per arm (`jobs-qb3.tsv`, 32 subject calls). `qb3.py build` makes the prompts from
+QB1's and checks each differs from its base by the one sentence.
+
+**Judge.** Per case and sample pair (samples 1-2 and 3-4), the eight outputs of B, Qb, Qt and Bt, shuffled with the seed
+`qb3-<case>-<pair>`, X1's judge text, Opus, quotes checked by script (`judge3/`). B and Qb are QB1's own samples 1-4, so each
+comparison is graded in one call.
+
+**Rules** (decided now; the tests are QB1's, on 16 runs per arm, tokens to the nearest 10):
+- **R6, the cap cuts the bank's cost (Qt against Qb):** output tokens at most 0.80 of Qb's with p < 0.05, recall at least
+  recall(Qb) - 0.03, default agreement at least agreement(Qb) - 0.02, and noise share at most noise share(Qb) + 0.05.
+- **R7, the bank against the ledger at equal terseness (Qt against Bt):** output tokens at most 0.85 of Bt's with p < 0.05
+  and recall at least recall(Bt) - 0.03. If it fails, the saving belongs to the cap, not to the bank.
+- **R8, replacing B in intake item 9:** Qt, and separately Bt, replaces B only if recall is at least recall(B) - 0.03, output
+  tokens at most 0.75 of B's, agreement at least agreement(B) - 0.02 and noise share at most noise share(B) + 0.05. If both
+  hold, Bt is the smaller change (B plus one sentence) and is preferred unless R7 holds.
+
+**Cannot settle:** everything QB1 cannot; the cap is one number (12 words) read off the lengths above, not tuned; 16 runs per
+arm cannot separate differences of a few points of recall; a shorter answer may carry less for the next stage (the spec),
+which nothing here measures.
+
 ## Results
 
 (appended after the runs)
