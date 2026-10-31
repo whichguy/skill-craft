@@ -26,6 +26,11 @@ Small scenario sets in temporary folders, on the node-base fixture (plain files)
   subprocesses ``--jobs`` at once, records a sample that crashes or is killed for time as not run (never a pass, the others go
   on), exits 0 / 1 by the ``live.pass`` rule, and ``grade`` and ``report`` (also ``--compare``, refused for different drivers)
   read the results root it left.
+  Also: ``--timeout`` must be a finite positive number (nan, inf and 1e400 are refused); the hidden ``live-sample`` command's exit
+  codes (pass, fail, refused, crashed, stopped); the plan's ``min(rule, samples)``; no sample starts once ``live`` was told to end;
+  the parent's hard limit is ``--timeout`` plus ``SAMPLE_GRACE_SECONDS``; a ledger sweep that could not see or stop a host is
+  printed and kept in error.txt; the Signals cases (an ignored SIGHUP stays ignored, two SIGTERMs or a SIGTERM and a SIGINT
+  escalate, a host ended only by the sample's own handler, one ended only by the ledger sweep).
 - The shipped scenarios (test/shiploop_e2e/stage_cases) verify and render, and the guide's example selectors select something.
 - The runner is outside the evaluator digest and the qualification snapshot, as the probes are (test/shiploop-e2e-sdlc-probes.test.py).
 """
@@ -43,6 +48,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -719,7 +725,8 @@ def process_env(*argv: str, cwd: Path, env: dict) -> subprocess.CompletedProcess
 
 class NoLaunch(Catalog):
     """Patches that fail the test when anything is built or launched: the process launcher, the sample, the builder and the
-    results-root maker; every process started through subprocess.Popen is recorded (``spawned``) and still runs."""
+    results-root maker; a ``live-sample`` process raises AssertionError instead of starting, and every other process started
+    through subprocess.Popen (the read-only git a --ref check asks) is recorded (``spawned``) and still runs."""
 
     def setUp(self):
         super().setUp()
@@ -727,7 +734,10 @@ class NoLaunch(Catalog):
         real = subprocess.Popen
 
         def spy(*args, **kwargs):
-            self.spawned.append(args[0] if args else kwargs.get("args"))
+            argv = args[0] if args else kwargs.get("args")
+            if isinstance(argv, list) and "live-sample" in argv:  # a sample is a model-costing process: never run one here
+                raise AssertionError(f"a live sample was started: {argv[:5]}")
+            self.spawned.append(argv)
             return real(*args, **kwargs)
 
         patcher = mock.patch("subprocess.Popen", spy)
@@ -804,6 +814,22 @@ class LiveSelection(NoLaunch):
         code, out, err = cli("live", "--dry-run", "--samples", "1", "--cases-dir", str(cases))  # a rule is never above the samples
         self.assertIn("validate-existing/two-of-two: 1 sample, passes when 1 pass", out)
         self.assertNothingStarted()
+
+
+class PlanArithmetic(Temp):
+    def test_the_rule_never_asks_for_more_samples_than_there_are(self):
+        """The schema keeps ``live.pass`` within ``live.samples``, but ``--samples`` can lower the samples below the rule."""
+        sc = sb.load("validate-existing/s", self.one("s", live={"samples": 4, "pass": 3}))
+
+        def plan(samples):
+            return stages._sample_plan(sc, type("Args", (), {"samples": samples})())
+
+        self.assertEqual(plan(None), {"samples": 4, "required": 3, "rule": 3})
+        self.assertEqual(plan(2), {"samples": 2, "required": 2, "rule": 3}, "two samples cannot be asked to pass three times")
+        self.assertEqual(plan(3), {"samples": 3, "required": 3, "rule": 3})
+        self.assertEqual(plan(9), {"samples": 9, "required": 3, "rule": 3})
+        everything = sb.load("validate-existing/t", self.one("t", live={"samples": 4, "pass": "all"}))
+        self.assertEqual(stages._sample_plan(everything, type("Args", (), {"samples": 2})()), {"samples": 2, "required": 2, "rule": "all"})
 
 
 class LiveDryRun(NoLaunch):
@@ -917,6 +943,20 @@ class LiveRefusals(NoLaunch):
                 code, out, err = cli("live", "validate-existing/broken", *argv, "--cases-dir", str(self.cases))
                 self.assertEqual((code, out), (2, ""))  # a usage error comes before the plan
                 self.assertIn(wanted, err)
+        self.assertNothingStarted()
+
+    def test_a_timeout_that_is_not_finite_is_refused_inf_included(self):
+        """nan and inf (and 1e400, which float() reads as inf) pass a plain `<= 0` check and would give a sample no bound: inf is
+        refused too, since every sample is bounded (DEFAULT_TIMEOUT) and `--timeout` plus the grace is the parent's kill time."""
+        for value in ("nan", "inf", "1e400"):
+            with self.subTest(timeout=value):
+                code, out, err = cli("live", "validate-existing/broken", "--dry-run", "--timeout", value, "--cases-dir", str(self.cases))
+                self.assertEqual((code, out), (2, ""))
+                self.assertIn("--timeout must be a positive number", err)
+                self.assertRegex(err, r"nan or inf|finite")
+        for value in ("0.5", "3600", "1e6"):
+            with self.subTest(timeout=value):
+                self.assertEqual(cli("live", "validate-existing/broken", "--dry-run", "--timeout", value, "--cases-dir", str(self.cases))[0], 0)
         self.assertNothingStarted()
 
     def test_the_fake_host_is_refused_without_the_second_switch_and_when_it_is_not_a_file(self):
@@ -1254,6 +1294,221 @@ class TimedOutSamples(FakeRoute):
         self.assertIn("not run: validate-existing/wrong-check #1: killed", shown)
 
 
+class TimeoutWiring(FakeRoute):
+    """``--timeout`` reaches the sample and the parent's hard limit is built from it: a real `live` with a host that lingers, and
+    the call the parent makes to wait for its child, with no constant patched."""
+
+    def test_a_timeout_on_the_command_line_ends_a_lingering_host_and_the_sample_is_graded_with_a_timeout_session(self):
+        started = time.monotonic()
+        done, root = self.live(WRONG, "--samples", "1", "--timeout", "3", config={"mode": "wait", "linger": 120})
+        self.assertLess(time.monotonic() - started, 100, "the host lingers for 120 s: the timeout ended it")
+        self.assertEqual(done.returncode, 1, done.stdout[-1500:] + done.stderr)
+        self.assertIn("FAIL  validate-existing/wrong-check #1", done.stdout)
+        self.assertNotIn("NOT RUN", done.stdout)
+        folder = root / WRONG / "1"
+        result = json.loads((folder / "stage-result.json").read_text())
+        self.assertEqual([session["status"] for session in result["sessions"]], ["timeout"])
+        self.assertEqual((result["verdicts"]["process"], result["verdicts"]["accepted"], result["pass"]), (False, False, False))
+        self.assertEqual(json.loads((folder / "invocation.json").read_text())["timeout"], 3.0)
+        self.assertEqual(json.loads((root / "live-plan.json").read_text())["timeout"], 3.0)
+
+    def test_the_parent_waits_for_its_sample_at_most_the_timeout_plus_the_grace(self):
+        waits, argvs = [], []
+
+        class Child:
+            pid = 2 ** 22 + 1  # not a process of ours: nothing is signalled in this test
+
+            def wait(self, timeout=None):
+                waits.append(timeout)
+                return 0
+
+            def poll(self):
+                return 0
+
+        def popen(argv, **kwargs):
+            argvs.append(argv)
+            return Child()
+
+        cases = self.tmp / "cases-hard-limit"
+        if not cases.exists():
+            scenario(cases, "validate-existing", "s")
+        args = type("Args", (), {"host": None, "backend": None, "model": None, "effort": None, "host_bin": None, "ref": None,
+                                 "timeout": 3.0})()
+        root = self.tmp / "results-hard-limit"
+        with mock.patch.object(stages.subprocess, "Popen", popen):
+            record = stages.run_one_sample(sb.load("validate-existing/s", cases), 1, root, args, cases, None)
+        self.assertEqual(waits, [3.0 + stages.SAMPLE_GRACE_SECONDS])
+        self.assertGreater(stages.SAMPLE_GRACE_SECONDS, 3, "the grace is a real allowance for the build, the seed and the exports")
+        argv = argvs[0]
+        self.assertEqual(argv[argv.index("--timeout") + 1], "3.0")
+        self.assertFalse(record["graded"])
+        args.timeout = None  # no timeout, no hard limit (the command line always gives one: DEFAULT_TIMEOUT)
+        waits.clear()
+        with mock.patch.object(stages.subprocess, "Popen", popen):
+            stages.run_one_sample(sb.load("validate-existing/s", cases), 2, root, args, cases, None)
+        self.assertEqual(waits, [None])
+
+
+class LiveSampleCodes(Catalog):
+    """The hidden `live-sample` command's exit codes: the parent reads the files, but a person running one sees these."""
+
+    def code(self, **outcome) -> tuple[int, str, str]:
+        driver = type("Driver", (), {"host": object(), "plugin_dir": None})()
+        with mock.patch.object(stages.run, "install_termination_handlers"), mock.patch.object(stages, "resolve_driver", return_value=driver), \
+             mock.patch.object(stages.stage_live, "run_sample", **outcome) as sample:
+            result = cli("live-sample", "validate-existing/broken", str(self.temp / "sample"), "--sample", "2", "--cases-dir", str(self.cases))
+        sample.assert_called_once()
+        return result
+
+    def test_a_graded_pass_is_0_and_a_graded_fail_is_1_and_either_prints_the_verdict(self):
+        code, out, err = self.code(return_value={"pass": True, "value": 1.0})
+        self.assertEqual((code, json.loads(out)), (stages.EXIT_PASS, {"scenario": "validate-existing/broken", "sample": 2, "pass": True, "value": 1.0}))
+        code, out, err = self.code(return_value={"pass": False, "value": 0.5})
+        self.assertEqual((code, json.loads(out)["pass"]), (stages.EXIT_FAIL, False))
+        self.assertEqual((stages.EXIT_PASS, stages.EXIT_FAIL), (0, 1))
+
+    def test_a_refusal_is_2_a_stop_is_5_and_a_crash_is_4_with_its_traceback(self):
+        code, out, err = self.code(side_effect=SystemExit("the host is not ready. Nothing was started."))
+        self.assertEqual((code, out), (stages.EXIT_USAGE, ""))
+        self.assertIn("Nothing was started.", err)
+        code, out, err = self.code(side_effect=stages.stage_live.SampleStopped("the host was ended: stopped by the operator"))
+        self.assertEqual((code, out), (stages.EXIT_STOPPED, ""))
+        self.assertIn("stopped: the host was ended", err)
+        code, out, err = self.code(side_effect=RuntimeError("the sample raised"))
+        self.assertEqual((code, out), (stages.EXIT_CRASH, ""))
+        self.assertIn("Traceback", err)
+        self.assertIn("RuntimeError: the sample raised", err)
+        self.assertEqual((stages.EXIT_USAGE, stages.EXIT_CRASH, stages.EXIT_STOPPED), (2, 4, 5))
+
+
+class NoSampleOnceTold(NoLaunch):
+    def test_no_sample_process_is_started_once_live_was_told_to_end(self):
+        stages.STOPPING.set()
+        self.addCleanup(stages.STOPPING.clear)
+        args = type("Args", (), {"host": None, "backend": None, "model": None, "effort": None, "host_bin": None, "ref": None,
+                                 "timeout": 60.0})()
+        record = stages.run_one_sample(sb.load("validate-existing/broken", self.cases), 1, self.temp / "results", args, self.cases, None)
+        self.assertFalse(record["graded"])
+        self.assertIn("`live` was told to end", record["reason"])
+        self.assertIn("could not be started", record["reason"])
+        self.assertNothingStarted()
+
+
+class SweepReport(Temp):
+    """The ledger sweep of a sample that was killed from outside: what it could not see or could not stop is said, printed and
+    kept in the sample's error.txt; a sweep that did its work says nothing."""
+    CLEAN = {"observed": True, "stopped": [{"pgid": 7, "role": "host", "ended_by": "SIGKILL", "members": 1}], "survived": [], "gone": [],
+             "reused": [], "unverified": [], "protected": []}
+    SURVIVED = {**CLEAN, "stopped": [], "survived": [{"pgid": 77, "role": "host", "command": "fake", "members": [{"pid": 78, "command": "x"}]}]}
+    UNSEEN = {"observed": False, "reason": "ps timed out after 10s"}
+
+    def sweep(self, record: dict, before: str = "") -> tuple[str, str]:
+        folder = Path(tempfile.mkdtemp(prefix="sweep-", dir=self.temp))
+        if before:
+            (folder / "error.txt").write_text(before)
+        err = io.StringIO()
+        with mock.patch.object(stages.stage_live, "end_recorded_hosts", return_value=record), contextlib.redirect_stderr(err):
+            stages._sweep(folder)
+        kept = (folder / "error.txt").read_text() if (folder / "error.txt").exists() else ""
+        return err.getvalue(), kept
+
+    def test_a_host_that_survived_is_printed_and_appended_to_error_txt(self):
+        printed, kept = self.sweep(self.SURVIVED, "live-sample exited -9: Killed\n")
+        self.assertIn("could not stop host group 77", printed)
+        self.assertTrue(kept.startswith("live-sample exited -9: Killed\n"), kept)
+        self.assertIn("could not stop host group 77", kept)
+
+    def test_a_ledger_that_could_not_be_observed_is_printed_and_kept(self):
+        printed, kept = self.sweep(self.UNSEEN)
+        self.assertIn("not observed: ps timed out after 10s", printed)
+        self.assertIn("not observed: ps timed out after 10s", kept)
+
+    def test_a_sweep_that_stopped_the_host_or_found_nothing_says_nothing(self):
+        for record in (self.CLEAN, {**self.CLEAN, "stopped": []}):
+            printed, kept = self.sweep(record, "live-sample exited -9\n")
+            self.assertEqual((printed, kept), ("", "live-sample exited -9\n"))
+
+    def test_run_one_sample_keeps_why_it_was_not_run_and_then_what_the_sweep_could_not_do(self):
+        class Killed:
+            pid = 2 ** 22 + 1
+
+            def wait(self, timeout=None):
+                return -9
+
+            def poll(self):
+                return -9
+
+        cases = self.temp / "cases"
+        scenario(cases, "validate-existing", "s")
+        args = type("Args", (), {"host": None, "backend": None, "model": None, "effort": None, "host_bin": None, "ref": None,
+                                 "timeout": 60.0})()
+        err = io.StringIO()
+        with mock.patch.object(stages.subprocess, "Popen", lambda argv, **kwargs: Killed()), \
+             mock.patch.object(stages.stage_live, "end_recorded_hosts", return_value=self.SURVIVED), contextlib.redirect_stderr(err):
+            record = stages.run_one_sample(sb.load("validate-existing/s", cases), 1, self.temp / "results", args, cases, None)
+        self.assertFalse(record["graded"])
+        self.assertTrue(record["reason"].startswith("live-sample exited -9"), record["reason"])
+        kept = (self.temp / "results" / "validate-existing" / "s" / "1" / "error.txt").read_text()
+        self.assertTrue(kept.startswith("live-sample exited -9"), kept)
+        self.assertIn("could not stop host group 77", kept)
+        self.assertIn("could not stop host group 77", err.getvalue())
+
+
+class EscalateUnit(Temp):
+    """``_escalate`` with its exit, its kill and its sweep replaced: what it does to the samples it finds, in what order."""
+
+    class Exit(Exception):
+        pass
+
+    def escalate(self, children) -> tuple[list, list, list]:
+        killed, swept, said = [], [], io.StringIO()
+
+        def leave(code):
+            said.write(f"exit {code}\n")
+            raise self.Exit(code)
+
+        self.addCleanup(stages.STOPPING.clear)
+        with mock.patch.object(stages, "CHILDREN", children), \
+             mock.patch.object(stages.os, "killpg", lambda pid, number: killed.append((pid, number))), \
+             mock.patch.object(stages, "_sweep", swept.append), mock.patch.object(stages.os, "_exit", leave), \
+             contextlib.redirect_stderr(said), self.assertRaises(self.Exit) as left:
+            stages._escalate(signal.SIGTERM)
+        self.assertEqual(left.exception.args, (128 + signal.SIGTERM,))
+        return killed, swept, [said.getvalue()]
+
+    def test_every_running_sample_is_killed_with_its_group_and_its_ledger_swept_before_live_leaves(self):
+        class Fake:
+            def __init__(self, pid):
+                self.pid = pid
+
+        one, two = Fake(4_000_001), Fake(4_000_002)
+        folders = {one: self.temp / "one", two: self.temp / "two"}
+        killed, swept, said = self.escalate(dict(folders))
+        self.assertEqual(sorted(killed), [(4_000_001, signal.SIGKILL), (4_000_002, signal.SIGKILL)])
+        self.assertEqual(sorted(swept), [self.temp / "one", self.temp / "two"], "each sample's ledger is the only way to its host")
+        self.assertTrue(stages.STOPPING.is_set())
+        self.assertIn("a second signal (SIGTERM)", said[0])
+
+    def test_no_new_sample_can_slip_in_between_the_copy_and_the_stop_flag(self):
+        """A worker registers its sample, then reads STOPPING and ends the sample itself when it is set: so the flag must be set
+        before the copy of the samples is taken, or a sample registered just after the copy would be left running."""
+        seen = []
+
+        class Watching(dict):
+            def items(self):
+                seen.append(stages.STOPPING.is_set())
+                return super().items()
+
+        self.escalate(Watching())
+        self.assertEqual(seen, [True])
+
+
+def ps_field(pid: int, field: str) -> str:
+    """One field of ``ps`` for ``pid`` ("" when ps lists none): the same on Linux and macOS, unlike /proc."""
+    done = subprocess.run(["ps", "-o", f"{field}=", "-p", str(pid)], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=30)
+    return done.stdout.strip()
+
+
 def process_alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -1261,14 +1516,16 @@ def process_alive(pid: int) -> bool:
         return False
     except PermissionError:
         return True
-    try:  # a zombie ended and is not reaped yet
-        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] != "Z"
-    except OSError:
-        return True
+    return not ps_field(pid, "stat").startswith("Z")  # a zombie ended and is not reaped yet
 
 
 def parent_of(pid: int) -> int:
-    return int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[1])
+    return int(ps_field(pid, "ppid"))
+
+
+def ignore_sighup() -> None:
+    """Child set-up for the case a launch under nohup makes: SIGHUP is ignored, and is handed down to every process below."""
+    signal.signal(signal.SIGHUP, signal.SIG_IGN)
 
 
 def default_sighup() -> None:
@@ -1278,18 +1535,25 @@ def default_sighup() -> None:
     signal.signal(signal.SIGHUP, signal.SIG_DFL)
 
 
+def default_signals() -> None:
+    """``default_sighup`` and the same for SIGINT: a test run started in the background of a non-interactive shell has SIGINT
+    ignored, which a child inherits, and `live` keeps an ignored signal ignored."""
+    default_sighup()
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+
+
 class Signals(FakeRoute):
     """A real `live` process with a fake host that waits for two minutes, and a signal to it or to its sample. The host runs in a
     session of its own, so only a handler (or the ledger) can end it: none may outlive the command."""
 
-    def start(self, config: dict | None = None) -> tuple[subprocess.Popen, Path, int]:
+    def start(self, config: dict | None = None, preexec=default_signals) -> tuple[subprocess.Popen, Path, int]:
         type(self).count += 1
         root = self.tmp / f"results-{self.count}"
         pid_file = self.tmp / f"host-{self.count}.pid"
         process = subprocess.Popen([sys.executable, "-B", str(STAGES), "live", WRONG, "--samples", "1", "--out", str(root)],
                                    cwd=self.tmp, env=self.env({"mode": "wait", "pid_file": str(pid_file), **(config or {})}),
                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                   preexec_fn=default_sighup)
+                                   preexec_fn=preexec)
         self.addCleanup(lambda: process.poll() is None and process.kill())
         deadline = time.monotonic() + 120
         while not (pid_file.exists() and pid_file.read_text()) and time.monotonic() < deadline:
@@ -1349,6 +1613,122 @@ class Signals(FakeRoute):
         self.assertFalse(process_alive(host), "the orphaned host was ended")
         self.assertFalse((root / WRONG / "1" / "stage-result.json").exists())
 
+    def test_a_sighup_the_launch_ignored_stays_ignored_and_nothing_is_ended(self):
+        """nohup keeps a run alive through a hangup by ignoring SIGHUP; `live` takes over only the signals that were not ignored,
+        and the samples and hosts below it inherit the ignore."""
+        process, root, host = self.start(preexec=ignore_sighup)
+        sample = parent_of(host)
+        process.send_signal(signal.SIGHUP)
+        time.sleep(5)  # well past the 2 s poll of the sample and the pool: a handler would have ended everything by now
+        self.assertIsNone(process.poll(), "live went on")
+        self.assertTrue(process_alive(sample) and process_alive(host), "the sample and its host went on")
+        self.assertEqual(sorted(path.name for path in (root / WRONG).iterdir()), ["1"])
+        process.send_signal(signal.SIGTERM)  # and the other signals still end it
+        out, err = process.communicate(timeout=120)
+        self.assertEqual(process.returncode, 128 + signal.SIGTERM, out + err)
+        self.assertFalse(process_alive(host))
+
+    def escapee_start(self) -> tuple[subprocess.Popen, Path, int, int]:
+        """A `live` whose host left a process in a session of its own that holds the host's output open: ending the sample takes
+        a long time (it is abandoned after its stop grace), so a second signal arrives while the first is still being answered."""
+        escapee_file = self.tmp / f"escapee-{self.count + 1}.pid"
+        process, root, host = self.start({"escapee": str(escapee_file)})
+        deadline = time.monotonic() + 60
+        while not (escapee_file.exists() and escapee_file.read_text()) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        escapee = int(escapee_file.read_text())
+        self.addCleanup(lambda: process_alive(escapee) and os.kill(escapee, signal.SIGKILL))
+        return process, root, host, escapee
+
+    def assertGone(self, pid: int, why: str, seconds: float = 10) -> None:
+        deadline = time.monotonic() + seconds
+        while process_alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        self.assertFalse(process_alive(pid), why)
+
+    def test_a_second_sigterm_escalates_at_once_and_leaves_no_sample_or_host_behind(self):
+        process, root, host, escapee = self.escapee_start()
+        sample = parent_of(host)
+        process.send_signal(signal.SIGTERM)
+        time.sleep(1.5)
+        self.assertIsNone(process.poll(), "the first signal is still being answered: the sample is held up by the escapee")
+        started = time.monotonic()
+        process.send_signal(signal.SIGTERM)
+        out, err = process.communicate(timeout=60)
+        self.assertLess(time.monotonic() - started, 20, "the second signal did not wait for the first to finish")
+        self.assertEqual(process.returncode, 128 + signal.SIGTERM, out + err)
+        self.assertNotIn("Traceback", err)
+        self.assertGone(sample, "the sample was killed with its group")
+        self.assertGone(host, "the host was ended")
+        self.assertTrue(process_alive(escapee), "the process in a session of its own is nobody's but its owner's")
+
+    def test_a_sigint_after_a_sigterm_escalates_too_and_does_not_hang_in_the_pool(self):
+        process, root, host, escapee = self.escapee_start()
+        sample = parent_of(host)
+        process.send_signal(signal.SIGTERM)
+        time.sleep(1.5)
+        process.send_signal(signal.SIGINT)
+        out, err = process.communicate(timeout=60)
+        self.assertEqual(process.returncode, 128 + signal.SIGINT, out + err)
+        self.assertNotIn("Traceback", err)
+        self.assertGone(sample, "the sample was killed with its group")
+        self.assertGone(host, "the host was ended")
+
+    def test_a_sighup_after_a_sigterm_counts_as_the_second_signal_and_escalates(self):
+        """Pinned, not accidental: any two of SIGTERM, SIGHUP and SIGINT in a row mean "end now" (a hangup that follows a
+        terminate is the same operator). The hosts are ended from the ledgers either way, so nothing is left running."""
+        process, root, host, escapee = self.escapee_start()
+        sample = parent_of(host)
+        process.send_signal(signal.SIGTERM)
+        time.sleep(1.5)
+        process.send_signal(signal.SIGHUP)
+        out, err = process.communicate(timeout=60)
+        self.assertEqual(process.returncode, 128 + signal.SIGHUP, out + err)
+        self.assertNotIn("Traceback", err)
+        self.assertGone(sample, "the sample was killed with its group")
+        self.assertGone(host, "the host was ended")
+
+    def test_a_second_sigint_after_a_sigint_escalates_too(self):
+        process, root, host, escapee = self.escapee_start()
+        sample = parent_of(host)
+        process.send_signal(signal.SIGINT)
+        time.sleep(1.5)
+        process.send_signal(signal.SIGINT)
+        out, err = process.communicate(timeout=60)
+        self.assertEqual(process.returncode, 128 + signal.SIGINT, out + err)
+        self.assertNotIn("Traceback", err)
+        self.assertGone(sample, "the sample was killed with its group")
+        self.assertGone(host, "the host was ended")
+
+    def test_a_second_signal_ends_the_host_of_a_sample_that_cannot_answer_by_the_ledger_sweep_alone(self):
+        """A stopped sample (SIGSTOP) runs no handler, so neither the first signal's SIGTERM to it nor its own cleanup ends the
+        host, which is in a session of its own. The second signal kills the sample's group, and only the sweep of its ledger
+        (inside the escalation) can end the host."""
+        process, root, host = self.start()
+        sample = parent_of(host)
+        os.kill(sample, signal.SIGSTOP)
+        self.addCleanup(lambda: process_alive(sample) and os.kill(sample, signal.SIGKILL))
+        process.send_signal(signal.SIGTERM)
+        time.sleep(1.5)
+        self.assertIsNone(process.poll(), "the first signal is still being answered: the stopped sample cannot")
+        self.assertTrue(process_alive(host), "nothing has ended the host yet")
+        process.send_signal(signal.SIGTERM)
+        out, err = process.communicate(timeout=60)
+        self.assertEqual(process.returncode, 128 + signal.SIGTERM, out + err)
+        self.assertNotIn("Traceback", err)
+        self.assertGone(sample, "the sample was killed with its group")
+        self.assertGone(host, "the host was ended from the sample's ledger")
+
+    def test_a_sigint_alone_ends_every_sample_the_way_a_sigterm_does(self):
+        process, root, host = self.start()
+        sample = parent_of(host)
+        process.send_signal(signal.SIGINT)
+        out, err = process.communicate(timeout=120)
+        self.assertEqual(process.returncode, 128 + signal.SIGINT, out + err)
+        self.assertIn("ended by SIGINT", err)
+        self.assertGone(sample, "the sample is gone")
+        self.assertGone(host, "the host is gone")
+
     def test_a_sample_an_operator_ended_is_not_run_through_the_command_line_too(self):
         done, root = self.live(WRONG, "--samples", "1", config={"mode": "wait", "stop_file": True})
         self.assertEqual(done.returncode, 1, done.stdout[-1500:] + done.stderr)
@@ -1362,6 +1742,70 @@ class Signals(FakeRoute):
         graded = process_env("grade", str(folder), cwd=self.tmp, env=clean_env())
         self.assertEqual(graded.returncode, 2, graded.stdout)
         self.assertIn("was not run to the end", graded.stderr)
+
+
+class WhoEndsTheHost(FakeRoute):
+    """One sample at a time through ``run_one_sample`` (a real `live-sample` process and a fake host that waits): which of the two
+    cleanups ends the host. The host is in a session of its own, so a signal to the sample does not reach it."""
+
+    def run_it(self, ended_by: str, sweeps: list) -> tuple[dict, int, Path]:
+        """Start the sample, end its process by ``ended_by`` (SIGTERM: its handler runs; SIGKILL: nothing can run) and return the
+        parent's record, the host's pid and the sample folder."""
+        type(self).count += 1
+        root = self.tmp / f"results-{self.count}"
+        pid_file = self.tmp / f"host-{self.count}.pid"
+        cases = self.tmp / f"cases-{self.count}"
+        cases.mkdir()
+        shutil.copytree(sb.SCENARIOS_DIR / "validate-existing" / "wrong-check", cases / "validate-existing" / "wrong-check")
+        args = type("Args", (), {"host": None, "backend": None, "model": None, "effort": None, "host_bin": None, "ref": None,
+                                 "timeout": 300.0})()
+        box: dict = {}
+        real = stages.stage_live.end_recorded_hosts
+
+        def spy(folder):
+            found = real(folder)
+            sweeps.append(found)
+            return found
+
+        with mock.patch.dict(os.environ, self.env({"mode": "wait", "pid_file": str(pid_file)})), \
+             mock.patch.object(stages.stage_live, "end_recorded_hosts", spy):
+            worker = threading.Thread(target=lambda: box.update(record=stages.run_one_sample(
+                sb.load(WRONG, cases), 1, root, args, cases, None)), daemon=True)
+            worker.start()
+            deadline = time.monotonic() + 120
+            while not (pid_file.exists() and pid_file.read_text()) and time.monotonic() < deadline:
+                time.sleep(0.2)
+            host = int(pid_file.read_text())
+            self.addCleanup(lambda: process_alive(host) and os.kill(host, signal.SIGKILL))
+            os.kill(parent_of(host), getattr(signal, ended_by))
+            worker.join(120)
+        self.assertFalse(worker.is_alive(), "the sample's record came back")
+        return box["record"], host, root / WRONG / "1"
+
+    def test_a_sample_told_to_end_ends_its_host_with_its_own_handler_and_the_parent_has_nothing_to_sweep(self):
+        sweeps: list = []
+        record, host, folder = self.run_it("SIGTERM", sweeps)
+        self.assertFalse(process_alive(host), "the host is gone")
+        self.assertEqual(sweeps, [], "the sample exited by itself (5: stopped), so the parent did not sweep: the handler did the work")
+        self.assertIn("exited 5", record["reason"])
+        self.assertFalse((folder / "stage-result.json").exists())
+        ended = [row for row in lifecycle_rows(folder) if row.get("kind") == "ended" and row.get("role") == "host"]
+        self.assertEqual([row["how"] for row in ended], ["session ended"], "the sample's own launch recorded the end of the host group")
+
+    def test_a_sample_that_was_killed_leaves_its_host_to_the_ledger_sweep_alone(self):
+        sweeps: list = []
+        record, host, folder = self.run_it("SIGKILL", sweeps)
+        self.assertFalse(process_alive(host), "the host is gone")
+        self.assertEqual(len(sweeps), 1, "the parent swept the ledger of the killed sample")
+        self.assertEqual([item["pgid"] for item in sweeps[0]["stopped"]], [host], "and it is the sweep that stopped the host")
+        self.assertIn("exited -9", record["reason"])
+        self.assertEqual([row["how"] for row in lifecycle_rows(folder) if row.get("kind") == "ended" and row.get("role") == "host"],
+                         ["stopped"])
+
+
+def lifecycle_rows(folder: Path) -> list[dict]:
+    import lifecycle
+    return lifecycle.rows(folder)
 
 
 class Boundary(unittest.TestCase):

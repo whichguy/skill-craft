@@ -273,10 +273,15 @@ the seeded action's packet from `packet-archive/`, and the accepted result from 
 untracked non-ignored files, with no `.git` and no ShipLoop run evidence (`.shiploop-improve/`).
 
 The stop waits for the command that accepted the action to finish (the run lock, `<run>/.lock`, free; `SETTLE_SECONDS` at most)
-before it ends the host, so `export/` holds what the engine's own post-save effects wrote. A host that is held up by a process it
-left in a session of its own is abandoned after the timeout plus `WATCHDOG_SECONDS` (or `STOP_GRACE_SECONDS` after the stop), so
-`--timeout` is a bound on the grade, though that process is left running. A sample an operator ends (the `stop` file in its
-folder, a signal) is **not graded**: it measured nothing, and the report counts it as not run.
+before it ends the host, so `export/` holds what the engine's own post-save effects wrote. What is waited for is the command's
+dispatch: the save and `accept_effects`, post-save effects included. What is **not** waited for is what the command does after
+it lets the lock go (its trace row, the start of the progress observer), and the host's group is ended right after the wait. A
+host that is held up by a process it left in a session of its own is abandoned after the timeout plus `WATCHDOG_SECONDS` (which
+exceeds `SETTLE_SECONDS`, because the wait runs past the deadline), or `STOP_GRACE_SECONDS` after the stop at acceptance or after
+an operator's stop was first seen, so `--timeout` is a bound on the grade, though that process is left running. A sample an
+operator ends (the `stop` file in its folder, SIGTERM or SIGHUP to the harness) is **not graded**, also when it arrives while the
+stop is waiting for the accepting command: it measured nothing, nothing is exported, and the report counts it as not run. When the
+host is done the sample ends what its ledger records and ShipLoop's detached progress observer, before it exports and grades.
 
 **The two tiers' seed trees differ by the knowledge home.** The verify tier composes the seed tree from files (the fixture,
 `repo/`, `worktree/`); a live sample's `seed-export/` is the execution checkout as `run.seed_run` left it, which also holds the
@@ -305,7 +310,7 @@ Selectors are the ones above. Only a scenario with `live` in its `tiers` runs; t
 | `--host H --backend B --model M --effort E --host-bin PATH` | The driver. Defaults are `slice.py`'s: `hosts.RUN_DEFAULT_HOST` and the host's own backend, model and effort. |
 | `--ref REF` | Build the plugin from a git ref (`overlay.build_ref`) instead of this checkout. The ref's navigator must have `accept_effects` (the seed seam, which the builder needs); a ref without it is refused before anything starts, naming the reason. |
 | `--overlay FILE` | Apply a template-field overlay to the plugin (`overlay.apply_to_plugin`), as `experiment.py` does. |
-| `--timeout S` | Seconds a sample's host may run before it is ended (default 3600). A sample that does not return within it plus a grace period is killed and counts as not run. |
+| `--timeout S` | Seconds a sample's host may run before it is ended (default 3600). A finite positive number: `nan`, `inf` and `1e400` are refused (every sample is bounded). A sample that does not return within it plus a grace period (`SAMPLE_GRACE_SECONDS`) is killed and counts as not run. |
 | `--out DIR` | The results root (a new folder). Default: a new `stages-live-<stamp>-<id>` folder under the harness's usual runs location. |
 | `--dry-run` | Print the plan; build nothing, launch nothing, and do not look at the host. |
 | `--cases-dir DIR`, `--json` | Scenarios from another folder; the plan or the outcome as one JSON document. |
@@ -317,18 +322,30 @@ runner.
 
 ### The sample folder
 
+This lists what the runner writes (a host may add files of its own, such as its throwaway `home/`).
+
 ```
-<root>/live-plan.json                       the plan: scenarios, samples, pass rule, driver
+<root>/live-plan.json                       the plan: scenarios, samples, pass rule, planted and control ids, driver
 <root>/.logs/                               the stdout and stderr of each sample's process
 <root>/<stage>/<scenario>/<n>/              one sample (n from 1)
+    .harness-lock                           the lock that says a harness is running the sample; `grade` refuses a folder whose lock is held
     stage-result.json                       the verdicts (rewritten by every regrade)
     invocation.json                         who ran what: host, model, effort, plugin identity, ref, overlay, the seeded block
+    prompt.txt                              the request the packet follows
+    host-prompt.txt  resume-N.txt           the prompt a host was started with, and the one it was resumed with the Nth time (hosts that take it from a file)
     seed-export/  export/                   the execution checkout before the host started, and when it was ended
     work/  .shiploop-runs/seed/{run,worktree}   the product repository, and the run and checkout the builder made
+    .stage-suite/fixture/                   the fixture composed for the build
+    build/                                  the plugin built from this checkout or from --ref (absent when a plugin folder is named)
     sessions.jsonl  events.jsonl  stderr.txt  timeline.jsonl  transcript.md  packet-archive/   the harness's own records
+    resources.jsonl                         the ledger of the process groups the sample started and ended
     drive.json                              how the resume loop ended, and how long each stop waited for the accepting command
     error.txt                               only when the sample could not be run (or was ended by an operator): why; `grade` refuses such a folder
+    export-error.txt                        only when the end export failed (every check that reads the tree then fails)
 ```
+
+`grade` also refuses a folder that was not run to the end without an `error.txt` (no export, no `export-error.txt` and no
+`stage-result.json`: a sample still running, or whose harness was killed).
 
 `stage-result.json` holds: the scenario id and stage, the sample number, the host, backend, model, effort and delegation, the plugin
 identity and versions, the ref and overlay, the `seeded` block and `action_id`, the session statuses, and
@@ -341,7 +358,7 @@ identity and versions, the ref and overlay, the `seeded` block and `action_id`, 
 | `verdicts.oracle` | The scenario's `oracle` checks passed: every planted id caught, every control held, nothing else failing. |
 | `caught`, `held` | Per planted id and per control id. An id is caught or held only if the seeded action was accepted: a host that delivered nothing holds no control by doing nothing. |
 | `checks` | Every check's result, kept as the oracle returned it. |
-| `value` | The fraction (0 to 1) of planted and control ids caught or held. `experiment.py decide` reads this per-sample number. |
+| `value` | The fraction (0 to 1) of planted and control ids caught or held: a per-sample number suitable for handing to `experiment.py decide` (no code reads `stage-result.json` today). |
 | `pass` | Every verdict true and every id caught or held. |
 
 ### The pass rule
@@ -350,7 +367,8 @@ A sample passes when `pass` is true. A scenario meets its `live.pass` rule when 
 rule asks of the samples that were planned: `"all"` is every sample, a number is that many. A sample that crashed, timed out or left
 no whole `stage-result.json` is **not run**: it counts in the denominator and is never a pass. Exit codes: 0 every scenario met its
 rule, 1 any did not, 2 usage or a host refusal, 3 nothing selected (or nothing with the live tier on); a signal to `live` ends
-every running sample and its host and exits 128 plus the signal. `report` prints a root and exits 0 whatever it shows (its `rule`
+every running sample and its host and exits 128 plus the signal, and a second signal (SIGTERM, SIGHUP or SIGINT) while the first is
+being answered kills the samples at once, ends their hosts from the ledgers and exits 128 plus that signal. `report` prints a root and exits 0 whatever it shows (its `rule`
 column and `--json` carry the verdict; `live` is the command whose exit code says whether the rule was met), and 2 for a root it
 cannot read or compare.
 

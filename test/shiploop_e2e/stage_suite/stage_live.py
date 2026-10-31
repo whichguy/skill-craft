@@ -8,15 +8,22 @@ edits no harness module: ``run``, ``slice``, ``hosts``, ``packets``, ``sessionlo
 here. ``slice.drive`` cannot take another stop predicate, so ``drive`` below is the small piece that does, on ``run.launch``.
 
 A sample (``run_sample``) is one folder, ``<root>/<stage>/<scenario>/<n>/``, laid out as a step slice's (slice.py) so the harness's
-readers find the run in it:
+readers find the run in it. This is what the runner writes there (a host may add files of its own, such as its throwaway ``home/``):
 
+    .harness-lock                the lock that says a harness is running this sample (listeners.hold_case); a regrade refuses
+                                 a folder whose lock is held
     work/                        the product repository (the scenario's fixture and repo/)
+    .stage-suite/fixture/        the fixture composed for the build (the scenario's fixture with its repo/ laid over it)
     .shiploop-runs/seed/{run,worktree}   the run directory and the execution checkout stage_build.build made
     build/                       the plugin built from this checkout, or from --ref (absent for a plugin_dir)
     seed-export/                 the execution checkout as the seed left it, taken before the host started
     export/                      the execution checkout when the host was ended (the stage's output tree)
     invocation.json              who ran what: host, model, effort, plugin identity, ref, overlay, the seeded block
+    prompt.txt                   the request the packet follows (the scenario's step case prompt)
+    host-prompt.txt, resume-N.txt   the prompt a host was started with, and the one it was resumed with the Nth time (hosts that
+                                 take their prompt from a file write them)
     sessions.jsonl, events.jsonl, stderr.txt, timeline.jsonl, transcript.md, packet-archive/   the harness's own records
+    resources.jsonl              the ledger of the process groups the sample started and ended (lifecycle.py)
     drive.json                   how the resume loop ended
     stage-result.json            the verdicts (rewritten by every regrade)
     error.txt                    only when the sample could not be run: why
@@ -29,13 +36,21 @@ A host that ends by itself before that is resumed when its host can be (bounded 
 resumed sessions in a row that moved the run nowhere); one that cannot ends the sample with its status recorded.
 
 Three things keep the stop honest. (1) ``settle``: when the stop holds, the accepting command may still be running (``accept_effects``
-saves the state and only then runs the lint finish, the commits and the knowledge close under the run lock), so the host is ended
-only once the run lock is free (SETTLE_SECONDS at most; the wait is kept in drive.json and ``settles``). (2) ``_bounded_launch``:
-a process the host left in a session of its own holds its output open, which the group kill cannot end and run.launch waits for;
-the launch is abandoned WATCHDOG_SECONDS after the deadline (STOP_GRACE_SECONDS after the stop), so ``--timeout`` bounds the
-sample, though that process is left running. (3) A sample an operator ends (``out/stop``, SIGTERM or SIGHUP to the harness) raises
+saves the state and only then runs the lint finish, the commits and the knowledge close, all inside the command's dispatch under
+the run lock), so the host is ended only once the run lock is free (SETTLE_SECONDS at most; the wait is kept in drive.json and
+``settles``). What is waited for is that dispatch, post-save effects included. What is NOT waited for is anything the command does
+after it lets the lock go (its trace row, the start of the progress observer), and the host's group is ended right after the wait.
+An operator's stop (SIGTERM, SIGHUP, the stop file) that arrives during the wait ends the sample as not run: the half-finished tree
+is neither exported nor graded. (2) ``_bounded_launch``: a process the host left in a session of its own holds its output open,
+which the group kill cannot end and run.launch waits for; the launch is abandoned WATCHDOG_SECONDS after the deadline, and
+STOP_GRACE_SECONDS after the stop at acceptance or after an operator's stop (SIGTERM, SIGHUP, the stop file) was first seen, so
+``--timeout`` bounds the sample, though that process is left running. WATCHDOG_SECONDS exceeds SETTLE_SECONDS (the wait runs inside
+the poll, past the deadline, where launch cannot look at the clock): the watchdog's clock is the deadline plus the whole wait and
+a minute, it does not start after ``settle``. (3) A sample an operator ends (``out/stop``, SIGTERM or SIGHUP to the harness) raises
 ``SampleStopped`` after the stop file is consumed: nothing was measured, no stage-result.json is written (error.txt says why), and
-``grade_sample`` refuses such a folder.
+``grade_sample`` refuses such a folder. It refuses any folder that was not run to the end: one with an error.txt and no export,
+one with no export, no export-error.txt and no stage-result.json (still running, or its harness was killed), and one whose
+``.harness-lock`` is held.
 
 The grade (``grade_sample``) reads files only: ``collect_bundle`` rebuilds the oracle's ``Bundle`` from the sample folder, the
 scenario's ``oracle`` checks run on it, and the verdicts are
@@ -48,8 +63,8 @@ scenario's ``oracle`` checks run on it, and the verdicts are
 
 ``caught`` and ``held`` are per id. An id is caught or held only when the seeded action was accepted: a host that delivered no
 output holds no control by doing nothing, so its ids are all False (the raw check results are kept under ``checks``). ``value``
-is the fraction of planted and control ids caught or held, the per-sample number ``experiment.py decide`` reads. ``pass`` needs
-every verdict, every id caught or held.
+is the fraction of planted and control ids caught or held: a per-sample number suitable for handing to ``experiment.py decide``
+(no code reads stage-result.json today). ``pass`` needs every verdict, every id caught or held.
 
 No credential is written here: ``invocation.json`` holds what slice.py's holds (no environment), and nothing else in a sample
 folder is read from the host's environment.
@@ -97,8 +112,10 @@ GIT_SHOW_SECONDS = 60
 SETTLE_SECONDS = 120
 SETTLE_POLL = 0.2
 # run.launch can be held up by a process the host left in a session of its own that keeps the host's output open (it cannot be
-# ended by the group kill): drive abandons the launch this long after the deadline, or after the stop.
-WATCHDOG_SECONDS = 60
+# ended by the group kill): drive abandons the launch this long after the deadline, or after the stop (the stop at acceptance,
+# or an operator's stop first seen). The wait for the accepting command (SETTLE_SECONDS) runs inside run.launch's poll, which
+# cannot look at the deadline meanwhile, so the watchdog's clock must outlast it: the deadline plus the whole wait and a minute.
+WATCHDOG_SECONDS = SETTLE_SECONDS + 60
 STOP_GRACE_SECONDS = 30
 # What an export never holds: version-control metadata, ShipLoop's run evidence in the checkout, compiled files.
 EVIDENCE = (".git", ".shiploop-improve", ".shiploop-runs")
@@ -274,9 +291,10 @@ def snapshot(worktree: Path, target: Path) -> dict:
 # ------------------------------------------------------------------------------------------------------------------- the drive
 
 def run_lock_free(run_dir: Path) -> bool:
-    """Whether no ShipLoop command holds the run lock of ``run_dir`` (the flock ``shiploop`` takes for the whole of a command,
-    its effects after the save included). True when there is no lock file or it cannot be opened (nothing can be told). The
-    probe takes the lock without waiting and drops it at once; it never creates the file."""
+    """Whether no ShipLoop command holds the run lock of ``run_dir`` (the flock ``shiploop`` takes around the dispatch of a
+    command: the save and ``accept_effects``, the post-save effects included). It does not cover what a command does after it
+    lets the lock go (its trace row, the start of the progress observer). True when there is no lock file or it cannot be
+    opened (nothing can be told). The probe takes the lock without waiting and drops it at once; it never creates the file."""
     try:
         descriptor = os.open(Path(run_dir) / ".lock", os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except OSError:
@@ -294,31 +312,41 @@ def run_lock_free(run_dir: Path) -> bool:
         os.close(descriptor)
 
 
+def told_to_end(out: Path) -> bool:
+    """Whether an operator ended the run: a SIGTERM or SIGHUP to the harness (run.TERMINATION) or the stop file in ``out``."""
+    return run.TERMINATION.is_set() or (Path(out) / "stop").exists()
+
+
 def settle(run_dir: Path, out: Path, seconds: float | None = None) -> dict:
     """Wait for the command that accepted the seeded action to finish before the host is ended. ``accept_effects`` saves the
-    state first and only then runs the lint finish, the two commits, the knowledge close and the iteration record, all under the
-    run lock; ending the host between the save and the end of those would leave the export without effects the engine would have
-    produced, or half done. Returns ``{waited, settled, why}``: ``settled`` is False when the lock was still held after
-    ``seconds`` (default SETTLE_SECONDS) or the harness was told to end, and ``why`` says which."""
+    state first and only then runs the lint finish, the two commits, the knowledge close and the iteration record, all inside
+    the command's dispatch under the run lock; ending the host between the save and the end of those would leave the export
+    without effects the engine would have produced, or half done. What is waited for is that dispatch; the command's trace row
+    and the start of the progress observer come after the lock is let go and are not waited for. Returns ``{waited, settled,
+    why}``: ``settled`` is False when the lock was still held after ``seconds`` (default SETTLE_SECONDS) or the harness was told
+    to end (``told_to_end``), and ``why`` says which."""
     limit = SETTLE_SECONDS if seconds is None else seconds
     started = time.monotonic()
-    while not run_lock_free(run_dir):
-        if run.TERMINATION.is_set() or (Path(out) / "stop").exists():
-            return {"waited": round(time.monotonic() - started, 1), "settled": False, "why": "the run was stopped"}
+    while True:
+        waited = round(time.monotonic() - started, 1)
+        if told_to_end(out):  # also with the lock free: a SIGTERM's handler kills the host, and that lets the lock go
+            return {"waited": waited, "settled": False, "why": "the run was stopped"}
+        if run_lock_free(run_dir):
+            return {"waited": waited, "settled": True, "why": None}
         if time.monotonic() - started >= limit:
-            return {"waited": round(time.monotonic() - started, 1), "settled": False,
-                    "why": f"a ShipLoop command still held the run lock after {limit:g} s"}
+            return {"waited": waited, "settled": False, "why": f"a ShipLoop command still held the run lock after {limit:g} s"}
         time.sleep(SETTLE_POLL)
-    return {"waited": round(time.monotonic() - started, 1), "settled": True, "why": None}
 
 
-def _bounded_launch(launch, timeout: float, stopped: list) -> dict:
+def _bounded_launch(launch, timeout: float, stopped: list, out: Path | None = None) -> dict:
     """``launch()`` (run.launch) on a worker thread, abandoned when it is held up. run.launch ends the host's group and then waits
     for the host's output to close; a process the host started in a session of its own keeps it open and the group kill cannot
     reach it, so the launch can outlast ``timeout`` by as long as that process lives. This returns the session's own result when
-    it ends, else a ``timeout`` (or ``interrupted``, once the stop was asked: ``stopped`` holds the time of that) result with
-    ``abandoned`` True, WATCHDOG_SECONDS after the deadline or STOP_GRACE_SECONDS after the stop, and the host's group is ended
-    again. The process that held it up is left running: it is in no group of ours."""
+    it ends, else a result with ``abandoned`` True and the status ``interrupted`` (the stop at acceptance was asked: ``stopped``
+    holds the time of that), ``stopped`` (an operator's stop was first seen: a SIGTERM or SIGHUP, or the stop file in ``out``) or
+    ``timeout``. It is abandoned STOP_GRACE_SECONDS after the stop at acceptance or the operator's stop, whichever was first, and
+    WATCHDOG_SECONDS after the deadline otherwise, and the host's group is ended again. The process that held it up is left
+    running: it is in no group of ours."""
     box: dict = {}
 
     def target() -> None:
@@ -331,14 +359,18 @@ def _bounded_launch(launch, timeout: float, stopped: list) -> dict:
     began = time.monotonic()
     worker.start()
     limit = began + timeout + WATCHDOG_SECONDS
+    told_at = None  # when an operator's stop was first seen
     while worker.is_alive():
         worker.join(0.25)
         now = time.monotonic()
-        if worker.is_alive() and (now > limit or (stopped and now - stopped[0] > STOP_GRACE_SECONDS)):
+        if told_at is None and out is not None and told_to_end(out):
+            told_at = now
+        since = min((moment for moment in (stopped[0] if stopped else None, told_at) if moment is not None), default=None)
+        if worker.is_alive() and (now > limit or (since is not None and now - since > STOP_GRACE_SECONDS)):
             run.end_live_hosts(worker.ident, wait=2.0)
             worker.join(2.0)
             if worker.is_alive():
-                return {"status": "interrupted" if stopped else "timeout", "returncode": None,
+                return {"status": "interrupted" if stopped else "stopped" if told_at is not None else "timeout", "returncode": None,
                         "elapsed_seconds": round(now - began, 1), "stop": None, "abandoned": True}
     if "error" in box:
         raise box["error"]
@@ -352,8 +384,9 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, a
     when the session ended by itself with the seeded action already accepted; otherwise run.launch's own (``exited``, ``failed``,
     ``timeout``, ``stopped``). Each poll (every run.POLL_SECONDS) archives the packets ShipLoop wrote (packets.archive_packets),
     as slice.drive does, and the session is recorded in sessions.jsonl before the host starts and after it ends. When the stop
-    fires, ``settle`` first waits for the accepting command to finish (the result's ``settle``). A launch that a process outside
-    the host's group holds up is abandoned (``_bounded_launch``; the result's ``abandoned``)."""
+    fires, ``settle`` first waits for the accepting command to finish (the result's ``settle``); an operator's stop that arrives
+    during that wait is not a stop at acceptance: ``stop_when`` says no and run.launch reports ``stopped`` (nothing was finished).
+    A launch that a process outside the host's group holds up is abandoned (``_bounded_launch``; the result's ``abandoned``)."""
     settled: list = []
     stopped: list = []
 
@@ -362,6 +395,10 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, a
         if not accepted_reached(step_slice.read_state(run_dir), action_id):
             return False
         settled.append(settle(run_dir, out))
+        if told_to_end(out):
+            # The operator ended the run during the wait (a SIGTERM's handler kills the host, which lets the lock go, so the wait
+            # may even read as settled): the effects are not known to be whole. Not a stop at acceptance; run.launch reads "stopped".
+            return False
         packets.archive_packets(run_dir, out)
         stopped.append(time.monotonic())
         return True
@@ -376,7 +413,7 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, a
     try:
         process = _bounded_launch(lambda: run.launch(argv, work, out, env, timeout, watch, first=first, fresh=False, translate=translate,
                                                      stop_when=stop_when, stop_file=out / "stop", before_start=begin),
-                                  timeout, stopped)
+                                  timeout, stopped, out)
     finally:
         if started:
             sessionlog.end(out, started[0], events_line=run.events_line_count(out / "events.jsonl", repair=False),
@@ -514,14 +551,31 @@ def _write(path: Path, data: dict) -> None:
     os.replace(partial, path)
 
 
+def _unfinished(out: Path, regraded: bool) -> str:
+    """Why the folder ``out`` holds no sample that can be graded, or "": it was not run to the end. Three cases. error.txt is
+    there and neither a result nor an export is (the sample could not be run, or an operator ended it). No export, no
+    export-error.txt and no result, in a folder that has an invocation (a sample still running, or whose harness was killed
+    before it exported: SIGKILL leaves no error.txt). Its ``.harness-lock`` is held by a harness that is still running it (only
+    a regrade asks: the sample's own first grade runs under its own lock)."""
+    if (out / ERROR).is_file() and not (out / RESULT).exists() and not (out / EXPORT).is_dir():
+        return (f"{out} was not run to the end ({' '.join((out / ERROR).read_text(errors='replace').split())[:300]}): "
+                "it holds no export, so there is nothing to grade")
+    if ((out / INVOCATION).is_file() and not (out / RESULT).exists() and not (out / EXPORT).is_dir()
+            and not (out / EXPORT_ERROR).exists()):
+        return (f"{out} has no export, no {EXPORT_ERROR} and no {RESULT}: the sample is still running, or its harness was killed "
+                "before it exported, so there is nothing to grade")
+    if regraded and listeners.case_alive(out):
+        return f"{out} is held by a harness that is still running the sample (its {listeners.LOCK_NAME} is locked): wait for it to end"
+    return ""
+
+
 def grade_sample(sc: sb.Scenario, out: Path, *, regraded: bool = True) -> dict:
     """Grade the sample in ``out`` from its files and (re)write ``stage-result.json``; the host sessions and the run are not
     touched. Returns the document. See the module docstring for the verdicts; ``regraded`` marks a later grade (``run_sample``
-    passes False for the first)."""
+    passes False for the first). SampleError for a folder that was not run to the end (``_unfinished``)."""
     out = Path(out)
-    if (out / ERROR).is_file() and not (out / RESULT).exists() and not (out / EXPORT).is_dir():
-        raise SampleError(f"{out} was not run to the end ({' '.join((out / ERROR).read_text(errors='replace').split())[:300]}): "
-                          "it holds no export, so there is nothing to grade")
+    if why := _unfinished(out, regraded):
+        raise SampleError(why)
     bundle, state, action_id, invocation, source = _collect(sc, out)
     planted = [row["id"] for row in sc.data.get("planted", [])]
     controls = [row["id"] for row in sc.data.get("controls", [])]
@@ -582,8 +636,7 @@ def end_recorded_hosts(out: Path) -> dict:
 def run_sample(sc: sb.Scenario, out: Path, *, host: Any, model: str | None = None, effort: str | None = None,
                plugin_dir: Path | None = None, ref: str | None = None, overlay: Path | None = None,
                timeout: float | None = None, permission_mode: str = "auto", max_turns: int | None = None,
-               max_budget_usd: float | None = None, quiet: bool = True, cases_dir: Path | None = None,
-               sample: int | None = None) -> dict:
+               max_budget_usd: float | None = None, quiet: bool = True, sample: int | None = None) -> dict:
     """One live sample of scenario ``sc`` in the new folder ``out``: build the scenario, start the host on its one packet, end it
     at acceptance, export the tree, grade (``grade_sample``). ``host`` is a hosts.Host or anything with its interface (a test
     passes a fake): ``name``, ``model``, ``effort``, ``skill``, ``resumable``, ``marketplace``, ``env``, ``invoke``, ``argv``,
@@ -593,7 +646,9 @@ def run_sample(sc: sb.Scenario, out: Path, *, host: Any, model: str | None = Non
     Refused before anything is started or written (SystemExit): ``plugin_dir`` with ``ref``/``overlay``; a host that is not
     ready (``host_gap``); a ``ref`` or plugin whose navigator has no ``accept_effects``; a scenario the builder cannot build, or
     one the engine settles by script (no packet is issued, so there is nothing for a model to follow). Nothing outside ``out``
-    is written. ``cases_dir`` is accepted for the caller's symmetry with ``stages.py`` and is not read: ``sc`` is already loaded.
+    is written; a host whose plugin install failed (``run.require_installed``) starts nothing. The process groups the ledger
+    records and ShipLoop's detached progress observer are ended when the host is done, before the tree is exported
+    (``end_recorded_hosts``), on the path where nothing went wrong and on the way out of an error.
     """
     if plugin_dir is not None and (ref or overlay):
         raise SystemExit("--ref and --overlay build their own plugin; they do not take a plugin_dir. Nothing was started.")
@@ -632,6 +687,7 @@ def _run_sample(sc: sb.Scenario, out: Path, *, host: Any, model: str, effort: st
     if why := seam_gap(plugin_dir / SCRIPTS):
         raise SystemExit(f"{why}. Nothing was started.")
     plugin = host.install_plugin(env, plugin_dir)
+    run.require_installed(plugin, plugin_dir)  # a build the host failed to install must not run the model without ShipLoop
     cli = host.plugin_cli(out / "home") or run.shiploop_cli(plugin_dir)
     if why := seam_gap(Path(cli).parent):
         raise SystemExit(f"{why}. Nothing was started.")
@@ -659,42 +715,49 @@ def _run_sample(sc: sb.Scenario, out: Path, *, host: Any, model: str, effort: st
         print(f"stage sample {sc.id} #{sample} host={host.name}" + (f" backend={backend}" if backend else "")
               + f" model={model}\n  output {out}\n  the host starts at {built.stage}, action {action_id}", flush=True)
 
-    deadline = time.monotonic() + (timeout or float("inf"))  # active time, as in run.py: sleep spends none of it
-    session = dict(work=work, out=out, env=env, run_dir=run_dir, action_id=action_id, watch=not quiet, translate=host.translator(),
-                   host_name=host.name, model=model)
-    process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
-                    timeout=timeout or float("inf"), **session)
-    resumes, stalled, resume_stop = 0, 0, None
-    settles = [process["settle"]] if process.get("settle") else []
-    revision = (step_slice.read_state(run_dir) or {}).get("revision")
-    while process["status"] == "exited":
-        state = step_slice.read_state(run_dir)
-        if accepted_reached(state, action_id):
-            break
-        if not host.resumable:
-            resume_stop = "the host cannot be resumed"
-        elif (state or {}).get("status") != "active":
-            resume_stop = "the run is no longer active"
-        elif deadline - time.monotonic() <= RESUME_MIN_SECONDS:
-            resume_stop = "the timeout is spent"
-        elif stalled >= run.RESUME_STALL:
-            resume_stop = f"{stalled} resumed sessions in a row moved ShipLoop nowhere (revision {revision})"
-        elif not (session_id := run.last_session_id(out / "events.jsonl")):
-            resume_stop = "no host session id to resume"
-        if resume_stop:
-            break
-        resumes += 1
-        process = drive(host.argv(prompt=run.resume_prompt(str(run_dir), cli), prompt_file=out / f"resume-{resumes}.txt",
-                                  resume=session_id, **common),
-                        timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
-                        told=run.resume_told(str(run_dir), cli), **session)
-        settles += [process["settle"]] if process.get("settle") else []
-        now = (step_slice.read_state(run_dir) or {}).get("revision")
-        stalled = stalled + 1 if now == revision else 0
-        revision = now
-    _write(out / DRIVE, {"resumes": resumes, "resume_stop": resume_stop, "settles": settles,
-                         "abandoned": bool(process.get("abandoned"))})
-    run.write_transcript(out / "events.jsonl", out / "transcript.md")
+    try:
+        deadline = time.monotonic() + (timeout or float("inf"))  # active time, as in run.py: sleep spends none of it
+        session = dict(work=work, out=out, env=env, run_dir=run_dir, action_id=action_id, watch=not quiet, translate=host.translator(),
+                       host_name=host.name, model=model)
+        process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
+                        timeout=timeout or float("inf"), **session)
+        resumes, stalled, resume_stop = 0, 0, None
+        settles = [process["settle"]] if process.get("settle") else []
+        revision = (step_slice.read_state(run_dir) or {}).get("revision")
+        while process["status"] == "exited":
+            state = step_slice.read_state(run_dir)
+            if accepted_reached(state, action_id):
+                break
+            if not host.resumable:
+                resume_stop = "the host cannot be resumed"
+            elif (state or {}).get("status") != "active":
+                resume_stop = "the run is no longer active"
+            elif deadline - time.monotonic() <= RESUME_MIN_SECONDS:
+                resume_stop = "the timeout is spent"
+            elif stalled >= run.RESUME_STALL:
+                resume_stop = f"{stalled} resumed sessions in a row moved ShipLoop nowhere (revision {revision})"
+            elif not (session_id := run.last_session_id(out / "events.jsonl")):
+                resume_stop = "no host session id to resume"
+            if resume_stop:
+                break
+            resumes += 1
+            process = drive(host.argv(prompt=run.resume_prompt(str(run_dir), cli), prompt_file=out / f"resume-{resumes}.txt",
+                                      resume=session_id, **common),
+                            timeout=deadline - time.monotonic(), first=False, resumed_session=session_id,
+                            told=run.resume_told(str(run_dir), cli), **session)
+            settles += [process["settle"]] if process.get("settle") else []
+            now = (step_slice.read_state(run_dir) or {}).get("revision")
+            stalled = stalled + 1 if now == revision else 0
+            revision = now
+        _write(out / DRIVE, {"resumes": resumes, "resume_stop": resume_stop, "settles": settles,
+                             "abandoned": bool(process.get("abandoned"))})
+        run.write_transcript(out / "events.jsonl", out / "transcript.md")
+    finally:
+        # As run.py does before it exports and grades: end the groups the ledger records that are still alive and ShipLoop's
+        # progress observer (a `next` with progress on starts one that outlives the host). Never raises.
+        if line := lifecycle.cleanup_line(end_recorded_hosts(out)):
+            if not quiet:
+                print(line, flush=True)
     if process["status"] == "stopped":  # an operator ended it: nothing was measured, so it is not graded (not run)
         cause = run.stop_cause(out / "stop")
         (out / "stop").unlink(missing_ok=True)  # consumed, as run.py's own stop file is

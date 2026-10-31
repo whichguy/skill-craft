@@ -24,6 +24,11 @@ would. Only the stop at acceptance ends it. The tests run real ShipLoop builds (
   ready, a plugin_dir with a ref, a stage the engine settles by script. Nothing is written outside the sample folder, no credential
   of the host's environment is written into it, and the sample holds its case lock while the host runs.
 - The digest boundary: the module is outside the evaluator digest and the qualification snapshot.
+- An operator's stop (SIGTERM or the stop file) that arrives while the stop waits for the accepting command's lock leaves the
+  sample "not run" with the half-finished tree unexported; a host whose plugin install failed starts nothing; a regrade refuses
+  a folder that was never finished (no export, no export-error.txt, no result) or whose harness lock is held; the abandon
+  watchdog bounds a sample after an operator stop as it does after a timeout; a detached progress observer and the recorded
+  hosts are ended on the normal path, before the export.
 """
 from __future__ import annotations
 
@@ -51,13 +56,13 @@ HARNESS = ROOT / "test" / "shiploop_e2e"
 sys.path.insert(0, str(HARNESS / "stage_suite"))
 sys.path.insert(0, str(HARNESS))
 import boundary  # noqa: E402
+import lifecycle  # noqa: E402
 import listeners  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
 import sessionlog  # noqa: E402
 import stage_build as sb  # noqa: E402
 import stage_live as live  # noqa: E402
-import slice as step_slice  # noqa: E402
 import stage_report  # noqa: E402
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 import shiploop_navigator as nav  # noqa: E402
@@ -149,10 +154,12 @@ class FakeHost:
     marketplace = False
     backend = None
 
-    def __init__(self, folder: Path, configs: list[dict], *, resumable: bool = False, backend: str | None = None):
+    def __init__(self, folder: Path, configs: list[dict], *, resumable: bool = False, backend: str | None = None,
+                 install: dict | None = None, progress: bool = False):
         self.script = Path(folder) / "fake_host.py"
         self.script.write_text(FAKE_HOST)
         self.configs, self.resumable, self.backend = configs, resumable, backend
+        self.install, self.progress = install, progress  # install: what install_plugin reports (None: Claude's, loaded from argv)
         self.launches: list[dict] = []
         self.calls: list[str] = []
         self.lock_held: list[bool] = []
@@ -161,7 +168,10 @@ class FakeHost:
     def env(self, home: Path) -> dict:
         self.calls.append("env")
         self.out = Path(home).parent
-        return {**GIT_ENV, "FAKE_API_KEY": SECRET}
+        env = {**GIT_ENV, "FAKE_API_KEY": SECRET}
+        if self.progress:  # ShipLoop's progress observer is left on: `next` starts a detached one, as it does for a real model
+            env.pop("SHIPLOOP_PROGRESS")
+        return env
 
     def invoke(self, skill: str, prompt: str) -> str:
         return f"/{skill} {prompt}"
@@ -176,7 +186,7 @@ class FakeHost:
 
     def install_plugin(self, env: dict, plugin_dir: Path):
         self.calls.append("install_plugin")
-        return None
+        return self.install
 
     def plugin_cli(self, home: Path):
         return None
@@ -193,6 +203,13 @@ def plugin_dir(folder: Path) -> Path:
     return plugin
 
 
+def ps_field(pid: int, field: str) -> str:
+    """One field of ``ps`` for ``pid`` ("" when ps lists none): the same on Linux and macOS, unlike /proc."""
+    done = subprocess.run(["ps", "-o", f"{field}=", "-p", str(pid)], capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                          timeout=30)
+    return done.stdout.strip()
+
+
 def pid_alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -200,10 +217,7 @@ def pid_alive(pid: int) -> bool:
         return False
     except PermissionError:
         return True
-    try:  # a zombie is a process that ended and was not reaped; it runs nothing
-        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] != "Z"
-    except OSError:
-        return True
+    return not ps_field(pid, "stat").startswith("Z")  # a zombie is a process that ended and was not reaped; it runs nothing
 
 
 class LiveCase(unittest.TestCase):
@@ -225,13 +239,17 @@ class LiveCase(unittest.TestCase):
 
     @classmethod
     def sample(cls, scenario: str, configs: list[dict], *, resumable: bool = False, cases_dir: Path | None = None,
-               timeout: float | None = 120, **options) -> tuple[dict, Path, FakeHost, float]:
-        """(the result, the sample folder, the fake host, the seconds it took) of one sample of ``scenario``."""
+               timeout: float | None = 120, before=None, **options) -> tuple[dict, Path, FakeHost, float]:
+        """(the result, the sample folder, the fake host, the seconds it took) of one sample of ``scenario``. ``before(folder)``
+        is called with the sample's folder just before it starts (a test arms a watcher with it)."""
         cls.count += 1
         box = cls.tmp / f"box{cls.count}"
         box.mkdir()
-        host = FakeHost(box, configs, resumable=resumable, backend=options.pop("backend", None))
+        host = FakeHost(box, configs, resumable=resumable, backend=options.pop("backend", None), install=options.pop("install", None),
+                        progress=options.pop("progress", False))
         sc = sb.load(scenario, cases_dir)
+        if before is not None:
+            before(box / "sample" / "1")
         started = time.monotonic()
         result = live.run_sample(sc, box / "sample" / "1", host=host, plugin_dir=options.pop("plugin_dir", cls.plugin),
                                  timeout=timeout, **options)
@@ -363,12 +381,17 @@ class GoodSample(LiveCase):
         self.assertEqual(bundle.run_dir, self.out / ".shiploop-runs" / "seed" / "run")
 
     def test_the_grade_is_reproduced_from_the_files_also_in_a_copied_folder(self):
+        """Regrades copies, never the shared folder: a regrade rewrites stage-result.json (``regraded`` true), which the tests that
+        compare the folder with the first grade must not see, whatever order the tests run in."""
         before = dict(self.result)
-        again = live.grade_sample(sb.load(BROKEN), self.out)
+        first = self.tmp / "regraded-good"
+        shutil.copytree(self.out, first, symlinks=True)
+        again = live.grade_sample(sb.load(BROKEN), first)
         for key in ("verdicts", "caught", "held", "value", "pass", "outcome", "sessions", "overshoot", "result_source", "seeded", "versions"):
             self.assertEqual(again[key], before[key], key)
         self.assertEqual([c["pass"] for c in again["checks"]], [c["pass"] for c in before["checks"]])
         self.assertTrue(again["regraded"])
+        self.assertFalse(json.loads((self.out / "stage-result.json").read_text())["regraded"], "the shared folder was not regraded")
         copied = self.tmp / "copied-good"
         shutil.copytree(self.out, copied, symlinks=True)
         moved = live.grade_sample(sb.load(BROKEN), copied)
@@ -590,6 +613,23 @@ class RunLockProbe(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 5)
         self.assertEqual((got["settled"], got["why"]), (False, "the run was stopped"))
 
+    def test_settle_says_stopped_with_the_lock_free_too_when_the_stop_file_is_there(self):
+        """A SIGTERM's handler kills the host, which lets the lock go: the wait may read as settled although the effects are not
+        known to be whole, so the guard looks before the lock does (and not only while the lock is held)."""
+        self.assertTrue(live.run_lock_free(self.run_dir))
+        (self.out / "stop").write_text("")
+        got = live.settle(self.run_dir, self.out, seconds=60)
+        self.assertEqual((got["settled"], got["why"]), (False, "the run was stopped"))
+
+    def test_settle_says_stopped_with_the_lock_free_too_when_the_harness_was_terminated(self):
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        self.assertTrue(live.run_lock_free(self.run_dir))
+        run.TERMINATION.set()
+        got = live.settle(self.run_dir, self.out, seconds=60)
+        self.assertEqual((got["settled"], got["why"]), (False, "the run was stopped"))
+        self.assertTrue(live.told_to_end(self.out))
+
 
 @needs_node
 class Settle(LiveCase):
@@ -655,6 +695,134 @@ class Stopped(LiveCase):
         self.assertTrue(live.grade_sample(sb.load(BROKEN), out)["pass"])
 
 
+@needs_node
+class StoppedWhileSettling(LiveCase):
+    """The poll saw the seeded action accepted, and the stop is waiting for the accepting command's run lock (the fake's slow
+    knowledge close, 8 s, under the lock) when the operator ends the run: a SIGTERM to the harness (what its handler does:
+    run.terminate) or the stop file. Nothing was finished, so the half-done tree is not exported and not graded: the sample is
+    "not run" (SampleStopped), as one stopped at any other moment."""
+    DELAY = 8
+
+    def stopped_during_the_wait(self, act) -> tuple[Path, float]:
+        """Run a sample whose stop is waiting for the lock, call ``act(folder)`` from a watcher 0.5 s after the wait began, and
+        return the folder and the seconds the sample took; the sample must raise SampleStopped."""
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        entered, folder = threading.Event(), {}
+        real = live.settle
+
+        def settle(*args, **kwargs):
+            entered.set()
+            return real(*args, **kwargs)
+
+        def before(out: Path) -> None:
+            folder["out"] = out
+
+            def watch() -> None:
+                if entered.wait(120):
+                    time.sleep(0.5)
+                    act(out)
+
+            threading.Thread(target=watch, daemon=True, name="stage-live-test-watch").start()
+
+        started = time.monotonic()
+        with mock.patch.object(live, "settle", settle), self.assertRaises(live.SampleStopped) as caught:
+            self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good"), "effects_delay": self.DELAY}], timeout=300,
+                        before=before)
+        self.assertTrue(entered.is_set(), "the operator ended the run while the stop was waiting for the lock")
+        self.caught = str(caught.exception)
+        return folder["out"], time.monotonic() - started
+
+    def assertNotRun(self, out: Path, seconds: float, why: str) -> None:
+        self.assertIn(why, self.caught)
+        self.assertFalse((out / "stage-result.json").exists(), "nothing was measured, so nothing is graded")
+        self.assertFalse((out / "export").exists(), "the half-finished tree is not exported")
+        self.assertIn("SampleStopped", (out / "error.txt").read_text())
+        self.assertEqual(sessionlog.read(out)[-1]["end"]["status"], "stopped")
+        self.assertLess(seconds, self.DELAY + 30)
+        read = stage_report.read_sample(out)
+        self.assertFalse(read["graded"])
+        self.assertIn("SampleStopped", read["reason"])
+
+    def test_a_sigterm_while_the_stop_waits_for_the_accepting_command_leaves_the_sample_not_run(self):
+        out, seconds = self.stopped_during_the_wait(lambda folder: run.terminate("SIGTERM"))
+        self.assertNotRun(out, seconds, "terminated by SIGTERM")
+        self.assertFalse([row for row in json.loads((out / "drive.json").read_text())["settles"] if row["settled"]])
+
+    def test_the_stop_file_while_the_stop_waits_for_the_accepting_command_leaves_the_sample_not_run(self):
+        out, seconds = self.stopped_during_the_wait(lambda folder: (folder / "stop").write_text("stop\n"))
+        self.assertNotRun(out, seconds, "stopped by")
+        self.assertFalse((out / "stop").exists(), "the stop file is consumed")
+        self.assertFalse((out / "work" / "docs" / "shiploop" / "EFFECT.md").exists())
+
+    def test_a_stop_that_lands_after_the_wait_read_as_settled_is_not_a_stop_at_acceptance_either(self):
+        """The wait came back settled (the lock was let go), and the operator's SIGTERM arrives before the stop is declared:
+        ``stop_when`` checks again, says no, and run.launch reports "stopped". Without that second look the half-known tree
+        would be exported and graded."""
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        real = live.settle
+        answers: list = []
+
+        def settle(*args, **kwargs):
+            got = real(*args, **kwargs)
+            answers.append(got)
+            run.TERMINATED_BY.append("SIGTERM")
+            run.TERMINATION.set()  # after the wait, not during it
+            return got
+
+        with mock.patch.object(live, "settle", settle), self.assertRaises(live.SampleStopped) as caught:
+            self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good")}], timeout=300)
+        self.assertTrue(answers and answers[0]["settled"], "the wait itself read as settled")
+        self.assertIn("terminated by SIGTERM", str(caught.exception))
+
+
+class Unfinished(LiveCase):
+    """grade_sample refuses a folder that was not run to the end, not only one with an error.txt: a sample that is still running,
+    or whose harness was killed (SIGKILL leaves no error.txt), has no export, no export-error.txt and no result."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.result, cls.out, cls.host, _ = cls.sample(BROKEN, [{"mode": "exit"}])  # graded, with an export; the host does nothing
+
+    def copy(self, name: str) -> Path:
+        copied = self.tmp / name
+        shutil.copytree(self.out, copied, symlinks=True)
+        return copied
+
+    @needs_node
+    def test_a_folder_with_no_export_no_export_error_and_no_result_is_refused_as_not_finished(self):
+        copied = self.copy("unfinished")
+        shutil.rmtree(copied / "export")
+        (copied / "stage-result.json").unlink()
+        self.assertFalse((copied / "error.txt").exists())
+        with self.assertRaisesRegex(live.SampleError, "has no export, no export-error.txt and no stage-result.json.*still running.*killed"):
+            live.grade_sample(sb.load(BROKEN), copied)
+        self.assertFalse((copied / "stage-result.json").exists(), "a refused grade writes nothing")
+
+    @needs_node
+    def test_a_folder_whose_export_failed_is_graded_and_its_tree_is_missing(self):
+        copied = self.copy("export-failed")
+        shutil.rmtree(copied / "export")
+        (copied / "stage-result.json").unlink()
+        (copied / "export-error.txt").write_text("git ls-files failed\n")
+        graded = live.grade_sample(sb.load(BROKEN), copied)
+        self.assertEqual((graded["tree"], graded["pass"]), (False, False))
+
+    @needs_node
+    def test_a_folder_whose_harness_lock_is_held_is_refused_until_it_is_let_go(self):
+        copied = self.copy("running")
+        handle = listeners.hold_case(copied)
+        self.assertIsNotNone(handle, "the test holds the sample's harness lock, as a running sample does")
+        try:
+            with self.assertRaisesRegex(live.SampleError, "harness.*still running"):
+                live.grade_sample(sb.load(BROKEN), copied)
+        finally:
+            handle.close()
+        self.assertIn("verdicts", live.grade_sample(sb.load(BROKEN), copied))
+
+
 # --------------------------------------------------------------------------------------------- a process the host leaves behind
 
 @needs_node
@@ -699,6 +867,110 @@ class Escapee(LiveCase):
         self.assertEqual([s["status"] for s in result["sessions"]], ["timeout"])
         self.assertTrue(result["abandoned"])
         self.assertEqual((result["verdicts"]["process"], result["verdicts"]["accepted"], result["pass"]), (False, False, False))
+
+    def stopped_with_an_escapee(self, config: dict, act=None) -> tuple[Path, float, str]:
+        """A sample (timeout 30 s, grace 2 s) whose host leaves an escapee, ended by the operator: the stop file the fake writes
+        (``config`` has ``stop_file``) or ``act(folder)`` 1.5 s after the escapee exists. Returns the folder, the seconds the
+        sample took and the SampleStopped message."""
+        self.addCleanup(self.release)
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+
+        def before(out: Path) -> None:
+            def watch() -> None:
+                deadline = time.monotonic() + 120
+                while time.monotonic() < deadline and not (self.pid_file.exists() and self.pid_file.read_text()):
+                    time.sleep(0.1)
+                time.sleep(1.5)
+                act(out)
+
+            if act is not None:
+                threading.Thread(target=watch, daemon=True, name="stage-live-test-watch").start()
+
+        started = time.monotonic()
+        with self.assertRaises(live.SampleStopped) as caught:
+            self.sample(BROKEN, [{"mode": "wait", "escapee": str(self.pid_file), "linger": 120, **config}], timeout=30, before=before)
+        out = self.tmp / f"box{self.count}" / "sample" / "1"
+        return out, time.monotonic() - started, str(caught.exception)
+
+    def test_the_stop_file_bounds_the_sample_by_the_stop_grace_and_not_by_the_timeout(self):
+        out, seconds, why = self.stopped_with_an_escapee({"stop_file": True})
+        self.assertLess(seconds, 20, "the timeout is 30 s and the grace 2 s: the stop file started the grace clock")
+        self.assertIn("stopped by", why)
+        self.assertTrue(json.loads((out / "drive.json").read_text())["abandoned"])
+        self.assertFalse((out / "stage-result.json").exists())
+        self.assertFalse((out / "stop").exists())
+
+    def test_a_sigterm_bounds_the_sample_by_the_stop_grace_and_not_by_the_timeout(self):
+        out, seconds, why = self.stopped_with_an_escapee({}, act=lambda folder: run.terminate("SIGTERM"))
+        self.assertLess(seconds, 20, "the timeout is 30 s and the grace 2 s: the signal started the grace clock")
+        self.assertIn("terminated by SIGTERM", why)
+        self.assertTrue(json.loads((out / "drive.json").read_text())["abandoned"])
+        self.assertEqual(sessionlog.read(out)[-1]["end"]["status"], "stopped")
+        self.assertFalse((out / "stage-result.json").exists())
+
+
+class Watchdog(unittest.TestCase):
+    def test_the_watchdog_outlasts_the_wait_for_the_accepting_command(self):
+        """The stop waits for the lock inside the poll, after the deadline may have passed (launch cannot look at the clock
+        meanwhile); a watchdog shorter than that wait would abandon a sample that is settling and call it a timeout."""
+        self.assertGreater(live.WATCHDOG_SECONDS, live.SETTLE_SECONDS)
+        self.assertGreater(live.STOP_GRACE_SECONDS, 0)
+
+    def test_the_parents_hard_limit_leaves_the_sample_its_watchdog_and_the_build(self):
+        import stages
+        self.assertGreater(stages.SAMPLE_GRACE_SECONDS, live.WATCHDOG_SECONDS + live.SETTLE_SECONDS)
+
+
+@needs_node
+class EndedOnTheNormalPath(LiveCase):
+    """run.py ends what the run's ledger records and the detached progress observer before it exports and grades; so does the
+    sample, on the path where nothing went wrong, with ShipLoop's progress left on."""
+
+    def test_a_detached_progress_observer_and_the_recorded_hosts_are_ended_before_the_export(self):
+        seen: dict = {}
+        real = live.snapshot
+
+        def spy(worktree, target):
+            if Path(target).name == live.EXPORT:
+                record = Path(target).parent / ".shiploop-runs" / "seed" / "run" / "progress-observer.json"
+                seen["pid"] = json.loads(record.read_text())["pid"] if record.is_file() else None
+                seen["alive"] = bool(seen["pid"]) and pid_alive(seen["pid"])
+                seen["open"] = lifecycle.open_groups(Path(target).parent)
+            return real(worktree, target)
+
+        with mock.patch.object(live, "snapshot", spy):
+            result, out, _, _ = self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good")}], progress=True)
+        record = out / ".shiploop-runs" / "seed" / "run" / "progress-observer.json"
+        self.assertTrue(record.is_file(), "the fake host's `next` started ShipLoop's observer (progress is on)")
+        pid = json.loads(record.read_text())["pid"]
+        self.addCleanup(lambda: pid_alive(pid) and os.kill(pid, signal.SIGKILL))
+        self.assertEqual(seen["pid"], pid)
+        self.assertFalse(seen["alive"], "the observer was ended before the tree was exported")
+        self.assertEqual(seen["open"], [], "every group the ledger holds was ended before the export")
+        self.assertFalse(pid_alive(pid), "and it is still gone")
+        self.assertEqual(lifecycle.open_groups(out), [])
+        roles = {row.get("role") for row in lifecycle.rows(out) if row.get("kind") == "ended"}
+        self.assertEqual(roles, {"host", "observer"})
+        self.assertTrue(result["pass"], result["checks"])
+
+    def test_the_ledger_is_swept_when_the_sample_ends_in_an_error_too(self):
+        """The cleanup is in a finally: a stop that raises (SampleStopped) leaves no recorded group alive either."""
+        seen: dict = {}
+        real = lifecycle.cleanup
+
+        def spy(folder):
+            seen.setdefault("folders", []).append(Path(folder))
+            return real(folder)
+
+        with mock.patch.object(lifecycle, "cleanup", spy), mock.patch.object(live.run, "write_transcript", side_effect=RuntimeError("boom")):
+            with self.assertRaisesRegex(RuntimeError, "boom"):
+                self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good")}], progress=True)
+        self.assertEqual(len(seen.get("folders", [])), 1, "the cleanup ran once, on the way out")
+        out = seen["folders"][0]
+        pid = json.loads((out / ".shiploop-runs" / "seed" / "run" / "progress-observer.json").read_text())["pid"]
+        self.addCleanup(lambda: pid_alive(pid) and os.kill(pid, signal.SIGKILL))
+        self.assertFalse(pid_alive(pid))
 
 
 class ImprovePark(LiveCase):
@@ -751,6 +1023,11 @@ class Sessions(LiveCase):
         self.assertEqual(result["resume_stop"], "the host cannot be resumed")
         self.assertEqual(len(host.launches), 1)
         self.assertTrue((out / "export").is_dir() and (out / "stage-result.json").is_file())
+
+    def test_an_install_the_host_reports_as_passed_starts_the_host(self):
+        result, _, host, _ = self.sample(BROKEN, [{"mode": "exit"}], install={"pass": True, "loaded": ["skill-craft"]})
+        self.assertEqual((len(host.launches), host.calls), (1, ["env", "install_plugin"]))
+        self.assertEqual(result["plugin"], {"pass": True, "loaded": ["skill-craft"]})
 
     def test_a_resumable_host_that_ends_before_acceptance_is_resumed_and_the_sample_completes(self):
         configs = [{"mode": "act-when-resumed", "session": "fake-session-1", "reference": reference(BROKEN, "good")}]
@@ -827,6 +1104,16 @@ class Snapshot(unittest.TestCase):
         self.assertFalse((self.tmp / "export" / ".git").exists())
         self.assertFalse((self.tmp / "export.partial").exists())
 
+    def test_shiploops_run_folders_are_left_out_and_a_stale_partial_export_is_cleared(self):
+        (self.tree / ".shiploop-runs" / "seed" / "run").mkdir(parents=True)
+        (self.tree / ".shiploop-runs" / "seed" / "run" / "state.md").write_text("state\n")
+        stale = self.tmp / "export.partial"
+        stale.mkdir()
+        (stale / "left-by-a-killed-export.txt").write_text("stale\n")
+        live.snapshot(self.tree, self.tmp / "export")
+        self.assertEqual(self.names(self.tmp / "export"), {".gitignore", "run.sh", "src/a.js", "src/gone.js"})
+        self.assertFalse(stale.exists(), "the leftover of an earlier killed export is gone")
+
     def test_a_symlink_is_copied_as_a_link_and_never_followed(self):
         outside = self.tmp / "outside"
         outside.mkdir()
@@ -873,7 +1160,7 @@ class Refusals(LiveCase):
                 **options) -> FakeHost:
         box = self.tmp / f"refused{len(list(self.tmp.glob('refused*')))}"
         box.mkdir()
-        host = FakeHost(box, configs or [{"mode": "exit"}], backend=options.pop("backend", None))
+        host = FakeHost(box, configs or [{"mode": "exit"}], backend=options.pop("backend", None), install=options.pop("install", None))
         options.setdefault("plugin_dir", self.plugin)
         with self.assertRaisesRegex(SystemExit, pattern):
             cases = options.pop("cases_dir", None)
@@ -980,6 +1267,18 @@ class Refusals(LiveCase):
             self.refused(r"--max-budget-usd is not with --backend ollama", backend="ollama", max_budget_usd=1.0)
         self.assertEqual(live.host_gap(FakeHost(self.tmp, [{}]), "m"), "")
 
+    def test_a_host_whose_plugin_install_failed_starts_nothing(self):
+        """slice.py and run.py both call run.require_installed after the install: a Codex or Grok host that did not enable the
+        build would run the model without the ShipLoop under test."""
+        failed = {"pass": False, "loaded": [], "output": "marketplace add failed"}
+        host = self.refused(r"did not install the plugin build.*\(loaded: no plugin\).*no host is started.*marketplace add failed",
+                            installed=True, install=failed)
+        self.assertEqual(host.calls, ["env", "install_plugin"])
+        sample = self.tmp / host.script.parent.name / "sample" / "1"
+        self.assertIn("did not install the plugin build", (sample / "error.txt").read_text())
+        for name in ("seed-export", "sessions.jsonl", "invocation.json", ".shiploop-runs", "stage-result.json"):
+            self.assertFalse((sample / name).exists(), f"{name}: nothing was built or started")
+
     def test_a_plugin_dir_does_not_take_a_ref_or_an_overlay(self):
         self.refused(r"--ref and --overlay build their own plugin", ref="HEAD")
         self.refused(r"--ref and --overlay build their own plugin", overlay=self.tmp / "o.json")
@@ -1028,7 +1327,7 @@ class Boundary(unittest.TestCase):
             (harness / "stage_suite" / "stage_live.py").write_text("z = 3\n")
             self.assertEqual(boundary.fingerprint(harness, None), before)
 
-    def test_no_harness_module_was_edited_and_the_module_reuses_them_without_copying(self):
+    def test_the_source_imports_the_harness_libraries_without_copying_them_and_the_harness_top_level_has_no_stage_file(self):
         text = (HARNESS / "stage_suite" / "stage_live.py").read_text()
         for used in ("run.launch(", "step_slice.overshoot_after(", "step_slice.read_state(", "stage_oracle.run_checks(",
                      "stage_oracle.verdict(", "sb.build(", "packets.archive_packets(", "sessionlog.start(", "listeners.hold_case("):

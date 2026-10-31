@@ -25,8 +25,8 @@ of `test/run-integration.sh`, and the `live` tier on `validate-existing/broken-w
   verify and render) and `all-match` (render only). `stage_cases/README.md` is the guide to the format.
 - Hermetic tests, one per module, registered in `test/suite_catalog.py` as E2E-family suites that quick selects when a
   path under `test/shiploop_e2e/` changes: `test/shiploop-e2e-stage-oracle.test.py` (108 tests, about 5 s),
-  `test/shiploop-e2e-stage-build.test.py` (48 tests, about 10 s) and `test/shiploop-e2e-stages.test.py` (99 tests, about
-  70 s, step 3's cases included).
+  `test/shiploop-e2e-stage-build.test.py` (48 tests, about 10 s) and `test/shiploop-e2e-stages.test.py` (117 tests, about
+  100 s, step 3's cases included).
 
 - Step 3, the live tier, in `test/shiploop_e2e/stage_suite/`:
   - `stage_live.py`: one sample. It builds the scenario (`stage_build.build`; a `--ref` whose navigator lacks
@@ -34,16 +34,16 @@ of `test/run-integration.sh`, and the `live` tier on `validate-existing/broken-w
     `run.launch` with its own drive that **stops at acceptance** (`accepted_reached`: the seeded action accepted with any
     outcome, or the run parked at its Improve stage, or the run no longer active), exports the checkout, and grades from files
     (`collect_bundle`, `grade_sample`) with the oracle the verify tier uses. `stage-result.json` holds the verdicts (`process`,
-    `accepted`, `no_overshoot`, `oracle`), `caught` and `held` per id, `value` (the fraction of ids caught or held, which
-    `experiment.py decide` reads) and `pass`;
+    `accepted`, `no_overshoot`, `oracle`), `caught` and `held` per id, `value` (the fraction of ids caught or held: a per-sample
+    number suitable for handing to `experiment.py decide`; no code reads `stage-result.json` today) and `pass`;
   - `stage_report.py`: the matrix per scenario (caught and held `k/n`, overshoot, pass, driver) and `compare`, which refuses
     two roots whose drivers differ (SPEC S-12); a missing or half-written sample is not run, never a pass;
   - `stages.py live | grade | report` (and the hidden `live-sample`): `live` selects, prints the plan and the cost warning,
     refuses before launching when the host is not ready, and runs each sample as a subprocess, `--jobs` at once; `--dry-run`
     builds and launches nothing;
   - `bash test/run-integration.sh shiploop-stages ...` runs `stages.py live`;
-  - hermetic tests with a fake host, never a model: `test/shiploop-e2e-stage-live.test.py` (69 tests, about 54 s),
-    `test/shiploop-e2e-stage-report.test.py` (38 tests, under 1 s), and the live and report cases added to
+  - hermetic tests with a fake host, never a model: `test/shiploop-e2e-stage-live.test.py` (83 tests, about 90 s),
+    `test/shiploop-e2e-stage-report.test.py` (45 tests, under 1 s), and the live and report cases added to
     `test/shiploop-e2e-stages.test.py`; registered in `test/suite_catalog.py` like the three before them.
 
 **Not built**: building `improve@<stage>` and outer-stage scenarios (they load and validate); the per-scenario `oracle.py`
@@ -63,7 +63,9 @@ catalog beyond the three above (waves 1 to 4); and a real live round (deviation 
 2. **`slice.py` and `run.py` are not edited, so the live runner has its own stop-at-acceptance drive.** "Stop at acceptance"
    put `--stop-at accept` in `slice.py`. It is instead `drive` in `stage_suite/stage_live.py`, written on `run.launch` with the
    same session records (`sessionlog`), resume loop and timeout handling as `slice.drive`, which cannot take another stop
-   predicate. `slice.py` is imported as a library only (`overshoot_after`).
+   predicate. `slice.py` is imported as a library only (`overshoot_after`). A later, separately evidenced change to `slice.py`
+   should give its drive a stop predicate and a shared exporter, so that the two drives and the two exporters become one; until
+   then `drive` and `snapshot` in `stage_live.py` are the stage suite's own.
 3. **The builder reuses `run.seed_run` without editing it.** It substitutes the module global `run.SEED_SCRIPT` for the
    duration of one call, with a context manager that restores it, because `seed_run` reads that global when it advances
    the run. The seed script it substitutes records each stage through `navigator.accept_effects`. `run.SEED_SCRIPT` and the
@@ -239,7 +241,10 @@ The stop waits for the accepting command to finish first (built: `stage_live.set
 only then runs the lint finish, the two commits, the knowledge close and the iteration record, all under the run lock; the
 poll can land between the save and the end of those, and ending the host there would leave the exported tree without effects
 the engine would have produced (or with half of them). So once the stop holds, the sample waits (at most `SETTLE_SECONDS`) for the
-run lock (`<run>/.lock`) to be free, and the grade's tree is the one after the effects. `no_overshoot` also counts any history
+run lock (`<run>/.lock`) to be free, and the grade's tree is the one after the effects. What is waited for is the command's
+dispatch (the save and `accept_effects`, post-save effects included); what is not is anything the command does after it lets the
+lock go (its trace row, the start of the progress observer), and the host's group is ended right after the wait. An operator's
+stop (SIGTERM, SIGHUP, the stop file) that arrives during the wait leaves the sample not run, with nothing exported or graded. `no_overshoot` also counts any history
 row after the seeded action's own row (a host sent back that redoes an earlier stage), not only a later stage.
 
 `SEED_POINTS` widens to every stage plus `improve@<stage>`. The `no_overshoot` verdict stays: a model that has already
@@ -358,8 +363,8 @@ test-spec          stand-in-oracles         4/4   3/4   4/4   -     0/4        3
 
 `--compare` reads an earlier root. Two roots are compared only when they ran on the same host, model and effort
 (S-12). `--ref` and `--overlay` run the same scenarios against a template edit before it is committed. To decide
-between two such arms, hand the per-sample `value` to `experiment.py decide`, which keeps the A/A-spread rule in one
-place, rather than reimplementing it.
+between two such arms, the per-sample `value` is a number suitable for handing to `experiment.py decide`, which keeps the A/A-spread
+rule in one place, rather than reimplementing it (no code reads `stage-result.json` today).
 
 ### Registration
 

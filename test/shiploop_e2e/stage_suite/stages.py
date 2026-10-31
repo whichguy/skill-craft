@@ -43,9 +43,12 @@ The tiers:
   substitution of stage_build is process-global). A sample that crashes, is killed for exceeding ``--timeout`` plus
   ``SAMPLE_GRACE_SECONDS`` or leaves no whole stage-result.json is recorded as NOT RUN: it counts in the denominator and is never
   a pass, and the others go on; so is a sample an operator ended (the ``stop`` file in its folder, or a signal to it), which
-  measured nothing. ``--timeout`` defaults to DEFAULT_TIMEOUT (3600 s) so that no sample runs unbounded. A SIGTERM, SIGHUP or
-  Ctrl-C to ``live`` ends every running sample and the host under it (exit 128 + the signal; a SIGKILLed sample's host is ended
-  from its ledger), and keeps the samples that finished. ``--dry-run`` builds and launches nothing and prints the plan (it does
+  measured nothing. ``--timeout`` defaults to DEFAULT_TIMEOUT (3600 s) so that no sample runs unbounded, and must be a finite
+  positive number (nan, inf and 1e400 are refused, not read as "no timeout"). A SIGTERM, SIGHUP or Ctrl-C to ``live`` ends every
+  running sample and the host under it (exit 128 + the signal; a SIGKILLed sample's host is ended from its ledger; one the ledger
+  sweep could not see or could not stop is printed and kept in the sample's error.txt), and keeps the samples that finished. A
+  SECOND signal (SIGTERM, SIGHUP or SIGINT) while the first is still being answered escalates: every sample's group is killed
+  at once, the hosts are ended from the ledgers, and ``live`` exits 128 + that signal without waiting for the pool. ``--dry-run`` builds and launches nothing and prints the plan (it does
   not look at the host).
   The results root is ``--out DIR`` (a new folder) or a new folder under the harness's usual runs location (run.new_output_dir:
   ``$TMPDIR/shiploop-e2e/stages-live-<stamp>-<id>``); it holds ``<stage>/<scenario>/<n>/`` per sample, ``live-plan.json`` and
@@ -85,6 +88,7 @@ import argparse
 import concurrent.futures
 import contextlib
 import json
+import math
 import os
 import shutil
 import signal
@@ -107,6 +111,7 @@ import stage_live  # noqa: E402
 import stage_oracle  # noqa: E402
 import stage_report  # noqa: E402
 import hosts  # noqa: E402
+import lifecycle  # noqa: E402
 import overlay as overlays  # noqa: E402
 import run  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -120,7 +125,6 @@ VALUE_OPTIONS = ("--keep", "--cases-dir", "--samples", "--jobs", "--host", "--mo
 EXIT_PASS, EXIT_FAIL, EXIT_USAGE, EXIT_NOTHING = 0, 1, 2, 3
 EXIT_CRASH = 4  # live-sample only: the sample raised; the parent counts it as not run
 EXIT_STOPPED = 5  # live-sample only: an operator ended the sample; the parent counts it as not run
-EXIT_INTERRUPTED = 130  # live: ended by SIGINT (128 + 2); a SIGTERM is 143 and a SIGHUP 129
 DEFAULT_TIMEOUT = 3600  # live: seconds a sample's host may run unless --timeout says otherwise (a real model costs money by the minute)
 DETAIL = 300  # characters of a check's detail the table keeps
 SAMPLE_GRACE_SECONDS = 900  # what a live sample may take beyond --timeout (the build, the seed, the exports) before it is killed
@@ -564,7 +568,7 @@ def _say(args: argparse.Namespace, text: str = "") -> None:
     print(text, file=sys.stderr if args.json else sys.stdout, flush=True)
 
 
-def _plan_text(plan: dict, args: argparse.Namespace) -> str:
+def _plan_text(plan: dict) -> str:
     total = sum(item["samples"] for item in plan["scenarios"].values())
     lines = [f"live plan: {len(plan['scenarios'])} scenario{'s' if len(plan['scenarios']) != 1 else ''} x samples = {total} "
              f"sample{'s' if total != 1 else ''}, {plan['jobs']} at once"]
@@ -589,8 +593,15 @@ def _plan_text(plan: dict, args: argparse.Namespace) -> str:
 
 
 def _positive(args: argparse.Namespace) -> None:
+    """Refuse a count or a timeout that is not a positive number. ``--timeout`` must also be finite: nan fails every comparison
+    and inf (also what ``1e400`` reads as) bounds nothing, and the parent's kill time is the timeout plus SAMPLE_GRACE_SECONDS, so
+    a sample is always bounded; inf is refused, not read as "no timeout" (DEFAULT_TIMEOUT is the default)."""
     for name, value in (("--samples", args.samples), ("--jobs", args.jobs), ("--timeout", args.timeout)):
-        if value is not None and value <= 0:
+        if value is None:
+            continue
+        if not math.isfinite(value):  # nan, inf and 1e400
+            raise UsageError(f"{name} must be a positive number, not nan or inf (got {value}): every sample is bounded")
+        if value <= 0:
             raise UsageError(f"{name} must be a positive number (got {value})")
 
 
@@ -639,8 +650,18 @@ def _end_group(process: subprocess.Popen) -> None:
 
 def _sweep(out: Path) -> None:
     """The host of a sample that was killed from outside (its handler could not run) is in a session of its own and outlives it:
-    end the host groups the sample's own ledger records and that are still the processes recorded."""
-    stage_live.end_recorded_hosts(out)
+    end the host groups the sample's own ledger records and that are still the processes recorded. When the sweep could not see
+    (the process table was unreadable) or could not stop a group, say so on stderr and append the line (lifecycle.cleanup_line)
+    to the sample's error.txt: a host may still be running, and nobody else is told."""
+    record = stage_live.end_recorded_hosts(out)
+    if record.get("observed", True) and not record.get("survived"):
+        return
+    line = (lifecycle.cleanup_line(record) or "").strip()
+    print(f"stages.py: {out}: {line}", file=sys.stderr, flush=True)
+    with contextlib.suppress(OSError):
+        out.mkdir(parents=True, exist_ok=True)
+        with (out / stage_report.ERROR).open("a") as handle:
+            handle.write(line + "\n")
 
 
 def _tail(path: Path) -> str:
@@ -675,6 +696,7 @@ def run_one_sample(sc: sb.Scenario, number: int, root: Path, args: argparse.Name
     started = time.monotonic()
     code: int | None = None
     why = ""
+    sweep = False  # the sample's process ended in a way that leaves its host to the ledger (killed, or live was told to end)
     try:
         with log.open("wb") as handle:
             if STOPPING.is_set():
@@ -693,14 +715,15 @@ def run_one_sample(sc: sb.Scenario, number: int, root: Path, args: argparse.Name
             finally:
                 with CHILDREN_LOCK:
                     CHILDREN.pop(process, None)
-            if code is None or code < 0 or STOPPING.is_set():
-                _sweep(out)
+            sweep = code is None or code < 0 or STOPPING.is_set()
     except OSError as error:
         why = f"the sample could not be started ({type(error).__name__}: {error})"
     read = stage_report.read_sample(out) if out.is_dir() else {"graded": False, "reason": "no sample folder"}
     record = {"scenario": sc.id, "sample": number, "output": str(out), "log": str(log), "returncode": code,
               "seconds": round(time.monotonic() - started, 1), "graded": read["graded"]}
     if read["graded"]:
+        if sweep:
+            _sweep(out)
         result = read["result"]
         return {**record, "pass": stage_report.passed(result), "value": result.get("value"), "reason": None}
     if not why:
@@ -709,6 +732,8 @@ def run_one_sample(sc: sb.Scenario, number: int, root: Path, args: argparse.Name
         with contextlib.suppress(OSError):
             out.mkdir(parents=True, exist_ok=True)
             (out / stage_report.ERROR).write_text(" ".join(why.split())[:2000] + "\n")
+    if sweep:  # after error.txt holds why: what the sweep could not do is appended to it
+        _sweep(out)
     return {**record, "pass": False, "value": None, "reason": why}
 
 
@@ -730,20 +755,44 @@ def _not_buildable(sc: sb.Scenario) -> str:
     return ""
 
 
+def _escalate(number: int) -> None:
+    """A second signal reached `live` while it was still answering the first: end now, and do not return. SIGKILL to every
+    running sample's group (they are leaders of their own, so this is the sample and nothing of ours), then the hosts below them,
+    which are in sessions of their own, from the samples' ledgers (``_sweep``), then leave with 128 + the signal without waiting
+    for the pool (its workers wait for the samples this just killed, and must not hold the exit)."""
+    STOPPING.set()  # before the copy: a worker that registers its sample after the copy then reads this and ends the sample itself
+    running: list = []
+    for _ in range(5):  # a worker may add or drop a sample while this copies; the handler takes no lock the interrupted code may hold
+        with contextlib.suppress(RuntimeError):
+            running = list(CHILDREN.items())
+            break
+    for process, _out in running:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.killpg(process.pid, signal.SIGKILL)
+    for _process, out in running:
+        _sweep(out)
+    print(f"stages.py: a second signal ({signal.Signals(number).name}): the samples were killed and their hosts ended from the "
+          "ledgers; the samples that finished are kept", file=sys.stderr, flush=True)
+    os._exit(128 + number)
+
+
 def _end_on_signals(told: list[int]):
-    """Make a SIGTERM or SIGHUP to `live` end it as a Ctrl-C does (the KeyboardInterrupt that cmd_live answers by ending every
-    sample and the host below it), recording the signal in ``told``. A signal the launch ignored (nohup keeps a run alive through
-    a hangup) stays ignored. Returns the function that puts the old handlers back; it installs nothing off the main thread."""
+    """Make a SIGTERM, SIGHUP or SIGINT to `live` end it as a Ctrl-C does (the KeyboardInterrupt that cmd_live answers by ending
+    every sample and the host below it), recording the signal in ``told``. A SECOND signal while the first is being answered
+    escalates (``_escalate``): the samples are killed, the hosts ended from their ledgers, and `live` exits at once. A signal the
+    launch ignored (nohup keeps a run alive through a hangup) stays ignored. Returns the function that puts the old handlers
+    back; it installs nothing off the main thread."""
     if threading.current_thread() is not threading.main_thread():
         return lambda: None
     old = {}
 
     def handler(number, frame):
         told.append(number)
-        signal.signal(number, signal.SIG_DFL)  # a second one means it
+        if len(told) > 1:
+            _escalate(number)
         raise KeyboardInterrupt
 
-    for number in (signal.SIGTERM, signal.SIGHUP):
+    for number in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         if signal.getsignal(number) is not signal.SIG_IGN:
             old[number] = signal.signal(number, handler)
 
@@ -773,7 +822,7 @@ def cmd_live(args: argparse.Namespace, chosen: list[sb.Scenario], cases: Path) -
     plan = {"command": "live", "driver": driver.identity(), "fake_host": driver.fake, "ref": args.ref,
             "overlay": str(overlay) if overlay else None, "timeout": args.timeout, "jobs": args.jobs,
             "scenarios": samples, "off": off, "waiting": waiting, "root": str(stamp_root)}
-    _say(args, _plan_text(plan, args))
+    _say(args, _plan_text(plan))
     if args.dry_run:
         if args.json:
             print(json.dumps({**plan, "dry_run": True}, indent=2, ensure_ascii=False))

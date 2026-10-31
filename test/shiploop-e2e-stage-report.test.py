@@ -9,7 +9,9 @@ roots written by hand: no host, no ShipLoop, no scenario folder. Hermetic: own t
   is not one; folders that are not samples (``.logs`` is not read; a name that is not a sample number, ``01`` or a non-ASCII digit
   included, is not counted and is listed as ignored); a result that checked no id, lacks an id the plan names, has a value outside
   0 to 1 or a missing one is not run; the JSON value counts a sample not run as 0; a root that mixes plugin builds says so.
-- The plan (live-plan.json): the samples planned and the pass rule give the rule column (met, NOT MET, or ``-`` without a plan).
+- The plan (live-plan.json): the samples planned and the pass rule give the rule column (met, NOT MET, or ``-`` without a plan; a
+  boolean ``required`` is no number). Its planted and control ids give the id columns even when no sample was graded: each cell
+  reads 0/n, and the overshoot cell is ``-`` (nothing ran, so no overshoot was counted).
 - The text: the columns, ``-`` for an id a scenario does not have, the not-run lines, a note for a root that mixes drivers.
 - compare: per-cell counts and changes for roots of one driver; a refusal naming both drivers when host, backend, model or effort
   differ (SPEC S-12), when a root mixes drivers, or when a root has no graded sample; a scenario in one root only is marked.
@@ -262,6 +264,14 @@ class Hardening(Temp):
                           "stage-result.json lacks the planned ids P1, P2"])
         self.assertEqual(found["pass"], {"k": 0, "n": 3})
 
+    def test_a_result_that_lacks_only_a_planned_control_id_is_not_run(self):
+        root = self.root()
+        sample(root, WRONG, 1)  # holds C1 and C2, catches P1
+        plan(root, {"validate-existing/wrong-check": {"samples": 1, "required": 1, "planted": ["P1"], "controls": ["C1", "C2", "C3"]}})
+        found = row(report.read_root(root), WRONG)
+        self.assertEqual(found["ran"], 0)
+        self.assertEqual(found["not_run"], [{"sample": 1, "reason": "stage-result.json lacks the planned id C3"}])
+
     def test_a_value_outside_0_to_1_or_missing_makes_the_result_malformed(self):
         root = self.root()
         sample(root, WRONG, 1, value=5)
@@ -302,6 +312,19 @@ class Hardening(Temp):
         self.assertEqual(len(row(document, WRONG)["builds"]), 2)
         self.assertIn("note: this root mixes plugin builds, refs or overlays: ", report.render(document))
 
+    def test_builds_that_differ_only_in_the_overlay_or_only_in_the_checkouts_head_are_different_builds(self):
+        base = {"ref": "origin/main", "overlay": None, "local_head": "a" * 40,
+                "versions": {"plugin_version": "1.2.3", "shiploop_version": "4.5.6", "plugin_sha256": "abc123abc123"}}
+        for name, change in (("overlay", {"overlay": {"overlay": "o.json", "modules": ["x"]}}), ("head", {"local_head": "b" * 40}),
+                             ("sha", {"versions": {**base["versions"], "plugin_sha256": "def456def456"}})):
+            with self.subTest(differs=name):
+                root = self.root(f"builds-{name}")
+                sample(root, WRONG, 1, **base)
+                sample(root, WRONG, 2, **{**base, **change})
+                document = report.read_root(root)
+                self.assertEqual(len(document["builds"]), 2, document["builds"])
+                self.assertIn("note: this root mixes plugin builds, refs or overlays: ", report.render(document))
+
     def test_results_with_no_build_fields_are_one_build_and_compare_still_works_across_builds(self):
         a, b = self.root("a"), self.root("b")
         sample(a, WRONG, 1)
@@ -309,6 +332,52 @@ class Hardening(Temp):
         self.assertEqual(len(report.read_root(a)["builds"]), 1)
         compared = report.compare(a, b)
         self.assertEqual(compared["scenarios"][0]["id"], "validate-existing/wrong-check")
+
+
+# ------------------------------------------------------------------------------------------------------- nothing was graded
+
+class NothingGraded(Temp):
+    """A scenario none of whose samples was graded still has its columns: the plan names the planted and control ids."""
+    PLANNED = {"validate-existing/wrong-check": {"samples": 2, "required": 2, "planted": ["P1"], "controls": ["C1", "C2"]}}
+
+    def test_the_planned_ids_read_0_over_n_when_no_sample_was_graded_and_the_overshoot_is_not_counted(self):
+        root = self.root()
+        plan(root, self.PLANNED)
+        (root / "validate-existing" / "wrong-check" / "1").mkdir(parents=True)
+        (root / "validate-existing" / "wrong-check" / "1" / "error.txt").write_text("the host did not start\n")
+        document = report.read_root(root)
+        found = row(document, WRONG)
+        self.assertEqual((found["samples"], found["ran"]), (2, 0))
+        self.assertEqual(found["ids"], {"P1": {"kind": "caught", "k": 0, "n": 2}, "C1": {"kind": "held", "k": 0, "n": 2},
+                                        "C2": {"kind": "held", "k": 0, "n": 2}})
+        self.assertIsNone(found["overshoot"], "nothing ran, so no overshoot was counted: not 0/2")
+        self.assertEqual(document["ids"], ["P1", "C1", "C2"])
+        text = report.render(document)
+        header = next(line for line in text.splitlines() if line.startswith("scenario"))
+        self.assertEqual(header.split(), ["scenario", "ran", "P1", "C1", "C2", "overshoot", "pass", "rule", "driver"])
+        line = next(line for line in text.splitlines() if line.startswith("validate-existing/wrong-check"))
+        self.assertEqual(line.split(), ["validate-existing/wrong-check", "0/2", "0/2", "0/2", "0/2", "-", "0/2", "NOT", "MET", "-"])
+
+    def test_a_scenario_with_graded_samples_keeps_its_overshoot_count_and_its_ids(self):
+        root = self.root()
+        plan(root, self.PLANNED)
+        sample(root, WRONG, 1)
+        found = row(report.read_root(root), WRONG)
+        self.assertEqual(found["overshoot"], {"k": 0, "n": 2})
+        self.assertEqual(found["ids"]["P1"], {"kind": "caught", "k": 1, "n": 2})
+        self.assertEqual(found["ids"]["C2"], {"kind": "held", "k": 1, "n": 2})
+
+    def test_compare_goes_on_with_a_scenario_that_graded_nothing(self):
+        a, b = self.root("a"), self.root("b")
+        sample(a, BROKEN, 1)
+        sample(b, BROKEN, 1)
+        plan(a, {**self.PLANNED})
+        plan(b, {**self.PLANNED})
+        document = report.compare(a, b)
+        found = next(item for item in document["scenarios"] if item["id"] == "/".join(WRONG))
+        self.assertEqual(found["cells"]["overshoot"], {"a": None, "b": None, "delta": None})
+        self.assertEqual(found["cells"]["P1"]["a"], {"k": 0, "n": 2})
+        self.assertIn("- ", report.render_compare(document))
 
 
 # -------------------------------------------------------------------------------------------------------------------- the rule
@@ -324,6 +393,12 @@ class Rule(Temp):
         self.assertEqual(row(report.read_root(root), WRONG)["rule"], {"required": 2, "met": True})
         plan(root, {"validate-existing/wrong-check": {"samples": 3, "required": 3}})
         self.assertEqual(row(report.read_root(root), WRONG)["rule"], {"required": 3, "met": False})
+
+    def test_a_boolean_required_is_no_number_so_it_gives_no_rule(self):
+        root = self.root()
+        sample(root, WRONG, 1)
+        plan(root, {"validate-existing/wrong-check": {"samples": 1, "required": True}})
+        self.assertIsNone(row(report.read_root(root), WRONG)["rule"])
 
     def test_a_malformed_plan_is_ignored(self):
         root = self.root()
@@ -436,6 +511,14 @@ class Compare(Temp):
             report.compare(b, empty)
         with self.assertRaisesRegex(report.ReportError, "has no graded sample"):
             report.compare(empty, b)
+
+    def test_two_roots_that_each_mix_the_same_drivers_still_cannot_be_compared(self):
+        a, b = self.root("a"), self.root("b")
+        for root in (a, b):
+            sample(root, WRONG, 1)
+            sample(root, WRONG, 2, model="other")
+        with self.assertRaisesRegex(report.DriverMismatch, "each mix drivers.*a driver cannot be named"):
+            report.compare(a, b)
 
     def test_a_scenario_in_one_root_only_is_marked_and_has_no_change(self):
         a, b = self.root("a"), self.root("b")

@@ -15,12 +15,13 @@ The matrix has a row per scenario and the columns
 
     ran         graded samples / samples
     P1 ... C2   the planted ids caught and the controls held, k/n (n counts the samples not run)
-    overshoot   graded samples whose host accepted a stage after the seeded one, k/n
+    overshoot   graded samples whose host accepted a stage after the seeded one, k/n (``-`` when no sample was graded)
     pass        samples that passed (every verdict true, every id caught or held), k/n
     rule        met / NOT MET against the scenario's ``live.pass`` rule, from the plan (``-`` without a plan)
     driver      host[:backend]/model/effort of the graded samples
 
-A cell for an id the scenario does not have is ``-``. The JSON row's ``value`` is the mean of the samples' ``value`` with a
+A cell for an id the scenario does not have is ``-``. The plan's planted and control ids give the cells of a scenario none of whose
+samples was graded (each reads 0/n), so its row keeps its id columns. The JSON row's ``value`` is the mean of the samples' ``value`` with a
 sample not run counting 0; ``builds`` lists the plugin builds (ref, overlay, head, versions) of the graded samples, and a root with
 more than one carries a note: results of different builds are shown together, never refused (comparing refs is what ``compare``
 is for). A result that checked no id, lacks an id the plan names or has a ``value`` outside 0-1 is not run. A folder whose name
@@ -165,6 +166,9 @@ def _scenario(identifier: str, folder: Path | None, planned: dict | None) -> dic
     not_run = [{"sample": number, "reason": found[number]["reason"] if number in found else "no sample folder"}
                for number in numbers if number not in graded]
     ids: dict[str, dict] = {}
+    for ident in (*(planned or {}).get("planted", []), *(planned or {}).get("controls", [])):
+        if isinstance(ident, str):  # the plan names the ids, so a scenario that graded nothing still has its cells (0/n)
+            ids.setdefault(ident, {"kind": "caught" if ident.startswith("P") else "held", "k": 0, "n": count})
     for result in graded.values():
         for ident in (*result["caught"], *result["held"]):
             ids.setdefault(ident, {"kind": "caught" if ident.startswith("P") else "held", "k": 0, "n": count})
@@ -177,7 +181,8 @@ def _scenario(identifier: str, folder: Path | None, planned: dict | None) -> dic
     stage, _, name = identifier.partition("/")
     row = {"id": identifier, "stage": stage, "scenario": name, "samples": count, "ran": len(graded), "not_run": not_run,
            "ids": dict(sorted(ids.items(), key=lambda item: _id_order(item[0]))),
-           "overshoot": {"k": sum(1 for result in graded.values() if not result["verdicts"]["no_overshoot"]), "n": count},
+           "overshoot": ({"k": sum(1 for result in graded.values() if not result["verdicts"]["no_overshoot"]), "n": count}
+                         if graded else None),  # nothing graded, nothing counted: not 0/n
            "pass": {"k": passes, "n": count},
            "value": (sum(result["value"] for result in graded.values()) / count) if count else None,
            "builds": builds, "ignored": ignored,
