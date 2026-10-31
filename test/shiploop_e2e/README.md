@@ -10,17 +10,29 @@ rebuilt and run again. The heavier Grok campaign lives in
 The opt-in [gym membership scenario](GYM_MEMBERSHIP.md) records a reusable four-journey Salesforce business app challenge.
 The harness launches ShipLoop in a separate fresh context; scenario preparation contains no gym app implementation.
 
+This directory's `run.py` and `cases.json` are the **repository harness**. The installed
+`shiploop-e2e-audit` skill has its own bundled harness and catalog under
+`skills/shiploop-e2e-audit/harness/`; it does not include this directory's gym case.
+Package builds exclude `test/`, so merging changes here makes them available from a
+checkout, without changing the installed skill. A plugin release is needed when its
+packaged source changes, not merely because this harness changed.
+
+The [standing specification](SPEC.md) governs adoption. Review findings and passing
+tests do not establish a measured winner. The delivery path below is coordinated
+separately from a one-shot run or exploratory `iterate.py` invocation:
+
 ```mermaid
-flowchart LR
-    B[Build the worktree's skill-craft plugin] --> R[Run ShipLoop in an empty directory]
-    R --> V[Review: learnings, gaps, optimizations]
-    V --> L[Commit the learnings to LEARNINGS.md]
-    L --> P[Update the Run Review page]
-    P -->|material findings that keep the premise| I[Improve skills/shiploop and commit]
-    I --> T[Quick test tier]
-    T -->|green| B
-    V -->|two clean reviews| S[Stop: branch ready to merge and release]
-    T -->|red| S
+flowchart TD
+    R[Run ShipLoop in a fresh subject context] --> V[Measure and review discoveries]
+    V -->|Warranted candidate| I[Construct one generic candidate]
+    I --> Q[Register and run a promotion/5 comparison]
+    Q --> D{Measured winner?}
+    D -->|Yes| M[Commit learning and integrate on main with CI]
+    M --> P[Release and refresh changed skill packages]
+    P --> A[Verify the published build]
+    A --> R
+    D -->|No or unknown| L[Restore baseline and retain learning-only commit]
+    V -->|No candidate| N[Record learning and keep the baseline]
 ```
 
 New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Terra / xhigh** (owner,
@@ -57,8 +69,8 @@ server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route t
   run another model served (`metrics.models_served`) is not attributable to its driver.
 
 ```sh
-python3 test/shiploop_e2e/run.py --case hello --output ~/e2e-runs/<day>/<name>                 # DeepSeek flash
-python3 test/shiploop_e2e/run.py --case hello --backend anthropic --output ~/e2e-runs/<day>/<name>  # Sonnet 5.5
+python3 test/shiploop_e2e/run.py --host claude --case hello --output ~/e2e-runs/<day>/<name>                 # DeepSeek flash
+python3 test/shiploop_e2e/run.py --host claude --case hello --backend anthropic --output ~/e2e-runs/<day>/<name>  # Sonnet 5.5
 ```
 
 To check orchestration alone, without ShipLoop's SDLC or a product, run the
