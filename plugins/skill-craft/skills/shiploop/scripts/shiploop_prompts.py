@@ -1289,7 +1289,8 @@ Change no product file in this stage.
      new path is `absent` (its place is free).
    - `check`: one read-only command from the repository root that exits 0 while the state holds. For `broken`, the
      reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`.
-   - An open item due here (`due: W<n>`) becomes an expectation whose `from` names it; no other has `from`.
+   - Cite an open item due here (`due: W<n>`) in `from` on an executed criterion, or on an expectation for a fact that
+     exists; nowhere else.
 7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document. A new check script is a durable

@@ -2616,9 +2616,10 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
     rows = []
     for entry in value:
         _need(isinstance(entry, Mapping)
-              and {"id", "text"} <= set(entry) <= {"id", "text", "confirm", "code", "layer"},
+              and {"id", "text"} <= set(entry) <= {"id", "text", "confirm", "code", "layer", "from"},
               "each criterion is {\"id\": \"C1\", \"text\": \"...\", \"confirm\": \"executed\" | \"searched\" | "
-              "\"inspected\"} (inspected adds \"code\" and \"layer\": the test_layers row with no runner)")
+              "\"inspected\"} (inspected adds \"code\" and \"layer\": the test_layers row with no runner; one that "
+              "settles an open plan assumption adds \"from\": its id)")
         criterion_id = _text(entry["id"], "criterion id")
         _need(not any(character.isspace() for character in criterion_id), "a criterion id has no spaces")
         row = {"id": criterion_id, "text": _text(entry["text"], "criterion text")}
@@ -2629,6 +2630,12 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
         for key in ("code", "layer"):
             if key in entry:
                 row[key] = _text(entry[key], "criterion " + criterion_id + "'s " + key)
+        if "from" in entry:
+            _need(isinstance(entry["from"], str) and re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", entry["from"])
+                  and entry.get("confirm") == "executed",
+                  "criterion " + criterion_id + "'s from names the open plan assumption it settles, such as A2, and "
+                  "the criterion is executed: its test runs after the build")
+            row["from"] = entry["from"]
         rows.append(row)
     ids = [row["id"] for row in rows]
     _need(len(set(ids)) == len(ids), "criterion ids must be unique")
@@ -5213,19 +5220,22 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
              "check": "<read-only command, run from the repository root, that exits 0 when it holds>"},
             {"id": "E2", "state": "absent", "statement": "<what does not exist yet>", "steps": ["S2"],
              "paths": ["<new file a step adds>"], "check": "<read-only command that exits 0 when it is absent>"}]
-        # `from` only on the expectation that settles an open item due at this item: read as provenance, it drew 25
-        # refusals in 22 runs (stage-prompt review, 2026-10-31).
+        # An open item due at this item gets a criterion row whose `from` names it: an executed criterion settles any
+        # open item after the build, where an expectation settles only a fact about what exists (experiment-route study,
+        # 2026-10-31: 10 of 11 items about what the item builds were met with a check that settled nothing, and 1 run
+        # stopped).  `from` appears on no other row: read as provenance, it drew 25 refusals in 22 runs (stage-prompt
+        # review, 2026-10-31).
         workitem = _current_work_item(state)
-        for number, row in enumerate(expectations.open_assumptions(state, workitem) if workitem else (), start=3):
-            result["expectations"].append({
-                "id": "E" + str(number), "state": "works", "statement": "<what settles " + str(row.get("id")) + ">",
-                "steps": ["S1"], "paths": ["<file it reads>"], "check": "<read-only command that settles it>",
-                "from": str(row.get("id"))})
+        due = [str(row.get("id")) for row in (expectations.open_assumptions(state, workitem) if workitem else ())]
+        settles = ["C" + str(number) for number in range(3, 3 + len(due))]
         result["criteria"] = [{"id": "C1", "text": CRITERION_PLACEHOLDER, "confirm": "executed"},
-                              {"id": "C2", "text": CRITERION_PLACEHOLDER, "confirm": "executed"}]
+                              {"id": "C2", "text": CRITERION_PLACEHOLDER, "confirm": "executed"},
+                              *({"id": criterion, "text": "<what this item's test shows for " + ident + ">",
+                                 "confirm": "executed", "from": ident} for criterion, ident in zip(settles, due))]
         # The check row is the item's lint, type or build command, which confirms no behaviour: a check row naming C2
         # taught 22 of 445 executed criteria to rest on one (stage-prompt review, 2026-10-31).
-        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1", "TC-2"], "criteria": ["C1", "C2"]},
+        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1", "TC-2"],
+                                    "criteria": ["C1", "C2", *settles]},
                                    {"command": "<exit-code check command>", "suite": "check"},
                                    {"command": "...", "suite": "regression", "minimum": True}]
         if test_loop.stateful_targets(state):

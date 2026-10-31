@@ -518,8 +518,8 @@ V3's plan template explicitly includes `work_items`. Return the complete ordered
 queue when the plan has multiple implementation increments; a note alone does
 not populate it. Omission remains compatible when the existing queue represents
 the whole approved plan. The script visits queue order serially; the item's
-`step-plan` revalidates its prerequisite evidence (its expectations' `from` cite the
-open plan assumptions it consumes) rather than selecting among dependency-ready
+`step-plan` revalidates its prerequisite evidence (the `from` of its executed criteria or
+expectations cites the open plan assumptions it consumes) rather than selecting among dependency-ready
 alternatives. Keep independent branches and file/resource
 conflicts distinct from causal dependencies in the linked plan notes.
 
