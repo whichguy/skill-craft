@@ -54,6 +54,17 @@ readers expect. Properties are small string key-value stores scoped to the
 script, user or document; choose the scope deliberately, prefix the keys, and
 keep large or tabular data out of them.
 
+## Testing deployed code
+
+A test that calls the deployed project, such as a web app URL or a function run in Google's runtime, reads the
+deployment and never the checkout. Once a step has pushed, the deployment already holds the item's change, so on the
+item's base the test passes for no fault of its own, and a mutant in the checkout's copy never reaches it. Name the
+deployment as a test-strategy target with `keeps_state: "yes"` and a `base_state_route`, and put that target on each
+test command that runs against it. ShipLoop then does not run those commands on the item's base, the mutation check
+skips them and records why, and the candidate runs still judge them. A step that changes deployed code names, in its
+Proof or in an expectation, one command that reads the deployed result: a passing local test does not show that the
+deployment changed.
+
 ## Projects deployed with mcp-gas-deploy
 
 A project deployed with mcp-gas-deploy carries a vendored layer. `require.gs`
