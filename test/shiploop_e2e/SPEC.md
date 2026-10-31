@@ -40,6 +40,18 @@ learning without an adopted code change distinct. Verified changes merge directl
 do not create PRs or squash the learning history. A local promotion, a main merge, a release and a subsequent run of the
 published build are separate recorded milestones.
 
+**Learning when no code is retained (owner decision, 2026-10-31).** After every completed run or bounded experiment,
+including a failed, interrupted, rejected, invalid or undecided attempt, the authorised operator records the learning in
+the operator-owned harness/source repository. State the reproducible failure scenario, setup and commands, baseline and
+candidate identities, actual quality/cost measurements and checks, decision, contrary evidence, unknowns and raw evidence
+locators. Cite the full hashes and specific contents of commits that influenced the decision, including the candidate
+and rollback where applicable; a bare hash list is insufficient. When no change qualifies for retention, restore the
+accepted baseline, revert already committed source changes without rewriting history, and make a verbose empty learning
+commit. Preserve the original commits and raw external failure evidence; rejected experiments add no retained journal
+or evidence files. Read these messages before planning the next change or trial using the history search above.
+The operator records this after subject/reviewer work stops, never by writing in the test product, installed package,
+sealed evidence or a read-only reviewer. Missing repository/write authority leaves an explicit pending learning record.
+
 Reviews examine the available evidence about the skill contract/format, scripts, returned prompts/templates and the
 handoffs among them. They assess conformance, unexpected expectations, optimisations and material discoveries against
 the generic development mission. An interaction that was not exercised remains unobserved; no finding quota applies.
@@ -1555,5 +1567,8 @@ target reuse; a fresh product folder is not a deployed-system reset.
   checks, baselines and learnings.
 - Never print packet text or run markers into a session that is not the run's
   host.
-- After each run, record learnings in LEARNINGS.md with a detailed commit that
-  names the suite, the case, and the clauses the run confirmed or violated.
+- After each run, retain its learning commit under Purpose, including the
+  suite, case and clauses confirmed or violated. Retained ShipLoop changes
+  also record their qualifying E2E round in LEARNINGS.md; a rejected or
+  unqualified experiment keeps the empty learning commit and raw external
+  evidence, without adding rejected journal/evidence files.
