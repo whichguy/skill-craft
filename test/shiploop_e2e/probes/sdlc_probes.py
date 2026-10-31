@@ -18,7 +18,10 @@ The probes:
 * P3 ``model_commits``: read from the run's own metrics.json, never recounted (S-12). It reports ``commits.other.n``
   (counters.history: commits ShipLoop did not make), and the fidelity block's ``model_commits`` and ``script_owned`` edits
   (for example a ``sed -i`` of return-plan.md).
-* P5 ``new_dependencies``: dependency names a manifest gained (package.json, requirements*.txt, pyproject.toml, go.mod).
+* P5 ``new_dependencies``: dependency names a manifest gained (package.json, requirements*.txt, pyproject.toml, go.mod,
+  and an Apps Script project's appsscript.json: its libraries and enabled advanced services). A repository with no such
+  manifest at the start or at HEAD is unmeasured, never "none": it may declare its dependencies where this reader does
+  not look.
 * P6 ``secret_like``: added lines that match a known credential format. It reports the format and path, never the value.
 * P7 ``swallowed_errors``: added product-code lines that discard an error (``except: pass``, an empty ``catch``,
   ``|| true`` in a shell script).
@@ -92,7 +95,7 @@ SHELL = re.compile(r"(\.(sh|bash|zsh|ksh)|(^|/)Makefile|\.mk)$")
 ASSERTION = re.compile(r"\bassert\w*\b|\bexpect\s*\(|\.should\b|\bself\.assert\w*\(|\bt\.(equal|deepEqual|ok|is|throws|"
                        r"strictEqual|deepStrictEqual)\b|\bassert\.\w+\(")
 STEP_SUBJECT = re.compile(r"^feat\((?P<item>[^/()]+)/(?P<step>[^/()]+)\):")
-MANIFESTS = re.compile(r"(^|/)(package\.json|requirements[^/]*\.txt|pyproject\.toml|go\.mod)$")
+MANIFESTS = re.compile(r"(^|/)(package\.json|requirements[^/]*\.txt|pyproject\.toml|go\.mod|appsscript\.json)$")
 
 
 def git(tree: Path, *args: str) -> str:
@@ -178,12 +181,32 @@ def _names(manifest: str, text: str) -> set[str]:
         return names | {key.lower() for key in poetry if key.lower() != "python"}
     if name == "go.mod":
         return set(re.findall(r"^\s*(?:require\s+)?([a-z0-9.-]+\.[a-z]{2,}/[^\s]+)\s+v\d", text, re.M))
+    if name == "appsscript.json":
+        try:
+            data = json.loads(text)
+        except ValueError:
+            return set()
+        declared = data.get("dependencies") if isinstance(data, dict) and isinstance(data.get("dependencies"), dict) else {}
+        libraries = {"library:" + str(row["libraryId"]) for row in declared.get("libraries") or ()
+                     if isinstance(row, dict) and row.get("libraryId")}
+        services = {"service:" + str(row["serviceId"]) for row in declared.get("enabledAdvancedServices") or ()
+                    if isinstance(row, dict) and row.get("serviceId")}
+        return libraries | services
     return set()
 
 
 def new_dependencies(tree: Path, start: Optional[str]) -> list[dict]:
-    """P5: dependency names each manifest has at HEAD and did not have at ``start``."""
+    """P5: dependency names each manifest has at HEAD and did not have at ``start``.
+
+    A repository with no supported manifest at ``start`` or at HEAD cannot show a dependency to this reader, so that is
+    unmeasured (a plain ``LookupError``, which ``probe`` records with its reason), never none. An Apps Script project
+    declares its dependencies in appsscript.json, and a project with no manifest at all may declare them anywhere."""
     base = start or EMPTY_TREE
+    present = [path for ref in ([start] if start else []) + ["HEAD"]
+               for path in git(tree, "ls-tree", "-r", "--name-only", ref).splitlines() if MANIFESTS.search(path)]
+    if not present:
+        raise LookupError("no supported manifest (package.json, requirements*.txt, pyproject.toml, go.mod or "
+                          "appsscript.json) at the start or at HEAD, so dependencies cannot be measured")
     changed = [path for path in git(tree, "diff", "--name-only", base, "HEAD").splitlines() if MANIFESTS.search(path)]
     rows = []
     for manifest in changed:
@@ -258,7 +281,7 @@ def probe(out: Path, root: Path = ROOT, classify: Optional[Callable[[str], str]]
     try:
         found["model_commits"] = model_commits(out)
     except Exception as exc:  # noqa: BLE001 - a record that cannot be read is unmeasured, never 0
-        unmeasured["model_commits"] = exc.args[0] if isinstance(exc, LookupError) else _why(exc)
+        unmeasured["model_commits"] = str(exc.args[0]) if type(exc) is LookupError else _why(exc)
     git_probes = ("suppressions", "earlier_test_edits", "new_dependencies", "secret_like", "swallowed_errors")
     with tempfile.TemporaryDirectory(prefix="sdlc-probes-") as tmp:
         work, why = out / "work", None
@@ -283,6 +306,8 @@ def probe(out: Path, root: Path = ROOT, classify: Optional[Callable[[str], str]]
         for name, run in runs.items():
             try:
                 found[name] = _facts(run())
+            except LookupError as exc:  # a plain LookupError is a probe saying its input is not here: unmeasured, with why
+                unmeasured[name] = str(exc.args[0]) if type(exc) is LookupError else _why(exc)
             except Exception as exc:  # noqa: BLE001 - fail open: one probe that raises is unmeasured, never 0
                 unmeasured[name] = _why(exc)
     return {"probes": found, "unmeasured": unmeasured}

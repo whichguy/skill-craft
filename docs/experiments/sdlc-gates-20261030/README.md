@@ -86,7 +86,7 @@ calls it. It reads `<out>/work`, or the delivery bundle after `lifecycle.py disp
 | P2 | A later step or item editing a test an earlier one created, with the assertion lines removed and added | built |
 | P3 | Read from the run's own metrics.json: `commits.other` (counters.history) and the fidelity block's `model_commits` and `script_owned` edits | already measured by the harness; the reader reports it |
 | P4 | An earlier item's test IDs missing from a later item's full regression | not built: it needs every item's IDs mapped across the verify records |
-| P5 | Dependencies a manifest gained | built |
+| P5 | Dependencies a manifest gained: `package.json`, `requirements*.txt`, `pyproject.toml`, `go.mod`, and an Apps Script project's `appsscript.json` (libraries and enabled advanced services). A repository with none of these is reported as not measured, never as none. | built |
 | P6 | Known credential formats, reporting the format and path but never the value | built |
 | P7 | Swallowed errors in product code | built |
 
