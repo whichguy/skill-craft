@@ -57,6 +57,22 @@ The start-of-run packet shared only the `progress.html` link, so there was nothi
   (13) pass when run directly. A docs commit from another session that the first rebase carried over (`c51f2266`, the
   stack-reference note in `test/shiploop_e2e/LEARNINGS.md`; its twin `4a8b6af1` is unpushed on local `main`) was dropped
   from this branch, so the change is only the viewer.
+- Full tier, 2026-10-30 (`bash test/run-all.sh --group all --jobs 4`, 163 suites in 2,402 s, on the viewer commit rebased
+  onto `5ca57d9e`, built `e4bb796b`): 161 pass, 2 fail, `shiploop-e2e-stage-oracle` (1 test, an environment probe) and
+  `shiploop-e2e-stage-build` (2 tests, `/private/var` against `/var`). Both fail the same way on a clean `origin/main`
+  (`ee831200`, run in a scratch worktree) and `8ff81566e1ef45054964bbcc65a1edac59f296a6` recorded the same two on
+  `5ca57d9e`, so they are this Mac's. The run beside a live E2E round loaded the machine to a load average above 40.
+- Second rebase, 2026-10-30, onto `origin/main` `ee831200` (three more commits; `shiploop_navigator.py` is touched on both
+  sides and merged without a conflict; `baselines.jsonl` conflicted on appended rows and was resolved by keeping both
+  sides). The quick tier, `--changed-from ee831200` (45 suites, `--jobs 8`), passed 44; `shiploop-e2e` failed one timing
+  test, `SeedTest.test_launch_returns_when_the_host_exits_instead_of_sleeping_out_the_poll_tick` (1.7 s against a 1.5 s
+  bound, at a load average above 40). Alone it passes 3 of 3 at 0.5 s, and the suite's other 492 tests pass.
+- E2E round, 2026-10-30: `hello` on Codex `gpt-6.1-terra` at xhigh, built from this checkout, passes every verdict (702 s,
+  167 turns). The first packet carried the command, the model gave it to the user in a code block and did not run it, the
+  other 19 outputs that showed a `Progress view:` line carried none, and the printed command served the finished run
+  (200 for the four pages, 404 for other paths, 405 for POST, no file in the run changed). Entry "Progress viewer: does a
+  host relay the first packet's launch command without running it?" in `test/shiploop_e2e/LEARNINGS.md`; evidence in
+  `docs/experiments/progress-viewer-20261030/`.
 
 ## Findings
 
@@ -66,11 +82,12 @@ The start-of-run packet shared only the `progress.html` link, so there was nothi
 | F2 | Over HTTP a browser will not open the page's `file:` links. The saved-report link now points at the viewer's own `/report.html`; the links to source documents stay `file:` (the previews are embedded). | firm | Browser check on a halted run; test `test_the_saved_report_link_can_be_pointed_at_the_viewer`. |
 | F3 | The observer, started by `--serve`, rewrites `trace.html` and `progress.html` itself, so a test cannot plant those two files. | firm | Two first-draft tests failed on it; the tests now plant `report.html` and a symlinked `progress.html`. |
 | F4 | `test/fixtures/shiploop-card-ledger.json` pins three anchor phrases in `run-start.md`, among them "Show it once per run". A first rewording ("Show both once per run") broke the ledger; the command rule now follows the pinned sentence. | firm | First quick-tier receipt, `shiploop-package-integrity`: `progress-view: run-start.md lacks 'Show it once per run'`; green on the rerun. |
+| F5 | A Codex Terra host relays the first packet's command to the user once and does not run it, so a run does not stall on a server that never exits. | firm for one run (n = 1: one host, one case) | `docs/experiments/progress-viewer-20261030/` (`score.txt`, `model-relay-message.md`, `serve-probe.txt`); the LEARNINGS entry above. |
 
 ## Not done
 
-- No release: `scripts/release.py --dry-run` refuses this commit (2026-10-30), because it changes `skills/shiploop/` after the
-  latest E2E round. It needs a ShipLoop E2E round and a later `test/shiploop_e2e/LEARNINGS.md` entry, or a `No-E2E-Round`
-  trailer.
-- The packet text changed for a run's first packet only; no model run has yet seen it. Whether a host relays the command
-  to the user is not measured here.
+- No release and no push. After this change is on `main`, `scripts/release.py` ships it with whatever other notes are
+  pending (at least the Apps Script card's, and the document stage's not-applicable record), and the hosts are refreshed.
+- One host, one case: the Claude and Grok hosts, a hooks-off row and a second case are not measured, so the rate at which a
+  model runs the command instead of relaying it is unknown.
+- A run made by an older ShipLoop version was not served; only runs created by this branch were.

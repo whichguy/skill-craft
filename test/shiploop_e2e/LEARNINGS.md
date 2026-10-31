@@ -4878,3 +4878,73 @@ Evidence root: `/Users/dadleet/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8
 `controller-origin-red-01`, `final-offline-checks-01`, `final-corrections-01`,
 `receipt-fixture-green-01`, `ui-observer-calibration-03`, `fixture-freeze-cost-01` and `-02`,
 `apparatus-corrections-02`, `apparatus-quick-01/receipt.json`, and `apparatus-quick-02/receipt.json`. Absolute paths identify retained local evidence, not portable release proof.
+
+## Progress viewer: does a host relay the first packet's launch command without running it? Codex Terra 6.1 xhigh with hooks on (2026-10-30) — status: firm for this run (n = 1: one host, one case); the Claude and Grok hosts and a desktop host's display are not measured
+
+**Question.** The viewer change (`feat(shiploop): a read-only localhost viewer for a run, and a first-packet line that
+suggests its command`) puts a `shiploop view --run-dir=… --serve` command on the `Progress view:` line of a run's first
+packet only, and `references/run-start.md` tells the host to give it to the user once, as a command for the user's own
+terminal, and not to run it. The unit and packet tests cannot show the two ways that can go wrong on a real host: the model
+runs the never-exiting `--serve` itself and hangs its own run, or it never tells the user. On a real run, does the first
+packet carry the command, does the model relay it without running it, and does the printed command work on the run it
+came from?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh, hooks on (the harness default, `2f93f425cc68dd13215a1caa73e29a14d1b9bc7d`); the
+  case is `hello`, the smallest, since the question is about the first packet and not about the build:
+  `run.py --case hello --host codex --source checkout --output ~/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832`.
+- Built from this branch: `invocation.json` `local_head` e4bb796b79212568790a5aab6bfca97cf87aa686 (the viewer commit
+  on main 5ca57d9e98095ac59a3c2c47f818a670d7023ba5), plugin 2.24.3, ShipLoop 1.23.3. Those are the released version fields;
+  the build carries the unreleased change, which the installed `run-start.md` shows (it names `view --serve`). The
+  commit was rebased afterwards, twice, over upstream commits the round did not run (the last base is
+  bff4777545afc9d7394be6678e55936733411973), with an identical `git patch-id --stable` (5a7b490623b3) each time: the
+  same change.
+- What the build contains: main 5ca57d9e plus the viewer. It has the Apps Script card changes `dc312cd1` and `c468b25c`,
+  which `hello` never reaches, and not `ee831200` (the document stage's not-applicable record), which landed afterwards.
+  This entry vouches for the viewer's first-packet line only, not for those three commits, though the release
+  preflight's ancestry rule will read it as following them.
+- Not clean for time: another harness run (`terra-high-user-listing`) was live under `~/e2e-runs`, and I ran the full
+  hermetic tier at 4 jobs beside this run (load 15 to 98 on 18 CPUs). The duration is recorded, not compared.
+
+**Result** (evidence: `docs/experiments/progress-viewer-20261030/`; the last row of `baselines.jsonl`. The same cell
+also holds the two rows `8ff81566e1ef45054964bbcc65a1edac59f296a6` added for the published 2.24.3 build: an apparatus
+failure at 100 turns and a pass at 173 turns and 525 s. This run's 167 turns and 702 s sit beside the pass; the time is
+not compared, for the load below).
+
+| | observed |
+|---|---|
+| verdicts | invoked, plugin, process (rc 0), shiploop done, committed (HEAD 362ea6bd, 6 files), both case checks: all PASS |
+| size | 702.4 s, 167 turns, 1 session, 0 resumes, 8 Improve children, 0 ShipLoop command failures |
+| first packet (`workspace` command) | its `Progress view:` line carries the command, after the `progress.html` link |
+| the other 19 tool outputs that showed a `Progress view:` line | the plain line, no command |
+| the model's message that shared the link | the command in a `sh` block under the link, once |
+| commands the model ran that start the viewer | 0 |
+| the printed command, run verbatim on the finished run | `/`, `/progress.html`, `/trace.html`, `/report.html`: 200; `/state.md` and `/../etc/passwd`: 404; POST: 405; Ctrl-C exits 0; no file in the run folder changed or appeared |
+
+**What it shows.**
+- **The relay worked as designed on this host (firm, n = 1).** The model gave the user the command in a code block and
+  did not run it, so the run did not hang on a server that never exits. It wrote "To view it at a local browser address,
+  run:" and not "in your own terminal"; the fenced command is what the user needs.
+- **First packet only (firm).** 1 of the 20 outputs that showed a `Progress view:` line carried the command; the packets
+  after it, including the one `next`, did not repeat it, so the viewer line adds no size to later heads.
+- **The printed command is correct against a real host's run (firm, this run).** The probe used the exact text the model
+  was shown, the throwaway HOME's plugin-cache path included, and served a Codex-written run folder without writing to it.
+
+**Checks beside it.** The full hermetic tier (163 suites, `--jobs 4`) on the viewer commit rebased onto 5ca57d9e: 161 pass,
+2 fail: `shiploop-e2e-stage-oracle` (1 test, the environment probe) and `shiploop-e2e-stage-build` (2 tests, `/private/var`
+against `/var`). Both fail the same way on a clean `origin/main` (ee831200, run here), and `8ff81566` recorded the same
+two on 5ca57d9e, so they are this Mac's, not this change's. `09a0f19c376ec49cfb933f883652071bf211054f` fixed both afterwards.
+
+**Not covered.**
+- The Claude and Grok hosts, other Codex models, a second case, or a second run: one run cannot show the rate at which a
+  model runs the command. A hooks-off row is also unmeasured.
+- What a desktop host's chat shows the user: the headless stream shows the message, not a window. The pages were loaded in
+  the desktop app's browser pane earlier (`docs/shiploop-progress-viewer-journal-2026-10-29.md`, Verification).
+- A command run long after the plugin was updated: the printed path points into the installed plugin's cache, and the
+  harness records that Codex replaces an installed plugin at the next session start. The command is meant to run at once.
+- Harness questions: (1) retain: the extraction (events.jsonl tool outputs, the `Progress view:` line, commands that
+  match `view … --serve`, agent messages that mention `--serve`) is in `score.txt`; no script is added, since one round is
+  not a recurring need. (2) More to learn: the same hello run on the Claude host, if a host is seen to skip the relay.
+  (3) More criteria: a trace check for the relay is not warranted before a host misses it.
+
+This entry is the commit after the viewer commit (the one before it), which is what `scripts/release.py`'s E2E-round preflight reads.
