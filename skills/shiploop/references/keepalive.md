@@ -10,14 +10,29 @@ optional; runs work without it.
 | Part | What it does |
 |------|--------------|
 | Packet marker | Every packet prints `Keepalive marker: SHIPLOOP-RUN run=<id> rev=<n> dir=<run dir>`. |
-| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `progress`, `repo`, `next`. Exit 2 with an `error` field when the run cannot be read. |
+| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `completion` is the current action's short continuation instruction, empty outside an active run. Exit 2 with an `error` field when the run cannot be read. |
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
-| `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` and its revision moved since the last refusal, refuse the stop and name the run's next command. |
+| `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` with required completion pending, refuse the stop and repeat the current action's completion instructions. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
 | `scripts/shiploop-hook session-end` | When the host ends the session (Claude, Codex and Grok `SessionEnd`, Cursor `sessionEnd`: a `/clear`, an exit): drop the session's binding and release the run it owned, so the next session takes it at once, and record the end in the run's `trace.jsonl` (a `hook` row, `hook=session-end`; `released` is true when it removed this session's claim, false when the stop hook had already released it or another session owns the run). A session killed with SIGKILL sends nothing; the process check below covers it. Claude Code runs it for SIGTERM, SIGINT and SIGHUP too, mid-turn, in under a second. |
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
-`hook-status` is the only place that decides whether a run can move.
+`hook-status` derives the continuation from the current action and its matching
+receipt. The hook and driver relay the same short instruction. An active inner
+loop names its exact runtime `done` command and truthful report fields; it keeps
+the current prerequisites and exit/repeat conditions. A recorded Improve pass
+names its existing report and `done` command without recording that pass again;
+an unrecorded pass names `improve-pass`, which checks prerequisites and prints the
+report. A completed loop names the exact stage `complete` callback. Inner loop
+`done`, stage `complete`, and final run status `done` are distinct.
+
+These are instructions to the model: status, hook and driver execute none of the
+completion, restart, resume or pause commands. Missing, rejected or unreadable
+completion leaves the action unfinished. Stopped Improve receipts cannot stand
+in for successful completion. When a valid next operation cannot be derived,
+the instruction explicitly names recovery with `next`; context loss can always
+use that command too. Receipt/report reads are bounded at 4 MiB each, and the
+derived instruction at 16,384 characters; no trace scan or writer lock is needed.
 
 If a host session prints a second packet while its keepalive has never bound
 that run, the packet command warns once on stderr ("ShipLoop keepalive is not
@@ -44,9 +59,9 @@ and the driver never read `state.md` themselves.
 
 | Run state | Hook reply |
 |-----------|------------|
-| `active`, progress moved since the last refusal | Refuse the stop; the reason names `shiploop next --run-dir …`, which reprints the packet with the step's loop commands and callback. |
+| `active`, required completion pending (including unchanged progress) | Refuse the stop; continue the same action from partial work, preserving recorded passes, and repeat its current completion instructions. Advance only after the real script accepts. |
 | `active`, a host background task still running | Refuse the stop; the reason says to wait for the task in this turn. |
-| `active`, progress unchanged since the last refusal | Allow, with a notice that the run made no progress. |
+| `active`, progress unchanged and no pending completion instruction supplied | Allow, with a notice that the run made no progress. An allowed host exit never means success. |
 | `paused`, `blocked`, `halted`, `done` | Allow quietly and drop the binding. A `blocked` run waiting on the user (`awaiting` in hook-status) stays stopped until the user's reply resumes it. |
 | No binding, unreadable run, hook error | Allow. Hooks fail open. |
 | Grok session-end stop, subagent stop | Allow. |
@@ -178,7 +193,7 @@ scripts/shiploop-drive --host claude --run-dir RUN -- --model sonnet --max-budge
 ```
 
 Arguments after `--` go to the host command unchanged; the driver adds no
-permission flags. Each session gets the run's next command as its prompt and runs
+permission flags. Each session gets the same short continuation as the hook and runs
 in the run's repository. Cursor and OpenCode resume the session bound to the run;
 the other hosts start a fresh session each time, so every session begins with a
 clean context.
@@ -186,7 +201,7 @@ clean context.
 The driver stops when the run is not active (exit 0 when done, 3 when paused,
 blocked or halted), when a host exits non-zero without advancing the run (exit 4,
 often a host that could not start), after two sessions in a row without progress
-(exit 4), or, only when you pass `--max-minutes N`, once N minutes of wall clock
+and without pending completion instructions (exit 4), or, only when you pass `--max-minutes N`, once N minutes of wall clock
 have passed (exit 5; a session's timeout is cut to the time left). There is no
 ceiling by default: runs are meant to go on for a long time. It keeps one JSON line per session in
 `drive.log` and each session's output under

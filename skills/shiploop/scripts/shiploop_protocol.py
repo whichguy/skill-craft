@@ -489,6 +489,8 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         # Keepalive progress: the revision, callback attempts (a refused callback is
         # still work) and the reported iterations of the innermost Until Loop.
         "progress": f"{state['revision']}.{_callback_attempts(root)}.{iteration}",
+        # A pending required acknowledgement stays unfinished even if progress is unchanged.
+        "completion": navigator.completion_instructions(core, root, state),
         "next": shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                             "next", "--run-dir", str(root)]),
     }))

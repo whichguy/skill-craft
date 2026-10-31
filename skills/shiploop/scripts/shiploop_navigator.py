@@ -7470,6 +7470,99 @@ def _review_base_line(root: Path, state: Mapping[str, Any], child: Mapping[str, 
             "bound; your own edits since then show in git status)."]
 
 
+def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> str:
+    """Read-only continuation for the current action, never a completion verdict or a runtime call.
+
+    A callback line alone does not describe an active loop's owed operation. Read only the bound receipt (and an
+    Improve pass's existing report), with the bridge's bounded regular-file reader. Uncertain or stopped Improve
+    states use explicit recovery; neither a restart nor a successful report can be inferred from them.
+    """
+    if state["status"] != "active":
+        return ""
+    child = state.get("active_improve")
+    action_id = improve_id(state) if child else current_action(state)["id"]
+    prefix = ("Continue the same unfinished action " + action_id + " from its partial work. Preserve recorded work "
+              "and passes; do not replay them. ")
+    recovery = (prefix + "No valid completion operation can be derived here. Recovery: run `"
+                + _callback(core, root, "next") + "` and follow the saved packet; do not invent a successful report "
+                "or restart a loop to satisfy this reminder.")
+    callback = " ".join(_first_callback_lines(core, root, state)) if child is None else ""
+    if child is None and loops.cursor(state) is None:
+        return prefix + "Finish the current requirements. " + callback
+    if child is not None and (not child.get("skill") or delegation(state) != guidance.INLINE):
+        return recovery
+    import shiploop_standalone_improve as standalone
+
+    def read(path: Path) -> dict[str, Any]:
+        return standalone._json(standalone._read(path, "continuation record"), "continuation record")
+
+    try:
+        receipt = standalone.receipt_path(child) if child else loops.receipt_path(root, action_id)
+        packet = read(receipt)
+        if child:
+            expected = read(receipt.with_name("start.json"))
+            _need(expected["workspace"] == child["workspace"]
+                  and child["contract_marker"] in expected["context"]["request"], "foreign Improve contract")
+        else:
+            expected = loops.contract(root, state, action_id)
+        _need(set(packet) == loops._PACKET_KEYS and packet["receipt"] == str(receipt), "foreign receipt")
+        _need(all(packet[key] == expected[key] for key in ("workspace", "work", "context"))
+              and packet["conditions"] == {"exit": expected["exit_condition"], "repeat": expected["repeat_condition"]}
+              and packet["progress"]["required_trivial_reviews"] == expected["required_trivial_reviews"],
+              "receipt does not match current action")
+        if packet["status"] == "active":
+            argv = packet["done_argv"]
+            number = packet["progress"]["action_number"]
+            runtime_cli = child["skill"]["runtime_cli"] if child else loops.runtime(state)["runtime_cli"]
+            _need(isinstance(argv, list) and len(argv) == 6 and all(isinstance(part, str) for part in argv)
+                  and argv[1:5] == [runtime_cli, "done", "--state", packet["state_file"]]
+                  and argv[5].startswith("--action=") and argv[5].endswith(":" + str(number))
+                  and isinstance(number, int) and not isinstance(number, bool) and number >= 1,
+                  "missing current done command")
+            done = shlex.join(argv)
+            if child:
+                reviews = improve_reviews_dir(child)
+                recorded = reviews / ("pass-" + str(number) + ".json")
+                if os.path.lexists(recorded):
+                    report = reviews / ("report-" + str(number) + ".json")
+                    _need(read(recorded).get("pass") == number and set(read(report)) == standalone._REPORT_FIELDS,
+                          "recorded pass lacks its report")
+                    instruction = ("This pass is already recorded; submit its existing report exactly: " + done
+                                   + " < " + shlex.quote(str(report)) + ". Do not record the pass again.")
+                else:
+                    instruction = ("Finish review pass " + str(number) + " under the selected Improve card, keeping "
+                                   "its prerequisites and partial review. Then run: "
+                                   + _callback(core, root, "improve-pass", action=improve_id(state))
+                                   + ". Submit the runtime done command and report it prints only after it accepts "
+                                   "the pass; do not invent that report.")
+            else:
+                instruction = ("Finish this iteration under its current exit/repeat conditions and prerequisites; "
+                               "submit a truthful report on stdin to: " + done + ". " + loops.REPORT_FIELDS
+                               + " Report unsatisfied or unknown while work remains; do not claim satisfied to exit.")
+        elif packet["status"] in ("complete", "stopped"):
+            report = packet.get("last_report") or {}
+            _need(packet["done_argv"] is None and packet["next_argv"] is None and packet["report_schema"] is None
+                  and isinstance(report, dict) and isinstance(packet["state_file"], str)
+                  and os.path.isabs(packet["state_file"]) and not os.path.lexists(packet["state_file"]),
+                  "receipt is not terminal")
+            if child:
+                _need(packet["status"] == "complete", "a stopped Improve review cannot complete its stage")
+            _need((packet["status"] == "complete" and report.get("exit_assessment") == "satisfied")
+                  or (packet["status"] == "stopped" and report.get("continuation_assessment") == "blocked"),
+                  "receipt has no supported terminal report")
+            instruction = ("The inner loop has ended; the stage callback is still required. "
+                           + ("A stopped loop needs a truthful blocked/send-back result. "
+                              if packet["status"] == "stopped" else "")
+                           + " ".join(_first_callback_lines(core, root, state))
+                           + " Fix any refusal on this action and resubmit; advance only when the script accepts.")
+        else:
+            return recovery
+        text = prefix + instruction
+        return text if len(text) <= 16384 else recovery
+    except (OSError, ValueError, KeyError, TypeError, standalone.StandaloneImproveError):
+        return recovery
+
+
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
     """Put the one legal callback first, so a compacted parent uses the right one."""
     if state["status"] != "active":

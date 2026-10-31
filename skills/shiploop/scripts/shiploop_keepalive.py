@@ -498,9 +498,11 @@ CAP_WARNING_MARGIN = 2
 
 def _continue_reason(status: Mapping[str, Any], host: str = "", turn_blocks: int = 0,
                      waiting: bool = False) -> str:
+    continuation = status.get("completion") or f"run `{status['next']}` and follow the packet it prints."
     text = (f"ShipLoop run {status['run_dir']} is still active at stage {status['stage']} "
-            f"(revision {status['revision']}). Do not end the turn: run `{status['next']}` "
-            "and follow the packet it prints. Only an explicit user stop or pause ends the run; "
+            f"(revision {status['revision']}). Do not end the turn: {continuation} "
+            f"If context was lost, recover with `{status['next']}`. "
+            "Only an explicit user stop or pause ends the run; "
             "then run the packet's pause command.")
     if waiting:
         text += (" A background task is still running: wait for it in this turn (poll its "
@@ -557,7 +559,7 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
 
 def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) -> dict:
     """Decide whether a stop hook lets the host stop or asks it to continue the run; stopping is allowed when the
-    run is unreadable, not active, owned by another session, or made no progress since the last continuation.
+    run is unreadable, not active, owned by another session, or made no progress without a pending completion.
     """
     status = run_status(binding["run_dir"])
     if status.get("error") or status.get("run_id") != binding["run_id"]:
@@ -576,7 +578,7 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                            + status["next"])}
     # Revision, callback attempts and reported loop iterations all count as progress.
     progress = status.get("progress", str(status["revision"]))
-    if binding.get("last_block_progress") == progress and not waiting:
+    if binding.get("last_block_progress") == progress and not waiting and not status.get("completion"):
         return {"decision": "allow", "why": "no progress",
                 "notice": ("ShipLoop keepalive: the run made no progress since the last "
                            "continuation, so the turn may end. Resume with: " + status["next"])}
@@ -996,9 +998,7 @@ EXIT_DONE, EXIT_NEEDS_USER, EXIT_STUCK, EXIT_CAP = 0, 3, 4, 5
 
 
 def _driver_prompt(status: Mapping[str, Any]) -> str:
-    return (f"Continue the ShipLoop run in {status['run_dir']}: run `{status['next']}` and follow "
-            "the packet it prints. Keep going until the packet reports the run done, paused or "
-            "blocked; progress reports are not a reason to stop.")
+    return _continue_reason(status)
 
 
 def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> list[str]:
@@ -1106,7 +1106,7 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
                 f"it may have failed to start. See {session_log}")
             return EXIT_STUCK
         stalled = 0 if moved else stalled + 1
-        if stalled >= 2:
+        if stalled >= 2 and not after.get("completion"):
             out(f"shiploop-drive: two sessions in a row made no progress; stopping. See {journal}")
             return EXIT_STUCK
     out(f"shiploop-drive: reached --max-minutes {max_minutes} after {number} session(s); the run is still active. "
