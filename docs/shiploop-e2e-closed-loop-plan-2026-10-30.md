@@ -112,10 +112,17 @@ gap below.
   "Closed loop review" entry (LEARNINGS.md) and the page built from it. The 21-and-21 split was a hand classification,
   a judgment call and not a measurement; a keyword heuristic on the headings also finds 21 harness or measurement
   entries of 41. Read it as "about half".
-- **Do not append to `test/shiploop_e2e/LEARNINGS.md` to fix that.** The release preflight treats any commit touching
-  that file as an E2E journal entry that covers every earlier ShipLoop commit, so an unrelated correction there would clear
-  the hold on c468b25c (ShipLoop's Apps Script card, no E2E round and no `No-E2E-Round` trailer) without a round or an
-  owner waiver. This correction lives here on purpose. The release decision for c468b25c belongs to the owner.
+- **The release gate reads `LEARNINGS.md` commit order alone, and it is already open.** Any commit touching that file counts
+  as an E2E journal entry that covers every earlier ShipLoop commit. This review first found the hazard (an unrelated
+  correction there would clear the refusal on c468b25c, a ShipLoop change with no round and no `No-E2E-Round` trailer),
+  and kept its corrections out of that file for that reason. The gate had already opened: LEARNINGS commits by other
+  sessions after c468b25c (8ff81566, 09a0f19c, 3ba1c25f, bff47775, 0929efd5) made `release.py --dry-run` pass (shiploop
+  1.23.3 to 1.24.0 with 3 notes). The message of 0929efd5 records the same finding, including that one of the changes
+  it lets through is the Apps Script card text the owner chose to hold until live evidence exists (5ca57d9e). An earlier
+  version of this note, and the message of the commit that added it (835e49d1), said the release was still refusing:
+  that was true at the last check, about two hours before it was written, and false when written. Nothing in this
+  session ran a real release (only `--dry-run`, which writes nothing). Holding the card text, or waiving its round as the
+  owner did in 527b9a3, is the owner's decision; nothing mechanical holds it now.
 - A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
   harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
   refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.
