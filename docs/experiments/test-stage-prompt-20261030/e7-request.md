@@ -65,6 +65,14 @@ its worktree; a variant is killed when the suite fails twice running (no flaky k
 - **Not in this table:** arm T (D6), still running when this was written. Score it with
   `python3 test/shiploop_e2e/evaluators/e7_request.py score <sample dir>...`, then re-export.
 
+## Decision
+
+2026-10-30, owner: **skip D6** (answering "Skip D6 and keep ShipLoop's test stage as it is?" with "Yes, skip D6"). The stage
+mutation check keeps its catalog and its spread sampling, and nothing in ShipLoop changes. Why: the request measure above
+shows the tests already cover everything the request says, and the survivors D6 would feed back are outside it. Arm T's
+samples (E7-F/T/1..8) are a different session's runs; whether they finish is that session's call, and a T result would
+bear on the mutant score only.
+
 ## Evidence
 
 e7-request-results.json (24 samples and the ten variants' `verify` rows); per-sample `request-score.json` under
