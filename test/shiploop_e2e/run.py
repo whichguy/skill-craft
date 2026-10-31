@@ -386,6 +386,17 @@ def require_improve_card(planning_review: str | None, plugin_dir: Path) -> None:
                          "not a file: nothing was started")
 
 
+def require_installed(plugin: dict | None, plugin_dir: Path) -> None:
+    """A checkout build the host failed to install starts no host: the model would run without the build under test. On
+    2026-10-30 a Codex hello got a --plugin-dir whose root (two levels up) had no Codex catalog, so the plugin was never
+    enabled; the host still ran 5.5 minutes and its model wrote the product without ShipLoop. None (Claude loads the build
+    from its argv and its init event is graded later) passes."""
+    if plugin is not None and not plugin["pass"]:
+        loaded = "; ".join(plugin.get("loaded") or []) or "no plugin"
+        raise SystemExit(f"the host did not install the plugin build {plugin_dir} (loaded: {loaded}), so no host is started"
+                         + (f"; install output: {plugin['output']}" if plugin.get("output") else ""))
+
+
 def planning_review_sentence(improve_skill: str) -> str:
     """The sentence that makes the model start ShipLoop with `--planning-review none`, which needs the Improve card named
     (`--improve-skill`). `stage` is the engine's default and appends nothing: the run's prompt stays the case's own."""
@@ -4216,6 +4227,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not resumed:
             require_improve_card(planning_review, plugin_dir)  # before the host CLI installs the plugin into its profile
         plugin = host.install_plugin(env, plugin_dir)
+        require_installed(plugin, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = host.keepalive_install(env, plugin_dir)
     improve_skill = earlier.get("improve_skill") if resumed else None

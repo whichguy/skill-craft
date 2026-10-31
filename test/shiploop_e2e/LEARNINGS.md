@@ -4714,3 +4714,66 @@ Also the two stored hello traces (1.12.0, 1.13.1) and the Luna/DeepSeek journal 
 Next-biggest levers are the Improve review children and packet size (15-33 KB per packet), not lookups.
 
 Evidence: `metrics.json` of the runs named above; `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.1{2.0,3.1}/trace.jsonl`; memory `todo-cached-stack-references` (the TODO this answers).
+
+## hello on the published 2.24.3, Codex Terra 6.1 xhigh with hooks on (2026-10-30) — status: firm that 2.24.3 delivers hello on Codex Terra (n = 1); the first attempt is an apparatus error, not a result
+
+**Question.** P0 shipped in 2.24.2, and another session released 2.24.3 after it. Does the package the marketplace serves
+deliver the smoke case end to end on the owner's runner?
+
+**Setup.**
+- `run.py --case hello --host codex` (gpt-6.1-terra, xhigh, hooks on), with `--plugin-dir` on the release commit's tree
+  (5ef936ab, skill-craft 2.24.3 / ShipLoop 1.23.3, exported with `git archive`).
+- Why not `--source marketplace`: it was refused, because origin/main carried another session's unreleased note
+  (`changes/shiploop/apps-script-deployed-target.md`), and releasing it is that session's call.
+- The first launch was refused by the orphan check (SPEC "The resource lifecycle"). Eight progress observers of the
+  finished E7-F slices (`~/e2e-runs/e7-20261030/E7-F/T/1..8`) were still alive with no harness.
+  - Owner, 2026-10-30: "Clean up now". I ran `lifecycle.py cleanup` on each slice; nothing came back unverified.
+  - The E7-F session confirmed that all eight had finished and been scored.
+
+**Attempt 1 (`5fb43e`): an apparatus error, with no plugin loaded.**
+- **The cause:** I exported only `plugins/skill-craft`. Codex's `install_plugin` registers the folder two levels up as a
+  marketplace, and that folder needs `.agents/plugins/marketplace.json`. Without it, the plugin was cached but never
+  enabled (`invocation.json`: `plugin.loaded` is `[]`).
+- **The harness launched anyway:** it graded plugin FAIL and still started the host.
+- **What the model did:**
+  - It found no `$skill-craft:shiploop` and wrote `hello.py` and `test_hello.py` itself.
+  - It then found ShipLoop in the plugin cache and ran `shiploop init` over the folder, which was by then non-empty and
+    not a Git repository. That is the direct entry (`first-actions.txt`, actions 3 and 10).
+  - The implement loop's lint condition could not be checked without Git (`shiploop lint exit 3: not a Git checkout`).
+- **The end state:** the run paused at implement after 5.5 minutes. Both product checks passed.
+- This is not a 2.24.3 result.
+
+**Attempt 2 (`0c81bf`): PASS, on the full release tree, catalogs included.**
+
+| | result |
+|---|---|
+| plugin | `skill-craft@whichguy 2.24.3` loaded |
+| ShipLoop | done, in 1 session, 525 s |
+| committed | 14 commits, 7 files, 0 uncommitted product paths |
+| request checks | 2 of 2 |
+| ShipLoop command failures | 0; script verifications 4 of 4; 8 Improve children |
+| mutation gate | not exercised: no changed product line matched an operator |
+
+- **The README:** the document stage wrote a 3-line README and committed it with W1/S1's step commit (2bcf601). That
+  agrees with P0, but it is not a test of P0, because this greenfield run had no README to update.
+- **Overlap:** another Codex run, `terra-high-user-listing`, overlapped this one for 72 s. It is recorded, not a
+  verdict.
+
+**Harness fix (this commit).**
+- **The change:** `run.require_installed` starts no host when the host failed to install a checkout build. It guards
+  `run.py`'s checkout path and `slice.py`.
+- **The message:** the refusal carries Codex's install output, which `hosts.CodexHost.install_plugin` now passes through.
+- **The marketplace path:** already refused a failed install through the version gate.
+- **Tests:** `CodexRunTest.test_a_plugin_build_the_host_failed_to_install_starts_no_host` (fails without the guard with
+  "SystemExit not raised") and `test_only_a_failed_install_check_refuses`.
+
+**Open (owner).** The direct, non-Git entry could not pass implement, because lint needs a Git checkout. SKILL.md offers
+the direct entry for an explicitly selected in-place run, so whether such a run should be able to finish is a product
+decision. This was seen once, on a run the apparatus broke; it has not been reproduced on purpose.
+
+**Not covered.**
+- Only one run, on one host.
+- The marketplace install path itself: the gate refused it, though the bytes come from the same release commit's tree.
+
+Evidence: `docs/experiments/document-stage-20261030/hello-2.24.3/{no-plugin-5fb43e,pass-0c81bf}/`. Both attempts have
+baseline rows. Attempt 1's row is `pass: false` and did not reach done, so no comparison reads it.

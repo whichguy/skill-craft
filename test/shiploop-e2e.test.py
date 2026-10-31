@@ -266,6 +266,9 @@ argv = sys.argv[1:]
 home = Path(os.environ["CODEX_HOME"])
 state = home / "fake-plugin.json"
 if argv[:3] == ["plugin", "marketplace", "add"]:
+    if os.environ.get("FAKE_PLUGIN_FAIL"):  # a root with no .agents/plugins/marketplace.json
+        print("no marketplace catalog in " + argv[3], file=sys.stderr)
+        sys.exit(1)
     state.write_text(json.dumps({{"marketplace": argv[3]}}))
     sys.exit(0)
 if argv[:2] == ["plugin", "add"]:
@@ -3526,6 +3529,25 @@ class CodexRunTest(HarnessCase):
         self.assertEqual(result["metrics"]["unreported_sessions"], 0)
         # Truncated outputs are a Grok-only detection: unknown on Codex, not an empty list.
         self.assertIsNone(result["cli"]["truncated_outputs"])
+
+    def test_a_plugin_build_the_host_failed_to_install_starts_no_host(self):
+        # 2026-10-30: a --plugin-dir whose root had no Codex catalog was never enabled, and the host still ran.
+        out = self.tmp / "out-codex-failed-install"
+        with mock.patch.dict(os.environ, {"FAKE_PLUGIN_FAIL": "1", "FAKE_MODE": "done"}), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertIn("so no host is started", str(refused.exception))
+        self.assertIn("no marketplace catalog", str(refused.exception))  # the install's own output says why
+        self.assertFalse(self.log.exists(), "the host was launched")
+        self.assertFalse((out / "result.json").exists())
+
+    def test_only_a_failed_install_check_refuses(self):
+        run.require_installed(None, self.plugin)  # Claude: loaded from its argv, graded from its init event
+        run.require_installed({"pass": True, "loaded": ["skill-craft@whichguy 9.9.9"]}, self.plugin)
+        with self.assertRaises(SystemExit) as refused:
+            run.require_installed({"pass": False, "loaded": []}, self.plugin)
+        self.assertIn("(loaded: no plugin)", str(refused.exception))
 
     def test_model_and_effort_toggle_by_flag(self):
         code, result = self.invoke("codex", "done", "--model", "gpt-6-sol", "--effort", "xhigh")

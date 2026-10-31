@@ -622,6 +622,7 @@ def _main(argv: list[str] | None, held: list) -> int:
     applied = overlays.apply_to_plugin(args.overlay.resolve(), plugin_dir) if args.overlay else None
     run.require_improve_card(args.planning_review, plugin_dir)
     plugin = host.install_plugin(env, plugin_dir)
+    run.require_installed(plugin, plugin_dir)
     cli = run.run_cli(host.name, out, plugin_dir)
     seeded = run.seed_run(cli, work, out, case["prompt"], args.seed_at, fixture=FIXTURES / case["fixture"],
                           work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
