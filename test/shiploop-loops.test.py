@@ -702,6 +702,27 @@ class NavigatorLoopTests(fx.RunDriver):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
+    def assert_completion_recovery(self, paths: list[Path]) -> None:
+        import shiploop_keepalive as keepalive
+        from unittest import mock
+        snapshot = lambda: [path.read_bytes() if path.exists() else None for path in paths]
+        before, status = snapshot(), self.hook_status()
+        binding = {"run_dir": str(self.run_dir), "run_id": status["run_id"]}
+        with mock.patch.object(keepalive, "claim_owner", return_value=True):
+            decisions = [keepalive._decide("codex", "owner", binding) for _ in range(2)]
+        self.assertEqual(snapshot(), before)
+        self.assertEqual(self.hook_status()["action"], status["action"])
+        self.assertEqual(self.hook_status()["progress"], status["progress"])
+        self.assertEqual(status["status"], "active")
+        self.assertEqual([row["decision"] for row in decisions], ["continue", "allow"])
+        self.assertEqual(decisions[1]["why"], "no progress")
+        reason = keepalive._continue_reason(status)
+        self.assertIn(f"run `{status['next']}` and follow the packet", reason)
+        for forbidden in (" start ", "restart", " done ", " complete ", "already recorded"):
+            self.assertNotIn(forbidden, reason)
+        self.assertEqual(status["completion"], "")
+        self.assertEqual(decisions[0]["reason"], reason)
+
     def test_a_stage_loop_moves_the_stop_hooks_progress_and_next_reprints_its_commands(self):
         # End to end on a real run: hook-status reads the stage's real receipt, so a model working a stage's Until Loop
         # is never released as idle. The stop now names the loop report; context-loss recovery still reprints the packet.
@@ -800,6 +821,12 @@ class NavigatorLoopTests(fx.RunDriver):
         report = reviews / f"report-{number}.json"
         record.write_text(json.dumps({"pass": number}))
         report.write_text(json.dumps(TRIVIAL))
+        for fields in ({"exit_assessment": "invalid"}, {"exit_assessment": []}, {"evidence": ""}, {"handoff": 3}):
+            with self.subTest(invalid_report=fields):
+                report.write_text(json.dumps(dict(TRIVIAL, **fields)))
+                self.assert_completion_recovery([self.run_dir / "state.md", receipt, record, report,
+                                                 Path(packet["state_file"])])
+        report.write_text(json.dumps(TRIVIAL))
         before = [path.read_bytes() for path in (receipt, record, report)]
         recorded = self.hook_status()["completion"]
         self.assertIn(shlex.join(packet["done_argv"]) + " < " + shlex.quote(str(report)), recorded)
@@ -807,11 +834,20 @@ class NavigatorLoopTests(fx.RunDriver):
         self.assertEqual([path.read_bytes() for path in (receipt, record, report)], before)
         terminal = subprocess.run(packet["done_argv"], input=report.read_text(), text=True,
                                   capture_output=True, check=True)
-        self.assertEqual(json.loads(terminal.stdout)["status"], "complete")
+        completed = json.loads(terminal.stdout)
+        self.assertEqual(completed["status"], "complete")
+        for fields in ({"last_report": dict(TRIVIAL, continuation_assessment="cancelled")},
+                       {"last_report": dict(TRIVIAL, evidence=[])},
+                       {"progress": dict(completed["progress"], trivial_streak=0)}):
+            with self.subTest(invalid_terminal=fields):
+                receipt.write_text(json.dumps(dict(completed, **fields)))
+                self.assert_completion_recovery([self.run_dir / "state.md", receipt, record, report,
+                                                 Path(packet["state_file"])])
+        receipt.write_text(terminal.stdout)
         self.assertIn(nav._first_callback_lines(fx.CORE, self.run_dir, self.state())[0],
                       self.hook_status()["completion"])
 
-    def test_stopped_or_unreadable_improve_has_explicit_recovery_without_restart(self):
+    def test_stopped_or_unreadable_improve_uses_generic_recovery_and_can_stop_without_progress(self):
         self.start()
         self.drive_to("spec", improve_stage="spec")
         import shiploop_standalone_improve as standalone
@@ -820,29 +856,60 @@ class NavigatorLoopTests(fx.RunDriver):
         stopped = subprocess.run(packet["done_argv"], input=json.dumps(BLOCKED), text=True,
                                  capture_output=True, check=True)
         self.assertEqual(json.loads(stopped.stdout)["status"], "stopped")
-        for value in (receipt.read_bytes(), b"{broken", None):
-            if value is None:
-                receipt.unlink()
-            else:
-                receipt.write_bytes(value)
-            status = self.hook_status()
-            self.assertIn("Recovery", status["completion"])
-            self.assertIn(nav._callback(fx.CORE, self.run_dir, "next"), status["completion"])
-            self.assertNotIn("--restart-stopped", status["completion"])
-            self.assertNotIn(" complete ", status["completion"])
-            self.assertEqual(status["status"], "active")
+        partial = self.repo / "partial-review.md"
+        partial.write_text("Partial review must survive recovery.\n")
+        for label, value in (("stopped", receipt.read_bytes()), ("malformed", b"{broken"), ("missing", None)):
+            with self.subTest(receipt=label):
+                if value is None:
+                    receipt.unlink()
+                else:
+                    receipt.write_bytes(value)
+                self.assert_completion_recovery([self.run_dir / "state.md", receipt, partial])
 
-    def test_foreign_or_oversized_receipt_uses_explicit_recovery(self):
+    def test_foreign_or_oversized_receipt_uses_generic_recovery_and_can_stop_without_progress(self):
         self.start()
         self.drive_to("implement")
         packet = self.run_loop([])
-        for changed in (dict(packet, work="foreign work"), dict(packet, receipt="/foreign/packet.json")):
-            self.receipt().write_text(json.dumps(changed))
-            text = self.hook_status()["completion"]
-            self.assertIn("Recovery", text)
-            self.assertNotIn(shlex.join(packet["done_argv"]), text)
+        for field, value in (("work", "foreign work"), ("receipt", "/foreign/packet.json"), ("status", "unsupported")):
+            with self.subTest(field=field):
+                self.receipt().write_text(json.dumps(dict(packet, **{field: value})))
+                self.assert_completion_recovery([self.run_dir / "state.md", self.receipt(),
+                                                 Path(packet["state_file"])])
         self.receipt().write_bytes(b" " * (4 * 1024 * 1024 + 1))
-        self.assertIn("Recovery", self.hook_status()["completion"])
+        self.assert_completion_recovery([self.run_dir / "state.md", self.receipt(), Path(packet["state_file"])])
+
+    def test_unbound_or_delegated_improve_has_no_completion_operation(self):
+        self.start()
+        self.drive_to("spec", improve_stage="spec")
+        state = self.state()
+        before = (self.run_dir / "state.md").read_bytes()
+        for route, skill in (("inline", None), ("ask-agent", state["active_improve"]["skill"])):
+            with self.subTest(route=route):
+                changed = dict(state, delegation=route, active_improve=dict(state["active_improve"], skill=skill))
+                self.assertEqual(nav.completion_instructions(fx.CORE, self.run_dir, changed), "")
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_unreadable_receipt_keeps_the_driver_no_progress_exit(self):
+        import shiploop_keepalive as keepalive
+        self.start()
+        self.drive_to("spec", improve_stage="spec")
+        import shiploop_standalone_improve as standalone
+        receipt = standalone.receipt_path(self.state()["active_improve"])
+        receipt.write_text("{broken")
+        before = [(self.run_dir / "state.md").read_bytes(), receipt.read_bytes()]
+        calls, lines = [], []
+        def runner(argv, **kwargs):
+            calls.append(argv)
+            self.assertLessEqual(len(calls), 2, "unreadable receipt must not exempt driver stalls")
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        code = keepalive.drive("claude", str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                               out=lines.append, runner=runner)
+        self.assertEqual((code, len(calls)), (keepalive.EXIT_STUCK, 2))
+        self.assertIn("two sessions in a row", lines[-1])
+        for argv in calls:
+            self.assertIn(f"run `{self.hook_status()['next']}` and follow the packet", argv[2])
+        self.assertEqual([(self.run_dir / "state.md").read_bytes(), receipt.read_bytes()], before)
+        self.assertEqual(self.hook_status()["status"], "active")
 
     def test_the_implement_packet_and_its_loop_carry_the_stuck_rule(self):
         # What the model receives at implement (owner, 2026-10-28: a criterion, not a count): the duty in the packet,

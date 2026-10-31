@@ -7474,8 +7474,8 @@ def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> 
     """Read-only continuation for the current action, never a completion verdict or a runtime call.
 
     A callback line alone does not describe an active loop's owed operation. Read only the bound receipt (and an
-    Improve pass's existing report), with the bridge's bounded regular-file reader. Uncertain or stopped Improve
-    states use explicit recovery; neither a restart nor a successful report can be inferred from them.
+    Improve pass's existing report), with the bridge's bounded regular-file reader. Without a valid completion
+    operation, return empty so callers retain their recovery fallback and no-progress exits.
     """
     if state["status"] != "active":
         return ""
@@ -7483,14 +7483,11 @@ def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> 
     action_id = improve_id(state) if child else current_action(state)["id"]
     prefix = ("Continue the same unfinished action " + action_id + " from its partial work. Preserve recorded work "
               "and passes; do not replay them. ")
-    recovery = (prefix + "No valid completion operation can be derived here. Recovery: run `"
-                + _callback(core, root, "next") + "` and follow the saved packet; do not invent a successful report "
-                "or restart a loop to satisfy this reminder.")
     callback = " ".join(_first_callback_lines(core, root, state)) if child is None else ""
     if child is None and loops.cursor(state) is None:
         return prefix + "Finish the current requirements. " + callback
     if child is not None and (not child.get("skill") or delegation(state) != guidance.INLINE):
-        return recovery
+        return ""
     import shiploop_standalone_improve as standalone
 
     def read(path: Path) -> dict[str, Any]:
@@ -7525,8 +7522,8 @@ def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> 
                 recorded = reviews / ("pass-" + str(number) + ".json")
                 if os.path.lexists(recorded):
                     report = reviews / ("report-" + str(number) + ".json")
-                    _need(read(recorded).get("pass") == number and set(read(report)) == standalone._REPORT_FIELDS,
-                          "recorded pass lacks its report")
+                    _need(read(recorded).get("pass") == number, "recorded pass does not match current pass")
+                    standalone._ephemeral_report(read(report))
                     instruction = ("This pass is already recorded; submit its existing report exactly: " + done
                                    + " < " + shlex.quote(str(report)) + ". Do not record the pass again.")
                 else:
@@ -7547,6 +7544,8 @@ def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> 
                   "receipt is not terminal")
             if child:
                 _need(packet["status"] == "complete", "a stopped Improve review cannot complete its stage")
+                standalone._ephemeral_terminal_packet(packet, workspace=Path(child["workspace"]).resolve(),
+                                                      binding_id=child["binding_id"])
             _need((packet["status"] == "complete" and report.get("exit_assessment") == "satisfied")
                   or (packet["status"] == "stopped" and report.get("continuation_assessment") == "blocked"),
                   "receipt has no supported terminal report")
@@ -7556,11 +7555,11 @@ def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> 
                            + " ".join(_first_callback_lines(core, root, state))
                            + " Fix any refusal on this action and resubmit; advance only when the script accepts.")
         else:
-            return recovery
+            return ""
         text = prefix + instruction
-        return text if len(text) <= 16384 else recovery
+        return text if len(text) <= 16384 else ""
     except (OSError, ValueError, KeyError, TypeError, standalone.StandaloneImproveError):
-        return recovery
+        return ""
 
 
 def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:

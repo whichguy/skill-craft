@@ -10,7 +10,7 @@ optional; runs work without it.
 | Part | What it does |
 |------|--------------|
 | Packet marker | Every packet prints `Keepalive marker: SHIPLOOP-RUN run=<id> rev=<n> dir=<run dir>`. |
-| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `completion` is the current action's short continuation instruction, empty outside an active run. Exit 2 with an `error` field when the run cannot be read. |
+| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `completion` describes a valid current completion operation; it is empty outside an active run or when no valid operation can be derived. Exit 2 with an `error` field when the run cannot be read. |
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` with required completion pending, refuse the stop and repeat the current action's completion instructions. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
@@ -21,17 +21,23 @@ optional; runs work without it.
 receipt. The hook and driver relay the same short instruction. An active inner
 loop names its exact runtime `done` command and truthful report fields; it keeps
 the current prerequisites and exit/repeat conditions. A recorded Improve pass
-names its existing report and `done` command without recording that pass again;
+names its validated existing report and `done` command without recording that pass again;
 an unrecorded pass names `improve-pass`, which checks prerequisites and prints the
-report. A completed loop names the exact stage `complete` callback. Inner loop
+report. A completed loop names the exact stage `complete` callback; a completed
+Improve receipt first passes the bridge's structural terminal validation. The
+real stage callback remains authoritative. Inner loop
 `done`, stage `complete`, and final run status `done` are distinct.
 
 These are instructions to the model: status, hook and driver execute none of the
 completion, restart, resume or pause commands. Missing, rejected or unreadable
 completion leaves the action unfinished. Stopped Improve receipts cannot stand
-in for successful completion. When a valid next operation cannot be derived,
-the instruction explicitly names recovery with `next`; context loss can always
-use that command too. Receipt/report reads are bounded at 4 MiB each, and the
+in for successful completion. Unsupported, missing, unreadable, oversized or
+mismatched receipts, invalid reports, and unbound or delegated Improve states
+leave `completion` empty. The hook and driver's generic fallback names `next`
+for recovery; repeated unchanged progress retains the existing stop and driver
+exits. An allowed exit preserves the unfinished action and its artifacts, and
+never means success. Context loss can always use `next` too.
+Receipt/report reads are bounded at 4 MiB each, and the
 derived instruction at 16,384 characters; no trace scan or writer lock is needed.
 
 If a host session prints a second packet while its keepalive has never bound
@@ -45,8 +51,9 @@ iteration of the innermost Until Loop (an active Improve review's, else the curr
 inner stage's) all count as progress, so a long review, a stage's loop or a fix
 loop is not mistaken for a stall. Running `next` binds the run again but is not
 progress: a re-bind of the same run keeps the stop's memory. No count of
-continuations without an accepted result releases the turn: only a host's own cap
-(Grok's, below) ends one.
+continuations without an accepted result releases the turn while a valid
+completion operation remains pending; without one, the no-progress exit still
+applies. A host's own cap (Grok's, below) can also end the turn.
 
 Each stop also counts the turn's continuations (the host's `stopHookActive` /
 `stop_hook_active` flag marks a continuation). Grok ends a turn after 8
