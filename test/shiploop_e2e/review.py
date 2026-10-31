@@ -48,6 +48,33 @@ QUESTIONS = """\
 3. optimizations: What could be optimized (speed, cost, turns, prompt size,
    clarity, reliability) without removing key functionality?
 
+Inspect these areas across the three categories:
+- Intent and discovery: what unexpected expectation or observation could change
+  the design position? Separate a missed frozen obligation from a new proposal.
+- Planning: were assumptions, risks, dependencies, acceptance criteria and step
+  granularity sound? Did implementation preserve the intent and earlier behaviour?
+- Skill/script/prompt interchanges: did the skill format, script inputs/results,
+  returned prompts and templates give the next action what it needed?
+- Stages and gates: what caught a useful defect, missed one or caused avoidable
+  rework? Could a smaller script/template change help before a structural change?
+- Quality: were checks discriminating, negative cases meaningful and actual
+  target behaviour verified? A green app does not discharge every obligation.
+- Recovery: did callbacks, missing-done continuation, fresh context and handoff
+  preserve decisions and continue the same action without replaying work?
+- Efficiency: consider quality before measured cost/time across planning,
+  implementation, review and verification; distinguish estimates from counters.
+- Breadth and repeatability: what contrasting case, or calibrated new/modified
+  case, would expose a material blind spot? Was owned local/remote cleanup verified?
+
+Use these as inspection lenses, not a finding quota or new JSON fields. In the
+narrative before the final JSON, state the evidence or unobserved/not-applicable
+limits for the areas examined. Group related hypotheses in the existing proposal
+and next_experiment fields, cite prior learning with same_as when applicable,
+and propose the smallest experiment that could refute each explanation. A narrow
+replay cannot qualify end-to-end benefit. Keep one learning record per qualified
+candidate and exposing-plus-generality coverage or an explicitly narrower claim.
+You are reviewing this run only; campaign continuation belongs to its operator.
+
 Then, separately, about this E2E harness (not ShipLoop), answer in "harness":
 4. learning_retention: Should the harness retain key learnings or keep state in
    a different way?

@@ -25,6 +25,12 @@ evidence establishes about ShipLoop. The harness launches the separate applicati
 builder with the literal catalog `/shiploop` prompt. Do not start ShipLoop on the
 audit request, complete its callbacks yourself, or coach the builder.
 
+The primary mission is to improve **ShipLoop as a generic software development
+tool**. Critique planning, implementation, the skill format, scripts, returned
+prompts/templates, their handoffs, stages and gates. A working application alone
+does not establish a good workflow. Harness improvements are evaluator work;
+report their benefit separately from any measured ShipLoop gain.
+
 Every live case has a mandatory publication/freshness preflight. It compares
 each selected ShipLoop and Improve package with the released package on
 authoritative source `main` (its copy under `plugins/skill-craft`, the one plugin that
@@ -321,6 +327,12 @@ hosted UI checks, or candidate linkage stay explicit limitations. Follow the
 README's review-validation example.
 Use an observed clock value for `reviewed_at`; do not infer or invent timestamps.
 
+Apply the bundled `WORKFLOW-REVIEW.md` key questions, mapped to the existing
+review dimensions. Cite evidence or mark unknown/not-applicable, without forcing
+a finding for every question. Consolidate related hypotheses and reviewer
+feedback into a shared investigation plan; preserve disagreements and the
+smallest discriminating experiment. Keep the existing review schema.
+
 After every run, also reflect on the harness itself and fill the review's
 `harness_reflection`: whether the harness should retain key learnings or keep
 state in a different way; whether there is more to learn from on subsequent
@@ -360,6 +372,14 @@ the selected full game prompt expressly requires; that deployment must remain
 bounded to its dedicated test application and current candidate.
 
 ## Review each case before continuing
+
+For an explicitly authorised improvement campaign, follow the guide's
+**Campaign checkpoint** after every attempt: review the full learning backlog,
+group related investigations, choose the next useful experiment and case, and
+continue while material actionable ideas remain. A single audit stays within
+its requested scope. Script stops, budgets and missing prerequisites remain
+effective; they do not prove that learning is exhausted. Carry forward existing
+authorisation for covered work and report incomplete work honestly.
 
 A suite is a selection plan, not permission to launch a batch before reviewing
 it. Resolve its cases, then invoke exactly one `run` or one `suite --only` case
@@ -406,6 +426,14 @@ do not relabel it as the repaired version. Only advance dependent cases from a
 qualifying predecessor. If an external prerequisite is unavailable, retain the
 blocked result and report it rather than rewriting ShipLoop to hide it. Avoid
 retries without a documented change or resolved prerequisite.
+
+Declare cleanup before a trial, including local processes/ports/scratch and,
+where applicable, tracked test-owned remote data, schema, deployed artifacts
+and other resources. After owned work and deployments have stopped, use the
+case's cleanup and verify the result after success, failure or interruption.
+Unknown cleanup blocks target reuse. Preserve unrelated apps, user state,
+original evidence and verified predecessor inputs needed by a feature case.
+State adapter coverage limits; a new product folder proves no remote reset.
 
 ## Salesforce dev-org preparation
 
