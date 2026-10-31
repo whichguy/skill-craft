@@ -5,7 +5,7 @@ Status: E7 decided 2026-10-30 (owner: "Yes, build E7", D1): no arm adopted, noth
   adopted; implement was most of E7's noise (§7c, §7d). D6 (owner: "Yes, run the D6 arm") ran as arm T of E7-F
   (§7e) and met its mutant-score rule, 1.00 against A's 0.60 (§7f). By the request every arm scores 1.00, so the gain is
   on load-time validation the request never states. D6 is not adopted (the owner's "Yes, skip D6", relayed in §9).
-  D5 awaits the owner.
+  D5 (owner: "I'll go with your recommendation") replaced `decide`'s spread with the exact permutation test (§9).
 Opened: 2026-10-30
 Consumer: the owner, who decides §9; then whoever builds experiment E7 (§7) and, on its verdict, the test-stage
   prompt change. Later: anyone who proposes more test-stage prose and needs the bar it must clear.
@@ -709,6 +709,16 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 - **D5.** Replace `decide`'s 2-against-2 A/A spread with a permutation test over all control samples. Earlier
   experiment verdicts would read differently. E7-F adds a second case: a spread of exactly 0.00 on a discrete metric
   turned +0.02 (p 0.50) into "supports".
+- *Outcome, 2026-10-30:* the owner answered "I'll go with your recommendation" (adopt). `experiment.judge` now reads a
+  gain as `supports` only when the exact one-sided permutation p over both arms' samples is below 0.05
+  (`SIGNIFICANCE`, the level E7-F's rule fixed before its runs); the A/A spread and the "samples 1-4" requirement are
+  gone, and when even a perfect split of the pooled samples could not reach 0.05 (3 against 3, 2 against 4) the verdict
+  is `inconclusive`. Read again under it, the 46 stored decision records change 9 verdicts: 5 `supports` become
+  `inconclusive` (E6-K1 T vs C, p 0.071; E6-K2 T vs Cg, p 0.50; E7-K2 A vs D, p 0.080; E7-K2 A vs M, p 0.056; E7-F A vs
+  D, p 0.50) and 4 `inconclusive` become `ceiling` (E1 three lines, E3), which is the ceiling rule of 78ea131b and
+  not D5. Two `supports` stand: E7-F A vs T (p 0.0001) and E7-K2 A vs C (p 0.029; §7b reads that one with 15
+  A-condition runs, p 0.06, because implement's variance made the arms unequal). No verdict becomes `supports`.
+  Evidence: docs/experiments/d5-decide-rule-20261030/.
 - **D6.** Give the stage mutation check targeted sampling (limit and guard mutants on changed lines first), so §6d can
   act. This is a gate-cost change. E7-F makes it cheap to try first as an overlay arm: on the fixed implementation, its
   six sites are the whole target, and A's 8 samples are the control (§7d). (Recommended next, as an experiment only.)
@@ -723,6 +733,7 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 
 | Date | Entry | Status | Evidence |
 |---|---|---|---|
+| 2026-10-30 | D5 adopted: `decide` reads a gain only by the exact one-sided permutation p (below 0.05) over all samples of both arms. Of 46 stored decisions 5 `supports` become `inconclusive`, 2 stand and none becomes `supports`. At the default 4 samples per arm and a binary metric only a perfect 0-against-1 split reaches 0.05 (E6-K1, 0.25 against 1.00, is p 0.071), so a moderate gain needs about 8 per arm | firm (owner "I'll go with your recommendation"; the rule and the 46 re-reads are reproducible by d5_reread.py) | §9, docs/experiments/d5-decide-rule-20261030/ |
 | 2026-10-30 | Packet anatomy of the test stage: craft 7%, gate text restated 5–14 times, no diff or example test in the packet | firm (one packet; the template is fixed, so others differ only in hand-off sizes) | packet-anatomy.txt |
 | 2026-10-30 | Greenfield survivors: 23 of 36 product survivors are `rel-bound` or `logic-flip` on limits and guard clauses the code introduced | firm for these three runs | greenfield-survivors.json |
 | 2026-10-30 | The stage mutation catalog has neither class; its mutants end killed (151 of 153, two of them by timeout; the 2 survivors are integer mutants; 28 records) | firm | §3c tally, run/tests/*-mutation*.md under ~/e2e-runs-brownfield/2026102*/ |

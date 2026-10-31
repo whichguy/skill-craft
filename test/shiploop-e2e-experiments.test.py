@@ -7,7 +7,9 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import io
+import itertools
 import json
+import random
 import re
 import shutil
 import subprocess
@@ -255,19 +257,53 @@ class Decide(unittest.TestCase):
         return [{"sample": n, "value": v, **({"defect_caught": gate[n - 1]} if gate else {})}
                 for n, v in enumerate(values, 1)]
 
-    def test_better_beyond_the_aa_spread_supports(self):
+    def test_better_with_a_permutation_p_below_significance_supports(self):
+        # Five against five: 6 of the 252 splits put all five ones in the second group, p = 6/252.
         found = experiment.judge(self.rows([0, 0, 0, 0, 1]), self.rows([1, 1, 1, 1, 1]))
-        self.assertEqual((found["verdict"], found["spread"]), ("supports", 0))
+        self.assertEqual(found["verdict"], "supports")
+        self.assertAlmostEqual(found["p"], 6 / 252)
+        self.assertNotIn("spread", found)
 
     def test_no_better_contradicts(self):
         self.assertEqual(experiment.judge(self.rows([1, 0, 1, 0, 1]), self.rows([0, 1, 0, 0, 1]))["verdict"], "contradicts")
 
-    def test_better_inside_the_spread_is_inconclusive(self):
+    def test_better_within_noise_is_inconclusive_and_says_the_p(self):
         found = experiment.judge(self.rows([1, 1, 0, 0, 0]), self.rows([1, 0, 1, 0, 1]))
-        self.assertEqual((found["verdict"], found["spread"]), ("inconclusive", 1.0))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertGreaterEqual(found["p"], experiment.SIGNIFICANCE)
+        self.assertIn(f"p {found['p']:.2g}", found["reason"])
 
-    def test_without_four_control_samples_nothing_is_decided(self):
-        self.assertEqual(experiment.judge(self.rows([0, 0]), self.rows([1, 1]))["verdict"], "inconclusive")
+    def test_a_gap_the_old_spread_read_as_supports_is_inconclusive_by_the_permutation_p(self):
+        # E7-F D (6aa1f024): +0.02 on a discrete metric whose 2-against-2 spread was exactly 0.00 read "supports" at p 0.50.
+        found = experiment.judge(self.rows([0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.5, 0.5]),
+                                 self.rows([0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.5, 0.75]))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertGreater(found["p"], 0.2)
+
+    def test_two_samples_each_cannot_reach_significance_and_no_sample_number_is_required(self):
+        found = experiment.judge(self.rows([0, 0]), self.rows([1, 1]))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertAlmostEqual(found["p"], 1 / 6)
+        # Any samples count, whatever their numbers: three against three bottoms out at 0.05, which is not below it.
+        found = experiment.judge([{"sample": n, "value": 0} for n in (2, 5, 7)], [{"sample": n, "value": 1} for n in (1, 2, 3)])
+        self.assertEqual((found["verdict"], found["p"]), ("inconclusive", 1 / 20))
+
+    def test_a_perfect_split_of_four_against_four_supports_at_one_in_seventy(self):
+        found = experiment.judge(self.rows([0.25, 0.5, 0.25, 0.25]), self.rows([0.75, 1, 0.75, 0.75]))
+        self.assertEqual((found["verdict"], found["p"]), ("supports", 1 / 70))
+
+    def test_the_permutation_p_is_the_exact_share_of_splits_at_least_as_good(self):
+        rng = random.Random(5)
+        for _ in range(40):
+            nx, ny = rng.randint(1, 5), rng.randint(1, 5)
+            control = [rng.choice((0, 0.25, 0.5, 2 / 3, 1)) for _ in range(nx)]
+            candidate = [rng.choice((0, 0.25, 0.5, 2 / 3, 1)) for _ in range(ny)]
+            pooled = control + candidate
+            observed = sum(candidate) / ny - sum(control) / nx
+            splits = list(itertools.combinations(range(nx + ny), nx))
+            hits = sum(sum(pooled[i] for i in range(nx + ny) if i not in s) / ny - sum(pooled[i] for i in s) / nx
+                       >= observed - 1e-12 for s in splits)
+            self.assertAlmostEqual(experiment.permutation_p(control, candidate), hits / len(splits), msg=(control, candidate))
 
     def test_every_sample_at_one_is_a_ceiling_even_below_four_samples(self):
         for n in (3, 4):
@@ -278,20 +314,27 @@ class Decide(unittest.TestCase):
     def test_every_sample_at_zero_is_a_floor(self):
         self.assertEqual(experiment.judge(self.rows([0, 0, 0]), self.rows([0, 0, 0, 0]))["verdict"], "floor")
 
-    def test_a_tie_inside_the_bounds_at_three_samples_is_inconclusive_for_want_of_sample_four(self):
-        found = experiment.judge(self.rows([0.5] * 3), self.rows([0.5] * 3))
-        self.assertEqual(found["verdict"], "inconclusive")
-        self.assertIn("samples 1-4", found["reason"])
+    def test_a_tie_inside_the_bounds_is_no_better(self):
+        found = experiment.judge(self.rows([0.5] * 4), self.rows([0.5] * 4))
+        self.assertEqual(found["verdict"], "contradicts")
+        self.assertIn("no better", found["reason"])
+
+    def test_too_few_samples_for_any_split_to_reach_significance_decide_nothing_either_way(self):
+        # 3 against 3 bottoms out at p = 0.05 and 2 against 4 at 1/15: no verdict, not even "no better" (E2's n=2 records).
+        for x, y in (([0.5] * 3, [0.5] * 3), ([1, 0.5], [0.5, 0.25]), ([0.5, 0.75], [0.25, 0.25, 0.25, 0.25])):
+            found = experiment.judge(self.rows(x), self.rows(y))
+            self.assertEqual(found["verdict"], "inconclusive", (x, y))
+            self.assertIn("no verdict is possible", found["reason"])
 
     def test_one_arm_at_the_bound_is_not_a_ceiling(self):
         self.assertNotEqual(experiment.judge(self.rows([1, 1, 1, 1]), self.rows([1, 1, 0.75, 1]))["verdict"], "ceiling")
 
-    def test_fractional_values_decide_on_the_spread(self):
+    def test_fractional_values_decide_on_the_permutation_p(self):
         found = experiment.judge(self.rows([0.25, 0.25, 0.25, 0.5]), self.rows([1, 0.75, 1, 1]))
-        self.assertEqual((found["verdict"], found["spread"]), ("supports", 0.125))
+        self.assertEqual((found["verdict"], found["p"]), ("supports", 1 / 70))
 
     def test_every_experiment_runs_four_samples_and_pins_each_arm_to_a_commit(self):
-        # A descriptive experiment measures and reports (R3: owner, "3 full slices each"); decide needs 4 per arm.
+        # A descriptive experiment measures and reports (R3: owner, "3 full slices each"); 3 per arm cannot reach p < 0.05.
         for exp_id, exp in experiment.load().items():
             with self.subTest(exp=exp_id):
                 self.assertEqual(exp["samples"], 3 if exp.get("descriptive") else 4)
@@ -688,8 +731,10 @@ class RoundSpeedups(unittest.TestCase):
     def test_a_verdict_is_settled_only_when_every_completion_of_the_missing_samples_gives_it(self):
         def rows(values):
             return [{"sample": n, "value": v} for n, v in enumerate(values, 1)]
-        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([1]), 4), {"supports"})
         self.assertEqual(experiment.possible_verdicts(rows([1, 1, 1, 1]), rows([0, 0]), 4), {"contradicts"})
+        # Four against four binary samples reach p < 0.05 only as a perfect split, so "supports" is never settled early.
+        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([1, 1, 1]), 4), {"supports", "inconclusive"})
+        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([0, 0]), 4), {"floor", "inconclusive"})
         self.assertGreater(len(experiment.possible_verdicts(rows([0, 1, 0, 0]), rows([1, 0]), 4)), 1)  # R1g K1 midway
         full = experiment.possible_verdicts(rows([0, 1, 0, 1]), rows([0, 1, 1, 1]), 4)  # R2's K2
         self.assertEqual(full, {experiment.judge(rows([0, 1, 0, 1]), rows([0, 1, 1, 1]))["verdict"]})
@@ -733,18 +778,24 @@ class RoundSpeedups(unittest.TestCase):
         self.assertFalse((self.tmp / ".queue.lock").exists())
 
     def test_the_queue_stops_an_experiment_once_its_verdict_cannot_change(self):
-        runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
+        runner, ran, _peak, patches = self._fake({"T": 1, "Cg": 0})
         printed = io.StringIO()
         with patches[0], patches[1], contextlib.redirect_stdout(printed):
             experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
-        # After T 1-4 all 0 and Cg 1-3 all 1, Cg 4 can only leave "supports": it is skipped.
-        self.assertEqual(ran, [("Q", "T", 1), ("Q", "Cg", 1), ("Q", "T", 2), ("Q", "Cg", 2), ("Q", "T", 3), ("Q", "Cg", 3),
-                               ("Q", "T", 4)])
-        self.assertIn("Q/Cg/4: skipped, the verdict cannot change", printed.getvalue())
-        self.assertIn("Q: stopped early, T vs Cg: supports", printed.getvalue())
+        # After T 1-2 all 1 and Cg 1-2 all 0, no completion of samples 3 and 4 leaves Cg above T: they are skipped.
+        self.assertEqual(ran, [("Q", "T", 1), ("Q", "Cg", 1), ("Q", "T", 2), ("Q", "Cg", 2)])
+        self.assertIn("Q/T/3: skipped, the verdict cannot change", printed.getvalue())
+        self.assertIn("Q: stopped early, T vs Cg: contradicts", printed.getvalue())
+
+    def test_the_queue_never_stops_a_supporting_experiment_before_its_last_sample(self):
+        """Four against four binary samples reach p < 0.05 only as a perfect split, so one missing sample can still undo it."""
+        runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
+        with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
+            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
+        self.assertEqual(len(ran), 8)
 
     def test_a_round_of_fewer_than_four_samples_is_never_stopped_early(self):
-        """With 3 samples the A/A spread is never measured, so every completion reads "inconclusive": a settled check
+        """With 3 samples no completion reaches p < 0.05, so every one reads "inconclusive": a settled check
         there would stop the round after its first sample. R3 runs 3 full slices per arm, so it must run them all."""
         runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
         with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):

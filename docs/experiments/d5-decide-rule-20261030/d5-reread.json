@@ -1,0 +1,1070 @@
+{
+ "about": "Every stored experiment.py decide record read again by the permutation rule (docs/shiploop-test-stage-prompt-design-2026-10-30.md \u00a79 D5): the arms' score.json records as they are now, judged by experiment.judge. samples_match is false when more or fewer samples exist now than the record was made from.",
+ "roots": [
+  "/Users/dadleet/e2e-runs/experiments-r1-20261024",
+  "/Users/dadleet/e2e-runs/experiments-r2-20261024",
+  "/Users/dadleet/e2e-runs/e6-r1-20261024",
+  "/Users/dadleet/e2e-runs/e6d2-deepseek-20261028",
+  "/Users/dadleet/e2e-runs/e7-20261030"
+ ],
+ "rows": [
+  {
+   "experiment": "E1",
+   "arms": [
+    "A",
+    "B"
+   ],
+   "n": [
+    3,
+    3
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-A-B.json"
+  },
+  {
+   "experiment": "E1",
+   "arms": [
+    "A",
+    "T"
+   ],
+   "n": [
+    3,
+    3
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-A-T.json"
+  },
+  {
+   "experiment": "E1",
+   "arms": [
+    "T",
+    "B"
+   ],
+   "n": [
+    3,
+    3
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-T-B.json"
+  },
+  {
+   "experiment": "E3",
+   "arms": [
+    "A",
+    "T"
+   ],
+   "n": [
+    3,
+    3
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/experiments-r1-20261024/E3/decision-A-T.json"
+  },
+  {
+   "experiment": "E1b",
+   "arms": [
+    "A",
+    "B"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E1b/decision-A-B.json"
+  },
+  {
+   "experiment": "E1b",
+   "arms": [
+    "A",
+    "T"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E1b/decision-A-T.json"
+  },
+  {
+   "experiment": "E1b",
+   "arms": [
+    "T",
+    "B"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E1b/decision-T-B.json"
+  },
+  {
+   "experiment": "E2",
+   "arms": [
+    "A",
+    "F"
+   ],
+   "n": [
+    2,
+    4
+   ],
+   "means": [
+    0.5,
+    0.25
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "inconclusive",
+   "p": 0.9333333333333333,
+   "difference": -0.25,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-A-F.json"
+  },
+  {
+   "experiment": "E2",
+   "arms": [
+    "A",
+    "T"
+   ],
+   "n": [
+    2,
+    2
+   ],
+   "means": [
+    0.5,
+    0.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "inconclusive",
+   "p": 1.0,
+   "difference": -0.5,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-A-T.json"
+  },
+  {
+   "experiment": "E2",
+   "arms": [
+    "T",
+    "B"
+   ],
+   "n": [
+    2,
+    3
+   ],
+   "means": [
+    0.0,
+    1.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "inconclusive",
+   "p": 0.1,
+   "difference": 1.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-T-B.json"
+  },
+  {
+   "experiment": "E2",
+   "arms": [
+    "T",
+    "F"
+   ],
+   "n": [
+    2,
+    4
+   ],
+   "means": [
+    0.0,
+    0.25
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": null,
+   "new_verdict": "inconclusive",
+   "p": 0.6666666666666666,
+   "difference": 0.25,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/experiments-r2-20261024/E2/decision-T-F.json"
+  },
+  {
+   "experiment": "E6-K1",
+   "arms": [
+    "B",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.75,
+    1.0
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.5,
+   "new_verdict": "inconclusive",
+   "p": 0.5,
+   "difference": 0.25,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K1/decision-B-C.json"
+  },
+  {
+   "experiment": "E6-K1",
+   "arms": [
+    "C",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    0.75
+   ],
+   "old_verdict": "contradicts",
+   "old_spread": 0.0,
+   "new_verdict": "contradicts",
+   "p": 1.0,
+   "difference": -0.25,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K1/decision-C-Cg.json"
+  },
+  {
+   "experiment": "E6-K1",
+   "arms": [
+    "T",
+    "B"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.25,
+    0.75
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.5,
+   "new_verdict": "inconclusive",
+   "p": 0.24285714285714285,
+   "difference": 0.5,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K1/decision-T-B.json"
+  },
+  {
+   "experiment": "E6-K1",
+   "arms": [
+    "T",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.25,
+    1.0
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.5,
+   "new_verdict": "inconclusive",
+   "p": 0.07142857142857142,
+   "difference": 0.75,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K1/decision-T-C.json"
+  },
+  {
+   "experiment": "E6-K1",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.25,
+    0.75
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.5,
+   "new_verdict": "inconclusive",
+   "p": 0.24285714285714285,
+   "difference": 0.5,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K1/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6-K2",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.5,
+    0.75
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.0,
+   "new_verdict": "inconclusive",
+   "p": 0.5,
+   "difference": 0.25,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K2/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6-K3",
+   "arms": [
+    "B",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K3/decision-B-C.json"
+  },
+  {
+   "experiment": "E6-K3",
+   "arms": [
+    "C",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K3/decision-C-Cg.json"
+  },
+  {
+   "experiment": "E6-K3",
+   "arms": [
+    "T",
+    "B"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K3/decision-T-B.json"
+  },
+  {
+   "experiment": "E6-K3",
+   "arms": [
+    "T",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K3/decision-T-C.json"
+  },
+  {
+   "experiment": "E6-K3",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K3/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6-K4",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K4/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6-K5",
+   "arms": [
+    "B",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K5/decision-B-C.json"
+  },
+  {
+   "experiment": "E6-K5",
+   "arms": [
+    "C",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K5/decision-C-Cg.json"
+  },
+  {
+   "experiment": "E6-K5",
+   "arms": [
+    "T",
+    "B"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K5/decision-T-B.json"
+  },
+  {
+   "experiment": "E6-K5",
+   "arms": [
+    "T",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K5/decision-T-C.json"
+  },
+  {
+   "experiment": "E6-K5",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K5/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6-K6",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K6/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6-K7",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6-r1-20261024/E6-K7/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6D2-K2",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    3,
+    3
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6d2-deepseek-20261028/E6D2-K2/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E6D2-K4",
+   "arms": [
+    "T",
+    "Cg"
+   ],
+   "n": [
+    3,
+    3
+   ],
+   "means": [
+    1.0,
+    1.0
+   ],
+   "old_verdict": "ceiling",
+   "old_spread": null,
+   "new_verdict": "ceiling",
+   "p": null,
+   "difference": 0.0,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e6d2-deepseek-20261028/E6D2-K4/decision-T-Cg.json"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    0.58335
+   ],
+   "old_verdict": "contradicts",
+   "old_spread": 0.0,
+   "new_verdict": "contradicts",
+   "p": 0.8426573426573427,
+   "difference": -0.020837499999999953,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-F/decision-A-C.json"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "D"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    0.6250125
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.0,
+   "new_verdict": "inconclusive",
+   "p": 0.5,
+   "difference": 0.020824999999999982,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-F/decision-A-D.json"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "T"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    1.0
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.0,
+   "new_verdict": "supports",
+   "p": 7.77000777000777e-05,
+   "difference": 0.3958125,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-F/decision-A-T.json"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "D",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6250125,
+    0.58335
+   ],
+   "old_verdict": "contradicts",
+   "old_spread": 0.16664999999999996,
+   "new_verdict": "contradicts",
+   "p": 0.8426573426573427,
+   "difference": -0.041662499999999936,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-F/decision-D-C.json"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8356,
+    0.8314250000000001
+   ],
+   "old_verdict": "contradicts",
+   "old_spread": 0.062100000000000044,
+   "new_verdict": "contradicts",
+   "p": 0.5857142857142857,
+   "difference": -0.004174999999999929,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K1/decision-A-C.json"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "A",
+    "M"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8356,
+    0.862375
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.062100000000000044,
+   "new_verdict": "inconclusive",
+   "p": 0.4142857142857143,
+   "difference": 0.026774999999999993,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K1/decision-A-M.json"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "A",
+    "P"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8356,
+    0.8109999999999999
+   ],
+   "old_verdict": "contradicts",
+   "old_spread": 0.062100000000000044,
+   "new_verdict": "contradicts",
+   "p": 0.6428571428571429,
+   "difference": -0.024600000000000066,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K1/decision-A-P.json"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "P",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8109999999999999,
+    0.8314250000000001
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.10530000000000006,
+   "new_verdict": "inconclusive",
+   "p": 0.4142857142857143,
+   "difference": 0.020425000000000137,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K1/decision-P-C.json"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.4535875,
+    0.6875
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.13095000000000007,
+   "new_verdict": "supports",
+   "p": 0.028904428904428906,
+   "difference": 0.23391250000000002,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K2/decision-A-C.json"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "D"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.4535875,
+    0.63335
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.13095000000000007,
+   "new_verdict": "inconclusive",
+   "p": 0.08034188034188035,
+   "difference": 0.1797625,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K2/decision-A-D.json"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "M"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.4535875,
+    0.646425
+   ],
+   "old_verdict": "supports",
+   "old_spread": 0.13095000000000007,
+   "new_verdict": "inconclusive",
+   "p": 0.055944055944055944,
+   "difference": 0.19283750000000005,
+   "samples_match": true,
+   "changed": true,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K2/decision-A-M.json"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "P"
+   ],
+   "n": [
+    8,
+    4
+   ],
+   "means": [
+    0.4535875,
+    0.58215
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.13095000000000007,
+   "new_verdict": "inconclusive",
+   "p": 0.23030303030303031,
+   "difference": 0.12856249999999997,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K2/decision-A-P.json"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "D",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.63335,
+    0.6875
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.39999999999999997,
+   "new_verdict": "inconclusive",
+   "p": 0.30582750582750584,
+   "difference": 0.05415000000000003,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K2/decision-D-C.json"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "P",
+    "C"
+   ],
+   "n": [
+    4,
+    8
+   ],
+   "means": [
+    0.58215,
+    0.6875
+   ],
+   "old_verdict": "inconclusive",
+   "old_spread": 0.13570000000000004,
+   "new_verdict": "inconclusive",
+   "p": 0.1595959595959596,
+   "difference": 0.10535000000000005,
+   "samples_match": true,
+   "changed": false,
+   "record": "/Users/dadleet/e2e-runs/e7-20261030/E7-K2/decision-P-C.json"
+  }
+ ]
+}

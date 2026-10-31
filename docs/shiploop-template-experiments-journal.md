@@ -1,7 +1,7 @@
 # ShipLoop template-field experiments journal
 
 One line per `experiment.py decide`: the experiment, the arms compared (ref and overlay), n per arm, the mean score of
-each arm, the A/A spread (the first arm's samples 1-2 vs 3-4), the verdict and the decision file. The plan, cases,
+each arm, the sixth column (the A/A spread, the first arm's samples 1-2 vs 3-4, through the E7-F lines of 2026-10-30; the exact one-sided permutation p after D5), the verdict and the decision file. The plan, cases,
 evaluators and arms are in test/shiploop_e2e/experiments.json; run outputs are not committed.
 
 ## Harness (2026-10-24, status: firm)
@@ -43,7 +43,7 @@ records, overlays e6-size-prose and e6-size-gate (against 9ed4ec24), tests `Plan
 
 ## Decisions
 
-| date | experiment | arms | n | means | spread | gate | verdict | record |
+| date | experiment | arms | n | means | spread, then p | gate | verdict | record |
 |---|---|---|---|---|---|---|---|---|
 | 2026-10-24 | E1 | A=288075c9 vs T=9ed4ec24 | 3/3 | 1.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-A-T.json |
 | 2026-10-24 | E1 | T=9ed4ec24 vs B=9ed4ec24+e1-stand-in.json | 3/3 | 1.00/1.00 | - | - | **inconclusive**: the first arm needs scored samples 1-4 for the A/A spread | /Users/dadleet/e2e-runs/experiments-r1-20261024/E1/decision-T-B.json |
@@ -91,3 +91,4 @@ records, overlays e6-size-prose and e6-size-gate (against 9ed4ec24), tests `Plan
 | 2026-10-30 | E7-F | note on the three lines above | - | - | - | - | **read with design §7d**: no arm adopted. Over all 8 + 8 samples A vs D is +0.02 (p 0.50) and A vs C −0.02 (p 0.84); A's 2-against-2 spread was 0.00 on this discrete metric, so the "supports" is noise | docs/shiploop-test-stage-prompt-design-2026-10-30.md §7d |
 | 2026-10-30 | E7-F | A=7fce12e4b9edff9b2c849bc8f8402ea7f63f143d vs T=7fce12e4b9edff9b2c849bc8f8402ea7f63f143d+e7-t.json | 8/8 | 0.60/1.00 | 0.00 | - | **supports**: mean 1.00 vs 0.60: +0.40 beyond the A/A spread 0.00 | /Users/dadleet/e2e-runs/e7-20261030/E7-F/decision-A-T.json |
 | 2026-10-30 | E7-F | note on the line above | - | - | - | - | **read with design §7f**: the rule fixed in §7e is met, over all 8 + 8 samples one-sided exact p 0.0001 and a gain of 0.396 over A's split-half gap 0.042; the `supports` here would also have read that way on a spread of 0.00 by luck (§7d item 5), so the permutation test is the basis. T's sample covers the evaluator's own six sites, so it shows feedback is acted on, not that the sampling generalises. By the request every arm, T included, scores 1.00 (10 of 10 request-breaking variants killed), so the gain is on load-time checks the request never states. D6 is not adopted: the owner's "Yes, skip D6", relayed by the fork session, not confirmed in this one | design doc §7f, §9 |
+| 2026-10-30 | all | note on D5: `decide` now reads the permutation p | - | - | p from here | - | **read with design §9 and docs/experiments/d5-decide-rule-20261030/**: a gain is `supports` only when the exact one-sided permutation p over both arms' samples is below 0.05; the spread column above this line is the old rule. Read again under it, 5 of the 7 earlier `supports` become `inconclusive` (E6-K1 T vs C p 0.071, E6-K2 T vs Cg p 0.50, E7-K2 A vs D p 0.080 and A vs M p 0.056, E7-F A vs D p 0.50), E7-F A vs T (p 0.0001) and E7-K2 A vs C (p 0.029) stand, and no verdict becomes `supports`. E1 and E3 read `ceiling` rather than `inconclusive` by the ceiling rule of 78ea131b, not by D5 | docs/experiments/d5-decide-rule-20261030/d5-reread.json |
