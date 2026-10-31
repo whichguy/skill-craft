@@ -2407,7 +2407,7 @@ candidate, one decision: the loop tip advances only on PROMOTE.
   `--tolerance 0.25 --attempts 3` in its place, owner decision 2026-10-31): improver,
   purpose check, both builds, a promotion/5 epoch on C and G, every attempt (at most `--parallel` at once), each review and
   judgment, the decision, the prediction's verdict, a LEARNINGS entry. A DROP or UNDECIDED candidate is kept as
-  `refs/shiploop-loop/<loop>/<record>`. A review of G's attempts is confirmation exposure, never offered to the improver.
+  `refs/shiploop-loop/<loop>/<record>` (a second kept candidate for the same record gets `-2`, `-3`, so none is lost). A review of G's attempts is confirmation exposure, never offered to the improver.
   `cycle.py --control-plugin --candidate-plugin --prediction` runs a hand-built candidate (the stage 4 pilot).
 
 No-model suites: `shiploop-e2e-learning-records` and `shiploop-e2e-cycle` (a real worktree, ledger and epoch, with the

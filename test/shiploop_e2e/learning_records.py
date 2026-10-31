@@ -42,7 +42,7 @@ RECORD_ID = re.compile(r"LR-\d{8}-[0-9a-f]{6}")
 # The reviewer sees these first; the rest are history it should not re-propose.
 LIVE = ("in_candidate", "admitted", "open", "owner")
 SETTLED = ("refuted", "no_effect", "deferred", "rejected", "unexplained_gain", "verified")
-OUTCOMES = ("verified", "unexplained_gain", "refuted", "no_effect", "admitted")
+OUTCOMES = ("verified", "unexplained_gain", "refuted", "no_effect", "deferred", "admitted")
 CONFIDENCE = {"high": 0, "medium": 1, "low": 2}
 # Fields an "opened" row may carry: what a reviewer or a session says the lesson is. Evidence text stays in its source.
 DESCRIBES = ("title", "anchor", "materiality", "confidence", "target", "files", "proposal", "next_experiment")
@@ -82,7 +82,8 @@ def rows(path: Path = LEDGER) -> list[dict]:
     if not path.is_file():
         return []
     found = []
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    # Split on newlines only: str.splitlines() also splits on U+2028, U+2029 and U+0085, which a title may hold.
+    for number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
         if not line.strip():
             continue
         try:
@@ -98,7 +99,7 @@ def rows(path: Path = LEDGER) -> list[dict]:
 def _fold(record: str, events: list[dict]) -> dict:
     state = {"record": record, "status": "open", "events": len(events), "seen": 0, "sources": [], "ever_admitted": False,
              "decision": None, "verdict": None, "prediction": None, "candidate": None, "reason": None,
-             "reopen_when": None, "exposure": "development", "first_at": events[0]["at"], "last_at": events[-1]["at"]}
+             "reopen_when": None, "calibration": None, "exposure": "development", "first_at": events[0]["at"], "last_at": events[-1]["at"]}
     for row in events:
         event = row["event"]
         if event == "opened":
@@ -129,6 +130,7 @@ def _fold(record: str, events: list[dict]) -> dict:
             state["status"] = outcome if outcome in OUTCOMES else state["status"]
             state["reason"] = row.get("reason") or state["reason"]
             state["reopen_when"] = row.get("reopen_when") or state["reopen_when"]
+            state["calibration"] = row.get("calibration")
         elif event == "deferred":
             state["status"], state["reason"], state["reopen_when"] = "deferred", row.get("reason"), row.get("reopen_when")
         elif event == "reopened":

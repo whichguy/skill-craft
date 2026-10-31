@@ -1,18 +1,15 @@
 {
-  "_doc": "The purpose check's probe terms (SPEC Change admission, Purpose; S-13): for each case in cases.json, regular expressions (matched case-insensitively) for words of its product that ShipLoop's source has no reason to name. A candidate that adds a line matching one is rejected before any run. Platforms are not probe terms (the Salesforce platform cards name Salesforce on purpose), and a bare word that is also generic is not one: 'checkers' already appears as 'type checkers' in shiploop_stage_spec.py. Only added lines are matched, and skills/shiploop/README.md (the developer guide, which S-8 does not cover) never is. Every case has an entry, and no term matches skills/shiploop outside README.md except the hits listed under `known`, each with the learning record that tracks it (test: PurposeCheckTest).",
+  "_doc": "The purpose check's probe terms (SPEC Change admission, Purpose; S-13): for each case in cases.json, regular expressions (matched case-insensitively) for words of its product that ShipLoop's source has no reason to name. A candidate that adds a line matching one is rejected before any run. Platforms are not probe terms (the Salesforce platform cards name Salesforce on purpose), and a bare word that is also generic is not one: 'checkers' already appears as 'type checkers' in shiploop_stage_spec.py. A bare word that is common outside any one case is not a term (sampling temperature, sunk cost, a fleet of workers, hello world), because a script-stage rejection costs a whole cycle and has no retry. Only added lines are matched, and skills/shiploop/README.md (the developer guide, which S-8 does not cover) never is. Every case has an entry, and no term matches skills/shiploop outside README.md except the hits listed under `known`, each with the learning record that tracks it (test: PurposeCheckTest).",
   "terms": {
     "hello": [
-      "\\bhello,? world\\b"
+      "\\bhello\\.py\\b"
     ],
     "battleship": [
       "\\bbattleships?\\b",
-      "\\bfleet\\b",
-      "\\bsunk\\b",
       "\\bgame ?over\\b"
     ],
     "battleship-scoring": [
       "\\bbattleships?\\b",
-      "\\bsunk\\b",
       "\\bshots? fired\\b"
     ],
     "csv-report": [
@@ -23,7 +20,7 @@
       "\\bseat map\\b"
     ],
     "temperature-report": [
-      "\\btemperatures?\\b",
+      "\\btemperature[- ]report\\b",
       "\\bcelsius\\b",
       "\\bfahrenheit\\b"
     ],
@@ -34,7 +31,7 @@
       "\\bword[- ]report\\b"
     ],
     "temperature-plain": [
-      "\\btemperatures?\\b",
+      "\\btemperature[- ](plain|report)\\b",
       "\\bcelsius\\b",
       "\\bfahrenheit\\b"
     ],

@@ -405,5 +405,30 @@ class EpochLaunchAndPredictionTest(unittest.TestCase):
         self.assertFalse((root / "prediction.json").exists())
 
 
+    # The independent review of 2026-10-31.
+
+    def test_a_prediction_file_added_to_an_epoch_registered_without_one_is_refused(self):
+        (self.root / "prediction.json").write_text(json.dumps(self.prediction()))
+        with self.assertRaisesRegex(ValueError, "prediction.json"):
+            epoch.registration(self.root)
+
+    def test_a_row_still_being_written_is_waited_for_and_a_torn_row_is_still_refused(self):
+        import threading
+        import time
+        ledger = self.root / epoch.LEDGER
+        whole = json.dumps({"sequence": len(epoch.events(self.root)) + 1, "at": 0, "kind": "probe"})
+        with ledger.open("a") as handle:
+            handle.write(whole[:12])  # a writer is mid-row
+
+        def finish():
+            time.sleep(0.15)
+            with ledger.open("a") as handle:
+                handle.write(whole[12:] + "\n")
+        writer = threading.Thread(target=finish)
+        writer.start()
+        self.assertEqual(epoch.events(self.root)[-1]["kind"], "probe")
+        writer.join()
+
+
 if __name__ == "__main__":
     unittest.main()

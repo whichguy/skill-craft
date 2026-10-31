@@ -2,6 +2,7 @@
 records, predictions, the A/A spread and the purpose check."""
 from __future__ import annotations
 
+import inspect
 import json
 import re
 import subprocess
@@ -18,6 +19,7 @@ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import learning_records as lr
 import prediction
 import purpose_check
+import review
 import spread
 
 FLOORS = ["accuracy", "fidelity"]
@@ -146,6 +148,37 @@ class LearningRecordsTest(LedgerCase):
         self.assertIn("merge: union", attributes)
 
 
+    def test_a_verdict_that_defers_a_record_takes_effect(self):
+        record = self.open_record()
+        lr.append("admitted", record, self.ledger)
+        lr.append("predicted", record, self.ledger, prediction={"record": record}, candidate="abc")
+        lr.append("decided", record, self.ledger, decision="DROP")
+        lr.append("verdict", record, self.ledger, verdict="confirmed", outcome="deferred", reason="regressed a case",
+                  reopen_when="a candidate keeps the effect without it", calibration="stated, not measured")
+        state = lr.current(self.ledger)[record]
+        self.assertEqual(state["status"], "deferred")
+        self.assertEqual(state["calibration"], "stated, not measured")
+
+    def test_unicode_line_separators_in_a_title_do_not_break_the_ledger(self):
+        title = "a\u2028title\u2029with\u0085separators"
+        record = self.open_record(title)
+        self.assertEqual(lr.current(self.ledger)[record]["title"], title)
+        self.assertIn(title, lr.reviewer_view(self.ledger))
+
+    def test_an_empty_same_as_is_no_claim_and_a_bad_one_is_named(self):
+        finding = {"id": "D1", "title": "t", "potential_impact": "i", "next_experiment": "n", "proposal": "p",
+                   "evidence": [{"reference": "r", "observation": "o", "interpretation": "i"}],
+                   "mission_anchor": {"clause_id": "S-14", "relationship": "supports", "challenge": None},
+                   "materiality": "material", "confidence": "high", "alternatives": [], "target": "shiploop",
+                   "files": ["skills/shiploop/scripts/x.py"], "implementation_eligible": True,
+                   "proposed_disposition": "implement"}
+        self.assertEqual(review._discovery_problems({**finding, "same_as": ""}, 0), [])
+        self.assertEqual(review._discovery_problems({**finding, "same_as": None}, 0), [])
+        self.assertEqual(review._discovery_problems({**finding, "same_as": "LR-20261030-abcdef"}, 0), [])
+        self.assertIn("same_as", " ".join(review._discovery_problems({**finding, "same_as": "none"}, 0)))
+
+
+
 class PredictionTest(unittest.TestCase):
     REG = {"cases": {"hello": {"role": "regression"}, "csv-report": {"role": "regression"}}, "tolerance": 0.10,
            "quality_tolerance": 0.0, "floors": FLOORS}
@@ -207,6 +240,32 @@ class PredictionTest(unittest.TestCase):
                 self.assertEqual(prediction.outcome(decision, {"verdict": found}, ["why"])["outcome"], expected)
 
 
+    def test_a_malformed_case_or_amount_is_a_refusal_not_a_crash(self):
+        effect = {"case": "hello", "measure": "tokens", "direction": "down", "at_least": 0.2}
+        for broken, why in ((self.good(effects=[{**effect, "case": ["hello", "csv-report"]}]), "registered case"),
+                            (self.good(effects=[{**effect, "case": {"a": 1}}]), "registered case"),
+                            (self.good(effects=[{**effect, "at_least": 10 ** 400}]), "positive number"),
+                            (self.good(guards=[{"case": ["hello"], "measure": "accuracy", "direction": "not_down"}]),
+                             "neither")):
+            with self.subTest(why=why), self.assertRaisesRegex(ValueError, why):
+                prediction.validate(broken, self.REG)
+
+    def test_an_unknown_guard_leaves_the_prediction_unjudged_and_an_unjudged_drop_is_not_a_settled_no_effect(self):
+        control = [card(tokens=1_000_000) for _ in range(3)]
+        candidate = [card(tokens=700_000) for _ in range(3)]
+        for one in candidate:
+            one["efficiency"].pop("refusals")
+        guard = [{"case": "hello", "measure": "efficiency.refusals", "direction": "not_up"}]
+        judged = prediction.verdict(self.good(guards=guard), self.REG, control, candidate)
+        self.assertEqual(judged["effects"][0]["verdict"], "confirmed")
+        self.assertIsNone(judged["guards"][0]["held"])
+        self.assertEqual(judged["verdict"], "unknown")
+        after = prediction.outcome("DROP", {"verdict": "unknown"}, ["no success to divide by"])
+        self.assertEqual(after["outcome"], "deferred")
+        self.assertIn("could not be judged", after["reason"])
+
+
+
 class SpreadTest(unittest.TestCase):
     def test_a_tight_build_allows_a_small_tolerance_and_a_loose_one_does_not(self):
         tight = [card(tokens=1_000_000 + n * 10_000) for n in range(8)]
@@ -237,6 +296,31 @@ class SpreadTest(unittest.TestCase):
         self.assertEqual(first, spread.scoring_digest({"hello": dict(catalog["hello"])}))
         changed = spread.scoring_digest({"hello": {**catalog["hello"], "prompt": "something else"}})
         self.assertNotEqual(first["sha256"], changed["sha256"])
+
+
+    def test_splits_whose_quality_differs_never_reach_the_efficiency_comparison(self):
+        cards = [card() for _ in range(6)] + [card(ok=False) for _ in range(2)]
+        report = spread.case_spread(cards, FLOORS, 3, 5000)
+        differing = round(report["quality_split_differs"] * report["splits"])
+        self.assertGreater(differing, 0)
+        self.assertEqual(report["false_decision"]["tokens"]["compared"], report["splits"] - differing)
+
+    def test_the_scoring_digest_follows_the_modules_the_scorer_imports_and_ignores_unrelated_ones(self):
+        with tempfile.TemporaryDirectory() as temp:
+            harness = Path(temp)
+            for name in spread.SCORING_MODULES:
+                (harness / name).write_text("")
+            (harness / "scorecard.py").write_text("import helper\n")
+            (harness / "helper.py").write_text("from deeper import thing\n")
+            (harness / "deeper.py").write_text("thing = 1\n")
+            (harness / "unrelated.py").write_text("y = 1\n")
+            (harness / "checks").mkdir()
+            before = spread.scoring_digest({}, harness)["sha256"]
+            (harness / "unrelated.py").write_text("y = 2\n")
+            self.assertEqual(spread.scoring_digest({}, harness)["sha256"], before, "an unrelated module moved it")
+            (harness / "deeper.py").write_text("thing = 2\n")
+            self.assertNotEqual(spread.scoring_digest({}, harness)["sha256"], before, "an imported module did not")
+
 
 
 class PurposeCheckTest(unittest.TestCase):
@@ -278,7 +362,7 @@ class PurposeCheckTest(unittest.TestCase):
         self.assertEqual(purpose_check.decide(result, None)["result"], "passed")
 
     def test_a_probe_word_rejects_before_any_run(self):
-        head = self.commit("skills/shiploop/scripts/a.py", "x = 1\n# sink the whole fleet\n")
+        head = self.commit("skills/shiploop/scripts/a.py", "x = 1\n# sink the whole battleship\n")
         result = self.check(head)
         self.assertFalse(result["passed"])
         self.assertEqual(result["probe_hits"][0]["case"], "battleship")
@@ -305,7 +389,8 @@ class PurposeCheckTest(unittest.TestCase):
 
     def test_the_review_decides_and_an_unusable_review_rejects(self):
         passed = {"passed": True, "problems": []}
-        self.assertEqual(purpose_check.decide(passed, {"validity": {"status": "valid"}, "verdict": "aligned"})["result"],
+        self.assertEqual(purpose_check.decide(passed, {"validity": {"status": "valid"}, "verdict": "aligned",
+                                                  "prediction_follows": True})["result"],
                          "passed")
         retry = purpose_check.decide(passed, {"validity": {"status": "valid"}, "verdict": "extra", "summary": "s",
                                               "files": [{"path": "b.py", "serves": "no", "why": "a rename"}]})
@@ -319,7 +404,9 @@ class PurposeCheckTest(unittest.TestCase):
         text = purpose_check.review_prompt({"record": self.RECORD, "title": "t"}, purpose_check.clause_text("S-13"),
                                            None, "diff --git a/x b/x")
         self.assertIn("**S-13 Everything is generic.**", text)
-        self.assertNotIn("transcript", text)
+        # The review can only see what review_prompt is given: the record, its clause, the prediction and the diff.
+        self.assertEqual(list(inspect.signature(purpose_check.review_prompt).parameters),
+                         ["record", "anchor", "prediction", "diff"])
         self.assertIn("not in SPEC.md", purpose_check.clause_text("S-99"))
 
     def test_every_case_has_terms_and_none_matches_the_engine_except_the_tracked_hits(self):
@@ -344,6 +431,56 @@ class PurposeCheckTest(unittest.TestCase):
                     found.add((relative, case))
         self.assertEqual(found, known)
         self.assertFalse(any(re.fullmatch(r"\\bcheckers\??\\b", p.pattern) for p in terms["terms"]["checkers"]))
+
+
+    def test_a_probe_word_cannot_hide_behind_a_diff_header_lookalike(self):
+        head = self.commit("skills/shiploop/scripts/a.py",
+                           "x = 1\n++ b/skills/shiploop/README.md\nsink the battleship\n")
+        self.assertEqual([hit["case"] for hit in self.check(head)["probe_hits"]][:1], ["battleship"])
+
+    def test_a_probe_word_is_found_whatever_prefix_the_users_git_config_asks_for(self):
+        self.git("config", "diff.noprefix", "true")
+        head = self.commit("skills/shiploop/scripts/a.py", "x = 1\n# the battleship\n")
+        self.assertTrue(self.check(head)["probe_hits"])
+
+    def test_a_file_with_a_non_ascii_name_is_not_mistaken_for_one_outside_the_candidate(self):
+        path = "skills/shiploop/references/caf\u00e9.md"
+        head = self.commit(path, "a reference\n")
+        result = self.check(head, [path])
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(result["changed"], [path])
+
+    def test_a_rename_out_of_the_harness_is_seen_as_a_deletion_there(self):
+        self.write("test/shiploop_e2e/checks/oracle.py", "def check():\n    return True\n")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "a check the candidate may not touch")
+        self.base = self.git("rev-parse", "HEAD").strip()
+        self.git("mv", "test/shiploop_e2e/checks/oracle.py", "skills/shiploop/scripts/oracle_copy.py")
+        self.git("commit", "-qm", "move\n\nLearning-Record: " + self.RECORD)
+        result = self.check(self.git("rev-parse", "HEAD").strip(), ["skills/shiploop/scripts/oracle_copy.py"])
+        self.assertFalse(result["passed"])
+        self.assertIn("test/shiploop_e2e/checks/oracle.py", " ".join(result["problems"]))
+
+    def test_generic_words_are_not_probe_terms(self):
+        for line in ("# the sampling temperature of a model", "# a sunk cost", "# print hello, world in the example",
+                     "# the fleet of workers"):
+            with self.subTest(line=line):
+                self.assertFalse(purpose_check.probe_hits([("skills/shiploop/scripts/a.py", line)],
+                                                          purpose_check.load_terms()))
+
+    def test_an_aligned_review_must_also_say_the_prediction_follows(self):
+        passed = {"passed": True, "problems": []}
+        for follows, expected in ((False, "rejected"), (None, "rejected"), (True, "passed")):
+            reviewed = {"validity": {"status": "valid"}, "verdict": "aligned", "summary": "s",
+                        "prediction_note": "any change would meet it"}
+            if follows is not None:
+                reviewed["prediction_follows"] = follows
+            with self.subTest(prediction_follows=follows):
+                decided = purpose_check.decide(passed, reviewed)
+                self.assertEqual(decided["result"], expected)
+        self.assertIn("any change would meet it", " ".join(purpose_check.decide(passed, {
+            "validity": {"status": "valid"}, "verdict": "aligned", "prediction_follows": False,
+            "prediction_note": "any change would meet it"})["reasons"]))
 
 
 if __name__ == "__main__":

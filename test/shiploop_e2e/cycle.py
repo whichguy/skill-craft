@@ -112,7 +112,14 @@ def _interruption_artifact_dir(worktree: Path, stage: Path) -> Path:
 
 def load_calibration(path: Path, cases: list[str]) -> dict:
     """attempts and tolerance from an A/A calibration, refused when it did not calibrate a case, cannot decide its
-    metric, or was scored by other scoring files than this checkout's."""
+    metric, was scored by other scoring files than this checkout's, or is not a calibration report at all."""
+    try:
+        return _load_calibration(path, cases)
+    except (KeyError, TypeError, AttributeError) as error:
+        raise ValueError(f"{path} is a malformed calibration report: {error!r}") from None
+
+
+def _load_calibration(path: Path, cases: list[str]) -> dict:
     calibration = json.loads(path.read_text())
     if calibration.get("contract") != spread.CONTRACT:
         raise ValueError(f"{path} is not a {spread.CONTRACT} report")
@@ -143,8 +150,9 @@ def stated_calibration(attempts, tolerance, metric: str = STATED_METRIC) -> dict
     if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
         raise ValueError("--attempts must be a positive whole number")
     if (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance)
-            or not 0 < tolerance <= 1):
-        raise ValueError("--tolerance must be a relative change above 0 and at most 1 (0.25 is 25%)")
+            or not 0 < tolerance < 1):
+        # A cost cannot fall by 100% or more, so a tolerance of 1 or more could never promote an efficiency change.
+        raise ValueError("--tolerance must be a relative change above 0 and below 1 (0.25 is 25%)")
     return {"attempts": attempts, "tolerance": float(tolerance), "metric": metric, "sha256": None, "measured": False,
             "basis": UNMEASURED}
 
@@ -413,7 +421,7 @@ def terminal_entry(record: dict | None, decision: str, reason: str, tip: str, ca
         heading = f"## Invalid review from exploration: {decision} ({day})"
         question = "**Question.** Did this exploration produce a discovery-qualified review?"
     calibration_sha = (calibration or {}).get("sha256") or "not used"
-    basis_text = (f"report SHA256 `{calibration_sha}`" if (calibration or {}).get("measured", True)
+    basis_text = (f"scoring digest `{calibration_sha}`" if (calibration or {}).get("measured", True)
                   else f"{UNMEASURED}: the false-decision rate is unknown")
     candidate_sha = candidate or "none; no candidate commit was available"
     calibration_details = (f"{calibration['attempts']} attempts per arm, tolerance {calibration['tolerance']} "
@@ -480,6 +488,12 @@ def apply_decision(worktree: Path, loop: str, record: str, tip: str, candidate: 
     if decision == "PROMOTE":
         return f"The loop tip advanced to {candidate}."
     ref = f"refs/shiploop-loop/{loop}/{record}"
+    for number in range(2, 100):
+        held = subprocess.run(["git", "-C", str(worktree), "rev-parse", "--verify", "-q", ref], capture_output=True,
+                              text=True)
+        if held.returncode != 0 or held.stdout.strip() == candidate:
+            break  # the ref is free, or already names this candidate
+        ref = f"refs/shiploop-loop/{loop}/{record}-{number}"  # an earlier kept candidate must stay reachable
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
     kept = ledger.read_bytes() if ledger.is_file() else None
     _git(worktree, "update-ref", ref, candidate)
@@ -657,25 +671,36 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
     cases = [args.case] + ([args.generality_case] if args.generality_case else [])
     prompt = one_record_prompt(worktree, record, tip, cases, calibration)
     change = iterate.improve(worktree, [], stage / "improve", args, prompt=prompt)
-    crossed = iterate.boundary_crossing(change)
-    if crossed or change["out_of_scope"] or change["uncommitted"] or not change["commits"]:
+    def no_usable_candidate(change: dict, crossed: str | None, improve_dir: Path) -> dict:
+        """Reset to the tip and record why the improver's work cannot be measured. Both improver calls (the first and
+        the retry after an `extra` purpose review) end here when they cross the boundary, strand uncommitted work or
+        leave the scope: what is measured must be exactly what was committed."""
         head = _git(worktree, "rev-parse", "HEAD")
-        candidate_sha = head if change["commits"] and head != tip else None
+        candidate_sha = head if head != tip else None
         _git(worktree, "reset", "-q", "--hard", tip)
-        why = crossed or ("out of scope or uncommitted work" if change["commits"] else "the improver committed nothing")
+        if crossed:
+            why = crossed
+        elif change["out_of_scope"] or change["uncommitted"]:
+            why = "out of scope or uncommitted work"
+        else:
+            why = "the improver committed nothing"
         reason = f"No usable candidate: {why}"
         learning_records.append("rejected_at_purpose", record_id, ledger, reason=reason)
         if candidate_sha:
             note = (f"Committed candidate {candidate_sha} was not adopted; the loop tip remains at {tip}. "
-                    f"Improve artifacts remain at {stage / 'improve'}.")
+                    f"Improve artifacts remain at {improve_dir}.")
         else:
             note = (f"No candidate commit was available; the loop tip remains at {tip}. "
-                    f"Improve artifacts remain at {stage / 'improve'}.")
+                    f"Improve artifacts remain at {improve_dir}.")
         result = {"decision": "NO_CANDIDATE", "reasons": [why], "stop": bool(crossed), "tip_note": note}
         result["learnings_commit"] = commit_terminal_learning(
             worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha, calibration, cases,
             note)
         return result
+
+    crossed = iterate.boundary_crossing(change)
+    if crossed or change["out_of_scope"] or change["uncommitted"] or not change["commits"]:
+        return no_usable_candidate(change, crossed, stage / "improve")
     reviewed, verdict = None, None
     predicted = (change["report"] or {}).get("prediction")
     for attempt in (1, 2):
@@ -691,6 +716,9 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
         retry = (prompt + "\n\nThe purpose review found changes that do not serve this record. Remove them in a further "
                  "commit with the same trailer, and change nothing else:\n- " + "\n- ".join(verdict["reasons"]))
         change = iterate.improve(worktree, [], stage / "improve-retry", args, prompt=retry)
+        crossed = iterate.boundary_crossing(change)
+        if crossed or change["out_of_scope"] or change["uncommitted"]:
+            return no_usable_candidate(change, crossed, stage / "improve-retry")
         predicted = (change["report"] or {}).get("prediction") or predicted
     candidate_sha = _git(worktree, "rev-parse", "HEAD")
     if verdict["result"] != "passed":

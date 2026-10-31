@@ -44,6 +44,12 @@ def _git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
 
+# The user's git config must not change how the diff is read: fixed prefixes, unquoted paths, no rename folding (a
+# rename out of the harness is a deletion there and an addition here, and the deletion must be seen).
+DIFF = ("-c", "core.quotePath=false", "-c", "diff.noprefix=false", "-c", "diff.mnemonicPrefix=false", "diff",
+        "--no-renames", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/")
+
+
 def load_terms(path: Path = TERMS) -> dict:
     data = json.loads(path.read_text())
     return {"terms": {case: [re.compile(p, re.I) for p in patterns] for case, patterns in data["terms"].items()},
@@ -52,11 +58,17 @@ def load_terms(path: Path = TERMS) -> dict:
 
 def added_lines(repo: Path, base: str, head: str) -> list[tuple[str, str]]:
     """(path, text) of every line the commits base..head add."""
-    found, path = [], None
-    for line in _git(repo, "diff", "--unified=0", "--no-color", "--no-ext-diff", f"{base}..{head}").splitlines():
-        if line.startswith("+++ "):
-            path = line[6:] if line.startswith("+++ b/") else None
-        elif line.startswith("+") and path is not None:
+    # A line is a file header only before its first hunk: inside a hunk, an added line that reads "++ b/x" is
+    # "+++ b/x" and must not be taken for the next file's header.
+    found, path, in_hunk = [], None, False
+    for line in _git(repo, *DIFF, "--unified=0", f"{base}..{head}").split("\n"):
+        if line.startswith("diff --git "):
+            path, in_hunk = None, False
+        elif not in_hunk and line.startswith("+++ "):
+            path = line[len("+++ b/"):].rstrip("\t") if line.startswith("+++ b/") else None
+        elif line.startswith("@@"):
+            in_hunk = True
+        elif in_hunk and line.startswith("+") and path is not None:
             found.append((path, line[1:]))
     return found
 
@@ -84,7 +96,7 @@ def record_trailers(repo: Path, base: str, head: str) -> list[str]:
 def script_check(repo: Path, base: str, head: str, record: str, record_files: list[str] | None = None,
                  terms: dict | None = None) -> dict:
     terms = terms or load_terms()
-    changed = [path for path in _git(repo, "diff", "--name-only", f"{base}..{head}").splitlines() if path]
+    changed = [path for path in _git(repo, *DIFF, "--name-only", "-z", f"{base}..{head}").split("\0") if path]
     problems = []
     outside = [path for path in changed if not boundary.candidate_path(path)]
     if not changed:
@@ -195,6 +207,11 @@ def decide(script: dict, reviewed: dict | None) -> dict:
                 "reasons": ["purpose review unusable: " + str((reviewed.get("validity") or {}).get("reason"))]}
     verdict = reviewed["verdict"]
     if verdict == "aligned":
+        if reviewed.get("prediction_follows") is not True:
+            # The review is also the only control on a prediction that any change would meet (plan: gamed predictions).
+            return {"result": "rejected", "stage": "review", "reasons": [
+                "the prediction does not follow from the anchor and the change: "
+                + str(reviewed.get("prediction_note") or "the review did not say that it does")]}
         return {"result": "passed", "stage": "review", "reasons": [reviewed.get("summary") or "aligned"]}
     if verdict == "extra":
         return {"result": "retry", "stage": "review", "reasons": [reviewed.get("summary") or "extra changes",

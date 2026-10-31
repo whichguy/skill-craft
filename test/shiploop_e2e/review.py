@@ -509,7 +509,7 @@ def _discovery_problems(finding, index: int) -> list[str]:
     if challenge_route and disposition not in ("owner_review", "investigate"):
         problems.append(f"{where} challenge must route to owner_review or investigate")
     same_as = finding.get("same_as")
-    if same_as is not None and (not isinstance(same_as, str) or not learning_records.RECORD_ID.fullmatch(same_as)):
+    if same_as not in (None, "") and (not isinstance(same_as, str) or not learning_records.RECORD_ID.fullmatch(same_as)):
         problems.append(f"{where}.same_as is not a learning-record id (LR-YYYYMMDD-xxxxxx)")
     return problems
 

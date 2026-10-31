@@ -123,6 +123,30 @@ gap below.
   that was true at the last check, about two hours before it was written, and false when written. Nothing in this
   session ran a real release (only `--dry-run`, which writes nothing). Holding the card text, or waiving its round as the
   owner did in 527b9a3, is the owner's decision; nothing mechanical holds it now.
+- **Independent code review, 2026-10-31.** A fresh reviewer read the closed-loop Python with no conclusions from this
+  session and reported 14 defects plus tests that could not fail. Each one acted on got a failing test first, then a fix,
+  in the commit that follows this section. Fixed: a retry improver skipped the boundary gate; a confirmed DROP never
+  deferred its record; a rename could hide a deleted harness file and a crafted added line or git's `diff.noprefix` could
+  blind the probe-word check; the review's `prediction_follows` answer was never read; a second UNDECIDED cycle
+  overwrote the first candidate's ref; U+2028 in a title made the ledger unreadable; a list-valued `case` crashed
+  registration; the scoring digest ignored the modules the scorer imports; unknown guards and unjudged DROPs read as
+  more settled than they were; a prediction file added after registration was accepted; a row being appended could
+  be read as torn; and smaller items (an empty `same_as`, a tolerance of 1, a malformed calibration report, generic
+  words in the probe list).
+  **Not fixed, reported by the reviewer and not re-verified here:**
+  - Calibration method (only matters once a calibration exists): the 10% bar is per case, but a cycle compares two
+    cases and a simulation gave about 13% jointly; `load_calibration` never consults `quality_split_differs`,
+    `false_drop_risk`, the driver or the floors, and `spread` has no minimum sample.
+  - Roles and predictions: `roles_for` takes roles from the improver's own prediction, a small diagnostic effect can be
+    confirmed by noise, and a prediction's `record` is checked only for format.
+  - Test gaps: the two-attempts test would still pass if the lock around the seal or the intent were removed, so nothing
+    proves appends stay exclusive under the narrowed lock; the cycle tests mock `decide`, `launch_all` and the reviews, so
+    `review_all`, UNDECIDED, `loop()` and `explore()` are not run by them.
+  - Smaller: `spread._splits` builds every combination before sampling (24 attempts, 3 per arm: 378 MB), `epoch.state()`
+    reports contract /2 for an epoch registered as /1, UNKNOWN_LAUNCH leaves the record `in_candidate` with no event,
+    the "latest compared cycle" learning that ba51c3f gives the next improver carries the previous cycle's per-case table
+    including the generality case (this weakens the confirmation-exposure rule), and `review_all` records routes from
+    reviews that were not usable.
 - A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
   harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
   refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.

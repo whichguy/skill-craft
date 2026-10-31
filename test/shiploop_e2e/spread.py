@@ -25,6 +25,7 @@ import hashlib
 import itertools
 import json
 import random
+import re
 import statistics
 import sys
 from pathlib import Path
@@ -43,9 +44,30 @@ SCORING_MODULES = ("scorecard.py", "boundary.py", "metrics.py", "delivery.py", "
                    "promotion.py")
 
 
+IMPORT = re.compile(r"^[ \t]*(?:import|from)[ \t]+([A-Za-z_][A-Za-z0-9_]*)", re.M)
+
+
+def scoring_files(harness: Path = HERE) -> list[Path]:
+    """SCORING_MODULES and every harness module they import, transitively. Editing a module the scorer reads (token
+    counting in rollouts.py, say) changes what a card means, so it moves the digest; a module nothing in the closure
+    imports does not. A listed module that is missing stays in the list, so reading it fails loudly."""
+    seen: set[Path] = set()
+    stack = [harness / name for name in SCORING_MODULES]
+    while stack:
+        path = stack.pop()
+        if path in seen:
+            continue
+        seen.add(path)
+        if path.is_file():
+            for name in IMPORT.findall(path.read_text(encoding="utf-8", errors="replace")):
+                if (harness / f"{name}.py").is_file():
+                    stack.append(harness / f"{name}.py")
+    return sorted(seen)
+
+
 def scoring_digest(cases: dict, harness: Path = HERE) -> dict:
     """A digest of the scoring files and the named cases' catalog entries (``cases``: name to entry)."""
-    files = [harness / name for name in SCORING_MODULES] + boundary.oracle_files(harness)
+    files = scoring_files(harness) + boundary.oracle_files(harness)
     digest, why = boundary.files_digest(harness, files)
     if digest is None:
         raise ValueError(f"scoring files cannot be read: {why}")

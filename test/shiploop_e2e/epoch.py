@@ -36,6 +36,8 @@ import scorecard
 
 CONTRACT = "shiploop-epoch/2"  # /2 binds an optional prediction; /1 epochs stay readable
 LEDGER = "events.jsonl"
+TORN_RETRIES = 5  # re-reads of a ledger whose last row is torn: a writer may be mid-row
+TORN_WAIT = 0.1  # seconds between them
 INTENT_WAIT = 30.0  # seconds a launch waits for another launch's intent or seal to finish
 SEAL_WAIT = 3600.0  # a finished run waits this long to seal, past a review that holds the lock
 SEALED_FILES = ("result.json", "metrics.json", "timeline.jsonl", "invocation.json")
@@ -74,20 +76,28 @@ def locked(root: Path, wait: float = 0.0):
 
 
 def events(root: Path) -> list[dict]:
-    rows = []
-    try:
-        lines = (root / LEDGER).read_text().splitlines()
-    except OSError as exc:
-        raise ValueError(f"no readable epoch ledger: {exc}") from exc
-    for index, line in enumerate(lines, 1):
+    """The ledger's rows. A torn LAST row is probably a writer mid-append (a reader can see part of a large write), so it
+    is re-read a few times before it is refused; a torn row anywhere else, or one that never completes, is an error."""
+    for attempt in range(TORN_RETRIES + 1):
         try:
-            row = json.loads(line)
-        except ValueError as exc:
-            raise ValueError(f"ledger row {index} is incomplete; preserve and reconcile it before continuing") from exc
-        if not isinstance(row, dict) or row.get("sequence") != index:
-            raise ValueError(f"invalid ledger sequence at row {index}")
-        rows.append(row)
-    return rows
+            lines = (root / LEDGER).read_text().splitlines()
+        except OSError as exc:
+            raise ValueError(f"no readable epoch ledger: {exc}") from exc
+        rows = []
+        for index, line in enumerate(lines, 1):
+            try:
+                row = json.loads(line)
+            except ValueError as exc:
+                if index == len(lines) and attempt < TORN_RETRIES:
+                    time.sleep(TORN_WAIT)
+                    break
+                raise ValueError(f"ledger row {index} is incomplete; preserve and reconcile it before continuing") from exc
+            if not isinstance(row, dict) or row.get("sequence") != index:
+                raise ValueError(f"invalid ledger sequence at row {index}")
+            rows.append(row)
+        else:
+            return rows
+    raise AssertionError("unreachable: the last attempt returns or raises")
 
 
 def append(root: Path, kind: str, **fields) -> dict:
@@ -161,9 +171,12 @@ def registration(root: Path) -> dict:
                       ("specification.json", "specification_sha256")):
         if digest(root / name) != rows[0][key]:
             raise ValueError(f"frozen {name} changed; begin a new registration")
-    if "prediction_sha256" in rows[0] and (not (root / "prediction.json").is_file()
-                                           or digest(root / "prediction.json") != rows[0]["prediction_sha256"]):
-        raise ValueError("frozen prediction.json changed; begin a new registration")
+    present = (root / "prediction.json").is_file()
+    if "prediction_sha256" in rows[0]:
+        if not present or digest(root / "prediction.json") != rows[0]["prediction_sha256"]:
+            raise ValueError("frozen prediction.json changed; begin a new registration")
+    elif present:  # a prediction added after the runs began is the edit the binding exists to prevent
+        raise ValueError("prediction.json was added after registration, which bound none; begin a new registration")
     try:
         reg = promotion.load_registration(root / "registration.json")
     except SystemExit as exc:
