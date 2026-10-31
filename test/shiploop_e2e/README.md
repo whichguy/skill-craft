@@ -2403,7 +2403,8 @@ candidate, one decision: the loop tip advances only on PROMOTE.
   `Learning-Record:` trailer, and a fresh read-only review of the diff against the record's anchor clause. It fails closed.
 - **Launches side by side**: `epoch.py launch` holds the epoch's lock only while it records its intent and seals its
   result, so one epoch's attempts run at once; the same attempt is still refused once dispatched.
-- **Cycles** (`cycle.py`, `iterate.py --qualify --case C --generality-case G --calibration calibration.json`): improver,
+- **Cycles** (`cycle.py`, `iterate.py --qualify --case C --generality-case G --calibration calibration.json`, or
+  `--tolerance 0.25 --attempts 3` in its place, owner decision 2026-10-31): improver,
   purpose check, both builds, a promotion/5 epoch on C and G, every attempt (at most `--parallel` at once), each review and
   judgment, the decision, the prediction's verdict, a LEARNINGS entry. A DROP or UNDECIDED candidate is kept as
   `refs/shiploop-loop/<loop>/<record>`. A review of G's attempts is confirmation exposure, never offered to the improver.
@@ -2411,4 +2412,6 @@ candidate, one decision: the loop tip advances only on PROMOTE.
 
 No-model suites: `shiploop-e2e-learning-records` and `shiploop-e2e-cycle` (a real worktree, ledger and epoch, with the
 model's steps stood in), and `shiploop-e2e-epoch`'s launch and prediction tests. Nothing here has run live yet: stage 3's
-A/A calibration comes first.
+A/A calibration comes first, unless the owner states the tolerance and attempts instead (`--tolerance` with
+`--attempts`, never with `--calibration`, never a default): the cycle's events, record outcome, journal entry and
+terminal commits then say "stated, not measured: the false-decision rate is unknown".

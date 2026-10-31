@@ -116,6 +116,15 @@ later. Consequences, so they are not rediscovered:
   stage 3 does not remove that need. As of this date the owner's computer (BigDog) lists `skill-craft` in Remote
   Control but does not offer it to cloud sessions, so a cloud session cannot launch live runs there.
 
+**Owner decision, 2026-10-31 (same day): take option 1.** A cycle takes a stated tolerance and attempt count. `iterate.py
+--qualify` and `cycle.py` accept `--tolerance` with `--attempts` in place of `--calibration` (never both, never one alone,
+never a default). Under a stated basis the decision still comes from the same `promotion/5` rule, but the cycle's
+`decided` and `verdict` events, the record's outcome reason, the LEARNINGS entry and the terminal commits all say
+"stated, not measured: the false-decision rate is unknown". A verdict under it is evidence about that comparison and none
+about how often the tolerance misleads. The only hint at the noise is user-listing's about ±13% in turns, so a tight
+tolerance (10%) would likely call noise a win or a loss: start with 0.25 or more, which lets only large effects promote,
+and lower it only with a measurement. The calibration kit stays available to replace the stated basis later.
+
 ## Stage 1: SPEC amendments
 
 Done in 2b4c675. One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged against the amended spec:

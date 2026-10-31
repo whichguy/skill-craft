@@ -36,7 +36,8 @@ merge, release (scripts/release.py) and push (scripts/release-push.py).
 
 --qualify runs qualified iteration instead (cycle.py; SPEC promotion contract, 2026-10-30): one learning record per
 candidate, compared with the loop tip in its own promotion/5 epoch on --case and --generality-case, with attempts and
-tolerance from --calibration (spread.py); the tip advances only on PROMOTE. Without it, this exploration loop is
+tolerance from --calibration (spread.py), or stated with --tolerance and --attempts and recorded as unmeasured; the tip
+advances only on PROMOTE. Without it, this exploration loop is
 unchanged and its final candidate stays unevaluated.
 
   python3 test/shiploop_e2e/iterate.py --case battleship --iterations 3
@@ -332,6 +333,10 @@ def main(argv: list[str] | None = None) -> int:
                    "promoted only by its own epoch")
     p.add_argument("--generality-case", help="--qualify: a case of another style, run beside --case")
     p.add_argument("--calibration", type=Path, help="--qualify: spread.py's report of an A/A calibration epoch")
+    p.add_argument("--tolerance", type=float, help="--qualify, without --calibration: the relative efficiency tolerance, "
+                   "stated and recorded as unmeasured")
+    p.add_argument("--attempts", type=int, help="--qualify, without --calibration: attempts per arm, stated and "
+                   "recorded as unmeasured")
     p.add_argument("--parallel", type=int, default=3, help="--qualify: attempts run at once")
     p.add_argument("--skip-reviews", action="store_true",
                    help="--qualify: no review or judgment of the attempts, so no cycle can PROMOTE")
