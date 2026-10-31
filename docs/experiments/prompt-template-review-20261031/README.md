@@ -1,5 +1,5 @@
 ---
-Status: firm for these corpora (2026-10-31). The stage-prompt review and the per-run condition test are complete. The eleven "land now" fixes were landed in c2da4604 on the owner's go and verified (§6); the side tests are not run.
+Status: firm for these corpora (2026-10-31). The stage-prompt review and the per-run condition test are complete. The eleven "land now" fixes were landed in c2da4604 on the owner's go and verified (§6); S7 has run and did not qualify (commit 3edc2abe); S1 to S3 are not run.
 Consumer: the owner, deciding which ShipLoop prompt or script changes to land and which side tests to run first.
 Journal: this file (§6) and docs/shiploop-test-stage-prompt-design-2026-10-30.md §10.
 ---
@@ -100,7 +100,7 @@ the parent re-ran the check in current code (main `11414642`).
 
 | Side test | Question | Corpus and cost | Predeclared rule |
 |---|---|---|---|
-| **S7 test-spec condition A/B** (§5a) | Does a clause asking for a case that separates each stated rule from its nearest wrong rule kill more of the 74 verified survivor variants? | These five runs' fixed products; ~40 slices on the E2E subject; needs the owner's go under the live hold | Adopt if +15 points on survivors (permutation p < 0.05), no loss on the 374 killed variants or hidden checks, tokens ≤ +25% |
+| **S7 test-spec condition A/B** (§5a) | Does a clause asking for a case that separates each stated rule from its nearest wrong rule kill more of the 74 verified survivor variants? | These five runs' fixed products; ~40 slices on the E2E subject; needs the owner's go under the live hold | Adopt if +15 points on survivors (permutation p < 0.05), no loss on the 374 killed variants or hidden checks, tokens ≤ +25%. *Superseded 2026-10-31: S7 ran and did not qualify (+13.5 points against the +15 bar, p 0.004); the record is the empty learning commit 3edc2abeed139626684354156ecb8bb9c76211c3 "learn(shiploop): S7 does not qualify", with the evidence kept outside the repository.* |
 | S1 Proof dry run on the item base | Does running each step's Proof on its base catch vacuous, unloadable and broken Proofs before implement spends a loop? | ffea2956's replay set and `implement-sendbacks.jsonl`; ~half a day offline, no model calls | Notice only if it reveals ≥3 of the 6 handed faults and adds ≤10 s to the median check; only exit 126/127 may refuse |
 | S2 `host_dependent` definition | Does item 6's reworded definition stop marking the default suite without un-marking optional browsers? | 3 archived first packets + one neutral hosted-runtime fixture with a browser countercase; 40 Terra calls. The offline replay already shows 4 hits, 0 false | Adopt if mis-marking goes from ≥3/5 to 0/5 and the countercase stays 5/5 |
 | S3 Mock sentence | Did any of 205 test-spec rows need a test double? | 63 results; ~1 h of reading | Narrow item 6 if ≥10% need one; no change if ≤2% |
@@ -207,6 +207,8 @@ times.
 
 ### 5a. Recommended next side test (S7): a test-spec A/B on these variants
 
+*Superseded 2026-10-31: S7 ran and did not qualify (+13.5 points against the +15 bar, p 0.004); the record is the empty learning commit 3edc2abeed139626684354156ecb8bb9c76211c3 "learn(shiploop): S7 does not qualify", with the evidence kept outside the repository.*
+
 - **Arms.** A is current main. B adds one clause to test-spec item 3: "For each condition a criterion states, give a
   case whose input makes the stated rule and its nearest wrong rule disagree, such as an input out of the required
   order, a half-way value, both sides of a range edge, each member of an enumerated class, or each axis of a
@@ -230,7 +232,7 @@ times.
 | 2026-10-31 | Stage-health table over 96 traced runs. First version missed the `check` verb (113 refusals); corrected before synthesis | firm | stage_health.py, stage-health.txt |
 | 2026-10-31 | The six product-acceptance "lower_layer_check names no test" refusals were read. 2 were wrong IDs, corrected by the model. 4 were release-phase rows pushed out of `unverified` (E-close). None comes from `passed_cases` missing a criterion-route case, so the coverage ledger's side finding still has not bound a run | firm | trace rows; ledger.json rows |
 | 2026-10-31 | Six reviewers returned 10 improve, 2 side-test and 11 no-change. The parent re-checked rows 1, 3, 4, 5, 7, 8, 9 and 10 in code | firm | reviews/*.md |
-| 2026-10-31 | Condition test, all five runs: 74 of 448 witnessed conditions survived (16.5%; 16.1% without 2 inferred). Per run 8.7% to 23.6%. Seven break a core outcome. By the predeclared rule nothing is adopted, and the next step is an A/B (S7) | firm for these runs | conditions/summary.json, conditions/*/results.json |
+| 2026-10-31 | Condition test, all five runs: 74 of 448 witnessed conditions survived (16.5%; 16.1% without 2 inferred). Per run 8.7% to 23.6%. Seven break a core outcome. By the predeclared rule nothing is adopted, and the next step is an A/B (S7) (S7 then ran: not adopted, 3edc2abe) | firm for these runs | conditions/summary.json, conditions/*/results.json |
 | 2026-10-31 | Parent check: 74 of 74 survivors and 15 of 15 sampled kills reproduced on fresh copies. A first Grok pass was disturbed by port contention with a concurrent worker; the rerun was clean | firm | conditions/verify.py output in this commit's message |
 | 2026-10-31 | Finding: grok-web-battleship's browser case TC-3 was planned, never written, and carried as unverified, although local headless Chrome could drive it. The run predates 2.24.0's UI criteria | firm (one run); whether 2.24.0 closes it is unknown | grok-web-battleship/results.json; run results nav-33c30e48 (prepare), nav-820b080d (product-acceptance) |
 | 2026-10-31 | Owner: "Yes, land fixes now, validate, run e2e as needed". The eleven §3 fixes landed (c2da4604). Tiers PASS (78 suites). The rollback replay reversed 121 of 122 archived return plans cleanly. Contrary evidence handled: the first filled recipe printed 42,620 characters on the 300-path budget test, so keep rows are now compressed to directory pathspecs | firm | validation/rollback-replay.json; c2da4604 message |
