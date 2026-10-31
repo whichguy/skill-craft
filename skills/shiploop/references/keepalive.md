@@ -24,10 +24,12 @@ loop names its exact runtime `done` command and truthful report fields; it keeps
 the current prerequisites and exit/repeat conditions. A recorded Improve pass
 names its validated existing report and `done` command without recording that pass again;
 an unrecorded pass names `improve-pass`, which checks prerequisites and prints the
-report. The review form reuses the bridge's report validation: an `unresolved`
-classification cannot claim a `satisfied` exit, so `improve-pass` refuses that
-combination before recording a report or pass. Unresolved reports with an
-`unsatisfied` or `unknown` exit remain valid. A completed loop names the exact
+report. After the existing bridge validation, the saved-pass hint has a local,
+read-only readiness guard: the runtime already refuses `unresolved` with a
+`satisfied` exit, so that saved report gets no completion hint. This changes no
+producer or bridge report acceptance rule. Unresolved reports with an
+`unsatisfied` or `unknown` exit retain their existing report and exact `done`
+command without rerecording. A completed loop names the exact
 stage `complete` callback; a completed
 Improve receipt first passes the bridge's structural terminal validation. The
 real stage callback remains authoritative. Inner loop

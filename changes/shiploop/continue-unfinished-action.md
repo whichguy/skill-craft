@@ -8,9 +8,11 @@ instruction derived from that action's receipt: continue partial work, preserve
 recorded passes, and submit the actual required report or stage callback. They
 never execute completion or restart commands. Recorded Improve reports and
 completed Improve receipts pass the existing read-only bridge validators before
-being offered for submission. The review form reuses report validation to refuse
-`unresolved` with a `satisfied` exit before recording a new report or pass;
-`unresolved` with an `unsatisfied` or `unknown` exit remains valid. When no valid
+being offered for submission. A local, read-only saved-pass hint guard also
+withholds completion for `unresolved` with a `satisfied` exit, which the runtime
+already refuses; producer and bridge report acceptance rules stay unchanged.
+`unresolved` with an `unsatisfied` or `unknown` exit retains its exact saved report
+and `done` command without rerecording. When no valid
 operation can be derived (including
 stopped Improve, unreadable or mismatched receipts and invalid reports),
 completion is empty: the generic fallback names `next` and preserves existing

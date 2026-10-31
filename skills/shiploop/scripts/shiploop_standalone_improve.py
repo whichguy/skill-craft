@@ -559,8 +559,6 @@ def _ephemeral_report(value: Any) -> dict[str, str]:
           "Until Loop terminal report exit assessment is invalid")
     _need(continuation in {"allowed", "blocked", "cancelled"},
           "Until Loop terminal report continuation assessment is invalid")
-    _need(classification != "unresolved" or exit_assessment != "satisfied",
-          "an unresolved report cannot claim a satisfied exit")
     return {
         "classification": classification,
         "exit_assessment": exit_assessment,

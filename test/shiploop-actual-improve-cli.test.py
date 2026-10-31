@@ -2721,34 +2721,40 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
-    def test_an_unresolved_satisfied_review_is_refused_before_recording_and_corrected_reports_run(self):
+    def test_a_runtime_refused_saved_report_has_no_completion_hint_until_the_review_is_corrected(self):
         self.begin()
-        self.write_review(label="unresolved", exit="satisfied")
+        review = self.write_review(label="unresolved", exit="satisfied")
         receipt = bridge.receipt_path(self.bound)
-        before = [path.read_bytes() for path in (self.run / "state.md", receipt, self.product_contract)]
-        refused = self.invoke(*self.pass_args(), status=2).stderr
-        self.assertIn("an unresolved report cannot claim a satisfied exit", self.line_one(refused))
-        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
-        for name in ("report-1.json", "pass-1.json"):
-            self.assertFalse((self.reviews() / name).exists(), name)
-        self.assertEqual([path.read_bytes() for path in (self.run / "state.md", receipt, self.product_contract)],
-                         before)
+        self.invoke(*self.pass_args())  # accepted producer behavior; the runtime owns report acceptance
+        packet = json.loads(receipt.read_text())
+        report, record = [self.reviews() / name for name in ("report-1.json", "pass-1.json")]
+        paths = [self.run / "state.md", receipt, Path(packet["state_file"]), self.product_contract,
+                 self.repo / "scratch.txt", review, report, record]
+        before = [path.read_bytes() for path in paths]
+        initial = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+        _, refused = self.invoke_argv(packet["done_argv"], json.loads(report.read_text()), status=2)
+        self.assertEqual((refused["status"], refused["state_change"]), ("error", "unchanged"))
+        self.assertIn("an unresolved report cannot claim a satisfied exit", refused["error"])
+        status = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+        self.assertEqual([path.read_bytes() for path in paths], before)
+        self.assertEqual((status["action"], status["progress"]), (initial["action"], initial["progress"]))
+        self.assertEqual(status["status"], "active")
         self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.base_commit)
-        for number, assessment in enumerate(("unsatisfied", "unknown"), 1):
-            self.write_review(number, label="unresolved", exit=assessment)
-            out = self.run_named(refused).stdout
-            report = self.reviews() / f"report-{number}.json"
-            record = self.reviews() / f"pass-{number}.json"
-            saved = [path.read_bytes() for path in (report, record)]
-            status = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
-            self.assertIn(str(report), status["completion"])
-            self.assertIn("Do not record the pass again", status["completion"])
-            self.assertNotIn("improve-pass", status["completion"])
-            done, _, _ = self.printed(out)
-            self.assertEqual(self.run_done(done)["status"], "active")
-            self.assertEqual([path.read_bytes() for path in (report, record)], saved)
-        self.write_review(3)  # trivial/satisfied still ends the real runtime
-        done, _, _ = self.printed(self.run_named(refused).stdout)
+        self.assertEqual(status["completion"], "")
+        # Correct only this invalid review's exit assessment; no product or review work is replayed.
+        review.write_text(review.read_text().replace("\nexit: satisfied\n", "\nexit: unsatisfied\n", 1))
+        done, _, _ = self.printed(self.invoke(*self.pass_args()).stdout)
+        saved = [path.read_bytes() for path in (review, report, record)]
+        status = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+        self.assertIn(done, status["completion"])
+        self.assertIn("Do not record the pass again", status["completion"])
+        self.assertNotIn("improve-pass", status["completion"])
+        self.assertEqual(self.run_done(done)["status"], "active")
+        self.assertEqual([path.read_bytes() for path in (review, report, record)], saved)
+        self.assertEqual([path.read_bytes() for path in (self.product_contract, self.repo / "scratch.txt")],
+                         before[3:5])
+        self.write_review(2)  # a new trivial/satisfied pass still ends the real runtime normally
+        done, _, _ = self.printed(self.invoke(*self.pass_args()).stdout)
         self.assertEqual(self.run_done(done)["status"], "complete")
 
     def test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage(self):

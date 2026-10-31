@@ -7523,7 +7523,10 @@ def completion_instructions(core: Any, root: Path, state: Mapping[str, Any]) -> 
                 if os.path.lexists(recorded):
                     report = reviews / ("report-" + str(number) + ".json")
                     _need(read(recorded).get("pass") == number, "recorded pass does not match current pass")
-                    standalone._ephemeral_report(read(report))
+                    saved_report = standalone._ephemeral_report(read(report))
+                    # Read-only hint readiness for the runtime's existing constraint; report acceptance stays there.
+                    if saved_report["classification"] == "unresolved" and saved_report["exit_assessment"] == "satisfied":
+                        return ""
                     instruction = ("This pass is already recorded; submit its existing report exactly: " + done
                                    + " < " + shlex.quote(str(report)) + ". Do not record the pass again.")
                 else:
@@ -9061,15 +9064,6 @@ def _review_form(text: str) -> tuple[dict[str, str], dict[str, str], str, list[s
     missing += [label + ":" for label in REVIEW_LABELS if not labels.get(label)]
     if not "\n".join(handoff).strip():
         missing.append("## Handoff")
-    if not missing:
-        import shiploop_standalone_improve as standalone
-        try:
-            standalone._ephemeral_report({
-                **{field: front[key] for key, field, _allowed in REVIEW_FRONT},
-                "evidence": text, "handoff": "\n".join(handoff).strip(),
-            })
-        except standalone.StandaloneImproveError as exc:
-            missing.append(str(exc))
     return front, labels, "\n".join(handoff).strip(), missing
 
 
