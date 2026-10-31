@@ -62,3 +62,13 @@ python3 test/shiploop_e2e/experiment.py decide AS1 A B
   Google's runtime (web-app identity, OAuth, `clasp`), and one case and one subject model is one case and one model.
 
 Whether a result counts as the live round the release preflight asks for is the owner's decision. Nothing has run.
+
+## Release decision (2026-10-30, US Pacific)
+
+- **The owner released the card text before AS1 ran.** Owner, in the document-stage review session: "Release anyway".
+  This came after the quality review told them the release would ship c468b25c and dc312cd1, which they had chosen to
+  hold until live evidence existed.
+- **What shipped:** skill-craft 2.25.0 / ShipLoop 1.24.0 (release commit 9a2567b9), with the Apps Script card's Testing
+  section.
+- **What is still open:** AS1 has not run, so no live evidence covers the card text. Its result now tests a released text,
+  not a held one.
