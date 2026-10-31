@@ -1,8 +1,11 @@
 # Plan: the ShipLoop stage suite (one packet, one scenario, one verdict)
 
-Status: step 1 of "Build order" is built and step 2 is built except for what "Not built" lists (2026-10-30); steps 3 and 4
-are not. Both are on the branch `claude/shiploop-stage-suite-core`, which is PR #28 and is not merged yet. The prototype
-findings in "What the prototype showed" were run on `d98451f`.
+Status: steps 1 to 3 of "Build order" are built (steps 1 and 2 on 2026-10-30, merged to `main` as PR #28; step 3 on
+2026-10-31); step 4 (the scenario waves) is not, and **no real live round has been run** (see deviation 9). The prototype
+findings in "What the prototype showed" were run on `d98451f`. Step 3 is the live tier: `stages.py live | grade | report`,
+the sample runner `stage_suite/stage_live.py` (build, launch a host, stop at acceptance, export, grade, regrade), the results
+reader `stage_suite/stage_report.py` (the matrix of catch rates and the comparison of two roots), the `shiploop-stages` command
+of `test/run-integration.sh`, and the `live` tier on `validate-existing/broken-works-small-fix` and `wrong-check`.
 
 **Built**
 
@@ -19,12 +22,29 @@ findings in "What the prototype showed" were run on `d98451f`.
 - Hermetic tests, one per module, registered in `test/suite_catalog.py` as E2E-family suites that quick selects when a
   path under `test/shiploop_e2e/` changes: `test/shiploop-e2e-stage-oracle.test.py` (105 tests, about 5 s),
   `test/shiploop-e2e-stage-build.test.py` (43 tests, about 7 s) and `test/shiploop-e2e-stages.test.py` (55 tests, about
-  25 s).
+  25 s; 95 tests, about 67 s, with step 3's cases).
 
-**Not built**: `stages.py live | grade | report`; the stop at acceptance and the widened seed points; building
-`improve@<stage>` and outer-stage scenarios (they load and validate); the per-scenario `oracle.py` escape hatch and the
-`trace: no_model_glue` check; `worktree_mode: committed` (validated, refused by the builder); the `shiploop-stages`
-command of `test/run-integration.sh`; the scenario catalog beyond the three above (waves 1 to 4).
+- Step 3, the live tier, in `test/shiploop_e2e/stage_suite/`:
+  - `stage_live.py`: one sample. It builds the scenario (`stage_build.build`; a `--ref` whose navigator lacks
+    `accept_effects` is refused first), snapshots the execution checkout as the seed tree, launches the host on
+    `run.launch` with its own drive that **stops at acceptance** (`accepted_reached`: the seeded action accepted with any
+    outcome, or the run parked at its Improve stage, or the run no longer active), exports the checkout, and grades from files
+    (`collect_bundle`, `grade_sample`) with the oracle the verify tier uses. `stage-result.json` holds the verdicts (`process`,
+    `accepted`, `no_overshoot`, `oracle`), `caught` and `held` per id, `value` (the fraction of ids caught or held, which
+    `experiment.py decide` reads) and `pass`;
+  - `stage_report.py`: the matrix per scenario (caught and held `k/n`, overshoot, pass, driver) and `compare`, which refuses
+    two roots whose drivers differ (SPEC S-12); a missing or half-written sample is not run, never a pass;
+  - `stages.py live | grade | report` (and the hidden `live-sample`): `live` selects, prints the plan and the cost warning,
+    refuses before launching when the host is not ready, and runs each sample as a subprocess, `--jobs` at once; `--dry-run`
+    builds and launches nothing;
+  - `bash test/run-integration.sh shiploop-stages ...` runs `stages.py live`;
+  - hermetic tests with a fake host, never a model: `test/shiploop-e2e-stage-live.test.py` (69 tests, about 54 s),
+    `test/shiploop-e2e-stage-report.test.py` (38 tests, under 1 s), and the live and report cases added to
+    `test/shiploop-e2e-stages.test.py`; registered in `test/suite_catalog.py` like the three before them.
+
+**Not built**: building `improve@<stage>` and outer-stage scenarios (they load and validate); the per-scenario `oracle.py`
+escape hatch and the `trace: no_model_glue` check; `worktree_mode: committed` (validated, refused by the builder); the scenario
+catalog beyond the three above (waves 1 to 4); and a real live round (deviation 9).
 
 ### Deviations from this plan
 
@@ -36,21 +56,44 @@ command of `test/run-integration.sh`; the scenario catalog beyond the three abov
    snapshot's file list are unchanged with the suite present), the way `test/shiploop-e2e-sdlc-probes.test.py` pins the
    probes. This is a variant of "Decisions for the owner" 1: inside the harness folder, as recommended, but below its top
    level.
-2. **`slice.py` and `run.py` are not edited.** So `--stop-at accept` and the widened `SEED_POINTS` ("Stop at acceptance")
-   move to the live runner in step 3, which will have its own stop poll in `stage_suite/` and import `slice.py` as a
-   library.
+2. **`slice.py` and `run.py` are not edited, so the live runner has its own stop-at-acceptance drive.** "Stop at acceptance"
+   put `--stop-at accept` in `slice.py`. It is instead `drive` in `stage_suite/stage_live.py`, written on `run.launch` with the
+   same session records (`sessionlog`), resume loop and timeout handling as `slice.drive`, which cannot take another stop
+   predicate. `slice.py` is imported as a library only (`overshoot_after`).
 3. **The builder reuses `run.seed_run` without editing it.** It substitutes the module global `run.SEED_SCRIPT` for the
    duration of one call, with a context manager that restores it, because `seed_run` reads that global when it advances
    the run. The seed script it substitutes records each stage through `navigator.accept_effects`. `run.SEED_SCRIPT` and the
    harness's own seeds are as they were.
-4. **The equivalence test and the seam were committed first on the branch** (PR #28, not merged yet), ahead of the harness
+4. **The equivalence test and the seam were committed first on the branch** (PR #28, merged to `main`), ahead of the harness
    core (the plan shipped them together under "The one engine change").
 5. **Registration.** "Registration" named two catalog suites (`shiploop-stage-verify`, `shiploop-stage-render`) and one
    test file (`test/shiploop-stage-suite.test.py`). The tests are one file per module instead (three suites, ids
    `shiploop-e2e-stage-oracle`, `shiploop-e2e-stage-build` and `shiploop-e2e-stages`), named after the harness family so
    an edit under `test/shiploop_e2e/` selects them with the rest. They test the code, and the stages suite also runs `stages.py verify` and
    `render` over the shipped scenarios (the class `Shipped`, about 5 s), so a packet change that breaks a scenario fails a
-   suite; it is not yet a separate `shiploop-stage-*` catalog entry. None is in the fixed quick baseline.
+   suite; it is not yet a separate `shiploop-stage-*` catalog entry. None is in the fixed quick baseline. Step 3 adds two more of the same kind (`shiploop-e2e-stage-live`,
+   `shiploop-e2e-stage-report`), measured at 54 s and 0.1 s and also outside the quick baseline.
+6. **The widened `SEED_POINTS` were not needed.** The live runner seeds through `stage_build.build`, which already seeds a run
+   to any stage of a scenario with `accept_effects`; `slice.py`'s `SEED_POINTS` is not used by the stage suite and is unchanged.
+7. **Samples run as subprocesses.** `stage_build.build` substitutes `run.SEED_SCRIPT` in-process, which is process-global, so
+   samples that run at once (`--jobs`) are separate processes (the hidden `live-sample` command), never threads.
+8. **A test-only fake-host route.** `live` and `live-sample` can run a fake host in place of a model, but only when both
+   `STAGE_SUITE_FAKE_HOST` and `STAGE_SUITE_TEST_ONLY=hermetic-test-no-model` are set; the plan names it loudly. It is how the
+   tests drive the whole command line with no model and no network. It is not how `test/shiploop-e2e-slice.test.py` fakes a
+   host (that test puts a fake `claude` binary on `--claude-bin`, and so exercises the real host class's `argv` and `translator`).
+   The route replaces the host class itself, so the command-line cases never run `ClaudeHost.argv` or its stream translator; those
+   are covered by the sample-level tests (`shiploop-e2e-stage-live`), which pass a Host-like object to `run_sample`, and by the host
+   classes' own suites.
+9. **No real live round was run, and the exit of step 3 is not met.** "Build order" step 3 ends with one live round of the three
+   `validate-existing` scenarios (3 samples) that "proves the pipeline end to end", journaled in
+   `test/shiploop_e2e/LEARNINGS.md`. The session that built the tier had no usable model host (Ollama was down, Codex was not
+   signed in), and a live round costs money, so everything is proven with fake hosts only. `all-match` is render-only (the
+   engine settles that stage by script), so the round covers two of the three scenarios. **To run the first round the owner
+   must:** have a signed-in host (the default driver, or `--host`, `--backend`, `--model`, `--effort`), then run
+   `python3 test/shiploop_e2e/stage_suite/stages.py live validate-existing --samples 3 --jobs 3` (or
+   `bash test/run-integration.sh shiploop-stages validate-existing`), read it with `stages.py report <root>`, and write the
+   round's entry in `test/shiploop_e2e/LEARNINGS.md`. This change does **not** write that entry. Until it exists, the live
+   tier's pipeline is shown only against a fake host, and its catch rates are unmeasured.
 
 ## Goal
 
@@ -178,6 +221,13 @@ the host as soon as either of these holds:
 - the seeded action has an accepted row in `history`, with **any** outcome (many scenarios expect `send-back` or
   `blocked`, not `done`);
 - `active_improve.action_id` is the seeded action. The producer's result is then in `active_improve.seed_result`.
+
+The stop waits for the accepting command to finish first (built: `stage_live.settle`). `accept_effects` saves the state and
+only then runs the lint finish, the two commits, the knowledge close and the iteration record, all under the run lock; the
+poll can land between the save and the end of those, and ending the host there would leave the exported tree without effects
+the engine would have produced (or with half of them). So once the stop holds, the sample waits (at most `SETTLE_SECONDS`) for the
+run lock (`<run>/.lock`) to be free, and the grade's tree is the one after the effects. `no_overshoot` also counts any history
+row after the seeded action's own row (a host sent back that redoes an earlier stage), not only a later stage.
 
 `SEED_POINTS` widens to every stage plus `improve@<stage>`. The `no_overshoot` verdict stays: a model that has already
 started the next packet when the 2 s poll fires is recorded, and the oracle reads only the seeded action's output.

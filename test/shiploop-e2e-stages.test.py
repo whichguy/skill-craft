@@ -16,20 +16,34 @@ Small scenario sets in temporary folders, on the node-base fixture (plain files)
   build yet, reports an id no render check proves as not exercised, leaves the built folders under ``--keep`` (and removes its
   temporary ones otherwise), and leaves the harness's own seed script as it was.
 - Exit codes 0 (all passed), 1 (a failure), 2 (usage or schema error, with the text), 3 (nothing selected); the CLI runs from any
-  working directory with its stdin closed; ``live``, ``grade`` and ``report`` are named as not built, not stubbed.
+  working directory with its stdin closed.
+- ``live``, ``grade`` and ``report`` (class LiveSelection and following): ``live`` selects only scenarios with the live tier on
+  and says so when none, skips the ones the builder cannot build yet, prints the plan (scenarios x samples, the driver, a cost
+  note), builds and launches nothing for ``--dry-run`` (also with the real default host), refuses before it creates anything
+  (exit 2, ``Nothing was started.``) for a host whose binary is missing or that is not signed in, an Ollama that is not ready, a
+  ``--ref`` without the seed seam, an overlay that does not load, an existing ``--out`` and a misused test-only fake host, and
+  takes ``--samples`` over the scenario's default. With the test-only fake host (never a model) it runs real samples as
+  subprocesses ``--jobs`` at once, records a sample that crashes or is killed for time as not run (never a pass, the others go
+  on), exits 0 / 1 by the ``live.pass`` rule, and ``grade`` and ``report`` (also ``--compare``, refused for different drivers)
+  read the results root it left.
 - The shipped scenarios (test/shiploop_e2e/stage_cases) verify and render, and the guide's example selectors select something.
 - The runner is outside the evaluator digest and the qualification snapshot, as the probes are (test/shiploop-e2e-sdlc-probes.test.py).
 """
 from __future__ import annotations
 
+import ast
 import contextlib
 import copy
 import io
 import json
 import os
+import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -45,6 +59,7 @@ sys.path.insert(0, str(HARNESS / "stage_suite"))
 sys.path.insert(0, str(HARNESS))
 import boundary  # noqa: E402
 import run  # noqa: E402
+import sessionlog  # noqa: E402
 import stage_build as sb  # noqa: E402
 import stages  # noqa: E402
 
@@ -533,13 +548,23 @@ class ExitCodes(Catalog):
                              (("verify", "-document"), "selector '-document' selects no scenario"),
                              (("list", "--no-such-option"), "unrecognized arguments"),
                              (("verify", "--keep", "x"), "unrecognized arguments"),
-                             (("live",), "are not built yet"), (("grade",), "are not built yet"), (("report",), "are not built yet"),
                              ((), "required")):
             with self.subTest(argv=argv):
                 done = process(*argv, *(("--cases-dir", str(self.cases)) if argv else ()), cwd=self.temp)
                 self.assertEqual(done.returncode, 2, done.stdout + done.stderr)
                 self.assertIn(wanted, done.stderr)
                 self.assertEqual(done.stdout, "")
+
+    def test_2_for_grade_and_report_without_their_argument(self):
+        for argv, wanted in ((("grade",), "the following arguments are required: OUTPUT"),
+                             (("report",), "the following arguments are required: ROOT"),
+                             (("report", str(self.temp / "no-such-root")), "is not a folder"),
+                             (("live", "--samples", "x"), "invalid int value")):
+            with self.subTest(argv=argv):
+                done = process(*argv, cwd=self.temp)
+                self.assertEqual((done.returncode, done.stdout), (2, ""), done.stderr)
+                self.assertIn(wanted, done.stderr)
+                self.assertNotIn("Traceback", done.stderr)
 
     def test_2_for_a_scenario_that_does_not_load_and_the_text_lists_every_problem(self):
         cases = self.temp / "broken-cases"
@@ -570,35 +595,33 @@ class ExitCodes(Catalog):
         self.assertIn("nothing selected", err)
         self.assertEqual(json.loads(out)["scenarios"], [])
 
-    def test_the_help_names_the_commands_and_says_what_is_not_built_yet(self):
-        for argv in (("--help",), ("-h",), ("verify", "--help"), ("render", "-h")):
+    def test_the_help_names_the_commands_and_their_options_and_hides_the_sample_subcommand(self):
+        for argv in (("--help",), ("-h",), ("verify", "--help"), ("render", "-h"), ("live", "--help"), ("grade", "-h"),
+                     ("report", "--help")):
             with self.subTest(argv=argv):
                 done = process(*argv, cwd=self.temp)
                 self.assertEqual((done.returncode, done.stderr), (0, ""))
-                self.assertRegex(done.stdout, r"live, grade and report are not built yet \(step 3")
+                self.assertNotIn("not built yet", done.stdout)
+                self.assertNotIn("live-sample", done.stdout)
         top = process("--help", cwd=self.temp).stdout
-        for command in ("list", "verify", "render"):
+        for command in ("list", "verify", "render", "live", "grade", "report"):
             self.assertIn(command, top)
         self.assertIn("--keep", process("render", "--help", cwd=self.temp).stdout)
         self.assertNotIn("--keep", process("verify", "--help", cwd=self.temp).stdout)
+        live = process("live", "--help", cwd=self.temp).stdout
+        for option in ("--samples", "--jobs", "--host", "--model", "--effort", "--backend", "--ref", "--overlay", "--timeout", "--out",
+                       "--dry-run", "--cases-dir"):
+            self.assertIn(option, live)
+        self.assertIn("--compare", process("report", "--help", cwd=self.temp).stdout)
 
-    def test_asking_for_a_command_that_is_not_built_names_it_and_exits_2(self):
-        for name in ("live", "grade", "report"):
-            with self.subTest(name=name):
-                done = process(name, "validate-existing", cwd=self.temp)
-                self.assertEqual((done.returncode, done.stdout), (2, ""))
-                self.assertIn(f"asked for '{name}'", done.stderr)
-                self.assertRegex(done.stderr, r"live, grade and report are not built yet \(step 3")
-                self.assertNotIn("invalid choice", done.stderr)
-        code, out, err = cli("live", "@inner")
-        self.assertEqual((code, out), (2, ""))
-        self.assertIn("not built yet", err)
-
-    def test_the_commands_that_are_not_built_are_not_stubbed(self):
-        text = STAGES.read_text()
-        for name in ("live", "grade", "report"):
-            self.assertNotRegex(text, rf"^def (cmd_)?{name}\b", name)
-        self.assertEqual(stages.COMMANDS, ("list", "verify", "render"))
+    def test_the_live_commands_exist_and_the_sample_subcommand_is_hidden_but_runs(self):
+        self.assertEqual(stages.COMMANDS, ("list", "verify", "render", "live", "grade", "report"))
+        self.assertEqual(stages.HIDDEN_COMMANDS, ("live-sample",))
+        for name in ("cmd_live", "cmd_grade", "cmd_report", "cmd_live_sample"):
+            self.assertTrue(callable(getattr(stages, name)), name)
+        done = process("live-sample", "--help", cwd=self.temp)  # reachable by the parent, absent from the interface
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("--sample", done.stdout)
 
 
 # ---------------------------------------------------------------------------------------------------------------- boundary
@@ -651,6 +674,682 @@ class Shipped(unittest.TestCase):
         self.assertIn("selects no scenario", done.stderr)
 
 
+# ------------------------------------------------------------------------------------------------------------------ the live tier
+
+def fake_host_script() -> str:
+    """The fake host of test/shiploop-e2e-stage-live.test.py (the live-core tests), read from its source: the module is not
+    imported, so none of its set-up runs here."""
+    tree = ast.parse((ROOT / "test" / "shiploop-e2e-stage-live.test.py").read_text())
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(getattr(target, "id", None) == "FAKE_HOST" for target in node.targets):
+            return textwrap.dedent(node.value.args[0].value)
+    raise AssertionError("FAKE_HOST not found in the live tests")
+
+
+FAKE_ENV = (stages.FAKE_HOST_ENV, stages.FAKE_CONFIG_ENV, stages.TEST_ONLY_ENV)
+BROKEN = "validate-existing/broken-works-small-fix"
+WRONG = "validate-existing/wrong-check"
+
+
+def clean_env(**extra: str) -> dict:
+    """The environment of a child: ours without the fake-host switches (a test turns them on explicitly), the hermetic git
+    settings, and `extra`."""
+    env = {key: value for key, value in os.environ.items() if key not in FAKE_ENV}
+    return {**env, **GIT_ENV, "SHIPLOOP_KEEPALIVE": "off", **extra}
+
+
+def process_env(*argv: str, cwd: Path, env: dict) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, "-B", str(STAGES), *argv], cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True,
+                          text=True, timeout=CHILD_SECONDS, check=False, env=env)
+
+
+class NoLaunch(Catalog):
+    """Patches that fail the test when anything is built or launched: the process launcher, the sample, the builder and the
+    results-root maker; every process started through subprocess.Popen is recorded (``spawned``) and still runs."""
+
+    def setUp(self):
+        super().setUp()
+        self.spawned: list = []
+        real = subprocess.Popen
+
+        def spy(*args, **kwargs):
+            self.spawned.append(args[0] if args else kwargs.get("args"))
+            return real(*args, **kwargs)
+
+        patcher = mock.patch("subprocess.Popen", spy)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.guards = {}
+        for name, target in (("launch", mock.patch.object(run, "launch")), ("sample", mock.patch.object(stages.stage_live, "run_sample")),
+                             ("build", mock.patch.object(sb, "build")), ("root", mock.patch.object(run, "new_output_dir"))):
+            self.guards[name] = target.start()
+            self.addCleanup(target.stop)
+        environment = mock.patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+        for key in FAKE_ENV:
+            os.environ.pop(key, None)
+
+    def assertNothingStarted(self, git: bool = False):
+        for name, guard in self.guards.items():
+            with self.subTest(guard=name):
+                guard.assert_not_called()
+        # no process at all, except the read-only git a --ref check asks
+        started = [argv for argv in self.spawned if not (git and isinstance(argv, list) and argv[:1] == ["git"])]
+        self.assertEqual(started, [], "a process was started")
+
+
+class LiveSelection(NoLaunch):
+    def test_live_selects_only_the_scenarios_with_the_live_tier_on_and_says_which_are_not(self):
+        code, out, err = cli("live", "--dry-run", "--cases-dir", str(self.cases))
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("validate-existing/broken: 3 samples", out)
+        for sid in ("validate-existing/repaired", "spec/outcome-dropped", "handoff/leftovers"):
+            self.assertNotIn(f"  {sid}: ", out)
+        self.assertIn("not live (tier off): spec/outcome-dropped, validate-existing/repaired, handoff/leftovers", out)  # stage order
+        self.assertNothingStarted()
+
+    def test_a_scenario_the_builder_cannot_build_yet_is_skipped_with_the_reason(self):
+        code, out, err = cli("live", "--dry-run", "--cases-dir", str(self.cases))
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("  improve@spec/missing-outcome: ", out)
+        self.assertRegex(out, r"skipped, not buildable yet: improve@spec/missing-outcome \(improve@ scenarios arrive")
+
+    def test_nothing_with_the_live_tier_on_is_exit_3_and_says_so(self):
+        for tokens in (("validate-existing/repaired",), ("@outer",), ("improve@spec",)):
+            with self.subTest(tokens=tokens):
+                code, out, err = cli("live", *tokens, "--dry-run", "--cases-dir", str(self.cases))
+                self.assertEqual((code, out), (3, ""))
+                self.assertRegex(err, r"nothing selected: none of the \d+ scenarios? selected can run live")
+        self.assertIn("off in validate-existing/repaired", cli("live", "validate-existing/repaired", "--cases-dir", str(self.cases))[2])
+        self.assertIn("not buildable yet: improve@spec/missing-outcome", cli("live", "improve@spec", "--cases-dir", str(self.cases))[2])
+        self.assertNothingStarted()
+
+    def test_an_empty_selection_and_an_unknown_selector_are_the_runners_own(self):
+        self.assertEqual(cli("live", "-all", "--cases-dir", str(self.cases))[0], 3)
+        code, out, err = cli("live", "bogus", "--cases-dir", str(self.cases))
+        self.assertEqual(code, 2)
+        self.assertIn("unknown selector 'bogus'", err)
+        code, out, err = cli("live", "@inner", "-validate-existing/broken", "--cases-dir", str(self.cases))
+        self.assertEqual((code, out), (3, ""))  # an exclude is a selector, not an option
+        self.assertNothingStarted()
+
+    def test_the_default_samples_are_the_scenarios_and_samples_overrides_them(self):
+        cases = self.temp / "sampled"
+        scenario(cases, "validate-existing", "two-of-two", None, None, live={"samples": 2, "pass": 1})
+        scenario(cases, "validate-existing", "default", None, None)
+        code, out, err = cli("live", "--dry-run", "--json", "--cases-dir", str(cases))
+        self.assertEqual(code, 0, err)
+        planned = json.loads(out)["scenarios"]
+        self.assertEqual(planned["validate-existing/two-of-two"], {"samples": 2, "required": 1, "rule": 1})
+        self.assertEqual(planned["validate-existing/default"], {"samples": 3, "required": 3, "rule": "all"})
+        code, out, err = cli("live", "--dry-run", "--json", "--samples", "5", "--cases-dir", str(cases))
+        planned = json.loads(out)["scenarios"]
+        self.assertEqual(planned["validate-existing/two-of-two"], {"samples": 5, "required": 1, "rule": 1})
+        self.assertEqual(planned["validate-existing/default"], {"samples": 5, "required": 5, "rule": "all"})
+        code, out, err = cli("live", "--dry-run", "--samples", "1", "--cases-dir", str(cases))  # a rule is never above the samples
+        self.assertIn("validate-existing/two-of-two: 1 sample, passes when 1 pass", out)
+        self.assertNothingStarted()
+
+
+class LiveDryRun(NoLaunch):
+    def test_dry_run_prints_the_plan_builds_nothing_launches_nothing_and_exits_0(self):
+        out_dir = self.temp / "never"
+        code, out, err = cli("live", "validate-existing/broken", "--dry-run", "--samples", "2", "--jobs", "2", "--timeout", "90",
+                             "--out", str(out_dir), "--cases-dir", str(self.cases))
+        self.assertEqual((code, err), (0, ""))
+        for wanted in ("live plan: 1 scenario x samples = 2 samples, 2 at once", "validate-existing/broken: 2 samples, passes when 2 pass",
+                       "driver: codex/gpt-6.1-terra/xhigh", "timeout: 90 s per sample", f"results root: {out_dir}",
+                       "costs money", "dry run: nothing was built and nothing was launched"):
+            self.assertIn(wanted, out)
+        self.assertFalse(out_dir.exists())
+        self.assertNothingStarted()
+
+    def test_a_sample_has_a_finite_timeout_unless_the_command_line_says_otherwise(self):
+        code, out, err = cli("live", "validate-existing/broken", "--dry-run", "--cases-dir", str(self.cases))
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn(f"timeout: {stages.DEFAULT_TIMEOUT} s per sample", out)
+        self.assertEqual(stages.DEFAULT_TIMEOUT, 3600)
+        document = json.loads(cli("live", "validate-existing/broken", "--dry-run", "--json", "--cases-dir", str(self.cases))[1])
+        self.assertEqual(document["timeout"], stages.DEFAULT_TIMEOUT)
+        self.assertEqual(cli("live", "validate-existing/broken", "--dry-run", "--timeout", "5", "--cases-dir", str(self.cases))[0], 0)
+        self.assertNothingStarted()
+
+    def test_dry_run_with_the_real_default_host_starts_no_process_and_asks_nothing_of_the_host(self):
+        with mock.patch.object(stages.hosts.CodexHost, "env", side_effect=AssertionError("the host was asked for its environment")), \
+             mock.patch.object(stages.hosts, "ollama_ready", side_effect=AssertionError("the network was asked")), \
+             mock.patch.object(stages.shutil, "which", side_effect=AssertionError("the binary was looked for")):
+            code, out, err = cli("live", "--dry-run")  # the shipped scenarios, the default host and no other option
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("driver: codex/gpt-6.1-terra/xhigh", out)
+        self.assertIn(f"results root: {Path(tempfile.gettempdir())}", out)
+        self.assertIn("validate-existing/broken-works-small-fix: 3 samples", out)
+        self.assertIn("validate-existing/wrong-check: 3 samples", out)
+        self.assertNothingStarted()
+
+    def test_dry_run_json_is_one_document_with_the_plan_and_the_human_text_goes_to_stderr(self):
+        code, out, err = cli("live", "--dry-run", "--json", "--host", "claude", "--backend", "anthropic", "--model", "m", "--effort", "low",
+                             "--cases-dir", str(self.cases))
+        document = json.loads(out)
+        self.assertEqual(code, 0)
+        self.assertTrue(document["dry_run"])
+        self.assertEqual(document["driver"], {"host": "claude", "backend": "anthropic", "model": "m", "effort": "low"})
+        self.assertIn("live plan", err)
+        self.assertNothingStarted()
+
+    def test_the_driver_defaults_are_slices_and_the_options_override_them(self):
+        for argv, wanted in ((("--host", "grok"), "grok/grok-4.7/medium"), (("--host", "claude"), "claude:ollama/"),
+                             (("--host", "claude", "--backend", "anthropic"), "claude:anthropic/claude-sonnet-5-5/default"),
+                             (("--model", "x", "--effort", "low"), "codex/x/low")):
+            with self.subTest(argv=argv):
+                code, out, err = cli("live", "--dry-run", *argv, "--cases-dir", str(self.cases))
+                self.assertEqual((code, err), (0, ""))
+                self.assertIn(f"driver: {wanted}", out)
+
+    def test_a_ref_with_the_seed_seam_is_planned_and_an_unknown_ref_is_refused(self):
+        code, out, err = cli("live", "--dry-run", "--ref", "HEAD", "--cases-dir", str(self.cases))
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("ref: HEAD", out)
+        code, out, err = cli("live", "--dry-run", "--ref", "no-such-ref-zzz", "--cases-dir", str(self.cases))
+        self.assertEqual((code, out), (2, ""))
+        self.assertIn("unknown git ref", err)
+        self.assertTrue(err.rstrip().endswith("Nothing was started."))
+        self.assertNothingStarted(git=True)
+
+
+class LiveRefusals(NoLaunch):
+    def refused(self, *argv: str, wanted: str, out_dir: Path | None = None) -> str:
+        out_dir = out_dir or self.temp / "results"
+        code, out, err = cli("live", "validate-existing/broken", *argv, "--out", str(out_dir), "--cases-dir", str(self.cases))
+        self.assertEqual(code, 2, err)
+        self.assertIn(wanted, err)
+        self.assertTrue(err.rstrip().endswith("Nothing was started."), err)
+        self.assertNotIn("Traceback", err)
+        self.assertFalse(out_dir.exists(), "a refusal creates no results root")
+        self.assertNothingStarted()
+        return err
+
+    def test_a_ref_whose_navigator_has_no_accept_effects_is_refused_naming_the_reason(self):
+        why = "ref old (0123456789ab) has no accept_effects in its navigator, the seed seam a stage scenario is built through"
+        with mock.patch.object(stages.stage_live, "ref_seam_gap", return_value=why):
+            self.refused("--ref", "old", wanted="has no accept_effects in its navigator")
+
+    def test_a_host_on_ollama_that_does_not_answer_is_refused(self):
+        with mock.patch.object(stages.shutil, "which", return_value="/bin/claude"), \
+             mock.patch.object(stages.hosts, "ollama_ready", return_value="the Ollama server at http://x does not answer (down)"):
+            self.refused("--host", "claude", wanted="--backend ollama: the Ollama server at http://x does not answer")
+
+    def test_an_overlay_that_does_not_load_is_refused(self):
+        bad = self.temp / "overlay.json"
+        bad.write_text("{}")
+        self.refused("--overlay", str(self.temp / "missing.json"), wanted="--overlay")
+        self.refused("--overlay", str(bad), wanted="an overlay needs a non-empty `edits` list", out_dir=self.temp / "results-2")
+
+    def test_an_existing_results_root_is_refused_and_left_alone(self):
+        taken = self.temp / "taken"
+        taken.mkdir()
+        (taken / "keep.txt").write_text("x")
+        code, out, err = cli("live", "validate-existing/broken", "--out", str(taken), "--cases-dir", str(self.cases))
+        self.assertEqual(code, 2)
+        self.assertIn("already exists", err)
+        self.assertEqual([path.name for path in taken.iterdir()], ["keep.txt"])
+        self.assertNothingStarted()
+
+    def test_a_backend_the_host_does_not_have_and_numbers_that_are_not_positive_are_usage_errors(self):
+        for argv, wanted in ((("--host", "codex", "--backend", "ollama"), "--backend ollama is a Claude host option"),
+                             (("--samples", "0"), "--samples must be a positive number"), (("--jobs", "0"), "--jobs must be a positive number"),
+                             (("--timeout", "-5"), "--timeout must be a positive number")):
+            with self.subTest(argv=argv):
+                code, out, err = cli("live", "validate-existing/broken", *argv, "--cases-dir", str(self.cases))
+                self.assertEqual((code, out), (2, ""))  # a usage error comes before the plan
+                self.assertIn(wanted, err)
+        self.assertNothingStarted()
+
+    def test_the_fake_host_is_refused_without_the_second_switch_and_when_it_is_not_a_file(self):
+        script = self.temp / "fake.py"
+        script.write_text("")
+        for env, wanted in (({stages.FAKE_HOST_ENV: str(script)}, f"{stages.FAKE_HOST_ENV} is a test-only route"),
+                            ({stages.FAKE_HOST_ENV: str(script), stages.TEST_ONLY_ENV: "1"}, "test-only route"),
+                            ({stages.FAKE_HOST_ENV: str(script), stages.TEST_ONLY_ENV: "yes"}, "test-only route"),
+                            ({stages.FAKE_HOST_ENV: str(self.temp / "none.py"), stages.TEST_ONLY_ENV: stages.TEST_ONLY_VALUE}, "is not a file"),
+                            ({stages.FAKE_HOST_ENV: str(script), stages.TEST_ONLY_ENV: stages.TEST_ONLY_VALUE,
+                              stages.FAKE_CONFIG_ENV: "[1"}, "is not JSON"),
+                            ({stages.FAKE_HOST_ENV: str(script), stages.TEST_ONLY_ENV: stages.TEST_ONLY_VALUE,
+                              stages.FAKE_CONFIG_ENV: "[1]"}, "must be a JSON object")):
+            with self.subTest(env=sorted(env)):
+                with mock.patch.dict(os.environ, env):
+                    code, out, err = cli("live", "validate-existing/broken", "--cases-dir", str(self.cases))
+                self.assertEqual((code, out), (2, ""))  # the driver is resolved before the plan is printed
+                self.assertIn(wanted, err)
+                self.assertTrue(err.rstrip().endswith("Nothing was started."), err)
+        self.assertNothingStarted()
+
+    def test_the_second_switch_alone_changes_nothing(self):
+        with mock.patch.dict(os.environ, {stages.TEST_ONLY_ENV: stages.TEST_ONLY_VALUE}):
+            code, out, err = cli("live", "validate-existing/broken", "--dry-run", "--cases-dir", str(self.cases))
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("driver: codex/", out)
+        self.assertNotIn("FAKE HOST", out)
+
+
+class HostReadiness(Temp):
+    """A missing binary and an unsigned host are refusals, not tracebacks: real child processes, a PATH of our own, and no
+    credential anywhere (CODEX_HOME is an empty folder)."""
+
+    def child(self, bindir: Path, *argv: str, **env: str) -> tuple[subprocess.CompletedProcess, Path]:
+        out_dir = self.temp / "results"
+        cases = self.one()
+        done = process_env("live", "validate-existing/s", *argv, "--out", str(out_dir), "--cases-dir", str(cases), cwd=self.temp,
+                           env=clean_env(PATH=str(bindir), CODEX_HOME=str(self.temp / "codex-home"), **env))
+        return done, out_dir
+
+    def assertRefused(self, done: subprocess.CompletedProcess, out_dir: Path, wanted: str):
+        self.assertEqual((done.returncode, done.stdout.count("Traceback")), (2, 0), done.stderr)
+        self.assertNotIn("Traceback", done.stderr)
+        self.assertIn(wanted, done.stderr)
+        self.assertTrue(done.stderr.rstrip().endswith("Nothing was started."), done.stderr)
+        self.assertFalse(out_dir.exists())
+
+    def test_a_host_binary_that_is_not_found_is_a_refusal(self):
+        empty = self.temp / "empty-bin"
+        empty.mkdir()
+        done, out_dir = self.child(empty)
+        self.assertRefused(done, out_dir, "the codex host's binary 'codex' was not found")
+        done, out_dir = self.child(empty, "--host-bin", str(self.temp / "nowhere" / "codex"))
+        self.assertRefused(done, out_dir, "was not found")
+
+    def test_a_host_that_is_not_signed_in_is_a_refusal_naming_what_is_missing(self):
+        bindir = self.temp / "bin"
+        bindir.mkdir()
+        binary = bindir / "codex"
+        binary.write_text("#!/bin/sh\nexit 0\n")
+        binary.chmod(0o755)
+        (self.temp / "codex-home").mkdir()
+        done, out_dir = self.child(bindir)
+        self.assertRefused(done, out_dir, "Codex is not signed in")
+        self.assertIn("auth.json is missing", done.stderr)
+        self.assertEqual(list((self.temp / "codex-home").iterdir()), [], "the host's environment was made in a scratch folder")
+
+    def test_the_readiness_check_prints_no_credential_or_environment(self):
+        bindir = self.temp / "bin"
+        bindir.mkdir()
+        binary = bindir / "codex"
+        binary.write_text("#!/bin/sh\nexit 0\n")
+        binary.chmod(0o755)
+        done, _ = self.child(bindir, OPENAI_API_KEY="sk-secret-0123456789", ANTHROPIC_API_KEY="sk-ant-secret-0123456789")
+        self.assertNotIn("secret", done.stdout + done.stderr)
+
+
+# ------------------------------------------------------------------------------------------------------ live, with the fake host
+
+class FakeRoute(unittest.TestCase):
+    """Real `stages.py live` processes with the test-only fake host: no model, no network, a symlinked plugin (this checkout's
+    ShipLoop) so nothing is built. Each run builds a scenario for real (about 2 s) and the stop polls every run.POLL_SECONDS (2 s)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.temp = tempfile.TemporaryDirectory(prefix="stages-live-")
+        cls.tmp = Path(cls.temp.name).resolve()
+        cls.script = cls.tmp / "fake_host.py"
+        cls.script.write_text(fake_host_script())
+        plugin = cls.tmp / "plugin"
+        (plugin / "skills").mkdir(parents=True)
+        (plugin / "skills" / "shiploop").symlink_to(ROOT / "skills" / "shiploop")
+        cls.plugin = plugin
+        cls.count = 0
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    SECRET = "sk-ant-test-credential-0123456789abcdef"  # in the child's environment only: it must reach no file of a root
+
+    @classmethod
+    def env(cls, config: dict, **extra: str) -> dict:
+        return clean_env(ANTHROPIC_API_KEY=cls.SECRET, **{stages.FAKE_HOST_ENV: str(cls.script), stages.TEST_ONLY_ENV: stages.TEST_ONLY_VALUE,
+                            stages.FAKE_CONFIG_ENV: json.dumps({"plugin_dir": str(cls.plugin), "linger": 120, **config}), **extra})
+
+    @classmethod
+    def live(cls, *argv: str, config: dict, cases: Path | None = None) -> tuple[subprocess.CompletedProcess, Path]:
+        cls.count += 1
+        root = cls.tmp / f"results-{cls.count}"
+        done = process_env("live", *argv, "--out", str(root), *(("--cases-dir", str(cases)) if cases else ()), cwd=cls.tmp,
+                           env=cls.env(config))
+        return done, root
+
+
+class GoodRun(FakeRoute):
+    """Two samples of wrong-check, two at once, by a fake that does the right thing (reference/good)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.done, cls.root = cls.live(WRONG, "--samples", "2", "--jobs", "2",
+                                      config={"mode": "act", "reference": "{scenario_dir}/reference/good"})
+
+    def test_it_exits_0_prints_the_plan_each_sample_and_the_matrix(self):
+        self.assertEqual((self.done.returncode, self.done.stderr), (0, ""), self.done.stdout[-2000:])
+        for wanted in ("live plan: 1 scenario x samples = 2 samples, 2 at once", "TEST-ONLY FAKE HOST", "PASS  validate-existing/wrong-check #1",
+                       "PASS  validate-existing/wrong-check #2", "live: every scenario met its pass rule"):
+            self.assertIn(wanted, self.done.stdout)
+        header = next(line for line in self.done.stdout.splitlines() if line.startswith("scenario"))
+        self.assertEqual(header.split(), ["scenario", "ran", "P1", "C1", "C2", "overshoot", "pass", "rule", "driver"])
+
+    def test_the_results_root_holds_a_sample_folder_per_sample_and_the_plan(self):
+        for number in (1, 2):
+            sample = self.root / "validate-existing" / "wrong-check" / str(number)
+            for name in ("stage-result.json", "invocation.json", "seed-export", "export", "sessions.jsonl", "packet-archive"):
+                self.assertTrue((sample / name).exists(), (number, name))
+            result = json.loads((sample / "stage-result.json").read_text())
+            self.assertEqual((result["sample"], result["pass"], result["host"], result["model"]), (number, True, "fake", "fake-model"))
+        plan = json.loads((self.root / "live-plan.json").read_text())
+        self.assertEqual(plan["scenarios"], {WRONG: {"samples": 2, "required": 2, "planted": ["P1"], "controls": ["C1", "C2"]}})
+        self.assertTrue(plan["fake_host"])
+        self.assertEqual(plan["driver"]["host"], "fake")
+        self.assertTrue((self.root / ".logs").is_dir())
+
+    def test_the_two_samples_were_separate_processes_that_overlapped(self):
+        spans = []
+        for number in (1, 2):
+            rows = sessionlog.read(self.root / WRONG / str(number))
+            spans.append((rows[0]["t"], rows[-1]["end"]["t"]))
+        self.assertLess(max(spans[0][0], spans[1][0]), min(spans[0][1], spans[1][1]), spans)
+
+    def test_report_prints_the_same_matrix_and_json_the_same_data(self):
+        shown = process_env("report", str(self.root), cwd=self.tmp, env=clean_env())
+        self.assertEqual((shown.returncode, shown.stderr), (0, ""))
+        self.assertIn("validate-existing/wrong-check", shown.stdout)
+        self.assertRegex(shown.stdout, r"wrong-check\s+2/2\s+2/2\s+2/2\s+2/2\s+0/2\s+2/2\s+met\s+fake/fake-model/default")
+        as_json = process_env("report", str(self.root), "--json", cwd=self.tmp, env=clean_env())
+        document = json.loads(as_json.stdout)["report"]
+        found = document["scenarios"][0]
+        self.assertEqual((found["id"], found["pass"], found["ran"], found["rule"]), (WRONG, {"k": 2, "n": 2}, 2, {"required": 2, "met": True}))
+        self.assertEqual(found["ids"]["P1"], {"kind": "caught", "k": 2, "n": 2})
+        self.assertEqual(document["drivers"], ["fake/fake-model/default"])
+
+    def test_grade_regrades_one_sample_from_its_files_and_prints_the_verdict(self):
+        sample = self.root / WRONG / "1"
+        before = json.loads((sample / "stage-result.json").read_text())
+        done = process_env("grade", str(sample), cwd=self.tmp, env=clean_env())
+        self.assertEqual((done.returncode, done.stderr), (0, ""), done.stdout)
+        self.assertIn("PASS: process ok, accepted ok, no_overshoot ok, oracle ok", done.stdout)
+        self.assertIn("P1 caught", done.stdout)
+        self.assertIn("C1 held", done.stdout)
+        self.assertIn("value 1.00", done.stdout)
+        after = json.loads((sample / "stage-result.json").read_text())
+        self.assertTrue(after["regraded"])
+        self.assertEqual({key: after[key] for key in ("verdicts", "caught", "held", "pass")},
+                         {key: before[key] for key in ("verdicts", "caught", "held", "pass")})
+        as_json = process_env("grade", str(sample), "--json", cwd=self.tmp, env=clean_env())
+        self.assertTrue(json.loads(as_json.stdout)["pass"])
+
+    def test_grade_follows_the_files_a_tampered_export_fails_it_with_exit_1(self):
+        copy = self.tmp / "tampered"
+        if not copy.exists():
+            shutil.copytree(self.root / WRONG / "1", copy, symlinks=True)
+            (copy / "export" / "src" / "paginate.js").write_text("// edited by the host\n")
+        done = process_env("grade", str(copy), cwd=self.tmp, env=clean_env())
+        self.assertEqual(done.returncode, 1, done.stdout)
+        self.assertIn("FAIL", done.stdout)
+        self.assertIn("C1 MISSED", done.stdout)
+
+    def test_grade_refuses_what_is_not_a_sample(self):
+        for target, wanted in ((self.tmp / "nowhere", "is not a folder"), (self.root, "is not a live sample")):
+            with self.subTest(target=target.name):
+                done = process_env("grade", str(target), cwd=self.tmp, env=clean_env())
+                self.assertEqual((done.returncode, done.stdout), (2, ""))
+                self.assertIn(wanted, done.stderr)
+                self.assertNotIn("Traceback", done.stderr)
+
+    def test_no_credential_of_the_environment_reaches_the_plan_the_logs_or_a_sample(self):
+        self.assertNotIn(self.SECRET, self.done.stdout + self.done.stderr)
+        seen = 0
+        for path in self.root.rglob("*"):
+            if path.is_file() and not path.is_symlink():
+                seen += 1
+                self.assertNotIn(self.SECRET.encode(), path.read_bytes(), str(path))
+        self.assertGreater(seen, 20)
+
+    def test_a_second_live_into_the_same_root_is_refused_and_leaves_the_samples(self):
+        done = process_env("live", WRONG, "--dry-run", "--out", str(self.root), cwd=self.tmp, env=self.env({}))
+        self.assertEqual(done.returncode, 0)  # a dry run creates nothing, so it does not mind
+        done = process_env("live", WRONG, "--out", str(self.root), cwd=self.tmp, env=self.env({}))
+        self.assertEqual(done.returncode, 2, done.stdout[-500:])
+        self.assertIn("already exists", done.stderr)
+        self.assertTrue((self.root / WRONG / "1" / "stage-result.json").is_file())
+
+
+class FailingRun(FakeRoute):
+    """A fake that reports the fact false (reference/bad-fact-false): the sample is graded and fails P1, so the scenario does not
+    meet its rule and the command exits 1; report --compare then reads it against the run that passed."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.done, cls.root = cls.live(WRONG, "--samples", "1",
+                                      config={"mode": "act", "reference": "{scenario_dir}/reference/bad-fact-false"})
+        cls.good, cls.good_root = cls.live(WRONG, "--samples", "1",
+                                           config={"mode": "act", "reference": "{scenario_dir}/reference/good"})
+
+    def test_a_graded_failure_is_exit_1_and_fail_not_not_run(self):
+        self.assertEqual(self.done.returncode, 1, self.done.stdout[-1500:] + self.done.stderr)
+        self.assertIn("FAIL  validate-existing/wrong-check #1", self.done.stdout)
+        self.assertNotIn("NOT RUN", self.done.stdout)
+        self.assertIn("1 scenario did not meet the pass rule: validate-existing/wrong-check", self.done.stdout)
+        result = json.loads((self.root / WRONG / "1" / "stage-result.json").read_text())
+        self.assertFalse(result["caught"]["P1"])
+        self.assertFalse(result["pass"])
+        self.assertRegex(self.done.stdout, r"wrong-check\s+1/1\s+0/1\s+1/1\s+1/1\s+0/1\s+0/1\s+NOT MET")
+
+    def test_compare_shows_the_change_from_the_earlier_root_for_the_same_driver(self):
+        self.assertEqual(self.good.returncode, 0, self.good.stdout[-1500:])
+        done = process_env("report", str(self.good_root), "--compare", str(self.root), cwd=self.tmp, env=clean_env())
+        self.assertEqual((done.returncode, done.stderr), (0, ""), done.stdout)
+        self.assertIn("driver (the same in both): fake/fake-model/default", done.stdout)
+        self.assertIn("1/1 (was 0/1, +1.00)", done.stdout)
+        self.assertIn("1/1 (=)", done.stdout)
+        as_json = json.loads(process_env("report", str(self.good_root), "--compare", str(self.root), "--json", cwd=self.tmp,
+                                         env=clean_env()).stdout)
+        self.assertEqual(as_json["compare"]["scenarios"][0]["cells"]["P1"]["delta"], 1.0)
+
+    def test_compare_refuses_roots_of_different_drivers_naming_both(self):
+        other = self.tmp / "other-driver"
+        if not other.exists():
+            shutil.copytree(self.good_root, other, symlinks=True)
+            path = other / WRONG / "1" / "stage-result.json"
+            document = json.loads(path.read_text())
+            path.write_text(json.dumps({**document, "model": "another-model"}))
+        done = process_env("report", str(self.root), "--compare", str(other), cwd=self.tmp, env=clean_env())
+        self.assertEqual((done.returncode, done.stdout), (2, ""))
+        self.assertIn("fake/fake-model/default", done.stderr)
+        self.assertIn("fake/another-model/default", done.stderr)
+        self.assertIn(str(self.root), done.stderr)
+        self.assertIn(str(other), done.stderr)
+        self.assertNotIn("Traceback", done.stderr)
+
+
+class NotRunSamples(FakeRoute):
+    """A sample that crashes or does not finish is recorded as not run, never as a pass, and the others go on."""
+
+    def test_a_sample_that_crashes_is_not_run_and_the_others_are_graded(self):
+        done, root = self.live(WRONG, "--samples", "3", "--jobs", "3",
+                               config={"mode": "act", "reference": "{scenario_dir}/reference/good", "crash": [1]})
+        self.assertEqual(done.returncode, 1, done.stdout[-1500:] + done.stderr)
+        self.assertRegex(done.stdout, r"NOT RUN  validate-existing/wrong-check #1: .*RuntimeError: the fake host was told to crash")
+        self.assertIn("PASS  validate-existing/wrong-check #2", done.stdout)
+        self.assertIn("PASS  validate-existing/wrong-check #3", done.stdout)
+        crashed = root / WRONG / "1"
+        self.assertFalse((crashed / "stage-result.json").exists())
+        self.assertIn("RuntimeError", (crashed / "error.txt").read_text())
+        self.assertIn("Traceback", next((root / ".logs").glob("*__1.log")).read_text())
+        document = json.loads(process_env("report", str(root), "--json", cwd=self.tmp, env=clean_env()).stdout)["report"]
+        found = document["scenarios"][0]
+        self.assertEqual((found["samples"], found["ran"], found["pass"]), (3, 2, {"k": 2, "n": 3}))
+        self.assertEqual(found["not_run"][0]["sample"], 1)
+        self.assertEqual(found["ids"]["P1"], {"kind": "caught", "k": 2, "n": 3})
+
+    def test_a_pass_rule_below_all_is_met_with_a_sample_not_run(self):
+        cases = self.tmp / "cases-rule"
+        if not cases.exists():
+            for name in ("wrong-check",):
+                shutil.copytree(sb.SCENARIOS_DIR / "validate-existing" / name, cases / "validate-existing" / name)
+            path = cases / "validate-existing" / "wrong-check" / "scenario.json"
+            document = json.loads(path.read_text())
+            document["live"] = {"samples": 3, "pass": 2}
+            path.write_text(json.dumps(document))
+        done, root = self.live(WRONG, "--jobs", "3", cases=cases,
+                               config={"mode": "act", "reference": "{scenario_dir}/reference/good", "crash": [2]})
+        self.assertEqual(done.returncode, 0, done.stdout[-1500:] + done.stderr)
+        self.assertIn("NOT RUN  validate-existing/wrong-check #2", done.stdout)
+        self.assertIn("live: every scenario met its pass rule", done.stdout)
+        self.assertRegex(done.stdout, r"2/3\s+met")
+
+
+class TimedOutSamples(FakeRoute):
+    """In-process, so the grace and the kill delay can be short: the samples are still subprocesses."""
+
+    def test_a_sample_that_does_not_finish_is_killed_and_not_run_and_at_most_jobs_run_at_once(self):
+        real, seen, started = subprocess.Popen, [], []
+
+        def spy(*args, **kwargs):
+            process = real(*args, **kwargs)
+            if "live-sample" in (args[0] if args else kwargs.get("args")):  # not the `ps` the sweep of a killed sample's host runs
+                started.append(process)
+                seen.append(sum(1 for item in started if item.poll() is None))
+            return process
+
+        env = self.env({"hang_seconds": 600})
+        root = self.tmp / "results-timeout"
+        with mock.patch.dict(os.environ, env), mock.patch.object(stages, "SAMPLE_GRACE_SECONDS", 1), \
+             mock.patch.object(stages, "KILL_SECONDS", 1), mock.patch.object(stages.subprocess, "Popen", spy):
+            code, out, err = cli("live", WRONG, "--samples", "3", "--jobs", "2", "--timeout", "1", "--out", str(root))
+        self.assertEqual(code, 1, out[-1500:] + err)
+        self.assertEqual(len(started), 3)
+        self.assertEqual(max(seen), 2, "two at once, never three")
+        self.assertEqual(out.count("NOT RUN  validate-existing/wrong-check #"), 3)
+        self.assertNotIn("PASS", out)
+        for number in (1, 2, 3):
+            reason = (root / WRONG / str(number) / "error.txt").read_text()
+            self.assertIn("killed", reason)
+            self.assertFalse((root / WRONG / str(number) / "stage-result.json").exists())
+        document = process_env("report", str(root), "--json", cwd=self.tmp, env=clean_env()).stdout
+        found = json.loads(document)["report"]["scenarios"][0]
+        self.assertEqual((found["samples"], found["ran"], found["pass"], found["rule"]["met"]), (3, 0, {"k": 0, "n": 3}, False))
+        self.assertTrue(all(process.poll() is not None for process in started), "no sample outlives the command")
+        shown = process_env("report", str(root), cwd=self.tmp, env=clean_env()).stdout
+        self.assertIn("not run: validate-existing/wrong-check #1: killed", shown)
+
+
+def process_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    try:  # a zombie ended and is not reaped yet
+        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] != "Z"
+    except OSError:
+        return True
+
+
+def parent_of(pid: int) -> int:
+    return int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[1])
+
+
+def default_sighup() -> None:
+    """Child set-up for the signal cases: a run launched under nohup (or any caller that ignores SIGHUP) hands that disposition
+    down, and stages.py live deliberately keeps an ignored SIGHUP ignored, so the SIGHUP case would wait for a signal that
+    cannot end it.  These cases test the handler, so the child starts with the default."""
+    signal.signal(signal.SIGHUP, signal.SIG_DFL)
+
+
+class Signals(FakeRoute):
+    """A real `live` process with a fake host that waits for two minutes, and a signal to it or to its sample. The host runs in a
+    session of its own, so only a handler (or the ledger) can end it: none may outlive the command."""
+
+    def start(self, config: dict | None = None) -> tuple[subprocess.Popen, Path, int]:
+        type(self).count += 1
+        root = self.tmp / f"results-{self.count}"
+        pid_file = self.tmp / f"host-{self.count}.pid"
+        process = subprocess.Popen([sys.executable, "-B", str(STAGES), "live", WRONG, "--samples", "1", "--out", str(root)],
+                                   cwd=self.tmp, env=self.env({"mode": "wait", "pid_file": str(pid_file), **(config or {})}),
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   preexec_fn=default_sighup)
+        self.addCleanup(lambda: process.poll() is None and process.kill())
+        deadline = time.monotonic() + 120
+        while not (pid_file.exists() and pid_file.read_text()) and time.monotonic() < deadline:
+            self.assertIsNone(process.poll(), "live ended before the host started")
+            time.sleep(0.2)
+        host = int(pid_file.read_text())
+        self.addCleanup(lambda: process_alive(host) and os.kill(host, signal.SIGKILL))
+        return process, root, host
+
+    def test_a_sigterm_to_live_ends_every_sample_and_the_host_under_it(self):
+        process, root, host = self.start()
+        sample = parent_of(host)
+        self.assertTrue(process_alive(sample) and process_alive(host))
+        process.send_signal(signal.SIGTERM)
+        out, err = process.communicate(timeout=120)
+        self.assertEqual(process.returncode, 128 + signal.SIGTERM, out + err)
+        self.assertIn("ended by SIGTERM", err)
+        self.assertFalse(process_alive(host), "the model host is gone")
+        self.assertFalse(process_alive(sample), "the sample's process is gone")
+        folder = root / WRONG / "1"
+        self.assertFalse((folder / "stage-result.json").exists(), "an ended sample is not graded")
+        self.assertTrue((folder / "error.txt").is_file())
+        shown = process_env("report", str(root), cwd=self.tmp, env=clean_env()).stdout
+        self.assertIn("not run: validate-existing/wrong-check #1", shown)
+
+    def test_a_sighup_does_the_same_and_a_second_sample_that_had_not_started_never_starts(self):
+        type(self).count += 1
+        root = self.tmp / f"results-{self.count}"
+        pid_file = self.tmp / f"host-{self.count}.pid"
+        process = subprocess.Popen([sys.executable, "-B", str(STAGES), "live", WRONG, "--samples", "3", "--jobs", "1", "--out", str(root)],
+                                   cwd=self.tmp, env=self.env({"mode": "wait", "pid_file": str(pid_file)}),
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   preexec_fn=default_sighup)
+        self.addCleanup(lambda: process.poll() is None and process.kill())
+        deadline = time.monotonic() + 120
+        while not (pid_file.exists() and pid_file.read_text()) and time.monotonic() < deadline:
+            time.sleep(0.2)
+        host = int(pid_file.read_text())
+        self.addCleanup(lambda: process_alive(host) and os.kill(host, signal.SIGKILL))
+        process.send_signal(signal.SIGHUP)
+        out, err = process.communicate(timeout=120)
+        self.assertEqual(process.returncode, 128 + signal.SIGHUP, out + err)
+        self.assertFalse(process_alive(host))
+        self.assertEqual(sorted(path.name for path in (root / WRONG).iterdir()), ["1"], "samples 2 and 3 were never started")
+
+    def test_a_sample_killed_from_outside_leaves_no_host_behind(self):
+        """SIGKILL gives the sample no chance to end its host, which is in a session of its own: the parent ends it from the
+        sample's own ledger (lifecycle), and the sample is not run."""
+        process, root, host = self.start()
+        os.kill(parent_of(host), signal.SIGKILL)
+        out, err = process.communicate(timeout=120)
+        self.assertEqual(process.returncode, 1, out + err)
+        self.assertRegex(out, r"NOT RUN  validate-existing/wrong-check #1: live-sample exited -9")
+        deadline = time.monotonic() + 30
+        while process_alive(host) and time.monotonic() < deadline:
+            time.sleep(0.2)
+        self.assertFalse(process_alive(host), "the orphaned host was ended")
+        self.assertFalse((root / WRONG / "1" / "stage-result.json").exists())
+
+    def test_a_sample_an_operator_ended_is_not_run_through_the_command_line_too(self):
+        done, root = self.live(WRONG, "--samples", "1", config={"mode": "wait", "stop_file": True})
+        self.assertEqual(done.returncode, 1, done.stdout[-1500:] + done.stderr)
+        self.assertRegex(done.stdout, r"NOT RUN  validate-existing/wrong-check #1: live-sample exited 5: stopped: .*ended before it accepted")
+        self.assertIn("not run: validate-existing/wrong-check #1: SampleStopped", done.stdout)
+        folder = root / WRONG / "1"
+        self.assertFalse((folder / "stage-result.json").exists())
+        self.assertFalse((folder / "stop").exists())
+        found = json.loads(process_env("report", str(root), "--json", cwd=self.tmp, env=clean_env()).stdout)["report"]["scenarios"][0]
+        self.assertEqual((found["ran"], found["pass"]), (0, {"k": 0, "n": 1}))
+        graded = process_env("grade", str(folder), cwd=self.tmp, env=clean_env())
+        self.assertEqual(graded.returncode, 2, graded.stdout)
+        self.assertIn("was not run to the end", graded.stderr)
+
+
 class Boundary(unittest.TestCase):
     def test_the_runner_is_outside_the_evaluator_digest_and_the_qualification_snapshot(self):
         self.assertTrue(STAGES.is_file())
@@ -683,9 +1382,12 @@ class Boundary(unittest.TestCase):
 
     def test_the_runner_uses_the_builder_and_the_check_engine_without_copying_them(self):
         text = STAGES.read_text()
-        for used in ("sb.discover(", "sb.render(", "sb.reference_bundle(", "stage_oracle.run_checks(", "stage_oracle.verdict("):
+        for used in ("sb.discover(", "sb.render(", "sb.reference_bundle(", "stage_oracle.run_checks(", "stage_oracle.verdict(",
+                     "stage_live.run_sample(", "stage_live.grade_sample(", "stage_report.read_root(", "stage_report.compare(",
+                     "run.new_output_dir("):
             self.assertIn(used, text)
-        for copied in ("def run_check", "def validate_checks", "class Bundle", "def build(", "def discover(", "SEED_SCRIPT"):
+        for copied in ("def run_check", "def validate_checks", "class Bundle", "def build(", "def discover(", "SEED_SCRIPT",
+                       "def run_sample", "def grade_sample", "def read_root", "def compare", "def new_output_dir", "def launch("):
             self.assertNotIn(copied, text)
 
 

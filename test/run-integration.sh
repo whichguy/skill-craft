@@ -24,6 +24,9 @@ Optional commands (never part of default CI):
   shiploop-e2e [--case NAME | --prompt TEXT --check CMD] [run.py options]
                     Run ShipLoop live from one prompt in a new empty directory
                     (Grok, medium effort, by default) and grade it. Costs money.
+  shiploop-stages [SELECTOR ...] [--samples N] [--jobs J] [stages.py live options]
+                    Run the stage suite's live tier: a model follows one packet of a
+                    built scenario, a script grades it, samples repeat. Costs money.
   shiploop-e2e-review RUN_DIR [review.py options]
                     Ask a reviewer model what that run teaches about the skill.
   shiploop-e2e-iterate [--case NAME] [--iterations N] [iterate.py options]
@@ -52,6 +55,10 @@ case "${1:-list}" in
   shiploop-e2e)
     shift
     exec python3 -B "$root/test/shiploop_e2e/run.py" "$@"
+    ;;
+  shiploop-stages)
+    shift
+    exec python3 -B "$root/test/shiploop_e2e/stage_suite/stages.py" live "$@"
     ;;
   shiploop-e2e-review)
     shift
