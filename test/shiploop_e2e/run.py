@@ -386,6 +386,17 @@ def require_improve_card(planning_review: str | None, plugin_dir: Path) -> None:
                          "not a file: nothing was started")
 
 
+def require_installed(plugin: dict | None, plugin_dir: Path) -> None:
+    """A checkout build the host failed to install starts no host: the model would run without the build under test. On
+    2026-10-30 a Codex hello got a --plugin-dir whose root (two levels up) had no Codex catalog, so the plugin was never
+    enabled; the host still ran 5.5 minutes and its model wrote the product without ShipLoop. None (Claude loads the build
+    from its argv and its init event is graded later) passes."""
+    if plugin is not None and not plugin["pass"]:
+        loaded = "; ".join(plugin.get("loaded") or []) or "no plugin"
+        raise SystemExit(f"the host did not install the plugin build {plugin_dir} (loaded: {loaded}), so no host is started"
+                         + (f"; install output: {plugin['output']}" if plugin.get("output") else ""))
+
+
 def planning_review_sentence(improve_skill: str) -> str:
     """The sentence that makes the model start ShipLoop with `--planning-review none`, which needs the Improve card named
     (`--improve-skill`). `stage` is the engine's default and appends nothing: the run's prompt stays the case's own."""
@@ -1285,7 +1296,7 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
              work_item: dict | None = None, delegation: str | None = None, checks: list[str] | None = None,
              home: bool = True, product: Path | None = None, home_fixture: Path | None = None,
              records: dict | None = None, exclude: list[str] | tuple = (), planning_review: str | None = None,
-             improve_skill: str = "") -> dict:
+             improve_skill: str = "", implementation: dict | None = None) -> dict:
     """Start a run and record its stages before `stop` as synthetic.
 
     `planning_review` and `improve_skill` are the run's `--planning-review` and `--improve-skill` options (unset: the
@@ -1303,6 +1314,10 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
     the knowledge home (release_slice.copy_home) instead of the neutral one, and `product` (a folder, less `exclude`) is
     committed in the run's worktree after the item's base was recorded, so the item reads as delivered: built after its base,
     not part of it. The source checkout holds only the baseline until the run's own return.
+
+    `implementation` ({"files": {path: bytes}, "deleted": [path]}, slice.recorded_delivery) is an earlier run's implement
+    output: the seed stops at implement, lays those files in the run's worktree uncommitted, as an implement stage leaves
+    them (after the item's base, so they read as the step's change), and then records implement and the stages up to `stop`.
     """
     delivered = release_slice.delivered(stop)
     if delivered and (product is None or home_fixture is None):
@@ -1341,15 +1356,30 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
 
     # A release slice stops at the item's first stage once: the item's base is recorded there (what it started from is the
     # baseline), and only then is the built product committed on top of it.
-    reached = advance(stage_spec.INNER[0] if delivered else stop)
-    built = None
-    if delivered:
+    reached = advance(stage_spec.INNER[0] if delivered else "implement" if implementation else stop)
+    built = laid = None
+    if delivered or implementation:
         worktree = Path(store.read_record(run_dir / "state.md")["repo"])
-        built = release_slice.commit_product(worktree, product, list(exclude), item, git_env, identity)
+        if delivered:
+            built = release_slice.commit_product(worktree, product, list(exclude), item, git_env, identity)
+        else:
+            laid = lay_files(worktree, implementation["files"], implementation.get("deleted") or [])
         later = advance(stop)
         reached = {**later, "skipped": reached["skipped"] + later["skipped"], "item_bases": reached["item_bases"]}
     return {"stage": stop, "run_dir": str(run_dir), "start_head": head, "home": written, **reached,
-            **({"product": built, "home_fixture": home_fixture.name} if built else {})}
+            **({"product": built, "home_fixture": home_fixture.name} if built else {}),
+            **({"implementation": laid} if laid else {})}
+
+
+def lay_files(worktree: Path, files: dict[str, bytes], deleted: list[str]) -> dict:
+    """Write ``files`` into ``worktree`` and remove ``deleted``, uncommitted, as an implement stage leaves its change."""
+    for relative, content in files.items():
+        target = worktree / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    for relative in deleted:
+        (worktree / relative).unlink(missing_ok=True)
+    return {"files": sorted(files), "deleted": sorted(deleted)}
 
 
 def seed_materials(name: str, stage: str | None) -> dict | None:
@@ -1363,11 +1393,19 @@ def seed_materials(name: str, stage: str | None) -> dict | None:
     return release_slice.materials(name, catalog().get(name) or {}, stage)
 
 
+# Inner stages after implement: a seed there starts with the step's implementation laid in the worktree (seed_run's
+# `implementation`), and the opening prompt says so.
+IMPLEMENTED = stage_spec.INNER[stage_spec.INNER.index("implement") + 1:]
+
+
 def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent", stage: str = "step-plan") -> str:
     route = "Ask-Agent" if delegation == "ask-agent" else "inline"
     recorded = (f"The test harness recorded its stages before {stage} without doing them: the product the request describes is "
                 "already built and committed in the run's worktree, and the request itself is the specification."
                 if release_slice.delivered(stage) else
+                f"The test harness recorded its stages before {stage} from an earlier run: the step's implementation is in the "
+                "run's worktree, uncommitted, as its implement stage left it, and the request itself is the specification."
+                if stage in IMPLEMENTED else
                 f"The test harness recorded its stages before {stage} without doing them, so the request itself is the "
                 "specification.")
     return (f"A ShipLoop run for the request below is already active, with {route} delegation. {recorded} "
@@ -1573,11 +1611,12 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
     if not checks:
         return {**head, "ran": False, "reason": "the case declares no checks", "engine": position}
     entries = []
-    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env, scrubbed=scrubbed):
+    stop_env = dict(env or {}, E2E_CHECK_PHASE="product_at_stop")
+    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=stop_env, scrubbed=scrubbed):
         timed_out = done["returncode"] is None
         entry = {"command": done["command"], "pass": done["pass"], "returncode": done["returncode"], "timed_out": timed_out}
-        if not done["pass"] and not timed_out:
-            entry["output"] = " ".join(str(done.get("output") or "").split())[-300:]
+        if not timed_out and (not done["pass"] or done.get("output")):
+            entry["output"] = str(done.get("output") or "")[-2000:]
         entries.append(entry)
     timed = sum(entry["timed_out"] for entry in entries)
     passed = sum(entry["pass"] for entry in entries)
@@ -1736,17 +1775,18 @@ def platform_env(base: dict, platform_dir: Path, existing: str = "fresh") -> dic
 
 def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
     """Write ``<platform_dir>/bin/<name>`` for each name: an executable ``#!/bin/sh`` script that runs the case's command with the
-    real HOME and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
+    real HOME, the operator's PATH and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
     none). Returns {name: path}. The command is the case's own text, run as the case wrote it."""
     folder = platform_dir / "bin"
     folder.mkdir(parents=True, exist_ok=True)
-    baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder)}
+    baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder),
+             "E2E_CHECK_PHASE": "builder"}
     written = {}
     for name, command in bins.items():
         path = folder / name
         path.write_text("#!/bin/sh\n# written by the E2E harness (platform.model_bin); the case's policy decides what the model may run\n"
                         + "".join(f"export {key}={shlex.quote(value)}\n" for key, value in baked.items())
-                        + f"exec env HOME={shlex.quote(str(real_home))} {command} \"$@\"\n")
+                        + f"exec env HOME={shlex.quote(str(real_home))} PATH={shlex.quote(os.environ.get('PATH', os.defpath))} {command} \"$@\"\n")
         path.chmod(0o755)
         written[name] = str(path)
     return written
@@ -4189,6 +4229,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not resumed:
             require_improve_card(planning_review, plugin_dir)  # before the host CLI installs the plugin into its profile
         plugin = host.install_plugin(env, plugin_dir)
+        require_installed(plugin, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = host.keepalive_install(env, plugin_dir)
     improve_skill = earlier.get("improve_skill") if resumed else None
@@ -4469,6 +4510,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
+    if platform_spec:
+        check_env.update(E2E_PLATFORM_DIR=str(platform_dir), E2E_CHECK_PHASE="final")
     case = catalog().get(name, {}) if name != "custom" else {}
     # A release slice starts without the product in the source checkout: the checks that read it wait for the return.
     sliced = bool(seeded) and release_slice.delivered(seeded.get("stage"))
@@ -4738,7 +4781,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         print(f"  platform  {'KEPT' if cleaned.get('kept_unfinished') else mark(cleaned.get('ok') and not (seen or {}).get('bypassed'))}  "
               + ("platform KEPT (--keep-platform), ShipLoop did not finish: NOT a pass" if cleaned.get("kept_unfinished")
                  else "platform KEPT (--keep-platform), no cleanup run" if cleaned.get("kept")
-                 else "cleanup ran" if cleaned.get("ran") else "cleanup did not run") + f"; home links "
+                 else "cleanup ran" if cleaned.get("ran") else "cleanup did not run") + "; home links "
               + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none")
               + (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "")
               + (f"; guard saw {seen['guard_calls']} model calls (transcript shows {seen['model_sf_commands']} sf-looking commands"

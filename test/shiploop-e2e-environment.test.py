@@ -1513,7 +1513,7 @@ class CasesNeedTest(unittest.TestCase):
             with self.subTest(case=name):
                 self.assertTrue(set(needs) <= set(environment.NEEDS))
                 self.assertTrue(cases[name].get("needs_source"), "a need names the request that implies it")
-        self.assertEqual(sorted(declared), ["battleship", "battleship-scoring", "checkers"])
+        self.assertEqual(sorted(declared), ["battleship", "battleship-salesforce-ui", "battleship-scoring", "checkers"])
 
 
 def facts(**kw) -> dict:

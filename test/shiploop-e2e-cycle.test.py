@@ -207,7 +207,7 @@ class CycleTest(unittest.TestCase):
         return []
 
     def run_cycle(self, decision="DROP", candidate_tokens=1_200_000, review=None, improver=None, launch=None,
-                  builder=None):
+                  builder=None, calibration=None):
         def cards(root):
             return (epoch.registration(root), json.loads((root / "prediction.json").read_text()),
                     [card("hello"), card("csv-report")], [card("hello", candidate_tokens), card("csv-report")])
@@ -219,7 +219,7 @@ class CycleTest(unittest.TestCase):
                 mock.patch.object(epoch, "decide", return_value={"decision": decision, "reasons": ["a stated reason"]}), \
                 mock.patch.object(cycle.predictions, "_epoch_cards", side_effect=cards):
             result = cycle.qualify(self.worktree, "loop-test", self.record, self.temp / "out" / "cycle-1", self.args,
-                                   self.calibration)
+                                   calibration or self.calibration)
         return result, review
 
     def identical_build(self, worktree, out):
@@ -686,6 +686,58 @@ class CycleTest(unittest.TestCase):
                                                               "why": "too loose"}}))
         with self.assertRaisesRegex(ValueError, "cannot decide"):
             cycle.load_calibration(path, list(CASES))
+
+    # Owner decision, 2026-10-31: with no calibration, the owner states the tolerance and attempts, and every record
+    # says they were not measured.
+
+    @staticmethod
+    def stated(**given):
+        return argparse.Namespace(**{"calibration": None, "tolerance": None, "attempts": None, **given})
+
+    def test_a_stated_basis_is_explicit_checked_and_never_mixed_with_a_measurement(self):
+        stated = cycle.resolve_calibration(self.stated(tolerance=0.25, attempts=3), list(CASES))
+        self.assertEqual((stated["attempts"], stated["tolerance"], stated["metric"], stated["measured"], stated["basis"]),
+                         (3, 0.25, "tokens", False, cycle.UNMEASURED))
+        for given in (self.stated(), self.stated(tolerance=0.25), self.stated(attempts=3)):
+            with self.subTest(given=vars(given)), self.assertRaisesRegex(ValueError, "needs --calibration"):
+                cycle.resolve_calibration(given, list(CASES))
+        with self.assertRaisesRegex(ValueError, "do not also pass"):
+            cycle.resolve_calibration(self.stated(calibration=Path("report.json"), tolerance=0.25), list(CASES))
+        for given, why in ((self.stated(tolerance=0, attempts=3), "above 0"),
+                           (self.stated(tolerance=1.5, attempts=3), "at most 1"),
+                           (self.stated(tolerance=float("nan"), attempts=3), "above 0"),
+                           (self.stated(tolerance=0.25, attempts=0), "positive whole"),
+                           (self.stated(tolerance=0.25, attempts=True), "positive whole")):
+            with self.subTest(why=why, given=vars(given)), self.assertRaisesRegex(ValueError, why):
+                cycle.resolve_calibration(given, list(CASES))
+
+    def test_an_unmeasured_cycle_says_so_in_its_events_its_record_and_its_journal(self):
+        result, _ = self.run_cycle("PROMOTE", 800_000, calibration=cycle.stated_calibration(1, 0.10))
+        self.assertEqual(result["decision"], "PROMOTE")
+        events = {row["event"]: row for row in lr.rows(self.ledger) if row["record"] == self.record}
+        self.assertEqual(events["decided"]["calibration"], cycle.UNMEASURED)
+        self.assertEqual(events["verdict"]["calibration"], cycle.UNMEASURED)
+        self.assertIn("tolerance and attempts stated, not measured", events["verdict"]["reason"])
+        self.assertEqual(lr.current(self.ledger)[self.record]["status"], "verified")
+        journal = (self.worktree / JOURNAL).read_text()
+        self.assertIn("stated, not measured: the false-decision rate is unknown", journal)
+        self.assertNotIn("calibration None", journal)
+
+    def test_a_measured_cycle_is_not_labelled_unmeasured(self):
+        self.run_cycle("PROMOTE", 800_000)
+        events = {row["event"]: row for row in lr.rows(self.ledger) if row["record"] == self.record}
+        self.assertEqual(events["decided"]["calibration"], self.calibration["sha256"])
+        self.assertNotIn("calibration", events["verdict"])
+        self.assertNotIn("stated, not measured", (self.worktree / JOURNAL).read_text())
+
+    def test_an_early_exit_under_an_unmeasured_basis_says_so_in_its_commit(self):
+        review = mock.Mock(return_value={"validity": {"status": "valid"}, "verdict": "misaligned", "summary": "a rename"})
+        result, _ = self.run_cycle(review=review, calibration=cycle.stated_calibration(3, 0.25))
+        self.assertEqual(result["decision"], "REJECTED_AT_PURPOSE")
+        message = self.git("log", "-1", "--format=%B")
+        self.assertIn("3 attempts per arm, tolerance 0.25", message)
+        self.assertIn("stated, not measured: the false-decision rate is unknown", message)
+        self.assertNotIn("SHA256 `None`", message)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,9 @@ the step commits read; a neutral docs/shiploop/ home, unless --seed-without-home
 ShipLoop's packets from step-plan. A poll every POLL_SECONDS archives each distinct packet
 ShipLoop emits (packets.archive_packets) and ends the host once the item's inner loop is over (``slice_complete``): the
 item is advanced past, the run left the inner loop, or the run is no longer active. That stop is final: nothing resumes
-a completed slice.
+a completed slice. An experiment slice may start later (--seed-at, SEED_POINTS) and stop after one stage (--stop-after);
+a seed at test also takes an earlier slice's test-spec and implement results and implement's files (--seed-from,
+recorded_delivery), laid uncommitted after the item's base, so only the test stage varies between samples.
 
 Everything is written under the output directory (default $TMPDIR/shiploop-e2e/slice-<case>-...): the product
 repository (work/), ShipLoop's run directory and its product worktree (.shiploop-runs/seed/), the plugin built from this
@@ -74,6 +76,7 @@ import metrics  # noqa: E402
 import overlay as overlays  # noqa: E402
 import packets  # noqa: E402
 import sessionlog  # noqa: E402
+import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -82,8 +85,14 @@ STEP_CASES = HERE / "step_cases.json"
 FIXTURES = HERE / "fixtures"
 SEED_AT = "step-plan"
 # Where an experiment slice may start (experiment.py): the stages before it are recorded from the case (its
-# ``seed_records`` merge into those synthetic results, as a step-plan seed does).
-SEED_POINTS = ("test-strategy", "step-plan", "test-spec")
+# ``seed_records`` merge into those synthetic results, as a step-plan seed does). A seed at ``test`` holds the
+# implementation fixed: it takes test-spec, implement and implement's files from an earlier slice (--seed-from,
+# recorded_delivery), so only the test stage varies between samples.
+SEED_POINTS = ("test-strategy", "step-plan", "test-spec", "test")
+# The stages whose accepted results a seed at ``test`` takes from the earlier slice; the result keys it leaves out locate
+# that run's files and commits, which the new run does not have.
+RECORDED_STAGES = ("test-spec", "implement")
+RECORD_LOCATORS = ("evidence_refs", "learned_from")
 # ShipLoop's own files in the product checkout: its knowledge home and an Improve child's run evidence. Neither is the
 # product; plan-return keeps run evidence out of the return.
 SHIPLOOP_OWN = ("docs/shiploop/", ".shiploop-improve/")
@@ -142,20 +151,68 @@ def overshoot_after(state: dict, stop_after: str) -> list[str]:
             if isinstance(row, dict) and _order(row.get("stage")) > _order(stop_after)]
 
 
-def merged_records(case: dict, extra: Path | None) -> dict | None:
-    """The case's ``seed_records`` with an arm's own (``--seed-records``) merged over them, stage by stage."""
+def merged_records(case: dict, extra: Path | None, recorded: dict | None = None) -> dict | None:
+    """The case's ``seed_records``, an earlier slice's recorded results (``--seed-from``) over them, and an arm's own
+    (``--seed-records``) over both, stage by stage."""
     records = {stage: dict(fields) for stage, fields in (case.get("seed_records") or {}).items()}
-    for stage, fields in (json.loads(extra.read_text()) if extra else {}).items():
-        records[stage] = {**records.get(stage, {}), **fields}
+    for layer in (recorded or {}, json.loads(extra.read_text()) if extra else {}):
+        for stage, fields in layer.items():
+            records[stage] = {**records.get(stage, {}), **fields}
     return records or None
 
 
-def seed_gap(seed_at: str, records: dict | None) -> str:
+def recorded_delivery(source: Path) -> dict:
+    """What an earlier slice's run accepted before its test stage, for a seed at ``test``.
+
+    ``source`` is that slice's output folder. Returns ``records``: its test-spec and implement results, without the keys
+    that locate its own files and commits (RECORD_LOCATORS). ``files`` and ``deleted``: implement's change, the tree of
+    implement's last passed step proof against the item's base snapshot, less ShipLoop's own files (SHIPLOOP_OWN).
+    """
+    run_dir = Path(source).expanduser().resolve() / ".shiploop-runs" / "seed" / "run"
+    state = read_state(run_dir)
+    if not state:
+        raise SystemExit(f"--seed-from {source}: no ShipLoop run under it ({run_dir}). Nothing was started.")
+    accepted = {row.get("stage"): row for row in state.get("history") or []
+                if isinstance(row, dict) and row.get("outcome") == "done" and row.get("stage") in RECORDED_STAGES}
+    if missing := [stage for stage in RECORDED_STAGES if stage not in accepted]:
+        raise SystemExit(f"--seed-from {source}: the run accepted no {', '.join(missing)} result. Nothing was started.")
+    records = {}
+    for stage, row in accepted.items():
+        result = store.read_record(run_dir / "results" / f"{row['action']}.md")["result"]
+        records[stage] = {key: value for key, value in result.items() if key not in (*RECORD_LOCATORS, "outcome")}
+    action, item = accepted["implement"]["action"], accepted["implement"].get("workitem")
+    proofs = sorted(run_dir.glob(f"tests/{action}-step-proof[0-9]*.md"), key=lambda p: int(p.stem.rsplit("proof", 1)[1]))
+    passed = [record for record in map(store.read_record, proofs) if record.get("passed") and record.get("trees")]
+    base = lint.read_base(run_dir, item)
+    if not passed or not base or not base.get("tree"):
+        raise SystemExit(f"--seed-from {source}: implement {action} has no passed step proof with a tree, or item {item} no "
+                         "recorded base. Nothing was started.")
+    tree, worktree = passed[-1]["trees"][-1], Path(state["repo"])
+    changes = _git(worktree, "diff-tree", "-r", "-z", "--no-renames", "--name-status", base["tree"], tree).stdout.split("\0")
+    files, deleted = {}, []
+    for status, path in zip(changes[0::2], changes[1::2]):
+        if path.startswith(SHIPLOOP_OWN):
+            continue
+        if status == "D":
+            deleted.append(path)
+        else:
+            files[path] = subprocess.run(["git", "-C", str(worktree), "cat-file", "blob", f"{tree}:{path}"],
+                                         capture_output=True, check=True).stdout
+    if not files and not deleted:
+        raise SystemExit(f"--seed-from {source}: implement {action} changed no file. Nothing was started.")
+    return {"source": str(Path(source).expanduser().resolve()), "action": action, "base_tree": base["tree"],
+            "tree": tree, "records": records, "files": files, "deleted": deleted}
+
+
+def seed_gap(seed_at: str, records: dict | None, seed_from: Path | None = None) -> str:
     """Why a seed past step-plan would leave implement nothing to build, or "".
 
     Implement builds each step's Until Loop from the recorded step plan's steps; a synthetic step-plan without any makes it
     refuse every done result, so the slice reaches implement only if test-spec happens to send the plan back.
     """
+    if (seed_at == "test") != bool(seed_from):
+        return ("--seed-at test takes test-spec, implement and implement's files from an earlier slice: give it --seed-from "
+                "OUTPUT, and --seed-from only with --seed-at test. Nothing was started.")
     if SEED_POINTS.index(seed_at) <= SEED_POINTS.index("step-plan") or ((records or {}).get("step-plan") or {}).get("steps"):
         return ""
     return (f"--seed-at {seed_at} records step-plan without doing it, and the case's seed_records give it no steps, so implement "
@@ -469,6 +526,10 @@ def parser() -> argparse.ArgumentParser:
                         "after a planning stage (step-plan included) and names the build's Improve card for the rest")
     p.add_argument("--ref", help="build the plugin from this git ref (a read-only temporary worktree), not the working tree")
     p.add_argument("--overlay", type=Path, help="a prompt overlay (overlay.py) applied to the plugin build copy")
+    p.add_argument("--seed-from", type=Path, metavar="OUTPUT",
+                   help="with --seed-at test: an earlier slice's output folder whose accepted test-spec and implement results "
+                        "the seed records, and whose implement files (its last passed step proof's tree) it lays in the "
+                        "worktree uncommitted (recorded_delivery)")
     p.add_argument("--seed-records", type=Path, metavar="JSON",
                    help="{stage: fields} merged over the case's seed_records for the stages the seed records (an arm's "
                         "own seeded facts, such as a summary the next packet quotes)")
@@ -528,8 +589,9 @@ def _main(argv: list[str] | None, held: list) -> int:
         raise SystemExit("--case is required (or --regrade OUTPUT)")
     case = load_step_case(args.case)
     clear_at = clear.parse_spec(args.clear_at)  # a malformed position ends the command before anything is built
-    records = merged_records(case, args.seed_records)
-    if why := seed_gap(args.seed_at, records):
+    delivery = recorded_delivery(args.seed_from) if args.seed_from else None
+    records = merged_records(case, args.seed_records, delivery and delivery["records"])
+    if why := seed_gap(args.seed_at, records, args.seed_from):
         raise SystemExit(why)
     run.install_termination_handlers()
     out = run.new_output_dir(args.output, f"slice-{args.case}")
@@ -560,12 +622,14 @@ def _main(argv: list[str] | None, held: list) -> int:
     applied = overlays.apply_to_plugin(args.overlay.resolve(), plugin_dir) if args.overlay else None
     run.require_improve_card(args.planning_review, plugin_dir)
     plugin = host.install_plugin(env, plugin_dir)
+    run.require_installed(plugin, plugin_dir)
     cli = run.run_cli(host.name, out, plugin_dir)
     seeded = run.seed_run(cli, work, out, case["prompt"], args.seed_at, fixture=FIXTURES / case["fixture"],
                           work_item=case["work_item"], delegation=args.delegation, checks=case["checks"],
                           home=not args.seed_without_home, records=records,
                           planning_review=args.planning_review,
-                          improve_skill=str(run.improve_card(plugin_dir)) if args.planning_review == "none" else "")
+                          improve_skill=str(run.improve_card(plugin_dir)) if args.planning_review == "none" else "",
+                          implementation=delivery)
     target = seed_state(case, out, env)
     shim = fake_sf(case, out, env)
     run_dir = Path(seeded["run_dir"])
@@ -581,6 +645,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "clear_at": [clear.label(spec) for spec in clear_at], "clear_signal": args.clear_signal,
                   "resume_prompt": args.resume_prompt,
                   "seed_at": args.seed_at, "stop_after": args.stop_after, "ref": args.ref, "overlay": applied,
+                  "seed_from": delivery and {key: delivery[key] for key in ("source", "action", "base_tree", "tree")},
                   "opening_note": note or None, "seed_state": target, "fake_sf": shim,
                   "planning_review": args.planning_review or stage_spec.DEFAULT_PLANNING_REVIEW}
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")

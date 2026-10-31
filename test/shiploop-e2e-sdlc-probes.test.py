@@ -158,6 +158,60 @@ class Run(unittest.TestCase):
         self.assertFalse(any(path.parent.name == "probes" for path in boundary.evaluator_files(HARNESS)))
 
 
+class Dependencies(unittest.TestCase):
+    """P5 on small runs: an Apps Script project declares dependencies in appsscript.json, and a repository with no manifest
+    this reader can parse is unmeasured, never a measured zero (2026-10-31: the first P5 read only four manifest names)."""
+
+    def run_folder(self, start_files: dict[str, str], run_files: dict[str, str]) -> Path:
+        temp = tempfile.TemporaryDirectory(prefix="sdlc-deps-")
+        self.addCleanup(temp.cleanup)
+        out = Path(temp.name) / "out"
+        work = out / "work"
+        work.mkdir(parents=True)
+        git(work, "init", "-q")
+        write(work, start_files)
+        start = commit(work, "start")
+        write(work, run_files)
+        commit(work, "feat(W1/S1): change")
+        (out / "invocation.json").write_text(json.dumps({"seeded": {"start_head": start}}))
+        return out
+
+    def found(self, out: Path) -> dict:
+        return sdlc_probes.probe(out, ROOT)
+
+    def test_an_apps_script_run_that_gains_a_library_and_an_advanced_service_reports_both(self):
+        before = {"timeZone": "UTC", "dependencies": {}}
+        after = {"timeZone": "UTC", "dependencies": {
+            "libraries": [{"userSymbol": "Lib", "libraryId": "1abcLIB", "version": "3"}],
+            "enabledAdvancedServices": [{"userSymbol": "Sheets", "serviceId": "sheets", "version": "v4"}]}}
+        out = self.run_folder({"appsscript.json": json.dumps(before), "Code.gs": "function a() {}\n"},
+                              {"appsscript.json": json.dumps(after)})
+        facts = self.found(out)["probes"]["new_dependencies"]["facts"]
+        self.assertEqual(sorted((f["manifest"], f["name"]) for f in facts),
+                         [("appsscript.json", "library:1abcLIB"), ("appsscript.json", "service:sheets")])
+
+    def test_an_apps_script_manifest_that_did_not_change_is_a_measured_none(self):
+        manifest = json.dumps({"timeZone": "UTC", "dependencies": {"libraries": [{"libraryId": "1abcLIB"}]}})
+        out = self.run_folder({"appsscript.json": manifest, "Code.gs": "function a() {}\n"},
+                              {"Code.gs": "function a() { return 1; }\n"})
+        found = self.found(out)
+        self.assertEqual(found["probes"]["new_dependencies"], {"n": 0, "facts": []})
+        self.assertNotIn("new_dependencies", found["unmeasured"])
+
+    def test_a_repository_with_no_supported_manifest_is_unmeasured_never_none(self):
+        out = self.run_folder({"Code.gs": "function a() {}\n"}, {"Code.gs": "function a() { return 1; }\n"})
+        found = self.found(out)
+        self.assertIsNone(found["probes"]["new_dependencies"])
+        self.assertIn("no supported manifest", found["unmeasured"]["new_dependencies"])
+        self.assertIn("appsscript.json", found["unmeasured"]["new_dependencies"])
+
+    def test_a_manifest_the_run_added_counts_as_a_supported_manifest(self):
+        out = self.run_folder({"README.md": "# x\n"},
+                              {"package.json": json.dumps({"dependencies": {"lodash": "4.17.21"}})})
+        facts = self.found(out)["probes"]["new_dependencies"]["facts"]
+        self.assertEqual([(f["manifest"], f["name"]) for f in facts], [("package.json", "lodash")])
+
+
 class AddedLines(unittest.TestCase):
     def test_new_line_numbers_follow_each_hunk(self):
         diff = ("diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n@@ -1,2 +1,3 @@\n x = 1\n+y = 2\n z = 3\n"

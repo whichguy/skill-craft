@@ -1104,6 +1104,25 @@ class GuidanceTests(unittest.TestCase):
             self.assertIn(phrase, card)
         self.assertNotIn("red_na", card.split("## Remote tests")[0])
 
+    def test_the_apps_script_card_points_deployed_tests_at_the_stateful_target_route(self) -> None:
+        """Only the Salesforce card lists Remote tests: it names the shell commands that test an org. No command this
+        repository runs tests a deployed Apps Script project (clasp appears only to deploy), so the card points at the route
+        every platform has, a test-strategy target that keeps state (run-5 batch F3), and lists no guessed command.
+        The section's heading is exactly "## Testing": the packets of the test-deciding stages point only at a card with
+        that heading (shiploop_navigator._platform_testing_lines), and the first version, titled "Testing deployed
+        code", was never pointed to, so no stage that declares targets saw it."""
+        card = (REFERENCES / "platforms" / "apps-script.md").read_text(encoding="utf-8")
+        self.assertNotIn("## Remote tests", card)
+        self.assertIn("\n## Testing\n", card)
+        section = " ".join(card.split("\n## Testing\n")[1].split("\n## ")[0].split())
+        for phrase in ('`keeps_state: "yes"`', "`base_state_route`", "put that target on each test command",
+                       "does not run those commands on the item's base", "the mutation check skips them and records why",
+                       "names, in its Proof or in an expectation, one command that reads the deployed result"):
+            self.assertIn(phrase, section)
+        loop = (SCRIPTS / "shiploop_test_loop.py").read_text(encoding="utf-8")
+        for name in ('"keeps_state"', "base_state_route", 'row.get("target")'):
+            self.assertIn(name, loop)
+
     def test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check(self) -> None:
         """Packet review 2026-10-17 (F-7, X-1) and the implement-step plan's access row: the consumer's entry route and
         access prerequisites are established at prepare, not found at release-verify; release-check reruns the same

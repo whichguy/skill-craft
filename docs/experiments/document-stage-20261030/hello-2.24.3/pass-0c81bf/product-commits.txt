@@ -1,0 +1,14 @@
+65f9339 docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge at release-verify
+ad2e3dc chore(shiploop): commit files written after the last work item, before the return
+b177408 Require the named test module at release verification
+bdaa04f docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge after system-test-author
+56333eb docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge after carry-forward
+2dda4b3 Update the local boundary verification status
+2bcf601 feat(W1/S1): Implemented the greeting and verified its exact output
+bc9e1e3 docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge at prepare
+aedbbfd docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge after plan
+2a36a86 docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge after test-strategy
+1201cd3 Correct the planned output byte literal
+f206e8f docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge after spec
+69d549f docs(shiploop): record create-hello-py-that-prints-exactly-66dffb knowledge after discovery
+53c8dd4 Empty baseline for the first ShipLoop run

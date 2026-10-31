@@ -8,7 +8,9 @@
     python3 test/shiploop_e2e/experiment.py decide E1 A T [--out DIR] # also: decide E1 T B; default A B, else A T
     python3 test/shiploop_e2e/experiment.py list
 
-experiments.json holds each experiment: its claim, step case, seed and stop points, arms and evaluator. An arm builds
+experiments.json holds each experiment: its claim, step case, seed and stop points, arms and evaluator; an experiment
+seeded at ``test`` also names ``seed_from``, the earlier slice whose test-spec, implement and implement files every sample
+starts from (slice.py --seed-from), so only the test stage varies. An arm builds
 its plugin from a git ref (read-only, overlay.build_ref) and may lay a prompt overlay over that build copy (overlay.py),
 add seeded records, and run its slices under another ShipLoop delegation (``delegation``, slice.py --delegation: SG2's
 fresh-context review arm). ``run`` starts one slice.py per sample into ``<out>/<id>/<arm>/<n>/slice`` (a sample whose slice
@@ -16,13 +18,20 @@ finished is skipped; one cut off is moved aside to ``slice.cut-<time>`` and run 
 the experiment's ``samples``, 4 everywhere), or with ``--sample N`` exactly sample N, so a coordinator can give each
 sample its own background task and a task time limit costs at most one sample. ``score`` runs the evaluator on
 every finished sample and writes ``<out>/<id>/<arm>/<n>/score.json``. ``decide X Y`` compares the mean ``value`` of the
-two arms (each ``value`` lies in 0-1); the A/A spread is the difference between X's samples 1-2 and 3-4 (arms.aa_spread
-on their means), the only threshold, so X needs scored samples 1-4 and every experiment runs 4 samples per arm:
+two arms (each ``value`` lies in 0-1); the noise is read from every sample of both arms by an exact one-sided
+permutation test (``permutation_p``: the share of ways to split the pooled values into groups of the two sizes whose
+mean difference is at least the observed one), and Y is better only when that p is below ``SIGNIFICANCE``. The test needs
+no fixed sample count, but when even a perfect split of the pooled samples could not reach it (3 against 3 bottoms out at
+0.05) every verdict but ceiling and floor is "inconclusive", so every experiment still runs 4 per arm:
   ceiling       every sample of both arms scored 1 (floor: 0), whatever n: the case cannot separate the arms, so
                 the case, not the arms, needs changing (round 1's E1 and E3);
-  supports      Y's mean is above X's by more than the spread (and, with a ``gate``, Y's gate rate is not below X's);
+  supports      Y's mean is above X's and the permutation p is below SIGNIFICANCE (and, with a ``gate``, Y's gate rate
+                is not below X's);
   contradicts   Y is no better than X (difference <= 0), or the gate rate fell;
-  inconclusive  Y is better by no more than the spread, or X lacks scored samples 1-4 (the reason says which).
+  inconclusive  Y is better but the permutation p is not below SIGNIFICANCE, or the samples are too few for any split to
+                reach it (the reason gives the p and the sample counts).
+Until 2026-10-30 (D5) the threshold was the A/A spread, the difference between X's samples 1-2 and 3-4, which read
+two noisy gaps as supports (docs/shiploop-template-experiments-journal.md, E7-K2 and E7-F).
 It writes ``<out>/<id>/decision-<X>-<Y>.json`` (and ``decision.json``, the latest) and appends one line to
 docs/shiploop-template-experiments-journal.md. Default out: $SHIPLOOP_EXPERIMENTS_OUT, else ~/e2e-runs/experiments.
 
@@ -39,8 +48,8 @@ that did not pass is a host failure, not a result: ``score`` records it without 
 starts no more samples, and the next ``run`` or ``queue`` moves the slice aside to ``slice.host-failed-<time>`` and runs
 it again.
 An experiment marked ``descriptive`` runs fewer samples (3) and is reported, not decided: without samples 1-4 of the
-first arm the A/A spread is unmeasured, so ``decide`` can only answer "inconclusive" (or ceiling or floor), and
-``queue`` never stops it early. An experiment without ``stop_after`` runs the item to its end.
+first arm, and fewer than 4 samples per arm cannot reach ``SIGNIFICANCE``, so ``decide`` can only answer "inconclusive"
+(or ceiling or floor), and ``queue`` never stops it early. An experiment without ``stop_after`` runs the item to its end.
 """
 from __future__ import annotations
 
@@ -56,14 +65,15 @@ import sys
 import tempfile
 import threading
 import time
-from collections import deque
+from collections import Counter, deque
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from decimal import Decimal
+from math import comb
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
-import arms  # noqa: E402
 import hosts
 
 EXPERIMENTS = HERE / "experiments.json"
@@ -71,10 +81,10 @@ JOURNAL = ROOT / "docs" / "shiploop-template-experiments-journal.md"
 JOURNAL_HEAD = """# ShipLoop template-field experiments journal
 
 One line per `experiment.py decide`: the experiment, the arms compared (ref and overlay), n per arm, the mean score of
-each arm, the A/A spread (the first arm's samples 1-2 vs 3-4), the verdict and the decision file. The plan, cases,
-evaluators and arms are in test/shiploop_e2e/experiments.json; run outputs are not committed.
+each arm, the exact one-sided permutation p that the second arm's gain is chance, the verdict and the decision file. The
+plan, cases, evaluators and arms are in test/shiploop_e2e/experiments.json; run outputs are not committed.
 
-| date | experiment | arms | n | means | spread | gate | verdict | record |
+| date | experiment | arms | n | means | p | gate | verdict | record |
 |---|---|---|---|---|---|---|---|---|
 """
 
@@ -113,6 +123,8 @@ def slice_argv(exp: dict, arm: dict, output: Path, host: str, extra_records: Pat
         argv += ["--delegation", arm["delegation"]]
     if exp.get("opening_note"):
         argv += ["--opening-note", str(HERE / exp["opening_note"])]
+    if exp.get("seed_from"):
+        argv += ["--seed-from", str(Path(exp["seed_from"]).expanduser())]
     if extra_records:
         argv += ["--seed-records", str(extra_records)]
     return argv
@@ -303,6 +315,30 @@ def read_scores(out: Path, exp_id: str, arm: str) -> list[dict]:
 
 BOUNDS = (0, 1)  # every evaluator's value lies in 0-1
 
+# The one threshold of ``judge``: Y is better than X when the exact one-sided permutation p is below this. The
+# conventional level, and the one the E7-F decision rule fixed before its runs (docs/shiploop-test-stage-prompt-design-2026-10-30.md §7c).
+SIGNIFICANCE = 0.05
+
+
+def permutation_p(control: list[float], candidate: list[float]) -> float:
+    """The exact one-sided p that ``candidate``'s mean exceeds ``control``'s by chance: the share of the ways to split the
+    pooled values into groups of the two sizes whose (candidate minus control) mean difference is at least the observed
+    one. Values are compared as exact decimals, so ties are ties; the count is a dynamic programme over group sums, not an
+    enumeration, so it stays fast for any realistic number of samples."""
+    values = [Decimal(repr(float(v))) for v in control + candidate]
+    exponent = min(v.as_tuple().exponent for v in values)
+    scaled = [int(v.scaleb(-exponent)) for v in values]
+    n_control = len(control)
+    observed = sum(scaled[:n_control])
+    # A larger candidate-minus-control difference is exactly a smaller control sum, so count the splits at or below it.
+    ways = [Counter() for _ in range(n_control + 1)]
+    ways[0][0] = 1
+    for number, value in enumerate(scaled, start=1):
+        for size in range(min(number, n_control), 0, -1):
+            for total, count in list(ways[size - 1].items()):
+                ways[size][total + value] += count
+    return sum(count for total, count in ways[n_control].items() if total <= observed) / comb(len(scaled), n_control)
+
 
 def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
     """The verdict on Y against X from their score records (see the module doc)."""
@@ -314,8 +350,7 @@ def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
         return _mean(seen) if seen else None
 
     vx, vy = values(x), values(y)
-    by_n = {r["sample"]: r["value"] for r in x if isinstance(r.get("value"), (int, float))}
-    report = {"n": [len(vx), len(vy)], "means": [_mean(vx), _mean(vy)], "spread": None, "difference": None,
+    report = {"n": [len(vx), len(vy)], "means": [_mean(vx), _mean(vy)], "p": None, "difference": None,
               "gate": gate, "gate_rates": [gate_rate(x), gate_rate(y)], "verdict": "inconclusive", "reason": ""}
     if not vx or not vy:
         report["reason"] = "an arm has no scored sample"
@@ -326,21 +361,23 @@ def judge(x: list[dict], y: list[dict], gate: str | None = None) -> dict:
             report.update(verdict=name, reason=f"every sample of both arms scored {bound}: the case does not separate "
                           f"the arms at this bound, so change the case before adding samples")
             return report
-    if not all(n in by_n for n in (1, 2, 3, 4)):
-        report["reason"] = "the first arm needs scored samples 1-4 for the A/A spread"
+    report["p"] = permutation_p(vx, vy)
+    best = 1 / comb(len(vx) + len(vy), len(vx))
+    if best >= SIGNIFICANCE:
+        report["reason"] = (f"{len(vx)} and {len(vy)} samples: even a perfect split gives p {best:.2g}, not below "
+                            f"{SIGNIFICANCE}, so no verdict is possible")
         return report
-    spread = arms.aa_spread(_mean([by_n[1], by_n[2]]), _mean([by_n[3], by_n[4]]))
-    report["spread"] = spread
     rates = report["gate_rates"]
     if gate and None not in rates and rates[1] < rates[0]:
         report.update(verdict="contradicts", reason=f"the {gate} rate fell from {rates[0]:.2f} to {rates[1]:.2f}")
-    elif report["difference"] > spread:
+    elif report["difference"] > 0 and report["p"] < SIGNIFICANCE:
         report.update(verdict="supports", reason=f"mean {report['means'][1]:.2f} vs {report['means'][0]:.2f}: "
-                      f"+{report['difference']:.2f} beyond the A/A spread {spread:.2f}")
+                      f"+{report['difference']:.2f}, exact one-sided p {report['p']:.2g} over {len(vx)} and {len(vy)} samples")
     elif report["difference"] <= 0:
         report.update(verdict="contradicts", reason=f"no better: mean {report['means'][1]:.2f} vs {report['means'][0]:.2f}")
     else:
-        report.update(reason=f"+{report['difference']:.2f} is inside the A/A spread {spread:.2f}")
+        report.update(reason=f"+{report['difference']:.2f} is within noise: exact one-sided p {report['p']:.2g} over "
+                      f"{len(vx)} and {len(vy)} samples (supports needs below {SIGNIFICANCE})")
     return report
 
 
@@ -368,7 +405,7 @@ def possible_verdicts(x: list[dict], y: list[dict], count: int) -> set[str]:
 def settled(exp_id: str, out: Path, arm_names: list[str], count: int) -> str | None:
     """The verdicts of ``exp_id``'s round when no remaining sample can change them, else None.
 
-    Only for a binary value, no gate and 4 or more samples (the module doc; fewer leave the A/A spread unmeasured, so
+    Only for a binary value, no gate and 4 or more samples (the module doc; fewer cannot reach ``SIGNIFICANCE``, so
     every completion would read "inconclusive" and the round would stop at once); the first arm is the control. It
     scores the finished samples (score.json) and reads the rest as unknown."""
     exp = load(exp_id)
@@ -484,7 +521,7 @@ def journal_line(exp_id: str, exp: dict, x: str, y: str, report: dict, record: P
 
     gates = "-" if not report["gate"] else f"{report['gate']} {num(report['gate_rates'][0])}/{num(report['gate_rates'][1])}"
     return (f"| {time.strftime('%Y-%m-%d')} | {exp_id} | {arm_text(x)} vs {arm_text(y)} | {report['n'][0]}/{report['n'][1]} | "
-            f"{num(report['means'][0])}/{num(report['means'][1])} | {num(report['spread'])} | {gates} | "
+            f"{num(report['means'][0])}/{num(report['means'][1])} | {'-' if report['p'] is None else format(report['p'], '.2g')} | {gates} | "
             f"**{report['verdict']}**: {report['reason']} | {record} |\n")
 
 
@@ -600,7 +637,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(pair) != 2:
         p.error("decide takes two arms")
     report = decide(args.id, pair[0], pair[1], out)
-    print(json.dumps({k: report[k] for k in ("experiment", "arms", "n", "means", "spread", "gate_rates", "verdict", "reason")},
+    print(json.dumps({k: report[k] for k in ("experiment", "arms", "n", "means", "p", "gate_rates", "verdict", "reason")},
                      indent=2))
     return 0
 

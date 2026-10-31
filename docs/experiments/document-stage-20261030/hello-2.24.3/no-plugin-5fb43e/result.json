@@ -1,0 +1,501 @@
+{
+  "case": "hello",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "pass": false,
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop",
+    "evidence": "ShipLoop CLI ran"
+  },
+  "plugin": {
+    "pass": false,
+    "loaded": [],
+    "wanted": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/71748d95-b3e5-4b94-be59-c777502a51c7/scratchpad/hello-2.24.3/plugins/skill-craft",
+    "path": null
+  },
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.24.3",
+    "shiploop_version": "1.23.3",
+    "plugin_sha256": "5bcc3ac578da",
+    "local_head": "3513f915110408eb3d857c69acfcfd79d9d00c5f"
+  },
+  "prompt_sha256": "d2d7e2dabeeb",
+  "boundary": {
+    "evaluator": "ac436669b3f6",
+    "oracle": "e57f5282a4dd",
+    "case": "313993af1a13"
+  },
+  "host_build": "codex-cli 0.166.0",
+  "span": {
+    "started": 1793410602.027,
+    "ended": 1793410932.123
+  },
+  "identity_unmeasured": {},
+  "process": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 316.8,
+    "stop": "end_turn",
+    "sessions": [
+      {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 14.9,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+      },
+      {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 316.8,
+        "stop": "end_turn",
+        "resumed": "01a18f9a-11f8-7dc2-9bc1-580fdf67da64",
+        "host": "codex"
+      }
+    ],
+    "resumes": 1,
+    "pass": true
+  },
+  "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 2,
+    "resumes": 1,
+    "session_stops": [
+      "end_turn",
+      "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is paused",
+    "engine_status": "paused",
+    "engine_stage": "implement",
+    "engine_unaccepted_stage": "implement",
+    "engine_status_reason": "Implementation loop stopped: its frozen lint condition cannot be verified in this non-Git direct run; lint reports not a Git checkout and lint off runs nothing.",
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+  },
+  "outcome_class": "BLOCKED",
+  "outcome_basis": "engine paused at implement (Implementation loop stopped: its frozen lint condition cannot be verified in this non-Git direct run): it awaits resume; no blocked result names who can unblock it",
+  "environment": {
+    "start": {
+      "observed": true,
+      "at": "2026-10-31T01:36:40Z",
+      "tools": {
+        "node": "v26.12.1",
+        "python3": "Python 3.15.1",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      },
+      "cpus": 18,
+      "loadavg": [
+        4.81,
+        15.29,
+        15.86
+      ],
+      "display_hold": true,
+      "unread": {},
+      "browser": {
+        "declared": false,
+        "probed": false,
+        "reason": "no case or --need declares a browser"
+      }
+    },
+    "end": {
+      "observed": true,
+      "at": "2026-10-31T01:42:14Z",
+      "cpus": 18,
+      "loadavg": [
+        5.72,
+        8.8,
+        12.56
+      ],
+      "unread": {}
+    },
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "launches_unreadable": [],
+    "environments": [
+      {
+        "launch": "invocation.json",
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "host_build": "codex-cli 0.166.0",
+        "identity_unmeasured": {},
+        "environment": {
+          "observed": true,
+          "at": "2026-10-31T01:36:40Z",
+          "tools": {
+            "node": "v26.12.1",
+            "python3": "Python 3.15.1",
+            "git": "git version 2.54.0 (Apple Git-157)"
+          },
+          "cpus": 18,
+          "loadavg": [
+            4.81,
+            15.29,
+            15.86
+          ],
+          "display_hold": true,
+          "unread": {},
+          "browser": {
+            "declared": false,
+            "probed": false,
+            "reason": "no case or --need declares a browser"
+          }
+        },
+        "environment_reason": null
+      }
+    ],
+    "overlap": {
+      "observed": true,
+      "basis": "the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen",
+      "root": "~/e2e-runs",
+      "span": {
+        "first": 1793410602.027,
+        "last": 1793410932.123
+      },
+      "siblings_read": 0,
+      "siblings_unreadable": [],
+      "ended_before": 1230,
+      "runs": []
+    }
+  },
+  "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+  },
+  "resources": {
+    "ledger": "resources.jsonl",
+    "leases": [],
+    "contention": {
+      "observed": true,
+      "root": "~/e2e-runs",
+      "live_runs": [],
+      "same_host": [],
+      "same_model": []
+    },
+    "disk": {
+      "path": "~/e2e-runs/20261030",
+      "free_bytes": 2737457250304,
+      "need_bytes": 2147483648,
+      "ok": true
+    },
+    "cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    }
+  },
+  "keepalive": {
+    "installed": true,
+    "output": "the plugin's hooks/codex.json, run with the trust bypass",
+    "decisions": {
+      "allow": 1
+    }
+  },
+  "shiploop": {
+    "pass": false,
+    "run_dir": "/Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/.shiploop-runs/hello",
+    "status": "paused",
+    "stage": "inner-loop",
+    "revision": 15,
+    "report_html": false,
+    "runs": 1,
+    "identity": "recorded",
+    "worktree": null,
+    "knowledge": {
+      "spec": true,
+      "head": null,
+      "uncommitted": [],
+      "spec_tracked": false,
+      "requirement_ids": [
+        "R-1",
+        "R-2"
+      ],
+      "head_commits": 0,
+      "head_files": 0,
+      "untracked_files": 0,
+      "branches": []
+    }
+  },
+  "committed": {
+    "pass": false,
+    "start_head": null,
+    "head": null,
+    "head_files": 0,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "test \"$(python3 hello.py)\" = 'Hello, world!'",
+      "pass": true,
+      "returncode": 0,
+      "output": ""
+    },
+    {
+      "command": "python3 -m unittest -q",
+      "pass": true,
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 1 test in 0.013s\n\nOK\n"
+    }
+  ],
+  "cli": {
+    "sessions": [
+      {
+        "num_turns": 7,
+        "cost_usd": null,
+        "stop": "end_turn"
+      },
+      {
+        "num_turns": 93,
+        "cost_usd": null,
+        "stop": "end_turn"
+      }
+    ],
+    "stop": "end_turn",
+    "num_turns": 100,
+    "cost_usd": null,
+    "truncated_outputs": null
+  },
+  "follow_on": null,
+  "base": null,
+  "delivery": {
+    "before": {
+      "observed": false,
+      "reason": "no work/ repository (torn down, or nothing was delivered)"
+    },
+    "after": {
+      "observed": false,
+      "reason": "no work/ repository (torn down, or nothing was delivered)"
+    }
+  },
+  "resumed_run": null,
+  "seeded": null,
+  "budget": null,
+  "expectations": {
+    "checks": "the request: each check tests a sentence of the prompt"
+  },
+  "product_at_stop": {
+    "information_only": true,
+    "ran": false,
+    "reason": "no worktree directory under the run's workspace",
+    "engine": {
+      "status": "paused",
+      "stage": "implement"
+    }
+  },
+  "metrics": {
+    "claude_code_version": null,
+    "turns": 100,
+    "model_calls": 64,
+    "window_tokens": 475000,
+    "cost_usd": null,
+    "unreported_sessions": 0,
+    "compactions": 0,
+    "truncated_outputs": null,
+    "improve_children": 4,
+    "stages": [
+      {
+        "stage": "intake",
+        "outcome": "done",
+        "seconds": 53.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 10,
+          "peak": 58100,
+          "peakPct": 12.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "discovery",
+        "outcome": "done",
+        "seconds": 16.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 2,
+          "peak": 65066,
+          "peakPct": 13.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "research",
+        "outcome": "done",
+        "seconds": 7.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 1,
+          "peak": 66766,
+          "peakPct": 14.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "seconds": 45.0,
+        "turns": null,
+        "tool_calls": 15,
+        "context": {
+          "calls": 10,
+          "peak": 103457,
+          "peakPct": 21.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-strategy",
+        "outcome": "done",
+        "seconds": 31.0,
+        "turns": null,
+        "tool_calls": 7,
+        "context": {
+          "calls": 5,
+          "peak": 120364,
+          "peakPct": 25.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "plan",
+        "outcome": "done",
+        "seconds": 44.0,
+        "turns": null,
+        "tool_calls": 10,
+        "context": {
+          "calls": 8,
+          "peak": 145770,
+          "peakPct": 30.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "prepare",
+        "outcome": "done",
+        "seconds": 11.0,
+        "turns": null,
+        "tool_calls": 3,
+        "context": {
+          "calls": 2,
+          "peak": 152723,
+          "peakPct": 32.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "seconds": 58.0,
+        "turns": null,
+        "tool_calls": 15,
+        "context": {
+          "calls": 13,
+          "peak": 181961,
+          "peakPct": 38.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "seconds": 19.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 3,
+          "peak": 190979,
+          "peakPct": 40.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "validate-existing",
+        "outcome": "done",
+        "seconds": 0.0,
+        "turns": null,
+        "tool_calls": 0,
+        "context": {
+          "calls": 0,
+          "peak": null,
+          "peakPct": null,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "implement",
+        "outcome": null,
+        "incomplete": true,
+        "seconds": 46.1,
+        "turns": null,
+        "tool_calls": 11,
+        "context": {
+          "calls": 10,
+          "peak": 211221,
+          "peakPct": 44.5,
+          "compactions": 0
+        }
+      }
+    ],
+    "unmeasured": {
+      "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+      "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement"
+    },
+    "script_verifications": {
+      "records": 0,
+      "passed": 0,
+      "could_not_run": 0,
+      "commands": 0,
+      "red": 0
+    },
+    "planning_seconds": 237.0,
+    "model_glue": 0,
+    "tmp_writes": 0,
+    "asked_user": 0,
+    "narrative": {
+      "emitted": 11,
+      "shown": 8,
+      "verbatim": 7,
+      "results": 10,
+      "with_headline": 9
+    },
+    "shiploop_failures": 4,
+    "cancelled_tool_calls": null
+  },
+  "output": "/Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e",
+  "quality": {
+    "observed": false,
+    "declared": [],
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "reason": "ShipLoop did not reach done (paused), so no delivery was returned",
+    "memory_writes": null,
+    "held_out_seen": null,
+    "unmeasured": {
+      "memory_writes": "the detector reads Claude's file-write calls and this run's launch records show codex",
+      "held_out_seen": "the case declares no held-out acceptance, so nothing is held out"
+    },
+    "seconds": 0.0
+  }
+}

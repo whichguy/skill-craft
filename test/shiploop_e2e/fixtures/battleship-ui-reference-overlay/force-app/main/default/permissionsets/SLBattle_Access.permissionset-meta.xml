@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities>
+        <application>SLBattle</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+    <classAccesses>
+        <apexClass>SLBattleController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SLBattleEngine</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Opens the SL Battleship app and its board tab.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>SLBattle Access</label>
+    <tabSettings>
+        <tab>SLBattle_Board</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

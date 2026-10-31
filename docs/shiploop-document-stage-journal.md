@@ -160,3 +160,25 @@ allowed for exploratory rounds; one Opus 5.5 judge per round.
   of `records.md` there); the inline arm still updates the README (10 lines). Both pass all five slice verdicts. Entry
   "P0 document-loop scope" in `test/shiploop_e2e/LEARNINGS.md`; evidence `experiments/document-stage-20261030/p0-round/`.
   The ask-agent run also took two planning send-backs, unrelated to the scope, so its time is not compared.
+
+### C2: the automatic document skip records a complete result, 2026-10-30
+
+- **Defect (from a live run).** The assessment of the Codex Terra Battleship run (2026-10-30,
+  shiploop-salesforce-battleship-zbcb4i5d) reported that when ShipLoop records an item's document stage as not applicable
+  (the item changed no file, or only files outside the code and test classes) the result it wrote had no `assumptions`
+  and no `knowledge`, went through the normal review checkpoint, and Improve rejected it. `_document_entry` in
+  `shiploop_navigator.py` confirmed it: the result held only `outcome`, `summary` and `evidence_refs`.
+- **What changed.** The left-out result now carries `assumptions: []` and a `knowledge` record that reads
+  "Unchanged: <reason>." for spec, architecture and environment (`KNOWLEDGE_RECORD`), the fields a done document result
+  holds (`_required_handoff_keys`, `HANDOFF_FIELDS`). Commit ee831200, change note
+  `changes/shiploop/document-skip-complete-result.md` (patch). The test stage's left-out recorder
+  (`_record_not_applicable`) is untouched: test is not an open-item stage and has no knowledge field.
+- **Evidence (firm).** The regression test `test_a_left_out_document_result_carries_what_a_done_document_result_must`
+  fails on the unfixed code at `KeyError: 'assumptions'` and passes now. On the pre-fix commit (ee831200^) the recorded
+  result has keys `evidence_refs`, `outcome`, `summary`, and `_handoff_fault` returns "Add assumptions to {result}"; on the
+  fix it returns no fault. CI on ee831200 passed.
+- **Not shown.** Improve's own refusal of the old result is the run assessment's report, not reproduced here. The fix has
+  not run in a live ShipLoop run, and it ships only with the next release.
+- **Known gap (not fixed).** The record says "Unchanged" for the three living files on the strength of the item's changed
+  paths touching no code or test path. An item that edited only a file inside docs/shiploop/ would still read
+  "Unchanged"; the reason lists the changed paths, so the contradiction is visible in the step commit.

@@ -1,0 +1,323 @@
+[
+ {
+  "run": "~/e2e-runs/20261027/v2180-sonnet-battleship-36036c",
+  "operator_id": "js-1",
+  "ratio": 0.8276,
+  "killed": 48,
+  "sites": 58,
+  "survivors_total": 10,
+  "survivors_in_test_support": 0,
+  "product_survivors": [
+   {
+    "file": "server.js",
+    "line": 51,
+    "op": "rel-bound",
+    "from": ">",
+    "to": ">=",
+    "text": "if (size > MAX_BODY_BYTES) {"
+   },
+   {
+    "file": "game.js",
+    "line": 28,
+    "op": "rel-bound",
+    "from": "<",
+    "to": "<=",
+    "text": "for (let attempt = 0; attempt < 1000; attempt++) {"
+   },
+   {
+    "file": "game.js",
+    "line": 28,
+    "op": "bound-literal",
+    "from": "1000",
+    "to": "1001",
+    "text": "for (let attempt = 0; attempt < 1000; attempt++) {"
+   },
+   {
+    "file": "game.js",
+    "line": 29,
+    "op": "rel-bound",
+    "from": "<",
+    "to": "<=",
+    "text": "const horizontal = rng() < 0.5;"
+   },
+   {
+    "file": "game.js",
+    "line": 30,
+    "op": "arith-flip",
+    "from": "+",
+    "to": "-",
+    "text": "const span = SIZE - length + 1;"
+   },
+   {
+    "file": "game.js",
+    "line": 31,
+    "op": "arith-flip",
+    "from": "-",
+    "to": "+",
+    "text": "const row = Math.min(SIZE - 1, Math.floor(rng() * (horizontal ? SIZE : span)));"
+   },
+   {
+    "file": "game.js",
+    "line": 32,
+    "op": "arith-flip",
+    "from": "-",
+    "to": "+",
+    "text": "const col = Math.min(SIZE - 1, Math.floor(rng() * (horizontal ? span : SIZE)));"
+   },
+   {
+    "file": "server.js",
+    "line": 106,
+    "op": "eq-flip",
+    "from": "===",
+    "to": "!==",
+    "text": "if (err.status) return sendError(res, err.status, err.message, err.status === 413 ? { Connection: 'close' } : {});"
+   },
+   {
+    "file": "game.js",
+    "line": 123,
+    "op": "rel-bound",
+    "from": "<",
+    "to": "<=",
+    "text": "if (!Number.isInteger(cap) || cap < 1) throw new RangeError('cap must be an integer >= 1');"
+   },
+   {
+    "file": "game.js",
+    "line": 123,
+    "op": "bound-literal",
+    "from": "1",
+    "to": "2",
+    "text": "if (!Number.isInteger(cap) || cap < 1) throw new RangeError('cap must be an integer >= 1');"
+   }
+  ]
+ },
+ {
+  "run": "~/e2e-runs/20261027/v2170-sonnet-battleship-491d9a",
+  "operator_id": "js-1",
+  "ratio": 0.8302,
+  "killed": 44,
+  "sites": 53,
+  "survivors_total": 9,
+  "survivors_in_test_support": 0,
+  "product_survivors": [
+   {
+    "file": "game.js",
+    "line": 25,
+    "op": "rel-bound",
+    "from": "<",
+    "to": "<=",
+    "text": "const horizontal = random() < 0.5;"
+   },
+   {
+    "file": "server.js",
+    "line": 116,
+    "op": "rel-bound",
+    "from": "<=",
+    "to": "<",
+    "text": "return env.PORT !== undefined && env.PORT !== '' && Number.isInteger(port) && port >= 0 && port <= 65535"
+   },
+   {
+    "file": "server.js",
+    "line": 116,
+    "op": "bound-literal",
+    "from": "65535",
+    "to": "65536",
+    "text": "return env.PORT !== undefined && env.PORT !== '' && Number.isInteger(port) && port >= 0 && port <= 65535"
+   },
+   {
+    "file": "server.js",
+    "line": 133,
+    "op": "rel-bound",
+    "from": ">",
+    "to": ">=",
+    "text": "if (size > MAX_BODY_BYTES) {"
+   },
+   {
+    "file": "server.js",
+    "line": 140,
+    "op": "rel-bound",
+    "from": ">",
+    "to": ">=",
+    "text": "req.on('end', () => resolve(size > MAX_BODY_BYTES ? null : Buffer.concat(chunks).toString('utf8')));"
+   },
+   {
+    "file": "server.js",
+    "line": 158,
+    "op": "rel-bound",
+    "from": ">",
+    "to": ">=",
+    "text": "while (games.size > maxGames) games.delete(games.keys().next().value);"
+   },
+   {
+    "file": "game.js",
+    "line": 63,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (!game || !(game.shots instanceof Set) || !(game.shipAt instanceof Map)) {"
+   },
+   {
+    "file": "game.js",
+    "line": 63,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (!game || !(game.shots instanceof Set) || !(game.shipAt instanceof Map)) {"
+   },
+   {
+    "file": "server.js",
+    "line": 171,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (body === null || typeof body !== 'object' || typeof body.game !== 'string' || !('row' in body) || !('col' in body)) {"
+   }
+  ]
+ },
+ {
+  "run": "~/e2e-runs/20261028/pa-ds-battleship-4ed4e3",
+  "operator_id": "js-1",
+  "ratio": 0.4674,
+  "killed": 122,
+  "sites": 261,
+  "survivors_total": 139,
+  "survivors_in_test_support": 122,
+  "product_survivors": [
+   {
+    "file": "rules.js",
+    "line": 12,
+    "op": "arith-flip",
+    "from": "+",
+    "to": "-",
+    "text": "return row * BOARD_SIZE + col;"
+   },
+   {
+    "file": "server.js",
+    "line": 49,
+    "op": "bound-literal",
+    "from": "9",
+    "to": "10",
+    "text": "return Number.isInteger(value) && value >= 0 && value <= 9;"
+   },
+   {
+    "file": "server.js",
+    "line": 66,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (body === null || typeof body !== 'object' || Array.isArray(body)) return null;"
+   },
+   {
+    "file": "rules.js",
+    "line": 51,
+    "op": "rel-bound",
+    "from": ">=",
+    "to": ">",
+    "text": "if (attempts >= MAX_PLACEMENT_ATTEMPTS) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 55,
+    "op": "rel-bound",
+    "from": "<",
+    "to": "<=",
+    "text": "const orientation = draw(random) < 0.5 ? 'h' : 'v';"
+   },
+   {
+    "file": "rules.js",
+    "line": 75,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (ship === null || typeof ship !== 'object') {"
+   },
+   {
+    "file": "server.js",
+    "line": 90,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (options === null || typeof options !== 'object' || Array.isArray(options)) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 79,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (!Number.isInteger(row) || !Number.isInteger(col)) {"
+   },
+   {
+    "file": "server.js",
+    "line": 90,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (options === null || typeof options !== 'object' || Array.isArray(options)) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 82,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (!Number.isInteger(length) || length < 1) {"
+   },
+   {
+    "file": "server.js",
+    "line": 91,
+    "op": "eq-flip",
+    "from": "===",
+    "to": "!==",
+    "text": "const received = Array.isArray(options) ? 'an array' : options === null ? 'null' : typeof options;"
+   },
+   {
+    "file": "rules.js",
+    "line": 82,
+    "op": "rel-bound",
+    "from": "<",
+    "to": "<=",
+    "text": "if (!Number.isInteger(length) || length < 1) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 82,
+    "op": "bound-literal",
+    "from": "1",
+    "to": "2",
+    "text": "if (!Number.isInteger(length) || length < 1) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 100,
+    "op": "arith-flip",
+    "from": "-",
+    "to": "+",
+    "text": "const lengths = layout.map((ship) => ship.length).sort((a, b) => b - a);"
+   },
+   {
+    "file": "rules.js",
+    "line": 164,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (options === null || typeof options !== 'object' || Array.isArray(options)) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 164,
+    "op": "logic-flip",
+    "from": "||",
+    "to": "&&",
+    "text": "if (options === null || typeof options !== 'object' || Array.isArray(options)) {"
+   },
+   {
+    "file": "rules.js",
+    "line": 165,
+    "op": "eq-flip",
+    "from": "===",
+    "to": "!==",
+    "text": "const received = options === null ? 'null' : Array.isArray(options) ? 'an array' : typeof options;"
+   }
+  ]
+ }
+]

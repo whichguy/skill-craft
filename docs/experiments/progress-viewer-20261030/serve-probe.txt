@@ -1,0 +1,14 @@
+Probe of the command the first packet printed, run verbatim against the finished Codex run's folder
+(2026-10-30, ShipLoop checkout build e4bb796b; the run is shiploop-serve-hello-fc0832, host codex, gpt-6.1-terra xhigh).
+
+printed command found: True
+viewer says: ShipLoop viewer: http://127.0.0.1:51489/ (read-only, this machine only; Ctrl-C stops it)
+GET /                -> 200   52690 bytes  text/html; charset=utf-8
+GET /progress.html   -> 200   52690 bytes  text/html; charset=utf-8
+GET /trace.html      -> 200  894823 bytes  text/html; charset=utf-8
+GET /report.html     -> 200   27208 bytes  text/html; charset=utf-8
+GET /state.md        -> 404
+GET /../etc/passwd   -> 404
+POST /progress.html ->  405
+viewer exit after Ctrl-C: 0
+run folder files changed while serving: none | new files: none

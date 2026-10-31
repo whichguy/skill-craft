@@ -77,6 +77,54 @@ evaluator digest. Run from the main checkout, the calibration epoch would refuse
 usable later only while the files that score an attempt are unchanged. `spread.py` records their digests, and `cycle.py`
 refuses a calibration whose digests differ from the epoch it is applied to.
 
+## Where it stands (2026-10-31)
+
+**Trying to achieve.** Every improvement to ShipLoop proven by its own comparison: one learning record, one candidate
+with a prediction, one `promotion/5` decision, built on only after PROMOTE, and remembered. Done means a live cycle that
+promotes a change whose prediction is confirmed, lands it on `main` and marks its record verified. That has not happened.
+
+**Established.** Stages 1 and 2 are on `main` (6337038, CI green): the SPEC rules, the learning records, predictions,
+`spread.py`, the purpose check, side-by-side runs and `cycle.py`, with no-model tests. ba51c3f then fixed the controller's
+uncommitted learning on its non-DROP exits and recorded the owner's history-first, direct-to-`main` policy. Not
+established: how much one ShipLoop build differs from itself, so whether a full-run cycle can see an ordinary improvement.
+
+**Learned, and where.** About the loop: LEARNINGS.md, "Closed loop, stage 2" and "Closed loop review" (what a cycle costs,
+the noise question, the corrections). About ShipLoop: `test/shiploop_e2e/learning-records.jsonl` (six records; the
+admitted one is the S-13 slip LR-20261030-8ff7a9). The rules the lessons became: SPEC.md's Purpose, "Learning records and
+predictions", Change admission's "Purpose", the promotion contract's "Qualified iteration" and the harness rule "A
+comparison that promotes is one registered epoch".
+
+**Still to change, in order.**
+
+| Step | What | Where | Needs |
+|---|---|---|---|
+| 1 | Stage 3: same-build calibration, about 20 runs, no reviews | a fixed worktree of `main`; writes `docs/experiments/e2e-calibration-*/calibration.json` | the owner's go |
+| 2 | Decide D1 (tolerance, attempts) and D3 (limits); D4 for sampled reviews | the decisions table above | the owner |
+| 3 | Trim the cycle if the tolerance allows: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D1, D4 |
+| 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | step 1 |
+| 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | steps 1 to 4 |
+
+**Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
+want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement
+later. Consequences, so they are not rediscovered:
+- No `calibration.json` exists, so D1 (attempts per arm and tolerance) has no measured basis. The noise figure stays
+  unknown; the only hint is user-listing's turns on Terra, about ±13% across three mixed builds.
+- `iterate.py --qualify` and `cycle.py` refuse to start without `--calibration` (`cycle.load_calibration`). Qualified
+  cycles therefore cannot run as built. A later change must either accept an explicit, recorded tolerance and attempt
+  count in place of a measurement, or the loop moves to step slices (`experiment.py`). That is a decision for the owner.
+- The loop's live parts (the stage 4 pilot, stage 5 cycles) all need Codex Terra runs on the owner's computer; skipping
+  stage 3 does not remove that need. As of this date the owner's computer (BigDog) lists `skill-craft` in Remote
+  Control but does not offer it to cloud sessions, so a cloud session cannot launch live runs there.
+
+**Owner decision, 2026-10-31 (same day): take option 1.** A cycle takes a stated tolerance and attempt count. `iterate.py
+--qualify` and `cycle.py` accept `--tolerance` with `--attempts` in place of `--calibration` (never both, never one alone,
+never a default). Under a stated basis the decision still comes from the same `promotion/5` rule, but the cycle's
+`decided` and `verdict` events, the record's outcome reason, the LEARNINGS entry and the terminal commits all say
+"stated, not measured: the false-decision rate is unknown". A verdict under it is evidence about that comparison and none
+about how often the tolerance misleads. The only hint at the noise is user-listing's about ±13% in turns, so a tight
+tolerance (10%) would likely call noise a win or a loss: start with 0.25 or more, which lets only large effects promote,
+and lower it only with a measurement. The calibration kit stays available to replace the stated basis later.
+
 ## Stage 1: SPEC amendments
 
 Done in 2b4c675. One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged against the amended spec:

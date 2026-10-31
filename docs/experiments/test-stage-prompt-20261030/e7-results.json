@@ -1,0 +1,7569 @@
+{
+ "about": "E7 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §7b, §7c): each scored sample of ~/e2e-runs/e7-20261030 (Codex gpt-6.1-terra xhigh, arms on 7fce12e4) and each decision record; value = the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines against the seed commit (evaluators/e7_tests.py). E7-K2 rows add implement_sites: the limit and guard sites on implement's own tree (its step proof), 0 or 1 when implement wrote no load guard and the test stage did. E7-F rows (seeded at the test stage from E7-K2 A/6, tree a45625d3) add product_as_recorded: the test stage left the recorded implementation's files byte for byte and changed no other src/ file.",
+ "samples": [
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 1,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 9.0,
+   "stand_in_fraction": null,
+   "test_seconds": 92.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 93.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:52:29Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-ee60fa7511474046afcc5a0a6b8a04bb-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 2,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 88.0,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 88.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:55:39Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-36b25bb3d3f948a1ad0f7f187e57f0ba-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 3,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 93.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:58:07Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-a604fcd9de8d40b8800efec3b9a35b29-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 4,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 79.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 80.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:58:03Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-97496540f3484d728332814f4df6024a-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 5,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 94.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.9,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:00:15Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-4598ee047b484adfa1120349e33aa0f6-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 90.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 91.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:00:39Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-73838cba834646cba214a50a73746aa4-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 7,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 76.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 77.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:02:30Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "survived"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [
+     {
+      "disposition": "out-of-scope",
+      "evidence": "This changes the pre-existing requester limit, not the new assignee limit; existing test/validate.test.js covers requester validation in the regression suite.",
+      "mutant": "src/tickets/validate.js:12:55"
+     }
+    ],
+    "check_rows": [
+     {
+      "record": "nav-3bc6e73c27cf4cac85307fba8bde0d32-mutation1.md",
+      "passed": true,
+      "killed": 7,
+      "survived": 1,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "A",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 14.33,
+   "stand_in_fraction": null,
+   "test_seconds": 110.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 111.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:03:08Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-e88a3932446c4cc0a66af9443aae3e22-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 1,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 80.0,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 80.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:55:32Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "survived"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [
+     {
+      "disposition": "out-of-scope",
+      "evidence": "This mutation changes the pre-existing requester limit, not the added assignee limit; test/validate.test.js already covers requester validation.",
+      "mutant": "src/tickets/validate.js:12:55"
+     }
+    ],
+    "check_rows": [
+     {
+      "record": "nav-5920f544dde74e4a910107f2bc3f2c88-mutation1.md",
+      "passed": true,
+      "killed": 7,
+      "survived": 1,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 2,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.5,
+   "stand_in_fraction": null,
+   "test_seconds": 82.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 82.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:55:30Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-083b183bac714bac8cba5c713bbd00a5-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 3,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 7,
+   "mean_titles_per_id": 2.33,
+   "asserts_per_title": 6.57,
+   "stand_in_fraction": null,
+   "test_seconds": 78.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 78.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:57:58Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-098fd2c2351f4f38a956641fe243166c-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 4,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.67,
+   "asserts_per_title": 8.4,
+   "stand_in_fraction": null,
+   "test_seconds": 77.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 78.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:57:57Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-72f1ba1565a741a29fc05c1f61ed8799-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 5,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.33,
+   "stand_in_fraction": null,
+   "test_seconds": 68.5,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 69.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:59:57Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-f1b0289fe67d4e74b0bd330a2c07bd48-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 11.5,
+   "stand_in_fraction": null,
+   "test_seconds": 100.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 100.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:00:32Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-5181925ec77f4f238ce5718d1806f0a1-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 7,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 87.9,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 89.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:02:01Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-434291a573f44f5f98c39e6e755b4bbb-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "C",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.67,
+   "asserts_per_title": 7.8,
+   "stand_in_fraction": null,
+   "test_seconds": 76.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 77.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:02:55Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-94fa8cc7d74e46fd917d1cc560f23304-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 1,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 14.0,
+   "stand_in_fraction": null,
+   "test_seconds": 97.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 97.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:55:39Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-8a028576903549ca8e9338a2ae59ee6d-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 2,
+   "value": 0.8333,
+   "target_total": 6,
+   "target_survived": 1,
+   "all_total": 14,
+   "all_survived": 1,
+   "all_ratio": 0.9286,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.75,
+   "stand_in_fraction": null,
+   "test_seconds": 106.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 106.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:55:50Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-90b9f097c6b74fb7a19e1b5c6dae0acf-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 3,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.67,
+   "stand_in_fraction": null,
+   "test_seconds": 94.1,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:55:42Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-a6753964b99e49e28ba6cfeef30444d0-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 4,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 13.0,
+   "stand_in_fraction": null,
+   "test_seconds": 89.5,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 90.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:58:05Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-69b73e894b4b45c99975a84ffd8e60d3-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 5,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.67,
+   "asserts_per_title": 6.6,
+   "stand_in_fraction": null,
+   "test_seconds": 95.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 96.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T19:58:23Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-b67f0a70e47448c1a3bd6b673dd3c88c-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 93.3,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 94.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:00:37Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-980d6e692b004a4098d4569ba296ed3b-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 7,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 97.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 97.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:00:53Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-7ca2b26f8c2d45d3abbf962221dc8244-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "D",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.25,
+   "stand_in_fraction": null,
+   "test_seconds": 106.8,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 107.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:03:02Z",
+      "named": [
+       "src/persistence.js:144:23",
+       "src/persistence.js:145:52",
+       "src/tickets/validate.js:12:55"
+      ]
+     },
+     {
+      "verb": "check",
+      "at": "2026-10-30T20:03:25Z",
+      "named": [
+       "src/tickets/validate.js:12:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:23",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:98",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:52",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:102:37",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/store.js:104:20",
+      "operator": "comparison",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:12:55",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/tickets/validate.js:68:24",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-f08a2170262849a7ac776f64def5720b-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 1,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 9.5,
+   "stand_in_fraction": null,
+   "test_seconds": 69.6,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 69.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:03:54Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-04e30eb9e435414889c576047174ca0a-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 2,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.75,
+   "stand_in_fraction": null,
+   "test_seconds": 80.2,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 80.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:07:36Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-d2f5bd75ba4b4ffca5d2a14edc4dabb4-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 3,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.33,
+   "stand_in_fraction": null,
+   "test_seconds": 77.6,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 78.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:07:37Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:50",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-e726d597697641e6bbc825243d00484d-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 4,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 9.25,
+   "stand_in_fraction": null,
+   "test_seconds": 80.4,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 81.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:07:38Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:50",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-9b56ea87d2ab4aef8a7a060d99055303-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 5,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.67,
+   "stand_in_fraction": null,
+   "test_seconds": 88.4,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 89.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:07:31Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-0f6ab5f6c2ba4667ae896f74821301f8-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 6,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.0,
+   "stand_in_fraction": null,
+   "test_seconds": 79.6,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 80.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:07:37Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-ed7543ae90954fbd817ccb3e9620bb32-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 7,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 10.25,
+   "stand_in_fraction": null,
+   "test_seconds": 86.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 87.9,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:07:40Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:50",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-1fd6b7c3a8f449a4b7d107bda0b2e457-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-F",
+   "arm": "T",
+   "sample": 8,
+   "value": 1.0,
+   "target_total": 6,
+   "target_survived": 0,
+   "all_total": 14,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 4,
+   "mean_titles_per_id": 1.33,
+   "asserts_per_title": 8.0,
+   "stand_in_fraction": null,
+   "test_seconds": 95.7,
+   "test_spec_seconds": null,
+   "implement_seconds": null,
+   "slice_pass": true,
+   "seconds": 95.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "product_as_recorded": true,
+   "stage_mutation": {
+    "checks": 1,
+    "refusals": 0,
+    "told": [
+     {
+      "verb": "check",
+      "at": "2026-10-31T01:10:30Z",
+      "named": [
+       "src/persistence.js:144:72",
+       "src/persistence.js:144:118",
+       "src/persistence.js:145:24",
+       "src/persistence.js:145:55"
+      ]
+     }
+    ],
+    "last_sites": [
+     {
+      "mutant": "src/persistence.js:144:32",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:72",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:118",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:24",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:50",
+      "operator": "rel-bound",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:145:55",
+      "operator": "logic-flip",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/app.js:38:22",
+      "operator": "integer",
+      "status": "killed"
+     },
+     {
+      "mutant": "src/persistence.js:144:59",
+      "operator": "comparison",
+      "status": "killed"
+     }
+    ],
+    "dispositions": [],
+    "check_rows": [
+     {
+      "record": "nav-ffc5256a06e84dd3aeae6e5b2420cdc6-mutation1.md",
+      "passed": true,
+      "killed": 8,
+      "survived": 0,
+      "undisposed": []
+     }
+    ]
+   }
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "A",
+   "sample": 1,
+   "value": 0.8333,
+   "target_total": 18,
+   "target_survived": 3,
+   "all_total": 31,
+   "all_survived": 4,
+   "all_ratio": 0.871,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 4,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 11,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 4,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 4.2,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 67.0,
+   "test_spec_seconds": 35.7,
+   "implement_seconds": 35.0,
+   "slice_pass": true,
+   "seconds": 137.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 15,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 38,
+     "op": "logic-flip",
+     "text": "if (!order || !Number.isInteger(order.qty) || order.qty < 1 || !Number.isInteger(order.price) || ord"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 38,
+     "op": "logic-flip",
+     "text": "if (!order || !Number.isInteger(order.qty) || order.qty < 1 || !Number.isInteger(order.price) || ord"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "A",
+   "sample": 2,
+   "value": 0.9,
+   "target_total": 10,
+   "target_survived": 1,
+   "all_total": 24,
+   "all_survived": 1,
+   "all_ratio": 0.9583,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 10,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 7,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.6,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 46.0,
+   "test_spec_seconds": 41.2,
+   "implement_seconds": 36.0,
+   "slice_pass": true,
+   "seconds": 123.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 24,
+     "op": "logic-flip",
+     "text": "const qty = fields.qty === undefined || fields.qty === '' ? NaN : Number(fields.qty);"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "A",
+   "sample": 3,
+   "value": 0.9091,
+   "target_total": 11,
+   "target_survived": 1,
+   "all_total": 21,
+   "all_survived": 2,
+   "all_ratio": 0.9048,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 4.0,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 46.0,
+   "test_spec_seconds": 43.9,
+   "implement_seconds": 36.0,
+   "slice_pass": true,
+   "seconds": 126.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 15,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${number}: field must contain =`);"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "A",
+   "sample": 4,
+   "value": 0.7,
+   "target_total": 20,
+   "target_survived": 6,
+   "all_total": 35,
+   "all_survived": 7,
+   "all_ratio": 0.8,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 4,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 10,
+     "survived": 5
+    },
+    "rel-bound": {
+     "killed": 4,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.6,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 46.0,
+   "test_spec_seconds": 28.6,
+   "implement_seconds": 36.0,
+   "slice_pass": true,
+   "seconds": 111.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 15,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 33,
+     "op": "logic-flip",
+     "text": "if (shippedAt === undefined || (shippedAt && !/^\\d{4}-\\d{2}-\\d{2}$/.test(shippedAt))) {"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 48,
+     "op": "logic-flip",
+     "text": "if (!order || typeof order.qty !== 'number' || !Number.isInteger(order.qty) || order.qty < 1 ||"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 48,
+     "op": "logic-flip",
+     "text": "if (!order || typeof order.qty !== 'number' || !Number.isInteger(order.qty) || order.qty < 1 ||"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 49,
+     "op": "logic-flip",
+     "text": "typeof order.price !== 'number' || !Number.isInteger(order.price) || order.price < 0) {"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 49,
+     "op": "logic-flip",
+     "text": "typeof order.price !== 'number' || !Number.isInteger(order.price) || order.price < 0) {"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "C",
+   "sample": 1,
+   "value": 0.9091,
+   "target_total": 11,
+   "target_survived": 1,
+   "all_total": 22,
+   "all_survived": 1,
+   "all_ratio": 0.9545,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 0
+    }
+   },
+   "test_titles": 13,
+   "mean_titles_per_id": 2.6,
+   "asserts_per_title": 1.31,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 35.0,
+   "test_spec_seconds": 38.9,
+   "implement_seconds": 36.0,
+   "slice_pass": true,
+   "seconds": 110.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 34,
+     "op": "logic-flip",
+     "text": "if (!fields.id || !Number.isFinite(id)) throw new SyntaxError(`line ${lineNumber}: id must be a numb"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "C",
+   "sample": 2,
+   "value": 0.8333,
+   "target_total": 12,
+   "target_survived": 2,
+   "all_total": 23,
+   "all_survived": 3,
+   "all_ratio": 0.8696,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.0,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 38.0,
+   "test_spec_seconds": 35.9,
+   "implement_seconds": 45.0,
+   "slice_pass": true,
+   "seconds": 119.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 20,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 32,
+     "op": "logic-flip",
+     "text": "if (!fields.id || !Number.isFinite(id)) throw new SyntaxError(`Line ${lineNumber}: id must be a numb"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "C",
+   "sample": 3,
+   "value": 0.8333,
+   "target_total": 12,
+   "target_survived": 2,
+   "all_total": 22,
+   "all_survived": 3,
+   "all_ratio": 0.8636,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.2,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 41.0,
+   "test_spec_seconds": 36.1,
+   "implement_seconds": 37.0,
+   "slice_pass": true,
+   "seconds": 114.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 20,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 32,
+     "op": "logic-flip",
+     "text": "if (!fields.id || !Number.isFinite(id)) throw new SyntaxError(`Line ${lineNumber}: id must be a numb"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "C",
+   "sample": 4,
+   "value": 0.75,
+   "target_total": 12,
+   "target_survived": 3,
+   "all_total": 23,
+   "all_survived": 4,
+   "all_ratio": 0.8261,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 7,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.2,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 33.0,
+   "test_spec_seconds": 32.4,
+   "implement_seconds": 37.0,
+   "slice_pass": true,
+   "seconds": 102.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 17,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 29,
+     "op": "logic-flip",
+     "text": "if (!fields.id || !Number.isFinite(id)) throw new SyntaxError(`Line ${lineNumber}: id must be a numb"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 35,
+     "op": "logic-flip",
+     "text": "if (shippedAt === undefined || (shippedAt && !/^\\d{4}-\\d{2}-\\d{2}$/.test(shippedAt))) {"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "M",
+   "sample": 1,
+   "value": 0.8889,
+   "target_total": 18,
+   "target_survived": 2,
+   "all_total": 30,
+   "all_survived": 2,
+   "all_ratio": 0.9333,
+   "by_op": {
+    "arith-flip": {
+     "killed": 1,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 5,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 11,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 5,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 2.8,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 71.0,
+   "test_spec_seconds": 36.3,
+   "implement_seconds": 43.0,
+   "slice_pass": true,
+   "seconds": 150.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 41,
+     "op": "logic-flip",
+     "text": "if (!order || !Number.isInteger(order.qty) || order.qty < 1 || !Number.isInteger(order.price) || ord"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 41,
+     "op": "logic-flip",
+     "text": "if (!order || !Number.isInteger(order.qty) || order.qty < 1 || !Number.isInteger(order.price) || ord"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "M",
+   "sample": 2,
+   "value": 0.8182,
+   "target_total": 11,
+   "target_survived": 2,
+   "all_total": 27,
+   "all_survived": 2,
+   "all_ratio": 0.9259,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 12,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 7,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 4.0,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 48.0,
+   "test_spec_seconds": 47.2,
+   "implement_seconds": 40.0,
+   "slice_pass": true,
+   "seconds": 136.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 27,
+     "op": "logic-flip",
+     "text": "const qty = fields.qty === undefined || fields.qty === '' ? NaN : Number(fields.qty);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 31,
+     "op": "logic-flip",
+     "text": "const id = fields.id === undefined || fields.id === '' ? NaN : Number(fields.id);"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "M",
+   "sample": 3,
+   "value": 0.9091,
+   "target_total": 11,
+   "target_survived": 1,
+   "all_total": 21,
+   "all_survived": 2,
+   "all_ratio": 0.9048,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 2.8,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 36.0,
+   "test_spec_seconds": 32.3,
+   "implement_seconds": 37.0,
+   "slice_pass": true,
+   "seconds": 105.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 20,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "M",
+   "sample": 4,
+   "value": 0.8333,
+   "target_total": 18,
+   "target_survived": 3,
+   "all_total": 31,
+   "all_survived": 4,
+   "all_ratio": 0.871,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 4,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 11,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 4,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 4.4,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 58.0,
+   "test_spec_seconds": 35.1,
+   "implement_seconds": 32.0,
+   "slice_pass": true,
+   "seconds": 125.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 20,
+     "op": "rel-bound",
+     "text": "if (equals < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 56,
+     "op": "logic-flip",
+     "text": "if (!order || !Number.isInteger(order.qty) || order.qty < 1 ||"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 57,
+     "op": "logic-flip",
+     "text": "!Number.isInteger(order.price) || order.price < 0) {"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "P",
+   "sample": 1,
+   "value": 0.9091,
+   "target_total": 11,
+   "target_survived": 1,
+   "all_total": 24,
+   "all_survived": 1,
+   "all_ratio": 0.9583,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 9,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 2.6,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 46.0,
+   "test_spec_seconds": 39.5,
+   "implement_seconds": 38.0,
+   "slice_pass": true,
+   "seconds": 124.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 35,
+     "op": "logic-flip",
+     "text": "if (!fields.id || !Number.isFinite(id)) throw new SyntaxError(`line ${lineNumber}: id must be a numb"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "P",
+   "sample": 2,
+   "value": 0.8182,
+   "target_total": 11,
+   "target_survived": 2,
+   "all_total": 25,
+   "all_survived": 3,
+   "all_ratio": 0.88,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 2,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 9,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 7,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 2,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.8,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 60.0,
+   "test_spec_seconds": 34.0,
+   "implement_seconds": 40.0,
+   "slice_pass": true,
+   "seconds": 134.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 21,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 24,
+     "op": "logic-flip",
+     "text": "const qty = fields.qty === undefined || fields.qty === '' ? NaN : Number(fields.qty);"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "P",
+   "sample": 3,
+   "value": 0.9167,
+   "target_total": 12,
+   "target_survived": 1,
+   "all_total": 25,
+   "all_survived": 1,
+   "all_ratio": 0.96,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 3,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 8,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 3,
+     "survived": 0
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.4,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 59.0,
+   "test_spec_seconds": 30.5,
+   "implement_seconds": 41.0,
+   "slice_pass": true,
+   "seconds": 130.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 33,
+     "op": "logic-flip",
+     "text": "if (!fields.id || !Number.isFinite(id)) throw new SyntaxError(`Line ${lineNumber}: id must be a numb"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K1",
+   "arm": "P",
+   "sample": 4,
+   "value": 0.6,
+   "target_total": 10,
+   "target_survived": 4,
+   "all_total": 23,
+   "all_survived": 5,
+   "all_ratio": 0.7826,
+   "by_op": {
+    "arith-flip": {
+     "killed": 2,
+     "survived": 0
+    },
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 10,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 5,
+     "survived": 3
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 1
+    }
+   },
+   "test_titles": 5,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 3.6,
+   "stand_in_fraction": 1.0,
+   "test_seconds": 55.0,
+   "test_spec_seconds": 33.8,
+   "implement_seconds": 33.0,
+   "slice_pass": true,
+   "seconds": 122.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/orders.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/orders.js",
+     "line": 17,
+     "op": "rel-bound",
+     "text": "if (separator < 0) throw new SyntaxError(`Line ${lineNumber}: field must contain =`);"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 21,
+     "op": "logic-flip",
+     "text": "if (id === undefined || id === '' || !Number.isFinite(Number(id))) {"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 21,
+     "op": "logic-flip",
+     "text": "if (id === undefined || id === '' || !Number.isFinite(Number(id))) {"
+    },
+    {
+     "file": "src/orders.js",
+     "line": 33,
+     "op": "logic-flip",
+     "text": "if (shippedAt === undefined || (shippedAt !== '' && !/^\\d{4}-\\d{2}-\\d{2}$/.test(shippedAt))) {"
+    }
+   ]
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 1,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.0,
+   "stand_in_fraction": null,
+   "test_seconds": 79.0,
+   "test_spec_seconds": 33.8,
+   "implement_seconds": 43.0,
+   "slice_pass": true,
+   "seconds": 156.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 2,
+   "value": 0.4286,
+   "target_total": 7,
+   "target_survived": 4,
+   "all_total": 18,
+   "all_survived": 5,
+   "all_ratio": 0.7222,
+   "by_op": {
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 10,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 2,
+     "survived": 4
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.67,
+   "stand_in_fraction": null,
+   "test_seconds": 57.0,
+   "test_spec_seconds": 31.6,
+   "implement_seconds": 39.0,
+   "slice_pass": true,
+   "seconds": 127.9,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 1
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 3,
+   "value": 0.1667,
+   "target_total": 6,
+   "target_survived": 5,
+   "all_total": 15,
+   "all_survived": 6,
+   "all_ratio": 0.6,
+   "by_op": {
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 1,
+     "survived": 4
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.0,
+   "stand_in_fraction": null,
+   "test_seconds": 77.0,
+   "test_spec_seconds": 38.6,
+   "implement_seconds": 38.0,
+   "slice_pass": true,
+   "seconds": 154.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 4,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.67,
+   "stand_in_fraction": null,
+   "test_seconds": 94.0,
+   "test_spec_seconds": 34.1,
+   "implement_seconds": 43.0,
+   "slice_pass": true,
+   "seconds": 171.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 5,
+   "value": 0.1667,
+   "target_total": 6,
+   "target_survived": 5,
+   "all_total": 14,
+   "all_survived": 6,
+   "all_ratio": 0.5714,
+   "by_op": {
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 1,
+     "survived": 4
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.33,
+   "stand_in_fraction": null,
+   "test_seconds": 71.0,
+   "test_spec_seconds": 34.5,
+   "implement_seconds": 42.0,
+   "slice_pass": true,
+   "seconds": 147.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 83.0,
+   "test_spec_seconds": 77.1,
+   "implement_seconds": 42.0,
+   "slice_pass": true,
+   "seconds": 202.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 144,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "!ticket.assignee || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 7,
+   "value": 0.1667,
+   "target_total": 6,
+   "target_survived": 5,
+   "all_total": 15,
+   "all_survived": 6,
+   "all_ratio": 0.6,
+   "by_op": {
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 1,
+     "survived": 4
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.0,
+   "stand_in_fraction": null,
+   "test_seconds": 71.0,
+   "test_spec_seconds": 42.9,
+   "implement_seconds": 48.0,
+   "slice_pass": true,
+   "seconds": 162.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "A",
+   "sample": 8,
+   "value": 0.6,
+   "target_total": 5,
+   "target_survived": 2,
+   "all_total": 12,
+   "all_survived": 2,
+   "all_ratio": 0.8333,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.33,
+   "stand_in_fraction": null,
+   "test_seconds": 72.0,
+   "test_spec_seconds": 32.5,
+   "implement_seconds": 43.0,
+   "slice_pass": true,
+   "seconds": 148.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 1,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 11,
+   "all_survived": 1,
+   "all_ratio": 0.9091,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 14.0,
+   "stand_in_fraction": null,
+   "test_seconds": 76.0,
+   "test_spec_seconds": 34.8,
+   "implement_seconds": 46.0,
+   "slice_pass": true,
+   "seconds": 157.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 2,
+   "value": 0.6,
+   "target_total": 5,
+   "target_survived": 2,
+   "all_total": 12,
+   "all_survived": 2,
+   "all_ratio": 0.8333,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.33,
+   "stand_in_fraction": null,
+   "test_seconds": 83.0,
+   "test_spec_seconds": 39.4,
+   "implement_seconds": 43.0,
+   "slice_pass": true,
+   "seconds": 166.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "rel-bound",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 3,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 62.0,
+   "test_spec_seconds": 37.1,
+   "implement_seconds": 37.0,
+   "slice_pass": true,
+   "seconds": 137.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 4,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.33,
+   "stand_in_fraction": null,
+   "test_seconds": 76.0,
+   "test_spec_seconds": 38.9,
+   "implement_seconds": 40.0,
+   "slice_pass": true,
+   "seconds": 155.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 0
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 5,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 13.0,
+   "stand_in_fraction": null,
+   "test_seconds": 87.0,
+   "test_spec_seconds": 49.0,
+   "implement_seconds": 54.0,
+   "slice_pass": true,
+   "seconds": 190.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 0
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 6,
+   "value": 0.6,
+   "target_total": 5,
+   "target_survived": 2,
+   "all_total": 12,
+   "all_survived": 2,
+   "all_ratio": 0.8333,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 14.33,
+   "stand_in_fraction": null,
+   "test_seconds": 75.0,
+   "test_spec_seconds": 32.9,
+   "implement_seconds": 39.0,
+   "slice_pass": true,
+   "seconds": 147.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 7,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.67,
+   "stand_in_fraction": null,
+   "test_seconds": 74.0,
+   "test_spec_seconds": 35.7,
+   "implement_seconds": 50.0,
+   "slice_pass": true,
+   "seconds": 160.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee !== ticket.assignee.trim() || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "C",
+   "sample": 8,
+   "value": 0.6,
+   "target_total": 5,
+   "target_survived": 2,
+   "all_total": 12,
+   "all_survived": 2,
+   "all_ratio": 0.8333,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 13.0,
+   "stand_in_fraction": null,
+   "test_seconds": 56.0,
+   "test_spec_seconds": 31.1,
+   "implement_seconds": 30.0,
+   "slice_pass": true,
+   "seconds": 117.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 1,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 11,
+   "all_survived": 1,
+   "all_ratio": 0.9091,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 8.33,
+   "stand_in_fraction": null,
+   "test_seconds": 92.0,
+   "test_spec_seconds": 35.1,
+   "implement_seconds": 42.0,
+   "slice_pass": true,
+   "seconds": 170.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 2,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 13,
+   "all_survived": 2,
+   "all_ratio": 0.8462,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.0,
+   "stand_in_fraction": null,
+   "test_seconds": 85.0,
+   "test_spec_seconds": 37.1,
+   "implement_seconds": 52.0,
+   "slice_pass": true,
+   "seconds": 174.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 3,
+   "value": 0.1667,
+   "target_total": 6,
+   "target_survived": 5,
+   "all_total": 13,
+   "all_survived": 6,
+   "all_ratio": 0.5385,
+   "by_op": {
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 1,
+     "survived": 4
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 13.67,
+   "stand_in_fraction": null,
+   "test_seconds": 76.0,
+   "test_spec_seconds": 53.7,
+   "implement_seconds": 62.0,
+   "slice_pass": true,
+   "seconds": 192.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || ticket.assignee !== ticket.assignee.trim() || /[\\u0000-\\u001f\\u007f]/"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length > 64 || ticket.assignee !== ticket.assignee.trim() || /[\\u0000-\\u001f\\u007f]/"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length > 64 || ticket.assignee !== ticket.assignee.trim() || /[\\u0000-\\u001f\\u007f]/"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 4,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.33,
+   "stand_in_fraction": null,
+   "test_seconds": 88.0,
+   "test_spec_seconds": 39.9,
+   "implement_seconds": 51.0,
+   "slice_pass": true,
+   "seconds": 179.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee !== ticket.assignee.trim() || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 5,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.67,
+   "stand_in_fraction": null,
+   "test_seconds": 74.0,
+   "test_spec_seconds": 42.8,
+   "implement_seconds": 61.0,
+   "slice_pass": true,
+   "seconds": 178.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 6,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 12,
+   "all_survived": 1,
+   "all_ratio": 0.9167,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.67,
+   "stand_in_fraction": null,
+   "test_seconds": 65.0,
+   "test_spec_seconds": 41.3,
+   "implement_seconds": 42.0,
+   "slice_pass": true,
+   "seconds": 149.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 7,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 14,
+   "all_survived": 2,
+   "all_ratio": 0.8571,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.0,
+   "stand_in_fraction": null,
+   "test_seconds": 83.0,
+   "test_spec_seconds": 42.4,
+   "implement_seconds": 45.0,
+   "slice_pass": true,
+   "seconds": 170.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "D",
+   "sample": 8,
+   "value": 0.6667,
+   "target_total": 6,
+   "target_survived": 2,
+   "all_total": 15,
+   "all_survived": 2,
+   "all_ratio": 0.8667,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.0,
+   "stand_in_fraction": null,
+   "test_seconds": 108.0,
+   "test_spec_seconds": 37.8,
+   "implement_seconds": 54.0,
+   "slice_pass": true,
+   "seconds": 200.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 1,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 15,
+   "all_survived": 3,
+   "all_ratio": 0.8,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.33,
+   "stand_in_fraction": null,
+   "test_seconds": 81.0,
+   "test_spec_seconds": 39.8,
+   "implement_seconds": 46.0,
+   "slice_pass": true,
+   "seconds": 167.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 0
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 2,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 15,
+   "all_survived": 3,
+   "all_ratio": 0.8,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.0,
+   "stand_in_fraction": null,
+   "test_seconds": 86.0,
+   "test_spec_seconds": 36.4,
+   "implement_seconds": 39.0,
+   "slice_pass": true,
+   "seconds": 162.0,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 3,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 15,
+   "all_survived": 3,
+   "all_ratio": 0.8,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.67,
+   "stand_in_fraction": null,
+   "test_seconds": 177.0,
+   "test_spec_seconds": 76.8,
+   "implement_seconds": 79.0,
+   "slice_pass": true,
+   "seconds": 333.5,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee === '' || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assigne"
+    }
+   ],
+   "implement_sites": 0
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 4,
+   "value": 1.0,
+   "target_total": 5,
+   "target_survived": 0,
+   "all_total": 12,
+   "all_survived": 0,
+   "all_ratio": 1.0,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.0,
+   "stand_in_fraction": null,
+   "test_seconds": 74.0,
+   "test_spec_seconds": 35.6,
+   "implement_seconds": 45.0,
+   "slice_pass": true,
+   "seconds": 154.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 5,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 11,
+   "all_survived": 1,
+   "all_ratio": 0.9091,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.33,
+   "stand_in_fraction": null,
+   "test_seconds": 86.0,
+   "test_spec_seconds": 38.1,
+   "implement_seconds": 50.0,
+   "slice_pass": true,
+   "seconds": 174.4,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 6,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 15,
+   "all_survived": 3,
+   "all_ratio": 0.8,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 8,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.67,
+   "stand_in_fraction": null,
+   "test_seconds": 75.0,
+   "test_spec_seconds": 32.1,
+   "implement_seconds": 46.0,
+   "slice_pass": true,
+   "seconds": 153.9,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 7,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 11,
+   "all_survived": 1,
+   "all_ratio": 0.9091,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 0
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.0,
+   "stand_in_fraction": null,
+   "test_seconds": 114.0,
+   "test_spec_seconds": 35.8,
+   "implement_seconds": 40.0,
+   "slice_pass": true,
+   "seconds": 190.2,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "M",
+   "sample": 8,
+   "value": 0.5714,
+   "target_total": 7,
+   "target_survived": 3,
+   "all_total": 17,
+   "all_survived": 3,
+   "all_ratio": 0.8235,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 9,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 4,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 9.33,
+   "stand_in_fraction": null,
+   "test_seconds": 85.0,
+   "test_spec_seconds": 40.6,
+   "implement_seconds": 40.0,
+   "slice_pass": true,
+   "seconds": 166.7,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 1
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "P",
+   "sample": 1,
+   "value": 0.5,
+   "target_total": 6,
+   "target_survived": 3,
+   "all_total": 14,
+   "all_survived": 3,
+   "all_ratio": 0.7857,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 7,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 2
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 10.0,
+   "stand_in_fraction": null,
+   "test_seconds": 68.0,
+   "test_spec_seconds": 37.8,
+   "implement_seconds": 36.0,
+   "slice_pass": true,
+   "seconds": 142.8,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 145,
+     "op": "rel-bound",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    }
+   ],
+   "implement_sites": 6
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "P",
+   "sample": 2,
+   "value": 0.8,
+   "target_total": 5,
+   "target_survived": 1,
+   "all_total": 11,
+   "all_survived": 1,
+   "all_ratio": 0.9091,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 5,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 13.67,
+   "stand_in_fraction": null,
+   "test_seconds": 78.0,
+   "test_spec_seconds": 39.7,
+   "implement_seconds": 56.0,
+   "slice_pass": true,
+   "seconds": 174.1,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() || t"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "P",
+   "sample": 3,
+   "value": 0.6,
+   "target_total": 5,
+   "target_survived": 2,
+   "all_total": 12,
+   "all_survived": 2,
+   "all_ratio": 0.8333,
+   "by_op": {
+    "bound-literal": {
+     "killed": 1,
+     "survived": 0
+    },
+    "eq-flip": {
+     "killed": 6,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 3,
+     "survived": 1
+    },
+    "rel-bound": {
+     "killed": 0,
+     "survived": 1
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 12.67,
+   "stand_in_fraction": null,
+   "test_seconds": 121.0,
+   "test_spec_seconds": 74.6,
+   "implement_seconds": 74.0,
+   "slice_pass": true,
+   "seconds": 270.3,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || !ticket.assignee.trim() ||"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "rel-bound",
+     "text": "ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.assignee))) {"
+    }
+   ],
+   "implement_sites": 5
+  },
+  {
+   "experiment": "E7-K2",
+   "arm": "P",
+   "sample": 4,
+   "value": 0.4286,
+   "target_total": 7,
+   "target_survived": 4,
+   "all_total": 18,
+   "all_survived": 5,
+   "all_ratio": 0.7222,
+   "by_op": {
+    "bound-literal": {
+     "killed": 0,
+     "survived": 1
+    },
+    "eq-flip": {
+     "killed": 10,
+     "survived": 0
+    },
+    "logic-flip": {
+     "killed": 2,
+     "survived": 4
+    },
+    "rel-bound": {
+     "killed": 1,
+     "survived": 0
+    }
+   },
+   "test_titles": 3,
+   "mean_titles_per_id": 1.0,
+   "asserts_per_title": 11.0,
+   "stand_in_fraction": null,
+   "test_seconds": 70.0,
+   "test_spec_seconds": 39.5,
+   "implement_seconds": 42.0,
+   "slice_pass": true,
+   "seconds": 151.6,
+   "commit": "7fce12e4b9edff9b2c849bc8f8402ea7f63f143d",
+   "product_files": [
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/validate.js"
+   ],
+   "target_survivors": [
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 146,
+     "op": "logic-flip",
+     "text": "if (ticket.assignee !== null && (typeof ticket.assignee !== 'string' || ticket.assignee.trim() !== t"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    },
+    {
+     "file": "src/persistence.js",
+     "line": 147,
+     "op": "logic-flip",
+     "text": "ticket.assignee.length === 0 || ticket.assignee.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(ticket.a"
+    }
+   ],
+   "implement_sites": 7
+  }
+ ],
+ "decisions": [
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    0.58335
+   ],
+   "spread": 0.0,
+   "difference": -0.020837499999999953,
+   "verdict": "contradicts",
+   "reason": "no better: mean 0.58 vs 0.60"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "A",
+    "D"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6041875,
+    0.6250125
+   ],
+   "spread": 0.0,
+   "difference": 0.020824999999999982,
+   "verdict": "supports",
+   "reason": "mean 0.63 vs 0.60: +0.02 beyond the A/A spread 0.00"
+  },
+  {
+   "experiment": "E7-F",
+   "arms": [
+    "D",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.6250125,
+    0.58335
+   ],
+   "spread": 0.16664999999999996,
+   "difference": -0.041662499999999936,
+   "verdict": "contradicts",
+   "reason": "no better: mean 0.58 vs 0.63"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8356,
+    0.8314250000000001
+   ],
+   "spread": 0.062100000000000044,
+   "difference": -0.004174999999999929,
+   "verdict": "contradicts",
+   "reason": "no better: mean 0.83 vs 0.84"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "A",
+    "M"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8356,
+    0.862375
+   ],
+   "spread": 0.062100000000000044,
+   "difference": 0.026774999999999993,
+   "verdict": "inconclusive",
+   "reason": "+0.03 is inside the A/A spread 0.06"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "A",
+    "P"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8356,
+    0.8109999999999999
+   ],
+   "spread": 0.062100000000000044,
+   "difference": -0.024600000000000066,
+   "verdict": "contradicts",
+   "reason": "no better: mean 0.81 vs 0.84"
+  },
+  {
+   "experiment": "E7-K1",
+   "arms": [
+    "P",
+    "C"
+   ],
+   "n": [
+    4,
+    4
+   ],
+   "means": [
+    0.8109999999999999,
+    0.8314250000000001
+   ],
+   "spread": 0.10530000000000006,
+   "difference": 0.020425000000000137,
+   "verdict": "inconclusive",
+   "reason": "+0.02 is inside the A/A spread 0.11"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.4535875,
+    0.6875
+   ],
+   "spread": 0.13095000000000007,
+   "difference": 0.23391250000000002,
+   "verdict": "supports",
+   "reason": "mean 0.69 vs 0.45: +0.23 beyond the A/A spread 0.13"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "D"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.4535875,
+    0.63335
+   ],
+   "spread": 0.13095000000000007,
+   "difference": 0.1797625,
+   "verdict": "supports",
+   "reason": "mean 0.63 vs 0.45: +0.18 beyond the A/A spread 0.13"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "M"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.4535875,
+    0.646425
+   ],
+   "spread": 0.13095000000000007,
+   "difference": 0.19283750000000005,
+   "verdict": "supports",
+   "reason": "mean 0.65 vs 0.45: +0.19 beyond the A/A spread 0.13"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "A",
+    "P"
+   ],
+   "n": [
+    8,
+    4
+   ],
+   "means": [
+    0.4535875,
+    0.58215
+   ],
+   "spread": 0.13095000000000007,
+   "difference": 0.12856249999999997,
+   "verdict": "inconclusive",
+   "reason": "+0.13 is inside the A/A spread 0.13"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "D",
+    "C"
+   ],
+   "n": [
+    8,
+    8
+   ],
+   "means": [
+    0.63335,
+    0.6875
+   ],
+   "spread": 0.39999999999999997,
+   "difference": 0.05415000000000003,
+   "verdict": "inconclusive",
+   "reason": "+0.05 is inside the A/A spread 0.40"
+  },
+  {
+   "experiment": "E7-K2",
+   "arms": [
+    "P",
+    "C"
+   ],
+   "n": [
+    4,
+    8
+   ],
+   "means": [
+    0.58215,
+    0.6875
+   ],
+   "spread": 0.13570000000000004,
+   "difference": 0.10535000000000005,
+   "verdict": "inconclusive",
+   "reason": "+0.11 is inside the A/A spread 0.14"
+  }
+ ]
+}

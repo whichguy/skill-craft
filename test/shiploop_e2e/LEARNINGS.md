@@ -4619,3 +4619,332 @@ covered only by the existing suites.
 **What it shows.** Nothing measured live. This is not a round and vouches for no live behaviour. The stage suite built on
 the seam renders packets through `accept_effects` with no model; the first live round on a build that includes it is the
 first live exercise of the changed code path. Judge that round against this entry, and record any difference it shows.
+
+## Closed loop review: what a cycle costs, what is still unknown, and why the next step is a measurement (2026-10-31 UTC) — status: retained learning, no code changed; the noise figure stays unknown until stage 3
+
+**Classification.** Retained learning about the E2E apparatus. No ShipLoop source, harness code, scorer, case, baseline row
+or loop limit changes here. It records the owner's question "are we overcomplicating this?", the measured answer, and the
+corrections the answer made to earlier claims, so that they live in the repository and not only in a chat.
+
+**History read first** (owner decision of 2026-10-30, AGENTS.md):
+- 1f85e1b1d29fbc7defeee6531842606c3f15a69e, 550abcbcc5a48c919535441982251a0bac002551, 2b4c67538538069e57129a7c7e3f162341cced8a:
+  the closed-loop plan, D2 ("alongside") and the SPEC amendments.
+- d8f25be586d363d8b25f31744ed439a9c86b436b and 2ec11f846a5f196db4372c8badfc7c05807827c3: stage 2's harness and its entry
+  above ("Closed loop, stage 2").
+- 63370382654f9e517b1c70e27b84b29713cb4c82: the merge that put both on main (CI run 41118741018 green on all four jobs).
+- ba51c3f4e74ea8731ac03959675d6e47b5d91c37: another session's review of the stage-2 controller and the owner's
+  history-first and direct-main policies (its entry above, "Retain history and interrupted learning").
+- 008feae5295e1cee3f069f04aec6fec38ac6adb1 (Wave A, compared by hand) and 11c851e74df399c269f13ed9a7afa0758a1fd1a0 (the
+  epoch controller) for the state the loop started from.
+
+**Question.** Is the closed loop the right action, or has its machinery got ahead of its evidence?
+
+**Measured.**
+- **Model sessions per cycle**, from cycle.py's own shape at 3 attempts per arm on two cases: 12 subject runs, 12
+  reviews, 12 judgments, 1 improver and 1 purpose review, 38 in all. 24 of the 38 review and judge every attempt for new
+  findings; `promotion.decide` does not read them (epoch.decide only downgrades a PROMOTE to UNDECIDED while any attempt
+  lacks a review). Three trims, each cumulative:
+  - review only the candidate's attempts on the exposing case: 12 + 3 + 3 + 1 + 1 = 20;
+  - move the generality case to the release's existing breadth run: 6 + 3 + 3 + 1 + 1 = 14;
+  - run the model purpose review only when the script check lists extra files: 13 (14 when it runs).
+- **Size**: the harness's top-level Python (test/shiploop_e2e/*.py) was 24,954 lines at
+  d98451fbacaafec18c874f25aa4a69f15b9dbc0c, before the plan, and 26,494 at 2ec11f846a5f196db4372c8badfc7c05807827c3:
+  stage 2 added 1,540 lines of harness and 664 of tests, 2,204 lines of Python (2,719 lines in all with docs and data).
+- **Journal composition**: of the 42 entries from 2026-10-25 to 2026-10-30 (from "Case checks write nothing into the
+  product's folder" to "Closed loop, stage 2"), 21 are harness or measurement work and 21 are live rounds or analysis of
+  engine changes.
+- **The only real noise hint**: user-listing on Codex gpt-6.1-terra xhigh, turns 191 (ShipLoop 1.20.0), 185 (1.21.0), 157
+  and 204 (both 1.22.0), from baselines.jsonl rows of 2026-10-29: mean 184, about ±13%. Three builds are mixed in, so this
+  bounds nothing; it is why the calibration is needed.
+- **What the calibration can show**, from spread.py's own test data (synthetic, not a run): over all 560 ways of dealing
+  eight attempts into two arms of three, a build whose tokens vary within 7% gives 0% false PROMOTE/DROP calls at every
+  tolerance from 5% to 50%; one varying by ±40% gives 82.9% at 5%, 68.8% at 10%, 41.3% at 20%, 22.0% at 30% and 9.8% at
+  40%, the first under the proposed 10% bar.
+
+**Decision.**
+- Build nothing more until stage 3's same-build calibration reports. It is the smallest observation that decides whether
+  a full-run cycle can see an ordinary improvement at all.
+- Then shape the loop by the calibrated tolerance at 3 attempts (a proposal for owner decision D1): at or under 15%, trim
+  the cycle as above and run full-run cycles; 15% to 30%, more attempts per arm and only lessons predicted to move a
+  measure past the tolerance; 30% or more, full-run cycles for correctness and large effects only, and efficiency lessons
+  on step slices (experiment.py).
+- Sampling reviews changes the 10-29 design (every attempt reviewed before PROMOTE), so it waits on owner decision D4.
+
+**Corrections to earlier claims** (made in the session, before this entry):
+- "Most of the past week's journal entries were harness work" was wrong: the count is 21 of 42, half.
+- "Sampling the reviews takes a cycle from about 38 to about 16 sessions" was wrong: sampling alone gives 20; all three
+  trims together give about 13.
+- "26,494 lines of Python in the harness before this work" was wrong: 26,494 is the size after stage 2; before it, 24,954.
+- Stage 2's entry says the DROP path's reset was fixed and mutation-tested. That was true and incomplete: ba51c3f found
+  that the other early exits (NO_CANDIDATE, REJECTED_AT_PURPOSE, NO_PREDICTION, REFUSED) appended ledger rows without
+  committing them, so a following improver saw them as uncommitted work and reported a false NO_CANDIDATE, and an
+  unexpected exception could leave the same state. ba51c3f fixed every exit. The lesson for the next stateful controller:
+  test each exit path for the state it leaves, not only the path whose failure was first imagined.
+
+**Contrary evidence and unknowns.**
+- The session counts assume 3 attempts per arm; D1 may set another number, and the cost scales with it.
+- Wall time per session was not measured; "about two hours a cycle" rests on the 2026-10-29 Terra brownfield runs (10 to
+  24 minutes each) and three runs at a time.
+- Battleship has never run on Terra; whether a second case belongs in every cycle depends on its time there.
+- Nothing here measured a live cycle. The loop has still not said PROMOTE or DROP on anything real.
+
+**Evidence.** cycle.py and epoch.py at 63370382654f9e517b1c70e27b84b29713cb4c82; baselines.jsonl; spread.py's tests
+(test/shiploop-e2e-learning-records.test.py, SpreadTest); `git diff --numstat d98451fbacaafec18c874f25aa4a69f15b9dbc0c
+2ec11f846a5f196db4372c8badfc7c05807827c3` and the per-file line counts at both commits for the size figures; the plan's "Where it stands" section below its build order.
+
+## Would a stack-reference cache or lint skill pay? Offline check on stored runs (2026-10-29) — status: firm for Terra brownfield; interim elsewhere
+
+**Question.** Owner asked whether prepackaged lookups (a cached stack-reference file, a find-linters skill) would speed up ShipLoop's discovery and
+planning. **Method (no new run).** `metrics.json` `stages` of the 12 stored Codex Terra xhigh brownfield runs under
+`~/e2e-runs-brownfield/20261029/` (r1, r2, hooks-before, hooks-after; versions 1.20.0-1.22.0), cold (`ticket-assignment`, `user-listing`) against warm
+(`ticket-escalation`, which follows `ticket-assignment` and inherits its `docs/shiploop/` home — the cache already built, by the knowledge home).
+Also the two stored hello traces (1.12.0, 1.13.1) and the Luna/DeepSeek journal entries above.
+
+**Result (firm for Terra brownfield, n = 12 runs).**
+- Planning (intake to prepare) takes 2.7-4.1 min of 9.7-24.1 min per run; `discovery` + `research` together take 27-49 s (5-9 tool calls), about 3-4% of the run.
+- Warm against cold, same model: `discovery` + `research` 35, 35, 33, 27 s against 49, 43, 44, 32 s, so a populated home saves 5-14 s a run (1-2 tool calls).
+  The ceiling for any lookup cache on these cases is therefore about 10 s; a new cold-versus-warm A/B would measure noise (stage times vary 2x between identical reruns).
+- hello (greenfield, Sonnet): `discovery` + `research` are 2-4% of wall time; Improve children are 41%. Luna xhigh heavy runs (older entries): Improve children 54%,
+  `test-strategy` up to 142 min, `discovery` 12-18 min — that time is reasoning and reading, not lookup, per the 2026-10 tiling entry.
+- Lint is already script-owned (`shiploop_lint.py`, `lint-catalog.md`: item-base snapshot, changed-line gate, 14 discovered linters). The catalog's own gaps are Rust,
+  Dockerfile (name matching), C#, Java, SQL.
+
+**Decision (routine, session-owned).** No cache mechanism and no new skill; no A/B launched (no headroom, avoids spend). Revisit only on a stack-heavy case whose
+`discovery`/`research` exceed ~5 min (hosted-platform runs, `chess-salesforce`): then seed `docs/shiploop/environment.md` with as-of-dated facts and compare stage seconds.
+Next-biggest levers are the Improve review children and packet size (15-33 KB per packet), not lookups.
+
+Evidence: `metrics.json` of the runs named above; `docs/shiploop-run-trace-evidence/2026-10-25-hello-claude-1.1{2.0,3.1}/trace.jsonl`; memory `todo-cached-stack-references` (the TODO this answers).
+
+## hello on the published 2.24.3, Codex Terra 6.1 xhigh with hooks on (2026-10-30) — status: firm that 2.24.3 delivers hello on Codex Terra (n = 1); the first attempt is an apparatus error, not a result
+
+**Question.** P0 shipped in 2.24.2, and another session released 2.24.3 after it. Does the package the marketplace serves
+deliver the smoke case end to end on the owner's runner?
+
+**Setup.**
+- `run.py --case hello --host codex` (gpt-6.1-terra, xhigh, hooks on), with `--plugin-dir` on the release commit's tree
+  (5ef936ab, skill-craft 2.24.3 / ShipLoop 1.23.3, exported with `git archive`).
+- Why not `--source marketplace`: it was refused, because origin/main carried another session's unreleased note
+  (`changes/shiploop/apps-script-deployed-target.md`), and releasing it is that session's call.
+- The first launch was refused by the orphan check (SPEC "The resource lifecycle"). Eight progress observers of the
+  finished E7-F slices (`~/e2e-runs/e7-20261030/E7-F/T/1..8`) were still alive with no harness.
+  - Owner, 2026-10-30: "Clean up now". I ran `lifecycle.py cleanup` on each slice; nothing came back unverified.
+  - The E7-F session confirmed that all eight had finished and been scored.
+
+**Attempt 1 (`5fb43e`): an apparatus error, with no plugin loaded.**
+- **The cause:** I exported only `plugins/skill-craft`. Codex's `install_plugin` registers the folder two levels up as a
+  marketplace, and that folder needs `.agents/plugins/marketplace.json`. Without it, the plugin was cached but never
+  enabled (`invocation.json`: `plugin.loaded` is `[]`).
+- **The harness launched anyway:** it graded plugin FAIL and still started the host.
+- **What the model did:**
+  - It found no `$skill-craft:shiploop` and wrote `hello.py` and `test_hello.py` itself.
+  - It then found ShipLoop in the plugin cache and ran `shiploop init` over the folder, which was by then non-empty and
+    not a Git repository. That is the direct entry (`first-actions.txt`, actions 3 and 10).
+  - The implement loop's lint condition could not be checked without Git (`shiploop lint exit 3: not a Git checkout`).
+- **The end state:** the run paused at implement after 5.5 minutes. Both product checks passed.
+- This is not a 2.24.3 result.
+
+**Attempt 2 (`0c81bf`): PASS, on the full release tree, catalogs included.**
+
+| | result |
+|---|---|
+| plugin | `skill-craft@whichguy 2.24.3` loaded |
+| ShipLoop | done, in 1 session, 525 s |
+| committed | 14 commits, 7 files, 0 uncommitted product paths |
+| request checks | 2 of 2 |
+| ShipLoop command failures | 0; script verifications 4 of 4; 8 Improve children |
+| mutation gate | not exercised: no changed product line matched an operator |
+
+- **The README:** the document stage wrote a 3-line README and committed it with W1/S1's step commit (2bcf601). That
+  agrees with P0, but it is not a test of P0, because this greenfield run had no README to update.
+- **Overlap:** another Codex run, `terra-high-user-listing`, overlapped this one for 72 s. It is recorded, not a
+  verdict.
+
+**Harness fix (this commit).**
+- **The change:** `run.require_installed` starts no host when the host failed to install a checkout build. It guards
+  `run.py`'s checkout path and `slice.py`.
+- **The message:** the refusal carries Codex's install output, which `hosts.CodexHost.install_plugin` now passes through.
+- **The marketplace path:** already refused a failed install through the version gate.
+- **Tests:** `CodexRunTest.test_a_plugin_build_the_host_failed_to_install_starts_no_host` (fails without the guard with
+  "SystemExit not raised") and `test_only_a_failed_install_check_refuses`.
+
+**Open (owner).** The direct, non-Git entry could not pass implement, because lint needs a Git checkout. SKILL.md offers
+the direct entry for an explicitly selected in-place run, so whether such a run should be able to finish is a product
+decision. This was seen once, on a run the apparatus broke; it has not been reproduced on purpose.
+
+**Not covered.**
+- Only one run, on one host.
+- The marketplace install path itself: the gate refused it, though the bytes come from the same release commit's tree.
+
+Evidence: `docs/experiments/document-stage-20261030/hello-2.24.3/{no-plugin-5fb43e,pass-0c81bf}/`. Both attempts have
+baseline rows. Attempt 1's row is `pass: false` and did not reach done, so no comparison reads it.
+
+## Stage suite core on macOS: two causes, three failing tests (2026-10-30) — status: firm; a test-apparatus fix, nothing live
+
+The stage suite core (c8af6a5c, built in a Linux container) failed 3 tests in quick on macOS, on a clean origin/main too:
+
+- **`stage_build.build` gave two spellings of one folder.** `run_dir` came from `out` as the caller gave it
+  (`/var/folders/…`). `worktree` came from `state.md`, which ShipLoop records resolved (`/private/var/folders/…`). The
+  same split happens under any symlinked output folder, Linux included.
+  - The fix: `build` and `render` resolve `out` first.
+  - The test: `Builds.test_a_build_through_a_symlinked_folder_spells_each_path_one_way`, which fails on the old builder.
+  - The class's temp root is resolved to match.
+- **The oracle's environment probe counted a macOS variable as inherited.** CoreFoundation gives every process
+  `__CF_USER_TEXT_ENCODING` at start, even under `env -i`. The oracle's cut is right: it passes five variables. The
+  probe now ignores that name, as it ignores the shell's own `PWD`, `SHLVL` and `_`.
+
+After the fix, quick (`--changed-from origin/main`) passes all 49 suites on this Mac. The stage_suite files are outside
+`boundary.fingerprint`, so the evaluator digest is unchanged.
+
+
+## Real UI observation and generic evidence handoff — apparatus win (2026-10-30)
+
+**Question.** Can a selected hosted case retain independent phase evidence and distinguish a working screen from the
+requested backend integration, while the E2E loop stays generic? The owner requires real UI checks, history-based
+learning and only measured wins, with shared `de` limited to tracked test-owned cleanup.
+
+**Setup.** Internal apparatus commit `cefff5edabdbfb1d8600e88fe0460f422c385056`; observed source `c468b25c62012b95dbe11fa199032719d0b34501`
+plus its pre-commit changes, 6,440 files, SHA256
+`ae49b1043fc1948d1d02f58cc4a1369490a577a3e848be02c727e714fe97c8d4`. Optional
+`battleship-salesforce-ui` case, reserved `SLNavUi` namespace. One no-model reference procedure, 269.028 seconds,
+source unchanged. The original case, default suite membership, quality/fidelity floors and subject/improver defaults
+are preserved. Common-loop edits handle runtime binding, phases, output and fixture hashes; case adapters own domain facts.
+
+**Result.** The screen-only observer accepts the deliberately broken backend handoff; the new observer rejects it.
+
+| Observation | Measured outcome |
+| --- | --- |
+| Reference deploy `0Afaj00000prz81CAA` | Eight metadata components; 10/10 Apex methods and 19/19 independent rules |
+| Builder wrapper | Complete 99-shot game; 99 matched successful controller shot records |
+| Independent final | Complete 93-shot game; 93 matched successful controller shot records |
+| Informational at-stop apparatus | Complete 94-shot game; 94 matched successful controller shot records |
+| Each positive browser game | 17 hit-or-sunk shots, five sinks, affirmative game-over text, New game reset |
+| Client-only LWC deploy `0Afaj00000przkjCAA` | Old frozen DOM observer accepts a complete 93-shot game |
+| Same client-only LWC, new observer | Exit 1, first shot rejected as `controller-fire-missing`; original failure receipt retained |
+| Cleanup | Eight owned components removed, one assignment unassigned; `verified=true`, `shared-org-tracked` |
+
+Three positive phase receipts and reset/game-over screenshot hashes were retained; the parent inspected the final
+completion screenshot. Browser requests and responses are correlated by exact HTTPS target host, action ID,
+controller, method, clicked/returned coordinates, result and counters. Valid retries and cached reset remain allowed.
+A phase label does not establish original-builder invocation; actual command events remain required. The at-stop
+path here uses synthetic active-engine context to exercise the apparatus and remains informational.
+
+**Integration corrections.** Quick01 completed 60 suites in 503.412 seconds, with 56 pass and four failed suites.
+It exposed the new browser prerequisite's missing source, its inventory entry and the omitted empty failure-output key;
+these were corrected. Guard tests now place their fake CLI on the operator PATH before generating wrappers. The original
+failed guard batch did invoke the installed CLI against an empty test HOME/fake org; it produced authorization failures
+or help, not an observed successful org change. No production guard was relaxed. Main's existing
+`09a0f19c376ec49cfb933f883652071bf211054f` supplied the macOS path/CoreFoundation corrections; read its learning and
+pulled with `--ff-only`, preserving all owned work. On merged source SHA
+`92bfc94440534c3ddc691e51784290ed5f6b176bbd8f913f1ee0a4b2f03b90fa`, focused checks pass environment 12/12,
+guard 108/108, oracle 105/105, stage build 44/44, scoped Ruff F/E9 and diff check, source unchanged. Final quick02 on clean commit `cefff5edabdbfb1d8600e88fe0460f422c385056` passes all 60 selected/completed suites
+in 323.580 seconds, unchanged 6,463-file source. Quick01 remains a separately retained failure.
+
+**Checks and cost.** Fail-first regressions exposed missing final environment, runtime-hook interception (synthetic
+canary only), unfrozen fixtures, lost receipt output, inherited model PATH and external-origin controller proof.
+Focused reruns pass. The full 14-command batch remains recorded as FAIL due to test-fixture errors; its successful
+suites were platform 169, qualification 18, main 491, cycle 28, epoch 27, experiments 66, probes 16 and groups 50.
+Subsequent targeted corrections pass Salesforce 66/66, Node controller 16/16, origin 1/1 and UI 19/19, plus lint/diff.
+Local browser controls pass 28/28 expected outcomes (11 positive, 17 negative). The final quick tier passes 60/60 on `cefff5edabdbfb1d8600e88fe0460f422c385056`, recorded in
+`apparatus-quick-02/receipt.json` and this journal commit message. Original failed attempts are retained.
+
+Fixture freezing now covers 204 files/516,162 bytes. A warm-cache diagnostic with 25 interleaved samples per arm
+measured fingerprint medians 2.561 to 11.318 ms (+8.757 ms), qualification snapshot 4.872 to 17.968 ms (+13.097 ms).
+This bounded mechanical cost buys comparison integrity; it is not an E2E/token efficiency result. The initial failed
+benchmark setup is retained. Verified Opus 5.5 adversarial advice and native review motivated the fail-first controls.
+
+**What it shows and does not show.** Keep the measured apparatus improvement. No Terra subject or Sol improver ran
+in this procedure, no ShipLoop product candidate was compared or promoted, and no skill was released. Local metadata
+fingerprints do not establish remote deployed-byte identity. Cleanup preserved the watched baseline; arbitrary Apex
+DML/business records, fields on baseline objects, unwatched types, jobs and late deployments are not guaranteed reset.
+The new UI case remains optional. Passing it supports the coverage exercised, not every software-development style.
+
+History materially used: `fc2adc5e67292238e8c0694aab1d79d90a8ee379` supplied the old DOM observer;
+`67f3d92a94dbe09c675dccc4e59dcf962c223ba6` remains an UNADOPTED product proposal;
+`ba51c3f4e74ea8731ac03959675d6e47b5d91c37` and `f0c244253e3ff050ef55409ea2e632d89de1a46f` require honest
+negative learning and sealed target cleanup. `c6c810b0c17ee2259e119dee98d3a910f6519f9e` rejected score gains
+outside the request, so no exact-RPC count or novelty quota was added. `3513f915110408eb3d857c69acfcfd79d9d00c5f`
+and `39ef7afed03983f80490aa8bc639640d49780c14`, plus the owner's explicit choice in this chat, set the next
+comparison to one run per build, 25% token margin, unchanged quality/fidelity; threshold and false-decision rate
+remain **unmeasured**. This apparatus result is not that comparison.
+
+**Release hold preserved.** `c468b25c62012b95dbe11fa199032719d0b34501` records the owner's hold on the unmeasured
+Apps Script card in `dc312cd110cf1e82989bcdf89893e0329b087b3a`. This Salesforce entry does not validate it or
+authorize its release, even if chronology mechanically satisfies release preflight. Actual published control remains
+`5ef936ab8b63907cac55e7da2fbbf04bfb2c2d40` (SkillCraft 2.24.3, ShipLoop 1.23.3, tree `5bcc3ac578da`).
+
+Evidence root: `/Users/dadleet/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/`; see
+`reference-ui-01/receipt.json`, `platform/cleanup.json` within it, `reference-ui-execution-01`,
+`observer-adversarial-01`, `review-regressions-red-02`, `review-regressions-green-01`,
+`controller-origin-red-01`, `final-offline-checks-01`, `final-corrections-01`,
+`receipt-fixture-green-01`, `ui-observer-calibration-03`, `fixture-freeze-cost-01` and `-02`,
+`apparatus-corrections-02`, `apparatus-quick-01/receipt.json`, and `apparatus-quick-02/receipt.json`. Absolute paths identify retained local evidence, not portable release proof.
+
+## Progress viewer: does a host relay the first packet's launch command without running it? Codex Terra 6.1 xhigh with hooks on (2026-10-30) — status: firm for this run (n = 1: one host, one case); the Claude and Grok hosts and a desktop host's display are not measured
+
+**Question.** The viewer change (`feat(shiploop): a read-only localhost viewer for a run, and a first-packet line that
+suggests its command`) puts a `shiploop view --run-dir=… --serve` command on the `Progress view:` line of a run's first
+packet only, and `references/run-start.md` tells the host to give it to the user once, as a command for the user's own
+terminal, and not to run it. The unit and packet tests cannot show the two ways that can go wrong on a real host: the model
+runs the never-exiting `--serve` itself and hangs its own run, or it never tells the user. On a real run, does the first
+packet carry the command, does the model relay it without running it, and does the printed command work on the run it
+came from?
+
+**Setup.**
+- Codex host, `gpt-6.1-terra` at xhigh, hooks on (the harness default, `2f93f425cc68dd13215a1caa73e29a14d1b9bc7d`); the
+  case is `hello`, the smallest, since the question is about the first packet and not about the build:
+  `run.py --case hello --host codex --source checkout --output ~/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832`.
+- Built from this branch: `invocation.json` `local_head` e4bb796b79212568790a5aab6bfca97cf87aa686 (the viewer commit
+  on main 5ca57d9e98095ac59a3c2c47f818a670d7023ba5), plugin 2.24.3, ShipLoop 1.23.3. Those are the released version fields;
+  the build carries the unreleased change, which the installed `run-start.md` shows (it names `view --serve`). The
+  commit was rebased afterwards, twice, over upstream commits the round did not run (the last base is
+  bff4777545afc9d7394be6678e55936733411973), with an identical `git patch-id --stable` (5a7b490623b3) each time: the
+  same change.
+- What the build contains: main 5ca57d9e plus the viewer. It has the Apps Script card changes `dc312cd1` and `c468b25c`,
+  which `hello` never reaches, and not `ee831200` (the document stage's not-applicable record), which landed afterwards.
+  This entry vouches for the viewer's first-packet line only, not for those three commits, though the release
+  preflight's ancestry rule will read it as following them.
+- Not clean for time: another harness run (`terra-high-user-listing`) was live under `~/e2e-runs`, and I ran the full
+  hermetic tier at 4 jobs beside this run (load 15 to 98 on 18 CPUs). The duration is recorded, not compared.
+
+**Result** (evidence: `docs/experiments/progress-viewer-20261030/`; the last row of `baselines.jsonl`. The same cell
+also holds the two rows `8ff81566e1ef45054964bbcc65a1edac59f296a6` added for the published 2.24.3 build: an apparatus
+failure at 100 turns and a pass at 173 turns and 525 s. This run's 167 turns and 702 s sit beside the pass; the time is
+not compared, for the load below).
+
+| | observed |
+|---|---|
+| verdicts | invoked, plugin, process (rc 0), shiploop done, committed (HEAD 362ea6bd, 6 files), both case checks: all PASS |
+| size | 702.4 s, 167 turns, 1 session, 0 resumes, 8 Improve children, 0 ShipLoop command failures |
+| first packet (`workspace` command) | its `Progress view:` line carries the command, after the `progress.html` link |
+| the other 19 tool outputs that showed a `Progress view:` line | the plain line, no command |
+| the model's message that shared the link | the command in a `sh` block under the link, once |
+| commands the model ran that start the viewer | 0 |
+| the printed command, run verbatim on the finished run | `/`, `/progress.html`, `/trace.html`, `/report.html`: 200; `/state.md` and `/../etc/passwd`: 404; POST: 405; Ctrl-C exits 0; no file in the run folder changed or appeared |
+
+**What it shows.**
+- **The relay worked as designed on this host (firm, n = 1).** The model gave the user the command in a code block and
+  did not run it, so the run did not hang on a server that never exits. It wrote "To view it at a local browser address,
+  run:" and not "in your own terminal"; the fenced command is what the user needs.
+- **First packet only (firm).** 1 of the 20 outputs that showed a `Progress view:` line carried the command; the packets
+  after it, including the one `next`, did not repeat it, so the viewer line adds no size to later heads.
+- **The printed command is correct against a real host's run (firm, this run).** The probe used the exact text the model
+  was shown, the throwaway HOME's plugin-cache path included, and served a Codex-written run folder without writing to it.
+
+**Checks beside it.** The full hermetic tier (163 suites, `--jobs 4`) on the viewer commit rebased onto 5ca57d9e: 161 pass,
+2 fail: `shiploop-e2e-stage-oracle` (1 test, the environment probe) and `shiploop-e2e-stage-build` (2 tests, `/private/var`
+against `/var`). Both fail the same way on a clean `origin/main` (ee831200, run here), and `8ff81566` recorded the same
+two on 5ca57d9e, so they are this Mac's, not this change's. `09a0f19c376ec49cfb933f883652071bf211054f` fixed both afterwards.
+
+**Not covered.**
+- The Claude and Grok hosts, other Codex models, a second case, or a second run: one run cannot show the rate at which a
+  model runs the command. A hooks-off row is also unmeasured.
+- What a desktop host's chat shows the user: the headless stream shows the message, not a window. The pages were loaded in
+  the desktop app's browser pane earlier (`docs/shiploop-progress-viewer-journal-2026-10-29.md`, Verification).
+- A command run long after the plugin was updated: the printed path points into the installed plugin's cache, and the
+  harness records that Codex replaces an installed plugin at the next session start. The command is meant to run at once.
+- Harness questions: (1) retain: the extraction (events.jsonl tool outputs, the `Progress view:` line, commands that
+  match `view … --serve`, agent messages that mention `--serve`) is in `score.txt`; no script is added, since one round is
+  not a recurring need. (2) More to learn: the same hello run on the Claude host, if a host is seen to skip the relay.
+  (3) More criteria: a trace check for the relay is not warranted before a host misses it.
+
+This entry is the commit after the viewer commit (the one before it), which is what `scripts/release.py`'s E2E-round preflight reads.

@@ -1,0 +1,76 @@
+{
+  "case": "hello",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "argv": [
+    "codex",
+    "exec",
+    "--json",
+    "-m",
+    "gpt-6.1-terra",
+    "--skip-git-repo-check",
+    "-s",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "--dangerously-bypass-hook-trust",
+    "-C",
+    "/Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/work",
+    "-c",
+    "model_reasoning_effort=xhigh",
+    "$skill-craft:shiploop Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output."
+  ],
+  "cwd": "/Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/work",
+  "plugin_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/71748d95-b3e5-4b94-be59-c777502a51c7/scratchpad/hello-2.24.3/plugins/skill-craft",
+  "plugin": {
+    "pass": false,
+    "loaded": [],
+    "wanted": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/71748d95-b3e5-4b94-be59-c777502a51c7/scratchpad/hello-2.24.3/plugins/skill-craft",
+    "path": null
+  },
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.24.3",
+    "shiploop_version": "1.23.3",
+    "plugin_sha256": "5bcc3ac578da",
+    "local_head": "3513f915110408eb3d857c69acfcfd79d9d00c5f"
+  },
+  "host_build": "codex-cli 0.166.0",
+  "checks": [
+    "test \"$(python3 hello.py)\" = 'Hello, world!'",
+    "python3 -m unittest -q"
+  ],
+  "follow_on": null,
+  "base": null,
+  "resumed_run": null,
+  "seeded": null,
+  "owner_note_at": null,
+  "needs": [],
+  "environment": {
+    "observed": true,
+    "at": "2026-10-31T01:36:40Z",
+    "tools": {
+      "node": "v26.12.1",
+      "python3": "Python 3.15.1",
+      "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+      4.81,
+      15.29,
+      15.86
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+      "declared": false,
+      "probed": false,
+      "reason": "no case or --need declares a browser"
+    }
+  },
+  "planning_review": null,
+  "improve_skill": null,
+  "identity_unmeasured": {}
+}

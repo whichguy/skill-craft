@@ -1,0 +1,11 @@
+{
+  "about": "E7 arm M (§6d): the test stage's mutation catalog gets js-1's two missing classes. The four relational entries become boundary shifts (rel-bound: < and <=, > and >=) in place of negations, since a mutant is named file:line:column and two operators on one token would share a name, and the negations were killed 77 of 79 times (§3c); logic-flip swaps && and ||. Everything else in the check is unchanged (8 sampled mutants, a disposition for each survivor). Written against 7fce12e4 (arm A).",
+  "edits": [
+    {
+      "module": "shiploop_mutation.py",
+      "constant": "OPERATORS",
+      "old": "    (\"comparison\", r\"(?<=\\s)<=(?=\\s)\", \">\"),\n    (\"comparison\", r\"(?<=\\s)>=(?=\\s)\", \"<\"),\n    (\"comparison\", r\"(?<=\\s)<(?=\\s)\", \">=\"),\n    (\"comparison\", r\"(?<=\\s)>(?=\\s)\", \"<=\"),\n",
+      "new": "    (\"rel-bound\", r\"(?<=\\s)<=(?=\\s)\", \"<\"),\n    (\"rel-bound\", r\"(?<=\\s)>=(?=\\s)\", \">\"),\n    (\"rel-bound\", r\"(?<=\\s)<(?=\\s)\", \"<=\"),\n    (\"rel-bound\", r\"(?<=\\s)>(?=\\s)\", \">=\"),\n    (\"logic-flip\", r\"(?<=\\s)&&(?=\\s)\", \"||\"),\n    (\"logic-flip\", r\"(?<=\\s)\\|\\|(?=\\s)\", \"&&\"),\n"
+    }
+  ]
+}

@@ -485,6 +485,20 @@ on quickly before the breadth of everything is checked.
   - It does not go with `--suite`, or with `--seed-at`, because the seeded product carries the case's own names.
   - The case digest (`boundary.case`) is of the renamed entry. So arms under different prefixes are not compared.
 
+- **Case adapters and run evidence (added 2026-10-30).** The E2E facility improves ShipLoop as a generic software
+  development tool. Selected cases and their adapters supply domain facts, prerequisites, commands, product checks and
+  target cleanup. The common loop runs those contracts, records evidence and compares builds; it does not acquire the
+  selected product's rules. A passing case supports only the coverage it actually exercised (S-8, S-13).
+
+  Platform checks receive `E2E_PLATFORM_DIR` before cleanup. An adapter may retain observations there, label their
+  `builder`, `final` or `product_at_stop` phase from `E2E_CHECK_PHASE`, and print receipt paths and SHA256 in its check
+  output. The runner retains ordinary final-check output and bounded informational check output in the run result.
+  Command wrappers use the operator's PATH and the existing real HOME; changing the model's PATH does not select a
+  different runtime inside a wrapper. Phase labels corroborate timing; they are
+  not a security boundary. Actual command events remain necessary to establish builder invocation. A final check does
+  not prove that the builder ran it, and `product_at_stop` remains informational (S-11). An adapter must state what its
+  receipts bind and what is unknown; a local source fingerprint alone does not establish deployed-byte identity.
+
 ## The promotion contract (added 2026-10-25)
 
 Anchor: the owner's directive of 2026-10-25 (the E2E loop drives a self-improving ShipLoop), the final verdict on the loop's
@@ -553,7 +567,8 @@ and two decisions are compared only under the same id.
   - *Fingerprints.* A run records `boundary` in `result.json` when it is graded, and a regrade records its own. It holds
     a digest of the bytes of each of these:
     - `evaluator`: the harness's code, `test/shiploop_e2e/*.py` and `*.cjs`;
-    - `oracle`: `checks/`;
+    - `oracle`: `checks/` and `fixtures/`, excluding generated Python caches. Qualification and calibration freeze the
+      same fixture bytes, so an input edit invalidates the comparison even when the case entry itself is unchanged;
     - `case`: the case's entry in `cases.json`.
 
     The candidate's digest is `versions.plugin_sha256`, the plugin tree the host loaded. The card carries all four.

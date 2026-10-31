@@ -479,7 +479,7 @@ class CodexHost(Host):
         """A checkout build: its root (two levels above the plugin) carries Codex's catalog."""
         installed = self.install_marketplace(env, str(Path(plugin_dir).resolve().parents[1]))
         return {"pass": installed["pass"], "loaded": installed["loaded"], "wanted": str(plugin_dir),
-                "path": installed["path"]}
+                "path": installed["path"], "output": installed["output"]}
 
     def keepalive_install(self, env, plugin_dir):
         """Codex loads the plugin's own hooks, so nothing is installed: the block says whether the plugin brought them."""

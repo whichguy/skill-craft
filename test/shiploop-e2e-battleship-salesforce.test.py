@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import shutil
 import stat
@@ -1239,7 +1240,9 @@ class TestModelThroughTheGuard(FakeOrg):
         super().setUp()
         case = json.loads((E2E / "cases.json").read_text())["battleship-salesforce"]
         command = case["platform"]["model_bin"]["sf"].replace("python3", sys.executable, 1)
-        self.wrapper = run.write_model_bin({"sf": command}, self.platform, self.tmp / "home")["sf"]
+        # The harness pins its operator PATH; select this test's fake CLI before constructing the wrapper.
+        with mock.patch.dict(os.environ, {"PATH": self.env["PATH"]}):
+            self.wrapper = run.write_model_bin({"sf": command}, self.platform, self.tmp / "home")["sf"]
         self.guarded = dict(self.env, E2E_CHECKS=str(E2E / "checks"))
 
     def model(self, *argv: str, cwd: Path) -> subprocess.CompletedProcess:

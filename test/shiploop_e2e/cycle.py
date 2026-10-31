@@ -10,7 +10,9 @@ One cycle (``qualify``), in a worktree whose HEAD is the loop tip:
               rejects the candidate before any run
   3. build    the tip's and the candidate's plugins (scripts/build-packages.py), bound by their tree digests
   4. register a promotion/5 epoch: the exposing case and a case of another style, attempts and tolerance from an
-              A/A calibration (spread.py) whose scoring digest still matches, efficiency on tokens
+              A/A calibration (spread.py) whose scoring digest still matches, or, with no measurement, stated by
+              the owner with ``--tolerance`` and ``--attempts`` and recorded everywhere as unmeasured; efficiency
+              on tokens
   5. run      every attempt, at most ``--parallel`` at once, each its own ``epoch.py launch`` process; then each
               attempt's review and judgment; then ``decide``
   6. apply    PROMOTE keeps the candidate as the tip; DROP or UNDECIDED keeps it as
@@ -31,6 +33,7 @@ check, no git; the entry is written to the output folder for its author to commi
 
     python3 test/shiploop_e2e/iterate.py --qualify --case user-listing --generality-case battleship \\
         --calibration calibration.json --iterations 3
+    python3 test/shiploop_e2e/iterate.py --qualify --case user-listing --tolerance 0.25 --attempts 3   # unmeasured
     python3 test/shiploop_e2e/cycle.py --record LR-... --case user-listing --generality-case battleship \\
         --calibration calibration.json --control-plugin DIR --candidate-plugin DIR --prediction P.json --output OUT
 """
@@ -126,7 +129,46 @@ def load_calibration(path: Path, cases: list[str]) -> dict:
         raise ValueError(f"the calibration cannot decide {recommended.get('metric')} at {recommended.get('attempts')} "
                          f"attempts: {recommended.get('why')}")
     return {"attempts": recommended["attempts"], "tolerance": recommended["tolerance"],
-            "metric": recommended["metric"], "sha256": now["sha256"]}
+            "metric": recommended["metric"], "sha256": now["sha256"], "measured": True, "basis": now["sha256"]}
+
+
+UNMEASURED = "stated, not measured"
+STATED_METRIC = "tokens"
+
+
+def stated_calibration(attempts, tolerance, metric: str = STATED_METRIC) -> dict:
+    """The attempts per arm and the tolerance the owner states when no calibration was run (owner decision,
+    2026-10-31). Nothing measured them: ``measured`` is False and every record, entry and event this cycle writes says
+    so, because the rate at which that tolerance calls noise a win or a loss is unknown."""
+    if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+        raise ValueError("--attempts must be a positive whole number")
+    if (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance)
+            or not 0 < tolerance <= 1):
+        raise ValueError("--tolerance must be a relative change above 0 and at most 1 (0.25 is 25%)")
+    return {"attempts": attempts, "tolerance": float(tolerance), "metric": metric, "sha256": None, "measured": False,
+            "basis": UNMEASURED}
+
+
+def resolve_calibration(args, cases: list[str]) -> dict:
+    """The measured calibration (``--calibration``), or the stated one (``--tolerance`` with ``--attempts``): never
+    both, never neither, and never a default, so an unmeasured basis is always a choice someone made."""
+    report, tolerance, attempts = (getattr(args, name, None) for name in ("calibration", "tolerance", "attempts"))
+    if report is not None:
+        if tolerance is not None or attempts is not None:
+            raise ValueError("--calibration is the measured basis: do not also pass --tolerance or --attempts")
+        return load_calibration(report, cases)
+    if tolerance is None or attempts is None:
+        raise ValueError("a cycle needs --calibration (spread.py's report of an A/A epoch), or --tolerance and "
+                         "--attempts together, which are recorded as unmeasured")
+    return stated_calibration(attempts, tolerance)
+
+
+def calibration_basis(calibration: dict) -> str:
+    return calibration.get("basis") or calibration.get("sha256") or "unknown"
+
+
+def calibration_phrase(basis: str) -> str:
+    return f"{UNMEASURED}: the false-decision rate is unknown" if basis == UNMEASURED else f"calibration {basis}"
 
 
 def registration_template(cases: dict[str, str], control: str, candidate: str, driver: dict, attempts: int,
@@ -277,8 +319,12 @@ def qualify_built(root: Path, record: str, prediction_file: Path, control_plugin
     judged = predictions.verdict(predicted, registration, control_cards, candidate_cards)
     (root.parent / f"{root.name}-verdict.json").write_text(json.dumps(judged, indent=2) + "\n")
     after = predictions.outcome(decided["decision"], judged, decided.get("reasons"))
+    if not calibration.get("measured", True):
+        # A verdict under an unmeasured tolerance is real evidence about this comparison and no evidence about how often
+        # the tolerance misleads: the record says both.
+        after = {**after, "reason": f"{after['reason']} [tolerance and attempts {UNMEASURED}]", "calibration": UNMEASURED}
     learning_records.append("decided", record, ledger, decision=decided["decision"], reasons=decided.get("reasons"),
-                            epoch=str(root))
+                            epoch=str(root), calibration=calibration_basis(calibration))
     learning_records.append("verdict", record, ledger, verdict=judged["verdict"], **after)
     return {"decision": decided["decision"], "reasons": decided.get("reasons"), "verdict": judged, "outcome": after,
             "opened": opened, "control_build": control, "candidate_build": candidate}
@@ -323,7 +369,7 @@ def entry(record: dict, result: dict, setup: dict) -> str:
              f"**Setup.** Loop tip {setup.get('tip') or setup['control_build']}, candidate "
              f"{setup.get('candidate') or setup['candidate_build']}; driver {setup['driver']}; "
              f"{setup['attempts']} attempts per arm, tolerance {setup['tolerance']} on {setup['metric']} "
-             f"(calibration {setup['calibration']}); epoch {setup['epoch']}. Cases: "
+             f"({calibration_phrase(setup['calibration'])}); epoch {setup['epoch']}. Cases: "
              + ", ".join(f"{case} ({role})" for case, role in setup["roles"].items()) + ".", ""]
     if judged.get("effects"):
         lines += ["**Result.**", "", "| case | measure | control | candidate | change | predicted | verdict |",
@@ -367,9 +413,11 @@ def terminal_entry(record: dict | None, decision: str, reason: str, tip: str, ca
         heading = f"## Invalid review from exploration: {decision} ({day})"
         question = "**Question.** Did this exploration produce a discovery-qualified review?"
     calibration_sha = (calibration or {}).get("sha256") or "not used"
+    basis_text = (f"report SHA256 `{calibration_sha}`" if (calibration or {}).get("measured", True)
+                  else f"{UNMEASURED}: the false-decision rate is unknown")
     candidate_sha = candidate or "none; no candidate commit was available"
     calibration_details = (f"{calibration['attempts']} attempts per arm, tolerance {calibration['tolerance']} "
-                           f"on {calibration['metric']} (report SHA256 `{calibration_sha}`)"
+                           f"on {calibration['metric']} ({basis_text})"
                            if calibration else "not used; no product comparison was registered")
     if observed_summary is None:
         observed_summary = ("unknown: exploration result.json was missing or malformed" if record is None else
@@ -689,7 +737,7 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
              "candidate_source": candidate_source(worktree, tip, candidate_sha),
              "driver": f"{driver['host']} {driver['model']} {driver['effort']}", "attempts": calibration["attempts"],
              "tolerance": calibration["tolerance"], "metric": calibration["metric"],
-             "calibration": calibration["sha256"], "epoch": str(stage / "epoch"), "tip_note": note}
+             "calibration": calibration_basis(calibration), "epoch": str(stage / "epoch"), "tip_note": note}
     result["tip_note"] = note
     result["learnings_commit"] = commit_entry(worktree, entry({"record": record_id, **record}, result, setup), record_id,
                                               result["decision"], (result.get("verdict") or {}).get("verdict", "not judged"),
@@ -739,10 +787,11 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
 def loop(args) -> int:
     """`iterate.py --qualify`: qualified cycles in a new worktree from HEAD; see the module docstring."""
     import iterate
-    if not args.calibration:
-        raise SystemExit("--qualify needs --calibration (spread.py's report of an A/A epoch)")
     cases = [args.case] + ([args.generality_case] if args.generality_case else [])
-    calibration = load_calibration(args.calibration, cases)
+    try:
+        calibration = resolve_calibration(args, cases)
+    except ValueError as error:
+        raise SystemExit(f"--qualify: {error}")
     name = f"shiploop-loop-{secrets.token_hex(3)}"
     out = (args.output or Path(tempfile.gettempdir()) / "shiploop-e2e" / name).resolve()
     if out == ROOT or ROOT in out.parents:
@@ -753,7 +802,8 @@ def loop(args) -> int:
     frozen = boundary.qualification_snapshot(HERE, cases)
     journal = out / "LOOP.md"
     iterate.journal(journal, [f"# Qualified loop: {', '.join(cases)}", "", f"- worktree {worktree}, branch {branch}",
-                              f"- calibration {args.calibration}: {calibration['attempts']} attempts per arm, "
+                              f"- basis: {calibration_phrase(calibration_basis(calibration))}; "
+                              f"{calibration['attempts']} attempts per arm, "
                               f"tolerance {calibration['tolerance']} on {calibration['metric']}"])
     stop, misses = f"reached --iterations {args.iterations}", 0
     for index in range(1, args.iterations + 1):
@@ -791,7 +841,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--record", required=True)
     parser.add_argument("--case", required=True, help="the exposing case")
     parser.add_argument("--generality-case", help="a case of another style; omitted, the claim covers one style")
-    parser.add_argument("--calibration", type=Path, required=True)
+    parser.add_argument("--calibration", type=Path, help="spread.py's report of an A/A epoch (the measured basis)")
+    parser.add_argument("--tolerance", type=float, help="without --calibration: the relative efficiency tolerance, "
+                        "stated and recorded as unmeasured")
+    parser.add_argument("--attempts", type=int, help="without --calibration: attempts per arm, stated and recorded "
+                        "as unmeasured")
     parser.add_argument("--control-plugin", type=Path, required=True)
     parser.add_argument("--candidate-plugin", type=Path, required=True)
     parser.add_argument("--prediction", type=Path, required=True)
@@ -809,7 +863,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"output must be outside the checkout: {out}")
     try:
         cases = [args.case] + ([args.generality_case] if args.generality_case else [])
-        calibration = load_calibration(args.calibration, cases)
+        calibration = resolve_calibration(args, cases)
         record = learning_records.improver_view(args.record, args.ledger)
         predicted = json.loads(args.prediction.read_text())
         roles = roles_for(predicted, args.case, args.generality_case)
@@ -825,7 +879,7 @@ def main(argv: list[str] | None = None) -> int:
              "candidate_build": result.get("candidate_build"),
              "driver": f"{driver['host']} {driver['model']} {driver['effort']}", "attempts": calibration["attempts"],
              "tolerance": calibration["tolerance"], "metric": calibration["metric"],
-             "calibration": calibration["sha256"], "epoch": str(out / "epoch"),
+             "calibration": calibration_basis(calibration), "epoch": str(out / "epoch"),
              "tip_note": "A hand-built candidate: nothing on a loop branch moved."}
     (out / "entry.md").write_text(entry({"record": args.record, **record}, result, setup))
     (out / "cycle-result.json").write_text(json.dumps({"contract": CONTRACT, **result}, indent=2, default=str) + "\n")

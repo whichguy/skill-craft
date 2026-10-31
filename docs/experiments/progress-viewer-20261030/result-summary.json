@@ -1,0 +1,66 @@
+{
+  "case": "hello",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "pass": true,
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.24.3",
+    "shiploop_version": "1.23.3",
+    "plugin_sha256": "db80cb63131d",
+    "local_head": "e4bb796b79212568790a5aab6bfca97cf87aa686"
+  },
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop",
+    "evidence": "ShipLoop CLI ran"
+  },
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.24.3"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832/build/plugins/skill-craft",
+    "path": "/Users/dadleet/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832/home/.codex/plugins/cache/whichguy/skill-craft/2.24.3"
+  },
+  "process": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 702.4,
+    "stop": "end_turn",
+    "resumes": 0,
+    "pass": true
+  },
+  "shiploop": {
+    "pass": true,
+    "status": "done",
+    "stage": "done",
+    "revision": 30,
+    "report_html": true
+  },
+  "committed": {
+    "pass": true,
+    "head": "362ea6bd504562205243ce5cf83dfff77987fd02",
+    "head_files": 6,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "test \"$(python3 hello.py)\" = 'Hello, world!'",
+      "pass": true,
+      "returncode": 0
+    },
+    {
+      "command": "python3 -m unittest -q",
+      "pass": true,
+      "returncode": 0
+    }
+  ],
+  "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+  },
+  "output": "/Users/dadleet/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832"
+}

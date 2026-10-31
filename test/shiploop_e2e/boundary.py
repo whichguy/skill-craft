@@ -1,7 +1,7 @@
 """The evaluator boundary (SPEC "The promotion contract", build step 3): what grades a run, what a candidate may change,
 and which files are held out from every model.
 
-* ``fingerprint`` digests what grades a run: the harness's code (``evaluator``), its ``checks/`` (``oracle``) and the case's
+* ``fingerprint`` digests what grades a run: the harness's code (``evaluator``), its checks and fixtures (``oracle``) and the case's
   catalog entry (``case``). ``run.py`` records it in result.json as ``boundary`` each time it grades, a regrade included; the
   candidate's digest is the plugin tree the host loaded (``versions.plugin_sha256``). ``promotion.py`` compares a case only
   across attempts with equal digests, so a harness or oracle change is an experiment of its own.
@@ -65,12 +65,8 @@ def evaluator_files(harness: Path) -> list[Path]:
 
 
 def oracle_files(harness: Path) -> list[Path]:
-    """Every file under ``checks/``, without ``__pycache__`` and compiled files (a run compiles them)."""
-    found = []
-    for here, folders, names in os.walk(harness / "checks"):
-        folders[:] = [name for name in folders if name != "__pycache__"]
-        found += [Path(here) / name for name in names if not name.endswith(".pyc")]
-    return found
+    """Checks and fixture inputs, excluding generated Python caches."""
+    return _tree_files(harness / "checks") + _tree_files(harness / "fixtures")
 
 
 def _tree_files(folder: Path) -> list[Path]:
@@ -95,7 +91,7 @@ def qualification_snapshot(harness: Path, case_names=None) -> dict:
     """Freeze the scorecard inputs and their current bytes for a strict promotion/5 registration.
 
     ``cases`` and ``suites`` are snapshots, so an old run is scored with the registered requiredness even if the live
-    catalogs later change. ``files`` binds the snapshot to the evaluator, recursive checks/evaluators, SPEC, catalogs and
+    catalogs later change. ``files`` binds the snapshot to the evaluator, recursive checks/fixtures/evaluators, SPEC, catalogs and
     the scorecard's source modules; a comparison recomputes this record before it can qualify anything. Paths are relative
     to the repository root (the parent of ``test/``), not to a machine-specific checkout path.
     """
@@ -116,7 +112,7 @@ def qualification_snapshot(harness: Path, case_names=None) -> dict:
         raise ValueError("qualification snapshot cannot find case definitions for " + ", ".join(map(str, missing)))
     files = [harness / "SPEC.md", harness / "cases.json", harness / "suites.json"]
     files += evaluator_files(harness)
-    files += _tree_files(harness / "checks")
+    files += oracle_files(harness)
     files += _tree_files(harness / "evaluators")
     # These modules are read by scorecard.py for validity and metrics. They are also top-level evaluator files today;
     # spelling the dependency set out makes the frozen scorecard inputs explicit if their layout changes later.

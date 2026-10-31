@@ -7,7 +7,10 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import io
+import itertools
 import json
+import random
+import re
 import shutil
 import subprocess
 import sys
@@ -31,6 +34,7 @@ import overlay  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
+import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -106,6 +110,82 @@ class Seeds(unittest.TestCase):
         self.assertEqual(env["LOCAL_TARGET"], str(self.out / "target"))
         self.assertIn("src/pricing.js", found["files"])
 
+    def test_the_gas_case_seeds_at_test_strategy_and_its_packet_points_to_the_apps_script_card(self):
+        """AS1 tells the card's effect only if the test-strategy packet reaches the card, and only if nothing in the case
+        already says the deployment keeps state (a ceiling: E1 and E3 scored 1.0 in every arm on 2026-10-24)."""
+        seeded = self.seed("test-strategy", "gas-deployed-target")
+        self.assertEqual((seeded["stage"], seeded["skipped"], seeded["item_bases"]),
+                         ("test-strategy", ["intake", "discovery", "research", "spec"], []))
+        text = _next(CLI, seeded["run_dir"])
+        self.assertIn("Platform testing guide: ", text)
+        self.assertIn("platforms/apps-script.md#testing", text)
+        spec = step_slice.load_step_case("gas-deployed-target")
+        fixture = step_slice.FIXTURES / spec["fixture"]
+        given = json.dumps(spec) + "".join(p.read_text() for p in sorted(fixture.rglob("*")) if p.is_file())
+        self.assertIsNone(re.search(r"keeps? (its |their )?state|between (commands|runs)|stale|persist", given, re.I))
+
+    def test_a_seed_at_test_lays_an_earlier_slices_implementation_uncommitted_after_the_item_base(self):
+        """D4 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §9): a seed at test holds implement fixed. It takes the
+        earlier slice's test-spec and implement results without their locators, and implement's change from its last passed
+        step proof, so the new run's test stage sees the same cases, hand-off and diff, and only the test stage varies."""
+        spec = step_slice.load_step_case("stand-in-parser")
+        earlier = {"test-spec": {"summary": "Cases written.", "test_cases": [
+            {"id": "TC-4", "criterion": "C3", "requirement": "R-1", "oracle": "parseRecords(7) throws TypeError ORACLE-MARK",
+             "red": "absent", "green": "throws"}]}}
+        work = self.out / "earlier" / "work"
+        work.mkdir(parents=True)
+        source = run.seed_run(CLI, work, self.out / "earlier", spec["prompt"], "implement",
+                              fixture=step_slice.FIXTURES / spec["fixture"], work_item=spec["work_item"], delegation="inline",
+                              checks=spec["checks"], records=step_slice.merged_records(spec, None, earlier))
+        run_dir = Path(source["run_dir"])
+        state = store.read_record(run_dir / "state.md")
+        repo, action = Path(state["repo"]), nav.current_action(state)["id"]
+        (repo / "src" / "records.js").write_text("module.exports = {};\n")
+        (repo / "src" / "text.js").write_text((repo / "src" / "text.js").read_text() + "// changed by implement\n")
+        (repo / "README.md").unlink()
+        index = {"GIT_INDEX_FILE": str(self.out / "proof-index")}
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True, env={**run.os.environ, **index})
+        tree = subprocess.run(["git", "-C", str(repo), "write-tree"], check=True, capture_output=True, text=True,
+                              env={**run.os.environ, **index}).stdout.strip()
+        (run_dir / "tests").mkdir(exist_ok=True)
+        for number, (passed, trees) in enumerate(((True, [tree]), (False, ["0" * 40])), 1):
+            (run_dir / "tests" / f"{action}-step-proof{number}.md").write_text(
+                store.dumps({"kind": "step-proof", "passed": passed, "trees": trees}, "ShipLoop step proof"))
+        state = nav.apply(state, action, {"outcome": "done", "summary": "Built records.js IMPLEMENT-MARK.",
+                                          "decisions": ["Kept text.js."], "evidence_refs": [str(run_dir / "notes" / "x.md")],
+                                          "learned_from": ["abc1234"]})
+        nav.save(run_dir, state, {})
+
+        delivery = step_slice.recorded_delivery(self.out / "earlier")
+        self.assertEqual((delivery["action"], delivery["tree"]), (action, tree))
+        self.assertEqual(sorted(delivery["files"]), ["src/records.js", "src/text.js"])
+        self.assertEqual(delivery["deleted"], ["README.md"])
+        self.assertEqual(delivery["records"]["implement"],
+                         {"summary": "Built records.js IMPLEMENT-MARK.", "decisions": ["Kept text.js."]})
+        self.assertEqual(delivery["records"]["test-spec"]["test_cases"][0]["id"], "TC-4")
+
+        records = step_slice.merged_records(spec, None, delivery["records"])
+        self.assertIn("--seed-from", step_slice.seed_gap("test", records, None))
+        self.assertIn("--seed-from", step_slice.seed_gap("test-spec", records, self.out / "earlier"))
+        self.assertEqual(step_slice.seed_gap("test", records, self.out / "earlier"), "")
+        work = self.out / "test" / "work"
+        work.mkdir(parents=True)
+        seeded = run.seed_run(CLI, work, self.out / "test", spec["prompt"], "test", fixture=step_slice.FIXTURES / spec["fixture"],
+                              work_item=spec["work_item"], delegation="inline", checks=spec["checks"], records=records,
+                              implementation=delivery)
+        new_run = Path(seeded["run_dir"])
+        self.assertEqual((seeded["stage"], seeded["skipped"][-2:]), ("test", ["validate-existing", "implement"]))
+        self.assertEqual(nav.current_stage(store.read_record(new_run / "state.md")), "test")
+        new_repo = Path(store.read_record(new_run / "state.md")["repo"])
+        status = subprocess.run(["git", "-C", str(new_repo), "status", "--porcelain"], capture_output=True, text=True,
+                                check=True).stdout
+        self.assertEqual(sorted(status.splitlines()), [" D README.md", " M src/text.js", "?? src/records.js"])
+        self.assertEqual(sorted(item_scope.changed_paths(new_run, "W1")), ["README.md", "src/records.js", "src/text.js"])
+        text = _next(CLI, seeded["run_dir"])
+        self.assertIn("IMPLEMENT-MARK", text)
+        self.assertIn("ORACLE-MARK", text)
+        self.assertIn("implementation is in the run's worktree", run.seed_prompt(CLI, str(new_run), "p", "inline", "test"))
+
     def test_the_slice_command_line_takes_the_experiment_flags(self):
         args = step_slice.parser().parse_args(["--case", "stand-in-parser", "--seed-at", "test-spec", "--stop-after", "test",
                                                "--ref", "HEAD", "--overlay", "x.json", "--opening-note", "n.txt"])
@@ -177,19 +257,53 @@ class Decide(unittest.TestCase):
         return [{"sample": n, "value": v, **({"defect_caught": gate[n - 1]} if gate else {})}
                 for n, v in enumerate(values, 1)]
 
-    def test_better_beyond_the_aa_spread_supports(self):
+    def test_better_with_a_permutation_p_below_significance_supports(self):
+        # Five against five: 6 of the 252 splits put all five ones in the second group, p = 6/252.
         found = experiment.judge(self.rows([0, 0, 0, 0, 1]), self.rows([1, 1, 1, 1, 1]))
-        self.assertEqual((found["verdict"], found["spread"]), ("supports", 0))
+        self.assertEqual(found["verdict"], "supports")
+        self.assertAlmostEqual(found["p"], 6 / 252)
+        self.assertNotIn("spread", found)
 
     def test_no_better_contradicts(self):
         self.assertEqual(experiment.judge(self.rows([1, 0, 1, 0, 1]), self.rows([0, 1, 0, 0, 1]))["verdict"], "contradicts")
 
-    def test_better_inside_the_spread_is_inconclusive(self):
+    def test_better_within_noise_is_inconclusive_and_says_the_p(self):
         found = experiment.judge(self.rows([1, 1, 0, 0, 0]), self.rows([1, 0, 1, 0, 1]))
-        self.assertEqual((found["verdict"], found["spread"]), ("inconclusive", 1.0))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertGreaterEqual(found["p"], experiment.SIGNIFICANCE)
+        self.assertIn(f"p {found['p']:.2g}", found["reason"])
 
-    def test_without_four_control_samples_nothing_is_decided(self):
-        self.assertEqual(experiment.judge(self.rows([0, 0]), self.rows([1, 1]))["verdict"], "inconclusive")
+    def test_a_gap_the_old_spread_read_as_supports_is_inconclusive_by_the_permutation_p(self):
+        # E7-F D (6aa1f024): +0.02 on a discrete metric whose 2-against-2 spread was exactly 0.00 read "supports" at p 0.50.
+        found = experiment.judge(self.rows([0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.5, 0.5]),
+                                 self.rows([0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.5, 0.75]))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertGreater(found["p"], 0.2)
+
+    def test_two_samples_each_cannot_reach_significance_and_no_sample_number_is_required(self):
+        found = experiment.judge(self.rows([0, 0]), self.rows([1, 1]))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertAlmostEqual(found["p"], 1 / 6)
+        # Any samples count, whatever their numbers: three against three bottoms out at 0.05, which is not below it.
+        found = experiment.judge([{"sample": n, "value": 0} for n in (2, 5, 7)], [{"sample": n, "value": 1} for n in (1, 2, 3)])
+        self.assertEqual((found["verdict"], found["p"]), ("inconclusive", 1 / 20))
+
+    def test_a_perfect_split_of_four_against_four_supports_at_one_in_seventy(self):
+        found = experiment.judge(self.rows([0.25, 0.5, 0.25, 0.25]), self.rows([0.75, 1, 0.75, 0.75]))
+        self.assertEqual((found["verdict"], found["p"]), ("supports", 1 / 70))
+
+    def test_the_permutation_p_is_the_exact_share_of_splits_at_least_as_good(self):
+        rng = random.Random(5)
+        for _ in range(40):
+            nx, ny = rng.randint(1, 5), rng.randint(1, 5)
+            control = [rng.choice((0, 0.25, 0.5, 2 / 3, 1)) for _ in range(nx)]
+            candidate = [rng.choice((0, 0.25, 0.5, 2 / 3, 1)) for _ in range(ny)]
+            pooled = control + candidate
+            observed = sum(candidate) / ny - sum(control) / nx
+            splits = list(itertools.combinations(range(nx + ny), nx))
+            hits = sum(sum(pooled[i] for i in range(nx + ny) if i not in s) / ny - sum(pooled[i] for i in s) / nx
+                       >= observed - 1e-12 for s in splits)
+            self.assertAlmostEqual(experiment.permutation_p(control, candidate), hits / len(splits), msg=(control, candidate))
 
     def test_every_sample_at_one_is_a_ceiling_even_below_four_samples(self):
         for n in (3, 4):
@@ -200,20 +314,27 @@ class Decide(unittest.TestCase):
     def test_every_sample_at_zero_is_a_floor(self):
         self.assertEqual(experiment.judge(self.rows([0, 0, 0]), self.rows([0, 0, 0, 0]))["verdict"], "floor")
 
-    def test_a_tie_inside_the_bounds_at_three_samples_is_inconclusive_for_want_of_sample_four(self):
-        found = experiment.judge(self.rows([0.5] * 3), self.rows([0.5] * 3))
-        self.assertEqual(found["verdict"], "inconclusive")
-        self.assertIn("samples 1-4", found["reason"])
+    def test_a_tie_inside_the_bounds_is_no_better(self):
+        found = experiment.judge(self.rows([0.5] * 4), self.rows([0.5] * 4))
+        self.assertEqual(found["verdict"], "contradicts")
+        self.assertIn("no better", found["reason"])
+
+    def test_too_few_samples_for_any_split_to_reach_significance_decide_nothing_either_way(self):
+        # 3 against 3 bottoms out at p = 0.05 and 2 against 4 at 1/15: no verdict, not even "no better" (E2's n=2 records).
+        for x, y in (([0.5] * 3, [0.5] * 3), ([1, 0.5], [0.5, 0.25]), ([0.5, 0.75], [0.25, 0.25, 0.25, 0.25])):
+            found = experiment.judge(self.rows(x), self.rows(y))
+            self.assertEqual(found["verdict"], "inconclusive", (x, y))
+            self.assertIn("no verdict is possible", found["reason"])
 
     def test_one_arm_at_the_bound_is_not_a_ceiling(self):
         self.assertNotEqual(experiment.judge(self.rows([1, 1, 1, 1]), self.rows([1, 1, 0.75, 1]))["verdict"], "ceiling")
 
-    def test_fractional_values_decide_on_the_spread(self):
+    def test_fractional_values_decide_on_the_permutation_p(self):
         found = experiment.judge(self.rows([0.25, 0.25, 0.25, 0.5]), self.rows([1, 0.75, 1, 1]))
-        self.assertEqual((found["verdict"], found["spread"]), ("supports", 0.125))
+        self.assertEqual((found["verdict"], found["p"]), ("supports", 1 / 70))
 
     def test_every_experiment_runs_four_samples_and_pins_each_arm_to_a_commit(self):
-        # A descriptive experiment measures and reports (R3: owner, "3 full slices each"); decide needs 4 per arm.
+        # A descriptive experiment measures and reports (R3: owner, "3 full slices each"); 3 per arm cannot reach p < 0.05.
         for exp_id, exp in experiment.load().items():
             with self.subTest(exp=exp_id):
                 self.assertEqual(exp["samples"], 3 if exp.get("descriptive") else 4)
@@ -320,6 +441,75 @@ class Evaluators(unittest.TestCase):
             found = e1b.score(Path("unused"))
         self.assertEqual((found["value"], found["all_killed"]), (0.25, 0))
 
+    def test_e7_weak_tests_kill_fewer_limit_and_guard_mutants_than_boundary_tests(self):
+        self.check("E7-K1")
+
+    def test_e7_arm_t_samples_the_limit_and_guard_mutants_first_and_flips_a_line_ending_or(self):
+        guard = ("function check(name) {\n"
+                 "  if (name !== null && (typeof name !== 'string' || name.trim() !== name ||\n"
+                 "      !name || name.length > 64 || /\\s/.test(name))) throw new Error('bad');\n"
+                 "  const total = 1 + 2;\n"
+                 "  return total === 3;\n"
+                 "}\n")
+        probe = ("import json, sys\nsys.path.insert(0, sys.argv[1])\nimport shiploop_mutation as m\n"
+                 "rows = m.candidates(sys.argv[2], [2, 3, 4, 5])\n"
+                 "print(json.dumps([[r['operator'], r['line'], r['column']] for r in m.sample({'src/a.js': rows})]))\n")
+
+        def sampled(overlay_name: str) -> list:
+            scripts = Path(tmp) / overlay_name
+            shutil.copytree(overlay.SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
+            overlay.apply(json.loads((E2E / "overlays" / f"{overlay_name}.json").read_text()), scripts)
+            done = subprocess.run([sys.executable, "-B", "-c", probe, str(scripts), guard], capture_output=True,
+                                  text=True, check=False)
+            self.assertEqual(done.returncode, 0, done.stderr[-2000:])
+            return json.loads(done.stdout)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog_only, targeted = sampled("e7-m"), sampled("e7-t")
+        limit_and_guard = ("rel-bound", "logic-flip")
+        self.assertLess(sum(row[0] in limit_and_guard for row in catalog_only), 6)
+        self.assertEqual([row[0] in limit_and_guard for row in targeted], [True] * 6 + [False] * 2)
+        self.assertIn(["logic-flip", 2, guard.splitlines()[1].rindex("||") + 1], targeted)
+
+    def test_e7_mutates_tracked_changes_and_untracked_source_but_never_a_test_file(self):
+        import e7_tests  # noqa: PLC0415
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "src").mkdir()
+            (tree / "test").mkdir()
+            (tree / "src" / "a.js").write_text("const a = 1;\nconst b = 2;\n")
+            subprocess.run(["git", "init", "-q", str(tree)], check=True)
+            subprocess.run(["git", "-C", str(tree), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(tree), "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit",
+                            "-qm", "seed"], check=True)
+            seed = e7_tests._git(tree, "rev-parse", "HEAD").strip()
+            (tree / "src" / "a.js").write_text("const a = 1;\nconst b = a > 1 || a < 0;\n")
+            (tree / "src" / "b.js").write_text("module.exports = (n) =>\n  n >= 64\n  && n !== 0;\n")
+            (tree / "test" / "b.test.js").write_text("require('node:assert').ok(true);\n")
+            self.assertEqual(e7_tests.changed_lines(tree, seed), {"src/a.js": {2}, "src/b.js": {1, 2, 3}})
+            self.assertEqual(e7_tests.new_test_files(tree, seed), ["test/b.test.js"])
+
+    def test_e7_request_variants_change_one_line_once_and_the_scorer_restores_the_file(self):
+        import e7_request  # noqa: PLC0415
+        names = [variant[0] for variant in e7_request.VARIANTS]
+        self.assertEqual(len(names), len(set(names)))
+        for _, _, _, find, replace, witness in e7_request.VARIANTS:
+            self.assertNotEqual(find, replace)
+            self.assertIn("api.", witness)
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "src").mkdir()
+            once = ("limit-65", "clause", "src/a.js", "= 64 }", "= 65 }", "")
+            (tree / "src" / "a.js").write_text("const L = 64 };\n")
+            original = e7_request._lay(tree, once)
+            self.assertEqual(original, b"const L = 64 };\n")
+            self.assertEqual((tree / "src" / "a.js").read_text(), "const L = 65 };\n")
+            (tree / "src" / "a.js").write_text("= 64 } = 64 }\n")
+            with self.assertRaisesRegex(ValueError, "2 matches"):
+                e7_request._lay(tree, once)
+        self.assertEqual(e7_request._failed("✔ ok\n✖ TC-1 a (3ms)\n✖ TC-1 a (3ms)\n✖ failing tests:\n"),
+                         ["TC-1 a", "failing tests:"])
+
     def test_e2_flags_run_4s_strategy_and_step_plan_and_credits_a_planted_good_record(self):
         self.check("E2", needs_run4=True)
 
@@ -348,6 +538,21 @@ class Evaluators(unittest.TestCase):
                 self.assertNotIn("--delegation", argv_a)
                 self.assertEqual(argv_b[argv_b.index("--delegation") + 1], "ask-agent")
                 self.assertEqual([w for w in argv_b if w not in ("--delegation", "ask-agent")], argv_a)
+
+    def test_as1s_scorer_credits_only_a_deployment_target_that_keeps_state(self):
+        self.check("AS1")
+
+    def test_as1s_two_builds_differ_in_the_apps_script_card_alone(self):
+        exp = experiment.load("AS1")
+        a, b = exp["arms"]["A"]["ref"], exp["arms"]["B"]["ref"]
+        self.assertNotEqual(a, b)
+        self.assertEqual((exp["seed_at"], exp["stop_after"], exp["evaluator"]),
+                         ("test-strategy", "test-strategy", "probes/target_state_declared.py"))
+        shown = subprocess.run(["git", "-C", str(ROOT), "diff", "--name-only", a, b, "--", "skills", "agents", "plugins"],
+                               capture_output=True, text=True)
+        if shown.returncode:
+            self.skipTest(f"{a[:8]} and {b[:8]} are not both in this clone")
+        self.assertEqual(shown.stdout.split(), ["skills/shiploop/references/platforms/apps-script.md"])
 
     def test_e3s_detector_and_e2s_source_search_on_plain_commands(self):
         import e2_layers  # noqa: PLC0415
@@ -526,8 +731,10 @@ class RoundSpeedups(unittest.TestCase):
     def test_a_verdict_is_settled_only_when_every_completion_of_the_missing_samples_gives_it(self):
         def rows(values):
             return [{"sample": n, "value": v} for n, v in enumerate(values, 1)]
-        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([1]), 4), {"supports"})
         self.assertEqual(experiment.possible_verdicts(rows([1, 1, 1, 1]), rows([0, 0]), 4), {"contradicts"})
+        # Four against four binary samples reach p < 0.05 only as a perfect split, so "supports" is never settled early.
+        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([1, 1, 1]), 4), {"supports", "inconclusive"})
+        self.assertEqual(experiment.possible_verdicts(rows([0, 0, 0, 0]), rows([0, 0]), 4), {"floor", "inconclusive"})
         self.assertGreater(len(experiment.possible_verdicts(rows([0, 1, 0, 0]), rows([1, 0]), 4)), 1)  # R1g K1 midway
         full = experiment.possible_verdicts(rows([0, 1, 0, 1]), rows([0, 1, 1, 1]), 4)  # R2's K2
         self.assertEqual(full, {experiment.judge(rows([0, 1, 0, 1]), rows([0, 1, 1, 1]))["verdict"]})
@@ -571,18 +778,24 @@ class RoundSpeedups(unittest.TestCase):
         self.assertFalse((self.tmp / ".queue.lock").exists())
 
     def test_the_queue_stops_an_experiment_once_its_verdict_cannot_change(self):
-        runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
+        runner, ran, _peak, patches = self._fake({"T": 1, "Cg": 0})
         printed = io.StringIO()
         with patches[0], patches[1], contextlib.redirect_stdout(printed):
             experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
-        # After T 1-4 all 0 and Cg 1-3 all 1, Cg 4 can only leave "supports": it is skipped.
-        self.assertEqual(ran, [("Q", "T", 1), ("Q", "Cg", 1), ("Q", "T", 2), ("Q", "Cg", 2), ("Q", "T", 3), ("Q", "Cg", 3),
-                               ("Q", "T", 4)])
-        self.assertIn("Q/Cg/4: skipped, the verdict cannot change", printed.getvalue())
-        self.assertIn("Q: stopped early, T vs Cg: supports", printed.getvalue())
+        # After T 1-2 all 1 and Cg 1-2 all 0, no completion of samples 3 and 4 leaves Cg above T: they are skipped.
+        self.assertEqual(ran, [("Q", "T", 1), ("Q", "Cg", 1), ("Q", "T", 2), ("Q", "Cg", 2)])
+        self.assertIn("Q/T/3: skipped, the verdict cannot change", printed.getvalue())
+        self.assertIn("Q: stopped early, T vs Cg: contradicts", printed.getvalue())
+
+    def test_the_queue_never_stops_a_supporting_experiment_before_its_last_sample(self):
+        """Four against four binary samples reach p < 0.05 only as a perfect split, so one missing sample can still undo it."""
+        runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
+        with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
+            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
+        self.assertEqual(len(ran), 8)
 
     def test_a_round_of_fewer_than_four_samples_is_never_stopped_early(self):
-        """With 3 samples the A/A spread is never measured, so every completion reads "inconclusive": a settled check
+        """With 3 samples no completion reaches p < 0.05, so every one reads "inconclusive": a settled check
         there would stop the round after its first sample. R3 runs 3 full slices per arm, so it must run them all."""
         runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
         with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):

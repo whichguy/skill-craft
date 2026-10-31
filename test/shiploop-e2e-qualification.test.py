@@ -20,6 +20,7 @@ sys.path.insert(0, str(HARNESS))
 import boundary
 import promotion
 import scorecard
+import spread
 
 
 class QualificationTest(unittest.TestCase):
@@ -386,6 +387,40 @@ class QualificationTest(unittest.TestCase):
             (harness / "scorecard.py").unlink()
             changed = boundary.qualification_changes(frozen, harness, ["case"])
             self.assertTrue(any("unavailable" in reason for reason in changed))
+
+    def test_reference_fixture_bytes_are_frozen_in_all_scoring_digests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "repo" / "test" / "shiploop_e2e"
+            (harness / "checks").mkdir(parents=True)
+            (harness / "evaluators").mkdir()
+            (harness / "SPEC.md").write_text("spec")
+            case = {"quality": {"acceptance": {"module": "check"}}}
+            cases = {"case": case}
+            (harness / "cases.json").write_text(json.dumps(cases))
+            (harness / "suites.json").write_text('{"suite":{"cases":["case"]}}')
+            for name in ("scorecard.py", "boundary.py", "metrics.py", "delivery.py", "environment.py",
+                         "runrecord.py", "promotion.py"):
+                (harness / name).write_text(name)
+            fixture = harness / "fixtures" / "reference" / "value.txt"
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text("first")
+
+            oracle_before = boundary.fingerprint(harness, case)["oracle"]
+            qualification_before = boundary.qualification_snapshot(harness, ["case"])
+            scoring_before = spread.scoring_digest(cases, harness)
+            fixture.write_text("second")
+            oracle_after = boundary.fingerprint(harness, case)["oracle"]
+            qualification_after = boundary.qualification_snapshot(harness, ["case"])
+            scoring_after = spread.scoring_digest(cases, harness)
+
+            changed = {
+                "oracle": oracle_before != oracle_after,
+                "qualification": qualification_before["sha256"] != qualification_after["sha256"],
+                "spread scoring": scoring_before["sha256"] != scoring_after["sha256"],
+                "frozen fixture path": "test/shiploop_e2e/fixtures/reference/value.txt"
+                in qualification_after["files"],
+            }
+            self.assertEqual(changed, {name: True for name in changed})
 
     def test_mutated_registration_or_current_scorer_mismatch_stays_undecided(self):
         reg = self.registration()
