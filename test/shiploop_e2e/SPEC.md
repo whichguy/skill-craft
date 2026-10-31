@@ -942,6 +942,44 @@ stands at the commit under test.
 
 ## Rules for the harness itself
 
+**Campaign operator directive (owner, 2026-10-31; operator-only).** The primary
+purpose is to improve the generic ShipLoop skill, including planning,
+implementation, skill/script/prompt interchanges and the stages or gates that
+shape the outcome. Harness repairs improve the evaluator; they are not evidence
+of a ShipLoop gain. The run critic uses `review.py`'s inspection questions;
+unexercised behaviour remains unknown and no finding quota applies.
+
+For an explicitly authorised improvement campaign, reconcile related findings
+and prior learning into one investigation plan, grouping by the hypothesis
+rather than by similar wording. Retain alternatives, dependencies and the
+smallest discriminating experiment. A focused slice or isolated experiment may
+resolve a narrow mechanism before a full run; it cannot qualify a broader
+claim. Apply Change admission, the existing prediction/learning records and
+Qualified iteration: one learning record per qualified candidate, prospective
+`promotion/5`, the exposing case and a generality case of another style (or the
+recorded narrower claim). Do not bundle unrelated fixes into a qualification.
+
+Continue the authorised campaign while a material actionable idea or coverage
+gap has a useful next investigation. A script stop ends its invocation; a cap,
+non-promotion streak, empty findings or missing measurements does not establish
+exhausted learning. At each checkpoint inspect the full scoped learning backlog,
+not only a truncated reviewer view, and the coverage map described below.
+Respect recorded authority, explicit budgets and deployment permissions;
+carry existing authorisation forward without asking again for covered work.
+Do not evade a limit or blindly repeat a rejected attempt. A required unknown,
+material deferred idea, unavailable target or needed owner decision keeps the
+campaign incomplete with its reason and reopening condition.
+
+Report convergence only within a named reviewed scope: the critique and chosen
+coverage are justified, material ideas have evidence-backed dispositions, no
+material actionable investigation remains, and required verification/cleanup
+is complete. No global exhaustion claim follows. Use the existing coverage map
+to choose contrasting cases; add or revise a repeatable case for a material
+blind spot or saturation, with frozen inputs, checks and cleanup, between
+comparisons. Follow The resource lifecycle for local and tracked test-owned
+remote state after success, failure or interruption. Unknown cleanup blocks
+target reuse; a fresh product folder is not a deployed-system reset.
+
 - The harness core (runner, metrics, grading, review) is case-agnostic: it
   measures the engine through ShipLoop's own records and the clauses above.
   Only `cases.json` knows a case's product.
