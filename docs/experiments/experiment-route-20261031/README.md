@@ -104,3 +104,21 @@ running settles.
 - The live hold: other sessions record an owner hold on new live E2E cycles (d9fefb11, 488ffbd9, 8975a5bc). The owner's
   go for this live work came in this session ("Do all", to a plan naming a live A/B of 6 runs per side); the runs are
   confined to this gated design.
+
+## FX. Settling an open item through an executed criterion (pre-registered 2026-10-31 14:40, before any FX run)
+
+- Why: replaying the 205 traced runs, the step-plan rule that turns each open plan assumption due at an item into an
+  expectation (checked on the unchanged base) refused in 15. In 4 the assumption was about what exists and the
+  expectation was a real experiment; in 11 it was about what the item builds or deploys, and 10 were met with a check
+  that settled nothing while 1 (XI A s1) stopped. The fix (branch fix/assumption-settled-by-criterion-ee94d1, fd8f9239)
+  lets an executed criterion cite the item in `from`, offers that row in the template, and keeps the expectation route.
+- Arms on ticket-import, Codex `gpt-6.1-terra` at high, all tools, `--source checkout`, one lane: P = ShipLoop as on main
+  7f565994 plus the case (exp/xi-case-on-main, 7167c284); F = P plus the fix (exp/xi-fix-on-main, aa99fdff). Four runs
+  each, in the order P F F P P F F P, after XI's own runs end; outputs ~/e2e-runs-xr/20261031/<P|F>-ticket-import-s<n>.
+- Measures per run: every held-out check passes; ShipLoop's end state; each open plan assumption due at an item and the
+  route its step plan cites it by (criterion, expectation, none); this rule's refusals in the trace; minutes.
+- Rule: adopt the fix iff (1) F passes at least as many runs as P, (2) in the F runs whose plan leaves an item open, the
+  step plan cites it through a criterion in at least 3 (with fewer than 2 such runs the route is not exercised live,
+  and adoption rests on the replay and (1)), and (3) the quick tier passes on the fix. This is a no-harm and
+  mechanism test, not a superiority test: a stall like A s1 is rare, so 4 runs a side cannot show its rate falling.
+
