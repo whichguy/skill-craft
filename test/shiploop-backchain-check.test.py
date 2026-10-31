@@ -327,7 +327,10 @@ class PacketLineTests(unittest.TestCase):
                     # An inline step-plan builds no execution graph: it carries the one optional audit line
                     # (INLINE_BACKCHAIN_AUDIT), which names the printed `backchain-check` itself, instead of
                     # the full BACKCHAIN_CHECK line (2026-10-11 dedupe).
-                    inline_step_plan = stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
+                    # Product-acceptance edits nothing, so it carries that line on every route (AUDIT_LINE_STAGES,
+                    # stage-prompt review 2026-10-31).
+                    inline_step_plan = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
+                                        or stage in prompts.AUDIT_LINE_STAGES)
                     # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
                     # instruction is a duty item there, and prompt() prints no second BACKCHAIN_CHECK line.
                     folded = stage in prompts.BACKCHAIN_FOLDED_STAGES

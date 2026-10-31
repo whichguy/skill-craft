@@ -1,0 +1,734 @@
+[
+ {
+  "root": "~/e2e-runs/2026-10-29/shiploop-basic-repairs-44mijad9/live/run/.shiploop-runs/work-20261030-044511-0ca2b7",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-29/shiploop-learning-focus-192828-g585rz8u/run/.shiploop-runs/work-20261030-023020-5d000f",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/published-verification-01/.shiploop-runs/work-20261031-063257-3a228d",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/published-verification-02/.shiploop-runs/work-20261031-070733-111b9d",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/qualification-01/runs/candidate-hello-hook-continuation-1/.shiploop-runs/work-20261031-053839-a43726",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/qualification-01/runs/control-hello-hook-continuation-1/.shiploop-runs/work-20261031-052758-b37064",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832/.shiploop-runs/work-20261031-020046-786efe",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/battleship-candidate/.shiploop-runs/work-20261030-192802-b18b24",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/config-candidate/.shiploop-runs/work-20261030-185829-2bbbbe",
+  "status": "clean",
+  "kept": 2,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/config-control/.shiploop-runs/work-20261030-184505-66963c",
+  "status": "clean",
+  "kept": 2,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-ticket-recursive-0vy09rcr/candidate-run/run/.shiploop-runs/work-20261030-121931-8ee836",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-30/shiploop-ticket-recursive-0vy09rcr/control/run/.shiploop-runs/work-20261030-114016-83bdfe",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03/.shiploop-runs/work-20261031-122739-3e2dae",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/batch-sonnet/battleship-scoring/.shiploop-runs/work-20261003-174543-e1af50",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/batch-sonnet/battleship/.shiploop-runs/work-20261003-172553-da02fb",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/batch-sonnet/hello/.shiploop-runs/work-20261003-171409-75dd2a",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/batch-sonnet/seat-reservations/.shiploop-runs/work-20261003-172554-21f37d",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/hello/.shiploop-runs/work-20261003-161423-b7155c",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/seat-reservations/.shiploop-runs/work-20261003-161429-23c47f",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261003/v1161-hello/.shiploop-runs/work-20261003-225400-725ab3",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261004/v1180-hello-sonnet/.shiploop-runs/work-20261004-184559-7cc23f",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261004/v1190-hello-sonnet-2/.shiploop-runs/work-20261004-184556-4b3f27",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261004/v1190-hello-sonnet/.shiploop-runs/work-20261004-183212-0d0d4f",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261004/v1200-hello-sonnet/.shiploop-runs/work-20261004-231618-044fcb",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261006/v1220-battleship-grok-medium-none/.shiploop-runs/work-20261006-234515-40fb4c",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261006/v1220-battleship-sonnet/.shiploop-runs/work-20261006-150527-5758d8",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261007/v1230-battleship-sonnet/.shiploop-runs/work-20261007-153319-f1996a",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r1-battleship-sonnet/.shiploop-runs/work-20261008-173654-a943e7",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-20261008-174135-41d2f7",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r2-battleship-grok-none/.shiploop-runs/work-20261009-002036-d50cd1",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r2-battleship-sonnet/.shiploop-runs/work-20261009-002022-c0f400",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r2-checkers-sonnet/.shiploop-runs/work-20261009-002022-bbe194",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r3-battleship-sonnet/.shiploop-runs/work-20261009-062005-7d0dcc",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261008/r3-checkers-sonnet/.shiploop-runs/work-20261009-063248-ab43c5",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-after-spec/.shiploop-runs/work-20261009-220625-b4d2a7",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-inside-implement-k2/.shiploop-runs/work-20261009-222239-6c321b",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-inside-implement-mtime/.shiploop-runs/work-20261009-230454-a6b8be",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-inside-implement-write/.shiploop-runs/work-20261009-225637-65de62",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-inside-implement/.shiploop-runs/work-20261009-221630-c2e45a",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-inside-test-strategy-2/.shiploop-runs/work-20261009-224103-c65146",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261009/s6-inside-test-strategy/.shiploop-runs/work-20261009-223030-485b4a",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/battleship-1/.shiploop-runs/work-20261010-154832-f5118f",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/checkers-1/.shiploop-runs/work-20261010-153302-c82ae6",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/checkers-1270-sonnet/.shiploop-runs/work-20261010-224248-62c0d6",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/checkers-8stage-88d412e9/.shiploop-runs/work-20261011-043918-721605",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/checkers-sections-1ac83089/.shiploop-runs/work-20261011-064426-73ddd7",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-1270-claude-2/.shiploop-runs/work-20261010-223620-0e3f3d",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-8stage-13d278dd/.shiploop-runs/work-20261011-040608-e9ca77",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-rel1270-ref-r1/.shiploop-runs/work-20261011-073623-c002da",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-rel1270-ref-r2/.shiploop-runs/work-20261011-073702-2792f3",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-rel1270-ref-r3/.shiploop-runs/work-20261011-073742-b49025",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-sections-1ac83089/.shiploop-runs/work-20261011-070812-e77e4f",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-sections-r2-1ac83089/.shiploop-runs/work-20261011-072254-599567",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-sections-r3-1ac83089/.shiploop-runs/work-20261011-072339-48a304",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/hello-sections-r4-1ac83089/.shiploop-runs/work-20261011-072350-c181a7",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261011/battleship-probe-28191c5b/.shiploop-runs/work-20261011-145021-80a4f9",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261011/battleship-scoring-probe-28191c5b/.shiploop-runs/work-20261011-150423-3ce2b9",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261016/battleship-e2eaudit-4dd3b4b4/.shiploop-runs/work-20261017-041336-c46c7d",
+  "status": "clean",
+  "kept": 8,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261018/bs-release-update-436528/.shiploop-runs/seed",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261024/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0",
+  "status": "clean",
+  "kept": 11,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/battleship/.shiploop-runs/work-20261025-021728-c8c85d",
+  "status": "conflict",
+  "kept": 7,
+  "detail": "error: page.html: No such file or directory\n"
+ },
+ {
+  "root": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/hello/.shiploop-runs/work-20261025-020703-6afa5e",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261024/gate-290-b60ed7-claude-batch/seat-reservations/.shiploop-runs/work-20261025-021727-a2b39a",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261024/gate-290-b60ed7-claude-csv-report/.shiploop-runs/work-20261025-023951-c1c6f6",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261024/gate-290-b60ed7-codex-hello/.shiploop-runs/work-20261025-020711-a0aed0",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring/.shiploop-runs/work-20261025-204415-a86b45",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship/.shiploop-runs/work-20261025-201613-0bd28f",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello/.shiploop-runs/work-20261026-034535-857137",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring/.shiploop-runs/work-20261026-082022-fb1de8",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship/.shiploop-runs/work-20261026-045417-6440d1",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/trace-verify-1131-b096ae/hello/.shiploop-runs/work-20261026-031340-d51452",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261025/trace-verify-4fd9f1/hello/.shiploop-runs/work-20261025-225710-c57c36",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261026/ds-flash-978478-battleship/.shiploop-runs/work-20261026-204158-139775",
+  "status": "clean",
+  "kept": 9,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261026/live-sonnet-battleship-01b9b3/.shiploop-runs/work-20261026-180223-49ce7c",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261026/live-sonnet-hello-b01d1c/.shiploop-runs/work-20261026-180158-1b58a4",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello/.shiploop-runs/work-20261026-181830-936fda",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261027/v2170-ds-battleship-759a03/.shiploop-runs/work-20261027-150517-62d689",
+  "status": "clean",
+  "kept": 9,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261027/v2170-sonnet-battleship-491d9a/.shiploop-runs/work-20261027-103928-803b48",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261027/v2180-sonnet-battleship-36036c/.shiploop-runs/work-20261027-234612-373c7c",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261028/pa-ds-battleship-4ed4e3/.shiploop-runs/work-20261028-173217-a07d74",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/20261030/hello-terra-2243-0c81bf/.shiploop-runs/work-20261031-014429-dd882e",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1-r1/control-hello/.shiploop-runs/work-20261024-214332-7afe50",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1-r1/treatment-hello/.shiploop-runs/work-20261024-214337-f9fdfd",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1-r1b/control-hello/.shiploop-runs/work-20261025-030311-81dd97",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1-r1b/treatment-hello/.shiploop-runs/work-20261025-025214-8a8f2d",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1/control-hello/.shiploop-runs/work-20261025-183611-483768",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1/control-seat-reservations/.shiploop-runs/work-20261025-201823-1af3d7",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1/treatment-hello/.shiploop-runs/work-20261025-183604-d9d28d",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/effort-eeff1/treatment-seat-reservations/.shiploop-runs/work-20261025-201825-04a350",
+  "status": "clean",
+  "kept": 7,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs/terra-high-user-listing/.shiploop-runs/work-20261031-015157-80cf2a",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-assignment-09c33b/.shiploop-runs/work-20261028-230157-1584ba",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b/.shiploop-runs/work-20261029-005315-5834f6",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261028/bf-ds-user-listing-09c33b/.shiploop-runs/work-20261028-235532-288781",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/bf-codex-r1-ticket-assignment/.shiploop-runs/work-20261029-152155-42ab66",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/bf-codex-r1-ticket-escalation/.shiploop-runs/work-20261029-154207-70da0c",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/bf-codex-r1-user-listing/.shiploop-runs/work-20261029-152234-81a017",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/bf-codex-r2-ticket-assignment/.shiploop-runs/work-20261029-160337-e2cb7e",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/bf-codex-r2-ticket-escalation/.shiploop-runs/work-20261029-162705-9e40b2",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/bf-codex-r2-user-listing/.shiploop-runs/work-20261029-160341-f29b42",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-assignment/.shiploop-runs/work-20261030-003036-51198e",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/.shiploop-runs/work-20261030-004732-321bfd",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/hooks-after-user-listing/.shiploop-runs/work-20261030-000632-137142",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/hooks-before-ticket-assignment/.shiploop-runs/work-20261029-220311-ed9820",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/hooks-before-ticket-escalation/.shiploop-runs/work-20261030-001125-3239ed",
+  "status": "clean",
+  "kept": 6,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-brownfield/20261029/hooks-before-user-listing/.shiploop-runs/work-20261029-220314-f31031",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/A-ticket-assignment-s1/.shiploop-runs/work-20261031-150815-9602dc",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/A-ticket-assignment-s2/.shiploop-runs/work-20261031-151722-2161a2",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/A-user-listing-s1/.shiploop-runs/work-20261031-150840-4a85b8",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/A-user-listing-s2/.shiploop-runs/work-20261031-152134-3d9827",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/A-user-listing-s3/.shiploop-runs/work-20261031-155212-085d78",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/B-ticket-assignment-s1/.shiploop-runs/work-20261031-153719-564ebc",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/B-ticket-assignment-s2/.shiploop-runs/work-20261031-155138-9c318f",
+  "status": "clean",
+  "kept": 5,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/B-ticket-assignment-s3/.shiploop-runs/work-20261031-161112-575e35",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/B-user-listing-s1/.shiploop-runs/work-20261031-153236-aa17d8",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/B-user-listing-s2/.shiploop-runs/work-20261031-154220-f796fc",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-qr/20261031/B-user-listing-s3/.shiploop-runs/work-20261031-160339-046b47",
+  "status": "clean",
+  "kept": 4,
+  "detail": ""
+ },
+ {
+  "root": "~/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87/.shiploop-runs/work-20261028-194550-435718",
+  "status": "clean",
+  "kept": 3,
+  "detail": ""
+ }
+]

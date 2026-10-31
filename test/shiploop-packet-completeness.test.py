@@ -1180,6 +1180,14 @@ class ProseSymbolsTests(unittest.TestCase):
         self.assertEqual(got[7], "[Excerpt only. Full value: RUN/state.md; field prompt. Read the complete required context]")
         self.assertEqual(got[-1], "State: RUN/state.md")          # converted again once the real END marker has closed it
 
+    def test_a_cut_request_points_at_the_numbered_request_file(self) -> None:
+        """Stage-prompt review (2026-10-31): a long request was cut with a note pointing at state.md's prompt field,
+        while intake must cite RUN/request.md's sentence numbers; the long requests' intakes numbered by their own count."""
+        text = "\n".join(navigator._request_block("One sentence here. " * 400, self.RUN, "nav-0123456789abcdef"))
+        self.assertIn("[Excerpt only. The whole request, its sentences numbered S1..Sn: " + str(self.RUN / "request.md"), text)
+        self.assertNotIn("field prompt", text)
+        self.assertNotIn("Excerpt only", "\n".join(navigator._request_block("Short request.", self.RUN, "nav-0123456789abcdef")))
+
     def test_a_rendered_packet_quotes_a_request_that_lists_absolute_paths_as_written(self) -> None:
         prompt = "Fix these files:\n- " + str(self.REPO / "src/a.py") + "\n- " + str(self.REPO / "src/b.py")
         state = navigator.new_state(str(self.REPO), prompt)
@@ -1236,7 +1244,7 @@ class SummaryPlaceholderTests(unittest.TestCase):
 
     def test_the_stage_placeholders_carry_what_their_duties_used_to_say_and_the_duties_point_to_them(self) -> None:
         self.assertIn("S<n>", prompts.summary_placeholder("intake"))
-        self.assertIn("cited S<n>", flat(prompts.DUTIES["intake"]))
+        self.assertIn("cited as RUN/request.md numbers them (S<n>, or a range S<a>-S<b>)", flat(prompts.DUTIES["intake"]))
         self.assertIn("each value all cases share, once", prompts.summary_placeholder("test-spec"))
         self.assertNotIn("Summary: which harness and suite decisions", flat(prompts.DUTIES["test-spec"]))
         # Verify's placeholder ("entry points traced; ...") retired with verify (design T §9.1 2b-4c): the entry-point walk

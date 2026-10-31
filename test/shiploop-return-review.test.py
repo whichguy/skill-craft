@@ -598,7 +598,7 @@ class ReturnRouteTests(ReturnReviewCase):
             self.git("add", "later.txt")
             self.git("commit", "-qm", "user work on top")
             head = self.git("rev-parse", "HEAD").stdout
-            self.sh(self.recipe(root, "apply -R").replace("<kept paths>", "app.js"))
+            self.sh(self.recipe(root, "apply -R"))  # the decided keep row: app.js
             self.assertFalse((self.repo / "app.js").exists())
             self.assertTrue((self.repo / "later.txt").is_file())  # what the later commit changed stays
             self.assertEqual(self.git("rev-parse", "HEAD").stdout, head)  # and the reversal is left uncommitted
@@ -612,7 +612,7 @@ class ReturnRouteTests(ReturnReviewCase):
             self.review_all(root, exclude=("scratch.log",))
             self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
             self.assertTrue((self.repo / "app.js").is_file())
-            self.sh(self.recipe(root, "apply -R").replace("<kept paths>", "app.js"))
+            self.sh(self.recipe(root, "apply -R"))  # the decided keep row: app.js
             self.assertEqual(self.snapshot(), before)
         with self.subTest("dirty start: reverse the kept diff, and the user's own edit stays"):
             self.fresh_repo("rb-dirty source")
@@ -626,9 +626,27 @@ class ReturnRouteTests(ReturnReviewCase):
             self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
             self.assertEqual((self.repo / "existing.txt").read_text(encoding="utf-8"),
                              "edited by the user and then by the run\n")
-            self.sh(self.recipe(root, "apply -R").replace("<kept paths>", "app.js existing.txt"))
+            self.sh(self.recipe(root, "apply -R"))  # the decided keep rows: app.js existing.txt
             self.assertEqual(self.snapshot(), before)
             self.assertEqual((self.repo / "existing.txt").read_text(encoding="utf-8"), "edited by the user\n")
+
+    def test_the_diff_recipe_names_the_keep_rows_once_every_path_is_decided(self) -> None:
+        """Stage-prompt review (2026-10-31): 51 of 62 archived environment.md files kept `-- <kept paths>` in the
+        "copy-ready" rollback; while paths are undecided the line says who fills them, then it names the keep rows."""
+        root, worktree = self.prepare("rb-fill")
+        self.write(worktree, "app.js")
+        self.write(worktree, "notes file.txt")
+        self.write(worktree, "scratch.log")
+        self.commit(worktree)
+        workspace.plan_return(root)
+        pending = self.recipe(root, "apply -R")
+        self.assertIn("-- <kept paths> |", pending)
+        self.assertIn("review-return decides: fill them in", "\n".join(workspace.rollback_lines(root)))
+        self.review_all(root, exclude=("scratch.log",))
+        filled = self.recipe(root, "apply -R")
+        self.assertNotIn("<kept paths>", filled)
+        self.assertIn("app.js 'notes file.txt' |", filled)
+        self.assertNotIn("scratch.log", filled)
 
     def test_the_rollback_anchors_come_from_workspace_md_even_after_a_follow_up_return(self) -> None:
         root, worktree = self.prepare("rb-anchor")
@@ -705,7 +723,8 @@ class ReturnRouteTests(ReturnReviewCase):
         # note moved to the workspace lifecycle reference (it says plan-return commits leftovers onto the run branch).
         for part in ("run the packet's plan-return command, then decide every undecided path with review-return",
                      "a dry run; decisions are kept for the return at release",
-                     "Compare review-return's expected return with the procedure in KNOWLEDGE/environment.md",
+                     "Compare review-return's expected return and the rollback it prints (the keep rows filled in) with "
+                     "the procedure in KNOWLEDGE/environment.md",
                      "rerun plan-return"):
             self.assertEqual(check.count(part), 1, part)
         lifecycle = " ".join((ROOT / "skills/shiploop/references/workspace-lifecycle.md").read_text(encoding="utf-8").split())

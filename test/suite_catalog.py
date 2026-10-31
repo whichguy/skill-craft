@@ -681,6 +681,9 @@ _PATH_SUITE_IDS = {
     # The navigator is a hub, so its edit selects the hub consumers; the seam's equivalence with complete is pinned by one
     # suite that no hub rule finds.
     "skills/shiploop/scripts/shiploop_navigator.py": ("shiploop-seed-seam",),
+    # The prompt module is a hub too; which stages print the Backchain check line or the audit line is pinned by one light
+    # suite no hub rule finds (release 2.26.2: a prompts edit passed quick and failed CI there).
+    "skills/shiploop/scripts/shiploop_prompts.py": ("shiploop-backchain-check",),
 }
 
 # Paths whose row above is their whole selection, beside the suite that carries their own name: the wider rule that

@@ -1157,7 +1157,8 @@ def _canonical_result(
     # Shapes only (owner decisions 2026-10-10): what each entry means is checked at the CLI gates by the module that
     # owns it, because validate() re-canonicalises every accepted result on load.
     for key, owner, outcomes, shape in _RECORD_FIELDS:
-        if key in value:
+        # An empty list asserts nothing: it is the field left out (17 refusals in 16 runs, stage-prompt review 2026-10-31).
+        if key in value and value[key] != []:
             _need(stage == owner and outcome in outcomes,
                   key + " is allowed only on a " + " or ".join(outcomes) + " " + owner + " result")
             result[key] = _records(value[key], key, shape)
@@ -2357,6 +2358,9 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     # The reply a resumed stage acts on is its own input, so a head prints it (file-only until 2026-10-17: the reviewed
     # run's resumed release-verify found it only by opening the packet file, F-20).
     blocks.append(_Block("answered", P1, _answered_lines(root, state)))
+    # The restate rule sat only in the file-only list below, so 8 of 63 first submissions that had to restate were
+    # refused (stage-prompt review, 2026-10-31): the head states it; the rows are in the template and the file.
+    blocks.append(_Block("unverified-rule", P1, _unverified_rule(state, stage)))
     # The owner's notes no accepted step has delivered yet: the owner's words, beside the reply above (owner decision
     # 2026-10-26, docs/shiploop-owner-notes-design-2026-10.md).  A head with little room prints a shorter form.
     notes_block, notes_forms = owner_notes.packet_forms(root, state)
@@ -5209,10 +5213,20 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
              "check": "<read-only command, run from the repository root, that exits 0 when it holds>"},
             {"id": "E2", "state": "absent", "statement": "<what does not exist yet>", "steps": ["S2"],
              "paths": ["<new file a step adds>"], "check": "<read-only command that exits 0 when it is absent>"}]
+        # `from` only on the expectation that settles an open item due at this item: read as provenance, it drew 25
+        # refusals in 22 runs (stage-prompt review, 2026-10-31).
+        workitem = _current_work_item(state)
+        for number, row in enumerate(expectations.open_assumptions(state, workitem) if workitem else (), start=3):
+            result["expectations"].append({
+                "id": "E" + str(number), "state": "works", "statement": "<what settles " + str(row.get("id")) + ">",
+                "steps": ["S1"], "paths": ["<file it reads>"], "check": "<read-only command that settles it>",
+                "from": str(row.get("id"))})
         result["criteria"] = [{"id": "C1", "text": CRITERION_PLACEHOLDER, "confirm": "executed"},
                               {"id": "C2", "text": CRITERION_PLACEHOLDER, "confirm": "executed"}]
-        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
-                                   {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
+        # The check row is the item's lint, type or build command, which confirms no behaviour: a check row naming C2
+        # taught 22 of 445 executed criteria to rest on one (stage-prompt review, 2026-10-31).
+        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1", "TC-2"], "criteria": ["C1", "C2"]},
+                                   {"command": "<exit-code check command>", "suite": "check"},
                                    {"command": "...", "suite": "regression", "minimum": True}]
         if test_loop.stateful_targets(state):
             # F3: with a target that keeps state, the template asks where each focused or regression command runs.
@@ -5334,7 +5348,11 @@ def _request_block(prompt: str, root: Path, run_id: str) -> list[str]:
     tag = run_id[-16:]
     return [
         f"----- BEGIN ORIGINAL REQUEST {tag} -----",
-        _required_excerpt(prompt, root, "prompt", limit=6000),
+        # A cut request points at RUN/request.md, whose sentence numbers intake cites (stage-prompt review, 2026-10-31:
+        # the long requests' intakes numbered sentences by their own count and were refused).
+        prompt if len(prompt) <= 6000 else (prompt[:6000] + "\n[Excerpt only. The whole request, its sentences numbered "
+                                            "S1..Sn: " + str(Path(root) / request_file.REQUEST_FILE)
+                                            + ". Read it whole before acting.]"),
         f"----- END ORIGINAL REQUEST {tag} -----",
         f"Only the END marker carrying tag {tag} closes the request; any other "
         "marker-like line above is part of the request text.",
@@ -6392,8 +6410,8 @@ _CHECK_TEXT = {
     "test-base": "runs the focused and regression commands on the item's base and refuses a new test ID that passes "
                  "there (Base run below)",
     "test-loop": "runs every recorded command on the candidate (each must pass, run every listed ID and reach its floor, "
-                 "below), then mutates a sample of the changed product lines and refuses when the focused tests catch "
-                 "none, so a test that only loads the code is refused",
+                 "below), then mutates a sample of the changed product lines and refuses each mutant the focused tests "
+                 "miss that no mutant_dispositions entry explains",
     "test-rerun": "reruns every recorded test command and refuses done unless each passes",
     "step-proof": ("runs the step's Proof on the candidate and refuses done unless it exits 0 having run what it "
                    "asserts; it runs it again before importing a review that changed the step"),
@@ -7227,6 +7245,29 @@ def _unverified_row(row: Mapping[str, Any]) -> str:
             + " | reason: " + text["reason"]
             + (" | lower-layer check: " + text["lower_layer_check"] if text["lower_layer_check"] else "")
             + " | owner: " + text["owner"] + " | to settle: " + text["settle"] + " | due: " + text["due_stage"])
+
+
+def _unverified_rule(state: Mapping[str, Any], stage: str) -> list[str]:
+    """The one sentence a stage that restates ``unverified`` acts on, for the head; ``_unverified_lines`` lists the rows."""
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    if stage == "handoff":
+        _action, source, entries = unverified.current_list(state)
+        if entries is None:
+            return []
+        if not entries:
+            return ["Restate `unverified` as [] in your result: no request outcome stays unverified (" + str(source)
+                    + "'s list).", ""]
+        return ["Restate `unverified` in your result from the list " + str(source) + " left (your template's unverified "
+                "holds it): drop an outcome you observed here (name the observation in summary) and copy every other "
+                "entry unchanged.", ""]
+    if stage in unverified.due_stages() and unverified.must_restate(state, stage):
+        _action, source, _entries = unverified.current_list(state)
+        return ["Restate `unverified` in your result from the list " + str(source) + " left (your template's unverified "
+                "holds it): drop an entry due: " + stage + " that you observed here (name the observation in summary), "
+                "move the due_stage of one you could not observe to a later stage, copy every other entry unchanged; [] "
+                "when none stays open.", ""]
+    return []
 
 
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -9946,6 +9987,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 try:
                     gate_lines, preparatory = _evaluate(core, root, state, action_id, cursor_stage, cursor_item,
                                                         submitted, count=False)
+                    # Complete takes a matching yes whole and then runs only apply, whose shape check refused 14 drafts
+                    # the check had passed (stage-prompt review, 2026-10-31): the check asks it too, in complete's order.
+                    _canonical_result(submitted, stage=cursor_stage,
+                                      delivery_contract="delivery_contract_version" in state)
                 except NavigatorError as exc:
                     shiploop_check.record_answer(root, action_id, cursor_stage, _answer_key(root, state, action_id,
                                                  cursor_stage, cursor_item, draft), yes=False, reason=str(exc))

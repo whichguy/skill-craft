@@ -3198,6 +3198,9 @@ class RequestIndexTests(unittest.TestCase):
             self.request.check(self.PROMPT, "intake", dict(cited, summary="S1 is the bug; S3..S4 the test."))
         self.assertTrue(str(caught.exception).startswith("intake's summary cites no S2, S5, S6 of the request's "
                                                          "sentences S1..S6 (RUN/request.md)"), str(caught.exception))
+        # The repair names ranges and forbids copying: 2 of 3 long-request repairs pasted the whole request
+        # (stage-prompt review, 2026-10-31).
+        self.assertIn("(S<n>, or a range S<a>-S<b> that holds it; do not copy the sentences)", str(caught.exception))
         self.request.check(self.PROMPT, "intake", {"outcome": "blocked", "summary": "S1"})   # only a done intake
         self.request.check(self.PROMPT, "intake", {"outcome": "done"})   # no summary: the shape's refusal names it
         self.request.check(self.PROMPT, "spec", dict(cited, summary="R-1"))               # only intake

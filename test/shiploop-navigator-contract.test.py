@@ -1000,7 +1000,9 @@ class NavigatorContractTests(unittest.TestCase):
             "plan": ["draft"],
             "step-plan": ["audit", "revise"],
             "carry-forward": ["audit", "revise"],
-            "product-acceptance": ["audit", "revise"],
+            # Product-acceptance edits nothing, so it prints the one-line optional audit, never a repair (stage-prompt
+            # review, 2026-10-31: 0 of 60 results used the route paragraph).
+            "product-acceptance": ["audit"],
         }
         for stage in EXPECTED_STAGES:
             with self.subTest(stage=stage):

@@ -4,6 +4,31 @@ Written by scripts/release.py.
 
 ## 2026-10-31
 
+### skill-craft 2.26.2
+
+- Skills: shiploop 1.25.1
+
+### shiploop 1.25.1
+
+- `shiploop check` now runs the same result-shape check `complete` runs, so a check's yes is no longer followed by a
+  refusal at complete (for example a step-plan check row with an empty `criteria` list). An empty `red_na` or
+  `retired_tests` list is accepted as the field left out, and a step's spec line may end in `.` or `;` after its
+  `(W<n>/S<n>)` mark.
+- Once every path of the return plan is decided, the rollback recipe names the kept paths itself instead of a literal
+  `<kept paths>`. `workspace review-return` prints that filled recipe, and release-check compares it with the procedure in
+  KNOWLEDGE/environment.md.
+- Stage prompts say what their gates do:
+  - the step-plan template's check row no longer names a criterion (a lint or build command confirms no behaviour);
+  - an expectation's `from` is used only to settle an open item due at the item, and the template adds that row only
+    when one is due;
+  - the test packet's mutation line describes the per-survivor rule;
+  - release, release-verify and handoff print the restate-`unverified` rule in the head;
+  - test-strategy declares test IDs as the runner prints them (`test_TC_1_output` does not show `TC_1`);
+  - intake cites sentences as RUN/request.md numbers them, ranges allowed and nothing copied, and a cut request points
+    at RUN/request.md;
+  - product-acceptance names ShipLoop's own worktree return in `summary` rather than `unverified`, and prints the
+    one-line optional Backchain audit instead of the route paragraph.
+
 ### skill-craft 2.26.1
 
 - Skills: shiploop-e2e-audit 0.7.15

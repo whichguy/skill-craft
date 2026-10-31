@@ -105,8 +105,9 @@ def check(prompt: str, stage: str, result: object) -> None:
     if missing:
         raise RequestError("intake's summary cites no " + ", ".join("S" + str(number) for number in missing)
                            + " of the request's sentences S1..S" + str(count) + " (RUN/" + REQUEST_FILE + "): give each "
-                           "the outcome, boundary, default or open question it maps to, with its S<n>, then run the same "
-                           "callback again.")
+                           "the outcome, boundary, default or open question it maps to, cited as RUN/" + REQUEST_FILE
+                           + " numbers it (S<n>, or a range S<a>-S<b> that holds it; do not copy the sentences), then run "
+                           "the same callback again.")
 
 
 __all__ = ["INTAKE", "POINTER", "REQUEST_FILE", "RequestError", "check", "cited", "index", "render", "sentences"]

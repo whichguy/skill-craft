@@ -1,5 +1,5 @@
 ---
-Status: firm for these corpora (2026-10-31). The stage-prompt review and the per-run condition test are complete; nothing is adopted.
+Status: firm for these corpora (2026-10-31). The stage-prompt review and the per-run condition test are complete. The eleven "land now" fixes were landed in c2da4604 on the owner's go and verified (§6); the side tests are not run.
 Consumer: the owner, deciding which ShipLoop prompt or script changes to land and which side tests to run first.
 Journal: this file (§6) and docs/shiploop-test-stage-prompt-design-2026-10-30.md §10.
 ---
@@ -233,3 +233,5 @@ times.
 | 2026-10-31 | Condition test, all five runs: 74 of 448 witnessed conditions survived (16.5%; 16.1% without 2 inferred). Per run 8.7% to 23.6%. Seven break a core outcome. By the predeclared rule nothing is adopted, and the next step is an A/B (S7) | firm for these runs | conditions/summary.json, conditions/*/results.json |
 | 2026-10-31 | Parent check: 74 of 74 survivors and 15 of 15 sampled kills reproduced on fresh copies. A first Grok pass was disturbed by port contention with a concurrent worker; the rerun was clean | firm | conditions/verify.py output in this commit's message |
 | 2026-10-31 | Finding: grok-web-battleship's browser case TC-3 was planned, never written, and carried as unverified, although local headless Chrome could drive it. The run predates 2.24.0's UI criteria | firm (one run); whether 2.24.0 closes it is unknown | grok-web-battleship/results.json; run results nav-33c30e48 (prepare), nav-820b080d (product-acceptance) |
+| 2026-10-31 | Owner: "Yes, land fixes now, validate, run e2e as needed". The eleven §3 fixes landed (c2da4604). Tiers PASS (78 suites). The rollback replay reversed 121 of 122 archived return plans cleanly. Contrary evidence handled: the first filled recipe printed 42,620 characters on the 300-path budget test, so keep rows are now compressed to directory pathspecs | firm | validation/rollback-replay.json; c2da4604 message |
+| 2026-10-31 | E2E round on Codex Terra 6.1 high, 6 runs against 7 on main: hidden checks 6/6 and 7/7; refused callbacks 9 against 21; check yes then refused 0 against 2; targeted refusals 2 against 7; placeholder rollback 1/6 against 5/7. No time effect claimed | firm for these runs | validation/e2e-round-*.json; test/shiploop_e2e/LEARNINGS.md |

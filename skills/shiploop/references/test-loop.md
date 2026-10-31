@@ -20,8 +20,8 @@ steps marks one or gives `minimum_na`
 
 The `test` stage follows `implement`. Tests are written after the build phase
 and must assert the behaviour the test spec's oracle states; ShipLoop mutates a
-sample of the item's changed product lines and refuses tests that catch none of
-them. Inside its [Until Loop](inner-loop.md#stage-until-loops) the stage writes a test for every
+sample of the item's changed product lines and refuses each surviving mutant
+that no focused test kills and no `mutant_dispositions` entry explains. Inside its [Until Loop](inner-loop.md#stage-until-loops) the stage writes a test for every
 test-spec case (the case ID as its own word in the test's name), runs every
 recorded command, the `red-check` command and the lint command, and fixes the
 product code (a test only for an independent reason it records) until all pass.
