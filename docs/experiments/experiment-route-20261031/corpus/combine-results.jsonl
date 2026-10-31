@@ -1,0 +1,6 @@
+{"run": "~/e2e-runs-qr/20261031/A-ticket-assignment-s1", "result": {"statusPriority":"AND","assigneeStatus":"AND"}}
+{"run": "~/e2e-runs-qr/20261031/A-ticket-assignment-s2", "result": {"statusPriority":"AND","assigneeStatus":"AND"}}
+{"run": "~/e2e-runs-qr/20261031/A-ticket-assignment-s3", "result": {"statusPriority":"OR","assigneeStatus":"OR:T-0001,T-0002"}}
+{"run": "~/e2e-runs-qr/20261031/B-ticket-assignment-s1", "result": {"statusPriority":"AND","assigneeStatus":"AND"}}
+{"run": "~/e2e-runs-qr/20261031/B-ticket-assignment-s2", "result": {"statusPriority":"AND","assigneeStatus":"AND"}}
+{"run": "~/e2e-runs-qr/20261031/B-ticket-assignment-s3", "result": {"statusPriority":"AND","assigneeStatus":"AND"}}
