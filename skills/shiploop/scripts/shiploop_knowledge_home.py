@@ -639,7 +639,8 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
             for line in after[j1:j2]:
                 if not line.strip() or tag == "replace" and line in before[i1:i2]:
                     continue
-                if not line.rstrip().endswith("(" + marker + ")"):
+                # A sentence may end after the mark: "(W1/S1)." refused 4 correct lines (stage-prompt review, 2026-10-31).
+                if not line.rstrip().rstrip(".;").endswith("(" + marker + ")"):
                     unmarked.append(line.strip())
                 elif not any(line in span for span in spans):
                     outside.append(line.strip())

@@ -76,7 +76,7 @@ class PacketBoundsTests(unittest.TestCase):
         state = self.state(request)
         packet = self.cold_packet(state)
         self.assertNotIn(request, packet)
-        self.assertIn("field prompt", packet)
+        self.assertIn("Excerpt only. The whole request, its sentences numbered S1..Sn:", packet)  # RUN/request.md, which intake cites
         self.assertEqual(state["prompt"], request)
 
     def test_large_pending_result_uses_exact_seed_locator_and_same_callback(self):

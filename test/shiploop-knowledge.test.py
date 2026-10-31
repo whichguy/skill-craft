@@ -85,6 +85,23 @@ class KnowledgeTests(HomeFixture):
         self.assertNotIn("On done ShipLoop checks", lines)
         self.assertIn("On done ShipLoop checks these files", "\n".join(knowledge.stage_lines(self.state, "prepare")))
 
+    def test_a_step_spec_line_may_end_in_sentence_punctuation_after_its_mark(self) -> None:
+        """Stage-prompt review (2026-10-31): 3 correct lines ending "(W1/S1)." were refused at document and 1 at
+        implement as without the step's mark; the mark is still required, and still inside a committed R entry."""
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.parent.mkdir(parents=True)
+        held = "# Spec\n\n### R-1 Notes\n\nNotes open with a title.\n"
+        spec.write_text(held)
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "spec")
+        for ending in ("(W1/S1)", "(W1/S1).", "(W1/S1);"):
+            spec.write_text(held + "- Acceptance: the title is one line. " + ending + "\n")
+            self.assertEqual(knowledge.step_spec_refusal(self.repo, "W1/S1"), "", ending)
+        spec.write_text(held + "- Acceptance: unmarked.\n")
+        self.assertIn("without the step's mark: - Acceptance: unmarked.", knowledge.step_spec_refusal(self.repo, "W1/S1"))
+        spec.write_text(held + "- Acceptance: another step's line. (W1/S2).\n")
+        self.assertIn("without the step's mark", knowledge.step_spec_refusal(self.repo, "W1/S1"))
+
     def test_a_file_written_before_a_close_names_the_next_close_that_requires_it(self) -> None:
         self.assertEqual(knowledge.next_close("plan", "architecture.md"), "prepare")
         self.assertEqual(knowledge.next_close("discovery", "environment.md"), "prepare")

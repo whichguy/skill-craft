@@ -168,11 +168,12 @@ def _recorded_parts(reviewed: Mapping[str, Any]) -> list[str | _Paths]:
 
 
 def _review_parts(core: Any, root: Path, summary: Mapping[str, Any], expected: Optional[str] = None,
-                  policy: Optional[str] = None) -> list[str | _Paths]:
+                  policy: Optional[str] = None, rollback: Sequence[str] = ()) -> list[str | _Paths]:
     """The plan's tally, the excludes a review decided, and the next command, which is always the last line.
 
     While paths are undecided the next command is the review that decides them; with none left it is the return, after
-    ``expected``, the route a return would take, for the model to compare with the rollback it wrote at release-plan.
+    ``expected``, the route a return would take, and ``rollback``, its undo with the keep rows filled in, for the model
+    to compare with the rollback it wrote at release-plan.
     """
     parts = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
              f"{summary['exclude']} exclude, {len(summary['pending'])} undecided."]
@@ -185,6 +186,7 @@ def _review_parts(core: Any, root: Path, summary: Mapping[str, Any], expected: O
                 navigator.REVIEW_RETURN_RULE, "Decide them with: " + navigator.review_return_command(core, root)]
     if expected:
         parts.append(f"Expected return: {expected}; the return itself still refuses a moved source or a collision.")
+    parts.extend(rollback)
     return [*parts, "Nothing is undecided; run: " + shlex.join(
         ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", "return", "--workspace-root", str(root)])]
 
@@ -328,10 +330,11 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                     summary = reviewed["summary"]
                 kind = None if summary["pending"] else workspace.expected_return(root)
                 expected = None if kind is None else f"{kind} ({workspace.ROUTE_TEXT[kind]})"
+                rollback = workspace.rollback_lines(root) if kind else []
                 policy = ("Return policy: fast-forward only for a clean starting checkout and a clean committed candidate "
                           "with all reviewed paths kept; otherwise return only the kept working-tree delta, without a "
                           "Git merge or commit." if args.operation == "plan-return" else None)
-                parts.extend(_review_parts(core, root, summary, expected, policy))
+                parts.extend(_review_parts(core, root, summary, expected, policy, rollback))
             except Exception:
                 _emit(parts)  # what ShipLoop already did (the files it committed) stays visible when a later step refuses
                 raise

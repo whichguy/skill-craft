@@ -1405,6 +1405,15 @@ class TestLoopTests(unittest.TestCase):
         with self.assertRaisesRegex(nav.NavigatorError, "red_na"):
             nav._canonical_result(dict(DONE, red_na=[{"id": "TC-1", "reason": "x"}]), stage="document")
 
+    def test_an_empty_red_na_or_retired_tests_list_is_the_field_left_out(self):
+        """Stage-prompt review (2026-10-31): 17 test results in 16 runs were refused for `"red_na": []`, and the model
+        then deleted the key; an empty list asserts nothing, so it is accepted as the field left out."""
+        result = nav._canonical_result(dict(DONE, red_na=[], retired_tests=[]), stage="test")
+        self.assertNotIn("red_na", result)
+        self.assertNotIn("retired_tests", result)
+        with self.assertRaisesRegex(nav.NavigatorError, r"red_na is a non-empty list of \{id, reason"):
+            nav._canonical_result(dict(DONE, red_na={}), stage="test")
+
     def test_a_new_test_that_fails_on_the_base_is_accepted_once_it_passes_on_the_candidate(self):
         self.start()
         self.drive_to("test", step_plan=self.id_item())
@@ -2573,6 +2582,18 @@ class TestLoopTests(unittest.TestCase):
         corrective = [{"id": "W2", "title": "Another item"}]
         with self.assertRaisesRegex(nav.NavigatorError, r"test-spec accepts only done, blocked, send-back"):
             self.dispatch(dict(DONE, outcome="add-work", work_items=corrective), check=True)
+
+    def test_the_check_refuses_a_result_shape_complete_refuses(self):
+        """Stage-prompt review (2026-10-31): 14 step-plan drafts got a yes from the check, then complete refused "a test
+        command's criteria must be a nonempty list"; complete takes a matching yes whole, so only apply's shape check ran."""
+        self.start()
+        self.drive_to("step-plan")
+        recorded = {"test_commands": [dict(COMMANDS[0], criteria=["C1"]),
+                                      {"command": "true", "suite": "check", "criteria": []}, *COMMANDS[1:]],
+                    "paths": ["a.py"],
+                    "criteria": [{"id": "C1", "text": "The item's focused check passes.", "confirm": "executed"}]}
+        with self.assertRaisesRegex(nav.NavigatorError, r"a test command's criteria must be a nonempty list"):
+            self.complete(dict(DONE, steps=[one_step(recorded)], **recorded), check=True, loop=False)
 
     def test_the_test_packet_prints_the_refused_runs_only_above_zero(self):
         self.start()

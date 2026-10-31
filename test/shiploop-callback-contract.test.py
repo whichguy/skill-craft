@@ -1575,6 +1575,8 @@ class UnverifiedRouteTests(RealCliCase):
             for field in self.FIELDS:
                 self.assertIn(entry[field], due)
         self.assertIn("Restate the list in your result's unverified: drop an entry due: release-check", due)
+        # The rule is in the printed head too (stage-prompt review, 2026-10-31: 8 of 63 first submissions refused).
+        self.assertIn("Restate `unverified` in your result from the list product-acceptance left", " ".join(head.split()))
         template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
         self.assertEqual(template["unverified"], [UNVERIFIED_ENTRY, UNVERIFIED_EARLY])
         _, head = self.at("handoff", **listed)
@@ -1632,6 +1634,7 @@ class UnverifiedRouteTests(RealCliCase):
         run, head = self.new_run("handoff", results=restated)
         handoff = self.full_packet(head)
         self.assertIn("The request outcomes still unverified, as release-check left the list", handoff)
+        self.assertIn("Restate `unverified` in your result from the list release-check left", " ".join(head.split()))
         self.assertIn(UNVERIFIED_ENTRY["outcome"], handoff)
         self.assertNotIn(UNVERIFIED_EARLY["outcome"], handoff)
         report = self.cli("report", "--run-dir", str(run)).stdout
@@ -1642,6 +1645,7 @@ class UnverifiedRouteTests(RealCliCase):
         run, head = self.new_run("release-plan", results={"product-acceptance": {"unverified": [UNVERIFIED_ENTRY]}})
         command, path, _ = printed_callback(head)
         self.assertNotIn("Restate the list", self.full_packet(head))  # nothing is due at release-plan
+        self.assertNotIn("Restate `unverified`", self.full_packet(head))
         write_block(path, dict(self.fill_done(head), unverified=[]))
         self.assertIn("unverified drops R-1", self.refused(command, run))
 

@@ -518,7 +518,9 @@ class BackchainStageTextTests(unittest.TestCase):
     """
 
     LOOP_STAGE = "plan"
-    AUDIT_STAGES = ("spec", "step-plan", "carry-forward", "product-acceptance")
+    # Product-acceptance edits nothing, so it prints the one-line optional audit on every route (stage-prompt review,
+    # 2026-10-31); test_product_acceptance_prints_the_audit_line_on_every_route pins it.
+    AUDIT_STAGES = ("spec", "step-plan", "carry-forward")
 
     @staticmethod
     def printed_guidance(stage, **modes):
@@ -554,6 +556,16 @@ class BackchainStageTextTests(unittest.TestCase):
         for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
             with self.subTest(stage=stage):
                 self.assert_prints_guidance(self.packets[stage], stage)
+
+    def test_product_acceptance_prints_the_audit_line_on_every_route(self):
+        """0 of 60 archived product-acceptance results used the Backchain route paragraph, and the stage edits nothing,
+        so its repair half could never apply (stage-prompt review, 2026-10-31)."""
+        for delegation in (guidance.INLINE, guidance.ASK_AGENT):
+            with self.subTest(delegation=delegation):
+                text = guidance.prompt("product-acceptance", delegation=delegation)
+                self.assertEqual(text.count(guidance.INLINE_BACKCHAIN_AUDIT), 1)
+                self.assertEqual(guidance.prompt_split("product-acceptance", delegation=delegation)[1], "")
+        self.assertIn("Backchain audit resource (", self.packets["product-acceptance"])
 
     def test_step_plan_carries_the_full_audit_guidance_only_when_delegated(self):
         # 2026-10-11 dedupe: an inline step-plan or carry-forward carries the one optional audit line; ask-agent keeps
