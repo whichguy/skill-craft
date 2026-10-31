@@ -139,8 +139,10 @@ records. Keep durable locators for a fresh operator; append interpretations
 instead of overwriting prior trials. The repository harness's normative counterpart
 is its `SPEC.md` Rules for the harness itself; packages do not require that checkout.
 
-1. **Reconcile and plan together.** Read full relevant Git messages, including
-   rejected and empty learning commits, and the full scoped learning backlog.
+1. **Reconcile and plan together.** Before planning the next trial or change,
+   search recent and older Git history by affected behaviour, paths and
+   referenced decisions. Read full relevant messages, including failed,
+   reverted and empty learning commits, and the full scoped learning backlog.
    Group related observations by causal hypothesis and existing learning ID;
    combine reviewer feedback into one prioritised plan with dependencies,
    alternatives and disagreements. Keep ShipLoop, product, host and evaluator
@@ -185,7 +187,13 @@ is its `SPEC.md` Rules for the harness itself; packages do not require that chec
    a complete critique, justified coverage, evidence-backed dispositions, no
    material actionable investigation, and completed required checks/cleanup.
 
-For retained wins, document measurements, contrary evidence and influential Git
-hashes/contents, then use the authorised main/CI, release, refresh and published
-build verification path before the next iteration. A green application, harness
-repair, passing unit suite or accepted idea alone is not a ShipLoop improvement.
+For every completed run or bounded experiment, follow the card's **Learning
+commits and history** rule: retain reproducible failure scenarios, measurements,
+contrary evidence, unknowns and full influential hashes with their contribution.
+An unqualified or rolled-back candidate restores the baseline and leaves a
+verbose empty learning commit, preserving original commits and raw external
+evidence. Keep rejected candidate/journal files out of the source repository.
+For retained wins, use the authorised main/CI, release, refresh and published
+build verification path before the next iteration. A green application,
+harness repair, passing unit suite or accepted idea alone is not a ShipLoop
+improvement.
