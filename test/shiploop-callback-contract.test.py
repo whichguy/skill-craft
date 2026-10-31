@@ -1268,10 +1268,11 @@ class StepSizingRouteTests(RealCliCase):
                 self.assertEqual([step["id"] for step in self.recorded(run, action)["steps"]],
                                  [step["id"] for step in change["steps"]])
 
-    def test_the_key_question_ledger_is_optional_but_refused_when_malformed_or_at_another_stage(self) -> None:
-        """Intake duty 9 (2026-10-31, X1-T on Codex Terra 6.1 high: recall 0.49 without the ledger, 0.91 with it): the
-        ledger is the prompt's work, so a done intake without it is accepted, as in the measured runs; one that is present
-        names each catalog category once, routes each question, and keeps no placeholder; another stage may not carry it."""
+    def test_the_key_question_ledger_is_kept_when_given_refused_when_malformed_and_optional(self) -> None:
+        """Intake duty 9 (2026-10-31, X1-T on Codex Terra 6.1 high: recall 0.49 without the ledger, 0.91 with it).  The
+        stored intake result keeps the ledger (a first build dropped it, and the first live run's 11 categories and 3
+        questions were lost); a malformed one is refused, as is one at another stage; an intake without it is accepted,
+        as the template, not a gate, asks for it."""
         run, head = self.new_run("intake")
         command, path, action = printed_callback(head)
         good = self.fill_done(head)
@@ -1294,9 +1295,16 @@ class StepSizingRouteTests(RealCliCase):
             with self.subTest(label):
                 write_block(path, {**good, **change})
                 self.assertIn(fragment, self.refused(command, run))
-        write_block(path, {key: value for key, value in good.items() if key not in ("questions", "question_categories")})
+        write_block(path, good)
         self.accepted(command)
-        self.assertNotIn("questions", self.recorded(run, action))
+        kept = self.recorded(run, action)
+        self.assertEqual((len(kept["question_categories"]), kept["questions"]), (11, good["questions"]))
+        with self.subTest("an intake without the ledger"):
+            run, head = self.new_run("intake")
+            command, path, _ = printed_callback(head)
+            write_block(path, {key: value for key, value in self.fill_done(head).items()
+                               if key not in ("questions", "question_categories")})
+            self.accepted(command)
         with self.subTest("the ledger at another stage"):
             run, head = self.new_run("discovery")
             command, path, _ = printed_callback(head)

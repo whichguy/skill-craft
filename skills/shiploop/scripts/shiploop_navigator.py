@@ -1246,6 +1246,14 @@ def _canonical_result(
             result["primary"] = primary.canonical(value["primary"])
         except primary.PrimaryError as exc:
             raise NavigatorError(str(exc)) from exc
+    for key in ("question_categories", "questions"):
+        if key in value:
+            # Shape only (intake duty 9): the CLI gate checks the ledger (``_check_intake_questions``). Kept whole, so the
+            # stages after intake read it in intake's result; a first build dropped it here, and the first live run's
+            # ledger (2026-10-31: 11 categories, 3 questions) was lost from its stored result.
+            _need(stage == "intake" and outcome == "done", key + " is allowed only on a done intake result")
+            _need(isinstance(value[key], list), key + " is a list")
+            result[key] = json.loads(json.dumps(value[key]))
     if "unverified" in value:
         # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
         # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
@@ -2840,11 +2848,12 @@ def _check_focused_guards(stage: str, result: Any) -> None:
 
 
 def _check_intake_questions(stage: str, result: Any) -> None:
-    """Refuse a malformed key-question ledger (intake duty 9) or one at another stage.  The ledger is the prompt's, not
-    the gate's: it is optional, as it was when pilot X1-T measured it (recall 0.49 without it, 0.91 with it, Codex Terra
-    6.1 high), and checked only for its shape when present.  ``question_categories`` names each of K1-K11 once with
-    ``applies`` yes or no (a no gives its reason); each of ``questions`` has a unique id, its question and one route of
-    QUESTION_ROUTES; no field keeps a template placeholder."""
+    """Refuse a malformed key-question ledger (intake duty 9) or one at another stage.  The ledger is optional: the
+    template asks for it, as in pilot X1-T (recall 0.49 without it, 0.91 with it, Codex Terra 6.1 high), and both live
+    runs of 2026-10-31 wrote it unasked by any gate (11 categories with 3 and 6 questions); requiring it would refuse
+    every synthetic intake the hermetic suites complete.  Checked for its shape when present: ``question_categories``
+    names each of K1-K11 once with ``applies`` yes or no (a no gives its reason); each of ``questions`` has a unique id,
+    its question and one route of QUESTION_ROUTES; no field keeps a template placeholder."""
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     present = [key for key in ("question_categories", "questions") if key in result]
