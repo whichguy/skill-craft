@@ -322,6 +322,22 @@
       "from": "stand-ins/stateful-target/deployed"
     }
   },
+  "gas-deployed-target": {
+    "fixture": "local-target-gas",
+    "prompt": "In this Google Apps Script project (see README.md), add discount(price, pct) in a new server file src/Pricing.js: the price after a percentage discount, rounded to cents with cents() from src/Money.js: discount(80, 25) returns 60. A pct outside 0..100 or a negative or non-finite price throws a RangeError. Its tests load the server files from the deployment like the existing ones; npm test must pass.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add discount(price, pct) in src/Pricing.js",
+      "context": "The project is pushed to its deployment before the tests run."
+    },
+    "expect_paths": [
+      "src/Pricing.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node scripts/deploy.js --clean && node --test"
+    ]
+  },
   "node-seeded-early-validation": {
     "fixture": "node-base",
     "prompt": "In this Node.js project, add a class Basket in a new module src/basket.js and export it. new Basket({limit}) holds at most limit items; limit must be a positive integer, otherwise the constructor throws a TypeError. add(item) appends the item and returns the new count, and throws a RangeError when the basket is full. Cover it with node:test tests; npm test must pass.",

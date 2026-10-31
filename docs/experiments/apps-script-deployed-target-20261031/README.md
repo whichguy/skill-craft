@@ -1,0 +1,64 @@
+# AS1, 2026-10-31: does the Apps Script card's Testing section change what test-strategy declares?
+
+A cheap stand-in for a live Apps Script round: one stage per sample, a Node project in place of a Google deployment, no
+account and no `clasp`. It measures whether a model follows the card's text. It does not measure Google's runtime.
+
+## The claim
+
+`skills/shiploop/references/platforms/apps-script.md` has a `## Testing` section that says to name a deployed project as a
+test-strategy target that keeps state (`keeps_state: "yes"` and a `base_state_route`), because a test that calls the
+deployment reads the deployment and never the checkout. ShipLoop's packets at test-strategy, plan, prepare and step-plan
+point to a card's `## Testing` section once KNOWLEDGE/environment.md names the card
+(`shiploop_navigator._platform_testing_lines`). AS1 asks whether, with that pointer, test-strategy records the deployment
+as a target that keeps state more often than without it.
+
+History that shaped it: the section was first added as "Testing deployed code" (`dc312cd1`) and no packet pointed to it.
+Fixed in `c468b25c62012b95dbe11fa199032719d0b34501` (the B arm). The release of the card text is on hold (owner, 2026-10-31).
+
+## What the pieces are
+
+- **Case** `gas-deployed-target` in `test/shiploop_e2e/step_cases.json`, fixture `fixtures/local-target-gas`: an Apps Script
+  project (`appsscript.json`, V8, server files in `src/` sharing one global scope). `scripts/deploy.js` stands in for
+  `clasp push` and copies the project to a folder named by `LOCAL_TARGET`; the tests load the server files from that
+  folder, as requests to the web app would. The seeded KNOWLEDGE/environment.md names `GUIDES/platforms/apps-script.md`
+  under "Targets and runtimes". **Nothing in the case says the deployment keeps state.** The first experiments of
+  2026-10-24 (E1, E3) scored 1.0 in every arm because the case gave the answer, and `decide` then reports a ceiling.
+- **Slice** `--seed-at test-strategy --stop-after test-strategy`: the host starts at test-strategy and ends once that
+  stage is accepted.
+- **Arms**: A is `55a2726d8f0983aa94c547f98a452360945c0bad`, the build before the card section. B is
+  `c468b25c62012b95dbe11fa199032719d0b34501`. `skills/`, `agents/` and `plugins/` differ between them in that one card file.
+- **Scorer** `test/shiploop_e2e/probes/target_state_declared.py`: 1 when the accepted test-strategy result has a `targets`
+  row for the deployment with `keeps_state` yes; the rows are printed beside the value so a 0 shows what was declared.
+  It sits in `probes/`, so it moves neither the evaluator digest nor the qualification snapshot. The cost: its bytes are
+  in no digest, so the experiment record's two commits are what fix the arms, and an edit to the scorer after a round is
+  not detected by a digest.
+
+## Checked with no model
+
+- `experiment.py verify AS1`: the scorer tells a deployment row that keeps state from a stateless one, from a checkout-only
+  declaration, from a checkout target marked stateful, from a result with no `targets`, and from no result.
+- test/shiploop-e2e-experiments.test.py: the seeded packet at test-strategy points to the card, and the case and fixture
+  contain no statement that a target keeps state; A and B differ in the card alone.
+- By hand on 2026-10-31, the same seeded packet rendered with each arm's build: A prints no `Platform testing guide` line
+  and its card has no `## Testing`; B prints `Platform testing guide: GUIDES/platforms/apps-script.md#testing`.
+
+## Run it (a Codex Terra 6.1 xhigh host with hooks on, the current default subject)
+
+```sh
+python3 test/shiploop_e2e/experiment.py verify AS1
+python3 test/shiploop_e2e/experiment.py queue AS1 --arms A,B --jobs 4      # 8 one-stage samples
+python3 test/shiploop_e2e/experiment.py score AS1
+python3 test/shiploop_e2e/experiment.py decide AS1 A B
+```
+
+## Reading the result
+
+`decide` applies the harness's A/A rule with 4 samples per arm.
+- **ceiling** (every sample of both arms 1): the packet's own `targets` field and its rule already get the model there;
+  the card section adds nothing measurable at this case. Per the 2026-10-24 journal, change the case before adding samples.
+- **floor** (every sample 0): the section does not help at this case, or the model declares the deployment under a name the
+  scorer's pattern misses; read the printed `rows` before concluding.
+- **supports**: B beyond the spread. It shows the text is followed on this stand-in. It does not show anything about
+  Google's runtime (web-app identity, OAuth, `clasp`), and one case and one subject model is one case and one model.
+
+Whether a result counts as the live round the release preflight asks for is the owner's decision. Nothing has run.

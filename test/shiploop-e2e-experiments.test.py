@@ -8,6 +8,7 @@ import contextlib
 import hashlib
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -106,6 +107,20 @@ class Seeds(unittest.TestCase):
         found = step_slice.seed_state(step_slice.load_step_case("stateful-target"), self.out, env)
         self.assertEqual(env["LOCAL_TARGET"], str(self.out / "target"))
         self.assertIn("src/pricing.js", found["files"])
+
+    def test_the_gas_case_seeds_at_test_strategy_and_its_packet_points_to_the_apps_script_card(self):
+        """AS1 tells the card's effect only if the test-strategy packet reaches the card, and only if nothing in the case
+        already says the deployment keeps state (a ceiling: E1 and E3 scored 1.0 in every arm on 2026-10-24)."""
+        seeded = self.seed("test-strategy", "gas-deployed-target")
+        self.assertEqual((seeded["stage"], seeded["skipped"], seeded["item_bases"]),
+                         ("test-strategy", ["intake", "discovery", "research", "spec"], []))
+        text = _next(CLI, seeded["run_dir"])
+        self.assertIn("Platform testing guide: ", text)
+        self.assertIn("platforms/apps-script.md#testing", text)
+        spec = step_slice.load_step_case("gas-deployed-target")
+        fixture = step_slice.FIXTURES / spec["fixture"]
+        given = json.dumps(spec) + "".join(p.read_text() for p in sorted(fixture.rglob("*")) if p.is_file())
+        self.assertIsNone(re.search(r"keeps? (its |their )?state|between (commands|runs)|stale|persist", given, re.I))
 
     def test_a_seed_at_test_lays_an_earlier_slices_implementation_uncommitted_after_the_item_base(self):
         """D4 (docs/shiploop-test-stage-prompt-design-2026-10-30.md §9): a seed at test holds implement fixed. It takes the
@@ -480,6 +495,21 @@ class Evaluators(unittest.TestCase):
                 self.assertNotIn("--delegation", argv_a)
                 self.assertEqual(argv_b[argv_b.index("--delegation") + 1], "ask-agent")
                 self.assertEqual([w for w in argv_b if w not in ("--delegation", "ask-agent")], argv_a)
+
+    def test_as1s_scorer_credits_only_a_deployment_target_that_keeps_state(self):
+        self.check("AS1")
+
+    def test_as1s_two_builds_differ_in_the_apps_script_card_alone(self):
+        exp = experiment.load("AS1")
+        a, b = exp["arms"]["A"]["ref"], exp["arms"]["B"]["ref"]
+        self.assertNotEqual(a, b)
+        self.assertEqual((exp["seed_at"], exp["stop_after"], exp["evaluator"]),
+                         ("test-strategy", "test-strategy", "probes/target_state_declared.py"))
+        shown = subprocess.run(["git", "-C", str(ROOT), "diff", "--name-only", a, b, "--", "skills", "agents", "plugins"],
+                               capture_output=True, text=True)
+        if shown.returncode:
+            self.skipTest(f"{a[:8]} and {b[:8]} are not both in this clone")
+        self.assertEqual(shown.stdout.split(), ["skills/shiploop/references/platforms/apps-script.md"])
 
     def test_e3s_detector_and_e2s_source_search_on_plain_commands(self):
         import e2_layers  # noqa: PLC0415
