@@ -24,6 +24,7 @@ import argparse
 import hashlib
 import itertools
 import json
+import math
 import random
 import re
 import statistics
@@ -81,12 +82,24 @@ def _successes(cards: list[dict], floors: list[str]) -> int:
 
 
 def _splits(n: int, k: int, limit: int) -> list[tuple[tuple[int, ...], tuple[int, ...]]]:
-    """Every (control, candidate) pair of disjoint k-sets of range(n), or `limit` of them drawn with a fixed seed."""
-    every = [(left, right) for left in itertools.combinations(range(n), k)
-             for right in itertools.combinations([i for i in range(n) if i not in left], k)]
-    if len(every) <= limit:
-        return every
-    return random.Random(0).sample(every, limit)
+    """Every (control, candidate) pair of disjoint k-sets of range(n), or `limit` of them drawn with a fixed seed.
+
+    The space grows fast (24 attempts, 3 per arm: 2.7 million splits, 378 MB as a list), so a space much larger than the
+    sample is never listed: splits are drawn directly, each as 2k distinct attempts dealt to the two arms, which is
+    uniform over the space."""
+    total = math.comb(n, k) * math.comb(n - k, k)
+    if total <= 20 * limit:
+        every = [(left, right) for left in itertools.combinations(range(n), k)
+                 for right in itertools.combinations([i for i in range(n) if i not in left], k)]
+        if len(every) <= limit:
+            return every
+        return random.Random(0).sample(every, limit)
+    rng = random.Random(0)
+    drawn: set = set()
+    while len(drawn) < limit:
+        pick = rng.sample(range(n), 2 * k)
+        drawn.add((tuple(sorted(pick[:k])), tuple(sorted(pick[k:]))))
+    return sorted(drawn)
 
 
 def case_spread(cards: list[dict], floors: list[str], k: int, limit: int) -> dict:

@@ -139,11 +139,10 @@ gap below.
     `false_drop_risk`, the driver or the floors, and `spread` has no minimum sample.
   - Roles and predictions: `roles_for` takes roles from the improver's own prediction, a small diagnostic effect can be
     confirmed by noise, and a prediction's `record` is checked only for format.
-  - Test gaps: the two-attempts test would still pass if the lock around the seal or the intent were removed, so nothing
-    proves appends stay exclusive under the narrowed lock; the cycle tests mock `decide`, `launch_all` and the reviews, so
-    `review_all`, UNDECIDED, `loop()` and `explore()` are not run by them.
-  - Smaller: `spread._splits` builds every combination before sampling (24 attempts, 3 per arm: 378 MB), `epoch.state()`
-    reports contract /2 for an epoch registered as /1, UNKNOWN_LAUNCH leaves the record `in_candidate` with no event,
+  - Test gaps: the cycle tests mock `decide`, `launch_all` and the reviews, so `review_all`, UNDECIDED, `loop()` and
+    `explore()` are not run by them. (The lock gap is closed: a test now widens the append window and fails if the
+    lock around a launch's seal or its intent is removed, shown by removing each.)
+  - Smaller: `epoch.state()` reports contract /2 for an epoch registered as /1, UNKNOWN_LAUNCH leaves the record `in_candidate` with no event,
     the "latest compared cycle" learning that ba51c3f gives the next improver carries the previous cycle's per-case table
     including the generality case (this weakens the confirmation-exposure rule), and `review_all` records routes from
     reviews that were not usable.
@@ -160,7 +159,7 @@ later. Consequences, so they are not rediscovered:
   cycles therefore cannot run as built. A later change must either accept an explicit, recorded tolerance and attempt
   count in place of a measurement, or the loop moves to step slices (`experiment.py`). That is a decision for the owner.
 - The loop's live parts (the stage 4 pilot, stage 5 cycles) all need Codex Terra runs on the owner's computer; skipping
-  stage 3 does not remove that need. As of this date the owner's computer (BigDog) lists `skill-craft` in Remote
+  stage 3 does not remove that need. As of this date the owner's Mac lists `skill-craft` in Remote
   Control but does not offer it to cloud sessions, so a cloud session cannot launch live runs there.
 
 **Owner decision, 2026-10-31 (same day): take option 1.** A cycle takes a stated tolerance and attempt count. `iterate.py
