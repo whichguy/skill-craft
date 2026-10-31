@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import importlib.util
 import io
 import itertools
 import json
@@ -18,6 +19,7 @@ import tempfile
 import threading
 import time
 import unittest
+from fractions import Fraction
 from pathlib import Path
 from unittest import mock
 
@@ -40,6 +42,11 @@ import shiploop_store as store  # noqa: E402
 
 CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
 T_REF = "9ed4ec24"
+
+SG2_POOL = ROOT / "docs" / "experiments" / "sdlc-gates-20261030" / "sg2_pool.py"
+_pool_spec = importlib.util.spec_from_file_location("sg2_pool", SG2_POOL)
+sg2_pool = importlib.util.module_from_spec(_pool_spec)
+_pool_spec.loader.exec_module(sg2_pool)
 
 
 def _digest(folder: Path) -> str:
@@ -389,6 +396,145 @@ class Decide(unittest.TestCase):
         commit = experiment._resolved_commit("HEAD")
         self.assertRegex(commit, r"^[0-9a-f]{40}$")
         self.assertIsNone(experiment._resolved_commit(None))
+
+
+class PooledSg2(unittest.TestCase):
+    """SG2 read as one experiment of four cases (docs/experiments/sdlc-gates-20261030/sg2_pool.py; owner, 2026-10-31):
+    at 4 binary samples per arm one case reaches p < 0.05 only as 4 against 0, so the four cases are blocks of one test."""
+
+    @staticmethod
+    def rows(values):
+        return [{"sample": n, "value": v} for n, v in enumerate(values, 1)]
+
+    def pool(self, a, b, n=4):
+        """Four cases where arm A catches a[i] of n samples in case i and arm B b[i]."""
+        return {f"SG2-K{i}": (self.rows([1] * x + [0] * (n - x)), self.rows([1] * y + [0] * (n - y)))
+                for i, (x, y) in enumerate(zip(a, b), 1)}
+
+    def test_the_pooled_p_is_the_exact_share_of_within_case_permutations(self):
+        rng = random.Random(11)
+        for _ in range(25):
+            nx, ny = rng.randint(1, 3), rng.randint(1, 3)
+            blocks = [([rng.choice((0, 0.25, 0.5, 0.75, 1)) for _ in range(nx)],
+                       [rng.choice((0, 0.25, 0.5, 0.75, 1)) for _ in range(ny)]) for _ in range(rng.randint(1, 3))]
+            pooled = [[Fraction(v) for v in control + candidate] for control, candidate in blocks]
+            observed = sum(sum(Fraction(v) for v in candidate) for _, candidate in blocks)
+            splits = [list(itertools.combinations(range(nx + ny), ny)) for _ in blocks]
+            total = hits = 0
+            for choice in itertools.product(*splits):
+                total += 1
+                hits += sum(sum(block[i] for i in picked) for block, picked in zip(pooled, choice)) >= observed
+            self.assertAlmostEqual(sg2_pool.pooled_p(blocks), hits / total, msg=blocks)
+
+    def test_one_case_is_the_harnesss_own_permutation_test(self):
+        for control, candidate in (([0, 0, 0, 0], [1, 1, 1, 1]), ([1, 0, 0, 0], [1, 1, 1, 1]), ([0.5, 0.25, 0.5, 0.5], [1, 0.75, 1, 1])):
+            self.assertAlmostEqual(sg2_pool.pooled_p([(control, candidate)]), experiment.permutation_p(control, candidate))
+
+    def test_four_cases_that_each_read_inconclusive_alone_support_the_pool(self):
+        # B catches 3 of 4 where A catches 1 of 4, in every case: 1 against 3 gives one case p 0.243.
+        found = sg2_pool.judge_pool(self.pool((1, 1, 1, 1), (3, 3, 3, 3)))
+        self.assertEqual(found["verdict"], "supports")
+        self.assertLess(found["p"], experiment.SIGNIFICANCE)
+        self.assertEqual([case["verdict"] for case in found["cases"]], ["inconclusive"] * 4)
+        self.assertEqual((found["n"], found["difference"]), ([16, 16], 0.5))
+        self.assertIn("pooled over 4 cases of 4 against 4", found["reason"])
+
+    def test_the_thresholds_the_guide_states_for_evenly_spread_catches(self):
+        # A catches a of 16, spread evenly over the cases: the fewest catches by B, also spread evenly, that support.
+        needed = {0: 5, 1: 6, 2: 8, 3: 9, 4: 10, 5: 11, 6: 12, 7: 13, 8: 14}
+
+        def spread(total):
+            return tuple(total // 4 + (1 if i < total % 4 else 0) for i in range(4))
+        for a, b in needed.items():
+            self.assertEqual(sg2_pool.judge_pool(self.pool(spread(a), spread(b)))["verdict"], "supports", (a, b))
+            self.assertEqual(sg2_pool.judge_pool(self.pool(spread(a), spread(b - 1)))["verdict"], "inconclusive", (a, b - 1))
+
+    def test_no_better_contradicts_and_a_gain_within_noise_is_inconclusive(self):
+        self.assertEqual(sg2_pool.judge_pool(self.pool((3, 3, 3, 3), (2, 2, 2, 2)))["verdict"], "contradicts")
+        self.assertEqual(sg2_pool.judge_pool(self.pool((2, 2, 2, 2), (2, 2, 2, 2)))["verdict"], "contradicts")
+        found = sg2_pool.judge_pool(self.pool((2, 2, 2, 2), (3, 3, 3, 2)))
+        self.assertEqual(found["verdict"], "inconclusive")
+        self.assertGreaterEqual(found["p"], experiment.SIGNIFICANCE)
+        self.assertIn(f"p {found['p']:.2g}", found["reason"])
+
+    def test_every_sample_at_a_bound_is_a_ceiling_or_a_floor_for_the_whole_pool(self):
+        self.assertEqual(sg2_pool.judge_pool(self.pool((4, 4, 4, 4), (4, 4, 4, 4)))["verdict"], "ceiling")
+        self.assertEqual(sg2_pool.judge_pool(self.pool((0, 0, 0, 0), (0, 0, 0, 0)))["verdict"], "floor")
+        # One case at the ceiling in both arms adds nothing and does not stop the others from deciding.
+        self.assertEqual(sg2_pool.judge_pool(self.pool((4, 0, 0, 0), (4, 4, 4, 3)))["verdict"], "supports")
+
+    def test_a_pool_with_unequal_sample_counts_is_refused_not_guessed(self):
+        short = self.pool((0, 0, 0, 0), (4, 4, 4, 4))
+        short["SG2-K3"] = (short["SG2-K3"][0], short["SG2-K3"][1][:3])
+        with self.assertRaisesRegex(SystemExit, r"SG2-K3 4/3"):
+            sg2_pool.judge_pool(short)
+        with self.assertRaisesRegex(SystemExit, "same number of scored samples"):
+            sg2_pool.judge_pool({name: ([], []) for name in self.pool((0,) * 4, (0,) * 4)})
+
+    def test_a_missing_value_is_not_a_sample(self):
+        full = self.pool((0, 0, 0, 0), (4, 4, 4, 4))
+        full["SG2-K2"] = (full["SG2-K2"][0], full["SG2-K2"][1] + [{"sample": 5, "value": None}])
+        self.assertEqual(sg2_pool.judge_pool(full)["verdict"], "supports")
+
+    def _write(self, out, a, b):
+        for number, (exp_id, (rows_a, rows_b)) in enumerate(self.pool(a, b).items(), 1):
+            for arm, rows in (("A", rows_a), ("B", rows_b)):
+                for row in rows:
+                    folder = out / exp_id / arm / str(row["sample"])
+                    folder.mkdir(parents=True)
+                    (folder / "score.json").write_text(json.dumps(row))
+
+    def test_decide_pool_writes_the_record_and_one_journal_line_and_changes_no_experiment(self):
+        before = (E2E / "experiments.json").read_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            out, journal = Path(tmp) / "out", Path(tmp) / "journal.md"
+            self._write(out, (1, 1, 1, 1), (3, 3, 3, 3))
+            report = sg2_pool.decide_pool(out, "A", "B", journal)
+            self.assertEqual((report["experiment"], report["verdict"]), ("SG2", "supports"))
+            self.assertEqual(report["members"], ["SG2-K1", "SG2-K2", "SG2-K3", "SG2-K4"])
+            self.assertEqual(json.loads((out / "SG2" / "decision.json").read_text())["verdict"], "supports")
+            self.assertTrue((out / "SG2" / "decision-A-B.json").is_file())
+            lines = [line for line in journal.read_text().splitlines() if line.startswith("| 2")]
+            self.assertEqual(len(lines), 1)
+            self.assertIn("| SG2 |", lines[0])
+            self.assertIn("**supports**", lines[0])
+            self.assertIn("+ask-agent", lines[0])
+            self.assertIn("16/16", lines[0])
+            dry_journal = Path(tmp) / "dry.md"
+            sg2_pool.decide_pool(out, "A", "B", dry_journal, record=False)
+            self.assertFalse(dry_journal.exists())
+        self.assertEqual((E2E / "experiments.json").read_bytes(), before)
+
+    def test_decide_pool_refuses_a_case_the_queue_stopped_early(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self._write(out, (1, 1, 1, 1), (3, 3, 3, 3))
+            for arm in ("A", "B"):
+                for n in (3, 4):
+                    shutil.rmtree(out / "SG2-K2" / arm / str(n))
+            with self.assertRaisesRegex(SystemExit, "SG2-K2 2/2"):
+                sg2_pool.decide_pool(out, "A", "B", out / "journal.md")
+            self.assertFalse((out / "SG2" / "decision.json").exists())
+
+    def test_decide_pool_refuses_samples_built_from_different_commits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self._write(out, (1, 1, 1, 1), (3, 3, 3, 3))
+            for exp_id, commit in (("SG2-K1", "a" * 40), ("SG2-K2", "b" * 40)):
+                for n in range(1, 5):
+                    path = out / exp_id / "B" / str(n) / "score.json"
+                    path.write_text(json.dumps({**json.loads(path.read_text()), "commit": commit}))
+            with self.assertRaisesRegex(SystemExit, "different commits"):
+                sg2_pool.decide_pool(out, "A", "B", out / "journal.md")
+
+    def test_the_pool_is_the_four_sg2_cases_on_one_build_and_the_reader_stays_out_of_the_digest(self):
+        self.assertEqual(sg2_pool.members(), [f"SG2-K{n}" for n in range(1, 5)])
+        self.assertEqual({json.dumps(experiment.load(i)["arms"]["B"], sort_keys=True) for i in sg2_pool.members()}.__len__(), 1)
+        self.assertFalse(str(SG2_POOL.resolve()).startswith(str(E2E.resolve())), "the reader sits in docs/, outside the digest")
+        guide = (SG2_POOL.parent / "README.md").read_text()
+        section = guide[guide.index("## SG2"):]
+        self.assertIn("--no-early-stop", section)
+        self.assertIn("sg2_pool.py", section)
 
 
 class RunOneSample(unittest.TestCase):

@@ -60,7 +60,8 @@ case: `node-seeded-case-compare`, `node-seeded-numeric-sort`, `node-seeded-empty
 - **Bar.** B is promoted when `decide` reads `supports` (an exact one-sided permutation test, p below 0.05, since D5,
   `a9e398e9`; with 4 binary samples per arm only 4 against 0 reaches it, and the A/A spread this section once named is
   gone), unless its minutes per sample exceed 1.5 times
-  A's (read from each sample's metrics.json).
+  A's (read from each sample's metrics.json). (Superseded for the verdict on 2026-10-31, before any run: B is promoted when
+  the four cases read as one pooled test support it, `sg2_pool.py`, under the same cost bound. See "Pooled reading".)
 - **Limit.** Delegation also moves `implement` to a fresh worker, so the comparison is "everything in one context"
   against "fresh workers", not the review alone. The fix-commit count shows which arm's catches came from review.
 
@@ -68,16 +69,68 @@ Run it on a Codex Terra 6.1 xhigh host with hooks on, the current default subjec
 
 ```sh
 python3 test/shiploop_e2e/experiment.py verify SG2-K1          # each case's probe tells naive from fixed (no model)
-python3 test/shiploop_e2e/experiment.py queue SG2-K1 SG2-K2 SG2-K3 SG2-K4 --arms A,B --jobs 4
+python3 test/shiploop_e2e/experiment.py queue SG2-K1 SG2-K2 SG2-K3 SG2-K4 --arms A,B --jobs 4 --no-early-stop
 python3 test/shiploop_e2e/experiment.py score SG2-K1           # then each K
-python3 test/shiploop_e2e/experiment.py decide SG2-K1 A B      # then each K
+python3 docs/experiments/sdlc-gates-20261030/sg2_pool.py       # the verdict: the four cases as one test
+python3 test/shiploop_e2e/experiment.py decide SG2-K1 A B      # then each K, as a diagnostic only
 ```
+
+`--no-early-stop` matters: without it `queue` stops a case once `contradicts` cannot change (A 2 of 2, B 0 of 2), and the
+pool needs every case to have the same number of samples in each arm. `sg2_pool.py` refuses a pool with unequal counts
+and writes nothing; running the queue again with `--no-early-stop` fills the short case.
 
 Start with a 2-case smoke (`run SG2-K1 --arm A --sample 1`, and the same for B) to measure minutes per slice before the
 full queue.
 
 **Status, 2026-10-30:** declared in PR #27 and verified with no model; not run. This container has no Codex CLI, and the
 `--host claude` route (DeepSeek flash on Ollama) is at its monthly limit.
+
+**Status, 2026-10-31:** read as one pooled experiment (below); still not run. The samples stay at 4 per arm.
+
+### Pooled reading, 2026-10-31
+
+Owner, 2026-10-31, asked whether to run SG2-K1 to K4 and AS1 at 8 samples per arm instead of 4, and chose "Keep 4, pool
+SG2" after an Astra review at max effort (astra-sg2-as1-review-20261031.md: the brief, the answer, and what was checked).
+The reason is power, not taste. `decide` reads each case alone, and one case at 4 binary samples per arm supports only as 4
+against 0, so a real gain from a 25% to a 75% catch rate was detected 10% of the time per case, and 42% at 8 per arm. The
+four cases are blocks of one question, so they can be tested together over the same 32 slices.
+
+`sg2_pool.py` reads the pool; the rule is fixed here, before any run:
+- **Statistic.** The mean over the four cases of (B's catch rate minus A's), each case weighted alike.
+- **Test.** The exact one-sided permutation p, with the arm labels permuted within each case, so a score is compared only
+  with scores from its own case. `supports` needs that p below 0.05 (`experiment.SIGNIFICANCE`) and a positive mean
+  difference; with one case it is `decide`'s own test. `ceiling`, `floor`, `contradicts` and `inconclusive` are `decide`'s,
+  applied to the pool (`contradicts` is a point estimate, as there).
+- **What it says.** About the average over these four seeded cases. It is not a claim about every case, and the per-case
+  rows printed beside it (n, means, `decide`'s p and verdict) are diagnostics, not a second test. A win in the pool is one
+  result over four cases, so no case has to win on its own.
+- **Complete or nothing.** The pool is read only when each case has the same number of scored samples in each arm.
+- **Cost.** The bar's 1.5 times minutes per sample is still read by hand from each sample's metrics.json.
+- **What a win does not show.** Delegation also moves `implement` to a fresh worker (the Limit above), so a pooled win says
+  that fresh workers beat one context here, not that the fresh review alone does. D3b, making the fresh review the
+  default, stays the owner's call on the result, and an isolating follow-up (the same producer, a review that varies alone)
+  is the cleaner evidence for it.
+
+Probability that each reading returns `supports`, for true catch rates equal in all four cases (exact, from
+`sg2_pool_power.py`; the numbers are in `sg2-pool-power.json`):
+
+| true catch rate A, B | one case, 4 per arm | one case, 8 per arm | the pool: 4 cases of 4 (32 slices) | one case, 16 per arm |
+|---|---|---|---|---|
+| 25%, 75% | 10% | 42% | **85%** | 85% |
+| 25%, 100% | 32% | 97% | **100%** | 100% |
+| 50%, 100% | 6% | 64% | **97%** | 96% |
+| 20%, 60% | 5% | 28% | **66%** | 65% |
+| 50%, 90% | 4% | 34% | **72%** | 71% |
+| 25%, 25% (no difference) | 0.1% | 1.3% | **2.1%** | 1.9% |
+
+The pool gives the power of 16 samples per arm in one case at the cost of 4 per arm in each of four. Doubling every case
+to 8 per arm (64 slices) would still decide each case alone at 42% for the 25% to 75% gain. With the catches spread evenly over
+the four cases, A catching 0 to 8 of 16 needs B to catch at least 5, 6, 8, 9, 10, 11, 12, 13 and 14 of 16 for the pool to
+support (an uneven spread moves these). The pool needs a gain of 5 to 6 catches out of 16 (31 to 38 points) to read it as
+real; a smaller true gain will usually read `inconclusive`, so an `inconclusive` pool is not evidence of no effect.
+
+No harness file changed for this: `sg2_pool.py` sits in docs/, so it moves neither the evaluator digest nor the
+qualification snapshot (f8eec07c moved both, and an epoch registered before it refuses to run).
 
 ## Track A: the SDLC probes (a reader, no model)
 

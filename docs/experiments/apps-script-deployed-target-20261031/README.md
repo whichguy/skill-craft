@@ -3,6 +3,13 @@
 A cheap stand-in for a live Apps Script round: one stage per sample, a Node project in place of a Google deployment, no
 account and no `clasp`. It measures whether a model follows the card's text. It does not measure Google's runtime.
 
+**Status, 2026-10-31: deferred.** The owner chose "Keep 4, pool SG2" after an Astra review of running SG2 and AS1 at 8
+samples per arm (docs/experiments/sdlc-gates-20261030/astra-sg2-as1-review-20261031.md). The option read: keep 4 samples per
+arm, and defer AS1 until its target folder is isolated. AS1 stays at 4 per arm and does not run until its samples stop sharing
+one folder (see "Known limitations": a fixture edit that moves the oracle digest, which is the owner's decision), or the owner
+asks for a serial run. Astra also noted that arm B is the 2.25.0 text, not the corrected `e9aed82d`, so a result tests the
+shipped text, and asked what result would change what the owner does. That question is open.
+
 ## The claim
 
 `skills/shiploop/references/platforms/apps-script.md` has a `## Testing` section that says to name a deployed project as a

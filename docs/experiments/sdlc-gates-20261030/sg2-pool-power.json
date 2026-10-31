@@ -1,0 +1,88 @@
+{
+  "rule": "supports = exact one-sided permutation p < 0.05",
+  "cases": 4,
+  "slices": {
+    "pool_4_cases_of_4": 32,
+    "one_case_8_per_arm_x4_cases": 64
+  },
+  "power": [
+    {
+      "A": 0.25,
+      "B": 0.75,
+      "one_case_4_per_arm": 0.1,
+      "one_case_8_per_arm": 0.422,
+      "one_case_16_per_arm": 0.847,
+      "pool_4_cases_of_4": 0.848
+    },
+    {
+      "A": 0.25,
+      "B": 1.0,
+      "one_case_4_per_arm": 0.316,
+      "one_case_8_per_arm": 0.973,
+      "one_case_16_per_arm": 1.0,
+      "pool_4_cases_of_4": 1.0
+    },
+    {
+      "A": 0.5,
+      "B": 1.0,
+      "one_case_4_per_arm": 0.062,
+      "one_case_8_per_arm": 0.637,
+      "one_case_16_per_arm": 0.962,
+      "pool_4_cases_of_4": 0.968
+    },
+    {
+      "A": 0.2,
+      "B": 0.6,
+      "one_case_4_per_arm": 0.053,
+      "one_case_8_per_arm": 0.279,
+      "one_case_16_per_arm": 0.651,
+      "pool_4_cases_of_4": 0.657
+    },
+    {
+      "A": 0.1,
+      "B": 0.7,
+      "one_case_4_per_arm": 0.158,
+      "one_case_8_per_arm": 0.657,
+      "one_case_16_per_arm": 0.966,
+      "pool_4_cases_of_4": 0.967
+    },
+    {
+      "A": 0.5,
+      "B": 0.9,
+      "one_case_4_per_arm": 0.041,
+      "one_case_8_per_arm": 0.335,
+      "one_case_16_per_arm": 0.708,
+      "pool_4_cases_of_4": 0.718
+    },
+    {
+      "A": 0.25,
+      "B": 0.25,
+      "one_case_4_per_arm": 0.001,
+      "one_case_8_per_arm": 0.013,
+      "one_case_16_per_arm": 0.019,
+      "pool_4_cases_of_4": 0.021
+    },
+    {
+      "A": 0.5,
+      "B": 0.5,
+      "one_case_4_per_arm": 0.004,
+      "one_case_8_per_arm": 0.013,
+      "one_case_16_per_arm": 0.025,
+      "pool_4_cases_of_4": 0.026
+    }
+  ],
+  "even_spread_thresholds_of_16": {
+    "0": 5,
+    "1": 6,
+    "2": 8,
+    "3": 9,
+    "4": 10,
+    "5": 11,
+    "6": 12,
+    "7": 13,
+    "8": 14,
+    "9": 15,
+    "10": 15,
+    "11": 16
+  }
+}

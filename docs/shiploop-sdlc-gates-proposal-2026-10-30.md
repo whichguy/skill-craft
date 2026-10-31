@@ -218,6 +218,9 @@ per case (experiment.py's default): 32 slices after a 2-case smoke that measures
 against 3–4), unless its minutes per review exceed 1.5 times control's.
 (Superseded for the verdict on 2026-10-31 by D5, `a9e398e9`: `decide` now reads `supports` from an exact one-sided
 permutation test, p below 0.05. See docs/experiments/sdlc-gates-20261030/README.md.)
+(Read again on 2026-10-31, owner "Keep 4, pool SG2": `decide` still reads each case, but the verdict that promotes B is the
+four cases tested together, docs/experiments/sdlc-gates-20261030/sg2_pool.py. The Limit below stands: a win there moves
+`implement` as well as the review, and D3b stays the owner's call.)
 
 **Then:**
 - Met → D3b proposes the fresh review as the default for step reviews. This reverses the 2026-09-24 split's default.
