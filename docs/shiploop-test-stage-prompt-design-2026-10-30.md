@@ -640,10 +640,12 @@ samples in §7d:
    - the values are `3`, `' Alice '`, `''`, `'x'.repeat(65)` and `'Alice\nBob'`;
    - that pins every clause of the guard, including the trimmed-name rule the code introduced, which the request does not
      state and HTTP cannot reach (§7d item 3).
-5. **By the request, T is no better than A.** A second evaluator (a fork of this session, branch
-   `exp/e7-request-9115f2`, commit 6963eeea, `docs/experiments/test-stage-prompt-20261030/e7-request.md`, not on main
-   when this was written) runs each sample's suite over ten one-line variants of the recorded implementation, each
-   breaking a sentence of the request and each shown by an HTTP witness to differ from it:
+5. **By the request, T is no better than A.** A second evaluator, written in a fork of this session, runs each sample's
+   suite over ten one-line variants of the recorded implementation, each breaking a sentence of the request and each
+   shown by an HTTP witness to differ from it. It lives on branch `exp/e7-request-9115f2`, not on main when this was
+   written: commit 1869e45a holds the evaluator and the 24 A, D and C runs, and 932271b7 holds T's row, in
+   `docs/experiments/test-stage-prompt-20261030/e7-request.md`. (Commit fc98c399's message cites 1869e45a by its
+   pre-rebase hash, 6963eeea.)
    - A, D and C: all 24 runs kill all ten variants, as does T (8 of 8: request score 1.000, `request-score.json` in each
      T sample). The tests that existed before the test stage kill none of the ten.
    - So the request measure is saturated and cannot rank any arm.
@@ -744,5 +746,5 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | E7-F arm T built (D6): M's catalog with a line-ending logic-flip, and limit and guard mutants sampled first. A dry run on the fixed implementation: today's and M's samples are the same 8 mutants, none limit or guard; M's `(?=\s)` misses persistence.js:144:118; T's sample is the evaluator's 6 sites. In A's 8 runs no refusal named any of the 6 | firm (the dry run and A's mutation records); T's result pending | §7e; overlays/e7-t.json; ~/e2e-runs/e7-20261030/E7-F/A/*/slice/.shiploop-runs/seed/run/tests/*-mutation1.md |
 | 2026-10-30 | The test stage's first mutation `check` was refused once in every A, D and C run (D/8 twice), naming the same three non-target survivors (persistence.js 144:23, 145:52, validate.js:12:55); it killed them. The loop fired, aimed at mutants the draft nearly caught. This corrects the §7e wording that read only the counted record | firm | §7e; RUN/trace.jsonl of each E7-F run; e7-results.json (`stage_mutation.told`) |
 | 2026-10-30 | E7-F arm T (D6): all 8 runs killed all six scored sites (1.00 against A's 0.60; exact p 0.0001; gain 0.396 against A's gap 0.042). One refusal per run, as in A; no dispositions; test stage 82 s against 91 s; implementation untouched 8 of 8 | firm for these runs; the sample and the score read the same sites | §7f; ~/e2e-runs/e7-20261030/E7-F/decision-A-T.json |
-| 2026-10-30 | By the request all four arms score 1.00: every A, D, C and T run kills all ten request-breaking variants of the fixed implementation (the tests before the test stage kill none), and all 57 mutant survivors of A, D and C sit on persistence.js:144 and 145, load-time validation the request never mentions. T's mutant gain is the closing of those code-introduced checks | firm for this case, implementation and model (a variant set written after reading the code) | §7f item 5; branch exp/e7-request-9115f2 (6963eeea), e7-request.md; ~/e2e-runs/e7-20261030/E7-F/{A,D,C,T}/<n>/request-score.json |
+| 2026-10-30 | By the request all four arms score 1.00: every A, D, C and T run kills all ten request-breaking variants of the fixed implementation (the tests before the test stage kill none), and all 57 mutant survivors of A, D and C sit on persistence.js:144 and 145, load-time validation the request never mentions. T's mutant gain is the closing of those code-introduced checks | firm for this case, implementation and model (a variant set written after reading the code) | §7f item 5; branch exp/e7-request-9115f2 (1869e45a, 932271b7), e7-request.md; ~/e2e-runs/e7-20261030/E7-F/{A,D,C,T}/<n>/request-score.json |
 | 2026-10-30 | D6 not adopted: the owner answered "Yes, skip D6" (relayed by the fork session [140a9a]; not confirmed in this session). Arm T is an experiment-only result and nothing in ShipLoop changes | firm (owner decision, relayed) | §9 |
