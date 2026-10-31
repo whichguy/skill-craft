@@ -299,7 +299,7 @@ class List(Catalog):
         code, out, err = cli("list", "+catch", "--json", "--cases-dir", str(self.cases))
         self.assertEqual((code, err), (0, ""))
         document = json.loads(out)
-        self.assertEqual((document["command"], document["cases_dir"], document["total"]), ("list", str(self.cases), {"scenarios": 3}))
+        self.assertEqual((document["command"], document["cases_dir"], document["total"]), ("list", str(self.cases.resolve()), {"scenarios": 3}))
         self.assertEqual(document["scenarios"][1], {
             "id": "validate-existing/broken", "stage": "validate-existing", "name": "broken", "phase": "inner",
             "tags": ["catch", "prep-fix"], "tiers": ["verify", "render", "live"], "planted": 1, "controls": 1,

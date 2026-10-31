@@ -684,5 +684,57 @@
       ],
       "refuse_ports_source": "the base, as ticket-assignment declares it: src/config.js reads PORT and defaults to 4180"
     }
+  },
+  "gym-membership-salesforce": {
+    "style": "hosted-platform",
+    "prompt": "Use ShipLoop to build and deliver an internal gym membership application in a Salesforce DX project rooted in the current directory, deploying to the already-authenticated Developer Edition org alias de. This is a fresh development task: implement the application yourself through ShipLoop. Every org-talking sf command must specify --target-org de. Never request, print or store credentials; do not run sf org display or sf org open. The provided gym-ui command handles its own fresh authenticated browser. Keep all changes within the reserved SLGym/slGym namespace and the owned objects below; preserve other applications and records. Use API version 60.0 and no external integrations, payments, public portals, persistent users, jobs, flows, triggers, profiles or extra permission sets.\n\nBuild four usable journeys: member self-service, administrative membership management, member 360, and a coaching check-in kiosk. The product is small: membership/profile plus visit history. Create exactly two custom objects, SLGymMember__c and SLGymVisit__c. Both use an AutoNumber Name. SLGymMember__c has Private sharing and fields LoginUserId__c (unique nullable Text18), FullName__c (Text80), Email__c (Email), Goal__c (Text80), Plan__c (restricted picklist Basic/Coached), Status__c (restricted picklist Active/Frozen/Cancelled). SLGymVisit__c has ControlledByParent sharing, Member__c (MasterDetail to SLGymMember__c only), CheckedInAt__c (DateTime), Coaching__c (TextArea). Do not mark other fields required at metadata level: validate required values in the controller. Add no fields on other objects. All sample/test addresses and usernames end in @example.invalid.\n\nExpose @AuraEnabled public static methods on SLGymController, returning JSON Strings with this contract. Successful single-member methods return the member DTO; listMembers returns a DTO array and absent getMyMembership returns the JSON string null. A member DTO contains id, fullName, email, goal, plan, status, loginUserId, visitCount, coaching (latest stored coaching, null/empty with no visits). getMyMembership() returns that DTO or the JSON string \"null\". saveMyMembership(String fullName,String email,String goal,String plan) creates or edits only the caller's own linked member, binding LoginUserId__c to UserInfo.getUserId(); first enrollment is Active, and later profile/plan edits preserve the status, including Frozen or Cancelled. setMyStatus(String status) supports Active/Frozen for the caller's own membership, but refuses any self-service status change from Cancelled, even when the caller is an admin. adminSave(String memberId,String fullName,String email,String goal,String plan,String status) is admin-only; a null/empty memberId creates an unlinked member and an update preserves the existing LoginUserId__c. listMembers() is an admin-only DTO array. member360(String memberId) is restricted to that linked member or an admin and includes the persisted visit count and latest stored coaching. checkIn(String memberId) has the same ownership rule and returns the member DTO plus visitId. Identify admin authority server-side using the current user's Profile.PermissionsModifyAllData; never trust a client role flag. Declare sharing explicitly and enforce CRUD/FLS as well as logical authorization (user-mode operations or equivalent).\n\nThe state/action rules are: profile save preserves Active, Frozen or Cancelled; self freeze/resume supports Active/Frozen and refuses Cancelled; admin may set any of the three statuses; check-in checks status FIRST and only Active is eligible. Repeated sequential check-in on the same Date.today() in the running user's time zone returns the same persisted visitId without another visit. After freezing/cancelling an already checked-in member, another check-in still refuses. This is sequential idempotency; no concurrent-call guarantee is requested. A later calendar day creates a new visit. Basic coaching contains \"independent training\" case-insensitively; Coached coaching contains the saved goal case-insensitively. History reports stored coaching, not recomputed text after a profile change; latest visit is ordered by CheckedInAt__c then Id. Invalid/foreign/missing IDs, plans, statuses or required fullName/email/goal refuse. Refusal means AuraHandledException (Aura ERROR) with no persisted state change, not SUCCESS with an error payload. Full names and goals must be nonblank and within field length; use syntactically valid email addresses.\n\nBuild slGymApp as the LWC exposed to lightning__Tab; SLGym_Members is its Lightning component tab, SLGym is its standard-navigation Lightning app containing that tab. SLGym_Access is the only permission set: grants app visibility, Visible tab access and controller/class access; read/create/edit on the two objects, delete=false, viewAllRecords=false and modifyAllRecords=false. Grant read/edit FLS for every nonrequired custom field; omit fieldPermissions for the inherent required MasterDetail Member__c. Add no userPermissions. After deploy, assign it only to the current existing CLI user with sf org assign permset --name SLGym_Access --target-org de. Apex classes must start SLGym and test class names must end in Test (SLGym...Test); no SLGymOracleTest product class (independent verification uses that name in a check-only validation after your session). No extra metadata types or schema. The guarded CLI refuses interactive schema generation; write the declared metadata files directly.\n\nUse these stable accessible labels so a person and independent checker can exercise the same app. Self-service inputs/comboboxes: My full name, My email, My goal, My plan. Buttons: Save my membership, Freeze my membership, Resume my membership. Show visible My status: <status>. Admin inputs: Admin full name, Admin email, Admin goal, Admin plan, Admin status. Buttons: Create member and Save member. Member list buttons: Manage member <fullName> (loads admin form) and View member <fullName> (opens 360). The selected 360 shows Selected member: <name>, Selected email: <email>, Selected goal: <goal>, Selected plan: <plan>, Selected status: <status>, Visit count: <n>. The kiosk has Check in selected member and visible Coaching: <text>. Keep that button enabled to exercise server refusals; a refused check-in visibly says Check-in refused. Native selects or lightning-combobox are both acceptable. Render saved controller results and refresh them after mutations/reload. The existing org user is an admin who can also enroll as a member; self-service rules still apply to that identity. Do not provision another browser user.\n\nDeploy, assign access and run your Apex tests in the org, at least eight passing methods with isolated data and no SeeAllData. Cover self binding, member/admin authorization, validation, profile edits while frozen/cancelled, status-before-dedup, active/repeated/yesterday check-in and both coaching plans. Test-created users may be used only inside isolated Apex tests, not as permanent accounts. Run each test class synchronously with sf apex run test --target-org de --class-names <Class> --synchronous --result-format human --code-coverage. Before declaring completion, run the supplied gym-ui command and fix any failures it reports. It independently exercises self/admin/360/kiosk in a fresh browser, correlates controller mutations with UI results, reloads, and checks persisted records. It uses fresh synthetic admin-created members for check-ins so repeated builder/final checks do not collide. Do not stop until Apex and gym-ui pass. Document how to deploy and use the app.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" project --org de --prefix SLGym",
+      "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" deployed --org de --prefix SLGym",
+      "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" access --org de --prefix SLGym",
+      "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" tests --org de --prefix SLGym --min-tests 8",
+      "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" rules --org de --prefix SLGym",
+      "python3 \"$E2E_CHECKS/gym_ui.py\" --org de --prefix SLGym --final --check-name gym-ui"
+    ],
+    "checks_source": "Owner's reusable Salesforce gym scenario: self-service, administrative management, member 360 and coaching kiosk. The request above declares schema, API, state/action and accessible UI contract before subject execution. Builder-authored tests do not establish independent authorization; a harness-owned check-only Apex validation tests isolated roles/business rules, without persisting oracle code or users. Independent final UI observes mutations and SOQL persistence, not builder receipts. Browser uses the existing admin acting as self/member and administrator; ordinary-member browser identity and public-portal authorization are not observed. First case run is exploratory; apparatus calibration or product success alone is not a measured generic ShipLoop improvement.",
+    "platform": {
+      "kind": "salesforce",
+      "org": "de",
+      "prefix": "SLGym",
+      "preflight": "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" preflight --org de --prefix SLGym",
+      "before": "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" snapshot --org de --prefix SLGym",
+      "cleanup": "python3 \"$E2E_CHECKS/gym_membership_salesforce.py\" cleanup --org de --prefix SLGym",
+      "model_bin": {
+        "sf": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLGym --permission-sets --custom-objects --",
+        "sfdx": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLGym --deny-all --name sfdx --",
+        "osascript": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLGym --deny-all --name osascript --",
+        "open": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLGym --deny-all --name open --",
+        "gym-ui": "python3 \"$E2E_CHECKS/gym_ui.py\" --org de --prefix SLGym"
+      },
+      "check_timeout": 900,
+      "host_allow": [
+        "Bash(sf *)",
+        "Bash(gym-ui)",
+        "Bash(gym-ui *)",
+        "Bash(cd *)",
+        "Bash(tail *)",
+        "Bash(head *)",
+        "Bash(tee *)"
+      ],
+      "resume_note": "The previous invocation reset tracked test-owned platform state, including the membership/visit objects, their records, deployed artifacts and permission assignment. Redeploy from your source, assign access again and recreate synthetic data before relying on org state.",
+      "resume_note_kept": "Earlier test-owned platform state was explicitly kept. Inspect it; a new fresh run must refuse this prefix until tracked cleanup is verified.",
+      "keep_checks": [
+        "deployed",
+        "access",
+        "tests",
+        "rules",
+        "gym-ui"
+      ],
+      "source": "Owner's requested reusable gym membership software test, 2026-10-31, continuing generic ShipLoop E2E improvement. Shared de is authorized; preserve other apps and bound reset to tracked test-owned state. Fresh-only, default cleanup required; do not use --keep-platform. All app construction belongs to the separate ShipLoop subject context."
+    },
+    "needs": [
+      "browser"
+    ],
+    "needs_source": "Owner requests real deployed UI validation of the reusable four-journey gym scenario."
   }
 }

@@ -534,9 +534,10 @@ def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
                       ", ".join(removed) or "nothing", note))
 
 
-def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str, ...] = REMOVABLE) -> str:
+def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str, ...] = REMOVABLE, *, purge: bool = False) -> str:
     """One destructive deploy of exactly these named members (listed in `order`) from a throwaway project: "" when it succeeded, else
-    why it failed (the verification after it decides the cleanup)."""
+    why it failed (the verification after it decides the cleanup). `purge=True` appends the CLI's purge-on-delete option; by default the
+    command is unchanged."""
     work = Path(tempfile.mkdtemp(prefix="sf-cleanup-"))
     try:
         (work / "force-app").mkdir()
@@ -545,9 +546,11 @@ def destructive_deploy(org: str, members: dict[str, list[str]], order: tuple[str
             {"packageDirectories": [{"path": "force-app", "default": True}], "sourceApiVersion": API_VERSION}))
         (work / "manifest" / "package.xml").write_text(empty_package_xml())
         (work / "manifest" / "destructiveChanges.xml").write_text(destructive_xml(members, order))
-        doc = sf(["project", "deploy", "start", "--manifest", str(work / "manifest" / "package.xml"),
-                  "--post-destructive-changes", str(work / "manifest" / "destructiveChanges.xml"), "--wait", "10"],
-                 org, timeout=900, cwd=str(work))
+        args = ["project", "deploy", "start", "--manifest", str(work / "manifest" / "package.xml"),
+                "--post-destructive-changes", str(work / "manifest" / "destructiveChanges.xml"), "--wait", "10"]
+        if purge:
+            args.append("--purge-on-delete")
+        doc = sf(args, org, timeout=900, cwd=str(work))
         if doc.get("status") != 0:
             failures = "; ".join("%s %s: %s" % (f.get("componentType"), f.get("fullName"), tail(str(f.get("problem") or ""), 200))
                                  for f in (((doc.get("result") or {}).get("details") or {}).get("componentFailures") or [])[:5])

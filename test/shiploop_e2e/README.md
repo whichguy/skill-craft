@@ -7,6 +7,9 @@ and an improver applies what keeps the core premise. Then the edited skill is
 rebuilt and run again. The heavier Grok campaign lives in
 `skills/shiploop-e2e-audit`.
 
+The opt-in [gym membership scenario](GYM_MEMBERSHIP.md) records a reusable four-journey Salesforce business app challenge.
+The harness launches ShipLoop in a separate fresh context; scenario preparation contains no gym app implementation.
+
 ```mermaid
 flowchart LR
     B[Build the worktree's skill-craft plugin] --> R[Run ShipLoop in an empty directory]

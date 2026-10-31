@@ -622,15 +622,19 @@ class ScopeTest(GuardCase):
             path.write_text(text)
         return base
 
-    def verdict(self, *flags: str, base: Path | None = None, command=("project", "deploy", "start")) -> tuple[bool, str]:
-        return sf_guard.decide([*command, *flags, "--target-org", ORG, "--json"], ORG, prefix="SLChess", cwd=str((base or self.work)))
+    def verdict(self, *flags: str, base: Path | None = None, command=("project", "deploy", "start"), custom_objects: bool = False,
+                permission_sets: bool = False) -> tuple[bool, str]:
+        return sf_guard.decide([*command, *flags, "--target-org", ORG, "--json"], ORG, prefix="SLChess", cwd=str((base or self.work)),
+                               custom_objects=custom_objects, permission_sets=permission_sets)
 
-    def assert_scope_ok(self, *flags: str, base: Path | None = None, command=("project", "deploy", "start")) -> None:
-        allowed, reason = self.verdict(*flags, base=base, command=command)
+    def assert_scope_ok(self, *flags: str, base: Path | None = None, command=("project", "deploy", "start"), custom_objects: bool = False,
+                        permission_sets: bool = False) -> None:
+        allowed, reason = self.verdict(*flags, base=base, command=command, custom_objects=custom_objects, permission_sets=permission_sets)
         self.assertTrue(allowed, (flags, reason))
 
-    def assert_scope_denied(self, *flags: str, reason: str, base: Path | None = None, command=("project", "deploy", "start")) -> str:
-        allowed, why = self.verdict(*flags, base=base, command=command)
+    def assert_scope_denied(self, *flags: str, reason: str, base: Path | None = None, command=("project", "deploy", "start"),
+                            custom_objects: bool = False, permission_sets: bool = False) -> str:
+        allowed, why = self.verdict(*flags, base=base, command=command, custom_objects=custom_objects, permission_sets=permission_sets)
         self.assertFalse(allowed, flags)
         self.assertIn("approved scope", why)
         self.assertIn(reason, why, flags)
@@ -1281,6 +1285,143 @@ class ScopeTest(GuardCase):
         self.assert_denied("project", "deploy", "start", "--source-dir", "force-app", "--wait", "1", "--target-org", ORG, "--json",
                            reason="use --wait 5 or a larger value")
         self.assertEqual(self.reached(), [])
+
+    def test_custom_objects_are_default_deny_and_opt_in_for_every_source_path_form(self):
+        files = {
+            "objects/SLChessMember__c/SLChessMember__c.object-meta.xml": "<CustomObject/>",
+            "objects/SLChessMember__c/fields/Goal__c.field-meta.xml": "<CustomField/>",
+            "objects/SLChess_Second_Member__c/SLChess_Second_Member__c.object-meta.xml": "<CustomObject/>",
+            "objects/SLChess_Second_Member__c/fields/Preferred_Name__c.field-meta.xml": "<CustomField/>",
+        }
+        base = self.layout(files)
+        self.assert_scope_denied("--source-dir", "force-app", reason="SLChessMember__c.object-meta.xml", base=base)
+        self.assert_scope_ok("--source-dir", "force-app", base=base, custom_objects=True)
+        self.assert_scope_ok(base=base, custom_objects=True)  # the default packageDirectories path
+        for path in (self.D + "objects", self.D + "objects/SLChessMember__c",
+                     self.D + "objects/SLChessMember__c/SLChessMember__c.object-meta.xml",
+                     self.D + "objects/SLChessMember__c/fields/Goal__c.field-meta.xml"):
+            self.assert_scope_ok("--source-dir", path, base=base, custom_objects=True)
+        self.assert_scope_ok("--source-dir", self.D + "objects/SLChessMember__c", base=base, custom_objects=True,
+                             command=("project", "deploy", "validate"))
+        self.assert_scope_denied("--source-dir", self.D + "objects/SLChess*__c", reason="wildcard syntax", base=base, custom_objects=True)
+        self.assert_denied("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG, "--json",
+                           reason="SLChessMember__c.object-meta.xml")
+        custom_guard = (f"{shlex.quote(sys.executable)} {shlex.quote(str(CHECKS / 'sf_guard.py'))} --org {ORG} --prefix SLChess "
+                        "--custom-objects --")
+        self.write_wrappers({"sf": custom_guard})
+        self.assert_reaches_sf("project", "deploy", "start", "--source-dir", "force-app", "--target-org", ORG, "--json")
+
+    def test_custom_object_and_field_metadata_are_exact_owned_names(self):
+        self.layout()
+        for entry in ("CustomObject:SLChessMember__c", "CustomField:SLChessMember__c.Goal__c",
+                      "CustomObject:SLChess_Second_Member__c", "CustomField:SLChess_Second_Member__c.Preferred_Name__c",
+                      "ApexClass:SLChessEngine", "PermissionSet:SLChess_Access"):
+            if entry.startswith("PermissionSet:"):
+                self.assert_scope_denied("--metadata", entry, reason="--metadata", custom_objects=True)
+                self.assert_scope_ok("--metadata", entry, custom_objects=True, permission_sets=True)
+            else:
+                self.assert_scope_ok("--metadata", entry, custom_objects=True)
+        self.assert_scope_ok("--metadata", "PermissionSet:SLChess_Access", permission_sets=True)
+        self.assert_scope_denied("--metadata", "CustomObject:SLChessMember__c", reason="--metadata")
+        self.assert_scope_denied("--metadata", "CustomField:SLChessMember__c.Goal__c", reason="--metadata")
+        invalid = (
+            "CustomObject:Account", "CustomObject:Other__c", "CustomObject:SLChessMember__mdt", "CustomObject:SLChessMember__c*",
+            "CustomObject:SLChessBad__Inner__c", "CustomObject:SLChessBad__c__c",
+            r"CustomObject:SLChessMember__c\*", "CustomField:Other__c.Goal__c", "CustomField:SLChessMember__c.Name",
+            "CustomField:SLChessMember__c.Goal__mdt", "CustomField:SLChessMember__c.Goal__c*",
+            "CustomField:SLChessMember__c.Bad__Inner__c", "CustomField:SLChessMember__c.Bad__c__c",
+            r"CustomField:SLChessMember__c.Goal__c\*", "CustomField:SLChessMember__c.Goal__c.More",
+            "CustomField:SLChessMember__c", "CustomField:SLChessMember__c.*",
+        )
+        for entry in invalid:
+            with self.subTest(entry=entry):
+                self.assert_scope_denied("--metadata", entry, reason="--metadata", custom_objects=True)
+
+    def test_custom_manifests_require_exact_owned_objects_and_dot_fields(self):
+        self.layout()
+        good = ("<Package><types><members>SLChessMember__c</members><members>SLChess_Second_Member__c</members>"
+                "<name>CustomObject</name></types><types><members>SLChessMember__c.Goal__c</members>"
+                "<members>SLChess_Second_Member__c.Preferred_Name__c</members><name>CustomField</name></types></Package>")
+        (self.work / "custom.xml").write_text(good)
+        self.assert_scope_ok("--manifest", "custom.xml", custom_objects=True)
+        self.assert_scope_ok("-x", "custom.xml", custom_objects=True, command=("project", "deploy", "validate"))
+        self.assert_scope_denied("--manifest", "custom.xml", reason="CustomObject")
+        manifests = (
+            ("CustomObject", "Account", "owned"),
+            ("CustomObject", "SLChessMember__mdt", "owned"),
+            ("CustomObject", "SLChessBad__Inner__c", "owned"),
+            ("CustomObject", "SLChessBad__c__c", "owned"),
+            ("CustomObject", "SLChessMember__c*", "exact"),
+            ("CustomObject", r"SLChessMember__c\*", "exact"),
+            ("CustomField", "Other__c.Goal__c", "owned"),
+            ("CustomField", "SLChessMember__c.Bad__Inner__c", "__c.<Name>__c"),
+            ("CustomField", "SLChessMember__c.Bad__c__c", "__c.<Name>__c"),
+            ("CustomField", "SLChessMember__c.Name", "__c.<Name>__c"),
+            ("CustomField", "SLChessMember__c.Goal__c*", "__c.<Name>__c"),
+            ("CustomField", r"SLChessMember__c.Goal__c\*", "__c.<Name>__c"),
+            ("CustomField", "SLChessMember__c.Goal__c.More", "__c.<Name>__c"),
+        )
+        for number, (kind, member, reason) in enumerate(manifests):
+            with self.subTest(kind=kind, member=member):
+                (self.work / f"bad-{number}.xml").write_text(
+                    f"<Package><types><members>{member}</members><name>{kind}</name></types></Package>")
+                self.assert_scope_denied("--manifest", f"bad-{number}.xml", reason=reason, custom_objects=True)
+
+    def test_custom_object_source_rejects_foreign_types_children_and_nested_strict_paths(self):
+        cases = (
+            ("objects/Other__c/Other__c.object-meta.xml", "Other__c.object-meta.xml"),
+            ("objects/Account/Account.object-meta.xml", "Account.object-meta.xml"),
+            ("objects/SLChessEvent__mdt/SLChessEvent__mdt.object-meta.xml", "SLChessEvent__mdt.object-meta.xml"),
+            ("objects/SLChessEvent__e/SLChessEvent__e.object-meta.xml", "SLChessEvent__e.object-meta.xml"),
+            ("objects/SLChessEvent__x/SLChessEvent__x.object-meta.xml", "SLChessEvent__x.object-meta.xml"),
+            ("objects/SLChessEvent__b/SLChessEvent__b.object-meta.xml", "SLChessEvent__b.object-meta.xml"),
+            ("objects/SLChessMember__Share/SLChessMember__Share.object-meta.xml", "SLChessMember__Share.object-meta.xml"),
+            ("objects/SLChessMember__History/SLChessMember__History.object-meta.xml", "SLChessMember__History.object-meta.xml"),
+            ("objects/SLChessMember__c/Other__c.object-meta.xml", "Other__c.object-meta.xml"),
+            ("objects/SLChessBad__Inner__c/SLChessBad__Inner__c.object-meta.xml", "SLChessBad__Inner__c.object-meta.xml"),
+            ("objects/SLChessBad__c__c/SLChessBad__c__c.object-meta.xml", "SLChessBad__c__c.object-meta.xml"),
+            ("objects/SLChessMember__c/fields/Name.field-meta.xml", "Name.field-meta.xml"),
+            ("objects/SLChessMember__c/fields/Bad__Inner__c.field-meta.xml", "Bad__Inner__c.field-meta.xml"),
+            ("objects/SLChessMember__c/fields/Bad__c__c.field-meta.xml", "Bad__c__c.field-meta.xml"),
+            ("objects/Account/fields/Goal__c.field-meta.xml", "Goal__c.field-meta.xml"),
+            ("objects/SLChessMember__c/validationRules/SLChessMember__c.validationRule-meta.xml",
+             "SLChessMember__c.validationRule-meta.xml"),
+            ("objects/SLChessMember__c/classes/SLChessEngine.cls", "SLChessEngine.cls"),
+            ("objects/SLChessMember__c/lwc/slChessBoard/slChessBoard.js", "slChessBoard.js"),
+            ("objects/SLChessMember__c/fields/nested/Goal__c.field-meta.xml", "Goal__c.field-meta.xml"),
+            ("classes/objects/SLChessMember__c/SLChessMember__c.object-meta.xml", "SLChessMember__c.object-meta.xml"),
+            ("triggers/objects/SLChessMember__c/SLChessMember__c.object-meta.xml", "SLChessMember__c.object-meta.xml"),
+        )
+        for number, (rel, shown) in enumerate(cases):
+            with self.subTest(rel=rel):
+                base = self.layout({rel: "x"}, base=self.work / f"invalid-schema-{number}")
+                self.assert_scope_denied("--source-dir", "force-app", reason=shown, base=base, custom_objects=True)
+        base = self.layout({"objects/SLChessMember__c/SLChessMember__c.object-meta.xml": "<CustomObject/>"},
+                           base=self.work / "linked-schema")
+        outside = self.tmp / "outside-schema.xml"
+        outside.write_text("<CustomField/>")
+        field = base / (self.D + "objects/SLChessMember__c/fields/Goal__c.field-meta.xml")
+        field.parent.mkdir(parents=True, exist_ok=True)
+        field.symlink_to(outside)
+        self.assert_scope_denied("--source-dir", "force-app", reason="leads outside the project directory", base=base, custom_objects=True)
+
+    def test_custom_objects_and_permission_sets_are_independent_opt_ins(self):
+        self.layout()
+        self.assert_scope_ok("--metadata", "CustomObject:SLChessMember__c", custom_objects=True)
+        self.assert_scope_denied("--metadata", "PermissionSet:SLChess_Access", reason="--metadata", custom_objects=True)
+        self.assert_scope_ok("--metadata", "PermissionSet:SLChess_Access", permission_sets=True)
+        self.assert_scope_denied("--metadata", "CustomObject:SLChessMember__c", reason="--metadata", permission_sets=True)
+        self.assert_scope_ok("--metadata", "CustomObject:SLChessMember__c", "--metadata", "PermissionSet:SLChess_Access",
+                             custom_objects=True, permission_sets=True)
+        fixed = ["--org", "de", "--prefix", "SLChess", "--permission-sets", "--custom-objects", "--", "project", "deploy"]
+        self.assertEqual(sf_guard.parse_fixed_options(fixed), ("de", "SLChess", False, "sf", ["project", "deploy"], True, True))
+        self.assertEqual(sf_guard.parse_fixed(fixed), ("de", "SLChess", False, "sf", ["project", "deploy"], True))
+        after_separator = sf_guard.parse_fixed_options(["--org", "de", "--prefix", "SLChess", "--", "--custom-objects"])
+        self.assertEqual(after_separator[4:], (["--custom-objects"], False, False))
+        self.assertNotIn("CustomObject", sf_guard.scope_line("sf", ORG, "SLChess"))
+        scope = sf_guard.scope_line("sf", ORG, "SLChess", custom_objects=True)
+        self.assertIn("CustomObject", scope)
+        self.assertIn("CustomField", scope)
 
 
 class HelpAndGenerateTest(GuardCase):

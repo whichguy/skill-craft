@@ -66,6 +66,11 @@
       "\\bbattleships?\\b",
       "\\bbattle cell\\b",
       "\\bships left\\b"
+    ],
+    "gym-membership-salesforce": [
+      "\\bSLGym",
+      "\\bgym[- ]membership\\b",
+      "\\bcoaching kiosk\\b"
     ]
   },
   "exempt": [

@@ -843,10 +843,13 @@ cleanup guarantees to tracked test-owned state. Ownership and coverage must be e
 the tracked test's schema, deployed artifacts, data and permissions; coverage of each is still required before claiming
 it was restored. This does not authorise deleting unrelated state or clearing the whole org.
 
-The current helpers check covered metadata names, baseline Apex/LWC modification dates and limited permission-set
-assignment state. Custom-object names are compared only; these helpers do not delete custom schema. A prefix and metadata-name
+The chess and Battleship helpers check covered metadata names, baseline Apex/LWC modification dates and limited permission-set
+assignment state. Custom-object names are compared only; those helpers do not delete custom schema. The opt-in gym case also
+records the live org identity, owned object names, whole-org custom-field names and readable owned record IDs before purging
+its newly created objects. It removes tracked owned permissions and deployed artifacts before purging those objects, then
+compares the recorded baseline and requires no remaining owned objects or field-name differences. A prefix and metadata-name
 comparison do not establish restoration of arbitrary records, fields on baseline objects or deployed source bytes.
-Those remain unverified, including test-created business records. A cleanup receipt's `verified: true` covers only its
+Those remain unverified, including test-created business records outside the gym case's purged containers. A cleanup receipt's `verified: true` covers only its
 recorded checks; it is not proof that unobserved state was reset or every other app was restored byte for byte. The broader
 reset requirement remains unmet wherever coverage is missing. A detected test-owned leftover that the helper cannot safely remove keeps cleanup unsuccessful
 and blocks the next same-target attempt. The dispatch barrier does not expand cleanup coverage or prove a whole-org reset.

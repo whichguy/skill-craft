@@ -4,7 +4,7 @@
 The harness writes an executable `sf` into <output>/platform/bin and puts that directory first on the model's PATH. The script
 runs this file with the real HOME (so the real CLI can reach its login in the macOS keychain, which a throwaway HOME hides):
 
-    sf_guard.py --org de --prefix SLChess [--permission-sets] [--deny-all [--name <command>]] [--] <the model's argv...>
+    sf_guard.py --org de --prefix SLChess [--permission-sets] [--custom-objects] [--deny-all [--name <command>]] [--] <the model's argv...>
 
 Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is what keeps the model to the one org):
 
@@ -38,6 +38,10 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     <prefix> followed by letters, digits or underscores, and no --on-behalf-of/-b (it would assign to another user). The command takes
     only --name, --target-org, --api-version and --json: any other flag or a bare word is refused, because oclif reads the bare words
     after a repeatable flag as more names (`--name SLBattle_Access Other`). Without the flag both stay outside the allow list.
+  * CUSTOM OBJECTS (`--custom-objects`, an opt-in case): the source scope also allows only `objects/<prefix>*__c/<same>.object-meta.xml`
+    and `objects/<prefix>*__c/fields/<Name>__c.field-meta.xml`. No other child metadata or standard, foreign, or non-`__c` objects
+    are allowed. `--metadata` and manifests may name only those owned custom objects and their custom fields, with exact names and
+    `Object__c.Field__c` field syntax. The check is lexical: it checks paths and names, not XML contents or Salesforce behavior.
   * LOCAL commands (`--version`, `--help`, `help`, `project generate`, `lightning generate`, `apex generate`, `template generate`,
     `org list`) pass unchanged. `--help` or `-h` after an allowed command, or a group of allowed commands, passes too, without
     `--target-org`: the CLI prints help and runs nothing. A denied command stays denied with `--help`.
@@ -152,6 +156,8 @@ FLAT_TYPES = {
 }
 FLAT_FOLDERS = {folder: suffixes for folder, suffixes in FLAT_TYPES.values()}
 PERMSET_TYPE = {"PermissionSet": ("permissionsets", (".permissionset-meta.xml",))}  # added to FLAT_TYPES by --permission-sets
+CUSTOM_OBJECT_TYPE = "CustomObject"
+CUSTOM_FIELD_TYPE = "CustomField"
 BUNDLE_TYPE = "LightningComponentBundle"
 LWC_CONFIG_FILES = ("jsconfig.json", ".eslintrc.json")  # the two files sf generates next to the bundles in lwc/
 # The folders the CLI types a file by when ANY of them is above it (strictDirectoryName in source-deploy-retrieve's registry of the
@@ -162,6 +168,7 @@ STRICT_DIRS = frozenset("""ActionableEventOrchDefSettings ActionableEventTypeDef
     experiencePropertyTypeBundles experiences fieldRestrictionRules genAiFunctions genAiPlannerBundles integArtifactDefs
     integrationHub lightningTypes lwc mktDataSources objectTranslations objects restrictionRules siteDotComSites sites staticresources
     uiBundles uiWidgets waveTemplates""".split())
+OBJECT_PATH_BARRIERS = STRICT_DIRS | frozenset(FLAT_FOLDERS) | frozenset({"contentassets", "layouts", "permissionsets", "triggers"})
 # The flags of `project deploy start|validate` that take a value (long name -> short char), and the ones oclif lets repeat AND read
 # the bare words after them as more values (`-d a b` is two directories). Needed to tell a path from the value of another flag.
 DEPLOY_OPTIONS = {
@@ -268,10 +275,11 @@ def denied_line(name: str, reason: str) -> str:
     return f"{name}: denied by this run's guard: {reason}"
 
 
-def scope_line(name: str, org: str, prefix: str, reason: str = "", permission_sets: bool = False) -> str:
+def scope_line(name: str, org: str, prefix: str, reason: str = "", permission_sets: bool = False,
+               custom_objects: bool = False) -> str:
     """What this run allows, printed after a denial and after help: the org pin, the deploy scope and the allowed commands (left
     out when the reason already lists them)."""
-    deploys = approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets)) if prefix else "none (no deploy scope is defined)"
+    deploys = approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets), custom_objects) if prefix else "none (no deploy scope is defined)"
     commands = "" if "allowed: " in reason else f"; commands: {allowed_commands(permission_sets)}"
     return (f"{name}: this run allows only `sf`, only on org {org!r} (every command that talks to an org carries --target-org "
             f"{org}); deploys: {deploys}{commands}")
@@ -315,9 +323,11 @@ def assign_problem(rest: list[str], prefix: str) -> str | None:
     return None
 
 
-def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None, permission_sets: bool = False) -> tuple[bool, str]:
+def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None, permission_sets: bool = False,
+           custom_objects: bool = False) -> tuple[bool, str]:
     """(allowed, reason) for the model's argv. `prefix` and `cwd` scope a deploy (see deploy_scope_problems); `permission_sets` adds
-    PermissionSet to that scope and allows `org assign permset` (see assign_problem)."""
+    PermissionSet to that scope and allows `org assign permset` (see assign_problem); `custom_objects` opts into the narrow owned-schema
+    scope."""
     if not argv:
         return True, "no arguments (the CLI's own help)"
     if "--" in argv:
@@ -380,9 +390,9 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None, 
             no_wait = deploy_no_wait(rest)
             if no_wait:
                 return False, f"deploy {no_wait[0]} is denied: the deploy can keep running in the org after the command returns; {no_wait[1]}"
-            problems = deploy_scope_problems(rest, cwd or os.getcwd(), prefix, permission_sets)
+            problems = deploy_scope_problems(rest, cwd or os.getcwd(), prefix, permission_sets, custom_objects)
             if problems:
-                scope = f" (approved: {approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets))})" if prefix else ""
+                scope = f" (approved: {approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets), custom_objects)})" if prefix else ""
                 return False, f"deploy is outside the approved scope{scope}: " + "; ".join(problems)
     return True, "allowed"
 
@@ -424,13 +434,19 @@ def lwc_prefix(prefix: str) -> str:
     return caps[:len(caps) - keep].lower() + prefix[len(caps) - keep:]
 
 
-def type_prefixes(prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> dict[str, str]:
-    """The name every approved metadata type must start with (`kinds`: flat_types() of the run)."""
-    return {**{kind: prefix for kind in kinds}, BUNDLE_TYPE: lwc}
+def type_prefixes(prefix: str, lwc: str, kinds: dict = FLAT_TYPES, custom_objects: bool = False) -> dict[str, str]:
+    """The approved metadata types and their lexical case prefix (`kinds`: flat_types() of the run)."""
+    result = {**{kind: prefix for kind in kinds}, BUNDLE_TYPE: lwc}
+    if custom_objects:
+        result.update({CUSTOM_OBJECT_TYPE: prefix, CUSTOM_FIELD_TYPE: prefix})
+    return result
 
 
-def approved_text(prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> str:
-    return f"{', '.join(kinds)} named {prefix}*, {BUNDLE_TYPE} named {lwc}*"
+def approved_text(prefix: str, lwc: str, kinds: dict = FLAT_TYPES, custom_objects: bool = False) -> str:
+    approved = f"{', '.join(kinds)} named {prefix}*, {BUNDLE_TYPE} named {lwc}*"
+    if custom_objects:
+        approved += f", {CUSTOM_OBJECT_TYPE} named {prefix}*__c and {CUSTOM_FIELD_TYPE} named {prefix}*__c.<Name>__c"
+    return approved
 
 
 def shown(text: str) -> str:
@@ -507,12 +523,46 @@ def package_dirs(root: str) -> list[str] | None:
     return paths if paths and all(isinstance(path, str) and path for path in paths) else None
 
 
-def in_scope(parts: list[str], prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> bool:
+def custom_api_name(name: str) -> bool:
+    """A plain custom API name ending in `__c`, without an inner double underscore or namespace segment."""
+    return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*__c", name) and "__" not in name[:-3])
+
+
+def owned_custom_object(name: str, prefix: str) -> bool:
+    """A plain ASCII custom object API name owned by this case, with no inner double underscore or other schema suffix."""
+    return name.startswith(prefix) and custom_api_name(name)
+
+
+def owned_custom_field(member: str, prefix: str) -> bool:
+    """An exact dot-qualified custom field name on one owned custom object; stars, extra dots and standard fields fail closed."""
+    parent, dot, field = member.partition(".")
+    return bool(dot and "." not in field and owned_custom_object(parent, prefix) and custom_api_name(field))
+
+
+def in_scope(parts: list[str], prefix: str, lwc: str, kinds: dict = FLAT_TYPES, custom_objects: bool = False) -> bool:
     """Whether a file at this path (relative to the project) is an approved file: a class, tab, app or app page file of the right
     suffix straight in its own folder (and no `-meta.xml` in front of that suffix), or a file of an approved bundle. The CLI types a
     file by ANY strict folder above it (lwc, aura, objects ...), not by its own parent, so a class file under one of those is judged
     by that folder."""
     name, dirs = parts[-1], parts[:-1]
+    if custom_objects and "objects" in dirs:
+        object_dirs = [i for i, folder in enumerate(dirs) if folder == "objects"]
+        if len(object_dirs) != 1:
+            return False
+        object_at = object_dirs[0]
+        if any(folder in OBJECT_PATH_BARRIERS for folder in dirs[:object_at]):
+            return False
+        if any(folder in STRICT_DIRS and (folder != "objects" or i != object_at) for i, folder in enumerate(dirs)):
+            return False
+        tail = dirs[object_at + 1:]
+        if not tail or not owned_custom_object(tail[0], prefix):
+            return False
+        if len(tail) == 1:
+            return name == f"{tail[0]}.object-meta.xml"
+        if len(tail) == 2 and tail[1] == "fields":
+            field, suffix = name.removesuffix(".field-meta.xml"), ".field-meta.xml"
+            return name.endswith(suffix) and custom_api_name(field)
+        return False
     if any(folder in STRICT_DIRS and folder != "lwc" for folder in dirs):
         return False
     if "lwc" in dirs:  # every lwc folder on the path must lead straight into an approved bundle (or be the folder of the config files)
@@ -525,7 +575,8 @@ def in_scope(parts: list[str], prefix: str, lwc: str, kinds: dict = FLAT_TYPES) 
     return suffix is not None and name.startswith(prefix) and "-meta.xml" not in name[:-len(suffix)]
 
 
-def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int, kinds: dict = FLAT_TYPES) -> list[str]:
+def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, limit: int,
+                 kinds: dict = FLAT_TYPES, custom_objects: bool = False) -> list[str]:
     """Up to `limit` paths (relative to the project) under `path`, a file or a directory tree walked through its symlinks, that the
     approved scope does not cover; a link that leads outside the project counts. Empty directories are fine, and so is a file named
     exactly `.gitkeep` (PLACEHOLDER)."""
@@ -555,33 +606,44 @@ def out_of_scope(path: str, root: str, real_root: str, prefix: str, lwc: str, li
             stack.extend((os.path.join(current, name), above + (real,)) for name in names)
         elif os.path.basename(current) == PLACEHOLDER:
             continue  # after the project boundary above: a link to somewhere else is still refused
-        elif not in_scope(rel.split(os.sep), prefix, lwc, kinds):
+        elif not in_scope(rel.split(os.sep), prefix, lwc, kinds, custom_objects):
             bad.append(rel)
     return bad
 
 
-def metadata_problem(entry: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> str | None:
+def metadata_problem(entry: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES, custom_objects: bool = False) -> str | None:
     """Why a --metadata entry is not an approved `Type:Name`, or None. A single trailing * is the CLI's own wildcard (ApexClass:SLChess*
     stays inside the prefix); a manifest keeps refusing any star."""
     kind, _, member = entry.strip().partition(":")
-    wanted = type_prefixes(prefix, lwc, kinds).get(kind)
+    wanted_by_type = type_prefixes(prefix, lwc, kinds, custom_objects)
+    if custom_objects and kind == CUSTOM_OBJECT_TYPE:
+        if owned_custom_object(member, prefix):
+            return None
+        return f"--metadata {clip(entry)!r} must name an owned {prefix}*__c CustomObject exactly (no wildcard)"
+    if custom_objects and kind == CUSTOM_FIELD_TYPE:
+        if owned_custom_field(member, prefix):
+            return None
+        return f"--metadata {clip(entry)!r} must be {prefix}*__c.<Name>__c for an owned CustomField (no wildcard)"
+    wanted = wanted_by_type.get(kind)
     if wanted is None or not re.fullmatch(re.escape(wanted) + r"\w*\*?", member):
-        names = ", ".join(f"{name}:{start}<name>" for name, start in type_prefixes(prefix, lwc, kinds).items())
+        names = ", ".join(f"{name}:{start}<name>" for name, start in wanted_by_type.items())
         return f"--metadata {clip(entry)!r} must be one of {names} (no other type; a * only at the very end)"
     return None
 
 
-def manifest_problems(path: str, cwd: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> list[str]:
+def manifest_problems(path: str, cwd: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES,
+                      custom_objects: bool = False) -> list[str]:
     """The problems of the manifest at `path`. It is read under both spellings of the path (as written, and with `link/..` folded
     away lexically) because the CLI may open either; the problems are the union."""
     joined = os.path.join(cwd, path)
     problems: list[str] = []
     for spelling in dict.fromkeys((joined, os.path.normpath(joined))):
-        problems += manifest_file_problems(spelling, clip(path, 200), prefix, lwc, kinds)
+        problems += manifest_file_problems(spelling, clip(path, 200), prefix, lwc, kinds, custom_objects)
     return list(dict.fromkeys(problems))[:SCOPE_SHOWN]
 
 
-def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES) -> list[str]:
+def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str, kinds: dict = FLAT_TYPES,
+                           custom_objects: bool = False) -> list[str]:
     try:
         fd = os.open(full, os.O_RDONLY | os.O_NONBLOCK)  # never waits for the writer of a pipe
     except OSError:
@@ -604,7 +666,7 @@ def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str, ki
         root = ET.fromstring(data)
     except (ET.ParseError, LookupError, ValueError):  # LookupError: an encoding the parser does not know
         return [f"manifest {shown_path!r} is not valid XML"]
-    wanted_by_type = type_prefixes(prefix, lwc, kinds)
+    wanted_by_type = type_prefixes(prefix, lwc, kinds, custom_objects)
     problems = []
     for types in (element for element in root.iter() if element.tag.rsplit("}", 1)[-1] == "types"):
         children = [(child.tag.rsplit("}", 1)[-1], (child.text or "").strip()) for child in types]
@@ -614,12 +676,24 @@ def manifest_file_problems(full: str, shown_path: str, prefix: str, lwc: str, ki
             problems.append(f"manifest {shown_path!r} lists type {clip(kind)!r}; only {', '.join(wanted_by_type)} are approved")
             continue
         for tag, member in children:
-            if tag == "members" and not re.fullmatch(re.escape(wanted) + r"\w*", member):
-                problems.append(f"manifest {shown_path!r}: {kind} member {clip(member)!r} must start with {wanted} and hold no wildcard")
+            if tag != "members":
+                continue
+            if custom_objects and kind == CUSTOM_OBJECT_TYPE:
+                valid = owned_custom_object(member, prefix)
+                requirement = f"an exact owned {prefix}*__c object name (no wildcard)"
+            elif custom_objects and kind == CUSTOM_FIELD_TYPE:
+                valid = owned_custom_field(member, prefix)
+                requirement = f"{prefix}*__c.<Name>__c for an owned CustomField (no wildcard)"
+            else:
+                valid = bool(re.fullmatch(re.escape(wanted) + r"\w*", member))
+                requirement = f"a name starting with {wanted} and holding no wildcard"
+            if not valid:
+                problems.append(f"manifest {shown_path!r}: {kind} member {clip(member)!r} must be {requirement}")
     return problems[:SCOPE_SHOWN]
 
 
-def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str, permission_sets: bool = False) -> list[str]:
+def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str, permission_sets: bool = False,
+                          custom_objects: bool = False) -> list[str]:
     """Why a `project deploy start|validate` with these flags would carry more than the approved scope, or [] when it would not.
 
     The scope is ApexClass, CustomTab, CustomApplication and FlexiPage named <prefix>* and LightningComponentBundle named
@@ -631,7 +705,9 @@ def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str, permissio
     `flexipages/<prefix>*.flexipage-meta.xml`, inside `lwc/<lwcPrefix>*/`, or `lwc/jsconfig.json` / `lwc/.eslintrc.json`; empty
     directories are fine, and so is a file named exactly `.gitkeep` (git's placeholder for an empty folder: it names no component).
     The tab, app and app page checks are on file names, --metadata entries and manifest members, not on content. With
-    `permission_sets`, `permissionsets/<prefix>*.permissionset-meta.xml` (PermissionSet) is approved too, on the same terms."""
+    `permission_sets`, `permissionsets/<prefix>*.permissionset-meta.xml` (PermissionSet) is approved too. With `custom_objects`, only
+    `objects/<prefix>*__c/<same>.object-meta.xml` and `objects/<prefix>*__c/fields/<Name>__c.field-meta.xml` are also approved; no
+    other object children are."""
     if not prefix:
         return ["the wrapper has no --prefix, so no deploy scope is defined"]
     lwc = lwc_prefix(prefix)
@@ -652,23 +728,27 @@ def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str, permissio
     problems: list[str] = []
     bad: list[str] = []
     for path, base in paths:
+        if custom_objects and any(token in path for token in "*?[]{}"):
+            problems.append(f"source path {clip(path, 200)!r} contains wildcard syntax; name the owned schema paths exactly")
+            continue
         full = os.path.normpath(os.path.join(base, path))
         if not inside(os.path.realpath(full), real_root):
             problems.append(f"source path {clip(path, 200)!r} is outside the project directory")
         elif len(bad) < SCOPE_SHOWN:
-            bad += out_of_scope(full, root, real_root, prefix, lwc, SCOPE_SHOWN - len(bad), kinds)
+            bad += out_of_scope(full, root, real_root, prefix, lwc, SCOPE_SHOWN - len(bad), kinds, custom_objects)
     if bad:
         what = "a class, tab, app, app page or permission set" if permission_sets else "a class, tab, app or app page"
-        problems.append(f"not {what} named {prefix}* or part of an LWC bundle named {lwc}*: {', '.join(bad)}"
+        schema = f" Custom schema is limited to objects/{prefix}*__c/<same>.object-meta.xml and fields/<Name>__c.field-meta.xml." if custom_objects else ""
+        problems.append(f"not {what} named {prefix}* or part of an LWC bundle named {lwc}*:{schema} {', '.join(bad)}"
                         " (deploy only those, for example --source-dir on the class file or the bundle folder; a file retrieved from the org"
                         " is not yours to deploy: delete it or narrow the path)")
     for value in given["--metadata"]:
         for entry in value.split(","):
-            problem = metadata_problem(entry, prefix, lwc, kinds)
+            problem = metadata_problem(entry, prefix, lwc, kinds, custom_objects)
             if problem:
                 problems.append(problem)
     for manifest in given["--manifest"]:
-        problems += manifest_problems(manifest, cwd, prefix, lwc, kinds)
+        problems += manifest_problems(manifest, cwd, prefix, lwc, kinds, custom_objects)
     return problems
 
 
@@ -717,10 +797,9 @@ def log_end(call: str, code: int | None, stderr: str, interrupted: bool) -> bool
                       "stderr_head": scrub(stderr)[:200], "interrupted": interrupted})
 
 
-def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str], bool]:
-    """The wrapper's fixed flags (--org, --prefix, --deny-all, --name, --permission-sets, in any order), one optional `--` after them,
-    then the model's argv: (org, prefix, deny_all, name, argv, permission_sets), name `sf` unless --name gives another."""
-    org, prefix, deny_all, name, permission_sets, i = "", "", False, "sf", False, 0
+def parse_fixed_options(args: list[str]) -> tuple[str, str, bool, str, list[str], bool, bool]:
+    """Parse wrapper-only flags before the optional `--`; return the custom-schema opt-in separately from the model's argv."""
+    org, prefix, deny_all, name, permission_sets, custom_objects, i = "", "", False, "sf", False, False, 0
     while i < len(args):
         if args[i] == "--org" and i + 1 < len(args):
             org, i = args[i + 1], i + 2
@@ -732,11 +811,20 @@ def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str], bool]:
             deny_all, i = True, i + 1
         elif args[i] == "--permission-sets":
             permission_sets, i = True, i + 1
+        elif args[i] == "--custom-objects":
+            custom_objects, i = True, i + 1
         else:
             break
     if i < len(args) and args[i] == "--":
         i += 1
-    return org, prefix, deny_all, name, args[i:], permission_sets
+    return org, prefix, deny_all, name, args[i:], permission_sets, custom_objects
+
+
+def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str], bool]:
+    """The wrapper's fixed flags (--org, --prefix, --deny-all, --name, --permission-sets), one optional `--` after them, then the
+    model's argv: (org, prefix, deny_all, name, argv, permission_sets). Use `parse_fixed_options` for the extended option tuple."""
+    org, prefix, deny_all, name, argv, permission_sets, _ = parse_fixed_options(args)
+    return org, prefix, deny_all, name, argv, permission_sets
 
 
 def child_env(org: str, environ: dict | None = None) -> dict:
@@ -769,7 +857,7 @@ def run_real(real: str, argv: list[str], state: dict, env: dict | None = None) -
 
 
 def main(args: list[str]) -> int:
-    org, prefix, deny_all, name, argv, permission_sets = parse_fixed(args)
+    org, prefix, deny_all, name, argv, permission_sets, custom_objects = parse_fixed_options(args)
     if not org:
         print(denied_line(name, "the wrapper was built without --org"), file=sys.stderr)
         return 2
@@ -778,13 +866,13 @@ def main(args: list[str]) -> int:
         allowed, reason = False, f"`{name}` is not available in this run; use `sf` with --target-org {org}"
     else:
         try:
-            allowed, reason = decide(argv, org, prefix=prefix, permission_sets=permission_sets)
+            allowed, reason = decide(argv, org, prefix=prefix, permission_sets=permission_sets, custom_objects=custom_objects)
         except Exception as exc:  # a crash is a refusal with a decision line, never a traceback and an unlogged call
             allowed, reason = False, f"the guard could not judge this call ({type(exc).__name__})"
     if not allowed:
         logged = log_decision(call, argv, org, prefix, False, reason, name)
         print(denied_line(name, reason[:REASON_LIMIT]) + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
-        print(scope_line(name, org, prefix, reason, permission_sets), file=sys.stderr)
+        print(scope_line(name, org, prefix, reason, permission_sets, custom_objects), file=sys.stderr)
         return 2
     state: dict = {"proc": None, "interrupted": False, "at": 0.0}
 
@@ -817,7 +905,7 @@ def main(args: list[str]) -> int:
     sys.stdout.flush()
     sys.stderr.write(scrub(err))
     if reason in HELP_REASONS or argv[:1] in (["--help"], ["-h"], ["help"]):
-        sys.stderr.write(scope_line(name, org, prefix, permission_sets=permission_sets) + "\n")
+        sys.stderr.write(scope_line(name, org, prefix, permission_sets=permission_sets, custom_objects=custom_objects) + "\n")
     sys.stderr.flush()
     return code
 
