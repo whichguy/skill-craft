@@ -13,7 +13,7 @@ point to a card's `## Testing` section once KNOWLEDGE/environment.md names the c
 as a target that keeps state more often than without it.
 
 History that shaped it: the section was first added as "Testing deployed code" (`dc312cd1`) and no packet pointed to it.
-Fixed in `c468b25c62012b95dbe11fa199032719d0b34501` (the B arm). The release of the card text is on hold (owner, 2026-10-31).
+Fixed in `c468b25c62012b95dbe11fa199032719d0b34501` (the B arm). The owner held its release and then released it before AS1 ran (see "Release decision" below).
 
 ## What the pieces are
 
@@ -21,14 +21,18 @@ Fixed in `c468b25c62012b95dbe11fa199032719d0b34501` (the B arm). The release of 
   project (`appsscript.json`, V8, server files in `src/` sharing one global scope). `scripts/deploy.js` stands in for
   `clasp push` and copies the project to a folder named by `LOCAL_TARGET`; the tests load the server files from that
   folder, as requests to the web app would. The seeded KNOWLEDGE/environment.md names `GUIDES/platforms/apps-script.md`
-  under "Targets and runtimes". **Nothing in the case says the deployment keeps state.** The first experiments of
+  under "Targets and runtimes". **No prose in the case, the README or the environment note says the deployment keeps state** (a hint remains in
+  `scripts/deploy.js`: see "Known limitations"). The first experiments of
   2026-10-24 (E1, E3) scored 1.0 in every arm because the case gave the answer, and `decide` then reports a ceiling.
 - **Slice** `--seed-at test-strategy --stop-after test-strategy`: the host starts at test-strategy and ends once that
   stage is accepted.
 - **Arms**: A is `55a2726d8f0983aa94c547f98a452360945c0bad`, the build before the card section. B is
-  `c468b25c62012b95dbe11fa199032719d0b34501`. `skills/`, `agents/` and `plugins/` differ between them in that one card file.
-- **Scorer** `test/shiploop_e2e/probes/target_state_declared.py`: 1 when the accepted test-strategy result has a `targets`
-  row for the deployment with `keeps_state` yes; the rows are printed beside the value so a 0 shows what was declared.
+  `c468b25c62012b95dbe11fa199032719d0b34501`, the text that shipped in 2.25.0 / 1.24.0; `e9aed82d` later corrected two
+  statements in it (expectations cannot show a deployed change; the mutation check records its reason only when every
+  focused command is left out), and B does not run that correction. `skills/`, `agents/` and `plugins/` differ between A
+  and B in that one card file.
+- **Scorer** `test/shiploop_e2e/probes/target_state_declared.py`: 1 when the last accepted test-strategy result with outcome
+  `done` has a `targets` row for the deployment with `keeps_state` yes; the rows are printed beside the value so a 0 shows what was declared.
   It sits in `probes/`, so it moves neither the evaluator digest nor the qualification snapshot. The cost: its bytes are
   in no digest, so the experiment record's two commits are what fix the arms, and an edit to the scorer after a round is
   not detected by a digest.
@@ -41,6 +45,25 @@ Fixed in `c468b25c62012b95dbe11fa199032719d0b34501` (the B arm). The release of 
   contain no statement that a target keeps state; A and B differ in the card alone.
 - By hand on 2026-10-31, the same seeded packet rendered with each arm's build: A prints no `Platform testing guide` line
   and its card has no `## Testing`; B prints `Platform testing guide: GUIDES/platforms/apps-script.md#testing`.
+
+## Known limitations: read before running
+
+Found by an independent review on 2026-10-31 and not fixed, because each fix edits a fixture or a top-level harness file,
+and since `cefff5ed` every fixture file is in the oracle digest and so in the qualification snapshot ("a neutral fixture
+edit invalidates comparison"). Moving them is the owner's decision.
+
+- **A weak hint remains.** `scripts/deploy.js` has a `--clean` flag and a comment that it "empties the deployment
+  first", and the case's final check uses it. A model that opens the file can infer that the deployment holds earlier
+  content. The no-statement test reads the case, README, scripts and environment note for a few phrases and does not
+  catch this. It would push A toward 1.0 and blur the comparison.
+- **Samples share one target folder.** The case sets no `seed_state`, so `LOCAL_TARGET` is unset and every sample
+  writes `os.tmpdir()/local-target-gas`. Under `--jobs 4` concurrent samples overwrite one another, and a final
+  check's `--clean` can wipe another sample's deployment. Under `--jobs 1` one sample's leftovers are visible to the
+  next. `queue` has no hook between samples, so run one at a time with `experiment.py run AS1 --arm A --sample N` and
+  remove `$TMPDIR/local-target-gas` between them, or fix the fixture first (a per-checkout default folder in
+  `deploy.js`, or a `seed_state` that allows an empty target).
+- **`node --test` also runs `test/deployed.js`**, a loader, and reports it as a passing test. Cosmetic; the original
+  `local-target` fixture does the same.
 
 ## Run it (a Codex Terra 6.1 xhigh host with hooks on, the current default subject)
 
