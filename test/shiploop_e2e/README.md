@@ -1259,6 +1259,40 @@ requirement ID and adds at least one. The report compares turns and cost with
 the earlier run, and the reviewer judges whether the earlier spec, environment
 notes and modules were used.
 
+A chain may be longer than two. `follows` is read to its end (`chains.py`), so a third pass is held to the first pass's
+checks as well as the second's and is measured by the nearest quality declaration among the cases it follows; its retention
+checks see only the pass just before it as `$PRIOR_WORK`, and a suite runs the links in order, each continuing from the one
+before (SPEC, "Follow-on chains and the delta ledger"). The request of a link names only the new behaviour. The earlier
+links' tests are the standing assumption: ShipLoop runs them as the project's suite, and the harness runs the earlier links'
+checks again after the run.
+
+#### The delta ledger (`delta`)
+
+```sh
+python3 test/shiploop_e2e/delta.py <output> [<output> ...]          # one line per run
+python3 test/shiploop_e2e/delta.py --json <output>                  # the whole block
+```
+
+`metrics.json` of every run carries `delta` (`delta.py`, built beside the counters, so a regrade adds it): what the run changed
+against the head it started from and what it left for the next run, never a verdict. The one-line form reads, for a
+follow-on from the ticket pair:
+
+```
+bf-codex-r2-ticket-escalation: follow-on | R +2 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 1 |
+stray+ spec 0 env 1 arch 0 | appends spec 0 env 7 arch 2 | prior tests modified 0 src 9/27 | follows d3/p4 tests d6/p0 | lessons c14e9cbb3671
+```
+
+`R` and `AD` count the requirements and decisions the run added (`+`), changed (`~`, an earlier entry whose text differs),
+dropped (`-`), moved under Retired or Superseded (`retired`) and filed there when new (`born-retired`: a live entry the engine
+reads as retired, so a later packet marks it "now under Superseded"). `stray+` counts the level-2 headings the run added to a
+living file that are no named section; `appends` the shell appends to it. The full block also lists `changed_sections`, the named sections
+whose text the run changed, which says whether an update to a file landed where the file keeps that kind of fact. `prior tests modified` and `src` are the blast
+radius (tests that existed at the start and were changed or deleted; the start's source files modified, of all of them).
+`follows d3/p4` is the plan: of the IDs its step plans follow, 3 were added or changed by the run (`d`) and 4 were kept as
+they were (`p`); `tests d6/p0` is the same for the `requirement` of its test cases. `lessons` is the release-verify
+commit the next run quotes. `docs/experiments/multipass-20261031/` holds the eight saved runs it was built on (`cut_saved_pairs.py`
+regenerates them) and `docs/shiploop-multipass-journal.md` what they showed.
+
 ### A brownfield case
 
 ```sh

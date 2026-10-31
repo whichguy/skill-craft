@@ -61,6 +61,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import chains  # noqa: E402
 import delivery  # noqa: E402  (delivery.fingerprint and delivery.changed: the delivery snapshot)
 import environment  # noqa: E402  (environment.overlap: the one overlap reader)
 import metrics  # noqa: E402  (metrics.lower_bound: the one lower-bound rule for cost and turns)
@@ -97,10 +98,14 @@ def requires_acceptance(case, required_case=_CURRENT_CASE) -> bool | None:
         acceptance = quality.get("acceptance")
         return isinstance(acceptance, dict) if acceptance is not None else False
     try:
-        declared = json.loads(CASES.read_text()).get(case) or {}
+        cases = json.loads(CASES.read_text())
     except (OSError, ValueError):
         return False
-    return bool((declared.get("quality") or {}).get("acceptance"))
+    try:
+        # The nearest acceptance among the cases it follows: a third pass is held to the acceptance it inherits (chains.py).
+        return bool(chains.quality(cases, case).get("acceptance"))
+    except chains.ChainError:
+        return bool(((cases.get(case) or {}).get("quality") or {}).get("acceptance"))  # an old record of a case whose chain is gone
 
 
 def _read(path: Path) -> dict | None:

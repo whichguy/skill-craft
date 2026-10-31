@@ -180,6 +180,8 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-brownfield.test.py",
     "test/shiploop-e2e-brownfield-tickets.test.py",
     "test/shiploop-e2e-test-adequacy.test.py",
+    "test/shiploop-e2e-delta.test.py",
+    "test/shiploop-e2e-ticket-comments.test.py",
     "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
@@ -415,6 +417,14 @@ _DURATION_SECONDS = {
     "test/shiploop-e2e-brownfield-tickets.test.py": 90.0,
     # Measured 2026-10-31: 23 tests, eight full adequacy sweeps and false-positive/invalid controls, 260.8 s locally.
     "test/shiploop-e2e-test-adequacy.test.py": 261.0,
+    # The follow-on chain and the delta ledger (run.case_chain; test/shiploop_e2e/delta.py): 66 tests on synthetic Git repositories, one
+    # fake event stream and the eight saved runs of the ticket pair (docs/experiments/multipass-20261031/). 3.3 s locally on 2026-10-31.
+    "test/shiploop-e2e-delta.test.py": 5.0,
+    # The third link of the ticket chain, ticket-comments (reference_ticket_comments.py): 17 tests; the calibration builds the base, the
+    # reference and seven defects and grades the case's three checks on each (real node, a server a check), the reference and the
+    # base then run the whole chain's 13 checks, and the reference runs the 14 hidden checks the link inherits. 45 s locally on
+    # 2026-10-31 at load average about 10.
+    "test/shiploop-e2e-ticket-comments.test.py": 60.0,
     # The resource lifecycle (lifecycle.py; leases, recorded groups, crash and retry, disposal): 19 tests, real ps, flock and
     # signals on processes the tests start, one SIGKILLed harness subprocess. 7.3 s locally on 2026-10-26.
     "test/shiploop-e2e-lifecycle.test.py": 8.0,
@@ -728,6 +738,8 @@ _PREFIX_SUITE_IDS = {
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
     # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.
     "docs/experiments/commit-baseline-20261010/": ("shiploop-e2e-commit-counters",),
+    # The saved pass-1 and pass-2 living files of the ticket pair and the delta ledgers cut from them, and the script that cut them.
+    "docs/experiments/multipass-20261031/": ("shiploop-e2e-delta",),
     # The frozen record shapes the Run Review tests read (figures.json) and the scripts that cut them: the Run Review suite pins both.
     "docs/experiments/run-review-r22c-20261009/": ("shiploop-run-review",),
     "docs/experiments/run-review-r23-20261009/": ("shiploop-run-review",),
@@ -736,7 +748,8 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/fidelity/": ("shiploop-e2e-fidelity",),
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
-    "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets", "shiploop-e2e-test-adequacy"),
+    "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
+                               "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-comments"),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     # The two saved-run extracts the efficiency measurement reads, and the journal rows its test checks.
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),

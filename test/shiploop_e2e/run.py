@@ -139,8 +139,10 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import boundary  # noqa: E402
 import brownfield  # noqa: E402
+import chains  # noqa: E402
 import counters  # noqa: E402
 import delivery  # noqa: E402
+import delta  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
 import flow  # noqa: E402
@@ -255,20 +257,23 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
     if args.case not in cases:
         raise SystemExit(f"unknown case {args.case!r}; known: {', '.join(sorted(cases))}")
     case = cases[args.case]
-    follows = case.get("follows")
-    regression = cases[follows]["checks"] if follows else []
-    return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), follows
+    try:
+        # Each earlier pass's own checks, oldest first (chains.py): a third pass is held to the first pass's checks as well.
+        regression = chains.regression(cases, args.case)
+    except chains.ChainError as exc:
+        raise SystemExit(f"{exc}; known: {', '.join(sorted(cases))}") from exc
+    return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), case.get("follows")
 
 
 def case_quality(name: str) -> dict:
-    """The quality measures a case declares: its own entry, else the one of the case it follows (a follow-on is measured by its
-    followed case's declaration unless it names its own). ``{}`` for a case that declares none, and for a name that is not a
-    case. Kept apart from load_case, whose four values callers unpack."""
-    cases = catalog()
-    case = cases.get(name) or {}
-    own, earlier = case.get("quality") or {}, (cases.get(case.get("follows")) or {}).get("quality") or {}
-    found = {key: own.get(key) or earlier.get(key) for key in ("mutation", "acceptance", "refuse_ports")}
-    return {key: value for key, value in found.items() if value}
+    """The quality measures a case declares: its own entry, else the nearest one among the cases it follows, key by key (chains.py:
+    a follow-on is measured by its followed case's declaration unless it names its own, and a third pass by the first's when the
+    second names none). ``{}`` for a case that declares none, and for a name that is not a case. Kept apart from load_case, whose
+    four values callers unpack."""
+    try:
+        return chains.quality(catalog(), name)
+    except chains.ChainError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 # The platform prefix this run uses in place of its case's (--platform-prefix): (case name, prefix), or None. _main sets it once for
@@ -4506,6 +4511,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # The packets and commits counters (SPEC 2026-10-10): four more keys of metrics.json only, built from the same tool log, absent
     # meaning unknown; never a verdict, a baseline key or a line of the report.
     run_metrics.update(counters.safe_build(out, ledger, tool_log))
+    # The delta block (SPEC S-11, "The delta ledger"): what the run changed against its starting head and left for the next run.
+    run_metrics.update(delta.safe_build(out, ledger, tool_log))
     if "truncated_outputs" in (run_metrics.get("unmeasured") or {}):
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")

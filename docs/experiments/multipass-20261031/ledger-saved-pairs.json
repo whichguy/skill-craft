@@ -1,0 +1,2013 @@
+{
+ "bf-codex-r1-ticket-assignment": {
+  "delta": {
+   "basis": {
+    "followed_case": null,
+    "head": "48c016cc74c18ae8499d5d8cc00b2d6dd853cb00",
+    "kind": "base",
+    "start_head": "d507f964237b016624448004ac6d7ba70ad8bd46"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 5,
+      "insertions": 42,
+      "modified": 4
+     },
+     "living": {
+      "added": 3,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 120,
+      "modified": 0
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 9,
+      "insertions": 41,
+      "modified": 8
+     },
+     "tests": {
+      "added": 2,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 177,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 8,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 116,
+     "learned": 126,
+     "open_next": 37
+    },
+    "lessons_commit": "e687ab9abebf",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": [
+       "Structure",
+       "Interfaces and boundaries"
+      ]
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-1"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 1,
+     "prefix": "AD",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    },
+    "spec.md": {
+     "added": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 4,
+     "prefix": "R",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 2253,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Stack",
+      "Conventions",
+      "Real-boundary checks",
+      "Decisions",
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 6,
+     "named_empty": [],
+     "named_missing": [
+      "Structure",
+      "Interfaces and boundaries"
+     ],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Verification status"
+     ],
+     "stray_added": [
+      "Verification status"
+     ],
+     "title": {
+      "final": "Architecture",
+      "prior": null
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 6981,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Skills",
+      "Harnesses and suites",
+      "ID convention",
+      "Access and accounts",
+      "Platform facts"
+     ],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 15,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Preparation",
+      "Integrated system checks",
+      "Local delivery and rollback",
+      "Returned-tree verification",
+      "Operations observation"
+     ],
+     "stray_added": [
+      "Preparation",
+      "Integrated system checks",
+      "Local delivery and rollback",
+      "Returned-tree verification",
+      "Operations observation"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": null
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3594,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Requirements",
+      "Non-functional requirements",
+      "Retired"
+     ],
+     "duplicate": [],
+     "level2": 5,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "State and boundaries",
+      "Verification status"
+     ],
+     "stray_added": [
+      "State and boundaries",
+      "Verification status"
+     ],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": null
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-1",
+     "R-1",
+     "R-2",
+     "R-3",
+     "R-4"
+    ],
+    "primary": {
+     "delta": 4,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 5,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 8,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 2,
+     "other_writes": 3,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 7,
+     "other_writes": 8,
+     "reads": 1
+    },
+    "spec.md": {
+     "appends": 1,
+     "other_writes": 12,
+     "reads": 1
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "bf-codex-r1-ticket-escalation": {
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-assignment",
+    "head": "141f67311ec26d135b6278f033574d379a66f906",
+    "kind": "follow-on",
+    "start_head": "48c016cc74c18ae8499d5d8cc00b2d6dd853cb00"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 52,
+      "modified": 5
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 82,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 9,
+      "insertions": 89,
+      "modified": 9
+     },
+     "tests": {
+      "added": 4,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 172,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 9,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 181,
+     "learned": 145,
+     "open_next": 34
+    },
+    "lessons_commit": "dd8d98e7d6bf",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-2"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 2,
+     "prefix": "AD",
+     "prior": 1,
+     "retired_by_run": [],
+     "unchanged": 1
+    },
+    "spec.md": {
+     "added": [
+      "R-5",
+      "R-6"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 6,
+     "prefix": "R",
+     "prior": 4,
+     "retired_by_run": [],
+     "unchanged": 4
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3935,
+      "prior": 2253
+     },
+     "changed_sections": [
+      "Structure",
+      "Interfaces and boundaries"
+     ],
+     "duplicate": [],
+     "level2": 9,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Verification status",
+      "Reassignment and escalation checks"
+     ],
+     "stray_added": [
+      "Reassignment and escalation checks"
+     ],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 13221,
+      "prior": 6981
+     },
+     "changed_sections": [],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 26,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this change",
+       "this change",
+       "latest change"
+      ],
+      "n": 3
+     },
+     "stray": [
+      "Preparation",
+      "Integrated system checks",
+      "Local delivery and rollback",
+      "Returned-tree verification",
+      "Operations observation",
+      "Bulk reassignment and escalation discovery (2026-10-29)",
+      "Reassignment and escalation test plan",
+      "Preparation for reassignment and escalation",
+      "Verified reassignment and escalation commands",
+      "Local release for bulk reassignment and escalation",
+      "Returned reassignment service verification",
+      "Reassignment operations observation (2026-10-29)"
+     ],
+     "stray_added": [
+      "Bulk reassignment and escalation discovery (2026-10-29)",
+      "Reassignment and escalation test plan",
+      "Preparation for reassignment and escalation",
+      "Verified reassignment and escalation commands",
+      "Local release for bulk reassignment and escalation",
+      "Returned reassignment service verification",
+      "Reassignment operations observation (2026-10-29)"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5489,
+      "prior": 3594
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 6,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "current request",
+       "current request"
+      ],
+      "n": 2
+     },
+     "stray": [
+      "State and boundaries",
+      "Verification status",
+      "Reassignment and escalation verification"
+     ],
+     "stray_added": [
+      "Reassignment and escalation verification"
+     ],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": "Ticket assignment specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-2",
+     "R-5",
+     "R-6"
+    ],
+    "primary": {
+     "delta": 2,
+     "preserved": 1,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 5,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 6,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 3,
+     "other_writes": 2,
+     "reads": 2
+    },
+    "environment.md": {
+     "appends": 8,
+     "other_writes": 3,
+     "reads": 6
+    },
+    "spec.md": {
+     "appends": 1,
+     "other_writes": 5,
+     "reads": 8
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "bf-codex-r2-ticket-assignment": {
+  "delta": {
+   "basis": {
+    "followed_case": null,
+    "head": "aefada8f237127f69a2c436d49f32ad798df151e",
+    "kind": "base",
+    "start_head": "2e416e91118338a32979ff152d67afadf09f861f"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 5,
+      "insertions": 42,
+      "modified": 4
+     },
+     "living": {
+      "added": 3,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 108,
+      "modified": 0
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 9,
+      "insertions": 42,
+      "modified": 8
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 142,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 8,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 179,
+     "learned": 160,
+     "open_next": 33
+    },
+    "lessons_commit": "ea2c78d8f6f5",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-1",
+      "AD-2"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 2,
+     "prefix": "AD",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    },
+    "spec.md": {
+     "added": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4",
+      "R-5"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 5,
+     "prefix": "R",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 2175,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Stack",
+      "Structure",
+      "Conventions",
+      "Interfaces and boundaries",
+      "Real-boundary checks",
+      "Decisions",
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": null
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5944,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Skills",
+      "Harnesses and suites",
+      "ID convention",
+      "Access and accounts",
+      "Platform facts"
+     ],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 15,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Prepared environment",
+      "Verified assignment checks",
+      "Integrated suite",
+      "Local return and verification",
+      "Returned result",
+      "Operational observations"
+     ],
+     "stray_added": [
+      "Prepared environment",
+      "Verified assignment checks",
+      "Integrated suite",
+      "Local return and verification",
+      "Returned result",
+      "Operational observations"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": null
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 2663,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Requirements",
+      "Non-functional requirements",
+      "Retired"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": null
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-1",
+     "AD-2",
+     "R-1",
+     "R-2",
+     "R-3",
+     "R-4",
+     "R-5"
+    ],
+    "primary": {
+     "delta": 5,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 7,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 8,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 2,
+     "other_writes": 2,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 7,
+     "other_writes": 4,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 1,
+     "other_writes": 4,
+     "reads": 4
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "bf-codex-r2-ticket-escalation": {
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-assignment",
+    "head": "eb01bde4f3846a432bd3604c859a5e92cc6f13e3",
+    "kind": "follow-on",
+    "start_head": "aefada8f237127f69a2c436d49f32ad798df151e"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 52,
+      "modified": 5
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 63,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 10,
+      "insertions": 86,
+      "modified": 9
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 127,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 9,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 187,
+     "learned": 168,
+     "open_next": 33
+    },
+    "lessons_commit": "c14e9cbb3671",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-3"
+     ],
+     "born_retired": [
+      "AD-3"
+     ],
+     "changed": [],
+     "dropped": [],
+     "final": 3,
+     "prefix": "AD",
+     "prior": 2,
+     "retired_by_run": [],
+     "unchanged": 2
+    },
+    "spec.md": {
+     "added": [
+      "R-6",
+      "R-7"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 7,
+     "prefix": "R",
+     "prior": 5,
+     "retired_by_run": [],
+     "unchanged": 5
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [
+      "Bulk and escalation boundary checks",
+      "AD-3 Bulk assignment and escalation (implemented)"
+     ],
+     "bytes": {
+      "final": 3439,
+      "prior": 2175
+     },
+     "changed_sections": [
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 10531,
+      "prior": 5944
+     },
+     "changed_sections": [],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 16,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this run"
+      ],
+      "n": 1
+     },
+     "stray": [
+      "Prepared environment",
+      "Verified assignment checks",
+      "Integrated suite",
+      "Local return and verification",
+      "Returned result",
+      "Operational observations",
+      "Bulk reassignment and escalation discovery (2026-10-29)"
+     ],
+     "stray_added": [
+      "Bulk reassignment and escalation discovery (2026-10-29)"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 4161,
+      "prior": 2663
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "current request",
+       "current request"
+      ],
+      "n": 2
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": "Ticket assignment specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-3",
+     "R-6",
+     "R-7"
+    ],
+    "primary": {
+     "delta": 2,
+     "preserved": 1,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 4,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 6,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 2,
+     "other_writes": 1,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 7,
+     "other_writes": 2,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 5,
+     "reads": 4
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "hooks-after-ticket-assignment": {
+  "delta": {
+   "basis": {
+    "followed_case": null,
+    "head": "d7decd765f1a6e5fe0f129bc5e1a2019802b4781",
+    "kind": "base",
+    "start_head": "db642630e3a3bcafe7df0a609c3f53c571bc753e"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 3,
+      "insertions": 24,
+      "modified": 5
+     },
+     "living": {
+      "added": 3,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 116,
+      "modified": 0
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 11,
+      "insertions": 49,
+      "modified": 8
+     },
+     "tests": {
+      "added": 2,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 201,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 8,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 97,
+     "learned": 82,
+     "open_next": 5
+    },
+    "lessons_commit": "d706cdec2c26",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-1"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 1,
+     "prefix": "AD",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    },
+    "spec.md": {
+     "added": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4",
+      "R-5"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 5,
+     "prefix": "R",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 1621,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Stack",
+      "Structure",
+      "Conventions",
+      "Interfaces and boundaries",
+      "Real-boundary checks",
+      "Decisions",
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this request"
+      ],
+      "n": 1
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": null
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5499,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Skills",
+      "Harnesses and suites",
+      "ID convention",
+      "Access and accounts",
+      "Platform facts"
+     ],
+     "duplicate": [
+      "Commands"
+     ],
+     "level2": 11,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this change"
+      ],
+      "n": 1
+     },
+     "stray": [
+      "Preparation readiness",
+      "Local delivery and rollback",
+      "Operations and recovery"
+     ],
+     "stray_added": [
+      "Preparation readiness",
+      "Local delivery and rollback",
+      "Operations and recovery"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": null
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3134,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Requirements",
+      "Non-functional requirements",
+      "Retired"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": null
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-1",
+     "R-1",
+     "R-2",
+     "R-3",
+     "R-4",
+     "R-5"
+    ],
+    "primary": {
+     "delta": 5,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 6,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 10,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 0,
+     "reads": 3
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 12,
+     "reads": 3
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 8,
+     "reads": 2
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "hooks-after-ticket-escalation": {
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-assignment",
+    "head": "3e4eb24095bc4645c5e8404bdd9d3b84ae7dae19",
+    "kind": "follow-on",
+    "start_head": "d7decd765f1a6e5fe0f129bc5e1a2019802b4781"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 20,
+      "modified": 5
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 92,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 13,
+      "insertions": 97,
+      "modified": 8
+     },
+     "tests": {
+      "added": 2,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 232,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 8,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 224,
+     "learned": 162,
+     "open_next": 108
+    },
+    "lessons_commit": "d9dda8aaacf5",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-2"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 2,
+     "prefix": "AD",
+     "prior": 1,
+     "retired_by_run": [],
+     "unchanged": 1
+    },
+    "spec.md": {
+     "added": [
+      "R-6",
+      "R-7"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 7,
+     "prefix": "R",
+     "prior": 5,
+     "retired_by_run": [],
+     "unchanged": 5
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3021,
+      "prior": 1621
+     },
+     "changed_sections": [],
+     "duplicate": [],
+     "level2": 8,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "New feature"
+      ],
+      "n": 1
+     },
+     "stray": [
+      "New feature real-boundary checks"
+     ],
+     "stray_added": [
+      "New feature real-boundary checks"
+     ],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 12006,
+      "prior": 5499
+     },
+     "changed_sections": [
+      "Harnesses and suites"
+     ],
+     "duplicate": [
+      "Commands"
+     ],
+     "level2": 15,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "new feature",
+       "This run",
+       "this request",
+       "New feature"
+      ],
+      "n": 4
+     },
+     "stray": [
+      "Preparation readiness",
+      "Local delivery and rollback",
+      "Operations and recovery",
+      "This run discovery (2026-10-29)",
+      "New feature test strategy",
+      "Current preparation",
+      "W1 retained commands and fixtures"
+     ],
+     "stray_added": [
+      "This run discovery (2026-10-29)",
+      "New feature test strategy",
+      "Current preparation",
+      "W1 retained commands and fixtures"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5030,
+      "prior": 3134
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "current request",
+       "current request"
+      ],
+      "n": 2
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": "Ticket assignment specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-2",
+     "R-6",
+     "R-7"
+    ],
+    "primary": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 5,
+     "reads": 2
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 14,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 10,
+     "reads": 4
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "hooks-before-ticket-assignment": {
+  "delta": {
+   "basis": {
+    "followed_case": null,
+    "head": "0a2287591584e8eea9528e5120b19823ac3f9dea",
+    "kind": "base",
+    "start_head": "af3dd1bf3740f58f8db05e28561a966cac71cf1e"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 3,
+      "insertions": 36,
+      "modified": 4
+     },
+     "living": {
+      "added": 3,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 139,
+      "modified": 0
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 7,
+      "insertions": 43,
+      "modified": 8
+     },
+     "tests": {
+      "added": 2,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 207,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 8,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 127,
+     "learned": 113,
+     "open_next": 45
+    },
+    "lessons_commit": "0a2287591584",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-1"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 1,
+     "prefix": "AD",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    },
+    "spec.md": {
+     "added": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4",
+      "R-5",
+      "R-6"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 6,
+     "prefix": "R",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 2187,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Stack",
+      "Structure",
+      "Conventions",
+      "Interfaces and boundaries",
+      "Real-boundary checks",
+      "Decisions",
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": null
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 6907,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Skills",
+      "Harnesses and suites",
+      "ID convention",
+      "Access and accounts",
+      "Platform facts"
+     ],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 14,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Prepared environment",
+      "Verified focused commands",
+      "Integrated test plan",
+      "Local delivery and rollback"
+     ],
+     "stray_added": [
+      "Prepared environment",
+      "Verified focused commands",
+      "Integrated test plan",
+      "Local delivery and rollback"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": null
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3914,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Requirements",
+      "Non-functional requirements",
+      "Retired"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Service requirements",
+      "prior": null
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-1",
+     "R-1",
+     "R-2",
+     "R-3",
+     "R-4",
+     "R-5",
+     "R-6"
+    ],
+    "primary": {
+     "delta": 6,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 7,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 8,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 1,
+     "other_writes": 4,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 4,
+     "other_writes": 12,
+     "reads": 1
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 15,
+     "reads": 2
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ },
+ "hooks-before-ticket-escalation": {
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-assignment",
+    "head": "8f11f062a88000fa271966f61a6945a4fe60712d",
+    "kind": "follow-on",
+    "start_head": "0a2287591584e8eea9528e5120b19823ac3f9dea"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 30,
+      "modified": 5
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 79,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 5,
+      "insertions": 85,
+      "modified": 8
+     },
+     "tests": {
+      "added": 4,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 195,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 8,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 211,
+     "learned": 140,
+     "open_next": 35
+    },
+    "lessons_commit": "feade3dae3c8",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-2"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 2,
+     "prefix": "AD",
+     "prior": 1,
+     "retired_by_run": [],
+     "unchanged": 1
+    },
+    "spec.md": {
+     "added": [
+      "R-7",
+      "R-8"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 8,
+     "prefix": "R",
+     "prior": 6,
+     "retired_by_run": [],
+     "unchanged": 6
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3394,
+      "prior": 2187
+     },
+     "changed_sections": [
+      "Decisions"
+     ],
+     "duplicate": [
+      "Real-boundary checks"
+     ],
+     "level2": 9,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Integrated verification due"
+     ],
+     "stray_added": [
+      "Integrated verification due"
+     ],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 12015,
+      "prior": 6907
+     },
+     "changed_sections": [],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites",
+      "ID convention"
+     ],
+     "level2": 24,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "current change"
+      ],
+      "n": 1
+     },
+     "stray": [
+      "Prepared environment",
+      "Verified focused commands",
+      "Integrated test plan",
+      "Local delivery and rollback",
+      "Bulk reassignment and escalation discovery",
+      "Prepared environment for current change",
+      "Verified bulk and escalation suites",
+      "Local source delivery for bulk and escalation",
+      "Returned candidate verification",
+      "Operational evidence (2026-10-29)"
+     ],
+     "stray_added": [
+      "Bulk reassignment and escalation discovery",
+      "Prepared environment for current change",
+      "Verified bulk and escalation suites",
+      "Local source delivery for bulk and escalation",
+      "Returned candidate verification",
+      "Operational evidence (2026-10-29)"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5889,
+      "prior": 3914
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "current request",
+       "current request"
+      ],
+      "n": 2
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Service requirements",
+      "prior": "Service requirements"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-2",
+     "R-7",
+     "R-8"
+    ],
+    "primary": {
+     "delta": 2,
+     "preserved": 1,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 5,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 4,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 6,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 0
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 14,
+     "reads": 3
+    }
+   }
+  },
+  "delta_unmeasured": {}
+ }
+}

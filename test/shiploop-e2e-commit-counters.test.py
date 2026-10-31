@@ -1023,6 +1023,8 @@ def load_harness_tests():
 
 HARNESS = load_harness_tests()
 FOUR_KEYS = {"packets", "packets_unmeasured", "commits", "commits_unmeasured"}
+# The delta block (test/shiploop_e2e/delta.py, SPEC S-11): built beside the counters under the same rule, in metrics.json only.
+DELTA_KEYS = {"delta", "delta_unmeasured"}
 
 
 class CountersThroughMainTest(HARNESS.PrintedCase):
@@ -1046,6 +1048,11 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
                 self.assertFalse(FOUR_KEYS & set(result["metrics"]), "result.json keeps its explicit subset")
                 self.assertFalse(FOUR_KEYS & set(json.loads((out / "result.json").read_text())))
                 self.assertFalse(FOUR_KEYS & set(self.last_row()))
+                # The delta block follows the same rule: in metrics.json, and in no result and no baseline row.
+                self.assertTrue(DELTA_KEYS <= set(written))
+                self.assertFalse(DELTA_KEYS & set(result["metrics"]))
+                self.assertFalse(DELTA_KEYS & set(json.loads((out / "result.json").read_text())))
+                self.assertFalse(DELTA_KEYS & set(self.last_row()))
 
     def test_the_wiring_hands_the_builder_the_output_folder_the_run_directory_and_the_tool_log_of_the_run(self):
         # A run_main that passed no ToolLog, or no run directory, would still produce the four keys.
@@ -1093,8 +1100,8 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
             if key in ("turns", "cost_usd", "model_calls", "shiploop_failures", "model_glue", "improve_children", "sessions",
                        "unmeasured", "tokens", "compactions"):
                 self.assertEqual(written[key], value, key)
-        self.assertEqual(set(written) - set(collected), FOUR_KEYS | {"fidelity"})
-        self.assertFalse(FOUR_KEYS & set(collected), "collect itself is unchanged: the blocks are built beside it")
+        self.assertEqual(set(written) - set(collected), FOUR_KEYS | DELTA_KEYS | {"fidelity"})
+        self.assertFalse((FOUR_KEYS | DELTA_KEYS) & set(collected), "collect itself is unchanged: the blocks are built beside it")
 
     def test_a_builder_failure_is_recorded_and_changes_neither_the_verdict_nor_the_exit_code_nor_the_baseline_row(self):
         _code, clean_result, _printed, _written, _out = self.written("grok")

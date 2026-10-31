@@ -1,0 +1,238 @@
+{
+ "runs": {
+  "bf-codex-r1": [
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0c4d03 knowledge at prepare",
+    "heading": "Preparation",
+    "run_label": "this-directory-is-an-existing-node-0c4d03",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0c4d03 knowledge after system-test-author",
+    "heading": "Integrated system checks",
+    "run_label": "this-directory-is-an-existing-node-0c4d03",
+    "stage": "system-test-author"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0c4d03 knowledge at release-plan",
+    "heading": "Local delivery and rollback",
+    "run_label": "this-directory-is-an-existing-node-0c4d03",
+    "stage": "release-plan"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0c4d03 knowledge at release-verify",
+    "heading": "Returned-tree verification",
+    "run_label": "this-directory-is-an-existing-node-0c4d03",
+    "stage": "release-verify"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0c4d03 knowledge after operations",
+    "heading": "Operations observation",
+    "run_label": "this-directory-is-an-existing-node-0c4d03",
+    "stage": "operations"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge after discovery",
+    "heading": "Bulk reassignment and escalation discovery (2026-10-29)",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "discovery"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge after test-strategy",
+    "heading": "Reassignment and escalation test plan",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "test-strategy"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge at prepare",
+    "heading": "Preparation for reassignment and escalation",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge after carry-forward",
+    "heading": "Verified reassignment and escalation commands",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "carry-forward"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge at release-plan",
+    "heading": "Local release for bulk reassignment and escalation",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "release-plan"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge at release-verify",
+    "heading": "Returned reassignment service verification",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "release-verify"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-bda903 knowledge after operations",
+    "heading": "Reassignment operations observation (2026-10-29)",
+    "run_label": "extend-the-ticket-service-with-bulk-bda903",
+    "stage": "operations"
+   }
+  ],
+  "bf-codex-r2": [
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0fdf97 knowledge at prepare",
+    "heading": "Prepared environment",
+    "run_label": "this-directory-is-an-existing-node-0fdf97",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0fdf97 knowledge after carry-forward",
+    "heading": "Verified assignment checks",
+    "run_label": "this-directory-is-an-existing-node-0fdf97",
+    "stage": "carry-forward"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0fdf97 knowledge after system-test-author",
+    "heading": "Integrated suite",
+    "run_label": "this-directory-is-an-existing-node-0fdf97",
+    "stage": "system-test-author"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0fdf97 knowledge at release-plan",
+    "heading": "Local return and verification",
+    "run_label": "this-directory-is-an-existing-node-0fdf97",
+    "stage": "release-plan"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0fdf97 knowledge at release-verify",
+    "heading": "Returned result",
+    "run_label": "this-directory-is-an-existing-node-0fdf97",
+    "stage": "release-verify"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-0fdf97 knowledge after operations",
+    "heading": "Operational observations",
+    "run_label": "this-directory-is-an-existing-node-0fdf97",
+    "stage": "operations"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-b57b12 knowledge after discovery",
+    "heading": "Bulk reassignment and escalation discovery (2026-10-29)",
+    "run_label": "extend-the-ticket-service-with-bulk-b57b12",
+    "stage": "discovery"
+   }
+  ],
+  "hooks-after": [
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-504632 knowledge at prepare",
+    "heading": "Preparation readiness",
+    "run_label": "this-directory-is-an-existing-node-504632",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-504632 knowledge at release-plan",
+    "heading": "Local delivery and rollback",
+    "run_label": "this-directory-is-an-existing-node-504632",
+    "stage": "release-plan"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-504632 knowledge after operations",
+    "heading": "Operations and recovery",
+    "run_label": "this-directory-is-an-existing-node-504632",
+    "stage": "operations"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-c998c0 knowledge after discovery",
+    "heading": "This run discovery (2026-10-29)",
+    "run_label": "extend-the-ticket-service-with-bulk-c998c0",
+    "stage": "discovery"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-c998c0 knowledge after test-strategy",
+    "heading": "New feature test strategy",
+    "run_label": "extend-the-ticket-service-with-bulk-c998c0",
+    "stage": "test-strategy"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-c998c0 knowledge at prepare",
+    "heading": "Current preparation",
+    "run_label": "extend-the-ticket-service-with-bulk-c998c0",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-c998c0 knowledge after carry-forward",
+    "heading": "W1 retained commands and fixtures",
+    "run_label": "extend-the-ticket-service-with-bulk-c998c0",
+    "stage": "carry-forward"
+   }
+  ],
+  "hooks-before": [
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-1f59ae knowledge at prepare",
+    "heading": "Prepared environment",
+    "run_label": "this-directory-is-an-existing-node-1f59ae",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-1f59ae knowledge after carry-forward",
+    "heading": "Verified focused commands",
+    "run_label": "this-directory-is-an-existing-node-1f59ae",
+    "stage": "carry-forward"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-1f59ae knowledge after system-test-author",
+    "heading": "Integrated test plan",
+    "run_label": "this-directory-is-an-existing-node-1f59ae",
+    "stage": "system-test-author"
+   },
+   {
+    "commit_subject": "docs(shiploop): record this-directory-is-an-existing-node-1f59ae knowledge at release-plan",
+    "heading": "Local delivery and rollback",
+    "run_label": "this-directory-is-an-existing-node-1f59ae",
+    "stage": "release-plan"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-575686 knowledge after discovery",
+    "heading": "Bulk reassignment and escalation discovery",
+    "run_label": "extend-the-ticket-service-with-bulk-575686",
+    "stage": "discovery"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-575686 knowledge at prepare",
+    "heading": "Prepared environment for current change",
+    "run_label": "extend-the-ticket-service-with-bulk-575686",
+    "stage": "prepare"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-575686 knowledge after carry-forward",
+    "heading": "Verified bulk and escalation suites",
+    "run_label": "extend-the-ticket-service-with-bulk-575686",
+    "stage": "carry-forward"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-575686 knowledge at release-plan",
+    "heading": "Local source delivery for bulk and escalation",
+    "run_label": "extend-the-ticket-service-with-bulk-575686",
+    "stage": "release-plan"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-575686 knowledge at release-verify",
+    "heading": "Returned candidate verification",
+    "run_label": "extend-the-ticket-service-with-bulk-575686",
+    "stage": "release-verify"
+   },
+   {
+    "commit_subject": "docs(shiploop): record extend-the-ticket-service-with-bulk-575686 knowledge after operations",
+    "heading": "Operational evidence (2026-10-29)",
+    "run_label": "extend-the-ticket-service-with-bulk-575686",
+    "stage": "operations"
+   }
+  ]
+ },
+ "totals_by_stage": {
+  "carry-forward": 5,
+  "discovery": 4,
+  "operations": 5,
+  "prepare": 7,
+  "release-plan": 6,
+  "release-verify": 4,
+  "system-test-author": 3,
+  "test-strategy": 2
+ }
+}
