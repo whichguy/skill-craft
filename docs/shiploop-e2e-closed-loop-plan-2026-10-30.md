@@ -77,6 +77,33 @@ evaluator digest. Run from the main checkout, the calibration epoch would refuse
 usable later only while the files that score an attempt are unchanged. `spread.py` records their digests, and `cycle.py`
 refuses a calibration whose digests differ from the epoch it is applied to.
 
+## Where it stands (2026-10-31)
+
+**Trying to achieve.** Every improvement to ShipLoop proven by its own comparison: one learning record, one candidate
+with a prediction, one `promotion/5` decision, built on only after PROMOTE, and remembered. Done means a live cycle that
+promotes a change whose prediction is confirmed, lands it on `main` and marks its record verified. That has not happened.
+
+**Established.** Stages 1 and 2 are on `main` (6337038, CI green): the SPEC rules, the learning records, predictions,
+`spread.py`, the purpose check, side-by-side runs and `cycle.py`, with no-model tests. ba51c3f then fixed the controller's
+uncommitted learning on its non-DROP exits and recorded the owner's history-first, direct-to-`main` policy. Not
+established: how much one ShipLoop build differs from itself, so whether a full-run cycle can see an ordinary improvement.
+
+**Learned, and where.** About the loop: LEARNINGS.md, "Closed loop, stage 2" and "Closed loop review" (what a cycle costs,
+the noise question, the corrections). About ShipLoop: `test/shiploop_e2e/learning-records.jsonl` (six records; the
+admitted one is the S-13 slip LR-20261030-8ff7a9). The rules the lessons became: SPEC.md's Purpose, "Learning records and
+predictions", Change admission's "Purpose", the promotion contract's "Qualified iteration" and the harness rule "A
+comparison that promotes is one registered epoch".
+
+**Still to change, in order.**
+
+| Step | What | Where | Needs |
+|---|---|---|---|
+| 1 | Stage 3: same-build calibration, about 20 runs, no reviews | a fixed worktree of `main`; writes `docs/experiments/e2e-calibration-*/calibration.json` | the owner's go |
+| 2 | Decide D1 (tolerance, attempts) and D3 (limits); D4 for sampled reviews | the decisions table above | the owner |
+| 3 | Trim the cycle if the tolerance allows: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D1, D4 |
+| 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | step 1 |
+| 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | steps 1 to 4 |
+
 ## Stage 1: SPEC amendments
 
 Done in 2b4c675. One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged against the amended spec:

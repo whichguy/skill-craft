@@ -4619,3 +4619,75 @@ covered only by the existing suites.
 **What it shows.** Nothing measured live. This is not a round and vouches for no live behaviour. The stage suite built on
 the seam renders packets through `accept_effects` with no model; the first live round on a build that includes it is the
 first live exercise of the changed code path. Judge that round against this entry, and record any difference it shows.
+
+## Closed loop review: what a cycle costs, what is still unknown, and why the next step is a measurement (2026-10-31 UTC) — status: retained learning, no code changed; the noise figure stays unknown until stage 3
+
+**Classification.** Retained learning about the E2E apparatus. No ShipLoop source, harness code, scorer, case, baseline row
+or loop limit changes here. It records the owner's question "are we overcomplicating this?", the measured answer, and the
+corrections the answer made to earlier claims, so that they live in the repository and not only in a chat.
+
+**History read first** (owner decision of 2026-10-30, AGENTS.md):
+- 1f85e1b1d29fbc7defeee6531842606c3f15a69e, 550abcbcc5a48c919535441982251a0bac002551, 2b4c67538538069e57129a7c7e3f162341cced8a:
+  the closed-loop plan, D2 ("alongside") and the SPEC amendments.
+- d8f25be586d363d8b25f31744ed439a9c86b436b and 2ec11f846a5f196db4372c8badfc7c05807827c3: stage 2's harness and its entry
+  above ("Closed loop, stage 2").
+- 63370382654f9e517b1c70e27b84b29713cb4c82: the merge that put both on main (CI run 41118741018 green on all four jobs).
+- ba51c3f4e74ea8731ac03959675d6e47b5d91c37: another session's review of the stage-2 controller and the owner's
+  history-first and direct-main policies (its entry above, "Retain history and interrupted learning").
+- 008feae5295e1cee3f069f04aec6fec38ac6adb1 (Wave A, compared by hand) and 11c851e74df399c269f13ed9a7afa0758a1fd1a0 (the
+  epoch controller) for the state the loop started from.
+
+**Question.** Is the closed loop the right action, or has its machinery got ahead of its evidence?
+
+**Measured.**
+- **Model sessions per cycle**, from cycle.py's own shape at 3 attempts per arm on two cases: 12 subject runs, 12
+  reviews, 12 judgments, 1 improver and 1 purpose review, 38 in all. 24 of the 38 review and judge every attempt for new
+  findings; `promotion.decide` does not read them (epoch.decide only downgrades a PROMOTE to UNDECIDED while any attempt
+  lacks a review). Three trims, each cumulative:
+  - review only the candidate's attempts on the exposing case: 12 + 3 + 3 + 1 + 1 = 20;
+  - move the generality case to the release's existing breadth run: 6 + 3 + 3 + 1 + 1 = 14;
+  - run the model purpose review only when the script check lists extra files: 13 (14 when it runs).
+- **Size**: the harness's top-level Python (test/shiploop_e2e/*.py) was 24,954 lines at
+  d98451fbacaafec18c874f25aa4a69f15b9dbc0c, before the plan, and 26,494 at 2ec11f846a5f196db4372c8badfc7c05807827c3:
+  stage 2 added 1,540 lines of harness and 664 of tests, 2,204 lines of Python (2,719 lines in all with docs and data).
+- **Journal composition**: of the 42 entries from 2026-10-25 to 2026-10-30 (from "Case checks write nothing into the
+  product's folder" to "Closed loop, stage 2"), 21 are harness or measurement work and 21 are live rounds or analysis of
+  engine changes.
+- **The only real noise hint**: user-listing on Codex gpt-6.1-terra xhigh, turns 191 (ShipLoop 1.20.0), 185 (1.21.0), 157
+  and 204 (both 1.22.0), from baselines.jsonl rows of 2026-10-29: mean 184, about ±13%. Three builds are mixed in, so this
+  bounds nothing; it is why the calibration is needed.
+- **What the calibration can show**, from spread.py's own test data (synthetic, not a run): over all 560 ways of dealing
+  eight attempts into two arms of three, a build whose tokens vary within 7% gives 0% false PROMOTE/DROP calls at every
+  tolerance from 5% to 50%; one varying by ±40% gives 82.9% at 5%, 68.8% at 10%, 41.3% at 20%, 22.0% at 30% and 9.8% at
+  40%, the first under the proposed 10% bar.
+
+**Decision.**
+- Build nothing more until stage 3's same-build calibration reports. It is the smallest observation that decides whether
+  a full-run cycle can see an ordinary improvement at all.
+- Then shape the loop by the calibrated tolerance at 3 attempts (a proposal for owner decision D1): at or under 15%, trim
+  the cycle as above and run full-run cycles; 15% to 30%, more attempts per arm and only lessons predicted to move a
+  measure past the tolerance; 30% or more, full-run cycles for correctness and large effects only, and efficiency lessons
+  on step slices (experiment.py).
+- Sampling reviews changes the 10-29 design (every attempt reviewed before PROMOTE), so it waits on owner decision D4.
+
+**Corrections to earlier claims** (made in the session, before this entry):
+- "Most of the past week's journal entries were harness work" was wrong: the count is 21 of 42, half.
+- "Sampling the reviews takes a cycle from about 38 to about 16 sessions" was wrong: sampling alone gives 20; all three
+  trims together give about 13.
+- "26,494 lines of Python in the harness before this work" was wrong: 26,494 is the size after stage 2; before it, 24,954.
+- Stage 2's entry says the DROP path's reset was fixed and mutation-tested. That was true and incomplete: ba51c3f found
+  that the other early exits (NO_CANDIDATE, REJECTED_AT_PURPOSE, NO_PREDICTION, REFUSED) appended ledger rows without
+  committing them, so a following improver saw them as uncommitted work and reported a false NO_CANDIDATE, and an
+  unexpected exception could leave the same state. ba51c3f fixed every exit. The lesson for the next stateful controller:
+  test each exit path for the state it leaves, not only the path whose failure was first imagined.
+
+**Contrary evidence and unknowns.**
+- The session counts assume 3 attempts per arm; D1 may set another number, and the cost scales with it.
+- Wall time per session was not measured; "about two hours a cycle" rests on the 2026-10-29 Terra brownfield runs (10 to
+  24 minutes each) and three runs at a time.
+- Battleship has never run on Terra; whether a second case belongs in every cycle depends on its time there.
+- Nothing here measured a live cycle. The loop has still not said PROMOTE or DROP on anything real.
+
+**Evidence.** cycle.py and epoch.py at 63370382654f9e517b1c70e27b84b29713cb4c82; baselines.jsonl; spread.py's tests
+(test/shiploop-e2e-learning-records.test.py, SpreadTest); `git diff --numstat d98451fbacaafec18c874f25aa4a69f15b9dbc0c
+2ec11f846a5f196db4372c8badfc7c05807827c3` and the per-file line counts at both commits for the size figures; the plan's "Where it stands" section below its build order.
