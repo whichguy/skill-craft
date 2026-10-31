@@ -478,6 +478,40 @@ class VersionGateTest(unittest.TestCase):
             self.assertEqual(run.card_version(card), "0.37.0")
             self.assertIsNone(run.card_version(Path(tmp) / "missing.md"))
 
+    def test_marketplace_records_the_actual_install_path_without_relaxing_failed_installs(self):
+        for name in ("codex", "grok"):
+            for passed, path in ((True, "/installed/skill-craft"), (False, None)):
+                with self.subTest(host=name, passed=passed):
+                    installed = {"pass": passed, "path": path, "loaded": ["installed"] if passed else [],
+                                 "source": "whichguy/skill-craft", "version": "1.4.0"}
+                    host = argparse.Namespace(name=name, marketplace=True,
+                                              install_marketplace=mock.Mock(return_value=installed))
+                    versions = {"plugin_version": "1.4.0", "shiploop_version": "0.37.0"}
+                    env = {"HOME": "/isolated"}
+                    with mock.patch.object(run, "the_host", return_value=host), \
+                            mock.patch.object(run, "released_versions", return_value=self.RELEASED), \
+                            mock.patch.object(run, "installed_versions", return_value=versions), \
+                            contextlib.redirect_stdout(io.StringIO()):
+                        selected, plugin, recorded = run.marketplace_preflight(argparse.Namespace(), Path("/out"), env)
+                    host.install_marketplace.assert_called_once_with(env)
+                    self.assertEqual(selected, Path(path) if path else Path("/out/missing-plugin"))
+                    self.assertEqual(plugin["path"], path)
+                    self.assertEqual(plugin["pass"], passed)
+                    self.assertEqual(bool(recorded["gate"]), not passed)
+
+    def test_marketplace_export_keeps_no_install_record_for_a_host_without_an_installer(self):
+        host = argparse.Namespace(name="claude", marketplace=False)
+        versions = {"plugin_version": "1.4.0", "shiploop_version": "0.37.0"}
+        with mock.patch.object(run, "the_host", return_value=host), \
+                mock.patch.object(run, "released_versions", return_value=self.RELEASED), \
+                mock.patch.object(run, "export_released", return_value=Path("/export/plugin")), \
+                mock.patch.object(run, "installed_versions", return_value=versions), \
+                contextlib.redirect_stdout(io.StringIO()):
+            selected, plugin, recorded = run.marketplace_preflight(argparse.Namespace(), Path("/out"), {})
+        self.assertEqual(selected, Path("/export/plugin"))
+        self.assertIsNone(plugin)
+        self.assertEqual(recorded["gate"], [])
+
 
 class ClaudeResumePromptTest(unittest.TestCase):
     def test_a_claude_resume_names_the_run_s_own_marketplace_cli(self):
