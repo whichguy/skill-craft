@@ -4592,3 +4592,30 @@ Evidence root: `~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/`. Re
 `history-context-measurement`, `retained-battleship-cleanup-01`, and `shared-scope-live-01` / `shared-scope-live-02` with
 their separate execution logs. This append follows the measured source; no scorer, floor, case, model default, ShipLoop
 loop or marketplace skill source was changed, and no new generic ShipLoop product candidate is adopted by this repair.
+
+## Release waiver: the `accept_effects` seam ships with no live E2E round (2026-10-31 UTC) — status: owner waiver; nothing live was measured
+
+**Question.** May ShipLoop 1.23.3 ship the `accept_effects` seam (PR #28, merged as `475ab9a6`) with no live E2E round on
+record after it?
+
+**Decision.** Owner, 2026-10-31 UTC, "go 2": merge #28 as it stands, record the waiver here, and release. The owner had asked
+to publish the release; the other options put to them were to wait for the next journal entry, or to change the preflight.
+
+**Why a waiver and not a trailer.** `scripts/release.py --dry-run` on the merge refused to ship ShipLoop. It flagged one
+commit, `6b8fc70c` ("Merge branch 'main' into claude/shiploop-stage-suite-core", 2026-10-30 15:58 -0700): a plain merge
+of `main` into the PR's branch, made by the update-branch button so CI would test the combined code. It changes
+`skills/shiploop/` only by bringing `main`'s 1.23.2 in, carries no `No-E2E-Round` trailer, and cannot be amended on
+another session's branch. The seam change itself carries its own trailer (`77884063`: "internal refactor of dispatch(),
+no packet text or CLI behaviour changed"). This entry did not re-verify that claim. The preflight orders by history, not
+by date, so the journal commits that landed on `main` earlier (`ba51c3f4`, `f0c24425`) did not cover `6b8fc70c`.
+
+**What stands in for a round.** `test/shiploop-seed-seam.test.py` (14 tests) runs each `complete` three ways from the same
+files (real `dispatch`, `apply` plus `accept_effects`, and a copy of the pre-refactor sequence written out in the test) and
+compares state, files and commits. The existing navigator, runtime and Improve suites ran in CI: the PR's five checks
+passed on head `2c8f25b9`. A trial merge onto `main` before the real one passed `test-groups` (108 ShipLoop suites, 163 in
+total), the seam test and `ci-policy`. The PR itself says the skill commit and the terminal-handoff knowledge close are
+covered only by the existing suites.
+
+**What it shows.** Nothing measured live. This is not a round and vouches for no live behaviour. The stage suite built on
+the seam renders packets through `accept_effects` with no model; the first live round on a build that includes it is the
+first live exercise of the changed code path. Judge that round against this entry, and record any difference it shows.
