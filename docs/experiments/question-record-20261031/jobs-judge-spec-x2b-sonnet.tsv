@@ -1,0 +1,4 @@
+opus	judge/spec-x2b-sonnet-battleship-p12.md	judge/spec-x2b-sonnet-battleship-p12.out.json
+opus	judge/spec-x2b-sonnet-csv-report-p12.md	judge/spec-x2b-sonnet-csv-report-p12.out.json
+opus	judge/spec-x2b-sonnet-seat-reservations-p12.md	judge/spec-x2b-sonnet-seat-reservations-p12.out.json
+opus	judge/spec-x2b-sonnet-user-listing-p12.md	judge/spec-x2b-sonnet-user-listing-p12.out.json

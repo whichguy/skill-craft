@@ -1,0 +1,90 @@
+{
+  "spec-x2b-sonnet-battleship-p12": {
+    "O1": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/sonnet/battleship-B-s2.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/sonnet/battleship-B-s1.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/sonnet/battleship-A-s2.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/sonnet/battleship-A-s1.json"
+    }
+  },
+  "spec-x2b-sonnet-csv-report-p12": {
+    "O1": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/sonnet/csv-report-A-s2.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/sonnet/csv-report-B-s2.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/sonnet/csv-report-B-s1.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/sonnet/csv-report-A-s1.json"
+    }
+  },
+  "spec-x2b-sonnet-seat-reservations-p12": {
+    "O1": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/sonnet/seat-reservations-A-s1.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/sonnet/seat-reservations-A-s2.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/sonnet/seat-reservations-B-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/sonnet/seat-reservations-B-s2.json"
+    }
+  },
+  "spec-x2b-sonnet-user-listing-p12": {
+    "O1": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/sonnet/user-listing-A-s1.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/sonnet/user-listing-B-s2.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/sonnet/user-listing-A-s2.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/sonnet/user-listing-B-s1.json"
+    }
+  }
+}

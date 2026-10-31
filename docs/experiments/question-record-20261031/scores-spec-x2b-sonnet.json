@@ -1,0 +1,1524 @@
+{
+  "subject": "sonnet",
+  "runs": [
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 2,
+      "label": "O1",
+      "judge": "spec-x2b-sonnet-battleship-p12",
+      "acceptance": 0.7778,
+      "spec_pinned": 0.7778,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 3,
+      "flagged": 1,
+      "pinned_n": 7,
+      "requirements": 25,
+      "scope_additions": 5,
+      "scope_examples": [
+        "Re-roll of the player's fleet before the first shot (R-5, R-16)",
+        "One-hour idle expiry and a 1000-game cap (R-12)",
+        "Reload resume of the game id via localStorage (R-18)"
+      ],
+      "chars": 69754,
+      "spec_chars": 64675,
+      "seconds": 834.0,
+      "output_tokens": null,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 1,
+      "label": "O2",
+      "judge": "spec-x2b-sonnet-battleship-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 3,
+      "flagged": 1,
+      "pinned_n": 9,
+      "requirements": 24,
+      "scope_additions": 3,
+      "scope_examples": [
+        "GET /api/games/:id read endpoint (R-8)",
+        "One-hour idle expiry and a 1000-game cap (R-12)",
+        "Reload resume via sessionStorage (R-17)"
+      ],
+      "chars": 72517,
+      "spec_chars": 68585,
+      "seconds": 925.5,
+      "output_tokens": null,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 2,
+      "label": "O3",
+      "judge": "spec-x2b-sonnet-battleship-p12",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 3,
+      "flagged": 1,
+      "pinned_n": 8,
+      "requirements": 12,
+      "scope_additions": 2,
+      "scope_examples": [
+        "Re-roll of the player's fleet before the first shot (R-2)",
+        "60-minute idle expiry of games (R-7)"
+      ],
+      "chars": 67488,
+      "spec_chars": 62649,
+      "seconds": 1008.9,
+      "output_tokens": null,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 1,
+      "label": "O4",
+      "judge": "spec-x2b-sonnet-battleship-p12",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 8,
+      "agree_no": 1,
+      "flagged": 3,
+      "pinned_n": 8,
+      "requirements": 16,
+      "scope_additions": 1,
+      "scope_examples": [
+        "Reload resume from per-tab browser storage, with idle expiry (R-10)"
+      ],
+      "chars": 53154,
+      "spec_chars": 49303,
+      "seconds": 822.1,
+      "output_tokens": null,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 2,
+      "label": "O1",
+      "judge": "spec-x2b-sonnet-csv-report-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 5,
+      "flagged": 9,
+      "pinned_n": 10,
+      "requirements": 15,
+      "scope_additions": 1,
+      "scope_examples": [
+        "R-13: control characters in region/product names printed as \\xNN escapes"
+      ],
+      "chars": 52610,
+      "spec_chars": 48946,
+      "seconds": 914.8,
+      "output_tokens": null,
+      "decisions": {
+        "CR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 2,
+      "label": "O2",
+      "judge": "spec-x2b-sonnet-csv-report-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 4,
+      "flagged": 4,
+      "pinned_n": 10,
+      "requirements": 17,
+      "scope_additions": 1,
+      "scope_examples": [
+        "R-12: help text must state the input contract (columns, UTF-8, case-sensitivity, exit statuses)"
+      ],
+      "chars": 55655,
+      "spec_chars": 51907,
+      "seconds": 615.9,
+      "output_tokens": null,
+      "decisions": {
+        "CR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 1,
+      "label": "O3",
+      "judge": "spec-x2b-sonnet-csv-report-p12",
+      "acceptance": 0.9,
+      "spec_pinned": 0.9,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 5,
+      "flagged": 5,
+      "pinned_n": 9,
+      "requirements": 13,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 48315,
+      "spec_chars": 45026,
+      "seconds": 552.8,
+      "output_tokens": null,
+      "decisions": {
+        "CR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 1,
+      "label": "O4",
+      "judge": "spec-x2b-sonnet-csv-report-p12",
+      "acceptance": 0.9,
+      "spec_pinned": 0.9,
+      "carried": 1.0,
+      "agree_yes": 4,
+      "agree_no": 5,
+      "flagged": 7,
+      "pinned_n": 9,
+      "requirements": 14,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 57322,
+      "spec_chars": 54182,
+      "seconds": 1005.7,
+      "output_tokens": null,
+      "decisions": {
+        "CR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 1,
+      "label": "O1",
+      "judge": "spec-x2b-sonnet-seat-reservations-p12",
+      "acceptance": 0.9,
+      "spec_pinned": 0.9,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 4,
+      "flagged": 9,
+      "pinned_n": 9,
+      "requirements": 13,
+      "scope_additions": 3,
+      "scope_examples": [
+        "GET /events listing of all events (R-4)",
+        "attendee names kept off read paths and logs (R-8)",
+        "loopback-only bind with a HOST setting (R-11)"
+      ],
+      "chars": 50077,
+      "spec_chars": 45756,
+      "seconds": 638.0,
+      "output_tokens": null,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 2,
+      "label": "O2",
+      "judge": "spec-x2b-sonnet-seat-reservations-p12",
+      "acceptance": 0.9,
+      "spec_pinned": 0.9,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 4,
+      "flagged": 5,
+      "pinned_n": 9,
+      "requirements": 11,
+      "scope_additions": 1,
+      "scope_examples": [
+        "R-10 personal-data hygiene: data file mode 0600, 413 body limit, names never logged"
+      ],
+      "chars": 55792,
+      "spec_chars": 52121,
+      "seconds": 660.0,
+      "output_tokens": null,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 1,
+      "label": "O3",
+      "judge": "spec-x2b-sonnet-seat-reservations-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 4,
+      "flagged": 3,
+      "pinned_n": 10,
+      "requirements": 14,
+      "scope_additions": 2,
+      "scope_examples": [
+        "README with curl examples per endpoint (R-12)",
+        "loopback-only exposure requirement (R-14)"
+      ],
+      "chars": 54552,
+      "spec_chars": 50175,
+      "seconds": 608.8,
+      "output_tokens": null,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 2,
+      "label": "O4",
+      "judge": "spec-x2b-sonnet-seat-reservations-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 7,
+      "agree_no": 3,
+      "flagged": 3,
+      "pinned_n": 10,
+      "requirements": 12,
+      "scope_additions": 3,
+      "scope_examples": [
+        "attendee privacy with no who-reserved view (R-7)",
+        "README documenting commands and examples (R-10)",
+        "security posture: loopback default and hostile-string handling (R-12)"
+      ],
+      "chars": 53442,
+      "spec_chars": 49999,
+      "seconds": 582.0,
+      "output_tokens": null,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 1,
+      "label": "O1",
+      "judge": "spec-x2b-sonnet-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 4,
+      "flagged": 6,
+      "pinned_n": 9,
+      "requirements": 8,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 30723,
+      "spec_chars": 27491,
+      "seconds": 446.1,
+      "output_tokens": null,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 2,
+      "label": "O2",
+      "judge": "spec-x2b-sonnet-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 4,
+      "flagged": 9,
+      "pinned_n": 9,
+      "requirements": 10,
+      "scope_additions": 1,
+      "scope_examples": [
+        "X-Total-Count header on every 200 list response (R-4)"
+      ],
+      "chars": 43139,
+      "spec_chars": 39514,
+      "seconds": 508.3,
+      "output_tokens": null,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 2,
+      "label": "O3",
+      "judge": "spec-x2b-sonnet-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 4,
+      "flagged": 7,
+      "pinned_n": 9,
+      "requirements": 8,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 26302,
+      "spec_chars": 22898,
+      "seconds": 389.3,
+      "output_tokens": null,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 1,
+      "label": "O4",
+      "judge": "spec-x2b-sonnet-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 7,
+      "agree_no": 2,
+      "flagged": 6,
+      "pinned_n": 9,
+      "requirements": 9,
+      "scope_additions": 1,
+      "scope_examples": [
+        "X-Total-Count header on paged 200 responses (R-2)"
+      ],
+      "chars": 35648,
+      "spec_chars": 32446,
+      "seconds": 436.3,
+      "output_tokens": null,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    }
+  ],
+  "unverified_quotes": [],
+  "arms": {
+    "A": {
+      "n": 8,
+      "acceptance": 0.934725,
+      "spec_pinned": 0.934725,
+      "carried": 1.0,
+      "agreement": 0.589041095890411,
+      "agree_yes": 43,
+      "agree_no": 30,
+      "flagged_share": 0.6619718309859155,
+      "requirements": 12.125,
+      "scope_additions": 1.0,
+      "chars": 49183.5,
+      "seconds": 735.6125,
+      "output_tokens": 0.0
+    },
+    "B": {
+      "n": 8,
+      "acceptance": 0.959725,
+      "spec_pinned": 0.959725,
+      "carried": 1.0,
+      "agreement": 0.631578947368421,
+      "agree_yes": 48,
+      "agree_no": 28,
+      "flagged_share": 0.4383561643835616,
+      "requirements": 15.5,
+      "scope_additions": 2.0,
+      "chars": 54127.75,
+      "seconds": 632.95,
+      "output_tokens": 0.0
+    }
+  },
+  "tests": {
+    "B vs A acceptance": {
+      "diff": 0.025000000000000022,
+      "p_one_sided": 0.3400932400932401,
+      "p_paired": 0.3125
+    },
+    "B vs A spec_pinned": {
+      "diff": 0.025000000000000022,
+      "p_one_sided": 0.3400932400932401,
+      "p_paired": 0.3125
+    },
+    "B vs A carried": {
+      "diff": 0.0,
+      "p_one_sided": 1.0,
+      "p_paired": 1.0
+    }
+  },
+  "rules": {
+    "intake catalog adopted (B - A >= 0.05 on carried or spec_pinned, p < 0.05, agreement held)": false
+  }
+}

@@ -1,1 +1,2 @@
-spec duty from main ddd371ea; duty 7136 chars
+Terra X2 and X2b prompts: spec duty from main ddd371ea (its skills/ tree equals 3ae78af7). Sonnet X2b-S prompts: from e7e0bc3c.
+The spec duty is byte-identical in all of them (7,136 characters): the ShipLoop change touches intake and step-plan only.

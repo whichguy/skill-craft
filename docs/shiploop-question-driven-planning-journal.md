@@ -6,7 +6,9 @@ files. The proposal and the stage-by-stage reference are in
 [docs/shiploop-planning-pipeline-2026-10-30.md](shiploop-planning-pipeline-2026-10-30.md). Evidence lives in
 [docs/experiments/key-questions-intake-20261030/](experiments/key-questions-intake-20261030/). The illustrated pages
 are the planning map, https://claude.ai/artifact/BvpneLuojWv7Le1M7CEdnP, and the outcome summary,
-https://claude.ai/artifact/QbP7gaR9x2gW2yUKkWMW1t (E4); both are private to the owner.
+https://claude.ai/artifact/QbP7gaR9x2gW2yUKkWMW1t (E4), and the verdicts of 2026-10-31,
+https://claude.ai/artifact/S5r3siGPAJWkAEszTqDwwT (E5-E11); all are private to the owner. The verdicts and the
+improvement plan: [docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md](shiploop-question-record-verdicts-and-plan-2026-10-31.md).
 
 This work designs the owner's open TODO of 2026-10-11 ("plan → key questions → research/experiment Until Loops →
 revised plan + test spec → build → test Until Loop"), which needs the owner's go before anything is built.
@@ -213,6 +215,48 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   optional and checked only for its shape, as measured; all 32 Terra arm-B outputs pass that shape check.
 - Status: firm for Terra 6.1 (high and xhigh) in the no-tool exercise; the live A/B is its tools-on check.
 
+### E10 — 2026-10-31: the build, live: A/B on the Codex harness (Terra 6.1 high, all tools)
+
+- Question: on the owner's runner with all tools, does the changed ShipLoop (ffea2956 and e7e0bc3c) plan without the
+  proof-order send-back, keep its hidden checks, and write the intake ledger?
+- Method: `run.py --case <case> --host codex --model gpt-6.1-terra --effort high --source checkout`, hooks on, output
+  `~/e2e-runs-qr/20261031/`; arm A from a detached worktree at 3ae78af7, arm B from this checkout; ticket-assignment and
+  user-listing (the brownfield cases where Terra xhigh hit the fault on 2026-10-29), one lane per port, arms
+  interleaved, 3 runs per arm per case. Reader `docs/experiments/question-record-20261031/e2e_ab.py`
+  (`scores-e2e-ab.json`).
+- Result: arm A passed 5 of 6 (ticket-assignment A3 paused at document with 2 of 3 checks failing) and 4 of its 6
+  runs lost a stage loop to the proof-order fault (3 at implement, 1 caught by the model at test-spec). Arm B passed 6
+  of 6, no run had that send-back (exact one-sided p 0.030), and the refusal fired 3 times, each followed by an accepted
+  plan. Time: no effect claimed (user-listing B faster in every run, median 9.4 against 11.1 minutes, p 0.05;
+  ticket-assignment B slower, 13.9 against 8.1, p 0.70, its longest runs spent on other gates). Every B intake wrote the
+  ledger (11 categories, 2-6 questions). The shipped rule, replayed on arm A's 12 step plans, refuses exactly the 4 that
+  went on to the send-back and accepts the other 8.
+- Found on the way: the first build accepted the ledger and dropped it from the stored result (`_canonical_result`
+  copied neither field). I first read the stored result and blamed the model; Terra's inbox block held 11 categories and
+  3 questions. A requirement added on that wrong reading refused every synthetic intake of the hermetic suites and was
+  reverted before commit; e7e0bc3c keeps the fields. Runs B1 of each case ran builds without the fix (ledger written,
+  not stored); every B run carries the refusal.
+- Status: firm that the refusal moves the fault from a send-back to a step-plan refusal on Terra high; interim on time;
+  the ledger's downstream product effect is not measurable on these fully specified prompts.
+- Evidence: `test/shiploop_e2e/LEARNINGS.md` (the entry of this date); `~/e2e-runs-qr/20261031/`;
+  `docs/experiments/question-record-20261031/scores-e2e-ab.json`, `sg1/replay-d6-live-arm-a.jsonl`; 12 rows in
+  `test/shiploop_e2e/baselines.jsonl`.
+
+### E11 — 2026-10-31: does the catalog hurt a thorough subject's spec? (X2b-S, Sonnet 5.5 xhigh)
+
+- Question: the catalog ships for every subject; on Sonnet, X1 had it commit more guesses that conflict with the full
+  request (agreement 0.64 against 0.77). Does that reach Sonnet's spec?
+- Method: X2b's design on Sonnet (`ask sonnet`, xhigh), fed X1's own Sonnet intakes A and B (samples 1 and 2: n = 8
+  per arm), 16 spec calls (about 10 minutes each), 4 Opus judge calls, 0 unverified quotes. Rule pre-registered in the
+  evidence README before any call: a fall of more than 10 points in agreement or carried share flags the catalog as
+  subject-dependent.
+- Result: carried 1.000 in both arms (Sonnet's spec carries every decision whatever intake gives it); pinned 0.935
+  against 0.960; agreement 0.59 against 0.63; spec length 49,184 against 54,128 characters; scope additions 1.0 against
+  2.0 per run.
+- Rule: no fall; the catalog stays for every subject. On a thorough subject it changes little downstream; on Terra it
+  lifts what spec carries by 12 points (E9).
+- Status: interim (n = 8 per arm, one judge).
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -236,3 +280,4 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F15 | A numbered record quoted into spec carries no more than prose (C 0.81, A 0.79 on Terra high): F2's harm is not the format at the intake→spec hand-off | firm (no-tool exercise) | E7 |
 | F16 | The catalog ledger's gain reaches the spec: carried 0.78 → 0.90 (p 0.013), agreement unchanged | firm (no-tool exercise) | E9 |
 | F17 | Neither isolated design measures a step-plan prompt sentence on Terra: no-tool packets block (64/64), and the step case's seed carries a clean proof | firm | E8 |
+| F18 | Live on Terra high the refusal moves the proof-order fault from a send-back to one step-plan refusal (0 of 6 runs with the send-back against 4 of 6, p 0.03), with every hidden check kept; the ledger is written without a gate | firm (proof order), interim (time) | E10 |

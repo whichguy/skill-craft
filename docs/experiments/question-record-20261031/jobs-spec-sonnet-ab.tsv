@@ -1,0 +1,16 @@
+sonnet	spec/prompts/sonnet-battleship-A-s1.md	spec/sonnet/battleship-A-s1.json
+sonnet	spec/prompts/sonnet-battleship-B-s1.md	spec/sonnet/battleship-B-s1.json
+sonnet	spec/prompts/sonnet-battleship-A-s2.md	spec/sonnet/battleship-A-s2.json
+sonnet	spec/prompts/sonnet-battleship-B-s2.md	spec/sonnet/battleship-B-s2.json
+sonnet	spec/prompts/sonnet-csv-report-A-s1.md	spec/sonnet/csv-report-A-s1.json
+sonnet	spec/prompts/sonnet-csv-report-B-s1.md	spec/sonnet/csv-report-B-s1.json
+sonnet	spec/prompts/sonnet-csv-report-A-s2.md	spec/sonnet/csv-report-A-s2.json
+sonnet	spec/prompts/sonnet-csv-report-B-s2.md	spec/sonnet/csv-report-B-s2.json
+sonnet	spec/prompts/sonnet-seat-reservations-A-s1.md	spec/sonnet/seat-reservations-A-s1.json
+sonnet	spec/prompts/sonnet-seat-reservations-B-s1.md	spec/sonnet/seat-reservations-B-s1.json
+sonnet	spec/prompts/sonnet-seat-reservations-A-s2.md	spec/sonnet/seat-reservations-A-s2.json
+sonnet	spec/prompts/sonnet-seat-reservations-B-s2.md	spec/sonnet/seat-reservations-B-s2.json
+sonnet	spec/prompts/sonnet-user-listing-A-s1.md	spec/sonnet/user-listing-A-s1.json
+sonnet	spec/prompts/sonnet-user-listing-B-s1.md	spec/sonnet/user-listing-B-s1.json
+sonnet	spec/prompts/sonnet-user-listing-A-s2.md	spec/sonnet/user-listing-A-s2.json
+sonnet	spec/prompts/sonnet-user-listing-B-s2.md	spec/sonnet/user-listing-B-s2.json

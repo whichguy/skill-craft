@@ -92,6 +92,15 @@ Rule: the intake catalog is adopted (D2 reversed for this subject) only if B→s
 `carried` or on `spec_pinned` with exact one-sided permutation p < 0.05, and B's agreement is no more than 2 points
 below A's. Otherwise the intake gain does not reach the spec and the catalog is not adopted.
 
+## X2b-S (Sonnet), added 2026-10-31 after the Terra verdict and before any X2b-S call
+
+The intake catalog ships for every subject, and on Sonnet X1 it committed more guesses that conflict with the full
+request (agreement 0.64 against 0.77). Does that reach Sonnet's spec? X2b's design on Claude Sonnet 5.5 (`ask sonnet`,
+xhigh), fed X1's own Sonnet intakes A and B (samples 1 and 2 only: n = 8 per arm); judged by Opus as X2b.
+
+Rule: a fall of more than 10 points in B→spec's agreement or carried share against A→spec's flags the catalog as
+subject-dependent for the owner; otherwise the catalog stays for every subject.
+
 ## X4 (step-plan): does a Proof-input question cut proof-order faults?
 
 Isolated replay with a script grader, no judge. Packets are step-plan packets archived by saved runs (the DeepSeek
@@ -124,7 +133,9 @@ Every subject call parsed; every judge call returned JSON; 0 judge quotes were m
 | X1-T, Terra xhigh (control, added after X1-T) | A, B, C (16) | recall 0.513 / 0.981 / 0.681; agreement 0.74 / 0.69 / 0.69 | the same (`scores-intake-terra-xhigh.json`) |
 | X2, Terra high | A, D, C (16) | acceptance 0.635 / 0.687 / 0.650; carried 0.789 / 0.808 / 0.807; agreement 0.65 / 0.65 / 0.62 | phase 1 not adopted; duty line not adopted (D +5, paired p 0.008, below the 10-point bar); prose does not carry 0.95 (`scores-spec-terra.json`) |
 | X2b, Terra high | A, B (16) | carried 0.776 / 0.897 (+0.120, p 0.013, paired 0.001); pinned 0.650 / 0.717; agreement 0.65 / 0.65 | intake catalog adopted (`scores-spec-x2b-terra.json`) |
+| X2b-S, Sonnet 5.5 xhigh (generality check, added after the Terra verdict) | A, B (8) | carried 1.000 / 1.000; pinned 0.935 / 0.960; agreement 0.59 / 0.63 | no fall of 10 points: the catalog stays for every subject (`scores-spec-x2b-sonnet.json`) |
 | X4, Terra high | A, Q | v1 no-tool packets: 64 of 64 `blocked` (`x4/terra-v1-blocked/`, `scores-x4-terra-v1-blocked.json`); v2 without the harness lines (`x4/terra-v2-blocked/`, one call): still blocked (packets do not quote the knowledge files); step slices on the Codex harness (`x4/score_slices.py`, `scores-x4-slices.json`): 1 of 1 clean in each arm, both copying the case's seeded proof | closed: no isolated design measures it; D6 is the fix |
+| Live A/B, Codex harness, Terra high, all tools | A (3ae78af7), B (the change), 6 runs each | B: 6/6 pass, 0 runs with a proof-order send-back (A: 5/6 pass, 4 of 6), p 0.030; the refusal fired 3 times; every B intake wrote the ledger | the build holds live (`scores-e2e-ab.json`, `e2e_ab.py`; test/shiploop_e2e/LEARNINGS.md) |
 | SG1 | — | `sg1/`: proposal corpus 2 flags (1 true, 1 a contract breach); held-out 8 flags in 5 plans; 9 of 12 implement send-backs are proof-order; the shipped rule refuses 9 of 182 plans (7 before that send-back, 1 the breach, 1 with no implement after) | the post-hoc refinement is rejected (misses `bf-codex-r1-ticket-escalation`); D6 built with the original rules plus an earlier-step exemption |
 
 Reproduce: `python3 jobs_intake.py`, then `QR_WORK=<scratch> python3 run.py jobs-intake.tsv`; `python3 judge_intake.py

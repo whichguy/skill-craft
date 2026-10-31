@@ -5097,3 +5097,78 @@ All 390 Claude payload files match; its extra nine .in_use lease files explain i
 whole-folder digest. Codex and Grok raw package digests match; other plugin versions stayed
 unchanged. A first Grok refresh using its source URL refused; the existing registry name
 `whichguy` then succeeded. Preserve those raw command results.
+
+## Proof-order refusal and intake key questions: live A/B on the Codex harness, Terra 6.1 high, all tools (2026-10-31) — status: firm that the refusal moves the proof-order fault from a send-back to a step-plan refusal on Terra high (0 of 6 runs with that send-back against 4 of 6, p 0.03); interim on time (no effect claimed)
+
+**Question.** ffea2956 and e7e0bc3c add a step-plan refusal for a Proof that needs an unwritten test or a later step's
+file (SDLC gates D6) and a key-question ledger at intake (X1-T, X2b; journal
+docs/shiploop-question-driven-planning-journal.md E5-E10). On the owner's runner with all tools, does a run plan without
+the proof-order send-back, keep its hidden checks, and write the ledger?
+
+**Setup.**
+- `run.py --case <case> --host codex --model gpt-6.1-terra --effort high --source checkout --timeout 7200`, hooks on,
+  output `~/e2e-runs-qr/20261031/<arm>-<case>-s<n>` (SHIPLOOP_E2E_RUNS_ROOT=~/e2e-runs-qr, a root of its own).
+- Arm A: ShipLoop at main 3ae78af7, run with that commit's own run.py from a detached worktree
+  (`.claude/worktrees/qr-baseline-0b24d3`). Arm B: this checkout. B1 of user-listing was built from ffea2956 (ledger
+  written, not stored), B1 of ticket-assignment while a later-reverted requirement was in the tree (same), every later
+  B run from e7e0bc3c's tree. Every B run carries the refusal.
+- Cases: ticket-assignment (node-tickets, port 4180) and user-listing (node-base, port 3000), the brownfield cases where
+  Terra xhigh hit the fault on 2026-10-29. One lane per port, arms interleaved: A1 A2 (baseline first), then B1 B2 A3
+  B3.
+- Reader: `docs/experiments/question-record-20261031/e2e_ab.py` (`scores-e2e-ab.json`): result.json `pass`, timeline
+  minutes, every send-back to step-plan with its stage and whether its summary names this fault, the step-plan
+  refusals in RUN/trace.jsonl, and the ledger as stored and as submitted (RUN/inbox).
+
+**Result.**
+
+| Case | Run | Hidden checks | Minutes | Send-backs to step-plan | Proof-order refusals at step-plan | Intake ledger written (categories/questions) |
+|---|---|---|---|---|---|---|
+| ticket-assignment | A1 | 3/3 pass | 8.1 | none | 0 | — |
+| ticket-assignment | A2 | 3/3 pass | 19.2 | implement: a Proof with unescaped shell quotes | 0 | — |
+| ticket-assignment | A3 | **1/3: paused at document** | 7.0 | implement: proof-order (`test/assignment.test.js`) | 0 | — |
+| ticket-assignment | B1 | 3/3 pass | 13.9 | none | 0 | 11/6 (not stored: pre-fix build) |
+| ticket-assignment | B2 | 3/3 pass | 11.7 | none | 1 | 11/3 |
+| ticket-assignment | B3 | 3/3 pass | 15.4 | test-spec: one focused ID for three criteria | 0 | 11/2 |
+| user-listing | A1 | pass | 11.8 | implement: proof-order (`test/user-listing.test.js`) | 0 | — |
+| user-listing | A2 | pass | 10.0 | implement: proof-order (`test/server-listing.test.js`) | 0 | — |
+| user-listing | A3 | pass | 11.1 | test-spec: proof-order (`test/listing.test.js`) | 0 | — |
+| user-listing | B1 | pass | 9.4 | none | 1 | 11/3 (not stored: pre-fix build) |
+| user-listing | B2 | pass | 9.5 | none | 0 | 11/3 |
+| user-listing | B3 | pass | 8.1 | none | 1 | 11/2 |
+
+- Arm A: 5 of 6 pass; 4 of 6 runs lost a stage loop to the proof-order fault (3 at implement, 1 caught by the model
+  at test-spec); 5 send-backs in all. A3 paused at document ("stopped on a persistence defect outside the recorded
+  work-item paths") with 2 of 3 hidden checks failing.
+- Arm B: 6 of 6 pass; no run had a proof-order send-back; the refusal fired 3 times (B1 and B3 of user-listing, B2 of
+  ticket-assignment) and each time the next step plan was accepted; 1 send-back in all (B3 ticket-assignment, at
+  test-spec: a focused command listing one ID for three criteria).
+- Fewer runs with a proof-order send-back in B: exact one-sided permutation p = 0.030 (6 against 6).
+- Minutes: user-listing B is faster in every run (median 9.4 against 11.1; p = 0.05 with 3 a side, not below the
+  0.05 bar); ticket-assignment B is slower (median 13.9 against 8.1; p 0.70), its longest runs spent on other gates (B1
+  three template refusals at step-plan, B3 the test-spec send-back). No time effect is claimed.
+- Every B intake wrote the ledger (11 categories and 2 to 6 questions); the runs built from e7e0bc3c's tree stored it.
+
+**Reading.**
+- The refusal does what the replay predicted on Terra high: the plans that would have been sent back after an implement
+  (or test-spec) loop are refused at step-plan, Terra revises the Proof once, and the run continues. The fault rate
+  itself is unchanged (4 of 6 against 3 of 6 plans that needed the refusal); what changes is where it is caught.
+- The ledger is written live without a gate, as in the exercise. These cases' prompts are fully specified, so its
+  downstream effect on the product is not measurable here (both arms pass their hidden checks).
+
+**Found on the way (fixed in e7e0bc3c).** The first build accepted the ledger and dropped it from the stored result
+(`_canonical_result` copied neither field). I first read the stored result and concluded Terra had not written it;
+`RUN/inbox/<intake action>.md` held 11 categories and 3 questions. A requirement added on that wrong reading refused
+every synthetic intake the hermetic suites complete through the CLI and was reverted before commit.
+
+**Out-of-sample check of the rule.** The shipped `proof_order_refusal` replayed on all twelve step plans of arm A's six
+runs (`sg1/replay_d6.py`, `sg1/replay-d6-live-arm-a.jsonl`): it refuses exactly the four that went on to a proof-order
+send-back (three at implement, one caught by the model at test-spec) and accepts the other eight, among them the
+ticket-assignment plan whose send-back was a Proof with unescaped shell quotes (a SyntaxError before any assertion), a
+class no gate reads.
+
+**Not measured.** One subject and effort; two cases; the intake ledger's downstream effect on these fully specified
+prompts (the hidden checks pass in both arms); DeepSeek flash (at its Ollama monthly limit all day).
+
+**Evidence.** `~/e2e-runs-qr/20261031/`; `docs/experiments/question-record-20261031/scores-e2e-ab.json` and
+`e2e_ab.py`; baseline rows appended to test/shiploop_e2e/baselines.jsonl; journal E10; plan
+docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md §3.

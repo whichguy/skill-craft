@@ -83,7 +83,10 @@ def main() -> None:
     mapping, jobs = {}, []
     for case in CASES:
         for pair, samples in PAIRS.items():
-            runs = [(arm, s) for arm in arms for s in samples]
+            runs = [(arm, s) for arm in arms for s in samples
+                    if (HERE / "spec" / slug / f"{case['id']}-{arm}-s{s}.json").is_file()]
+            if not runs:
+                continue
             random.Random(f"{seed}-{slug}-{case['id']}-{pair}").shuffle(runs)
             labels, blocks = {}, []
             for index, (arm, s) in enumerate(runs, 1):

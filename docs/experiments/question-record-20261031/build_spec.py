@@ -153,6 +153,8 @@ def main() -> None:
         for sample in SAMPLES:
             for arm in ARMS:
                 source = intake_out(slug, case["id"], {"C": "C", "B": "B"}.get(arm, "A"), sample)
+                if not source.is_file():
+                    continue   # X2b-S: Sonnet's X1 intakes are samples 1 and 2 only
                 duty = DUTY + ("\n" + ITEM13[arm] if ITEM13[arm] else "")
                 text = FRAME.format(context=case["context"], duty=duty, intake=intake_result(source),
                                     discovery=json.dumps(discovery, indent=2), research=json.dumps(research, indent=2),

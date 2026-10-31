@@ -41,9 +41,32 @@ def read(out: Path) -> dict:
     row["status"] = state.get("status")
     row["implement_send_backs"] = [str((accepted.get(h["action"]) or {}).get("summary") or "")[:200]
                                    for h in history if h.get("stage") == "implement" and h.get("outcome") == "send-back"]
+    # Every send-back to step-plan, from any inner stage, with whether its summary names this fault (a Proof that needs
+    # a test the test stage writes later): a model may catch it at test-spec instead of implement.
+    row["send_backs"] = []
+    for h in history:
+        if h.get("outcome") == "send-back":
+            text = str((accepted.get(h["action"]) or {}).get("summary") or "")
+            low = text.lower()
+            proof_order = "proof" in low and ("test stage" in low or "absent" in low or "forbids" in low
+                                              or "writes no test" in low or "does not exist" in low)
+            row["send_backs"].append({"stage": h.get("stage"), "proof_order": proof_order, "summary": text[:200]})
     row["step_plans"] = sum(1 for h in history if h.get("stage") == "step-plan" and h.get("outcome") == "done")
-    intake = next((accepted.get(h["action"]) for h in history if h.get("stage") == "intake"), None) or {}
-    row["intake_questions"] = len(intake.get("questions") or [])
+    intake_row = next((h for h in history if h.get("stage") == "intake"), None)
+    intake = (accepted.get(intake_row["action"]) if intake_row else None) or {}
+    row["intake_questions"] = len(intake.get("questions") or [])          # as stored
+    row["intake_categories"] = len(intake.get("question_categories") or [])
+    submitted = {}
+    inbox = run / "inbox" / f"{intake_row['action']}.md" if intake_row else None
+    if inbox is not None and inbox.is_file():
+        import re
+        found = re.search(r"```shiploop-state\s*(\{.*\})\s*```", inbox.read_text(), re.S)
+        try:
+            submitted = json.loads(found.group(1)) if found else {}
+        except ValueError:
+            submitted = {}
+    row["intake_questions_submitted"] = len(submitted.get("questions") or [])   # as the model wrote it
+    row["intake_categories_submitted"] = len(submitted.get("question_categories") or [])
     trace = [json.loads(line) for line in (run / "trace.jsonl").read_text().splitlines() if line.strip()] \
         if (run / "trace.jsonl").is_file() else []
     refusals = [t for t in trace if t.get("kind") == "command" and t.get("verb") in ("check", "complete")
@@ -61,11 +84,14 @@ def main() -> None:
     (HERE / "scores-e2e-ab.json").write_text(json.dumps({"rows": rows}, indent=2) + "\n")
     for r in rows:
         print(f"{r['run']:28} pass={r.get('pass')} min={r.get('minutes')} status={r.get('status')} "
-              f"implement_send_backs={len(r.get('implement_send_backs') or [])} step_plans={r.get('step_plans')} "
+              f"implement_send_backs={len(r.get('implement_send_backs') or [])} "
+              f"send_backs={len(r.get('send_backs') or [])} (proof-order {sum(s['proof_order'] for s in r.get('send_backs') or [])}) "
+              f"step_plans={r.get('step_plans')} "
               f"step_plan_refusals={r.get('step_plan_refusals')} proof_order={r.get('proof_order_refusals')} "
-              f"intake_q={r.get('intake_questions')}")
-        for text in r.get("implement_send_backs") or []:
-            print("    send-back:", text[:160])
+              f"intake_q={r.get('intake_questions')}/{r.get('intake_questions_submitted')} "
+              f"cats={r.get('intake_categories')}/{r.get('intake_categories_submitted')}")
+        for row in r.get("send_backs") or []:
+            print(f"    send-back at {row['stage']} ({'proof-order' if row['proof_order'] else 'other'}): {row['summary'][:140]}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,314 @@
+{
+  "rows": [
+    {
+      "run": "A-ticket-assignment-s1",
+      "arm": "A",
+      "case": "ticket-assignment",
+      "sample": 1,
+      "pass": true,
+      "minutes": 8.1,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [],
+      "step_plans": 1,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 0,
+      "intake_categories_submitted": 0,
+      "step_plan_refusals": 0,
+      "proof_order_refusals": 0,
+      "refusal_heads": [],
+      "packets": 34
+    },
+    {
+      "run": "A-ticket-assignment-s2",
+      "arm": "A",
+      "case": "ticket-assignment",
+      "sample": 2,
+      "pass": true,
+      "minutes": 19.2,
+      "status": "done",
+      "implement_send_backs": [
+        "The S1 proof contains unescaped shell quotes around the added worker snippet and fails with SyntaxError before running assertions. Correct the step plan command; S1 changes remain in the worktree and "
+      ],
+      "send_backs": [
+        {
+          "stage": "implement",
+          "proof_order": false,
+          "summary": "The S1 proof contains unescaped shell quotes around the added worker snippet and fails with SyntaxError before running assertions. Correct the step plan command; S1 changes remain in the worktree and "
+        }
+      ],
+      "step_plans": 2,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 0,
+      "intake_categories_submitted": 0,
+      "step_plan_refusals": 1,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "a test command's criteria must be a nonempty list of distinct criterion IDs"
+      ],
+      "packets": 51
+    },
+    {
+      "run": "A-ticket-assignment-s3",
+      "arm": "A",
+      "case": "ticket-assignment",
+      "sample": 3,
+      "pass": false,
+      "minutes": 7.0,
+      "status": "paused",
+      "implement_send_backs": [
+        "S1 proof refers to test/assignment.test.js, which does not exist and whose creation is reserved for the later test stage; implement explicitly forbids writing tests. Proof failed as recorded in run/no"
+      ],
+      "send_backs": [
+        {
+          "stage": "implement",
+          "proof_order": true,
+          "summary": "S1 proof refers to test/assignment.test.js, which does not exist and whose creation is reserved for the later test stage; implement explicitly forbids writing tests. Proof failed as recorded in run/no"
+        }
+      ],
+      "step_plans": 2,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 0,
+      "intake_categories_submitted": 0,
+      "step_plan_refusals": 0,
+      "proof_order_refusals": 0,
+      "refusal_heads": [],
+      "packets": 22
+    },
+    {
+      "run": "A-user-listing-s1",
+      "arm": "A",
+      "case": "user-listing",
+      "sample": 1,
+      "pass": true,
+      "minutes": 11.8,
+      "status": "done",
+      "implement_send_backs": [
+        "S1 proof invokes test/user-listing.test.js before the test stage creates it; implement forbids writing tests. Return to step-plan to choose a proof available at implement time. Filtering edit remains "
+      ],
+      "send_backs": [
+        {
+          "stage": "implement",
+          "proof_order": true,
+          "summary": "S1 proof invokes test/user-listing.test.js before the test stage creates it; implement forbids writing tests. Return to step-plan to choose a proof available at implement time. Filtering edit remains "
+        }
+      ],
+      "step_plans": 3,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 0,
+      "intake_categories_submitted": 0,
+      "step_plan_refusals": 2,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "expectations cite from baseline, which is not an open plan assumption whose due_item is W1",
+        "a test command's criteria must be a nonempty list of distinct criterion IDs"
+      ],
+      "packets": 48
+    },
+    {
+      "run": "A-user-listing-s2",
+      "arm": "A",
+      "case": "user-listing",
+      "sample": 2,
+      "pass": true,
+      "minutes": 10.0,
+      "status": "done",
+      "implement_send_backs": [
+        "S1 requires node --test test/server-listing.test.js to pass in implement, but that file is absent and implement explicitly forbids writing tests; the proof exits 1. Step plan must provide a proof avai"
+      ],
+      "send_backs": [
+        {
+          "stage": "implement",
+          "proof_order": true,
+          "summary": "S1 requires node --test test/server-listing.test.js to pass in implement, but that file is absent and implement explicitly forbids writing tests; the proof exits 1. Step plan must provide a proof avai"
+        }
+      ],
+      "step_plans": 2,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 0,
+      "intake_categories_submitted": 0,
+      "step_plan_refusals": 1,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "no result file at /Users/dadleet/e2e-runs-qr/20261031/A-user-listing-s2/.shiploop-runs/work-20261031-152134-3d9827/run/i"
+      ],
+      "packets": 37
+    },
+    {
+      "run": "A-user-listing-s3",
+      "arm": "A",
+      "case": "user-listing",
+      "sample": 3,
+      "pass": true,
+      "minutes": 11.1,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [
+        {
+          "stage": "test-spec",
+          "proof_order": true,
+          "summary": "The step proofs require test/listing.test.js at implement, but test-spec writes no test code and the test stage follows implementation. Supply proofs available by each implement stage without weakenin"
+        }
+      ],
+      "step_plans": 2,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 0,
+      "intake_categories_submitted": 0,
+      "step_plan_refusals": 2,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "expectations cite from A1, which is not an open plan assumption whose due_item is W1 (those are A3)",
+        "a test command's criteria must be a nonempty list of distinct criterion IDs"
+      ],
+      "packets": 39
+    },
+    {
+      "run": "B-ticket-assignment-s1",
+      "arm": "B",
+      "case": "ticket-assignment",
+      "sample": 1,
+      "pass": true,
+      "minutes": 13.9,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [],
+      "step_plans": 1,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 6,
+      "intake_categories_submitted": 11,
+      "step_plan_refusals": 3,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "expectations cite from baseline, which is not an open plan assumption whose due_item is W1",
+        "a test command's ids must be a nonempty list of test IDs without spaces",
+        "a test command's criteria must be a nonempty list of distinct criterion IDs"
+      ],
+      "packets": 44
+    },
+    {
+      "run": "B-ticket-assignment-s2",
+      "arm": "B",
+      "case": "ticket-assignment",
+      "sample": 2,
+      "pass": true,
+      "minutes": 11.7,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [],
+      "step_plans": 1,
+      "intake_questions": 3,
+      "intake_categories": 11,
+      "intake_questions_submitted": 3,
+      "intake_categories_submitted": 11,
+      "step_plan_refusals": 1,
+      "proof_order_refusals": 1,
+      "refusal_heads": [
+        "step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement "
+      ],
+      "packets": 33
+    },
+    {
+      "run": "B-ticket-assignment-s3",
+      "arm": "B",
+      "case": "ticket-assignment",
+      "sample": 3,
+      "pass": true,
+      "minutes": 15.4,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [
+        {
+          "stage": "test-spec",
+          "proof_order": false,
+          "summary": "The focused command lists only one ID, assignment, but test-spec requires exactly one criterion per case and every criterion needs a case. C1, C2 and C3 require three distinct focused IDs; revise the "
+        }
+      ],
+      "step_plans": 2,
+      "intake_questions": 2,
+      "intake_categories": 11,
+      "intake_questions_submitted": 2,
+      "intake_categories_submitted": 11,
+      "step_plan_refusals": 1,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "no result file at /Users/dadleet/e2e-runs-qr/20261031/B-ticket-assignment-s3/.shiploop-runs/work-20261031-161112-575e35/"
+      ],
+      "packets": 43
+    },
+    {
+      "run": "B-user-listing-s1",
+      "arm": "B",
+      "case": "user-listing",
+      "sample": 1,
+      "pass": true,
+      "minutes": 9.4,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [],
+      "step_plans": 1,
+      "intake_questions": 0,
+      "intake_categories": 0,
+      "intake_questions_submitted": 3,
+      "intake_categories_submitted": 11,
+      "step_plan_refusals": 3,
+      "proof_order_refusals": 1,
+      "refusal_heads": [
+        "step S1's Proof runs test/user-listing.test.js, which the item base does not have and no earlier step declares: implemen",
+        "expectations cite from baseline, plan, which is not an open plan assumption whose due_item is W1 (those are A2)",
+        "open plan assumptions A2 name W1 as due_item; add an expectation for each with \"from\": \"<assumption id>\" and a check tha"
+      ],
+      "packets": 36
+    },
+    {
+      "run": "B-user-listing-s2",
+      "arm": "B",
+      "case": "user-listing",
+      "sample": 2,
+      "pass": true,
+      "minutes": 9.5,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [],
+      "step_plans": 1,
+      "intake_questions": 3,
+      "intake_categories": 11,
+      "intake_questions_submitted": 3,
+      "intake_categories_submitted": 11,
+      "step_plan_refusals": 1,
+      "proof_order_refusals": 0,
+      "refusal_heads": [
+        "open plan assumptions A3 name W1 as due_item; add an expectation for each with \"from\": \"<assumption id>\" and a check tha"
+      ],
+      "packets": 33
+    },
+    {
+      "run": "B-user-listing-s3",
+      "arm": "B",
+      "case": "user-listing",
+      "sample": 3,
+      "pass": true,
+      "minutes": 8.1,
+      "status": "done",
+      "implement_send_backs": [],
+      "send_backs": [],
+      "step_plans": 1,
+      "intake_questions": 2,
+      "intake_categories": 11,
+      "intake_questions_submitted": 2,
+      "intake_categories_submitted": 11,
+      "step_plan_refusals": 1,
+      "proof_order_refusals": 1,
+      "refusal_heads": [
+        "step S1's Proof runs test/user-listing.test.js, which the item base does not have and no earlier step declares: implemen"
+      ],
+      "packets": 32
+    }
+  ]
+}
