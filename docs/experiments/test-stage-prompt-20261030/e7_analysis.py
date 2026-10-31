@@ -11,7 +11,9 @@ implement wrote (`implement_sites`, §7c).
 
 E7-F (§7c, the implementation held fixed) is read by the rule fixed before its runs: an arm is adopted only if it beats A
 at a one-sided exact permutation p < 0.05 over all samples and its gain exceeds A's split-half gap (samples 1-4 against
-5-8). It also prints how many samples left the recorded implementation as it was (`product_as_recorded`).
+5-8). It also prints how many samples left the recorded implementation as it was (`product_as_recorded`), and the
+stage's own mutation feedback per arm (`stage_mutation`): arm T (§7e, D6) samples the guard's six sites, and each site's
+end state in T's last check (killed, or the disposition the test result gave it).
 """
 import itertools
 import json
@@ -71,11 +73,35 @@ def fixed(arms: dict[str, list[dict]]) -> None:
     print(f"  A split-half gap (samples 1-4 vs 5-8): {gap if gap is None else round(gap, 3)}")
     print("  product as recorded: " + ", ".join(
         f"{arm} {sum(bool(s.get('product_as_recorded')) for s in got)}/{len(got)}" for arm, got in arms.items()))
-    for x, y in (("A", "D"), ("A", "C"), ("D", "C")):
+    for x, y in (("A", "D"), ("A", "C"), ("D", "C"), ("A", "T")):
         if x in arms and y in arms:
             gain, p = perm([s["value"] for s in arms[x]], [s["value"] for s in arms[y]])
             adopted = p < 0.05 and gap is not None and gain > gap
             print(f"  {x} vs {y}: gain {gain}, p {p}" + (" -> meets the rule" if adopted and x == "A" else ""))
+
+
+def feedback(arms: dict[str, list[dict]]) -> None:
+    """E7-F's stage mutation checks as the gate ran them (`stage_mutation`): the refusals the test stage was told (`told`,
+    from RUN/trace.jsonl: the uncounted `check` overwrites its record, so the counted records only show the final pass),
+    dispositions and test-stage seconds per arm, and for arm T (§7e) each of the guard's six sites in the last counted
+    check of every run."""
+    print("== E7-F stage mutation feedback (refusals the stage was told, from the run trace)")
+    for arm, got in arms.items():
+        rows = [s["stage_mutation"] for s in got if s.get("stage_mutation")]
+        if rows:
+            print(f"  {arm}: refusals told/run={st.mean(len(r['told']) for r in rows):.2f} "
+                  f"dispositions={sum(len(r['dispositions']) for r in rows)} "
+                  f"test stage s={st.mean(s['test_seconds'] for s in got):.0f}")
+    sites: dict[str, dict[str, int]] = {}
+    for s in arms.get("T", []):
+        given = {d["mutant"]: d["disposition"] for d in s["stage_mutation"]["dispositions"]}
+        for site in s["stage_mutation"]["last_sites"]:
+            if site["operator"] in ("rel-bound", "logic-flip"):
+                status = site["status"] if site["status"] != "survived" else given.get(site["mutant"], "undisposed")
+                sites.setdefault(site["mutant"], {}).setdefault(status, 0)
+                sites[site["mutant"]][status] += 1
+    for mutant, counts in sorted(sites.items()):
+        print(f"  T {mutant}: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())))
 
 
 def main() -> None:
@@ -95,6 +121,7 @@ def main() -> None:
     if arms := by_arm(data, "E7-F"):
         describe("E7-F (implementation fixed: E7-K2 A/6)", arms)
         fixed(arms)
+        feedback(arms)
 
 
 if __name__ == "__main__":

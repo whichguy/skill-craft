@@ -2,8 +2,10 @@
 Execute: ask
 Status: E7 decided 2026-10-30 (owner: "Yes, build E7", D1): no arm adopted, nothing in ShipLoop changed (§7b).
   E7-F, the rerun with the implementation held fixed (owner: "Yes, build it", D4), decided the same day: no arm
-  adopted; implement was most of E7's noise (§7c, §7d). D6 is running as arm T of E7-F (owner: "Yes, run the D6
-  arm"; §7e). D5 awaits the owner (§9).
+  adopted; implement was most of E7's noise (§7c, §7d). D6 (owner: "Yes, run the D6 arm") ran as arm T of E7-F
+  (§7e) and met its mutant-score rule, 1.00 against A's 0.60 (§7f). By the request every arm scores 1.00, so the gain is
+  on load-time validation the request never states. D6 is not adopted (the owner's "Yes, skip D6", relayed in §9).
+  D5 awaits the owner.
 Opened: 2026-10-30
 Consumer: the owner, who decides §9; then whoever builds experiment E7 (§7) and, on its verdict, the test-stage
   prompt change. Later: anyone who proposes more test-stage prose and needs the bar it must clear.
@@ -570,11 +572,15 @@ journal lines in docs/shiploop-template-experiments-journal.md.
 ### 7e. E7-F arm T: the stage's own mutation check feeds back the guard's sites (D6), as built
 
 **What the stage check drew in A's runs.** In all 8 A runs it sampled the same 8 mutants of the recorded implementation
-(RUN/tests/*-mutation1.md), none of them limit or guard mutants:
-- `!==`/`===` swaps and `64 → 65` on the guard's two lines, the other files' integers and comparisons;
-- it killed all 8 in 7 runs. In A/7 one survived, `64 → 65` on the existing requester limit (validate.js:12), and the
-  test stage recorded it `out-of-scope` with evidence. In none of the 8 runs did a refusal name one of the 6 sites the
-  evaluator scores.
+(RUN/tests/*-mutation1.md), none of them limit or guard mutants: `!==`/`===` swaps and `64 → 65` on the guard's two
+lines, and the other files' integers and comparisons.
+- The counted record (`mutation1.md`) is the final pass. It shows all 8 killed in 7 runs; in A/7 one survived, `64 → 65`
+  on the existing requester limit (validate.js:12), and the test stage recorded it `out-of-scope` with evidence.
+- The refusals the stage was told are in RUN/trace.jsonl, because the uncounted `check` overwrites its record. In all
+  24 A, D and C runs the first `check` was refused once (D/8 twice), naming the same three survivors: persistence.js
+  144:23 (`!==`), 145:52 (`64 → 65`) and validate.js:12:55 (`64 → 65`). The stage then killed them.
+- So the loop fired in every run. It was aimed at three mutants the first draft nearly caught, and never named one of
+  the 6 sites the evaluator scores.
 
 **Why arm M could not change that (§7b item 5).** A dry run of the check's own `candidates` and `sample` on A/1's
 worktree (lines changed against the seed commit) shows:
@@ -613,6 +619,62 @@ samples in §7d:
   gate's cost and is the owner's call. If T does not, the per-run rows say why: survivors disposed instead of killed,
   or tests that kill only at a cost.
 
+### 7f. E7-F arm T results, 2026-10-30: the mutant rule is met, and the request measure does not move
+
+| Arm | n | Mutant score | sd | Refusals told per run | Dispositions | Tests per case ID | Test stage s | Permutation vs A | Request score |
+|---|---:|---:|---:|---:|---:|---:|---:|---|---:|
+| A | 8 | 0.604 | 0.086 | 1.00 (none named a scored site) | 1 | 1.04 | 91 | | 1.000 |
+| T | 8 | 1.000 | 0.000 | 1.00 (4 or 5 scored sites each) | 0 | 1.25 | 82 | +0.396, p 0.0001 | 1.000 |
+
+1. **The rule fixed in §7e is met.** All 8 T runs scored 1.0 and A's best was 0.667, so only 1 of the 12,870 splits is as
+   extreme (one-sided exact p 0.0001). The gain 0.396 is far over A's split-half gap of 0.042. All 8 T runs killed all
+   six scored sites and every other js-1 mutant on the changed lines (all-class ratio 1.00 against A's 0.83).
+   `decide` says "supports" as well, on a spread of 0.00, so it is the permutation test that carries this.
+2. **The test stage acted on the feedback.** In every T run the first `check` was refused once, naming 4 of the 6 sites
+   (5 in T/3, T/4 and T/7, which also had `>`→`>=` at 145:50). The other one or two were already killed by the first
+   draft. One round closed them all: no run needed a second refusal, and none used a disposition.
+3. **No cost showed up here.** A and T were each told one refusal per run. The test stage took 82 s against A's 91 s,
+   and the check itself runs a mutant in about 0.2 s. T did not touch the implementation (`product_as_recorded` 8 of 8).
+4. **What the closing tests look like.** In T/2, one test loops invalid saved assignees through a data-file load and
+   expects the guard's error:
+   - the values are `3`, `' Alice '`, `''`, `'x'.repeat(65)` and `'Alice\nBob'`;
+   - that pins every clause of the guard, including the trimmed-name rule the code introduced, which the request does not
+     state and HTTP cannot reach (§7d item 3).
+5. **By the request, T is no better than A.** A second evaluator (a fork of this session, branch
+   `exp/e7-request-9115f2`, commit 6963eeea, `docs/experiments/test-stage-prompt-20261030/e7-request.md`, not on main
+   when this was written) runs each sample's suite over ten one-line variants of the recorded implementation, each
+   breaking a sentence of the request and each shown by an HTTP witness to differ from it:
+   - A, D and C: all 24 runs kill all ten variants, as does T (8 of 8: request score 1.000, `request-score.json` in each
+     T sample). The tests that existed before the test stage kill none of the ten.
+   - So the request measure is saturated and cannot rank any arm.
+   - All 57 target survivors of the A, D and C runs sit on persistence.js:144 and 145, the load-time validation of a
+     hand-edited data file. The request never mentions it; implement added it by following the file's pattern.
+   - The case's own hidden check catches only 3 of the ten variants.
+   T's mutant gain is therefore the closing of exactly those code-introduced checks, and the extra tests freeze rules
+   nobody asked for. The variants were written after reading the implementation, and subtler breaks are not in the set
+   (the fork's write-up lists them).
+
+What this settles, and what it does not:
+- **Settled for this case and model:** when the stage's own check samples the limit and guard mutants and its refusal
+  names the survivors, the test stage closes them in one round at no measured extra refusals or seconds. D6 is the one
+  lever so far that moved the mutant score (the packet changes D and C, in §7d, did not).
+- **Settled by the request measure (item 5):** that gain is not coverage of anything the request says. Every arm already
+  tests all of it, and the survivors D6 feeds back are the load-time checks the code added. So the 0.60 to 1.00 is a
+  measure of the mutant score's own target, not of better tests.
+- **Not settled:** whether targeted sampling picks the right sites on other code. T's sample and the mutant score read
+  the same six sites. On A/1 and A/2's worktrees the pool held exactly 6 limit and guard candidates, under the cap of 8;
+  code with more sites would have some dropped.
+- **Not settled either:** other cases, models and hosts (one implementation of one step on Codex Terra), and whether a
+  request measure built to separate arms, with subtler variants, would find a difference.
+- **Decision:** the owner skipped D6 (relayed in §9), so no second implementation was run and nothing changes in the stage
+  mutation check. Had D6 been adopted it would have changed a gate's cost and what a stage mutation record's counts mean
+  (§6d).
+
+Evidence: e7-results.json (E7-F rows gain `stage_mutation`: the refusals told, from RUN/trace.jsonl, the last counted
+check's sites, and the dispositions); e7_analysis.py prints this table's p values and the per-site end state;
+~/e2e-runs/e7-20261030/E7-F/T/ (score.json, request-score.json) and decision-A-T.json; the request evaluator and
+its write-up on branch exp/e7-request-9115f2; journal lines in docs/shiploop-template-experiments-journal.md.
+
 ## 8. Out of scope here: the UI verification route (Salesforce run, 2026-10-30)
 
 The owner relayed feedback on the Codex Salesforce Battleship run (`~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d`):
@@ -648,8 +710,12 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 - **D6.** Give the stage mutation check targeted sampling (limit and guard mutants on changed lines first), so §6d can
   act. This is a gate-cost change. E7-F makes it cheap to try first as an overlay arm: on the fixed implementation, its
   six sites are the whole target, and A's 8 samples are the control (§7d). (Recommended next, as an experiment only.)
-- *Run, 2026-10-30:* the owner said "Yes, run the D6 arm". It runs as arm T of E7-F, with its decision rule fixed
-  before the runs (§7e).
+- *Run, 2026-10-30:* the owner said "Yes, run the D6 arm". It ran as arm T of E7-F, with its decision rule fixed
+  before the runs (§7e). The mutant-score rule is met: 1.00 against A's 0.60, p 0.0001. The request score is 1.00 in
+  every arm, so the gain is on load-time checks the request never states (§7f).
+- *Outcome, 2026-10-30:* the owner's decision, as the fork session [140a9a] relayed it ("Yes, skip D6", to "Skip D6 and
+  keep ShipLoop's test stage as it is?"; not confirmed in this session): D6 is not adopted and nothing changes in the
+  stage mutation check. Arm T stands as an experiment-only result.
 
 ## 10. Journal
 
@@ -676,3 +742,7 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | The shorter duty moved test shape a little with test-spec fixed (1.42 tests per case ID against 1.04, p 0.03), not kill rate. This revises the shape half of the E7-K2 row "prose did not change test shape" | interim (one implementation) | §7d item 4 |
 | 2026-10-30 | `decide` read +0.02 (p 0.50) as "supports" on a 2-against-2 spread of 0.00 | firm | §7d item 5; ~/e2e-runs/e7-20261030/E7-F/decision-A-D.json |
 | 2026-10-30 | E7-F arm T built (D6): M's catalog with a line-ending logic-flip, and limit and guard mutants sampled first. A dry run on the fixed implementation: today's and M's samples are the same 8 mutants, none limit or guard; M's `(?=\s)` misses persistence.js:144:118; T's sample is the evaluator's 6 sites. In A's 8 runs no refusal named any of the 6 | firm (the dry run and A's mutation records); T's result pending | §7e; overlays/e7-t.json; ~/e2e-runs/e7-20261030/E7-F/A/*/slice/.shiploop-runs/seed/run/tests/*-mutation1.md |
+| 2026-10-30 | The test stage's first mutation `check` was refused once in every A, D and C run (D/8 twice), naming the same three non-target survivors (persistence.js 144:23, 145:52, validate.js:12:55); it killed them. The loop fired, aimed at mutants the draft nearly caught. This corrects the §7e wording that read only the counted record | firm | §7e; RUN/trace.jsonl of each E7-F run; e7-results.json (`stage_mutation.told`) |
+| 2026-10-30 | E7-F arm T (D6): all 8 runs killed all six scored sites (1.00 against A's 0.60; exact p 0.0001; gain 0.396 against A's gap 0.042). One refusal per run, as in A; no dispositions; test stage 82 s against 91 s; implementation untouched 8 of 8 | firm for these runs; the sample and the score read the same sites | §7f; ~/e2e-runs/e7-20261030/E7-F/decision-A-T.json |
+| 2026-10-30 | By the request all four arms score 1.00: every A, D, C and T run kills all ten request-breaking variants of the fixed implementation (the tests before the test stage kill none), and all 57 mutant survivors of A, D and C sit on persistence.js:144 and 145, load-time validation the request never mentions. T's mutant gain is the closing of those code-introduced checks | firm for this case, implementation and model (a variant set written after reading the code) | §7f item 5; branch exp/e7-request-9115f2 (6963eeea), e7-request.md; ~/e2e-runs/e7-20261030/E7-F/{A,D,C,T}/<n>/request-score.json |
+| 2026-10-30 | D6 not adopted: the owner answered "Yes, skip D6" (relayed by the fork session [140a9a]; not confirmed in this session). Arm T is an experiment-only result and nothing in ShipLoop changes | firm (owner decision, relayed) | §9 |
