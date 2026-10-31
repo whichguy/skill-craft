@@ -679,6 +679,102 @@
      "logic-flip"
     ]
    ]
+  },
+  {
+   "arm": "T",
+   "sample": 1,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 2,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 3,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 4,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 5,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 6,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 7,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
+  },
+  {
+   "arm": "T",
+   "sample": 8,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 1.0,
+   "mutant_survivors": []
   }
  ]
 }

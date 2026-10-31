@@ -1,6 +1,6 @@
 # E7-F by the request: the tests check everything the request says; the mutant gap is outside it
 
-2026-10-30. Status: **firm** for this case, this implementation and this model (24 samples, a deterministic scorer);
+2026-10-30. Status: **firm** for this case, this implementation and this model (32 samples, a deterministic scorer);
 **exploratory** beyond them. Consumer: the owner's D6 decision (docs/shiploop-test-stage-prompt-design-2026-10-30.md §9).
 
 ## Question
@@ -37,12 +37,14 @@ its worktree; a variant is killed when the suite fails twice running (no flaky k
 | A | 8 | 1.000 | 0 of 10 killed | 0.604 |
 | D | 8 | 1.000 | 0 of 10 killed | 0.625 |
 | C | 8 | 1.000 | 0 of 10 killed | 0.583 |
+| T (D6) | 8 | 1.000 | 0 of 10 killed | 1.000 |
 
-1. **Every one of the 24 runs kills all ten request-breaking variants.** Against the request, the test stage is complete
-   in every arm. The measure is saturated, so it cannot rank the arms.
+1. **Every one of the 32 runs kills all ten request-breaking variants.** Against the request, the test stage is complete
+   in every arm, including T: D6 raised the mutant score from 0.604 to 1.000 (exact p 0.0001, design §7f) and the request
+   score did not move. The measure is saturated, so it cannot rank the arms.
 2. **It is not insensitive.** The tests that existed before the test stage kill none of the ten (0.0), so the scale runs
    from 0.0 to 1.0.
-3. **The API-level 64-character boundary is tested in 24 of 24 runs** (limit-63 and limit-65 are killed everywhere).
+3. **The API-level 64-character boundary is tested in 32 of 32 runs** (limit-63 and limit-65 are killed everywhere).
 4. **All 57 target survivors of the mutant score sit on two lines of `src/persistence.js`:** 144 (45, the `||` clauses
    of the stored-record check) and 145 (12, the 64-character bound there). That is load-time validation of a
    hand-edited data file. The request does not mention it; implement added it by following the file's pattern for the
@@ -62,18 +64,18 @@ its worktree; a variant is killed when the suite fails twice running (no flaky k
   break, and A/1 was scored before the other 23 (the set was not changed after it). Subtler breaks (a name padded with
   spaces, a reassignment A to B to A, an unassign of a closed ticket) are not in the set, and a set built to separate
   the arms might. One case, one implementation, one model.
-- **Not in this table:** arm T (D6), still running when this was written. Score it with
-  `python3 test/shiploop_e2e/evaluators/e7_request.py score <sample dir>...`, then re-export.
+- **Arm T (D6)** was scored on 2026-10-30 after the other session finished its 8 runs (they ran the scorer; this export
+  adds the row). Its tests pin the load-time guard the request never mentions, which is where the mutant gain comes from.
 
 ## Decision
 
 2026-10-30, owner: **skip D6** (answering "Skip D6 and keep ShipLoop's test stage as it is?" with "Yes, skip D6"). The stage
 mutation check keeps its catalog and its spread sampling, and nothing in ShipLoop changes. Why: the request measure above
 shows the tests already cover everything the request says, and the survivors D6 would feed back are outside it. Arm T's
-samples (E7-F/T/1..8) are a different session's runs; whether they finish is that session's call, and a T result would
-bear on the mutant score only.
+samples (E7-F/T/1..8) were a different session's runs; they finished with 1.000 on the mutant score and 1.000 on the
+request score, the same as A, D and C.
 
 ## Evidence
 
-e7-request-results.json (24 samples and the ten variants' `verify` rows); per-sample `request-score.json` under
+e7-request-results.json (32 samples, arms A, D, C and T, and the ten variants' `verify` rows); per-sample `request-score.json` under
 ~/e2e-runs/e7-20261030/E7-F/{A,D,C}/<n>/; the scorer test `test_e7_request_variants_change_one_line_once_and_the_scorer_restores_the_file`.
