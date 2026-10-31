@@ -76,12 +76,14 @@ python3 test/shiploop_e2e/experiment.py decide AS1 A B
 
 ## Reading the result
 
-`decide` applies the harness's A/A rule with 4 samples per arm.
+`decide` applies an exact one-sided permutation test, p below 0.05, to the two arms' samples (D5, `a9e398e9`; the earlier
+A/A split-half rule is gone). With 4 binary samples per arm only 4 against 0 reaches it: 4 against 1, or 3 against 0,
+gives p 0.071 and reads inconclusive. More samples per arm would widen what can be decided; that is the owner's call.
 - **ceiling** (every sample of both arms 1): the packet's own `targets` field and its rule already get the model there;
   the card section adds nothing measurable at this case. Per the 2026-10-24 journal, change the case before adding samples.
 - **floor** (every sample 0): the section does not help at this case, or the model declares the deployment under a name the
   scorer's pattern misses; read the printed `rows` before concluding.
-- **supports**: B beyond the spread. It shows the text is followed on this stand-in. It does not show anything about
+- **supports**: B above A at p below 0.05 (4 against 0 at this size). It shows the text is followed on this stand-in. It does not show anything about
   Google's runtime (web-app identity, OAuth, `clasp`), and one case and one subject model is one case and one model.
 
 Whether a result counts as the live round the release preflight asks for is the owner's decision. Nothing has run.

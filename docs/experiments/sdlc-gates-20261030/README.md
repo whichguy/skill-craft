@@ -57,7 +57,9 @@ case: `node-seeded-case-compare`, `node-seeded-numeric-sort`, `node-seeded-empty
 - **Shape.** Each slice runs from step-plan to carry-forward, 4 samples per arm.
 - **Scoring.** `evaluators/sg2_recall.py` scores 1 when the defect is absent from the final tree. Beside it, it counts
   the Improve fix commits, which tell a review's fix from a defect that was never written.
-- **Bar.** B is promoted on a catch-rate gain beyond the A/A spread, unless its minutes per sample exceed 1.5 times
+- **Bar.** B is promoted when `decide` reads `supports` (an exact one-sided permutation test, p below 0.05, since D5,
+  `a9e398e9`; with 4 binary samples per arm only 4 against 0 reaches it, and the A/A spread this section once named is
+  gone), unless its minutes per sample exceed 1.5 times
   A's (read from each sample's metrics.json).
 - **Limit.** Delegation also moves `implement` to a fresh worker, so the comparison is "everything in one context"
   against "fresh workers", not the review alone. The fix-commit count shows which arm's catches came from review.

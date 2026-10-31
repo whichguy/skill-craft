@@ -216,6 +216,8 @@ per case (experiment.py's default): 32 slices after a 2-case smoke that measures
 
 **Bar** (set before the run): B is promoted on a catch-rate gain larger than the A/A spread (control samples 1–2
 against 3–4), unless its minutes per review exceed 1.5 times control's.
+(Superseded for the verdict on 2026-10-31 by D5, `a9e398e9`: `decide` now reads `supports` from an exact one-sided
+permutation test, p below 0.05. See docs/experiments/sdlc-gates-20261030/README.md.)
 
 **Then:**
 - Met → D3b proposes the fresh review as the default for step reviews. This reverses the 2026-09-24 split's default.
