@@ -99,7 +99,7 @@ rerun or lost. Later slices ran on 3.14.9 or 3.15.1 (harness interpreter only; t
 
 | Case (band) | T | B | C | decide |
 | --- | --- | --- | --- | --- |
-| K1 chess engine (3+ steps) | 0.25 (2, 3, 2, 2 steps) | 0.75 (4, 6, 6, 2) | 1.00 (6, 3, 5, 3) | T vs C **supports**; T vs B and B vs C inconclusive (A/A spread 0.50) |
+| K1 chess engine (3+ steps) | 0.25 (2, 3, 2, 2 steps) | 0.75 (4, 6, 6, 2) | 1.00 (6, 3, 5, 3) | T vs C **supports**; T vs B and B vs C inconclusive (A/A spread 0.50); *read again 2026-10-30 by the permutation rule (D5): T vs C inconclusive, p 0.071* |
 | K3 board and entry metadata (2+, layers apart) | 1.00 | 1.00 | 1.00 | ceiling, every pair |
 | K5 one bug fix (exactly 1) | 1.00 | 1.00 | 1.00 | ceiling, every pair |
 
@@ -108,7 +108,7 @@ rerun or lost. Later slices ran on 3.14.9 or 3.15.1 (harness interpreter only; t
 | ID | Finding | Status | Evidence |
 | --- | --- | --- | --- |
 | F15 | The control reproduces chess run 4: T planned the engine in 2 steps in 3 of 4 samples, one step carrying up to 9 criteria. | firm (n = 4) | r1-results, E6-K1 T |
-| F16 | A countable step bound in the template text moves Grok: 7 of 8 B and C plans split the engine into 3 to 6 steps, against 1 of 4 for T; `decide` supports C over T on K1. | interim (n = 4 per arm) | decision-T-C.json; r1-results |
+| F16 | A countable step bound in the template text moves Grok: 7 of 8 B and C plans split the engine into 3 to 6 steps, against 1 of 4 for T; `decide` supports C over T on K1. | interim (n = 4 per arm); *superseded 2026-10-30 for the verdict: the permutation rule (D5) reads it inconclusive, p 0.071* | decision-T-C.json; r1-results |
 | F17 | C's refusal never fired: 0 gate refusals in its 12 samples. B and C therefore ran identical prompt text in effect, and their K1 difference (0.75 against 1.00) is sampling noise; pooled, the prose bound split the engine in 7 of 8. The gate is untested insurance. | firm (0 refusals); the pooling is interim | gate-refusal count over C's events |
 | F18 | K3 does not reproduce run 4's W3 merge: every arm, the control included, keeps the component and its tab, app and flexipage in separate steps. The case cannot separate the arms and needs changing before more samples (the decide rule's own advice). | firm | decision-*.json on E6-K3 |
 | F19 | No over-splitting: every K5 plan in every arm is one step; B and C stay within their own bound (at most 4 criteria). | firm (n = 12) | r1-results, E6-K5 |
@@ -189,7 +189,7 @@ criteria count over the 4 samples.
 
 | ID | Finding | Status | Evidence |
 | --- | --- | --- | --- |
-| F25 | The generic wording wins K2, its first "supports": Cg 0.75 against T 0.50, whose pairs tie (T 0, 1, 0, 1), so the A/A spread is 0. The margin is one sample. | firm (the verdict); interim (the effect, n = 4) | `E6-K2/decision-T-Cg.json` |
+| F25 | The generic wording wins K2, its first "supports": Cg 0.75 against T 0.50, whose pairs tie (T 0, 1, 0, 1), so the A/A spread is 0. The margin is one sample. | firm (the verdict); interim (the effect, n = 4); *superseded 2026-10-30 for the verdict: the permutation rule (D5) reads it inconclusive, p 0.50 (T 0.50 against Cg 0.75 is one sample in four)* | `E6-K2/decision-T-Cg.json` |
 | F26 | Across both engine cases Cg puts 6 of 8 plans in band against 3 of 8 for T (K1 3 against 1, K2 3 against 2). | interim (pooling two cases the decide rule keeps apart) | r2-results |
 | F27 | No harm on the guards: K4, K6 and K7 are at the ceiling in both arms, Cg kept every rename and added function to 1 step, and K4 within 2 to 7. With R1g's K3 and K5, Cg has 20 of 20 samples in band on the five non-engine cases. | firm (n = 4 each) | r2-results; decision files |
 | F28 | Cg's gate refused nothing in 28 samples (C's nothing in 12): every plan met the bound in its first submission, so the prose did the work and the gate is untested insurance. Updates F17 and F22. | firm (exact refusal messages counted in the events) | events.jsonl of every C and Cg slice |
@@ -240,6 +240,14 @@ ran on it.
 one every Cg sample planned under (F28). The verdicts it rests on: K2 supports (F25), K1 inconclusive (F21, F23), and no
 harm on the five other cases (F27). The open questions travel with it: count against text (F29), many tiny steps
 (F30), and the downstream cost (R3, not run).
+
+*Note, 2026-10-30 (D5, docs/shiploop-test-stage-prompt-design-2026-10-30.md section 9):* `decide` now reads a gain by
+the exact one-sided permutation p, and read again under it K2's "supports" (F25) is inconclusive (p 0.50) and so is
+K1's T vs C (F16, p 0.071). The K2 verdict named above no longer holds as a `supports`. E6 is not reopened: the bound
+was kept on 2026-10-28 on the downstream rounds (F43 to F45: quality tied, time favoured the bound), which this does
+not touch, and F25 itself called the margin one sample. What changed is that the evidence this section ports the bound
+from is weaker than it says. Re-read of every stored decision:
+docs/experiments/d5-decide-rule-20261030/d5-reread.json.
 
 ## 7. 2026-10-25: faster rounds (harness, no Grok run)
 
