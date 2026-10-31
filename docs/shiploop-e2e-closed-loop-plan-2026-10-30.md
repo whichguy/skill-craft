@@ -94,15 +94,31 @@ admitted one is the S-13 slip LR-20261030-8ff7a9). The rules the lessons became:
 predictions", Change admission's "Purpose", the promotion contract's "Qualified iteration" and the harness rule "A
 comparison that promotes is one registered epoch".
 
-**Still to change, in order.**
+**Still to change, in order** (rewritten 2026-10-31, after the owner's two decisions below).
 
 | Step | What | Where | Needs |
 |---|---|---|---|
-| 1 | Stage 3: same-build calibration, about 20 runs, no reviews | a fixed worktree of `main`; writes `docs/experiments/e2e-calibration-*/calibration.json` | the owner's go |
-| 2 | Decide D1 (tolerance, attempts) and D3 (limits); D4 for sampled reviews | the decisions table above | the owner |
-| 3 | Trim the cycle if the tolerance allows: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D1, D4 |
-| 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | step 1 |
-| 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | steps 1 to 4 |
+| 1 | Stage 3 (same-build calibration): **skipped by the owner**. The kit stays for a later measurement | `docs/experiments/e2e-calibration-20261031/` | nothing |
+| 2 | State the tolerance and attempts per cycle (`--tolerance`, `--attempts`, recorded as unmeasured; start at 0.25 or more). D3 (limits) and D4 (sampled reviews) remain open | the decisions table above | the owner |
+| 3 | Trim the cycle if the owner wants it cheaper: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D4 |
+| 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | live runs |
+| 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | live runs |
+
+All live runs need Codex Terra on the owner's computer. The Claude host is reachable from a cloud session, but see the
+gap below.
+
+**Corrections and cautions from the 2026-10-31 review of this work**
+- The journal span "from Case checks write nothing to Closed loop, stage 2" has 41 entries, not the 42 recorded in the
+  "Closed loop review" entry (LEARNINGS.md) and the page built from it. The 21-and-21 split was a hand classification,
+  a judgment call and not a measurement; a keyword heuristic on the headings also finds 21 harness or measurement
+  entries of 41. Read it as "about half".
+- **Do not append to `test/shiploop_e2e/LEARNINGS.md` to fix that.** The release preflight treats any commit touching
+  that file as an E2E journal entry that covers every earlier ShipLoop commit, so an unrelated correction there would clear
+  the hold on c468b25c (ShipLoop's Apps Script card, no E2E round and no `No-E2E-Round` trailer) without a round or an
+  owner waiver. This correction lives here on purpose. The release decision for c468b25c belongs to the owner.
+- A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
+  harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
+  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.
 
 **Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
 want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement
