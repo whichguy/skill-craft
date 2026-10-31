@@ -1119,14 +1119,61 @@ class DriverTests(KeepaliveTestCase):
     def test_pending_completion_survives_unchanged_sessions_with_the_shared_instruction(self) -> None:
         calls = []
         status = self.status()
+        saved = (self.run_dir / "state.md").read_bytes()
         def runner(argv, **kwargs):
             calls.append(argv)
             self.assertIn(status["completion"], argv[2])
+            self.assertEqual(self.status()["action"], status["action"])
+            self.assertEqual((self.run_dir / "state.md").read_bytes(), saved)
             if len(calls) == 3:
                 shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "owner stop")
             return self.done(argv)
         code, _ = self.drive("claude", runner)
         self.assertEqual((code, len(calls)), (keepalive.EXIT_NEEDS_USER, 3))
+
+    def test_two_timeouts_with_pending_completion_stop_the_driver_and_preserve_work(self) -> None:
+        status = self.status()  # real active ordinary action; no mocked status or deadline
+        self.assertTrue(status["completion"])
+        partial = self.repo / "partial.md"
+        partial.write_text("Keep this partial work.\n")
+        saved = [path.read_bytes() for path in (self.run_dir / "state.md", partial)]
+        calls = []
+
+        def runner(argv, **kwargs):
+            calls.append(argv)
+            self.assertLessEqual(len(calls), 2, "pending completion must not exempt host timeouts")
+            raise subprocess.TimeoutExpired(argv, kwargs["timeout"], output="partial output", stderr="host hung")
+
+        code, lines = self.drive("claude", runner)
+        self.assertEqual((code, len(calls)), (keepalive.EXIT_STUCK, 2))
+        self.assertIn("two sessions in a row", lines[-1])
+        self.assertEqual([path.read_bytes() for path in (self.run_dir / "state.md", partial)], saved)
+        self.assertEqual(self.status(), status)
+        journal = self.temp / "state" / "drive" / status["run_id"] / "drive.log"
+        entries = [json.loads(line) for line in journal.read_text().splitlines()]
+        self.assertEqual([entry["exit"] for entry in entries], ["timeout", "timeout"])
+        for entry in entries:
+            log = Path(entry["log"]).read_text()
+            self.assertIn("partial output", log)
+            self.assertIn("host hung", log)
+
+    def test_fresh_driver_reads_next_once_before_the_same_action_completion(self) -> None:
+        status = self.status()
+        same_session = keepalive._continue_reason(status)
+        fresh = keepalive._driver_prompt(status)
+        recovery = f"First run `{status['next']}` once"
+        self.assertTrue(fresh.startswith(recovery), fresh)
+        self.assertIn("current action, existing artifacts and exit/repeat conditions", fresh)
+        self.assertIn("Continue only its remaining work", fresh)
+        self.assertIn(status["completion"], fresh)
+        self.assertIn("do not restart, reissue or replay", fresh)
+        self.assertLess(fresh.index(recovery), fresh.index(status["completion"]))
+        self.assertNotIn(recovery, same_session)
+        for host in ("claude", "grok", "codex"):
+            with self.subTest(host=host):
+                argv = keepalive.host_argv(host, fresh, None, [])
+                self.assertIn(fresh, argv)
+                self.assertNotIn("--resume", argv)
 
     def test_a_host_that_fails_without_progress_is_reported_at_once(self) -> None:
         code, lines = self.drive("opencode", lambda argv, **kwargs: self.done(argv, returncode=1))
@@ -1135,6 +1182,7 @@ class DriverTests(KeepaliveTestCase):
 
     def test_resuming_hosts_continue_the_bound_session(self) -> None:
         self.hook("observe", "cursor", self.payload("cursor", "observe", "chat-42"))
+        prompt = keepalive._continue_reason(self.status())
         seen = []
 
         def runner(argv, **kwargs):
@@ -1145,6 +1193,7 @@ class DriverTests(KeepaliveTestCase):
         code, _ = self.drive("cursor", runner, max_minutes=2)
         self.assertEqual(code, keepalive.EXIT_CAP)
         self.assertEqual(seen[0][:4], ["cursor-agent", "-p", "--resume", "chat-42"])
+        self.assertEqual(seen[0][-1], prompt)
 
     def test_there_is_no_ceiling_by_default(self) -> None:
         # Owner 2026-10-28: runs go on for a very long time; the old default stopped after 20 sessions.

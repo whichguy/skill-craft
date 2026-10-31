@@ -821,11 +821,17 @@ class NavigatorLoopTests(fx.RunDriver):
         report = reviews / f"report-{number}.json"
         record.write_text(json.dumps({"pass": number}))
         report.write_text(json.dumps(TRIVIAL))
-        for fields in ({"exit_assessment": "invalid"}, {"exit_assessment": []}, {"evidence": ""}, {"handoff": 3}):
+        for fields in ({"exit_assessment": "invalid"}, {"exit_assessment": []}, {"evidence": ""}, {"handoff": 3},
+                       {"classification": "unresolved"}):
             with self.subTest(invalid_report=fields):
                 report.write_text(json.dumps(dict(TRIVIAL, **fields)))
                 self.assert_completion_recovery([self.run_dir / "state.md", receipt, record, report,
                                                  Path(packet["state_file"])])
+        for assessment in ("unsatisfied", "unknown"):
+            report.write_text(json.dumps(dict(TRIVIAL, classification="unresolved", exit_assessment=assessment)))
+            recorded = self.hook_status()["completion"]
+            self.assertIn(shlex.join(packet["done_argv"]), recorded)
+            self.assertIn("Do not record the pass again", recorded)
         report.write_text(json.dumps(TRIVIAL))
         before = [path.read_bytes() for path in (receipt, record, report)]
         recorded = self.hook_status()["completion"]

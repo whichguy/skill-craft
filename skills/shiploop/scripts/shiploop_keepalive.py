@@ -998,7 +998,9 @@ EXIT_DONE, EXIT_NEEDS_USER, EXIT_STUCK, EXIT_CAP = 0, 3, 4, 5
 
 
 def _driver_prompt(status: Mapping[str, Any]) -> str:
-    return _continue_reason(status)
+    return (f"First run `{status['next']}` once to recover the current action, existing artifacts and exit/repeat "
+            "conditions in this fresh session. Continue only its remaining work and exact callback; "
+            "do not restart, reissue or replay recorded work. " + _continue_reason(status))
 
 
 def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> list[str]:
@@ -1077,7 +1079,8 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         if host in RESUMING_HOSTS:
             bound = bindings_for_run(host, run_dir)
             session = bound[0]["session"] if bound else None
-        argv = host_argv(host, _driver_prompt(before), session, extra)
+        prompt = _continue_reason(before) if session else _driver_prompt(before)
+        argv = host_argv(host, prompt, session, extra)
         started = clock()
         timeout = session_timeout if deadline is None else max(1, min(session_timeout, round(deadline - started)))
         try:
@@ -1106,7 +1109,7 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
                 f"it may have failed to start. See {session_log}")
             return EXIT_STUCK
         stalled = 0 if moved else stalled + 1
-        if stalled >= 2 and not after.get("completion"):
+        if stalled >= 2 and (code == "timeout" or not after.get("completion")):
             out(f"shiploop-drive: two sessions in a row made no progress; stopping. See {journal}")
             return EXIT_STUCK
     out(f"shiploop-drive: reached --max-minutes {max_minutes} after {number} session(s); the run is still active. "

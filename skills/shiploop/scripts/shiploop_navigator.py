@@ -9061,6 +9061,15 @@ def _review_form(text: str) -> tuple[dict[str, str], dict[str, str], str, list[s
     missing += [label + ":" for label in REVIEW_LABELS if not labels.get(label)]
     if not "\n".join(handoff).strip():
         missing.append("## Handoff")
+    if not missing:
+        import shiploop_standalone_improve as standalone
+        try:
+            standalone._ephemeral_report({
+                **{field: front[key] for key, field, _allowed in REVIEW_FRONT},
+                "evidence": text, "handoff": "\n".join(handoff).strip(),
+            })
+        except standalone.StandaloneImproveError as exc:
+            missing.append(str(exc))
     return front, labels, "\n".join(handoff).strip(), missing
 
 

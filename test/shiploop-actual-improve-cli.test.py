@@ -2721,6 +2721,36 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
+    def test_an_unresolved_satisfied_review_is_refused_before_recording_and_corrected_reports_run(self):
+        self.begin()
+        self.write_review(label="unresolved", exit="satisfied")
+        receipt = bridge.receipt_path(self.bound)
+        before = [path.read_bytes() for path in (self.run / "state.md", receipt, self.product_contract)]
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("an unresolved report cannot claim a satisfied exit", self.line_one(refused))
+        self.assertEqual(self.named_exit(refused)[2:3], ["improve-pass"])
+        for name in ("report-1.json", "pass-1.json"):
+            self.assertFalse((self.reviews() / name).exists(), name)
+        self.assertEqual([path.read_bytes() for path in (self.run / "state.md", receipt, self.product_contract)],
+                         before)
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.base_commit)
+        for number, assessment in enumerate(("unsatisfied", "unknown"), 1):
+            self.write_review(number, label="unresolved", exit=assessment)
+            out = self.run_named(refused).stdout
+            report = self.reviews() / f"report-{number}.json"
+            record = self.reviews() / f"pass-{number}.json"
+            saved = [path.read_bytes() for path in (report, record)]
+            status = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+            self.assertIn(str(report), status["completion"])
+            self.assertIn("Do not record the pass again", status["completion"])
+            self.assertNotIn("improve-pass", status["completion"])
+            done, _, _ = self.printed(out)
+            self.assertEqual(self.run_done(done)["status"], "active")
+            self.assertEqual([path.read_bytes() for path in (report, record)], saved)
+        self.write_review(3)  # trivial/satisfied still ends the real runtime
+        done, _, _ = self.printed(self.run_named(refused).stdout)
+        self.assertEqual(self.run_done(done)["status"], "complete")
+
     def test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage(self):
         """6.3 exit 2, as a shape rather than a length: what the model writes for one pass is the review file and the
         printed commands it copies.  ShipLoop writes checks.md and the report JSON, and the commands are literal (no

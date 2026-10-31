@@ -18,12 +18,17 @@ optional; runs work without it.
 | `scripts/shiploop-drive` | Outer driver for unattended runs: starts or resumes host sessions until the run is not active. |
 
 `hook-status` derives the continuation from the current action and its matching
-receipt. The hook and driver relay the same short instruction. An active inner
+receipt. The same-session hook relays that short instruction directly; a fresh
+driver session first recovers context as described below. An active inner
 loop names its exact runtime `done` command and truthful report fields; it keeps
 the current prerequisites and exit/repeat conditions. A recorded Improve pass
 names its validated existing report and `done` command without recording that pass again;
 an unrecorded pass names `improve-pass`, which checks prerequisites and prints the
-report. A completed loop names the exact stage `complete` callback; a completed
+report. The review form reuses the bridge's report validation: an `unresolved`
+classification cannot claim a `satisfied` exit, so `improve-pass` refuses that
+combination before recording a report or pass. Unresolved reports with an
+`unsatisfied` or `unknown` exit remain valid. A completed loop names the exact
+stage `complete` callback; a completed
 Improve receipt first passes the bridge's structural terminal validation. The
 real stage callback remains authoritative. Inner loop
 `done`, stage `complete`, and final run status `done` are distinct.
@@ -32,7 +37,8 @@ These are instructions to the model: status, hook and driver execute none of the
 completion, restart, resume or pause commands. Missing, rejected or unreadable
 completion leaves the action unfinished. Stopped Improve receipts cannot stand
 in for successful completion. Unsupported, missing, unreadable, oversized or
-mismatched receipts, invalid reports, and unbound or delegated Improve states
+mismatched receipts, invalid reports (including a previously saved
+`unresolved`/`satisfied` report), and unbound or delegated Improve states
 leave `completion` empty. The hook and driver's generic fallback names `next`
 for recovery; repeated unchanged progress retains the existing stop and driver
 exits. An allowed exit preserves the unfinished action and its artifacts, and
@@ -200,16 +206,25 @@ scripts/shiploop-drive --host claude --run-dir RUN -- --model sonnet --max-budge
 ```
 
 Arguments after `--` go to the host command unchanged; the driver adds no
-permission flags. Each session gets the same short continuation as the hook and runs
-in the run's repository. Cursor and OpenCode resume the session bound to the run;
-the other hosts start a fresh session each time, so every session begins with a
-clean context.
+permission flags. Sessions run in the run's repository. Claude, Grok and Codex
+start a fresh session each time. Each fresh session must first run `next` once to
+recover the current action, existing artifacts and exit/repeat conditions, then
+continue only its remaining work and exact callback. This recovers the same
+action; it never restarts, reissues or replays recorded work. Cursor and OpenCode
+resume the session bound to the run and receive the direct same-session
+continuation; when no bound session exists, they receive the fresh-session
+instruction too. The same-session Stop reason keeps its direct completion
+instruction, with `next` available if context was lost.
 
 The driver stops when the run is not active (exit 0 when done, 3 when paused,
 blocked or halted), when a host exits non-zero without advancing the run (exit 4,
-often a host that could not start), after two sessions in a row without progress
-and without pending completion instructions (exit 4), or, only when you pass `--max-minutes N`, once N minutes of wall clock
-have passed (exit 5; a session's timeout is cut to the time left). There is no
+often a host that could not start), or after two sessions in a row without
+progress when the latest session timed out or no valid completion instruction
+is pending (exit 4). In particular, two host timeouts without progress stop the
+driver even with a valid pending completion, without requiring a deadline.
+Ordinary zero-exit premature stops can keep continuing that same pending action.
+An optional `--max-minutes N` stops the drive once N minutes of wall clock have
+passed (exit 5; a session's timeout is cut to the time left). There is no
 ceiling by default: runs are meant to go on for a long time. It keeps one JSON line per session in
 `drive.log` and each session's output under
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/drive/<run id>/`, never in
