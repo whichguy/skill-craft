@@ -121,4 +121,6 @@ running settles.
   step plan cites it through a criterion in at least 3 (with fewer than 2 such runs the route is not exercised live,
   and adoption rests on the replay and (1)), and (3) the quick tier passes on the fix. This is a no-harm and
   mechanism test, not a superiority test: a stall like A s1 is rare, so 4 runs a side cannot show its rate falling.
-
+- Note, 14:30, before any FX run: the fix's quick tier failed one suite (shiploop-package-integrity: the new paragraph took
+  references/inner-loop.md over its 8,192-byte bound). The paragraph became a reworded sentence (dcf98cb6, no script
+  change), so F is rebuilt at 52feffd0 = aa99fdff + dcf98cb6, and FX waits for the rerun tier to pass.
