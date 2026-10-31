@@ -1311,6 +1311,50 @@ class StepSizingRouteTests(RealCliCase):
             write_block(path, {**self.fill_done(head), "questions": good["questions"]})
             self.assertIn("belong to intake's result", self.refused(command, run))
 
+    def test_an_open_item_due_here_is_settled_by_an_executed_criterion_or_an_expectation(self) -> None:
+        """Experiment-route study (2026-10-31): of the 15 runs the expectation-only rule refused, 10 of 11 open items about
+        what the item builds were met with a check that settled nothing on the unchanged base (an org that answers, a
+        file that is absent) and 1 run stopped.  An open item due here is now settled by an executed criterion whose
+        `from` names it (its test runs after the build) or, for a fact about what exists, by an expectation with `from`;
+        the template offers the criterion, and the focused command names it."""
+        run, head = self.new_run("step-plan", results={"plan": {"assumptions": [OPEN_ASSUMPTION]}})
+        command, path, action = printed_callback(head)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        self.assertEqual(template["criteria"][-1], {"id": "C3", "text": "<what this item's test shows for A1>",
+                                                    "confirm": "executed", "from": "A1"})
+        self.assertIn("C3", template["test_commands"][0]["criteria"])
+        self.assertFalse([row for row in template["expectations"] if "from" in row])
+        good = self.fill_done(head)
+        settles = {"id": "C2", "text": "the export opens: its file test reads it back", "confirm": "executed", "from": "A1"}
+        by_criterion = {**good, "criteria": [*good["criteria"], settles],
+                        "steps": [dict(good["steps"][0], criteria=["C1", "C2"]), *good["steps"][1:]],
+                        "test_commands": [dict(good["test_commands"][0], criteria=["C1", "C2"]),
+                                          *good["test_commands"][1:]]}
+        broken = [
+            ("no row settles A1", good, "settle each here: an executed criterion"),
+            ("a criterion naming no open item",
+             {**by_criterion, "criteria": [*good["criteria"], dict(settles, **{"from": "A9"})]},
+             "criteria cite from A9, which is not an open plan assumption"),
+            ("a criterion that is not executed",
+             {**by_criterion, "criteria": [*good["criteria"], dict(settles, confirm="searched")]},
+             "the criterion is executed"),
+        ]
+        for label, block, fragment in broken:
+            with self.subTest(label):
+                write_block(path, block)
+                self.assertIn(fragment, self.refused(command, run))
+        write_block(path, by_criterion)
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["criteria"][-1], settles)
+        with self.subTest("an expectation still settles a fact about what exists"):
+            run, head = self.new_run("step-plan", results={"plan": {"assumptions": [OPEN_ASSUMPTION]}})
+            command, path, _ = printed_callback(head)
+            done = self.fill_done(head)
+            fact = {"id": "E2", "state": "works", "statement": "a.txt holds the exported line", "steps": ["S1"],
+                    "paths": ["a.txt"], "check": "grep -q x a.txt", "from": "A1"}
+            write_block(path, {**done, "expectations": [*done["expectations"], fact]})
+            self.accepted(command)
+
     def test_a_step_plan_field_of_any_length_is_accepted_and_stored_whole(self) -> None:
         """Plan F2 (owner, 2026-10-28): the step plan's task, Proof and per-step criteria were refused past 700, 600 and
         1,200 characters, and each refusal cost the model a rewrite (3-5 per D7 run).  ShipLoop accepts any length and
