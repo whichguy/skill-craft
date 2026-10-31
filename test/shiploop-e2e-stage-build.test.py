@@ -218,6 +218,8 @@ class Schema(Temp):
              "a reference folder is good or bad-<slug>"),
             ("a deleted.txt that climbs out", lambda d, f: lay(f, {"reference/good/deleted.txt": "../x\n"}),
              "deleted.txt: '../x' climbs out"),
+            ("a deleted.txt that names the tree itself", lambda d, f: lay(f, {"reference/good/deleted.txt": ".\n"}),
+             "deleted.txt: '.' names the tree itself"),
         ]
         for number, (label, mutate, wanted) in enumerate(cases):
             with self.subTest(label):
@@ -378,6 +380,25 @@ class Trees(Temp):
         self.assertEqual((into / "test").read_text(), "now a file\n")
         self.assertEqual((into / "README.md" / "inside.txt").read_text(), "now a folder\n")
 
+    def test_the_overlay_copies_a_symlink_as_a_link_and_never_follows_it(self):
+        source = lay(self.temp / "lay-source", {"real.txt": "content\n", "linked-dir-target/inside.txt": "inside\n"})
+        (source / "ln-file").symlink_to("real.txt")
+        (source / "ln-dir").symlink_to("linked-dir-target", target_is_directory=True)
+        (source / "ln-dangling").symlink_to("nowhere/at/all")
+        (source / "ln-outside").symlink_to(self.temp / "lay-elsewhere")
+        target = lay(self.temp / "lay-target", {"ln-file": "was a file\n", "ln-dir/old.txt": "was a folder\n"})
+        sb._lay(source, target)
+        for name, wanted in (("ln-file", "real.txt"), ("ln-dir", "linked-dir-target"), ("ln-dangling", "nowhere/at/all"),
+                             ("ln-outside", str(self.temp / "lay-elsewhere"))):
+            with self.subTest(name):
+                self.assertTrue((target / name).is_symlink(), f"{name} is a link")
+                self.assertEqual(os.readlink(target / name), wanted)
+        self.assertEqual((target / "real.txt").read_text(), "content\n")
+        self.assertEqual(sorted(path.name for path in (target / "linked-dir-target").iterdir()), ["inside.txt"])
+        # A link replaces what was there; a folder it replaces is gone, and nothing is written through it.
+        self.assertFalse((target / "ln-dir" / "old.txt").exists())
+        self.assertFalse((self.temp / "lay-elsewhere").exists())
+
     def test_the_reference_outputs_are_listed_good_first(self):
         sc = self.folder_for({"reference/good/result.json": "{}", "reference/bad-b/result.json": "{}",
                               "reference/bad-a/result.json": "{}", "reference/notes.txt": "x"})
@@ -421,6 +442,21 @@ class Trees(Temp):
             sb.reference_bundle(sc, "good", self.temp / "tmp")
         with self.assertRaisesRegex(sb.ScenarioError, "no reference output 'bad-none'"):
             sb.reference_bundle(sc, "bad-none", self.temp / "tmp")
+
+    def test_a_deleted_path_that_names_the_tree_itself_is_refused_and_removes_nothing(self):
+        # "." (or anything that normalises to nothing) would make the build remove the whole scratch tree.
+        for line in (".", "./", "././", ".//."):
+            with self.subTest(line=line):
+                sc = self.folder_for(GOOD_FILES, GOOD)
+                (sc.dir / "reference" / "good" / "deleted.txt").write_text(f"{line}\n")  # after the load: a build alone must refuse it
+                self.assertTrue(any("names the tree itself" in problem for problem in sb.validate(GOOD, sc.dir)))
+                tmp = self.temp / f"tmp{abs(hash(line))}"
+                with self.assertRaisesRegex(sb.ScenarioError, "deleted.txt names .*, which names the tree itself"):
+                    sb.reference_bundle(sc, "good", tmp)
+                self.assertTrue((tmp / "good" / "tree").is_dir(), "the scratch tree is still there")
+                self.assertTrue((tmp / "good" / "tree" / "src" / "paginate.js").is_file())
+        self.assertIsNone(sb._safe_path("src/a.js"))
+        self.assertIsNone(sb._safe_path("./src/a.js"))
 
     def test_the_oracle_passes_the_good_output_and_fails_each_bad_one_on_the_id_it_plants(self):
         scenario(self.cases, "validate-existing", "verify", GOOD, {**GOOD_FILES, "repo/src/strings.js": "// BROKEN\n"})
@@ -644,6 +680,26 @@ class Builds(unittest.TestCase):
         self.assertEqual(seen["overlay"], str(sc.dir / "worktree"))
         self.assertNotIn(sb.WORKTREE_ENV, os.environ)
 
+    def test_a_value_the_environment_already_held_comes_back_on_exit_and_on_error(self):
+        # The block sets SHIPLOOP_PROGRESS=off and PYTHONSAFEPATH=1; a value that was there before (and differs) is put back, not
+        # dropped, and one that was not there is removed.
+        held = {"SHIPLOOP_PROGRESS": "plain", "PYTHONSAFEPATH": "0", sb.WORKTREE_ENV: "/held/overlay"}
+        with mock.patch.dict(os.environ, held):
+            with sb.seam_seed(Path("/overlay/x")):
+                self.assertEqual((os.environ["SHIPLOOP_PROGRESS"], os.environ["PYTHONSAFEPATH"]), ("off", "1"))
+                self.assertEqual(os.environ[sb.WORKTREE_ENV], "/overlay/x")
+            self.assertEqual({key: os.environ.get(key) for key in held}, held, "restored on exit")
+            with self.assertRaisesRegex(RuntimeError, "boom"), sb.seam_seed():
+                self.assertNotIn(sb.WORKTREE_ENV, os.environ)
+                raise RuntimeError("boom")
+            self.assertEqual({key: os.environ.get(key) for key in held}, held, "restored on error")
+        with mock.patch.dict(os.environ):
+            for key in held:
+                os.environ.pop(key, None)
+            with self.assertRaises(RuntimeError), sb.seam_seed(Path("/overlay/y")):
+                raise RuntimeError("boom")
+            self.assertEqual([key for key in held if key in os.environ], [], "a key that was not there is removed again")
+
     def test_the_seam_substitution_is_exclusive_between_threads(self):
         # Without a lock the second thread saves the first one's substitute as its "original" and puts it back last.
         original, progress = run.SEED_SCRIPT, os.environ.get("SHIPLOOP_PROGRESS")
@@ -687,6 +743,29 @@ class Builds(unittest.TestCase):
             os.chdir(here)
         self.assertTrue(bundle.issued)
         self.assertEqual(bundle.current_stage, "validate-existing")
+
+    def test_the_next_child_of_a_render_has_the_keepalive_off_and_a_timeout(self):
+        # `shiploop next` is run with the keepalive off (a hook it starts would outlive the render) and with a timeout (a stuck
+        # one must end the render, not hang it). Only stage_build's own `subprocess` is replaced; the call is the real one.
+        sc = sb.load("validate-existing/broken", self.cases)
+        calls = []
+
+        def spy(*args, **kwargs):
+            calls.append((args[0], kwargs))
+            return subprocess.run(*args, **kwargs)
+
+        fake = types.SimpleNamespace(DEVNULL=subprocess.DEVNULL, run=spy, TimeoutExpired=subprocess.TimeoutExpired)
+        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE": "on"}), mock.patch.object(sb, "subprocess", fake):
+            bundle = sb.render(sc, self.temp / "next-child")
+        self.assertTrue(bundle.issued)
+        nexts = [(argv, kwargs) for argv, kwargs in calls if "next" in argv]
+        self.assertEqual(len(nexts), 1, calls)
+        argv, kwargs = nexts[0]
+        self.assertEqual(kwargs["env"]["SHIPLOOP_KEEPALIVE"], "off", "the ambient value does not reach the child")
+        self.assertEqual(kwargs["env"]["SHIPLOOP_PROGRESS"], "off")
+        self.assertEqual(kwargs["timeout"], sb.NEXT_SECONDS)
+        self.assertGreater(sb.NEXT_SECONDS, 0)
+        self.assertIs(kwargs["stdin"], subprocess.DEVNULL)
 
     def test_a_render_whose_packet_file_is_missing_says_so_instead_of_reading_the_head(self):
         sc = sb.load("validate-existing/broken", self.cases)

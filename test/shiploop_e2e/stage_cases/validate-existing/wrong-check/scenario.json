@@ -7,7 +7,8 @@
   ],
   "tiers": [
     "verify",
-    "render"
+    "render",
+    "live"
   ],
   "fixture": "node-base",
   "request_from": "node-fix-bug",

@@ -113,10 +113,11 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         # Current main's 97 ShipLoop suites plus four learning-loop contract suites, the SDLC probes, the closed loop's
-        # two (2026-10-30), the seed seam suite, the stage suite's three (oracle, builder, runner), and the optional UI adapter.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 109)
+        # two (2026-10-30), the seed seam suite, the stage suite's three (oracle, builder, runner), the optional UI adapter,
+        # and the stage suite's live tier's two (live core, report).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 111)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 164)
+        self.assertEqual(len(suite_catalog.SUITES), 166)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -782,6 +783,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-sf-guard", "shiploop-e2e-status-card",
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",
               "shiploop-e2e-sdlc-probes", "shiploop-e2e-stage-oracle", "shiploop-e2e-stage-build", "shiploop-e2e-stages",
+              "shiploop-e2e-stage-live", "shiploop-e2e-stage-report",
               "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle"}
@@ -892,6 +894,8 @@ class SelectionByReaderTest(unittest.TestCase):
         for path in ("skills/shiploop/scripts/shiploop_navigator.py", "skills/shiploop/scripts/shiploop_store.py"):
             with self.subTest(path=path):
                 self.assertGreaterEqual(suite_catalog.targeted([path]), set(suite_catalog._HUB_SUITE_IDS))
+        # and an edit to the navigator also selects the seed seam's equivalence test, which no hub rule finds
+        self.assertIn("shiploop-seed-seam", suite_catalog.targeted(["skills/shiploop/scripts/shiploop_navigator.py"]))
 
     def test_a_guidance_document_selects_the_anchor_test(self) -> None:
         for name in self.GUIDANCE_DOCS:

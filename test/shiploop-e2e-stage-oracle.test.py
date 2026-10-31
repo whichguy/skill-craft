@@ -11,10 +11,10 @@ the engine's design points:
   in the seed tree; a symlink met while walking a folder is compared by its target and never followed.
 - ``file`` and ``changed_only`` compare bytes, the executable bit and link targets against the seed tree and ignore compiled
   files and caches; the last component of a ``file`` path is a link as it is (a dangling one is there, a file replaced by a
-  link to the same bytes is changed); the file comparison has no cache; a glob matches a name with a newline and a path written
-  with ``./`` or ``//``.
-- A ``command`` runs in a scratch copy (the tree is never touched; a symlink that leaves the copy is left out, so nothing can be
-  written through it), stdin closed, a reduced environment, a scratch HOME and TMPDIR; a timeout kills its whole process group
+  link to the same bytes is changed; a fifo or other special file is an entry too); the file comparison has no cache; a glob
+  matches a name with a newline and a path written with ``./`` or ``//``.
+- A ``command`` runs in a scratch copy (regular files only; the tree is never touched; a symlink that leaves the copy is left
+  out, so nothing can be written through it), stdin closed, a reduced environment, a scratch HOME and TMPDIR; a timeout kills its whole process group
   and fails the check whatever exit was asked for; so does a flood of output, which is also never read whole; "nonzero" is not
   satisfied by a shell that could not run the command; the scratch folder is gone afterwards.
 - A ``stand_in`` that kills is shown on a candidate on which the command passes: a command that already fails there kills nothing.
@@ -28,6 +28,7 @@ from __future__ import annotations
 import os
 import shlex
 import shutil
+import signal
 import sys
 import tempfile
 import time
@@ -446,6 +447,28 @@ class Files(Base):
         self.fails({"file": "README.md", "unchanged": True}, "is changed")
         self.passes({"file": "src/never.js", "unchanged": True})  # absent from both
 
+    def test_a_special_file_added_is_a_change_for_unchanged_as_it_is_for_changed_only(self):
+        # A fifo, socket or device node is recorded by the folder walk as a special entry; a path that names it must see it too.
+        os.mkfifo(self.tree / "src/pipe")
+        self.fails({"file": "src/pipe", "unchanged": True}, "is changed")
+        self.passes({"file": "src/pipe", "unchanged": False})
+        self.fails({"file": "src", "unchanged": True}, "src/pipe")
+        self.fails({"changed_only": ["docs/**"]}, "src/pipe")
+        self.passes({"file": "src/pipe", "exists": True})
+
+    def test_a_special_file_in_both_trees_is_unchanged_and_one_that_replaces_a_file_is_a_change(self):
+        for tree in (self.tree, self.seed):
+            os.mkfifo(tree / "src/pipe")
+        self.passes({"file": "src/pipe", "unchanged": True})
+        self.passes({"changed_only": []})
+        (self.tree / "src/pipe").unlink()
+        (self.tree / "src/pipe").write_text("now a file\n")
+        self.fails({"file": "src/pipe", "unchanged": True}, "is changed")
+        (self.tree / "src/pipe").unlink()
+        (self.tree / "src/a.js").unlink()
+        os.mkfifo(self.tree / "src/a.js")  # a regular file replaced by a fifo
+        self.fails({"file": "src/a.js", "unchanged": True}, "is changed")
+
     def test_unchanged_on_a_folder_is_every_file_below_it(self):
         self.passes({"file": "src", "unchanged": True})
         self.passes({"file": ".", "unchanged": True})
@@ -691,6 +714,26 @@ class Commands(Base):
     def test_the_copy_drops_caches_compiled_files_and_git(self):
         lay(self.tree, {".git/HEAD": "ref\n", "src/__pycache__/x.pyc": "x", "m.pyc": "y", "keep/.git/HEAD": "ref\n"})
         self.passes({"command": "test ! -e .git && test ! -e src/__pycache__ && test ! -e m.pyc && test -f keep/.git/HEAD", "exit": 0})
+
+    def test_the_copy_holds_regular_files_only_and_a_special_file_is_neither_read_nor_executed(self):
+        # A fifo would block a read of the tree and a device node must not be reproduced in the scratch: only regular files
+        # (and links) are copied, so the command sees nothing of the special one, and the check does not hang.
+        os.mkfifo(self.tree / "src/pipe")
+        os.mkfifo(self.tree / "top.pipe")
+
+        def hung(*_):
+            raise AssertionError("the copy of the tree blocked on a fifo")
+
+        began, previous = time.monotonic(), signal.signal(signal.SIGALRM, hung)
+        signal.alarm(30)  # a copy that reads the fifo would block for ever: fail instead
+        try:
+            self.passes({"command": "test ! -e src/pipe && test ! -e top.pipe && test -f src/a.js && test -f README.md", "exit": 0,
+                         "timeout": 20})
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous)
+        self.assertLess(time.monotonic() - began, 15)
+        self.assertEqual(self.scratch_left(), [])
 
     def test_the_copy_keeps_a_symlink_that_stays_inside_as_a_link(self):
         (self.tree / "inner").symlink_to("src")

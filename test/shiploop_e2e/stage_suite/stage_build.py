@@ -159,6 +159,8 @@ def _safe_path(path: str) -> str | None:
         return "is absolute"
     if ".." in path.split("/"):
         return "climbs out with '..'"
+    if not [part for part in path.split("/") if part not in ("", ".")]:
+        return "names the tree itself, not a file below it"
     return None
 
 
@@ -508,8 +510,10 @@ def reference_bundle(sc: Scenario, name: str, tmp: Path) -> tuple[stage_oracle.B
         _lay(folder / "tree", tree)
     if (folder / "deleted.txt").is_file():
         for line in _deleted(folder / "deleted.txt"):
+            if problem := _safe_path(line):
+                raise ScenarioError([f"{sc.id}: reference/{name}/deleted.txt names {line!r}, which {problem}"])
             target = tree / line
-            if _safe_path(line) or not (target.exists() or target.is_symlink()):
+            if not (target.exists() or target.is_symlink()):
                 raise ScenarioError([f"{sc.id}: reference/{name}/deleted.txt names {line!r}, which the tree does not hold"])
             shutil.rmtree(target) if target.is_dir() and not target.is_symlink() else target.unlink()
     meta = json.loads((folder / "meta.json").read_text()) if (folder / "meta.json").is_file() else {}
@@ -701,4 +705,3 @@ def render(sc: Scenario, out: Path, *, cli: Path | None = None) -> stage_oracle.
     return stage_oracle.Bundle(result=None, tree=built.worktree, seed_tree=snapshot, run_dir=built.run_dir,
                                trace=_trace(built.run_dir), packet=packet, packet_head=done.stdout, issued=built.issued,
                                settled=built.settled, current_stage=navigator.current_stage(state), scenario_dir=sc.dir)
-

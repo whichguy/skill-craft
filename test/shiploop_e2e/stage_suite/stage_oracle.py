@@ -28,8 +28,10 @@ Rules the checks keep (each is pinned by test/shiploop-e2e-stage-oracle.test.py)
   top-level ``.git`` (version-control metadata, not a change). A path that resolves outside its tree (``..``, an absolute
   path, a symlink that leaves it) fails the check and is never read; a symlink met while walking a folder is compared by its
   target and never followed. The last component of a ``file`` path is looked at as it is: ``exists`` is true for a link that
-  dangles, and ``unchanged`` of a link is its target string (a file replaced by a link to the same bytes is a change).
-- ``command`` and ``stand_in`` run ``/bin/sh -c`` in a scratch COPY of the tree (no ``.git``; a symlink is kept as a link only
+  dangles, and ``unchanged`` of a link is its target string (a file replaced by a link to the same bytes is a change). A fifo,
+  socket or device node is an entry of its own (neither read nor copied): added or removed, it is a change for ``unchanged`` as
+  for ``changed_only``.
+- ``command`` and ``stand_in`` run ``/bin/sh -c`` in a scratch COPY of the tree (regular files only, no ``.git``; a symlink is kept as a link only
   when its target stays inside the copy, any other is left out so that a command cannot write through it into the tree, the
   seed or the scenario), stdin closed, in a session of their own whose group is killed at the timeout (default 120 s) and again
   when the command ends, with the environment cut to PATH, HOME and TMPDIR (scratch folders), LC_ALL=C and
@@ -394,14 +396,16 @@ def _files(folder: str, top: bool) -> dict[str, tuple]:
 
 
 def _state(entry: str, top: bool) -> dict[str, tuple]:
-    """The entries at one path (its last component not resolved): a folder's files, a file or a symlink as {"": entry}, an
-    absent path as {}."""
+    """The entries at one path (its last component not resolved): a folder's files, a file, a symlink or any other kind of file
+    (a fifo, a socket, a device node: ("special",), as `_files` records it) as {"": entry}, an absent path as {}."""
     if os.path.islink(entry):
         return {"": ("link", os.readlink(entry))}
     if os.path.isdir(entry):
         return _files(entry, top)
     if os.path.isfile(entry):
         return {"": ("file", entry, bool(os.stat(entry).st_mode & stat.S_IXUSR))}
+    if os.path.lexists(entry):
+        return {"": ("special",)}
     return {}
 
 

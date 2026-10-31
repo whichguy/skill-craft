@@ -54,6 +54,7 @@ class IntegrationBoundaryTests(unittest.TestCase):
             result = invoke(argv, empty_env)
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertIn("shiploop-e2e", result.stdout)
+            self.assertIn("shiploop-stages", result.stdout)
             self.assertIn("cursor-imports", result.stdout)
             self.assertIn("marketplace-claude", result.stdout)
             self.assertIn("backchain-chunks", result.stdout)
