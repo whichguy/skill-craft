@@ -187,9 +187,9 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "concerns_gate": re.compile(r"concern rows are|concerns is (?:an object|a list)|unknown concern|concern \S+ is "
                                 r"(?:listed|mapped) twice|concerns names items that are not in work_items|no step "
                                 r"delivers|concerns maps concerns the plan does not give"),
-    # An open plan assumption's due_item and an expectation's "from" must name each other both ways
-    # (shiploop_expectations.py:396-399).
-    "assumptions_due_item": re.compile(r"expectations cite from .+, which is not an open plan assumption|"
+    # An open plan assumption's due_item and an expectation's or criterion's "from" must name each other both ways
+    # (shiploop_expectations.check_step_plan).
+    "assumptions_due_item": re.compile(r"(?:expectations|criteria) cite from .+, which is not an open plan assumption|"
                                        r"open plan assumptions .+ name .+ as (?:due_item|consumer)"),
     # Open-item (assumptions) record shape (shiploop_assumptions.py).
     "assumptions_gate": re.compile(r"assumption \S+ is listed twice|assumptions is a list of"),

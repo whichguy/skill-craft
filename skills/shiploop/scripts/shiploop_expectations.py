@@ -356,8 +356,8 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
     step-plan entry).  Refused: a missing or malformed ``expectations``; a check that is not one read-only shell
     command; an expectation naming an unknown step; an existing step path with no works or broken expectation, or a
     new one with no absent expectation; a works or broken path missing on the base, or an absent path present there;
-    an open plan assumption whose due_item is this item and that no expectation cites in ``from`` (or a ``from``
-    naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a plan of two
+    an open plan assumption whose due_item is this item and that no expectation or executed criterion cites in
+    ``from`` (or a ``from`` naming none of them); a non-empty ``test_commands`` without a check row or ``check_na`` (or both); a plan of two
     or more steps with test commands but no regression command marked ``minimum`` and no ``minimum_na`` (or both); a
     step without ``skills``; and a skill locator that does not exist.  Raises ExpectationError.
     """
@@ -412,14 +412,22 @@ def check_step_plan(root: Path, state: Mapping[str, Any], result: Mapping[str, A
           + ". Every path a step changes that exists on " + where + " needs a works or broken expectation, and every "
           "new path an absent one.")
     if work_item:
+        # An open item is settled here by an executed criterion (its test runs after the build) or, for a fact about
+        # what exists, by an expectation (its check runs on the unchanged base).  Expectations alone could not settle an
+        # item about what the item builds: of the 15 runs this check refused before 2026-10-31, 10 of 11 such items
+        # were met with a check that settled nothing (an org that answers, a file that is absent) and 1 run stopped.
         opened = {str(row.get("id")) for row in open_assumptions(state, work_item)}
-        cited = {row["from"] for row in rows if "from" in row}
-        stray = sorted(cited - opened)
-        _need(not stray, "expectations cite from " + ", ".join(stray) + ", which is not an open plan assumption "
-              "whose due_item is " + work_item + (" (those are " + ", ".join(sorted(opened)) + ")" if opened else ""))
-        uncited = sorted(opened - cited)
+        by_expectation = {row["from"] for row in rows if "from" in row}
+        by_criterion = {str(row["from"]) for row in result.get("criteria") or () if isinstance(row, Mapping)
+                        and row.get("from")}
+        for label, cited in (("expectations", by_expectation), ("criteria", by_criterion)):
+            stray = sorted(cited - opened)
+            _need(not stray, label + " cite from " + ", ".join(stray) + ", which is not an open plan assumption "
+                  "whose due_item is " + work_item + (" (those are " + ", ".join(sorted(opened)) + ")" if opened else ""))
+        uncited = sorted(opened - by_expectation - by_criterion)
         _need(not uncited, "open plan assumptions " + ", ".join(uncited) + " name " + work_item + " as due_item; "
-              "add an expectation for each with \"from\": \"<assumption id>\" and a check that settles it")
+              "settle each here: an executed criterion with \"from\": \"<assumption id>\" that this item's tests "
+              "confirm, or, for a fact about what exists, an expectation with \"from\" whose check holds on the base")
 
 
 def _check_check_suite(result: Mapping[str, Any]) -> None:
