@@ -642,10 +642,10 @@ samples in §7d:
      state and HTTP cannot reach (§7d item 3).
 5. **By the request, T is no better than A.** A second evaluator, written in a fork of this session, runs each sample's
    suite over ten one-line variants of the recorded implementation, each breaking a sentence of the request and each
-   shown by an HTTP witness to differ from it. It lives on branch `exp/e7-request-9115f2`, not on main when this was
-   written: commit 1869e45a holds the evaluator and the 24 A, D and C runs, and 932271b7 holds T's row, in
-   `docs/experiments/test-stage-prompt-20261030/e7-request.md`. (Commit fc98c399's message cites 1869e45a by its
-   pre-rebase hash, 6963eeea.)
+   shown by an HTTP witness to differ from it. It is on main: commit 56a1f7b6 holds the evaluator
+   (`test/shiploop_e2e/evaluators/e7_request.py`) and the 24 A, D and C runs, and 143dba28 holds T's row, in
+   `docs/experiments/test-stage-prompt-20261030/e7-request.md`. (Those commits were rebased before the push. The messages
+   of c6c810b0 and 218addac cite them by earlier hashes: 6963eeea and 1869e45a for 56a1f7b6, 932271b7 for 143dba28.)
    - A, D and C: all 24 runs kill all ten variants, as does T (8 of 8: request score 1.000, `request-score.json` in each
      T sample). The tests that existed before the test stage kill none of the ten.
    - So the request measure is saturated and cannot rank any arm.
@@ -675,7 +675,7 @@ What this settles, and what it does not:
 Evidence: e7-results.json (E7-F rows gain `stage_mutation`: the refusals told, from RUN/trace.jsonl, the last counted
 check's sites, and the dispositions); e7_analysis.py prints this table's p values and the per-site end state;
 ~/e2e-runs/e7-20261030/E7-F/T/ (score.json, request-score.json) and decision-A-T.json; the request evaluator and
-its write-up on branch exp/e7-request-9115f2; journal lines in docs/shiploop-template-experiments-journal.md.
+its write-up (e7-request.md); journal lines in docs/shiploop-template-experiments-journal.md.
 
 ## 8. Out of scope here: the UI verification route (Salesforce run, 2026-10-30)
 
@@ -737,7 +737,7 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | The 8-mutant stage sample never drew a surviving limit or guard mutant (0–6 drawn per run, all killed, in 12 of 12 runs); the gate's one survivor was an `integer` mutant | firm for these runs | RUN/tests/*-mutation-check.md of ~/e2e-runs/e7-20261030/E7-K*/M/* |
 | 2026-10-30 | `experiment.py decide`'s 2-against-2 A/A spread understated A's sd (0.13 against 0.27) and labelled A/A-sized gaps "supports" | firm (E7-K2) | §7b item 2 |
 | 2026-10-30 | E7-K2's limit and guard sites all sit in one load-path guard. Implement wrote it with 5 sites in 16 of 36 runs (mean 0.75), 6 in 13 (0.44), 7 in 1, and not at all in 6 (the test stage added it). C drew five 5-site runs, A three. Among 5-site runs C is below A | firm counts (step-proof trees); the arm reading is a stratified look at small cells | §7c; e7-results.json (`implement_sites`) |
-| 2026-10-30 | E7-F built: `slice.py --seed-at test --seed-from` holds test-spec, implement and implement's files fixed. The seeded test packet equals the source's own but for three evidence locators. Source E7-K2 A/6, and the decision rule, fixed before any run | firm (dry seed, smoke slice, hermetic test) | §7c; ff6a4e72 |
+| 2026-10-30 | E7-F built: `slice.py --seed-at test --seed-from` holds test-spec, implement and implement's files fixed. The seeded test packet equals the source's own but for three evidence locators. Source E7-K2 A/6, and the decision rule, fixed before any run | firm (dry seed, smoke slice, hermetic test) | §7c; 390826b3 |
 | 2026-10-30 | E7-F decided: no arm adopted. A 0.604 (sd 0.086), D 0.625 (+0.02, p 0.50), C 0.583 (−0.02, p 0.84); A's split-half gap 0.04. The test stage left the implementation as recorded in 24 of 24 runs | firm for this implementation (one model, one case) | §7d; e7-results.json; e7_analysis.py |
 | 2026-10-30 | With implement fixed, A's sd fell from 0.27 to 0.09: implement, not the test prompt, was most of E7-K2's variance | firm (E7-K2 against E7-F) | §7d item 2 |
 | 2026-10-30 | Survivors are the same in every arm: a trimmed-name invariant the code introduced (both `||` mutants together in 21 of 24 runs, at least one in all 24, though C and D printed the diff), and the 64-character load bound (4 of 8 runs per arm) | firm for these runs | §7d item 3; e7-results.json (`target_survivors`) |
@@ -746,5 +746,5 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | E7-F arm T built (D6): M's catalog with a line-ending logic-flip, and limit and guard mutants sampled first. A dry run on the fixed implementation: today's and M's samples are the same 8 mutants, none limit or guard; M's `(?=\s)` misses persistence.js:144:118; T's sample is the evaluator's 6 sites. In A's 8 runs no refusal named any of the 6 | firm (the dry run and A's mutation records); T's result pending | §7e; overlays/e7-t.json; ~/e2e-runs/e7-20261030/E7-F/A/*/slice/.shiploop-runs/seed/run/tests/*-mutation1.md |
 | 2026-10-30 | The test stage's first mutation `check` was refused once in every A, D and C run (D/8 twice), naming the same three non-target survivors (persistence.js 144:23, 145:52, validate.js:12:55); it killed them. The loop fired, aimed at mutants the draft nearly caught. This corrects the §7e wording that read only the counted record | firm | §7e; RUN/trace.jsonl of each E7-F run; e7-results.json (`stage_mutation.told`) |
 | 2026-10-30 | E7-F arm T (D6): all 8 runs killed all six scored sites (1.00 against A's 0.60; exact p 0.0001; gain 0.396 against A's gap 0.042). One refusal per run, as in A; no dispositions; test stage 82 s against 91 s; implementation untouched 8 of 8 | firm for these runs; the sample and the score read the same sites | §7f; ~/e2e-runs/e7-20261030/E7-F/decision-A-T.json |
-| 2026-10-30 | By the request all four arms score 1.00: every A, D, C and T run kills all ten request-breaking variants of the fixed implementation (the tests before the test stage kill none), and all 57 mutant survivors of A, D and C sit on persistence.js:144 and 145, load-time validation the request never mentions. T's mutant gain is the closing of those code-introduced checks | firm for this case, implementation and model (a variant set written after reading the code) | §7f item 5; branch exp/e7-request-9115f2 (1869e45a, 932271b7), e7-request.md; ~/e2e-runs/e7-20261030/E7-F/{A,D,C,T}/<n>/request-score.json |
+| 2026-10-30 | By the request all four arms score 1.00: every A, D, C and T run kills all ten request-breaking variants of the fixed implementation (the tests before the test stage kill none), and all 57 mutant survivors of A, D and C sit on persistence.js:144 and 145, load-time validation the request never mentions. T's mutant gain is the closing of those code-introduced checks | firm for this case, implementation and model (a variant set written after reading the code) | §7f item 5; 56a1f7b6 and 143dba28, e7-request.md; ~/e2e-runs/e7-20261030/E7-F/{A,D,C,T}/<n>/request-score.json |
 | 2026-10-30 | D6 not adopted: the owner answered "Yes, skip D6" (relayed by the fork session [140a9a]; not confirmed in this session). Arm T is an experiment-only result and nothing in ShipLoop changes | firm (owner decision, relayed) | §9 |
