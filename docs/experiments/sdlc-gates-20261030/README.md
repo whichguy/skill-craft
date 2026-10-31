@@ -56,7 +56,8 @@ case: `node-seeded-case-compare`, `node-seeded-numeric-sort`, `node-seeded-empty
   nothing about the current build. Repinning moves the arms and is the owner's decision.
 - **Shape.** Each slice runs from step-plan to carry-forward, 4 samples per arm.
 - **Scoring.** `evaluators/sg2_recall.py` scores 1 when the defect is absent from the final tree. Beside it, it counts
-  the Improve fix commits, which tell a review's fix from a defect that was never written.
+  the Improve fix commits, which tell a review's fix from a defect that was never written. (Corrected 2026-10-31: the count also includes the step's own commit, whose message has a `Key learnings:` line,
+  so it was 1 in nine of nine smoke slices and tells nothing; see sg2-smoke-20261031.md.)
 - **Bar.** B is promoted when `decide` reads `supports` (an exact one-sided permutation test, p below 0.05, since D5,
   `a9e398e9`; with 4 binary samples per arm only 4 against 0 reaches it, and the A/A spread this section once named is
   gone), unless its minutes per sample exceed 1.5 times
@@ -85,7 +86,11 @@ full queue.
 **Status, 2026-10-30:** declared in PR #27 and verified with no model; not run. This container has no Codex CLI, and the
 `--host claude` route (DeepSeek flash on Ollama) is at its monthly limit.
 
-**Status, 2026-10-31:** read as one pooled experiment (below); still not run. The samples stay at 4 per arm.
+**Status, 2026-10-31:** read as one pooled experiment (below), samples at 4 per arm. The five-slice smoke then ran
+(sg2-smoke-20261031.md, evidence sg2-smoke-20261031.json) and stopped the pooled run by its own rule. Arm A scored 8 of 8;
+in nine of nine slices the carry-forward review changed nothing, because the producer (Terra at xhigh) wrote the
+specified behaviour correctly in the first place, so the cases measure the producer and not the review. The other 23
+slices were not run. SG2 as declared cannot answer its question on this subject; the options are in the smoke note.
 
 ### Pooled reading, 2026-10-31
 

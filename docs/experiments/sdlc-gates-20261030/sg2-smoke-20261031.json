@@ -1,0 +1,246 @@
+{
+  "source": "~/e2e-runs/sg2-20261031",
+  "summary": {
+    "samples": 9,
+    "scored_1": 9,
+    "reviews_by_class": {
+      "trivial": 9
+    },
+    "samples_with_a_product_file_changed_after_the_step_commit": 0,
+    "samples_where_improve_fix_commits_counted_the_step_commit": 9,
+    "minutes_per_slice": {
+      "A": {
+        "n": 8,
+        "mean": 4.92,
+        "min": 4.21,
+        "max": 5.66
+      },
+      "B": {
+        "n": 1,
+        "mean": 13.35,
+        "min": 13.35,
+        "max": 13.35
+      }
+    }
+  },
+  "samples": [
+    {
+      "sample": "SG2-K1/A/1",
+      "case": "node-seeded-case-compare",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 301.0,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "3f812fb feat(W1/S1): Implement Unicode code-point sorting without mutating input"
+      ],
+      "commits": [
+        "3f812fb feat(W1/S1): Implement Unicode code-point sorting without mutating input",
+        "3348098 docs(shiploop): record in-this-node-js-project-add-9aebf8 knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "Nothing; no review commit necessary."
+      },
+      "step_commit_learned": "Supplementary code points sort after U+E000 despite UTF-16 ordering.",
+      "step_commit_decision": "Use code-point iteration and lexicographic comparison because default JavaScript sort compares UTF-16 code units; copy before sort. Existing modules do not implement this behavior."
+    },
+    {
+      "sample": "SG2-K1/A/2",
+      "case": "node-seeded-case-compare",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 334.6,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "49f77b2 feat(W1/S1): Implement Unicode code-point name sorting without mutation"
+      ],
+      "commits": [
+        "49f77b2 feat(W1/S1): Implement Unicode code-point name sorting without mutation",
+        "5522a71 docs(shiploop): record in-this-node-js-project-add-5ddb3c knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "Nothing in this review; no commit required."
+      },
+      "step_commit_learned": "Supplementary characters need code-point comparison rather than default sort.",
+      "step_commit_decision": "Use explicit code-point comparison because JavaScript default sort compares UTF-16 units; copy first to preserve input."
+    },
+    {
+      "sample": "SG2-K1/B/1",
+      "case": "node-seeded-case-compare",
+      "delegation": "ask-agent",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 801.0,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "a104bb0 feat(W1/S1): Implemented Unicode code-point sorting with a fresh array and non-array rejection"
+      ],
+      "commits": [
+        "dfc091e Strengthen sortNames planning evidence and test handoff",
+        "8019549 docs(shiploop): record in-this-node-js-project-add-13ef19 knowledge after step-plan",
+        "a104bb0 feat(W1/S1): Implemented Unicode code-point sorting with a fresh array and non-array rejection",
+        "c9842c5 docs(shiploop): record in-this-node-js-project-add-13ef19 knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "None; inherited unstaged knowledge edits remain intact. No review commit is warranted."
+      },
+      "step_commit_learned": "The specified test cases cover the added behavior; the exact contract docstring is checked separately. No step skills were listed.",
+      "step_commit_decision": "Use a local comparator over built-in string iteration because no existing utility supplies Unicode code-point ordering; copy the array before sorting."
+    },
+    {
+      "sample": "SG2-K2/A/1",
+      "case": "node-seeded-numeric-sort",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 311.1,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "2453a4d feat(W1/S1): Implement the score selection export"
+      ],
+      "commits": [
+        "2453a4d feat(W1/S1): Implement the score selection export",
+        "0741269 docs(shiploop): record in-this-node-js-project-add-8faadd knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "None."
+      },
+      "step_commit_learned": "Array sort needs a numeric comparator for numerical ordering.",
+      "step_commit_decision": "Copy before numeric descending sort to preserve the input, then slice to n."
+    },
+    {
+      "sample": "SG2-K2/A/2",
+      "case": "node-seeded-numeric-sort",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 266.8,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "385832a feat(W1/S1): Implement topScores as a numeric sorted copy"
+      ],
+      "commits": [
+        "385832a feat(W1/S1): Implement topScores as a numeric sorted copy",
+        "d3372c2 docs(shiploop): record in-this-node-js-project-add-c9a917 knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "Nothing in this pass; inherited knowledge change remains for parent."
+      },
+      "step_commit_learned": "CommonJS exports match existing modules.",
+      "step_commit_decision": "Copy before numeric descending sort to preserve input; slice to requested count."
+    },
+    {
+      "sample": "SG2-K3/A/1",
+      "case": "node-seeded-empty-guard",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 252.8,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "d5c31bc feat(W1/S1): Implemented the exported mean function"
+      ],
+      "commits": [
+        "d5c31bc feat(W1/S1): Implemented the exported mean function",
+        "d0c4408 docs(shiploop): record in-this-node-js-project-add-37b993 knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "None in this review; carry-forward knowledge edit predated the bind and remains for ShipLoop to commit."
+      },
+      "step_commit_learned": "Existing modules use CommonJS and TypeError for argument checks.",
+      "step_commit_decision": "Validate array shape, return 0 for empty input, and sum without mutation."
+    },
+    {
+      "sample": "SG2-K3/A/2",
+      "case": "node-seeded-empty-guard",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 339.8,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "b5a7cf1 feat(W1/S1): Implemented the exported mean function"
+      ],
+      "commits": [
+        "b5a7cf1 feat(W1/S1): Implemented the exported mean function",
+        "731804e docs(shiploop): record in-this-node-js-project-add-309a6f knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "None."
+      },
+      "step_commit_learned": "node:test cases are planned for arithmetic, empty input and invalid input.",
+      "step_commit_decision": "A dedicated module is appropriate because no existing function computes a mean; empty input returns zero before division."
+    },
+    {
+      "sample": "SG2-K4/A/1",
+      "case": "node-seeded-early-validation",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 262.6,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "5f686eb feat(W1/S1): Implement bounded Basket"
+      ],
+      "commits": [
+        "5f686eb feat(W1/S1): Implement bounded Basket",
+        "228ae37 docs(shiploop): record in-this-node-js-project-add-a01d7d knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "Nothing."
+      },
+      "step_commit_learned": "The existing project uses CommonJS and node:test.",
+      "step_commit_decision": "Private array and limit preserve capacity; a separate class fits the requested distinct module rather than reusing unrelated utilities."
+    },
+    {
+      "sample": "SG2-K4/A/2",
+      "case": "node-seeded-early-validation",
+      "delegation": "inline",
+      "value": 1,
+      "slice_pass": true,
+      "seconds": 294.0,
+      "improve_fix_commits": 1,
+      "counted_commits": [
+        "da8b7bd feat(W1/S1): Implement bounded Basket with private ordered storage"
+      ],
+      "commits": [
+        "da8b7bd feat(W1/S1): Implement bounded Basket with private ordered storage",
+        "3988400 docs(shiploop): record in-this-node-js-project-add-45768d knowledge after carry-forward"
+      ],
+      "product_files_changed_after_step_commit": [],
+      "carry_forward_review": {
+        "reviews": 1,
+        "class": "trivial",
+        "changed": "none."
+      },
+      "step_commit_learned": "Overflow is checked before mutation; Array.push returns the exact new count.",
+      "step_commit_decision": "Private fields protect the capacity invariant; retain CommonJS named export."
+    }
+  ]
+}

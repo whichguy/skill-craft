@@ -228,6 +228,9 @@ four cases tested together, docs/experiments/sdlc-gates-20261030/sg2_pool.py. Th
 
 **Limit.** A seeded slice gives the inline reviewer the stage's records, not a long producer conversation, so it
 understates the self-review the research describes. A gain under that handicap counts for more, not less.
+(2026-10-31, after a five-slice smoke on Terra at xhigh, docs/experiments/sdlc-gates-20261030/sg2-smoke-20261031.md: the
+inline review scored 8 of 8 and changed nothing in nine of nine slices, because the producer wrote the specified behaviour
+correctly. These four cases do not test the review on this subject, so SG2 as declared stopped; D3b has no result.)
 
 SG4 (same failure on an unchanged tree) was planned and is dropped: the audit in §2b answered it.
 
