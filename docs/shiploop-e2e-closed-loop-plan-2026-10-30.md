@@ -94,15 +94,62 @@ admitted one is the S-13 slip LR-20261030-8ff7a9). The rules the lessons became:
 predictions", Change admission's "Purpose", the promotion contract's "Qualified iteration" and the harness rule "A
 comparison that promotes is one registered epoch".
 
-**Still to change, in order.**
+**Still to change, in order** (rewritten 2026-10-31, after the owner's two decisions below).
 
 | Step | What | Where | Needs |
 |---|---|---|---|
-| 1 | Stage 3: same-build calibration, about 20 runs, no reviews | a fixed worktree of `main`; writes `docs/experiments/e2e-calibration-*/calibration.json` | the owner's go |
-| 2 | Decide D1 (tolerance, attempts) and D3 (limits); D4 for sampled reviews | the decisions table above | the owner |
-| 3 | Trim the cycle if the tolerance allows: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D1, D4 |
-| 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | step 1 |
-| 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | steps 1 to 4 |
+| 1 | Stage 3 (same-build calibration): **skipped by the owner**. The kit stays for a later measurement | `docs/experiments/e2e-calibration-20261031/` | nothing |
+| 2 | State the tolerance and attempts per cycle (`--tolerance`, `--attempts`, recorded as unmeasured; start at 0.25 or more). D3 (limits) and D4 (sampled reviews) remain open | the decisions table above | the owner |
+| 3 | Trim the cycle if the owner wants it cheaper: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D4 |
+| 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | live runs |
+| 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | live runs |
+
+All live runs need Codex Terra on the owner's computer. The Claude host is reachable from a cloud session, but see the
+gap below.
+
+**Corrections and cautions from the 2026-10-31 review of this work**
+- The journal span "from Case checks write nothing to Closed loop, stage 2" has 41 entries, not the 42 recorded in the
+  "Closed loop review" entry (LEARNINGS.md) and the page built from it. The 21-and-21 split was a hand classification,
+  a judgment call and not a measurement; a keyword heuristic on the headings also finds 21 harness or measurement
+  entries of 41. Read it as "about half".
+- **The release gate reads `LEARNINGS.md` commit order alone, and it is already open.** Any commit touching that file counts
+  as an E2E journal entry that covers every earlier ShipLoop commit. This review first found the hazard (an unrelated
+  correction there would clear the refusal on c468b25c, a ShipLoop change with no round and no `No-E2E-Round` trailer),
+  and kept its corrections out of that file for that reason. The gate had already opened: LEARNINGS commits by other
+  sessions after c468b25c (8ff81566, 09a0f19c, 3ba1c25f, bff47775, 0929efd5) made `release.py --dry-run` pass (shiploop
+  1.23.3 to 1.24.0 with 3 notes). The message of 0929efd5 records the same finding, including that one of the changes
+  it lets through is the Apps Script card text the owner chose to hold until live evidence exists (5ca57d9e). An earlier
+  version of this note, and the message of the commit that added it (835e49d1), said the release was still refusing:
+  that was true at the last check, about two hours before it was written, and false when written. Nothing in this
+  session ran a real release (only `--dry-run`, which writes nothing). Holding the card text, or waiving its round as the
+  owner did in 527b9a3, is the owner's decision; nothing mechanical holds it now.
+- **Independent code review, 2026-10-31.** A fresh reviewer read the closed-loop Python with no conclusions from this
+  session and reported 14 defects plus tests that could not fail. Each one acted on got a failing test first, then a fix,
+  in the commit that follows this section. Fixed: a retry improver skipped the boundary gate; a confirmed DROP never
+  deferred its record; a rename could hide a deleted harness file and a crafted added line or git's `diff.noprefix` could
+  blind the probe-word check; the review's `prediction_follows` answer was never read; a second UNDECIDED cycle
+  overwrote the first candidate's ref; U+2028 in a title made the ledger unreadable; a list-valued `case` crashed
+  registration; the scoring digest ignored the modules the scorer imports; unknown guards and unjudged DROPs read as
+  more settled than they were; a prediction file added after registration was accepted; a row being appended could
+  be read as torn; and smaller items (an empty `same_as`, a tolerance of 1, a malformed calibration report, generic
+  words in the probe list).
+  **Not fixed, reported by the reviewer and not re-verified here:**
+  - Calibration method (only matters once a calibration exists): the 10% bar is per case, but a cycle compares two
+    cases and a simulation gave about 13% jointly; `load_calibration` never consults `quality_split_differs`,
+    `false_drop_risk`, the driver or the floors, and `spread` has no minimum sample.
+  - Roles and predictions: `roles_for` takes roles from the improver's own prediction, a small diagnostic effect can be
+    confirmed by noise, and a prediction's `record` is checked only for format.
+  - Test gaps: the two-attempts test would still pass if the lock around the seal or the intent were removed, so nothing
+    proves appends stay exclusive under the narrowed lock; the cycle tests mock `decide`, `launch_all` and the reviews, so
+    `review_all`, UNDECIDED, `loop()` and `explore()` are not run by them.
+  - Smaller: `spread._splits` builds every combination before sampling (24 attempts, 3 per arm: 378 MB), `epoch.state()`
+    reports contract /2 for an epoch registered as /1, UNKNOWN_LAUNCH leaves the record `in_candidate` with no event,
+    the "latest compared cycle" learning that ba51c3f gives the next improver carries the previous cycle's per-case table
+    including the generality case (this weakens the confirmation-exposure rule), and `review_all` records routes from
+    reviews that were not usable.
+- A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
+  harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
+  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.
 
 **Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
 want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement

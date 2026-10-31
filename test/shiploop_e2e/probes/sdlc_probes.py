@@ -14,15 +14,20 @@ Its lists follow the fidelity block's rules (SPEC.md, "A fidelity block is a rec
 The probes:
 * P1 ``suppressions``: lint and type suppression comments added to code or tests (``# noqa``, ``eslint-disable``, ...).
 * P2 ``earlier_test_edits``: a commit that changes a test file an earlier step or item of the run created, with the
-  assertion lines it removed and added.
+  assertion lines it removed and added. A step is told from its ``feat(item/step):`` subject; a run with no such subject
+  cannot say which step wrote a test, so it is unmeasured, and a commit with another subject is owner ``?``.
 * P3 ``model_commits``: read from the run's own metrics.json, never recounted (S-12). It reports ``commits.other.n``
   (counters.history: commits ShipLoop did not make), and the fidelity block's ``model_commits`` and ``script_owned`` edits
   (for example a ``sed -i`` of return-plan.md).
 * P5 ``new_dependencies``: dependency names a manifest gained (package.json, requirements*.txt, pyproject.toml, go.mod,
   and an Apps Script project's appsscript.json: its libraries and enabled advanced services). A repository with no such
   manifest at the start or at HEAD is unmeasured, never "none": it may declare its dependencies where this reader does
-  not look.
-* P6 ``secret_like``: added lines that match a known credential format. It reports the format and path, never the value.
+  not look. A manifest that does not parse, or a pyproject.toml read on a Python without tomllib (3.11+), makes the probe
+  unmeasured. A changed manifest of another kind (Cargo.toml, Gemfile, pom.xml, ...) is listed with ``name`` null and an
+  ``unread`` note, so ``n`` is a floor and a zero means zero in the manifests this reader parses.
+* P6 ``secret_like``: added lines that match a known credential format, the first format that matches per line. It
+  reports the format and path, never the value. Only the net diff from the start to HEAD is scanned, so a secret
+  committed and removed within the run is not reported.
 * P7 ``swallowed_errors``: added product-code lines that discard an error (``except: pass``, an empty ``catch``,
   ``|| true`` in a shell script).
 
@@ -96,28 +101,73 @@ ASSERTION = re.compile(r"\bassert\w*\b|\bexpect\s*\(|\.should\b|\bself\.assert\w
                        r"strictEqual|deepStrictEqual)\b|\bassert\.\w+\(")
 STEP_SUBJECT = re.compile(r"^feat\((?P<item>[^/()]+)/(?P<step>[^/()]+)\):")
 MANIFESTS = re.compile(r"(^|/)(package\.json|requirements[^/]*\.txt|pyproject\.toml|go\.mod|appsscript\.json)$")
+# Manifests of other ecosystems: a change to one is listed as unread, never counted as no change.
+UNREAD_MANIFESTS = re.compile(r"(^|/)(Cargo\.toml|Gemfile|pom\.xml|Pipfile|setup\.py|setup\.cfg|build\.gradle(\.kts)?|"
+                              r"composer\.json|mix\.exs|pubspec\.yaml|Package\.swift|environment\.ya?ml)$")
+# A requirement line's name, when it is followed by a specifier, an extra, a marker or nothing (not a ``git+https`` URL).
+REQUIREMENT = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:\[|[<>=!~;@ ,]|$)")
+DIFF_PROBES = ("suppressions", "secret_like", "swallowed_errors")
+
+
+class GitError(RuntimeError):
+    """A git command the reader needs failed. Its probes are unmeasured: a failure must never read as a count of nothing."""
 
 
 def git(tree: Path, *args: str) -> str:
-    done = subprocess.run(["git", "-C", str(tree), *args], capture_output=True, text=True, env=GIT_ENV, check=False)
-    return done.stdout if done.returncode == 0 else ""
+    """Stdout of a git command run in ``tree``; raises GitError when it fails. Undecodable bytes are replaced, and paths
+    are not quoted, so a non-UTF-8 or non-ASCII file never stops the reader or changes its name."""
+    done = subprocess.run(["git", "-c", "core.quotepath=false", "-C", str(tree), *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", env=GIT_ENV, check=False)
+    if done.returncode != 0:
+        raise GitError(f"git {args[0] if args else ''} failed (exit {done.returncode}): " + " ".join(done.stderr.split())[:160])
+    return done.stdout
+
+
+HUNK = re.compile(r"^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+
+
+def _header_path(target: str) -> Optional[str]:
+    target = target.strip()
+    if target.startswith('"') and target.endswith('"'):
+        try:
+            target = json.loads(target)
+        except ValueError:
+            target = target[1:-1]
+    return None if target == "/dev/null" else target[2:] if target.startswith("b/") else target
 
 
 def added_lines(diff: str) -> list[tuple[str, int, str]]:
-    """(path, new line number, text) for every added line of a unified diff."""
-    rows, path, number = [], None, 0
-    for line in diff.splitlines():
+    """(path, new line number, text) for every added line of a unified diff.
+
+    A hunk is read by the counts in its header, so a line whose own text starts with ``++`` or ``--`` is not taken for a
+    file header, and a ``\\ No newline at end of file`` marker is not a line."""
+    rows, path, lines, index = [], None, diff.splitlines(), 0
+    while index < len(lines):
+        line = lines[index]
+        index += 1
+        hunk = HUNK.match(line)
         if line.startswith("+++ "):
-            target = line[4:].strip()
-            path = None if target == "/dev/null" else target[2:] if target.startswith("b/") else target
-        elif line.startswith("@@"):
-            found = re.search(r"\+(\d+)", line)
-            number = int(found.group(1)) if found else 0
-        elif path is not None and line.startswith("+") and not line.startswith("+++"):
-            rows.append((path, number, line[1:]))
-            number += 1
-        elif path is not None and not line.startswith("-"):
-            number += 1
+            path = _header_path(line[4:])
+        elif hunk:
+            old = int(hunk.group(1)) if hunk.group(1) is not None else 1
+            new = int(hunk.group(3)) if hunk.group(3) is not None else 1
+            number = int(hunk.group(2))
+            while (old > 0 or new > 0) and index < len(lines):
+                body = lines[index]
+                if body.startswith("\\"):
+                    index += 1
+                    continue
+                if body.startswith("+") and new > 0:
+                    if path is not None:
+                        rows.append((path, number, body[1:]))
+                    number, new = number + 1, new - 1
+                elif body.startswith("-") and old > 0:
+                    old -= 1
+                elif body.startswith(" "):
+                    old, new, number = old - 1, new - 1, number + 1
+                else:
+                    break
+                index += 1
     return rows
 
 
@@ -129,9 +179,13 @@ def suppressions(added: Iterable[tuple[str, int, str]], classify: Callable[[str]
 
 
 def secret_like(added: Iterable[tuple[str, int, str]]) -> list[dict]:
-    """P6: added lines that match a known credential format; the value is never returned."""
-    return [{"path": path, "line": number, "format": name} for path, number, text in added
-            for name, pattern in SECRET_FORMATS.items() if pattern.search(text)]
+    """P6: added lines that match a known credential format (the first that matches); the value is never returned."""
+    rows = []
+    for path, number, text in added:
+        name = next((name for name, pattern in SECRET_FORMATS.items() if pattern.search(text)), None)
+        if name:
+            rows.append({"path": path, "line": number, "format": name})
+    return rows
 
 
 def swallowed_errors(added: list[tuple[str, int, str]], classify: Callable[[str], str]) -> list[dict]:
@@ -158,35 +212,40 @@ def _names(manifest: str, text: str) -> set[str]:
         return set()
     name = Path(manifest).name
     if name == "package.json":
-        try:
-            data = json.loads(text)
-        except ValueError:
-            return set()
+        data = json.loads(text)  # a manifest that does not parse raises ValueError: the probe is then unmeasured
+        if not isinstance(data, dict):
+            raise ValueError("not a JSON object")
         return {key for field in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies")
                 if isinstance(data.get(field), dict) for key in data[field]}
     if name.startswith("requirements") and name.endswith(".txt"):
-        found = (re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", line) for line in text.splitlines()
+        found = (REQUIREMENT.match(line) for line in text.splitlines()
                  if line.strip() and not line.lstrip().startswith(("#", "-")))
         return {match.group(1).lower() for match in found if match}
     if name == "pyproject.toml":
-        import tomllib  # noqa: PLC0415 - Python 3.11+
+        try:
+            import tomllib  # noqa: PLC0415 - Python 3.11+
+        except ImportError:
+            raise LookupError("pyproject.toml changed and this Python has no tomllib (3.11+), so its dependencies cannot "
+                              "be read") from None
         data = tomllib.loads(text)
         project = data.get("project") or {}
         listed = list(project.get("dependencies") or [])
         for extra in (project.get("optional-dependencies") or {}).values():
             listed += list(extra or [])
-        names = {match.group(1).lower() for match in (re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", str(item))
-                                                      for item in listed) if match}
-        poetry = ((data.get("tool") or {}).get("poetry") or {}).get("dependencies") or {}
-        return names | {key.lower() for key in poetry if key.lower() != "python"}
+        for group in (data.get("dependency-groups") or {}).values():  # PEP 735; an include-group entry is a table
+            listed += [item for item in group or () if isinstance(item, str)]
+        names = {match.group(1).lower() for match in (REQUIREMENT.match(str(item)) for item in listed) if match}
+        poetry = (data.get("tool") or {}).get("poetry") or {}
+        tables = [poetry.get("dependencies") or {}, poetry.get("dev-dependencies") or {}]
+        tables += [(group or {}).get("dependencies") or {} for group in (poetry.get("group") or {}).values()]
+        return names | {key.lower() for table in tables for key in table if key.lower() != "python"}
     if name == "go.mod":
         return set(re.findall(r"^\s*(?:require\s+)?([a-z0-9.-]+\.[a-z]{2,}/[^\s]+)\s+v\d", text, re.M))
     if name == "appsscript.json":
-        try:
-            data = json.loads(text)
-        except ValueError:
-            return set()
-        declared = data.get("dependencies") if isinstance(data, dict) and isinstance(data.get("dependencies"), dict) else {}
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("not a JSON object")
+        declared = data.get("dependencies") if isinstance(data.get("dependencies"), dict) else {}
         libraries = {"library:" + str(row["libraryId"]) for row in declared.get("libraries") or ()
                      if isinstance(row, dict) and row.get("libraryId")}
         services = {"service:" + str(row["serviceId"]) for row in declared.get("enabledAdvancedServices") or ()
@@ -202,17 +261,22 @@ def new_dependencies(tree: Path, start: Optional[str]) -> list[dict]:
     unmeasured (a plain ``LookupError``, which ``probe`` records with its reason), never none. An Apps Script project
     declares its dependencies in appsscript.json, and a project with no manifest at all may declare them anywhere."""
     base = start or EMPTY_TREE
-    present = [path for ref in ([start] if start else []) + ["HEAD"]
-               for path in git(tree, "ls-tree", "-r", "--name-only", ref).splitlines() if MANIFESTS.search(path)]
-    if not present:
+    at_start = set(git(tree, "ls-tree", "-r", "--name-only", start).splitlines()) if start else set()
+    at_head = set(git(tree, "ls-tree", "-r", "--name-only", "HEAD").splitlines())
+    if not any(MANIFESTS.search(path) for path in at_start | at_head):
         raise LookupError("no supported manifest (package.json, requirements*.txt, pyproject.toml, go.mod or "
                           "appsscript.json) at the start or at HEAD, so dependencies cannot be measured")
-    changed = [path for path in git(tree, "diff", "--name-only", base, "HEAD").splitlines() if MANIFESTS.search(path)]
+    changed = git(tree, "diff", "--name-only", base, "HEAD").splitlines()
     rows = []
-    for manifest in changed:
-        before = _names(manifest, git(tree, "show", f"{start}:{manifest}")) if start else set()
-        after = _names(manifest, git(tree, "show", f"HEAD:{manifest}"))
+    for manifest in (path for path in changed if MANIFESTS.search(path)):
+        try:
+            before = _names(manifest, git(tree, "show", f"{start}:{manifest}")) if manifest in at_start else set()
+            after = _names(manifest, git(tree, "show", f"HEAD:{manifest}")) if manifest in at_head else set()
+        except ValueError as exc:  # a manifest that does not parse would read as every name new, or none
+            raise ValueError(f"{manifest} does not parse: " + " ".join(str(exc).split())[:100]) from None
         rows += [{"manifest": manifest, "name": name} for name in sorted(after - before)]
+    rows += [{"manifest": path, "name": None, "unread": "a manifest this reader does not parse"}
+             for path in changed if UNREAD_MANIFESTS.search(path)]
     return rows
 
 
@@ -224,9 +288,12 @@ def earlier_test_edits(tree: Path, start: Optional[str], classify: Callable[[str
     counters.history does."""
     created: dict[str, str] = {}
     rows = []
-    for sha in git(tree, "rev-list", "--reverse", "--topo-order", "--all", *(["--not", start] if start else [])).split():
+    commits = git(tree, "rev-list", "--reverse", "--topo-order", "--all", *(["--not", start] if start else [])).split()
+    attributed = False
+    for sha in commits:
         subject = git(tree, "log", "-1", "--format=%s", sha).strip()
         match = STEP_SUBJECT.match(subject)
+        attributed = attributed or bool(match)
         owner = f"{match.group('item')}/{match.group('step')}" if match else "?"
         for status_line in git(tree, "diff-tree", "--root", "--no-commit-id", "-r", "--name-status", sha).splitlines():
             status, _, path = status_line.partition("\t")
@@ -242,6 +309,9 @@ def earlier_test_edits(tree: Path, start: Optional[str], classify: Callable[[str
                             and ASSERTION.search(line))
                 rows.append({"path": path, "created_by": created[path], "changed_by": owner, "commit": sha[:12],
                              "assertions_removed": removed, "assertions_added": added})
+    if commits and not attributed:
+        raise LookupError("no commit of the run has a ShipLoop feat(item/step) subject, so which step wrote a test cannot "
+                          "be told from which changed it")
     return rows
 
 
@@ -297,13 +367,19 @@ def probe(out: Path, root: Path = ROOT, classify: Optional[Callable[[str], str]]
             unmeasured.update({name: why for name in git_probes})
             return {"probes": found, "unmeasured": unmeasured}
         classify = classify or _classifier(root)
-        added = added_lines(git(work, "diff", "-M", "--unified=0", start or EMPTY_TREE, "HEAD"))
+        try:
+            added, diff_why = added_lines(git(work, "diff", "-M", "--unified=0", start or EMPTY_TREE, "HEAD")), None
+        except Exception as exc:  # noqa: BLE001 - a diff that cannot be read leaves its probes unmeasured, never 0
+            added, diff_why = [], _why(exc)
         runs = {"suppressions": lambda: suppressions(added, classify),
                 "earlier_test_edits": lambda: earlier_test_edits(work, start, classify),
                 "new_dependencies": lambda: new_dependencies(work, start),
                 "secret_like": lambda: secret_like(added),
                 "swallowed_errors": lambda: swallowed_errors(added, classify)}
         for name, run in runs.items():
+            if diff_why and name in DIFF_PROBES:
+                unmeasured[name] = diff_why
+                continue
             try:
                 found[name] = _facts(run())
             except LookupError as exc:  # a plain LookupError is a probe saying its input is not here: unmeasured, with why

@@ -376,9 +376,10 @@ _DURATION_SECONDS = {
     # The template-field experiments (experiment.py, overlay.py, evaluators/): 22 tests, three seeds on the checkout's CLI, an
     # overlaid plugin copy and each evaluator's verify (real node). 13 s locally on 2026-10-24.
     "test/shiploop-e2e-experiments.test.py": 14.0,
-    # The SDLC probes (test/shiploop_e2e/probes/sdlc_probes.py; docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4): 16 tests
-    # on one temporary output folder, its work repository and its delivery bundle, plus four small P5 runs. 0.7 s locally on 2026-10-31.
-    "test/shiploop-e2e-sdlc-probes.test.py": 0.5,
+    # The SDLC probes (test/shiploop_e2e/probes/sdlc_probes.py; docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4): 29 tests
+    # on one temporary output folder, its work repository and its delivery bundle, plus small P2, P5 and P6 runs and the diff
+    # parser. 1.5 s locally on 2026-10-31.
+    "test/shiploop-e2e-sdlc-probes.test.py": 1.5,
     # The stage suite (test/shiploop_e2e/stage_suite/, docs/plans/shiploop-stage-suite.md; no model), one file per module.  Local
     # wall seconds, 2026-10-30, serial runs at load average under 1: the oracle 105 tests, 4.3 s; the builder 43 tests, 6.5 s (its
     # seeds start real ShipLoop runs and Git); the runner 55 tests, 23 to 24 s at that time (the render tier builds real runs, about a second

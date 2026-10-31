@@ -58,12 +58,16 @@ keep large or tabular data out of them.
 
 A test that calls the deployed project, such as a web app URL or a function run in Google's runtime, reads the
 deployment and never the checkout. Once a step has pushed, the deployment already holds the item's change, so on the
-item's base the test passes for no fault of its own, and a mutant in the checkout's copy never reaches it. Name the
-deployment as a test-strategy target with `keeps_state: "yes"` and a `base_state_route`, and put that target on each
-test command that runs against it. ShipLoop then does not run those commands on the item's base, the mutation check
-skips them and records why, and the candidate runs still judge them. A step that changes deployed code names, in its
-Proof or in an expectation, one command that reads the deployed result: a passing local test does not show that the
-deployment changed.
+item's base the test passes for no fault of its own, and a mutant in the checkout's copy never reaches it. At
+test-strategy, name the deployment as a target with `keeps_state: "yes"` and a `base_state_route` (a clean target, an
+ordered deploy or an inventory check: ShipLoop checks only that it is not "n/a"), and put that target on each test
+command that runs against it. The target applies to the whole command, so keep deployed tests and local tests in
+separate commands. ShipLoop then does not run those commands on the item's base and the mutation check leaves them
+out; the candidate runs still judge them. When every focused command is left out, the mutation check records why and
+counts as skipped. When local commands remain, a mutant that no local test kills is recorded, not refused, and each
+survivor needs a disposition. A step that changes deployed code names, in its Proof, one command that reads the
+deployed result. An expectation cannot stand in for it: expectations are checked on the item's base, before the step,
+and a passing local test does not show that the deployment changed.
 
 ## Projects deployed with mcp-gas-deploy
 

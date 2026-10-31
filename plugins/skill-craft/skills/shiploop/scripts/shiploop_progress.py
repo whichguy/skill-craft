@@ -2,7 +2,9 @@
 
 The observer lock owns all progress output. The separate run lock is held only
 while sampling, without recovery. A browser reloads the complete HTML file;
-there is no HTTP listener, model call, or writable workflow mirror.
+there is no model call or writable workflow mirror. The one listener is the
+opt-in read-only viewer of ``shiploop_progress_serve``, which the user starts
+with ``view --serve``; the observer never starts it.
 """
 from __future__ import annotations
 
@@ -283,6 +285,11 @@ def start(root: Path, *, interval: float = 2.0, idle_timeout: float = IDLE_TIMEO
     return False
 
 
+def finished(root: Path) -> bool:
+    """True for a done or halted run: it has nothing left to observe."""
+    return store.read_record(root / "state.md").get("status") in ("done", "halted")
+
+
 def ensure(root: Path) -> None:
     """Best-effort default after a successful packet and after releasing run lock."""
     if os.environ.get("SHIPLOOP_PROGRESS", "watch").lower() == "off":
@@ -293,7 +300,7 @@ def ensure(root: Path) -> None:
             return
         # A done or halted run has nothing left to observe, and printing its last packet is a read: starting an
         # observer there wrote .progress.lock and refreshed context-index.md (shiploop-cross-run, terminal recovery).
-        if store.read_record(root / "state.md").get("status") in ("done", "halted"):
+        if finished(root):
             return
         if not start(root):
             print("ShipLoop progress observer unavailable; use view --start to retry.", file=sys.stderr)
@@ -316,6 +323,26 @@ def _positive(raw: str) -> float:
     return value
 
 
+def _port(raw: str) -> int:
+    value = int(raw)
+    if not 0 <= value <= 65535:
+        raise argparse.ArgumentTypeError("must be a TCP port from 0 to 65535")
+    return value
+
+
+def serve(root: Path, *, port: int | None, interval: float, idle_timeout: float) -> int:
+    """``view --serve``: keep the observer going for a live run, then serve the run's pages until interrupted."""
+    import shiploop_progress_serve as viewer
+
+    try:
+        if not finished(root) and not start(root, interval=interval, idle_timeout=idle_timeout):
+            print("ShipLoop progress observer unavailable; serving the pages already published.", file=sys.stderr)
+    except (OSError, ValueError, store.StorageError) as exc:
+        print(f"ShipLoop progress observer unavailable: {exc}; serving the pages already published.",
+              file=sys.stderr)
+    return viewer.serve(root, port=port)
+
+
 def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
     """Entry point of ``shiploop view``."""
     parser = argparse.ArgumentParser(prog="shiploop view", description=__doc__)
@@ -325,10 +352,17 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
     mode.add_argument("--start", action="store_true", help="start one detached observer")
     mode.add_argument("--stop", action="store_true", help="stop observation and disable automatic restarts")
     mode.add_argument("--status", action="store_true", help="read observer status without modifying state")
+    mode.add_argument("--serve", action="store_true",
+                      help="start the observer and serve the run's pages read-only on 127.0.0.1 until interrupted")
+    parser.add_argument("--port", type=_port, default=None,
+                        help="with --serve: the TCP port (default: one derived from the run directory; 0 lets the "
+                             "system pick)")
     parser.add_argument("--interval", type=_positive, default=2.0)
     parser.add_argument("--idle-timeout", type=_positive, default=IDLE_TIMEOUT)
     parser.add_argument("--instance", default="", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.port is not None and not args.serve:
+        parser.error("--port needs --serve")
     try:
         root = checked_root(Path(args.run_dir).expanduser())
         if core is not None:
@@ -341,9 +375,11 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
             stop(root)
             print("Progress stop requested; ShipLoop execution is unchanged.")
             return 0
-        if (args.start or args.watch) and not args.instance:
+        if (args.start or args.watch or args.serve) and not args.instance:
             if _regular(root / DISABLED, missing=True):
                 (root / DISABLED).unlink()
+        if args.serve:
+            return serve(root, port=args.port, interval=args.interval, idle_timeout=args.idle_timeout)
         if args.start:
             code = 0 if start(root, interval=args.interval, idle_timeout=args.idle_timeout) else 2
         else:

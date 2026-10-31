@@ -211,7 +211,8 @@ class CycleTest(unittest.TestCase):
         def cards(root):
             return (epoch.registration(root), json.loads((root / "prediction.json").read_text()),
                     [card("hello"), card("csv-report")], [card("hello", candidate_tokens), card("csv-report")])
-        review = review or mock.Mock(return_value={"validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok"})
+        review = review or mock.Mock(return_value={"validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok",
+                                                  "prediction_follows": True})
         with mock.patch.object(iterate, "improve", side_effect=improver or self.improver()), \
                 mock.patch.object(purpose_check, "review", review), \
                 mock.patch.object(cycle, "build", side_effect=builder or self.build), \
@@ -365,7 +366,8 @@ class CycleTest(unittest.TestCase):
         second_args = argparse.Namespace(**vars(self.args))
         with mock.patch.object(iterate, "improve", side_effect=self.improver(record=next_record)), \
                 mock.patch.object(purpose_check, "review", mock.Mock(return_value={
-                    "validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok"})), \
+                    "validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok",
+                                                  "prediction_follows": True})), \
                 mock.patch.object(cycle, "build", side_effect=self.identical_build):
             second = cycle.qualify(self.worktree, "loop-test", next_record, self.temp / "out" / "cycle-2",
                                    second_args, self.calibration)
@@ -433,7 +435,8 @@ class CycleTest(unittest.TestCase):
         second_args = argparse.Namespace(**vars(self.args))
         with mock.patch.object(iterate, "improve", side_effect=observe_second_status), \
                 mock.patch.object(purpose_check, "review", mock.Mock(return_value={
-                    "validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok"})), \
+                    "validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok",
+                                                  "prediction_follows": True})), \
                 mock.patch.object(cycle, "build", side_effect=self.identical_build):
             second = cycle.qualify(self.worktree, "loop-test", next_record, self.temp / "out" / "cycle-2",
                                     second_args, self.calibration)
@@ -591,7 +594,7 @@ class CycleTest(unittest.TestCase):
         self.assertIn("Improvement remains unmeasured", message)
 
     def test_a_probe_word_rejects_without_asking_the_review(self):
-        result, review = self.run_cycle(improver=self.improver("x = 2  # sink the fleet\n"))
+        result, review = self.run_cycle(improver=self.improver("x = 2  # sink the battleship\n"))
         self.assertEqual(result["decision"], "REJECTED_AT_PURPOSE")
         review.assert_not_called()
         self.assertIn("S-13", result["reasons"][0])
@@ -704,7 +707,8 @@ class CycleTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "do not also pass"):
             cycle.resolve_calibration(self.stated(calibration=Path("report.json"), tolerance=0.25), list(CASES))
         for given, why in ((self.stated(tolerance=0, attempts=3), "above 0"),
-                           (self.stated(tolerance=1.5, attempts=3), "at most 1"),
+                           (self.stated(tolerance=1.5, attempts=3), "below 1"),
+                           (self.stated(tolerance=1.0, attempts=3), "below 1"),
                            (self.stated(tolerance=float("nan"), attempts=3), "above 0"),
                            (self.stated(tolerance=0.25, attempts=0), "positive whole"),
                            (self.stated(tolerance=0.25, attempts=True), "positive whole")):
@@ -738,6 +742,54 @@ class CycleTest(unittest.TestCase):
         self.assertIn("3 attempts per arm, tolerance 0.25", message)
         self.assertIn("stated, not measured: the false-decision rate is unknown", message)
         self.assertNotIn("SHA256 `None`", message)
+
+
+    # The independent review of 2026-10-31.
+
+    def test_the_retry_improver_is_held_to_the_same_boundary_as_the_first(self):
+        calls = []
+        first = self.improver()
+
+        def improver(worktree, findings, stage, args, prompt=None):
+            calls.append(stage.name)
+            if len(calls) == 1:
+                return first(worktree, findings, stage, args, prompt=prompt)
+            stage.mkdir()
+            self.write("skills/shiploop/scripts/x.py", "x = 3  # edited and never committed\n")
+            return {"process": {"status": "exited"}, "report": {"prediction": self.prediction}, "base": self.tip,
+                    "commits": [], "changed": [], "out_of_scope": [], "uncommitted": [" M skills/shiploop/scripts/x.py"],
+                    "withheld": [], "held_out_named": 5, "grading": {"changed": ["oracle"]}}
+        review = mock.Mock(side_effect=[
+            {"validity": {"status": "valid"}, "verdict": "extra", "summary": "too much", "prediction_follows": True,
+             "files": []},
+            {"validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok", "prediction_follows": True}])
+        result, _ = self.run_cycle(improver=improver, review=review)
+        self.assertEqual(calls, ["improve", "improve-retry"])
+        self.assertEqual(result["decision"], "NO_CANDIDATE")
+        self.assertTrue(result["stop"], "a retry that names a held-out file or changes the grading must stop the loop")
+        self.assertEqual(review.call_count, 1, "the retry's work must not reach a second purpose review")
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assertFalse((self.temp / "out" / "cycle-1" / "epoch").exists())
+
+    def test_a_second_kept_candidate_for_the_same_record_does_not_overwrite_the_first(self):
+        candidates = []
+        for n in (1, 2):
+            self.write("skills/shiploop/scripts/x.py", f"x = {n + 1}\n")
+            self.git("commit", "-qam", f"candidate {n}")
+            candidates.append(self.git("rev-parse", "HEAD"))
+            cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[-1], "KEEP_AS_REF")
+        kept = self.git("for-each-ref", "--format=%(objectname)", "refs/shiploop-loop/loop-test").split()
+        self.assertEqual(sorted(kept), sorted(candidates))
+        # The same candidate kept twice reuses its ref.
+        self.git("checkout", "-q", candidates[1])
+        cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[1], "KEEP_AS_REF")
+        self.assertEqual(len(self.git("for-each-ref", "refs/shiploop-loop/loop-test").splitlines()), 2)
+
+    def test_a_malformed_calibration_report_is_a_refusal_not_a_traceback(self):
+        path = self.temp / "bad.json"
+        path.write_text(json.dumps({"contract": spread.CONTRACT, "cases": {case: {} for case in CASES}}))
+        with self.assertRaisesRegex(ValueError, "malformed"):
+            cycle.load_calibration(path, list(CASES))
 
 
 if __name__ == "__main__":

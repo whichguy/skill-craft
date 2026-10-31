@@ -1,0 +1,130 @@
+{
+  "battleship": {
+    "O1": {
+      "arm": "B",
+      "sample": 1,
+      "file": "battleship-B-s1.json"
+    },
+    "O2": {
+      "arm": "C",
+      "sample": 2,
+      "file": "battleship-C-s2.json"
+    },
+    "O3": {
+      "arm": "C",
+      "sample": 1,
+      "file": "battleship-C-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 2,
+      "file": "battleship-B-s2.json"
+    },
+    "O5": {
+      "arm": "A",
+      "sample": 2,
+      "file": "battleship-A-s2.json"
+    },
+    "O6": {
+      "arm": "A",
+      "sample": 1,
+      "file": "battleship-A-s1.json"
+    }
+  },
+  "csv-report": {
+    "O1": {
+      "arm": "B",
+      "sample": 2,
+      "file": "csv-report-B-s2.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 1,
+      "file": "csv-report-A-s1.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 2,
+      "file": "csv-report-A-s2.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "csv-report-B-s1.json"
+    },
+    "O5": {
+      "arm": "C",
+      "sample": 2,
+      "file": "csv-report-C-s2.json"
+    },
+    "O6": {
+      "arm": "C",
+      "sample": 1,
+      "file": "csv-report-C-s1.json"
+    }
+  },
+  "seat-reservations": {
+    "O1": {
+      "arm": "C",
+      "sample": 2,
+      "file": "seat-reservations-C-s2.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 2,
+      "file": "seat-reservations-A-s2.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 1,
+      "file": "seat-reservations-A-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "seat-reservations-B-s1.json"
+    },
+    "O5": {
+      "arm": "C",
+      "sample": 1,
+      "file": "seat-reservations-C-s1.json"
+    },
+    "O6": {
+      "arm": "B",
+      "sample": 2,
+      "file": "seat-reservations-B-s2.json"
+    }
+  },
+  "user-listing": {
+    "O1": {
+      "arm": "C",
+      "sample": 1,
+      "file": "user-listing-C-s1.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 1,
+      "file": "user-listing-A-s1.json"
+    },
+    "O3": {
+      "arm": "C",
+      "sample": 2,
+      "file": "user-listing-C-s2.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 2,
+      "file": "user-listing-A-s2.json"
+    },
+    "O5": {
+      "arm": "B",
+      "sample": 1,
+      "file": "user-listing-B-s1.json"
+    },
+    "O6": {
+      "arm": "B",
+      "sample": 2,
+      "file": "user-listing-B-s2.json"
+    }
+  }
+}

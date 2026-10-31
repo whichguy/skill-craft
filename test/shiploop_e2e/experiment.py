@@ -324,7 +324,9 @@ def permutation_p(control: list[float], candidate: list[float]) -> float:
     """The exact one-sided p that ``candidate``'s mean exceeds ``control``'s by chance: the share of the ways to split the
     pooled values into groups of the two sizes whose (candidate minus control) mean difference is at least the observed
     one. Values are compared as exact decimals, so ties are ties; the count is a dynamic programme over group sums, not an
-    enumeration, so it stays fast for any realistic number of samples."""
+    enumeration. Its cost follows the number of distinct group sums, so it is quick for the evaluators' values (binary,
+    or rounded to 4 decimals: 13 against 13 took 0.25 s) and grows steeply for unrounded floats (12 against 12: 3 s and
+    1 GB; 14 against 14: 50 s and 17 GB), which no evaluator returns."""
     values = [Decimal(repr(float(v))) for v in control + candidate]
     exponent = min(v.as_tuple().exponent for v in values)
     scaled = [int(v.scaleb(-exponent)) for v in values]

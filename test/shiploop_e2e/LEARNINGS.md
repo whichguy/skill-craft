@@ -4774,27 +4774,18 @@ decision. This was seen once, on a run the apparatus broke; it has not been repr
 **Not covered.**
 - Only one run, on one host.
 - The marketplace install path itself: the gate refused it, though the bytes come from the same release commit's tree.
+- Any ShipLoop change after 5ef936ab. This entry's commit landed after dc312cd1 and c468b25c (the Apps Script card's
+  Testing section), but the round ran on 5ef936ab's tree, so it is no evidence for them. The release preflight reads the
+  commit order alone. *(Added 2026-10-30 in the quality review.)*
 
 Evidence: `docs/experiments/document-stage-20261030/hello-2.24.3/{no-plugin-5fb43e,pass-0c81bf}/`. Both attempts have
 baseline rows. Attempt 1's row is `pass: false` and did not reach done, so no comparison reads it.
 
-## Stage suite core on macOS: two causes, three failing tests (2026-10-30) — status: firm; a test-apparatus fix, nothing live
+## Stage suite core on macOS: two causes, three failing tests (2026-10-30) — status: moved
 
-The stage suite core (c8af6a5c, built in a Linux container) failed 3 tests in quick on macOS, on a clean origin/main too:
-
-- **`stage_build.build` gave two spellings of one folder.** `run_dir` came from `out` as the caller gave it
-  (`/var/folders/…`). `worktree` came from `state.md`, which ShipLoop records resolved (`/private/var/folders/…`). The
-  same split happens under any symlinked output folder, Linux included.
-  - The fix: `build` and `render` resolve `out` first.
-  - The test: `Builds.test_a_build_through_a_symlinked_folder_spells_each_path_one_way`, which fails on the old builder.
-  - The class's temp root is resolved to match.
-- **The oracle's environment probe counted a macOS variable as inherited.** CoreFoundation gives every process
-  `__CF_USER_TEXT_ENCODING` at start, even under `env -i`. The oracle's cut is right: it passes five variables. The
-  probe now ignores that name, as it ignores the shell's own `PWD`, `SHLVL` and `_`.
-
-After the fix, quick (`--changed-from origin/main`) passes all 49 suites on this Mac. The stage_suite files are outside
-`boundary.fingerprint`, so the evaluator digest is unchanged.
-
+*Moved 2026-10-30 to `docs/shiploop-stage-suite-journal.md`.* It is a hermetic test-apparatus fix that ran
+nothing live, and this file is for E2E rounds. The release preflight reads this file's commits as covering every
+earlier ShipLoop change, so a non-round entry here vouches for changes no round tested. The fix itself is 09a0f19c.
 
 ## Real UI observation and generic evidence handoff — apparatus win (2026-10-30)
 

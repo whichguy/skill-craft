@@ -1116,12 +1116,27 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn("\n## Testing\n", card)
         section = " ".join(card.split("\n## Testing\n")[1].split("\n## ")[0].split())
         for phrase in ('`keeps_state: "yes"`', "`base_state_route`", "put that target on each test command",
-                       "does not run those commands on the item's base", "the mutation check skips them and records why",
-                       "names, in its Proof or in an expectation, one command that reads the deployed result"):
+                       "keep deployed tests and local tests in separate commands",
+                       "does not run those commands on the item's base and the mutation check leaves them out",
+                       "records why and counts as skipped", "each survivor needs a disposition",
+                       "names, in its Proof, one command that reads the deployed result",
+                       "expectations are checked on the item's base, before the step"):
             self.assertIn(phrase, section)
+        # The first wording put the deployed-result command in "a Proof or an expectation" and said the mutation check
+        # always records why. Neither held (independent review, 2026-10-31): expectations run only on the item's base, and
+        # the reason is recorded only when every focused command is left out.
+        self.assertNotIn("in its Proof or in an expectation", section)
+        self.assertNotIn("skips them and records why", section)
         loop = (SCRIPTS / "shiploop_test_loop.py").read_text(encoding="utf-8")
         for name in ('"keeps_state"', "base_state_route", 'row.get("target")'):
             self.assertIn(name, loop)
+        mutation = (SCRIPTS / "shiploop_mutation.py").read_text(encoding="utf-8")
+        for name in ("remote_commands_skipped", "every focused command tests a deployed target"):
+            self.assertIn(name, mutation)
+        self.assertIn("ShipLoop runs every check on the unchanged item base at validate-existing",
+                      " ".join(prompts.DUTIES["step-plan"].split()))
+        layers = (SCRIPTS / "shiploop_test_layers.py").read_text(encoding="utf-8")
+        self.assertIn('not in ("n/a", "na", "none")', layers)  # the only check on a base_state_route's content
 
     def test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check(self) -> None:
         """Packet review 2026-10-17 (F-7, X-1) and the implement-step plan's access row: the consumer's entry route and

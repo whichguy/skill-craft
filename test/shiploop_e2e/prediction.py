@@ -56,7 +56,12 @@ def kind(measure: str) -> str:
 
 
 def _finite(value) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:  # an int too large for a float
+        return False
 
 
 def validate(prediction, registration: dict) -> dict:
@@ -82,7 +87,7 @@ def validate(prediction, registration: dict) -> dict:
         where = f"effects[{index}]"
         if not isinstance(effect, dict) or set(effect) != {"case", "measure", "direction", "at_least"}:
             raise ValueError(f"{where} needs exactly case, measure, direction and at_least")
-        if effect["case"] not in cases:
+        if not isinstance(effect["case"], str) or effect["case"] not in cases:
             raise ValueError(f"{where}.case {effect['case']!r} is not a registered case")
         measured = kind(effect["measure"])
         if effect["direction"] not in DIRECTIONS:
@@ -99,7 +104,7 @@ def validate(prediction, registration: dict) -> dict:
         where = f"guards[{index}]"
         if not isinstance(guard, dict) or set(guard) != {"case", "measure", "direction"}:
             raise ValueError(f"{where} needs exactly case, measure and direction")
-        if guard["case"] != "*" and guard["case"] not in cases:
+        if not isinstance(guard["case"], str) or (guard["case"] != "*" and guard["case"] not in cases):
             raise ValueError(f"{where}.case {guard['case']!r} is neither * nor a registered case")
         kind(guard["measure"])
         if guard["direction"] not in GUARD_DIRECTIONS:
@@ -185,8 +190,8 @@ def verdict(prediction: dict, registration: dict, control: list[dict], candidate
     found = [row["verdict"] for row in effects]
     if "refuted" in found or any(row["held"] is False for row in guards):
         overall = "refuted"
-    elif "unknown" in found:
-        overall = "unknown"
+    elif "unknown" in found or any(row["held"] is None for row in guards):
+        overall = "unknown"  # a guard nobody could measure is not a guard that held
     elif all(value == "confirmed" for value in found):
         overall = "confirmed"
     else:
@@ -211,6 +216,9 @@ def outcome(decision: str, judged: dict, reasons: list[str] | None = None) -> di
         if found == "refuted":
             return {"outcome": "refuted", "reason": f"dropped, and the prediction was refuted: {why}",
                     "reopen_when": "new evidence that the measure can move this way"}
+        if found == "unknown":
+            return {"outcome": "deferred", "reason": f"dropped, and the prediction could not be judged: {why}",
+                    "reopen_when": "evidence that can judge the prediction"}
         return {"outcome": "no_effect", "reason": f"dropped, and the prediction was {found}: {why}",
                 "reopen_when": "new evidence that the change moves the measure"}
     return {"outcome": "admitted", "reason": f"undecided: {why or 'the comparison could not decide'}",

@@ -1,0 +1,949 @@
+{
+  "runs": [
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 1,
+      "label": "O1",
+      "recall": 1.0,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 3,
+      "items_total": 19,
+      "noise": 3,
+      "noise_examples": [
+        "Q1: who uses the result and through which entry point",
+        "Q16: local-only delivery and required access",
+        "Q19: generic risk watch list"
+      ],
+      "questions": 19,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 1,
+        "default": 16,
+        "person": 0
+      },
+      "chars": 22995,
+      "seconds": 215,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 2,
+      "label": "O2",
+      "recall": 1.0,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [],
+      "default_yes": 7,
+      "default_no": 2,
+      "items_total": 8,
+      "noise": 1,
+      "noise_examples": [
+        "Q8: where the result becomes usable and whether the run is isolated"
+      ],
+      "questions": 8,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 5,
+        "person": 0
+      },
+      "chars": 13197,
+      "seconds": 95,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 1,
+      "label": "O3",
+      "recall": 0.8888888888888888,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS9"
+      ],
+      "missed": [
+        "BS8"
+      ],
+      "default_yes": 8,
+      "default_no": 0,
+      "items_total": 9,
+      "noise": 1,
+      "noise_examples": [
+        "Q9: whether hosting or deployment is wanted"
+      ],
+      "questions": 9,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 7,
+        "person": 1
+      },
+      "chars": 12426,
+      "seconds": 123,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 2,
+      "label": "O4",
+      "recall": 1.0,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 3,
+      "items_total": 13,
+      "noise": 3,
+      "noise_examples": [
+        "Q1: who uses the game and through which entry point",
+        "Q11: local-only delivery and access",
+        "Q13: generic top-risks list"
+      ],
+      "questions": 13,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 1,
+        "default": 10,
+        "person": 0
+      },
+      "chars": 16442,
+      "seconds": 134,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 2,
+      "label": "O5",
+      "recall": 1.0,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [],
+      "default_yes": 9,
+      "default_no": 0,
+      "items_total": 16,
+      "noise": 3,
+      "noise_examples": [
+        "'Battleship' third-party brand risk default",
+        "target and authority: local files only, no deploy",
+        "no shared state across people or devices"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 7695,
+      "seconds": 73,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 1,
+      "label": "O6",
+      "recall": 0.8888888888888888,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS9"
+      ],
+      "missed": [
+        "BS8"
+      ],
+      "default_yes": 6,
+      "default_no": 0,
+      "items_total": 16,
+      "noise": 4,
+      "noise_examples": [
+        "authority limits: no deployment or publishing granted",
+        "where and when the outcome is visible",
+        "not a continuation of an earlier run"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 9039,
+      "seconds": 85,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 2,
+      "label": "O1",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 4,
+      "items_total": 14,
+      "noise": 3,
+      "noise_examples": [
+        "Q12 delivery authority (no push, PR or publish)",
+        "Q13 risk ranking and early signals",
+        "interaction-and-state block (actor, lifetime, hidden from whom)"
+      ],
+      "questions": 13,
+      "routes": {
+        "inspect": 4,
+        "research": 0,
+        "experiment": 0,
+        "default": 9,
+        "person": 0
+      },
+      "chars": 15533,
+      "seconds": 142,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 1,
+      "label": "O2",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 4,
+      "items_total": 12,
+      "noise": 3,
+      "noise_examples": [
+        "interaction-and-state defaults (actor, no shared state, nothing hidden)",
+        "not a continuation, so no prior-run recovery applies",
+        "authority limited to the repo; no push, publish or deploy"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 6358,
+      "seconds": 67,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 2,
+      "label": "O3",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 4,
+      "items_total": 14,
+      "noise": 3,
+      "noise_examples": [
+        "interaction-and-state block (actors, lifetime, hidden from whom)",
+        "authority grant: no push, release or publishing",
+        "prior run: no recovery guidance applies"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 7747,
+      "seconds": 72,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 1,
+      "label": "O4",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 5,
+      "default_no": 5,
+      "items_total": 16,
+      "noise": 4,
+      "noise_examples": [
+        "Q13 delivery target and access",
+        "Q14 performance, security and accessibility bounds",
+        "Q15 rejection risk and early signals"
+      ],
+      "questions": 15,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 0,
+        "default": 13,
+        "person": 0
+      },
+      "chars": 17072,
+      "seconds": 136,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 2,
+      "label": "O5",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 4,
+      "default_no": 6,
+      "items_total": 11,
+      "noise": 2,
+      "noise_examples": [
+        "interaction-and-state defaults (actor, lifetime, hidden from whom)",
+        "data sensitivity: synthetic fixtures only, nothing sent off the machine"
+      ],
+      "questions": 8,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 7,
+        "person": 0
+      },
+      "chars": 12284,
+      "seconds": 110,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 1,
+      "label": "O6",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 4,
+      "items_total": 13,
+      "noise": 3,
+      "noise_examples": [
+        "interaction-and-state block (actor, shared state, lifetime)",
+        "authority limits: no network installs, publishing or pushes",
+        "Q8 delivery form: no push, console script or README"
+      ],
+      "questions": 8,
+      "routes": {
+        "inspect": 2,
+        "research": 1,
+        "experiment": 0,
+        "default": 5,
+        "person": 0
+      },
+      "chars": 12011,
+      "seconds": 112,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 2,
+      "label": "O1",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 8,
+      "default_no": 2,
+      "items_total": 10,
+      "noise": 2,
+      "noise_examples": [
+        "Q8 delivery location and git branch/remote state",
+        "authority limits (no push, deploy or publish)"
+      ],
+      "questions": 8,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 0,
+        "default": 6,
+        "person": 0
+      },
+      "chars": 12680,
+      "seconds": 114,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 2,
+      "label": "O2",
+      "recall": 0.9,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR2"
+      ],
+      "default_yes": 7,
+      "default_no": 1,
+      "items_total": 15,
+      "noise": 3,
+      "noise_examples": [
+        "Authority: no push, publish, deploy or hosting",
+        "Q6 delivery target beyond the repository (container, CI)",
+        "Consumers: organisers and attendees as HTTP clients"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 7435,
+      "seconds": 76,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 1,
+      "label": "O3",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 7,
+      "default_no": 2,
+      "items_total": 13,
+      "noise": 2,
+      "noise_examples": [
+        "Authority: no deploy, publish or push",
+        "Consumers: curl, scripts, a future front end"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 6909,
+      "seconds": 76,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 1,
+      "label": "O4",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 4,
+      "items_total": 15,
+      "noise": 3,
+      "noise_examples": [
+        "Q12 module seams",
+        "Q14 delivery target and access",
+        "Q15 generic failure-risk list"
+      ],
+      "questions": 15,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 1,
+        "default": 12,
+        "person": 0
+      },
+      "chars": 16602,
+      "seconds": 187,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 1,
+      "label": "O5",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 8,
+      "default_no": 1,
+      "items_total": 11,
+      "noise": 2,
+      "noise_examples": [
+        "Q10 deployment, hosting or publishing wanted",
+        "Consumers: curl-like clients or a future front end"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 1,
+        "default": 7,
+        "person": 1
+      },
+      "chars": 12732,
+      "seconds": 110,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 2,
+      "label": "O6",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 8,
+      "default_no": 2,
+      "items_total": 15,
+      "noise": 3,
+      "noise_examples": [
+        "Q12 module seams",
+        "Q14 delivery target and access",
+        "Q15 generic failure-risk list"
+      ],
+      "questions": 15,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 1,
+        "default": 12,
+        "person": 0
+      },
+      "chars": 17060,
+      "seconds": 107,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 1,
+      "label": "O1",
+      "recall": 1.0,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL5",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 2,
+      "items_total": 13,
+      "noise": 6,
+      "noise_examples": [
+        "Q8 deployed/published target question",
+        "anonymous actors, no auth assumption",
+        "offset pages shifting under concurrent store writes"
+      ],
+      "questions": 8,
+      "routes": {
+        "inspect": 8,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 11204,
+      "seconds": 97,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 1,
+      "label": "O2",
+      "recall": 0.8888888888888888,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL5"
+      ],
+      "default_yes": 5,
+      "default_no": 2,
+      "items_total": 15,
+      "noise": 7,
+      "noise_examples": [
+        "anonymous HTTP clients, no per-user scoping",
+        "store data lifetime until process restart",
+        "no release/deploy/push authority"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 7338,
+      "seconds": 62,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 2,
+      "label": "O3",
+      "recall": 1.0,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL5",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 2,
+      "items_total": 11,
+      "noise": 3,
+      "noise_examples": [
+        "Q6 auth / per-caller visibility",
+        "Q8 delivery authority beyond editing",
+        "Q7 README edit"
+      ],
+      "questions": 8,
+      "routes": {
+        "inspect": 5,
+        "research": 0,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 12880,
+      "seconds": 84,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 2,
+      "label": "O4",
+      "recall": 0.7777777777777778,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL4",
+        "UL5"
+      ],
+      "default_yes": 5,
+      "default_no": 2,
+      "items_total": 15,
+      "noise": 6,
+      "noise_examples": [
+        "anonymous actors, no auth default",
+        "no page state to expire / lifetime until restart",
+        "nothing deployed, no release wait"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 5190,
+      "seconds": 52,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 1,
+      "label": "O5",
+      "recall": 1.0,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL5",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [],
+      "default_yes": 7,
+      "default_no": 2,
+      "items_total": 12,
+      "noise": 2,
+      "noise_examples": [
+        "Q11 deploy/release/CI/publish path",
+        "Q7 caller identity, auth and hidden fields"
+      ],
+      "questions": 12,
+      "routes": {
+        "inspect": 9,
+        "research": 0,
+        "experiment": 1,
+        "default": 2,
+        "person": 0
+      },
+      "chars": 14226,
+      "seconds": 103,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 2,
+      "label": "O6",
+      "recall": 1.0,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL5",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [],
+      "default_yes": 5,
+      "default_no": 4,
+      "items_total": 13,
+      "noise": 3,
+      "noise_examples": [
+        "Q7 auth and per-actor visibility",
+        "Q11 commit/push/publish/deploy authority",
+        "not a continuation of an earlier run"
+      ],
+      "questions": 12,
+      "routes": {
+        "inspect": 8,
+        "research": 0,
+        "experiment": 0,
+        "default": 4,
+        "person": 0
+      },
+      "chars": 13367,
+      "seconds": 87,
+      "parsed": true
+    }
+  ],
+  "unverified_quotes": []
+}
