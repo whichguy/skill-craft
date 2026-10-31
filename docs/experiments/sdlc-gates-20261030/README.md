@@ -40,6 +40,15 @@ gate, after a whole Until Loop (skills/shiploop/scripts/shiploop_navigator.py:46
 
 ## SG2: review recall, inline against fresh (seeded-defect step slices)
 
+**Closed 2026-10-31 (owner: "Close SG2").** The five-slice smoke (sg2-smoke-20261031.md) found that these four cases sit at
+the coding AI's ceiling: in nine of nine runs it wrote the specified behaviour correctly and the end-of-item review changed
+nothing, so the cases measure the writer and not the reviewer. Nothing below is to be run as written. The declarations stay
+in experiments.json, marked closed, with the pooled reader `sg2_pool.py`, its tests and the evidence, because the nine run
+folders and the smoke note cite them. Reopen only if a live run shows a defect surviving the review, or for a redesign that
+plants the defect so the review has something to catch; any redesign must first fix `improve_fix_commits` (the smoke note
+says how it failed, and `e5_regression.fix_commits`, which it calls, has the same flaw). The 2026-09-24 default stands (the
+same session reviews its own work), and D3b has no result.
+
 SG2 is declared in **PR #27**, kept apart from this folder's PR because it moves the harness's digests:
 - the evaluator digest moves, because experiment.py is a top-level harness file;
 - the qualification snapshot moves, because evaluators/ is part of it.
@@ -90,7 +99,7 @@ full queue.
 (sg2-smoke-20261031.md, evidence sg2-smoke-20261031.json) and stopped the pooled run by its own rule. Arm A scored 8 of 8;
 in nine of nine slices the carry-forward review changed nothing, because the producer (Terra at xhigh) wrote the
 specified behaviour correctly in the first place, so the cases measure the producer and not the review. The other 23
-slices were not run. SG2 as declared cannot answer its question on this subject; the options are in the smoke note.
+slices were not run. SG2 as declared cannot answer its question on this subject, and the owner closed it the same day (banner above).
 
 ### Pooled reading, 2026-10-31
 
