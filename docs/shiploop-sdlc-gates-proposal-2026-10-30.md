@@ -11,12 +11,12 @@ Consumer: the owner, who approves, strikes or re-scopes each decision in §7 bef
 Journal: none yet; results go to test/shiploop_e2e/LEARNINGS.md and docs/experiments/sdlc-gates-20261030/
 ---
 
-# Outside SDLC research: measure in the harness, gate on a live run — proposal, 2026-10-30 (awaiting the owner's decision)
+# Outside SDLC research: measure in the harness, gate on a live run — proposal, 2026-10-30 (approved the same day; see Status)
 
 Owner, 2026-10-30: "Is there something more I should be doing in shiploop stages in the SDLC for the planning, step
 creation, inner loop, outer loop? Am I missing stages that should be fixed (ie enforced steps that must be run [for]
 good practice?)", then: "Synthesize these, determine if we need side experiments to validate any of these or we have
-sufficient evidence in the claims to move forward with a proposal. Provide the final plan." Nothing here is built.
+sufficient evidence in the claims to move forward with a proposal. Provide the final plan." As written, nothing here was built; the Status above says what has been since, and no gate has been.
 
 The owner's rules this keeps:
 - the script confirms each step's exit, and the model only reports (`shiploop-purpose`);

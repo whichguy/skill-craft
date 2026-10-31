@@ -21,6 +21,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import state_home
 
@@ -212,6 +213,98 @@ class Dependencies(unittest.TestCase):
         self.assertEqual([(f["manifest"], f["name"]) for f in facts], [("package.json", "lodash")])
 
 
+class Unmeasured(unittest.TestCase):
+    """A probe that cannot measure says so. Independent review, 2026-10-31: a git failure, a malformed manifest and a run with
+    no step commits each read as a measured zero, and a non-UTF-8 file stopped the reader."""
+
+    def run_folder(self, start_files: dict, commits: list) -> Path:
+        temp = tempfile.TemporaryDirectory(prefix="sdlc-unmeasured-")
+        self.addCleanup(temp.cleanup)
+        out = Path(temp.name) / "out"
+        work = out / "work"
+        work.mkdir(parents=True)
+        git(work, "init", "-q")
+        write(work, start_files)
+        start = commit(work, "start")
+        for message, files in commits:
+            for path, content in files.items():
+                (work / path).parent.mkdir(parents=True, exist_ok=True)
+                (work / path).write_bytes(content if isinstance(content, bytes) else content.encode())
+            commit(work, message)
+        (out / "invocation.json").write_text(json.dumps({"seeded": {"start_head": start}}))
+        return out
+
+    def found(self, out: Path) -> dict:
+        return sdlc_probes.probe(out, ROOT)
+
+    def test_a_failed_git_command_raises_and_leaves_every_git_probe_unmeasured(self):
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(sdlc_probes.GitError):
+            sdlc_probes.git(Path(tmp), "log")  # not a repository
+        out = self.run_folder({"a.py": "x = 1\n"}, [("feat(W1/S1): c", {"a.py": "x = 2  # noqa\n"})])
+        broken = sdlc_probes.GitError("git diff failed (exit 128): fatal: detected dubious ownership")
+        with mock.patch.object(sdlc_probes, "git", side_effect=broken):
+            found = self.found(out)
+        for name in ("suppressions", "earlier_test_edits", "new_dependencies", "secret_like", "swallowed_errors"):
+            with self.subTest(probe=name):
+                self.assertIsNone(found["probes"][name])
+                self.assertIn("GitError", found["unmeasured"][name])
+
+    def test_a_non_utf8_file_in_the_diff_does_not_stop_the_reader(self):
+        out = self.run_folder({"a.py": "x = 1\n"}, [("feat(W1/S1): c", {"a.py": "x = 2  # noqa\n", "data.txt": b"caf\xe9\n"})])
+        found = self.found(out)
+        self.assertEqual(found["probes"]["suppressions"]["n"], 1)
+        self.assertNotIn("suppressions", found["unmeasured"])
+
+    def test_a_non_ascii_path_is_reported_by_its_own_name(self):
+        out = self.run_folder({"a.py": "x = 1\n"}, [("feat(W1/S1): c", {"caf\u00e9.js": "f(); // eslint-disable-line\n"})])
+        self.assertEqual([f["path"] for f in self.found(out)["probes"]["suppressions"]["facts"]], ["caf\u00e9.js"])
+
+    def test_p2_is_unmeasured_when_no_commit_names_its_step(self):
+        out = self.run_folder({"README.md": "# x\n"}, [("add tests", {"test/test_a.py": "def test_a():\n    assert 1\n"}),
+                                                      ("relax tests", {"test/test_a.py": "def test_a():\n    pass\n"})])
+        found = self.found(out)
+        self.assertIsNone(found["probes"]["earlier_test_edits"])
+        self.assertIn("feat(item/step)", found["unmeasured"]["earlier_test_edits"])
+
+    def test_p2_does_not_report_a_step_that_edits_its_own_test(self):
+        out = self.run_folder({"README.md": "# x\n"}, [("feat(W1/S1): tests", {"test/test_a.py": "def test_a():\n    assert 1\n"}),
+                                                      ("feat(W1/S1): again", {"test/test_a.py": "def test_a():\n    pass\n"})])
+        self.assertEqual(self.found(out)["probes"]["earlier_test_edits"], {"n": 0, "facts": []})
+
+    def test_p5_is_unmeasured_when_a_manifest_does_not_parse(self):
+        good = json.dumps({"dependencies": {"a": "1"}})
+        for label, start, after in (("at HEAD", good, "{not json"), ("at the start", "{not json", good)):
+            with self.subTest(invalid=label):
+                found = self.found(self.run_folder({"package.json": start}, [("feat(W1/S1): c", {"package.json": after})]))
+                self.assertIsNone(found["probes"]["new_dependencies"])
+                self.assertIn("package.json does not parse", found["unmeasured"]["new_dependencies"])
+
+    @unittest.skipUnless(sys.version_info >= (3, 11), "pyproject.toml is read with tomllib (3.11+)")
+    def test_p5_reads_dependency_groups_and_poetry_groups(self):
+        before = '[project]\nname = "x"\ndependencies = ["requests>=2"]\n'
+        after = (before + '\n[dependency-groups]\ndev = ["pytest>=8", {include-group = "lint"}]\n\n'
+                 '[tool.poetry.group.docs.dependencies]\nsphinx = "^7"\n')
+        found = self.found(self.run_folder({"pyproject.toml": before}, [("feat(W1/S1): c", {"pyproject.toml": after})]))
+        self.assertEqual(sorted(f["name"] for f in found["probes"]["new_dependencies"]["facts"]), ["pytest", "sphinx"])
+
+    def test_p5_does_not_take_a_url_requirement_for_a_package_named_git(self):
+        after = "requests==2\ngit+https://example.invalid/x/y.git#egg=y\nflask>=3\n"
+        found = self.found(self.run_folder({"requirements.txt": "requests==2\n"}, [("feat(W1/S1): c", {"requirements.txt": after})]))
+        self.assertEqual([f["name"] for f in found["probes"]["new_dependencies"]["facts"]], ["flask"])
+
+    def test_p5_lists_a_changed_manifest_it_does_not_parse_as_unread_never_as_no_change(self):
+        out = self.run_folder({"package.json": json.dumps({"dependencies": {}}), "Cargo.toml": "[dependencies]\n"},
+                              [("feat(W1/S1): c", {"Cargo.toml": '[dependencies]\nserde = "1"\n'})])
+        self.assertEqual(self.found(out)["probes"]["new_dependencies"]["facts"],
+                         [{"manifest": "Cargo.toml", "name": None, "unread": "a manifest this reader does not parse"}])
+
+    def test_p6_counts_a_line_once_when_two_formats_match_and_never_returns_the_value(self):
+        key = "sk-" + "ant-" + "a" * 40  # built at run time; both the anthropic and the openai pattern match it
+        found = self.found(self.run_folder({"a.py": "x = 1\n"}, [("feat(W1/S1): c", {"config.py": f"K = '{key}'\n"})]))
+        self.assertEqual([f["format"] for f in found["probes"]["secret_like"]["facts"]], ["anthropic-key"])
+        self.assertNotIn(key, json.dumps(found))
+
+
 class AddedLines(unittest.TestCase):
     def test_new_line_numbers_follow_each_hunk(self):
         diff = ("diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n@@ -1,2 +1,3 @@\n x = 1\n+y = 2\n z = 3\n"
@@ -220,6 +313,20 @@ class AddedLines(unittest.TestCase):
 
     def test_a_deleted_file_adds_nothing(self):
         self.assertEqual(sdlc_probes.added_lines("--- a/a.py\n+++ /dev/null\n@@ -1 +0,0 @@\n-x\n"), [])
+
+
+    def test_a_line_that_starts_with_plus_signs_is_an_added_line_not_a_file_header(self):
+        diff = ("--- a/a.js\n+++ b/a.js\n@@ -1 +1,2 @@\n-old\n+++n; // eslint-disable-line no-plusplus\n+++ x\n")
+        self.assertEqual(sdlc_probes.added_lines(diff),
+                         [("a.js", 1, "++n; // eslint-disable-line no-plusplus"), ("a.js", 2, "++ x")])
+
+    def test_the_no_newline_marker_is_not_a_line(self):
+        diff = ("--- a/a.js\n+++ b/a.js\n@@ -1,2 +1,2 @@\n-a\n\\ No newline at end of file\n+b\n"
+                "\\ No newline at end of file\n c\n")
+        self.assertEqual(sdlc_probes.added_lines(diff), [("a.js", 1, "b")])
+
+    def test_a_quoted_header_path_is_unquoted(self):
+        self.assertEqual(sdlc_probes.added_lines('--- a/x\n+++ "b/we ird.js"\n@@ -0,0 +1 @@\n+x\n'), [("we ird.js", 1, "x")])
 
 
 if __name__ == "__main__":
