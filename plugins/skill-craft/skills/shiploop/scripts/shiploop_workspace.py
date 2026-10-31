@@ -1560,7 +1560,8 @@ def rollback_lines(workspace_root: Path) -> List[str]:
     absolute path (packet review 2026-10-17, G33-3: a ``git -C <checkout>`` recipe beside "never this run's absolute
     paths" was rewritten by hand).  Raises WorkspaceError when unreadable.
     """
-    manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
     git = "git"
     head, base, run = manifest["source_head"], manifest["baseline_commit"], manifest["branch"]
     lines = ["Rollback of the return (SHAs and branches are from workspace.md; plain `git` commands run from the "
@@ -1575,11 +1576,45 @@ def rollback_lines(workspace_root: Path) -> List[str]:
             f"`{git} restore --source={head} --staged --worktree :/ && {git} commit -m "
             "'Roll back the ShipLoop return'`",
         ]
+    # 51 of 62 archived environment.md files kept the placeholder in a "copy-ready" command (stage-prompt review,
+    # 2026-10-31): once every path is decided, the command names the keep rows themselves.
+    kept = _kept_paths(root)
+    paths = " ".join(shlex.quote(path) for path in kept) if kept else "<kept paths>"
+    which = ("the paths are the decided return plan's keep rows" if kept else
+             "<kept paths> are the return plan's keep rows, which release-check's review-return decides: fill them in")
     lines.append(f"- A working-tree return, or only the run's files after a fast-forward (needs the run branch {run} and "
-                 f"commit {base} to still exist; <kept paths> are the keep rows of the return plan; the reversal is left "
-                 f"uncommitted): `{git} diff --binary {base} {run} -- <kept paths> | "
-                 f"{git} apply -R`")
+                 f"commit {base} to still exist; {which}; the reversal is left uncommitted): "
+                 f"`{git} diff --binary {base} {run} -- {paths} | {git} apply -R`")
     return lines
+
+
+def _kept_paths(root: Path) -> Optional[List[str]]:
+    """The return plan's keep rows once no path is undecided, as the fewest pathspecs that name exactly them; None while
+    there is no readable plan or a path is pending."""
+    try:
+        rows = _record(root, RETURN_PLAN, "return plan")["paths"]
+    except (WorkspaceError, KeyError, TypeError):
+        return None
+    if not isinstance(rows, list) or not rows or any(
+            not isinstance(row, Mapping) or row.get("disposition") not in ("keep", "exclude") for row in rows):
+        return None
+    kept = [str(row["path"]) for row in rows if row["disposition"] == "keep"]
+    return _covering(kept, [str(row["path"]) for row in rows if row["disposition"] == "exclude"]) or None
+
+
+def _covering(kept: Sequence[str], excluded: Sequence[str]) -> List[str]:
+    """Each kept path as its shortest leading directory that holds no excluded path (the path itself when every one
+    does), deduplicated: the diff between the anchors names the same files, and a run that keeps hundreds of paths
+    still prints a command of a few words."""
+    def holds_excluded(prefix: str) -> bool:
+        return any(path.startswith(prefix + "/") for path in excluded)
+
+    found: List[str] = []
+    for path in kept:
+        parts = path.split("/")
+        found.append(next(("/".join(parts[:depth]) for depth in range(1, len(parts))
+                           if not holds_excluded("/".join(parts[:depth]))), path))
+    return sorted(set(found))
 
 
 def _candidate_tree_with_kept_untracked(

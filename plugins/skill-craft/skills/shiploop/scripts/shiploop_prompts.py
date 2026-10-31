@@ -519,6 +519,9 @@ to stop or pause runs Pause. Long form: reference#progress.
 # Backchain caller guidance (owner, 2026-10-11); the guide and the audit resource are printed with the packet's
 # locators.
 INLINE_AUDIT_STAGES = ("step-plan", "carry-forward")
+# Product-acceptance edits nothing, so it builds no graph on any route: it carries the same audit line (0 of 60 archived
+# results used the route paragraph; stage-prompt review, 2026-10-31).
+AUDIT_LINE_STAGES = ("product-acceptance",)
 INLINE_BACKCHAIN_AUDIT = """\
 Optional: for a material prerequisite ambiguity or acceptance gap, request one
 read-only Backchain review/audit (Backchain planning guide), then run the printed
@@ -778,7 +781,8 @@ _CARRY_FORWARD_ONE_STEP = """\
 # stage keeps the navigator's TEST_SUMMARY_PLACEHOLDER.  The gate refuses a summary still equal to one of these.
 SUMMARY_PLACEHOLDER = "<decisions, defaults, open questions and owners only this result records; no restatement>"
 SUMMARY_PLACEHOLDERS = {
-    "intake": "<one clause per request sentence S<n>: the outcome, boundary, default or open question it maps to>",
+    "intake": ("<one clause per request sentence or range (S<n>, S<a>-S<b>, as the sentence index numbers them): the "
+               "outcome, boundary, default or open question it maps to>"),
     "plan": ("<this pass's key reference statements, decisions, constraints and acceptance context; not a replacement "
              "assignment or a restatement of the request>"),
     "test-spec": ("<which recorded harness and suite decisions this item keeps, refines or supersedes, and why; each "
@@ -830,8 +834,8 @@ def names_interactions(*texts: str) -> bool:
 
 DUTIES = {
     "intake": """\
-1. Cover each request sentence in `summary`, do not copy it: one clause each, cited S<n> (S1 is the first), as the
-   template's summary says. Boundaries: repository and run scope, user constraints, authority limits, consumers and
+1. Cover every request sentence in `summary` without copying it: one clause per sentence or per run of related
+   sentences, cited as RUN/request.md numbers them (S<n>, or a range S<a>-S<b>), as the template's summary says. Boundaries: repository and run scope, user constraints, authority limits, consumers and
    entry points, risks. Mark each fact or assumption.
 2. Each open question: who answers it (discovery or a recorded default), what it blocks, what discovery must
    establish first.
@@ -1064,8 +1068,9 @@ DUTIES = {
    Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
    A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
    durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
-10. Under KNOWLEDGE/environment.md ## ID convention declare each ID as tests will be titled; choose IDs legal in the
-    runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
+10. Under KNOWLEDGE/environment.md ## ID convention declare each ID as tests will be titled, with one line as the
+    runner prints it; choose IDs legal in the runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
+    Nor does a name such as `test_TC_1_output` show `TC_1`.
 11. A case needing a host tool (browser, device, account, service): name it (the host's tool listing is the probe that
     it exists) and probe it now by doing the case's first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
     opened by `file:` URL or a throwaway static server you stop, its title read back; for an account or service, a
@@ -1278,13 +1283,13 @@ Change no product file in this stage.
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
    - A focused or regression command that runs on a Test targets row that keeps state names it in `target`.
-6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
-   "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
+6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check"}`;
+   ShipLoop runs every check on the unchanged item base at validate-existing.
    - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
      new path is `absent` (its place is free).
    - `check`: one read-only command from the repository root that exits 0 while the state holds. For `broken`, the
      reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`.
-   - An open plan assumption this item consumes becomes an expectation whose `from` names it.
+   - An open item due here (`due: W<n>`) becomes an expectation whose `from` names it; no other has `from`.
 7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document. A new check script is a durable
@@ -1639,8 +1644,9 @@ preparatory commit); a mismatch there is a send-back.
    test of its logic, from the Primary requirements lines; a requirement not in `primary` may give why none exists),
    the `settle` its owner does and reports, the `owner`, the `due_stage` that reports it (handoff, or the stage whose
    external effect it gates). Carry in the open items earlier stages recorded
-   (system-test-author, system-test). An outcome stated only in the summary has no end state; an empty list says
-   every outcome was observed.
+   (system-test-author, system-test). ShipLoop's own return of the worktree to the source checkout is release's,
+   checked by its receipt and release-verify's rerun: name it in `summary` for release-plan, not in `unverified`. An
+   outcome stated only in the summary has no end state; an empty list says every outcome was observed.
 4. Keep verified product criteria apart from pending release verification: a case not yet due stays pending with
    owner and prerequisites, so release can proceed. Release readiness is not a claim that every consumer behaviour
    was observed.
@@ -1654,7 +1660,7 @@ preparatory commit); a mismatch there is a send-back.
    corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked
    only when nothing can proceed. Acceptance executes no release and proves no remote consumer boundary.
 7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain
-   `review` / `audit` as the Backchain guidance below says; cite its receipt in `evidence_refs`.
+   `review` / `audit` as the audit line below says; cite its receipt in `evidence_refs`.
 """,
     "release-plan": """\
 1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
@@ -1719,8 +1725,9 @@ preparatory commit); a mismatch there is a send-back.
    output in the same file. A confirm command that cannot tell present from absent is fixed now in
    KNOWLEDGE/environment.md ## Commands and rerun.
 5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
-   dry run; decisions are kept for the return at release). Compare review-return's expected return with the
-   procedure in KNOWLEDGE/environment.md; if they differ, correct the procedure and rerun plan-return.
+   dry run; decisions are kept for the return at release). Compare review-return's expected return and the
+   rollback it prints (the keep rows filled in) with the procedure in KNOWLEDGE/environment.md; if they differ,
+   correct the procedure and rerun plan-return.
 6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
    material change to code, tests, fixtures, configuration or target invalidates the observations it affects: rerun
    those through the planned route, reuse the rest only with identity and relevance stated.
@@ -2384,7 +2391,7 @@ def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, plannin
     # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
     # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
     # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
-    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
+    if stage in INLINE_AUDIT_STAGES and delegation == INLINE or stage in AUDIT_LINE_STAGES:
         parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
     elif stage in BACKCHAIN_FOLDED_STAGES:
         pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
