@@ -634,10 +634,11 @@ def _buildable(sc: Scenario) -> dict:
 def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
     """Build the scenario's run under `out`: the product repository (``out/work``), the run directory and the execution checkout
     (``out/.shiploop-runs/seed/{run,worktree}``, as slice.py lays them out). Only `out` is written. `cli` defaults to this
-    checkout's ShipLoop."""
+    checkout's ShipLoop. Every path returned is under `out` resolved: ShipLoop records the execution checkout resolved in
+    state.md, so an unresolved `out` (macOS's /var/folders is /private/var/folders) would mix two spellings of one folder."""
     case = _buildable(sc)
     cli = Path(cli) if cli is not None else DEFAULT_CLI
-    out = Path(out)
+    out = Path(out).resolve()
     if (out / ".shiploop-runs").exists():
         raise FileExistsError(f"{out} already holds a run: build into a new folder")
     work = out / "work"
@@ -679,7 +680,7 @@ def render(sc: Scenario, out: Path, *, cli: Path | None = None) -> stage_oracle.
     never issued: ``issued`` is False, ``packet`` None, and ``packet_head`` is what `next` printed for the stage the run moved to.
     ``result`` is None; ``tree`` is the execution checkout and ``seed_tree`` a copy of it as the seed left it."""
     built = build(sc, out, cli=cli)
-    out = Path(out)
+    out = Path(out).resolve()  # as build resolved it
     snapshot = out / ".stage-suite" / "seed-tree"
     if snapshot.exists():
         shutil.rmtree(snapshot)

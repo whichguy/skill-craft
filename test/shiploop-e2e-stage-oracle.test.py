@@ -724,8 +724,10 @@ class Commands(Base):
                 os.close(descriptor)
 
     def test_the_environment_is_cut_to_five_variables_and_home_and_tmpdir_are_scratch(self):
+        # Names the child sets for itself, not inherited: the shell's, and macOS CoreFoundation's, which every process gets
+        # at start even under `env -i`.
         probe = ("import os, sys\n"
-                 "keys = set(os.environ) - {'PWD', 'OLDPWD', 'SHLVL', '_'}\n"
+                 "keys = set(os.environ) - {'PWD', 'OLDPWD', 'SHLVL', '_', '__CF_USER_TEXT_ENCODING'}\n"
                  "ok = keys == {'PATH', 'HOME', 'TMPDIR', 'LC_ALL', 'SHIPLOOP_PROGRESS'}\n"
                  "ok = ok and os.path.isdir(os.environ['TMPDIR']) and os.environ['TMPDIR'] != " + repr(str(self.scratch_home)) + "\n"
                  "ok = ok and not os.path.realpath(os.getcwd()).startswith(os.path.realpath(os.environ['TMPDIR']))\n"

@@ -451,7 +451,7 @@ class Builds(unittest.TestCase):
     def setUpClass(cls):
         temp = tempfile.TemporaryDirectory(prefix="stage-build-run-")
         cls.addClassCleanup(temp.cleanup)
-        cls.temp = Path(temp.name)
+        cls.temp = Path(temp.name).resolve()  # build returns resolved paths (macOS: /var/folders is /private/var/folders)
         # A private HOME and no Git configuration, as test/git_fixture.py does for a test case.
         home = cls.temp / "home"
         (home / ".config").mkdir(parents=True)
@@ -486,6 +486,17 @@ class Builds(unittest.TestCase):
 
     def out(self, sid: str) -> Path:
         return self.box / sid.replace("/", "-")
+
+    def test_a_build_through_a_symlinked_folder_spells_each_path_one_way(self):
+        # ShipLoop records the execution checkout resolved; the run folder came from `out` as given. macOS's /var/folders
+        # is such a link, and so is any symlinked output folder.
+        real = self.temp / "linked-real"
+        real.mkdir()
+        link = self.temp / "linked"
+        link.symlink_to(real, target_is_directory=True)
+        built = sb.build(sb.load("validate-existing/broken", self.cases), link / "run")
+        seed = real / "run" / ".shiploop-runs" / "seed"
+        self.assertEqual((built.run_dir, built.worktree), (seed / "run", seed / "worktree"))
 
     def test_a_planted_failing_expectation_reaches_the_packet(self):
         bundle = self.built["validate-existing/broken"]
