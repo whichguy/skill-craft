@@ -124,7 +124,7 @@ resolve).
 | Improve stages | `step-plan` (only when `planning_review` is `stage`, and only for the first work item and an item that was sent back), each step's `document` stage (one review of the step's code, tests and docs before ShipLoop commits the step), last `carry-forward` | `system-test-author`, `release-plan` |
 | Outcomes | `done`, `blocked`; from `test-spec` to `document` also `send-back`, back to `step-plan`; no `repeat` (the stage's Until Loop repeats) | `done`, `blocked`, `add-work` with new work items; `send-back` at `system-test` (to `system-test-author`) and `release-verify` (to `release-plan`) |
 | Going back | `send-back` returns the item to `step-plan`; `carry-forward` replaces the future queue | `add-work` appends items; after their end review, outer restarts at `system-test-author`; `send-back` reruns the target and every stage after it |
-| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `document`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; a rerun of what the edits could affect at `document`, then the step commit once its review is accepted; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
+| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations, skills and each step's `proof` at `step-plan` (a Proof needing a test the base lacks or a later step's file is refused); test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `document`; each inline step's Proof at `implement` (rerun before importing a review that changed the step); base and candidate runs at `test`; a rerun of what the edits could affect at `document`, then the step commit once its review is accepted; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a
@@ -176,6 +176,8 @@ it read has changed. A field too long for its place in the packet is printed cut
 | Packet, callback and gates | `shiploop_navigator.emit` (prints the packet), `dispatch` (runs the callback), `_evaluate` (the gates) |
 | Fields cut from a packet | `shiploop_fields.path`, `shiploop_navigator.write_field_files` |
 | Primary-requirement coverage at plan | `shiploop_primary.check_queue` |
+| Proof order at step-plan (a Proof needing an unwritten test or a later step's file) | `shiploop_item_scope.proof_order_refusal` |
+| Intake's key-question ledger (shape only, when present) | `shiploop_navigator._check_intake_questions` |
 | Hooks and the trace | `shiploop_keepalive`, `shiploop_trace` |
 | The knowledge home | `shiploop_knowledge_home.HOME` |
 
@@ -488,7 +490,9 @@ The semantic result contract is small:
 Each term in these fields, the packets and the refusals has one meaning, defined in [the glossary](glossary.md),
 which also lists the retired terms.
 
-Stage results add their own fields where the stage needs them: `spec` records
+Stage results add their own fields where the stage needs them: `intake` may record its key-question ledger,
+`question_categories` (each of K1-K11, applies or not with a reason) and `questions` (id, category, question, what it
+changes, route, default, what it blocks); `spec` records
 `primary`, the R-<n> that carry the request's primary outcomes, and each
 `product-acceptance` `unverified` row names its `requirement` and `lower_layer_check`
 ([test loop](test-loop.md)); `test-strategy` records

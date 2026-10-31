@@ -275,6 +275,11 @@ class RealCliCase(unittest.TestCase):
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
+            # Intake's key-question ledger (duty 9): every catalog category once, and one routed question.
+            "question_categories": [{"id": f"K{n}", "applies": "no", "reason": "Synthetic fixture."} for n in range(1, 12)],
+            "questions": [{"id": "Q1", "category": "K3", "question": "Which file name does the build write?",
+                           "changes": "R-1's acceptance line", "route": "default", "default": "built.txt",
+                           "blocks": "nothing: the default proceeds"}],
             "concerns": inner_fixture.no_concerns_map(["W1"]),
             "harness_runs": [{"code": "built.txt writer", "layer": "unit", "command": "sh test.sh",
                               "evidence": str(self.harness_output)}],
@@ -443,6 +448,16 @@ class RefusalRouteTests(RealCliCase):
             ("an absolute evidence_refs path that does not exist", "intake",
              lambda block: {**block, "evidence_refs": [str(self.base / "no-such-note.md")]},
              "evidence_refs cite files that do not exist"),
+            # The intake line names IN1 since 2026-10-31 (question-driven planning F11): it refused, unnamed, before.
+            ("a summary that leaves a sentence of the request uncited", "intake",
+             lambda block: {**block, "summary": "What this stage established."},
+             "intake's summary cites no S1"),
+            ("a key-question ledger that keeps a template placeholder", "intake",
+             lambda block: {**block, "questions": [dict(nav.QUESTION_ROW)]},
+             "still holds a template placeholder"),
+            ("a step whose Proof runs a test file the item base lacks", "step-plan",
+             lambda block: {**block, "steps": [dict(block["steps"][0], proof="node --test test/built.test.js")]},
+             "which the item base does not have and no earlier step declares"),
             ("an open assumption whose due_item is not in the plan", "plan",
              lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
                                                       "settle": "run y", "reason": "later", "due_item": "W9"}]},
@@ -1188,6 +1203,105 @@ class StepSizingRouteTests(RealCliCase):
         write_block(path, good)
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], "test -f built.txt")
+
+    def test_a_proof_needing_a_test_or_a_later_step_is_refused_and_one_the_base_or_an_earlier_step_provides_is_accepted(
+            self) -> None:
+        """SDLC gates D6 (owner 2026-10-30, after SG1's replay; evidence docs/experiments/question-record-20261031): a
+        step's Proof runs at its implement's done, before its test stage writes its tests, and implement writes no tests.
+        In the saved runs 9 of 12 implement send-backs were a Proof that needed one, found only after a whole implement
+        Until Loop.  Refused at step-plan now: a test file the base lacks that no earlier step declares (rule A), and a
+        file the base lacks that only a later step declares (rule B).  Accepted: a test the base has, one an earlier step
+        declares (its test stage has written it), and an item that is all tests."""
+        new_test = "test/built.test.js"
+        two_steps = {"minimum_na": "The fixture's one regression command is its whole suite."}
+
+        def steps(*rows: dict) -> list[dict]:
+            return [{"id": f"S{n}", "task": "Build part " + str(n), "deps": [f"S{m}" for m in range(1, n)],
+                     "criteria": ["C1"], "proof": "test -f built.txt", "skills": [], **row}
+                    for n, row in enumerate(rows, 1)]
+
+        def absent(path: str, step: str) -> dict:
+            return {"id": "E2", "state": "absent", "statement": path + " does not exist yet.", "steps": [step],
+                    "paths": [path], "check": "test ! -e " + path}
+
+        refused_cases = [
+            ("rule A: the step's own Proof runs a test it declares", {
+                "paths": ["built.txt", new_test],
+                "steps": steps({"paths": ["built.txt", new_test], "proof": "node --test " + new_test}),
+                "expectations": [*STEP_PLAN["expectations"], absent(new_test, "S1")],
+            }, "step S1's Proof runs test/built.test.js, which the item base does not have and no earlier step declares"),
+            ("rule B: a Proof that reads a file only a later step declares", {
+                **two_steps, "paths": ["built.txt", "src/later.txt"],
+                "steps": steps({"paths": ["built.txt"], "proof": "cat src/later.txt"}, {"paths": ["src/later.txt"]}),
+                "expectations": [*STEP_PLAN["expectations"], absent("src/later.txt", "S2")],
+            }, "step S1's Proof reads src/later.txt, which the item base does not have and only a later step (S2) "
+               "declares"),
+        ]
+        for label, change, fragment in refused_cases:
+            with self.subTest(label):
+                run, head = self.new_run("step-plan")
+                command, path, _ = printed_callback(head)
+                write_block(path, {**self.fill_done(head), **change})
+                refusal = self.refused(command, run)
+                self.assertIn(fragment, refusal)
+                self.assertIn("then run the same callback again", refusal)
+        accepted_cases = [
+            ("a test file an earlier step declares", {
+                **two_steps, "paths": ["built.txt", new_test],
+                "steps": steps({"paths": ["built.txt", new_test]}, {"paths": ["built.txt"],
+                                                                    "proof": "node --test " + new_test}),
+                "expectations": [*STEP_PLAN["expectations"], absent(new_test, "S1")],
+            }, None),
+            ("a test file the item base already has", {
+                "steps": steps({"paths": ["built.txt"], "proof": "node --test " + new_test}),
+            }, new_test),
+        ]
+        for label, change, existing in accepted_cases:
+            with self.subTest(label):
+                run, head = self.new_run("step-plan")
+                command, path, action = printed_callback(head)
+                if existing:
+                    (self.repo_of(run) / existing).parent.mkdir(parents=True, exist_ok=True)
+                    (self.repo_of(run) / existing).write_text("// an existing test\n", encoding="utf-8")
+                write_block(path, {**self.fill_done(head), **change})
+                self.accepted(command)
+                self.assertEqual([step["id"] for step in self.recorded(run, action)["steps"]],
+                                 [step["id"] for step in change["steps"]])
+
+    def test_the_key_question_ledger_is_optional_but_refused_when_malformed_or_at_another_stage(self) -> None:
+        """Intake duty 9 (2026-10-31, X1-T on Codex Terra 6.1 high: recall 0.49 without the ledger, 0.91 with it): the
+        ledger is the prompt's work, so a done intake without it is accepted, as in the measured runs; one that is present
+        names each catalog category once, routes each question, and keeps no placeholder; another stage may not carry it."""
+        run, head = self.new_run("intake")
+        command, path, action = printed_callback(head)
+        good = self.fill_done(head)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        self.assertEqual(template["questions"], [nav.QUESTION_ROW])          # the template prints the ledger's shape
+        self.assertIn("9. Key questions.", full_packet_text(head))          # and the duty that asks for it
+        broken = [
+            ("a category named twice and one missing",
+             {"question_categories": [*good["question_categories"][:10], dict(good["question_categories"][0])]},
+             "question_categories names each of K1"),
+            ("a category that does not apply without a reason",
+             {"question_categories": [dict(row, reason="") for row in good["question_categories"]]},
+             "does not apply: give its reason"),
+            ("a route outside the five", {"questions": [dict(good["questions"][0], route="ask the user")]},
+             "route is one of inspect, research, experiment, default, person"),
+            ("two questions with one id", {"questions": [good["questions"][0], dict(good["questions"][0])]},
+             "each question has a unique id"),
+        ]
+        for label, change, fragment in broken:
+            with self.subTest(label):
+                write_block(path, {**good, **change})
+                self.assertIn(fragment, self.refused(command, run))
+        write_block(path, {key: value for key, value in good.items() if key not in ("questions", "question_categories")})
+        self.accepted(command)
+        self.assertNotIn("questions", self.recorded(run, action))
+        with self.subTest("the ledger at another stage"):
+            run, head = self.new_run("discovery")
+            command, path, _ = printed_callback(head)
+            write_block(path, {**self.fill_done(head), "questions": good["questions"]})
+            self.assertIn("belong to intake's result", self.refused(command, run))
 
     def test_a_step_plan_field_of_any_length_is_accepted_and_stored_whole(self) -> None:
         """Plan F2 (owner, 2026-10-28): the step plan's task, Proof and per-step criteria were refused past 700, 600 and
