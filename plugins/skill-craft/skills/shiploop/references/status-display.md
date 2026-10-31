@@ -42,9 +42,11 @@ permission, external asset, or model call is required.
 
 At the first successful startup, the host shares the packet's absolute HTML link
 with the user: "You can use this HTML file to track changes during this ShipLoop
-run." It shares the link once per run and then continues the current action. If
-observation is unavailable or disabled and no page exists, it reports that status
-instead of offering a working link.
+run." It shares the link once per run and then continues the current action. The
+first packet's line also names the command of the [browser viewer](#browser-viewer),
+which the host gives the user in the same message. If observation is unavailable or
+disabled and no page exists, it reports that status instead of offering a working
+link.
 
 The page shows the preparation/work/release outline, accepted items, the current
 stage and blocker, recent recorded activity, and expandable spec, architecture,
@@ -89,9 +91,10 @@ python3 "$CLI" view --run-dir "$RUN_DIR" --start    # start or reuse background 
 python3 "$CLI" view --run-dir "$RUN_DIR" --watch    # watch in this foreground process
 python3 "$CLI" view --run-dir "$RUN_DIR" --status   # process status, read-only
 python3 "$CLI" view --run-dir "$RUN_DIR" --stop     # stop; disable automatic restarts
+python3 "$CLI" view --run-dir "$RUN_DIR" --serve    # the same pages in a browser, read-only, until Ctrl-C
 ```
 
-`--start` or an explicit `--watch` reenables observation after `--stop`. A one-shot
+`--start`, `--watch` or `--serve` reenables observation after `--stop`. A one-shot
 snapshot refuses to compete with an existing observer. `--interval` selects the
 sampling interval (default two seconds); `--idle-timeout` defaults to 1800 seconds
 without changed inputs. An idle observer exits and a later packet can restart
@@ -111,6 +114,33 @@ workspace-return information, then freezes the page and exits. Unverified
 delivery remains visibly unverified; a halted run remains unfinished. The
 existing `report.html` stays the terminal report. An archived HTML snapshot has
 no ongoing observation unless an observer still owns its original path.
+
+### Browser viewer
+
+`view --serve` is the opt-in alternative to opening the file (owner, 2026-10-29). It makes
+sure the observer is running, as `--start` does, and then serves `progress.html` (also at
+`/`), `trace.html` and `report.html` from the run directory on `127.0.0.1` until the user
+stops it with Ctrl-C. A done or halted run keeps the pages it froze; nothing restarts for
+it. The command prints its address. The default port comes from the run directory, so a run
+keeps its address across restarts; a taken port moves on to the next free one, `--port N`
+sets one and `--port 0` lets the system pick. Use it when the file is awkward: a browser that
+blocks local files, or a run on another machine reached through an SSH port forward. On the
+same machine the file works as before.
+
+The first packet of a run carries the command in its `Progress view:` line, and the host
+gives it to the user once, beside the link. The user runs it in their own terminal. A model
+that ran it would block on a server that never exits, and a server ShipLoop started itself
+would be a command the host's hooks never saw. Later packets do not repeat it.
+
+The viewer only reads; the observer still owns every page. It answers GET and HEAD for the
+three pages above and nothing else: 405 for any write method, 404 for any other path, 403 for
+a page that is a symbolic link or has a second hard link. It refuses a request whose `Host` is
+not its own address, so a page on another site cannot read the run through a name it points
+at 127.0.0.1. It listens on the loopback address only and sets `no-store` and a content
+security policy that allows only the page's own inline script and style. While it runs, any
+process on this machine can read the pages. It adds no push: the page still reloads on its
+timer. Over HTTP a browser will not open the page's `file:` links to source documents; the
+previews stay embedded, and the saved-report link points at the viewer's own `/report.html`.
 
 ## Run trace
 

@@ -7,7 +7,8 @@ Split from the ShipLoop skill card (`../SKILL.md`). Read before the first `works
 The CLI starts a read-only observer after a successful run initialization or
 packet command. Open the packet's `progress.html` to follow the plan, recorded
 activity, and embedded spec/architecture previews. The ordinary HTML file
-refreshes itself without a server. This observer only publishes display files;
+refreshes itself without a server; `view --serve` is the optional read-only browser
+viewer. This observer only publishes display files;
 it never owns or backgrounds workflow execution. See
 [live progress view](status-display.md#live-html-progress-view) for
 start/stop controls, draft-versus-accepted labels, and freshness limits.
@@ -16,9 +17,12 @@ After the first successful `workspace start` or `init`, show the user the
 packet's absolute progress-view link in your startup message: "You can use this
 HTML file to track changes during this ShipLoop run." Make "HTML file" the link
 by copying the packet's Markdown link verbatim, preserving its encoded target
-and angle brackets. Show it once per run; keep following the current action afterward. If
-the observer is unavailable or disabled and the file has not been created,
-report that status instead of presenting a working tracking link.
+and angle brackets. Show it once per run; keep following the current action afterward.
+The first packet's line also ends with a command that serves the page in a browser; give
+it in that same message, copied verbatim, as a command for the user to run in their own
+terminal, and do not run it yourself (it never exits). If the observer is unavailable
+or disabled and the file has not been created, report that status instead of
+presenting a working tracking link.
 
 ## Workspace return
 

@@ -754,6 +754,12 @@ _SCRIPT = r"""
   updateFreshness();
   setInterval(updateFreshness, 1000);
 
+  // Served by `shiploop view --serve`, the page cannot open file: links; the viewer publishes the report beside it.
+  if (location.protocol === "http:") {
+    const report = document.querySelector("a.report-link");
+    if (report) report.setAttribute("href", "report.html");
+  }
+
   const interval = Math.max(1, Number(root.dataset.refreshSeconds) || 5);
   const toggle = byId("refresh-toggle");
   const manual = byId("refresh-now");
@@ -912,7 +918,7 @@ def render(snapshot: Mapping[str, Any]) -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
         'style-src \'unsafe-inline\'; script-src \'unsafe-inline\'; img-src \'none\'; '
-        'connect-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'>'
+        'connect-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">'
         '<meta name="color-scheme" content="light"><title>ShipLoop progress · ' + _escape_html(prompt) + '</title>',
         _STYLE,
         '</head><body><main data-progress-view data-mode="' + _escape_html(mode)
@@ -951,7 +957,8 @@ def render(snapshot: Mapping[str, Any]) -> str:
         + _dependency_graphs(snapshot) + _work_items(snapshot)
         + _documents(snapshot) + _status_details(snapshot)
         + ('<section class="terminal-report"><strong>Terminal report</strong> · '
-           '<a href="' + _escape_html(terminal_uri) + '">Open the saved report</a></section>' if terminal_uri else '')
+           '<a class="report-link" href="' + _escape_html(terminal_uri) + '">Open the saved report</a></section>'
+           if terminal_uri else '')
         + '</div><aside class="column">' + activity_html
         + ('<section class="panel warnings"><div class="section-heading"><div><p class="eyebrow">ATTENTION</p>'
            '<h2>Warnings</h2></div></div><ul>'

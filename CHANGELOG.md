@@ -2,6 +2,18 @@
 
 Written by scripts/release.py.
 
+## 2026-10-30
+
+### skill-craft 2.25.0
+
+- Skills: shiploop 1.24.0
+
+### shiploop 1.24.0
+
+- The Apps Script platform card now has a Testing section that says how to test a deployed project, and the test-strategy, plan, prepare and step-plan packets point to it once the environment notes name the card. A test that calls the deployment never sees the checkout, so the section tells the plan to name the deployment as a test-strategy target that keeps state. ShipLoop then does not run those tests on the item's base, and the mutation check skips them and records why. A step that changes deployed code also names, in its Proof or in an expectation, one command that reads the deployed result. No script changed: a card the model reads gained one section.
+- When ShipLoop records an item's document stage as not applicable (the item changed no file, or only files that are not code or tests), the result it writes now carries what every done document result carries: `assumptions: []` and a `knowledge` record that says each living file is unchanged, with the reason. Before, the result had neither, so the step review's hand-off gate refused it for a stage ShipLoop had already settled, and the model was sent to write a document result nobody needed. A live run hit this once. The step commit's "Knowledge home" section now reads "Unchanged: <reason>" for a left-out document.
+- `shiploop view --serve` shows a run's progress, trace and report pages in a browser, read-only, on 127.0.0.1. The first packet of a run names the command in its `Progress view:` line, and the host gives it to the user once, beside the HTML file link. The progress page's policy tag is now closed, so a browser applies it and the colour-scheme tag after it.
+
 ## 2026-10-31
 
 ### skill-craft 2.24.3
