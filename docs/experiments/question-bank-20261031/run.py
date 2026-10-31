@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Run QB1's subject and judge calls (README.md), resumably.  The runner of ../question-record-20261031/run.py, trimmed.
 
-A jobs file holds one job per line: SUBJECT<TAB>PROMPT_PATH<TAB>OUT_PATH (paths relative to this folder).  SUBJECT is
+A jobs file holds one job per line: SUBJECT<TAB>PROMPT_PATH<TAB>OUT_PATH[<TAB>CWD] (paths relative to this folder; CWD,
+absolute, is the working directory a Codex call reads, QB2's workspace copy, and its envelope then lists the shell commands
+the model ran).  SUBJECT is
 ``codex:<model>:<effort>`` (``codex exec`` in a throwaway CODEX_HOME per call that links only auth.json, as
 ``hosts.CodexHost.env`` isolates it; read-only sandbox, ephemeral, stdin closed; the answer is the final agent message) or
 ``opus`` / ``sonnet`` (the ``ask`` runner: one fresh headless Claude session per call).  Every call runs from an empty
@@ -55,23 +57,25 @@ def call_ask(subject: str, prompt: str, out: Path) -> int:
             return 124
 
 
-def call_codex(model: str, effort: str, prompt: str, out: Path) -> int:
+def call_codex(model: str, effort: str, prompt: str, out: Path, cwd: Path | None = None) -> int:
+    """``cwd`` is the working directory the model reads (QB2's workspace copy); without it, the empty directory."""
+    workdir = cwd or EMPTY
     home = WORK / "codex-homes" / uuid.uuid4().hex[:12] / ".codex"
     home.mkdir(parents=True)
     (home / "auth.json").symlink_to(Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "auth.json")
     last = home / "last-message.txt"
     events = out.with_suffix(".events.jsonl")
     argv = ["codex", "exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check", "-s", "read-only",
-            "-c", 'approval_policy="never"', "-c", f"model_reasoning_effort={effort}", "-m", model, "-C", str(EMPTY),
+            "-c", 'approval_policy="never"', "-c", f"model_reasoning_effort={effort}", "-m", model, "-C", str(workdir),
             "-o", str(last), prompt]
     env = {**os.environ, "CODEX_HOME": str(home)}
     with open(events, "w") as stdout, open(out.with_suffix(".err"), "w") as stderr:
         try:
-            rc = subprocess.run(argv, check=False, cwd=EMPTY, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+            rc = subprocess.run(argv, check=False, cwd=workdir, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
                                 env=env, timeout=TIMEOUT).returncode
         except subprocess.TimeoutExpired:
             rc = 124
-    usage = {}
+    usage, commands = {}, []
     for line in events.read_text().splitlines():
         try:
             event = json.loads(line)
@@ -79,13 +83,18 @@ def call_codex(model: str, effort: str, prompt: str, out: Path) -> int:
             continue
         if event.get("type") == "turn.completed":
             usage = event.get("usage") or {}
+        item = event.get("item") or {}
+        if event.get("type") == "item.completed" and item.get("type") == "command_execution":
+            commands.append({"command": item.get("command"), "exit_code": item.get("exit_code")})
     text = last.read_text() if last.is_file() else ""
-    out.write_text(json.dumps({"model_used": model, "effort": effort, "exit": rc, "text": text, "usage": usage},
-                              indent=1) + "\n")
+    envelope = {"model_used": model, "effort": effort, "exit": rc, "text": text, "usage": usage}
+    if cwd:
+        envelope["commands"] = commands
+    out.write_text(json.dumps(envelope, indent=1) + "\n")
     return rc
 
 
-def run_job(subject: str, prompt_path: Path, out: Path) -> None:
+def run_job(subject: str, prompt_path: Path, out: Path, cwd: Path | None = None) -> None:
     if done(out):
         say("SKIP", subject, out.relative_to(HERE))
         return
@@ -96,7 +105,7 @@ def run_job(subject: str, prompt_path: Path, out: Path) -> None:
         start = time.time()
         if subject.startswith("codex:"):
             _, model, effort = subject.split(":")
-            rc = call_codex(model, effort, prompt, out)
+            rc = call_codex(model, effort, prompt, out, cwd)
         else:
             rc = call_ask(subject, prompt, out)
         seconds = round(time.time() - start, 1)
@@ -122,8 +131,8 @@ def main() -> None:
         for line in Path(jobs_file).read_text().splitlines():
             if not line.strip() or line.startswith("#"):
                 continue
-            subject, prompt, out = line.split("\t")
-            jobs.setdefault(subject, []).append((subject, HERE / prompt, HERE / out))
+            subject, prompt, out, *rest = line.split("\t")
+            jobs.setdefault(subject, []).append((subject, HERE / prompt, HERE / out, Path(rest[0]) if rest else None))
     EMPTY.mkdir(parents=True, exist_ok=True)
     pools = []
     for subject, rows in jobs.items():

@@ -139,6 +139,68 @@ python3 score.py
 
 Codex event streams and stderr are not committed; each envelope keeps the call's token usage.
 
+## QB2: a long, loosely worded request, with the tools on (exploratory; registered before its first scored call)
+
+The owner asked to take a big prompt and see what behaviours different wordings of the intake guidance draw out, and said
+mid-task that their prompts lean on installed skills and internet jargon, which should be looked up before anyone is asked
+(memory `resolve-user-jargon-before-asking`). QB1 can show neither: its requests are one or two sentences, there is no
+repository to read and no skill list. QB2 is a descriptive probe, not a decision: five outputs per arm on one request cannot
+carry an adoption rule.
+
+**The request** (`qb2_case.py`: 13 sentences, 281 words) is written in the owner's dictated style over the help desk
+fixture (`test/shiploop_e2e/fixtures/node-tickets`, copied to a scratch directory outside any repository so that no
+instruction file loads). It names the installed skills `until-loop`, `backchain` and `ralph-loop` (the last as
+"ralph-style"); uses the slang "vibes" and "slop"; names "OldTracker", which appears nowhere; points at "the same kind of
+heads-up as when it's resolved" and "the usual window ... for the weekly report" (the report has no window); says "right
+away" and "batch it", "idempotent" and "409 if already closed"; claims the filters "work together, the way the docs say" (the
+docs say so; the code lists a ticket when any filter matches); and asks for a bulk call that has no contract.
+
+**Items:** 17 (J1-J6 terms, R1-R3 references, C1-C3 conflicts, B1, D1, A1 constraints, O1, N1 open decisions;
+`qb2_case.py`), each with what a good intake does about it and whether the repository, the skills list or general knowledge
+settles it (14 "env") or only a decision does (3). The repository facts given to the judge were read from the fixture on
+2026-10-31; the absences (OldTracker, a report window, a bulk endpoint) were searched recursively.
+
+**Subject and judge:** as QB1 (Terra 6.1 xhigh through Codex; Opus judge, blind, shuffled, quotes checked by script) but the
+working directory is a copy of the fixture, the shell is read-only, and the model is told to change nothing and start no
+server. One judge call per sample index holds the four arms' outputs. ShipLoop's real intake leaves repository facts to the
+next stage (discovery); QB2 lets intake read, so that what each wording would settle from the environment is visible.
+
+**Arms** (X1's frame, the host's skill list added to the packet; prompts in `qb2/prompts/`): **B**, item 9 as shipped (K1-K11);
+**Bp**, B plus catalog lines K12 (terms and references) and K13 (conflicts and premises) and one look-it-up-first line (the
+installed skills, then the repository and its documents, then a search; record the best reading and its confidence as the
+default; `person` only when two readings remain that lead to different work); **Qp**, a fixed bank of QB1's 20 questions plus 7
+for K12 and K13, answered by id, with the same line; **Sp**, the same bank as statements. 5 samples per arm: 20 calls
+(`jobs-qb2.tsv`).
+
+**Measures**, per output, from the judge's grades (quotes verified by script): coverage of the 17 items; correct (yes, partial,
+no); route (environment, knowledge, default, person, silent); wasted person routes (an item sent to a person that the
+repository, the skills list or general knowledge settles); silent assertions; shell commands run; output tokens; uncached
+input tokens; items and noise.
+
+**Predictions** (to be scored against, not rules):
+- P1. B covers the conflict and false-premise items (C1-C3, R2) and J5 less often than Bp, Qp and Sp, because nothing in its
+  text asks for them.
+- P2. Every arm settles the three skill-named items (J1, J2, J4) from the host's list in at least 4 of 5 outputs, since the
+  packet lists them.
+- P3. Qp and Sp write fewer output tokens than Bp.
+- P4. No arm routes more than one environment-settled item per output to a person.
+- P5. Arms with the look-it-up-first line run more shell commands than B.
+
+**Cannot settle:** one request, one repository, one judge, five outputs per arm; intake reads the repository, which the real
+stage does not; no web search tool, so the `research` route cannot be exercised (a term only a search settles can only be
+read from the model's own knowledge); the unknown term (OldTracker) tests flagging, not lookup.
+
+**Smoke call (not scored), 2026-10-31:** one Bp output on this request, run through `run.py`'s `call_codex` with the
+workspace as the working directory: 43.1 s, 6 shell commands (it read the decision records, README, docs/api.md, the weekly
+report, package.json and the app, store, query, notifier, worker, audit, outbox and template sources, and searched the
+repository for `OldTracker`, `window`, `bulk` and `retry`), 3,904 output tokens (340 reasoning), 25,912 uncached input tokens,
+a fenced result with all 13 categories and 17 questions routed `inspect` or `default` (none to a person). The route works.
+`run.py` gained an optional fourth jobs column (the working directory) and a `commands` list in the envelope after the QB1
+pre-registration commit; QB1's calls do not use either.
+
+**Reproduce:** `python3 qb2.py build && python3 qb2.py jobs`; `QB_WORK=<scratch> python3 run.py jobs-qb2.tsv --limit=codex=4`;
+`python3 qb2.py judge`; `QB_WORK=<scratch> python3 run.py jobs-judge-qb2.tsv --limit=opus=4`; `python3 qb2.py score`.
+
 ## Results
 
 (appended after the runs)
