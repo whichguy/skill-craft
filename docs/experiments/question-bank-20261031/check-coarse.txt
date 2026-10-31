@@ -1,0 +1,3 @@
+B vs A: exact (4 decimals) p = 0.000000; coarsened (2 decimals) p = 0.000000
+C vs A: exact (4 decimals) p = 0.001594; coarsened (2 decimals) p = 0.001653
+B vs C: exact (4 decimals) p = 0.000000; coarsened (2 decimals) p = 0.000000

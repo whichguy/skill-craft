@@ -1,0 +1,12 @@
+
+subject terra (means per run)
+arm   n  out_tokens  reasoning  uncached_input  chars  seconds
+A    16         426         59            2719   1932      9.7
+B    16        1774         98            3328   7692     20.5
+C    16         857         75            2966   3859     12.8
+
+subject terra-xhigh (means per run)
+arm   n  out_tokens  reasoning  uncached_input  chars  seconds
+A    16         656        268            2719   2019     12.9
+B    16        2175        492            3328   7707     25.4
+C    16        1239        362            2966   4319     17.4
