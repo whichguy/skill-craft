@@ -5041,6 +5041,15 @@ class PlatformTestingGuideTests(unittest.TestCase):
                               self.packet_at(stage, environment))
         self.assertNotIn("Platform testing guide", self.packet_at("spec", environment))
 
+    def test_the_apps_script_card_is_pointed_to_for_its_deployed_code_testing_rules(self):
+        """The card's section on testing a deployed project says to name the deployment as a target that keeps state;
+        that is test-strategy's field, so the stage that fills it has to be shown the section."""
+        environment = "# Environment\n\n## Targets and runtimes\n\n- the web app: GUIDES/platforms/apps-script.md\n\n## Commands\n"
+        for stage in ("test-strategy", "plan", "step-plan"):
+            with self.subTest(stage=stage):
+                self.assertIn("Platform testing guide: GUIDES/platforms/apps-script.md#testing",
+                              self.packet_at(stage, environment))
+
     def test_no_card_or_a_card_without_a_testing_section_prints_no_pointer(self):
         for environment in ("# Environment\n\n## Targets and runtimes\n\nnone\n",
                             "# Environment\n\n## Targets and runtimes\n\nGUIDES/platforms/vercel.md\n"):

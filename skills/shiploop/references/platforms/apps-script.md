@@ -54,7 +54,7 @@ readers expect. Properties are small string key-value stores scoped to the
 script, user or document; choose the scope deliberately, prefix the keys, and
 keep large or tabular data out of them.
 
-## Testing deployed code
+## Testing
 
 A test that calls the deployed project, such as a web app URL or a function run in Google's runtime, reads the
 deployment and never the checkout. Once a step has pushed, the deployment already holds the item's change, so on the
