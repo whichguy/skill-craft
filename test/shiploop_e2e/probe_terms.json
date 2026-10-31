@@ -61,6 +61,10 @@
       "\\bhelp[- ]?desk\\b",
       "\\bticket[- ]escalation\\b"
     ],
+    "ticket-import": [
+      "\\bhelp[- ]?desk\\b",
+      "\\bticket[- ]import\\b"
+    ],
     "battleship-salesforce-ui": [
       "\\bSLNavUi",
       "\\bbattleships?\\b",
