@@ -71,6 +71,11 @@ POLL = 0.3  # seconds between looks at the run (run.POLL_SECONDS is 2)
 BROKEN = "validate-existing/broken-works-small-fix"
 WRONG_CHECK = "validate-existing/wrong-check"
 
+# The shipped scenarios check a sample with `node -e` / `node --test`: without node a graded sample fails for a reason that does
+# not mention node, so the classes (and tests) that grade one say what they need.
+needs_node = unittest.skipUnless(shutil.which("node"), "this test grades a sample of a shipped scenario with `node -e` / `node --test` "
+                                 "and needs node on PATH (install node to run it); the tests on synthetic scenarios still run")
+
 # argv: the scripts folder, a JSON config, the opening prompt, the session id to resume ("" for a first session). The prompt names
 # the CLI and the run directory, as the harness's seed prompt does; the fake reads them from it.
 FAKE_HOST = textwrap.dedent('''
@@ -287,6 +292,7 @@ class AcceptedReached(unittest.TestCase):
 
 # --------------------------------------------------------------------------------------------------------- a good sample
 
+@needs_node
 class GoodSample(LiveCase):
     """The fake does what the scenario asks (reference/good) and goes on sleeping for two minutes."""
 
@@ -414,6 +420,7 @@ class GoodSample(LiveCase):
 
 # ----------------------------------------------------------------------------------------------- a wrong sample, the build
 
+@needs_node
 class WrongSample(LiveCase):
     """The fake reports done and leaves E1 broken (reference/bad-not-fixed). The plugin is the package build of this checkout."""
 
@@ -460,6 +467,7 @@ class Outcomes(LiveCase):
                          result)
         self.assertLess(seconds, 100)
 
+    @needs_node
     def test_a_host_that_accepts_two_stages_before_the_poll_looks_overshoots(self):
         good = reference(BROKEN, "good")
         result, _, _, _ = self.sample(BROKEN, [{"mode": "act", "reference": good, "extra_stages": 1}])
@@ -583,6 +591,7 @@ class RunLockProbe(unittest.TestCase):
         self.assertEqual((got["settled"], got["why"]), (False, "the run was stopped"))
 
 
+@needs_node
 class Settle(LiveCase):
     def test_the_stop_waits_for_the_accepting_command_so_the_export_holds_its_effects(self):
         """The fake saves the state, and its knowledge close (3 s, under the run lock) writes docs/shiploop/EFFECT.md after the
@@ -611,6 +620,7 @@ class Settle(LiveCase):
 
 # ---------------------------------------------------------------------------------------------------------- an operator's stop
 
+@needs_node
 class Stopped(LiveCase):
     def run_stopped(self, config: dict) -> tuple[Path, FakeHost]:
         type(self).count += 1
@@ -647,6 +657,7 @@ class Stopped(LiveCase):
 
 # --------------------------------------------------------------------------------------------- a process the host leaves behind
 
+@needs_node
 class Escapee(LiveCase):
     """The host leaves a process in a session of its own that holds the host's output open: the group kill cannot reach it, and
     run.launch waits for the output to close. The drive abandons the launch (the watchdog) so the sample still ends and is graded."""
@@ -728,6 +739,7 @@ class ImprovePark(LiveCase):
 
 # ---------------------------------------------------------------------------------------------------------------- sessions
 
+@needs_node
 class Sessions(LiveCase):
     def test_a_host_that_exits_at_once_without_acting_is_recorded_and_nothing_crashes(self):
         result, out, host, _ = self.sample(BROKEN, [{"mode": "exit"}])
@@ -972,6 +984,7 @@ class Refusals(LiveCase):
         self.refused(r"--ref and --overlay build their own plugin", ref="HEAD")
         self.refused(r"--ref and --overlay build their own plugin", overlay=self.tmp / "o.json")
 
+    @needs_node
     def test_a_stage_the_engine_settles_by_script_has_no_packet_for_a_model_to_follow(self):
         cases = self.tmp / "settled-cases"
         source = sb.load(BROKEN)

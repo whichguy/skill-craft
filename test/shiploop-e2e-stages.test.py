@@ -476,6 +476,18 @@ class Render(unittest.TestCase):
                          ("skipped", "not buildable yet: improve@ scenarios arrive with wave 2"))
         self.assertEqual((self.rows["spec/verify-only"]["result"], self.rows["spec/verify-only"]["reason"]), ("skipped", "tier off"))
 
+    def test_a_render_scenario_with_no_render_check_fails_and_is_never_a_pass(self):
+        # A scenario that asks for the render tier and lists no render check would otherwise "pass" having proved nothing.
+        cases = self.temp / "no-check-cases"
+        scenario(cases, "validate-existing", "no-check", None, {}, tiers=["render"], render=[])
+        code, out, err = cli("render", "--json", "--cases-dir", str(cases))
+        row = rows(out)["validate-existing/no-check"]
+        self.assertEqual((code, err), (1, ""))
+        self.assertEqual(row["result"], "fail")
+        self.assertIn("the scenario has no render check", row["problems"])
+        self.assertEqual((row["checks"], row["tier"]), ([], "render"))
+        self.assertEqual(json.loads(out)["total"], {"scenarios": 1, "passed": 0, "failed": 1, "skipped": 0})
+
     def test_the_table_names_the_tier_the_result_and_each_id(self):
         code, out, err = cli("render", "validate-existing/wrong-packet", "validate-existing/repaired", "spec",
                              "--cases-dir", str(self.cases))
@@ -628,6 +640,8 @@ class ExitCodes(Catalog):
 
 # ------------------------------------------------------------------------------------------------------- the shipped scenarios
 
+@unittest.skipUnless(shutil.which("node"), "the shipped scenarios run `node -e` / `node --test` and need node on PATH (install node to "
+                     "run this class); the tests on synthetic scenarios still run")
 class Shipped(unittest.TestCase):
     """verify and render over test/shiploop_e2e/stage_cases itself (about 5 s): a scenario that stopped holding, or a packet
     wording that no longer carries what a scenario's render checks look for, fails here and not only in a by-hand run."""
@@ -1389,6 +1403,44 @@ class Boundary(unittest.TestCase):
         for copied in ("def run_check", "def validate_checks", "class Bundle", "def build(", "def discover(", "SEED_SCRIPT",
                        "def run_sample", "def grade_sample", "def read_root", "def compare", "def new_output_dir", "def launch("):
             self.assertNotIn(copied, text)
+
+
+class Documents(unittest.TestCase):
+    """The prose that describes the stage suite says what is so: the worked example lists every output it ships, and every
+    place that lists what the evaluator digest binds names the trees ``boundary`` reads."""
+
+    def test_the_guide_lists_every_bad_output_of_its_worked_example_and_counts_them(self):
+        example = HARNESS / "stage_cases" / "validate-existing" / "broken-works-small-fix" / "reference"
+        bad = sorted(path.name for path in example.iterdir() if path.name.startswith("bad-"))
+        self.assertGreaterEqual(len(bad), 6)
+        text = (HARNESS / "stage_cases" / "README.md").read_text()
+        for name in bad:
+            self.assertIn(f"| `{name}` |", text, f"the guide's table has a row for {name}")
+        words = {4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
+        self.assertIn(f"and {words[len(bad)]} outputs that each fail something", text)
+        self.assertNotIn("four outputs that each fail something", text)
+
+    def test_every_list_of_what_the_digest_binds_names_the_checks_fixtures_and_evaluators_trees(self):
+        trees = ("checks", "fixtures", "evaluators")
+        self.assertEqual([tree for tree in trees if not (HARNESS / tree).is_dir()], [])
+        graded = {path.relative_to(HARNESS).parts[0] for path in boundary.oracle_files(HARNESS)}
+        self.assertEqual(graded, {"checks", "fixtures"})
+        documents = {
+            "stage_cases/README.md": (HARNESS / "stage_cases" / "README.md").read_text(),
+            "shiploop_e2e/README.md": (HARNESS / "README.md").read_text(),
+            "docs/plans/shiploop-stage-suite.md": (ROOT / "docs" / "plans" / "shiploop-stage-suite.md").read_text(),
+        }
+        for name, text in documents.items():
+            flat = " ".join(text.split())
+            with self.subTest(name):
+                self.assertIn("`checks/`, `fixtures/` and `evaluators/` trees", flat)
+
+    def test_the_plan_does_not_call_the_merged_seam_unmerged_or_unreleased(self):
+        flat = " ".join((ROOT / "docs" / "plans" / "shiploop-stage-suite.md").read_text().split())
+        self.assertIn("475ab9a6", flat)
+        self.assertIn("shiploop 1.23.3", flat)
+        for stale in ("PR #28 is not merged", "PR #28, not yet merged", "ships in the next release", "shipped in the next release"):
+            self.assertNotIn(stale, flat)
 
 
 if __name__ == "__main__":

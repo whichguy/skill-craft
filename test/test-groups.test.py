@@ -894,6 +894,8 @@ class SelectionByReaderTest(unittest.TestCase):
         for path in ("skills/shiploop/scripts/shiploop_navigator.py", "skills/shiploop/scripts/shiploop_store.py"):
             with self.subTest(path=path):
                 self.assertGreaterEqual(suite_catalog.targeted([path]), set(suite_catalog._HUB_SUITE_IDS))
+        # and an edit to the navigator also selects the seed seam's equivalence test, which no hub rule finds
+        self.assertIn("shiploop-seed-seam", suite_catalog.targeted(["skills/shiploop/scripts/shiploop_navigator.py"]))
 
     def test_a_guidance_document_selects_the_anchor_test(self) -> None:
         for name in self.GUIDANCE_DOCS:

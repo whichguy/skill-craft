@@ -1,8 +1,12 @@
 # Plan: the ShipLoop stage suite (one packet, one scenario, one verdict)
 
-Status: steps 1 to 3 of "Build order" are built (steps 1 and 2 on 2026-10-30, merged to `main` as PR #28; step 3 on
-2026-10-31); step 4 (the scenario waves) is not, and **no real live round has been run** (see deviation 9). The prototype
-findings in "What the prototype showed" were run on `d98451f`. Step 3 is the live tier: `stages.py live | grade | report`,
+Status: steps 1 to 3 of "Build order" are built (steps 1 and 2 on 2026-10-30, merged to `main` as PR #28, merge commit
+`475ab9a6`, with the seam shipped in shiploop 1.23.3; step 3 on 2026-10-31, on branch `claude/shiploop-stage-suite-live` and
+not yet merged); step 4 (the scenario waves) is not, and **no real live round has been run** (see deviation 9). The
+prototype findings in "What the prototype showed" were run on `d98451f`. **The verify and render tiers run in the quick tier
+only when a path under `test/shiploop_e2e/` changes, and in the full tier (the release); an edit to a packet source
+(`skills/shiploop/scripts/shiploop_prompts.py`, the stage references) selects none of the stage suites in the quick tier. Whether to
+wire them to the packet sources is the owner's open decision (deviation 5).** Step 3 is the live tier: `stages.py live | grade | report`,
 the sample runner `stage_suite/stage_live.py` (build, launch a host, stop at acceptance, export, grade, regrade), the results
 reader `stage_suite/stage_report.py` (the matrix of catch rates and the comparison of two roots), the `shiploop-stages` command
 of `test/run-integration.sh`, and the `live` tier on `validate-existing/broken-works-small-fix` and `wrong-check`.
@@ -10,8 +14,8 @@ of `test/run-integration.sh`, and the `live` tier on `validate-existing/broken-w
 **Built**
 
 - Step 1, the seed seam: `navigator.accept_effects` in `skills/shiploop/scripts/shiploop_navigator.py`, with its
-  equivalence test `test/shiploop-seed-seam.test.py` (in PR #28, with the rest of this list). It is registered in the
-  catalog.
+  equivalence test `test/shiploop-seed-seam.test.py` (in PR #28, merged to `main` as `475ab9a6`, with step 2; released in
+  shiploop 1.23.3). It is registered in the catalog.
 - Step 2, the harness core, in `test/shiploop_e2e/stage_suite/`:
   - `stage_oracle.py`, the check engine: the check kinds of "The oracle" except `trace: no_model_glue`, and the verdict
     rule (caught, held, not exercised);
@@ -20,9 +24,9 @@ of `test/run-integration.sh`, and the `live` tier on `validate-existing/broken-w
 - Three scenarios in `test/shiploop_e2e/stage_cases/validate-existing/`: `broken-works-small-fix`, `wrong-check` (both
   verify and render) and `all-match` (render only). `stage_cases/README.md` is the guide to the format.
 - Hermetic tests, one per module, registered in `test/suite_catalog.py` as E2E-family suites that quick selects when a
-  path under `test/shiploop_e2e/` changes: `test/shiploop-e2e-stage-oracle.test.py` (105 tests, about 5 s),
-  `test/shiploop-e2e-stage-build.test.py` (43 tests, about 7 s) and `test/shiploop-e2e-stages.test.py` (55 tests, about
-  25 s; 95 tests, about 67 s, with step 3's cases).
+  path under `test/shiploop_e2e/` changes: `test/shiploop-e2e-stage-oracle.test.py` (108 tests, about 5 s),
+  `test/shiploop-e2e-stage-build.test.py` (48 tests, about 10 s) and `test/shiploop-e2e-stages.test.py` (99 tests, about
+  70 s, step 3's cases included).
 
 - Step 3, the live tier, in `test/shiploop_e2e/stage_suite/`:
   - `stage_live.py`: one sample. It builds the scenario (`stage_build.build`; a `--ref` whose navigator lacks
@@ -51,7 +55,7 @@ catalog beyond the three above (waves 1 to 4); and a real live round (deviation 
 1. **Location.** The code is `test/shiploop_e2e/stage_suite/` (not `test/shiploop_e2e/stages.py`) and the scenarios are
    `test/shiploop_e2e/stage_cases/`. `test/shiploop_e2e/boundary.py` binds the evaluator digest and the qualification
    snapshot to `SPEC.md`, `cases.json`, `suites.json`, every top-level `*.py` and `*.cjs` file of that folder and the
-   `checks/` and `evaluators/` trees, so a new top-level module would move the digest under the owner's baselines and
+   `checks/`, `fixtures/` and `evaluators/` trees, so a new top-level module would move the digest under the owner's baselines and
    calibrations. A sub-folder is outside that set, as `probes/` is. The tests pin it (`boundary.fingerprint` and the
    snapshot's file list are unchanged with the suite present), the way `test/shiploop-e2e-sdlc-probes.test.py` pins the
    probes. This is a variant of "Decisions for the owner" 1: inside the harness folder, as recommended, but below its top
@@ -64,15 +68,22 @@ catalog beyond the three above (waves 1 to 4); and a real live round (deviation 
    duration of one call, with a context manager that restores it, because `seed_run` reads that global when it advances
    the run. The seed script it substitutes records each stage through `navigator.accept_effects`. `run.SEED_SCRIPT` and the
    harness's own seeds are as they were.
-4. **The equivalence test and the seam were committed first on the branch** (PR #28, merged to `main`), ahead of the harness
-   core (the plan shipped them together under "The one engine change").
+4. **The equivalence test and the seam were committed first on the branch** (PR #28, merged to `main` as `475ab9a6`; the seam
+   shipped in shiploop 1.23.3), ahead of the harness core (the plan shipped them together under "The one engine change").
 5. **Registration.** "Registration" named two catalog suites (`shiploop-stage-verify`, `shiploop-stage-render`) and one
    test file (`test/shiploop-stage-suite.test.py`). The tests are one file per module instead (three suites, ids
    `shiploop-e2e-stage-oracle`, `shiploop-e2e-stage-build` and `shiploop-e2e-stages`), named after the harness family so
    an edit under `test/shiploop_e2e/` selects them with the rest. They test the code, and the stages suite also runs `stages.py verify` and
-   `render` over the shipped scenarios (the class `Shipped`, about 5 s), so a packet change that breaks a scenario fails a
-   suite; it is not yet a separate `shiploop-stage-*` catalog entry. None is in the fixed quick baseline. Step 3 adds two more of the same kind (`shiploop-e2e-stage-live`,
-   `shiploop-e2e-stage-report`), measured at 54 s and 0.1 s and also outside the quick baseline.
+   `render` over the shipped scenarios (the class `Shipped`, about 5 s), so a packet change that breaks a scenario fails the
+   `shiploop-e2e-stages` suite *when that suite runs*. It runs in the quick tier only when a path under `test/shiploop_e2e/`
+   changes (or the suite's own files), and in the full tier (the release). An edit to a packet source
+   (`skills/shiploop/scripts/shiploop_prompts.py`, the stage references) selects none of the stage suites in the quick tier, so
+   until the full tier at a release a template regression that a scenario would catch is not seen. It is not a separate
+   `shiploop-stage-*` catalog entry either. **Open decision for the owner:** add the stage suites to the packet-source rows of
+   `_PATH_SUITE_IDS` in `test/suite_catalog.py`, so a packet-source edit selects them in the quick tier; the audit of this branch
+   measured about 36.5 s of quick-tier time on a harness edit. `suite_catalog.py` is not changed. None is in the fixed quick
+   baseline. Step 3 adds two more of the same kind (`shiploop-e2e-stage-live`, `shiploop-e2e-stage-report`), measured at 54 s
+   and 0.1 s and also outside the quick baseline.
 6. **The widened `SEED_POINTS` were not needed.** The live runner seeds through `stage_build.build`, which already seeds a run
    to any stage of a scenario with `accept_effects`; `slice.py`'s `SEED_POINTS` is not used by the stage suite and is unchanged.
 7. **Samples run as subprocesses.** `stage_build.build` substitutes `run.SEED_SCRIPT` in-process, which is process-global, so
@@ -146,11 +157,13 @@ fail, then run `shiploop next`.
 
 | Tier | Command | Model? | Where it runs | What it proves |
 |---|---|---|---|---|
-| **T0 verify** | `stages.py verify` | no | default CI (quick) | The scenario's oracle passes its `good` reference output and fails each `bad` one, so the oracle measures the planted condition (the SPEC triage rule: "does it pass a reference solution and fail an empty one?") |
-| **T1 render** | `stages.py render` | no | default CI (quick) | The template, applied to this scenario, puts the planted signal and the right instructions in the packet (printed head or packet file), or issues no packet where the engine should settle the stage itself |
+| **T0 verify** | `stages.py verify` | no | quick tier when a path under `test/shiploop_e2e/` changes, and the full tier (release); see deviation 5 | The scenario's oracle passes its `good` reference output and fails each `bad` one, so the oracle measures the planted condition (the SPEC triage rule: "does it pass a reference solution and fail an empty one?") |
+| **T1 render** | `stages.py render` | no | the same as T0 | The template, applied to this scenario, puts the planted signal and the right instructions in the packet (printed head or packet file), or issues no packet where the engine should settle the stage itself |
 | **T2 live** | `stages.py live` | yes | `test/run-integration.sh shiploop-stages` only | A model that follows only this packet in the scenario folder has the intended effect. Graded by the same oracle as T0, over N samples |
 
-T0 and T1 catch template regressions for free on every commit. T2 is the behavioural proof, and it costs money.
+T0 and T1 are cheap and need no model. As built they run in the quick tier only when a path under `test/shiploop_e2e/` changes,
+and in the full tier at a release, so they catch a template regression at the release unless the owner wires them to the
+packet sources (deviation 5). T2 is the behavioural proof, and it costs money.
 
 ### A scenario is a directory; the run is built on the fly
 
@@ -431,14 +444,25 @@ than one kind of software, and a stage that passes only on Node is not shown to 
 
 ## Decisions for the owner
 
-These set direction, so they are yours under AGENTS.md:
+These set direction. As first written they were recommendations for the owner under AGENTS.md. In the event the building
+session took each as a routine decision under AGENTS.md ("a session makes routine decisions itself and records each one"), as
+recorded below, and the owner merged PRs #24 (this plan) and #28 (the seam and the harness core), which contain them. The owner
+did not approve them one by one; they stay changeable on request.
 
 1. **Location.** I recommend `test/shiploop_e2e/stage_cases/` and `stages.py`, inside the E2E harness, to reuse its
    hosts, slice launcher and evaluators. The alternative is a new top-level `test/shiploop_stages/`.
-2. **The engine seam** in `skills/shiploop/scripts/shiploop_navigator.py`: a product-code refactor, shipped in the next
-   release with a `No-E2E-Round` trailer.
+   *How it was settled:* the code is in `test/shiploop_e2e/stage_suite/` and the scenarios in `test/shiploop_e2e/stage_cases/`,
+   because a new top-level module of the harness folder would move the evaluator digest (deviation 1). It is the recommended
+   option with one more level of folder.
+2. **The engine seam** in `skills/shiploop/scripts/shiploop_navigator.py`: a product-code refactor, which the plan proposed
+   to ship in the next release with a `No-E2E-Round` trailer.
+   *How it was settled:* the seam is `navigator.accept_effects`, as proposed. It merged to `main` in PR #28 (`475ab9a6`) and
+   shipped in shiploop 1.23.3.
 3. **The live pass rule and sample count.** I recommend 3 samples with pass = all. Four samples allow
    `experiment.py`'s A/A spread but cost a third more.
+   *How it was settled:* 3 samples, all of which must pass (`"live": {"samples": 3, "pass": "all"}`).
 4. **The default live driver.** I recommend the slice default (Codex / Terra / xhigh, owner 2026-10-29) for rounds that
    count as evidence. A cheaper cell, such as Claude on Ollama, could serve routine checks. Its results are their own
    baseline cell and are never compared with the default's.
+   *How it was settled:* the harness's own default (`hosts.RUN_DEFAULT_HOST`) is the default driver; any other driver is a
+   chosen cell with its own baseline, and `stage_report.py compare` refuses two roots whose drivers differ.

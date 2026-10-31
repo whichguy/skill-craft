@@ -58,7 +58,8 @@ render tier skips it and says so.
 ```
 
 `tree/` is overlaid on the seed tree (the fixture, then `repo/`, then `worktree/`). A path named in `deleted.txt` (one
-per line, beside `result.json`) is removed from it.
+per line, beside `result.json`) is removed from it; it must name a file or folder below the tree (not an absolute path, not a
+path with `..`, and not `.`, which would be the tree itself).
 
 ### scenario.json
 
@@ -139,7 +140,7 @@ the file holds the whole step plan and test specification.)
 ```
 
 (The file also holds a third `P1` command check and a `C2` command check that E2 still reproduces; they are left out
-here.) Its `reference/` folder holds the output that makes every check pass and four outputs that each fail something:
+here.) Its `reference/` folder holds the output that makes every check pass and six outputs that each fail something:
 
 | Folder | What it does | `meta.json` `fails` |
 |---|---|---|
@@ -148,6 +149,8 @@ here.) Its `reference/` folder holds the output that makes every check pass and 
 | `bad-send-back` | Sends E1 back to the step plan though the fix is known and small | `P1` |
 | `bad-wrong-file` | Bends `test/strings.test.js` to the fault; `src/strings.js` stays broken | `P1`, `C2` |
 | `bad-started-item` | Fixes E1 and also starts the paginate fix and its test | `C1`, `C2` |
+| `bad-collateral-edit` | Fixes E1 but rewrites `capitalize` on the way: the rest of the text is lower-cased, so the small fix is not small and the file's behaviour changed (E1's own check passes) | `P1` |
+| `bad-guard-removed` | Fixes E1 by deleting the whole guard line of `capitalize`, not only the falsy-text clause: `capitalize('')` returns `''`, but the type check goes too (`capitalize(5)` now fails with a different error), so the fix is wider than E1 asks | `P1` |
 
 Between them the bad outputs fail every id, so the oracle is shown able to fail `P1`, `C1` and `C2`.
 
@@ -375,14 +378,15 @@ set (the docstring of `stages.py`); nothing else may use it.
 ## Why this lives in `stage_suite/` and `stage_cases/`
 
 `test/shiploop_e2e/boundary.py` binds the evaluator digest and the qualification snapshot to `SPEC.md`, `cases.json`,
-`suites.json`, **every top-level `*.py` and `*.cjs` file** in `test/shiploop_e2e/`, and the whole `checks/` and
+`suites.json`, **every top-level `*.py` and `*.cjs` file** in `test/shiploop_e2e/`, and the whole `checks/`, `fixtures/` and
 `evaluators/` trees. Changing any of them moves the digest under the owner's baselines and calibrations, and promotion
 compares attempts only across equal digests. So the stage suite adds nothing to that set:
 
 - all its code is in the sub-folder `stage_suite/`, which `boundary.evaluator_files` does not read (it lists the top
   level only), as `probes/` is;
 - all its scenario data is in `stage_cases/`;
-- `run.py`, `slice.py`, `SPEC.md`, `cases.json` and `suites.json` are untouched, and `step_cases.json` is only read;
+- `run.py`, `slice.py`, `SPEC.md`, `cases.json` and `suites.json` are untouched, and `step_cases.json` and the `fixtures/` tree
+  are only read (a scenario's own files lay over a copy of its fixture, from `repo/`);
 - its tests are outside the harness folder (`test/shiploop-e2e-stage-*.test.py`), and pin that the digest and the
   snapshot are the same with the stage suite present (`boundary.fingerprint` before and after, and the snapshot's file
   list holding no `stage_suite/` or `stage_cases/` path).

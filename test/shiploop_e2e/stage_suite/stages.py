@@ -227,7 +227,7 @@ def _word(ident: str, value: bool | None) -> str:
     return ("caught" if ident.startswith("P") else "held") if value else "missed"
 
 
-def _words(sc: sb.Scenario, found: dict) -> dict:
+def _words(found: dict) -> dict:
     return {ident: _word(ident, value) for ident, value in {**found["caught"], **found["held"]}.items()}
 
 
@@ -259,7 +259,7 @@ def _reference(sc: sb.Scenario, name: str, tmp: Path) -> dict:
     results = stage_oracle.run_checks(sc.data.get("oracle", []), bundle)
     found = stage_oracle.verdict(planted, controls, results)
     status = {**found["caught"], **found["held"]}
-    return {"found": found, "ids": _words(sc, found), "failed": [ident for ident, value in status.items() if value is False],
+    return {"found": found, "ids": _words(found), "failed": [ident for ident, value in status.items() if value is False],
             "declared": list(meta.get("fails", [])), "checks": _failed_checks(results), "meta": meta}
 
 
@@ -329,7 +329,7 @@ def render_one(sc: sb.Scenario, out: Path) -> dict:
     planted, controls = _ids(sc)
     results = stage_oracle.run_checks(sc.data.get("render", []), bundle)
     found = stage_oracle.verdict(planted, controls, results)
-    row["ids"] = _words(sc, found)
+    row["ids"] = _words(found)
     row["checks"] = [{"proves": item["proves"], "kind": item["kind"], "pass": item["pass"], "detail": item["detail"]}
                      for item in results]
     row["problems"] += [f"{check['kind']} failed" + (f" for {check['proves']}" if check["proves"] else "")
@@ -380,7 +380,7 @@ def _text_list(rows: list[dict]) -> str:
     return _table(table) + f"\ntotal: {len(rows)} scenario{'s' if len(rows) != 1 else ''}"
 
 
-def _text_run(command: str, rows: list[dict]) -> str:
+def _text_run(rows: list[dict]) -> str:
     table = [["scenario", "tier", "result", "ids"]]
     for row in rows:
         result = {"pass": "PASS", "fail": "FAIL"}.get(row["result"]) or f"skipped: {row['reason']}"
@@ -405,7 +405,7 @@ def _emit(args: argparse.Namespace, rows: list[dict], cases: Path) -> int:
             document["total"] = {"scenarios": len(rows)}
         print(json.dumps(document, indent=2, ensure_ascii=False))
     else:
-        print(_text_list(rows) if args.command == "list" else _text_run(args.command, rows))
+        print(_text_list(rows) if args.command == "list" else _text_run(rows))
     return EXIT_FAIL if any(row.get("result") == "fail" for row in rows) else EXIT_PASS
 
 

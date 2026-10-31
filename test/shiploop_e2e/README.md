@@ -1952,7 +1952,7 @@ python3 test/shiploop_e2e/stage_suite/stages.py live validate-existing --dry-run
 
 The code is `stage_suite/` and the scenarios are `stage_cases/`, both below this folder's top level, so neither is in the
 evaluator digest or the qualification snapshot (`boundary.py` binds the top-level `*.py` and `*.cjs` files, `SPEC.md`,
-`cases.json`, `suites.json` and the `checks/` and `evaluators/` trees); `run.py` and `slice.py` are not edited. The
+`cases.json`, `suites.json` and the `checks/`, `fixtures/` and `evaluators/` trees); `run.py` and `slice.py` are not edited. The
 builder seeds through the engine's own `navigator.accept_effects`, by substituting `run.SEED_SCRIPT` for one `run.seed_run`
 call. The format, the check vocabulary, the selectors and how to add a scenario are in
 [`stage_cases/README.md`](stage_cases/README.md); the plan is `docs/plans/shiploop-stage-suite.md`. Its suites are
