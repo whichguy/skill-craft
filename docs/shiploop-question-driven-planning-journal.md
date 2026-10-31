@@ -4,8 +4,9 @@ Living journal for the owner's 2026-10-30 question: should ShipLoop's planning (
 key questions about the request, and what else should change in its prompts, Until Loop use, stages, graph and state
 files. The proposal and the stage-by-stage reference are in
 [docs/shiploop-planning-pipeline-2026-10-30.md](shiploop-planning-pipeline-2026-10-30.md). Evidence lives in
-[docs/experiments/key-questions-intake-20261030/](experiments/key-questions-intake-20261030/). The illustrated page
-is https://claude.ai/artifact/BvpneLuojWv7Le1M7CEdnP (private to the owner).
+[docs/experiments/key-questions-intake-20261030/](experiments/key-questions-intake-20261030/). The illustrated pages
+are the planning map, https://claude.ai/artifact/BvpneLuojWv7Le1M7CEdnP, and the outcome summary,
+https://claude.ai/artifact/QbP7gaR9x2gW2yUKkWMW1t (E4); both are private to the owner.
 
 This work designs the owner's open TODO of 2026-10-11 ("plan → key questions → research/experiment Until Loops →
 revised plan + test spec → build → test Until Loop"), which needs the owner's go before anything is built.
@@ -62,11 +63,40 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   planning measurements and decisions. No framework was run.
 - Result: no framework measures whether its questions help; one vendor benchmark (Uvik, ±10 points) shows specs help
   only on features touching 3+ files; with an answer oracle, asking closes most of the underspecification gap, without
-  one gains are single-digit; models commit to early assumptions; implicit requirements in interfaces, conventions and
+  one gains are smaller (corrected 2026-10-31 in E4: "single-digit" held for SpecFix only); models commit to early assumptions; implicit requirements in interfaces, conventions and
   invariants are the largest failure component of autonomous agents.
 - Evidence: `frameworks-a.md`, `frameworks-b.md`, `question-evidence.md`, `planning-history.md` in the evidence
   folder.
 - Status: firm as a reading of sources; the numbers are the sources' own.
+
+### E4 — 2026-10-31: an outcome page drawn by Sonnet, and three corrections found while checking it
+
+- Question: can a second model illustrate what this study achieved and found, faithfully, from the committed files
+  alone? (The owner asked: "Ask sonnet to provide illustration of what was achieved and discovered".)
+- Method: one Claude Sonnet 5.5 subagent (default effort; 81 tool calls, about 343k tokens, 15.3 min) got the owner's
+  verbatim request, the source list and the artifact page contract, and built a static page with no script. Its X1
+  figures and tables are computed from `scores.json` and `cases.json`; its counts are read from git. It validated the
+  X1 palette in light and dark (`validate_palette.js --pairs all`: all checks pass, with one light-mode contrast
+  warning, 2.82:1 for `#1baf7a`, relieved by the A, B and C labels; the main session re-ran it with the same
+  verdicts) and looked at headless Chrome captures at 1280 px (light, dark) and 390 px. The main session (Claude Opus
+  5.5) then checked the page's numbers and claims against the files, corrected the page's wording, looked once at all
+  three widths, and published it: https://claude.ai/artifact/QbP7gaR9x2gW2yUKkWMW1t.
+- Result: every number on the page matched its source: the study commit (86 files, 4,486 lines, all under docs/), the
+  file line counts, X1 per-case recall, the arm table, the Uvik size buckets and the Ask-or-Assume bars. Its errors
+  were wording of two kinds. Some claims went past the source: "checks every exit" beside F1; "the only route that
+  needs a default"; "its build waits on X5", where §7.6 says the loop is adopted only if X5 pays. Other labels collide
+  across documents: F3's RE1, X1 and X2, and X5's "D5 permutation rule", name items of other proposals, not this
+  study's X1, X2 or D5. A page drawn from these files should name the source of a borrowed label.
+- Corrections to this study's committed files, found while checking the page:
+  1. F2 quoted "a file in the repository is not consumed; a quoted, numbered question is", which is a paraphrase made
+     in `planning-history.md`, not the source's words. The brownfield journal's F12 says "A baseline in the
+     repository is not consumed by being there". Fixed in the pipeline doc §6.1 and in `planning-history.md`.
+  2. F5 (and E3 above) said that without an answerer, gains are "single-digit (SpecFix +4.3%) at up to 26x the
+     tokens". The 26x belongs to REA-Coder, whose gains are +7.9% to +30% relative (`question-evidence.md` §0 item 2
+     and §2.4). F5 now reads "smaller (SpecFix +4.3% Pass@1; REA-Coder +7.9% to +30% relative at about 26x the
+     tokens)". The conclusion stands: without an answerer, gains are smaller and cost more.
+  3. §2.1's Checked-by row pointed at "finding F6"; the finding is F11.
+- Status: firm (each correction is a direct reading of the cited source).
 
 ## Findings
 
