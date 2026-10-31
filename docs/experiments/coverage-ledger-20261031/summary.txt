@@ -1,0 +1,17 @@
+archived runs that reached product-acceptance: 118; with a run baseline: 72; without (before the knowledge-home baseline): 46; unreadable: 0
+requirements added or changed: 331 (primary 257)
+  inner             231   primary  192
+  inner-criterion    29   primary   22
+  system              9   primary    6
+  unverified          2   primary    0
+  case-unseen         0   primary    0
+  none               60   primary   37
+none, by hand category:
+  tests-themselves        27
+  delivery-structure      20
+  preserved                6
+  harness-probe            3
+  unverified-old-shape     3
+  tested-other-id          1
+test-spec cases: 549; whose requirement field names two or more IDs: 6
+not_covered rows: 160 in 26 runs
