@@ -1,0 +1,87 @@
+{
+  "_doc": "Pilot X1 (2026-10-30): underspecified variants of four ShipLoop E2E cases (test/shiploop_e2e/cases.json). Each ground-truth item is a decision the full case prompt pins and the vague variant leaves open; its `reference` is the full prompt's choice. The E2E checks read only full-prompt sentences, so each item is one the product is judged on.",
+  "cases": [
+    {
+      "id": "battleship",
+      "kind": "greenfield web game",
+      "context": "The repository is empty.",
+      "vague": [
+        "Build me a small single-player Battleship game I can play in the browser against the computer.",
+        "Use Node.js for the server, and include tests."
+      ],
+      "ground_truth": [
+        {"id": "BS1", "decision": "Third-party dependencies allowed or not", "reference": "no npm dependencies"},
+        {"id": "BS2", "decision": "How the server is started and configured (entry file, port)", "reference": "server.js starts it on the port in the PORT environment variable, default 3000"},
+        {"id": "BS3", "decision": "How the playable page is served and identified", "reference": "GET / serves a playable HTML page titled \"Battleship\""},
+        {"id": "BS4", "decision": "Board size and how the fleet is placed", "reference": "10x10 grid, a computer-placed fleet of more than one ship"},
+        {"id": "BS5", "decision": "How a game is started and identified (server-side game state addressed by an id)", "reference": "GET /api/new starts a game and returns JSON with a game id"},
+        {"id": "BS6", "decision": "The shot contract between page and server (request and result values)", "reference": "POST /api/fire with {game, row, col} returns JSON with result miss, hit or sunk"},
+        {"id": "BS7", "decision": "When the game ends and how the end is reported", "reference": "gameOver true once every ship is sunk"},
+        {"id": "BS8", "decision": "Where the game rules live (separable from the HTTP layer, so they can be unit-tested)", "reference": "game rules in a module the server uses"},
+        {"id": "BS9", "decision": "Test framework, location and command", "reference": "node:test tests under test/ that run with `node --test`"}
+      ]
+    },
+    {
+      "id": "csv-report",
+      "kind": "greenfield command-line tool",
+      "context": "The repository is empty.",
+      "vague": [
+        "Write a Python command-line tool that reads CSV files of sales records and prints a summary: total revenue, revenue per region and units per product.",
+        "Add tests."
+      ],
+      "ground_truth": [
+        {"id": "CR1", "decision": "Third-party dependencies allowed or not", "reference": "Python 3 standard library only"},
+        {"id": "CR2", "decision": "Invocation: script name and how files are passed (one or several, aggregated)", "reference": "python3 report.py FILE [FILE ...]"},
+        {"id": "CR3", "decision": "Input schema: columns and the type and range of each numeric field", "reference": "header date,region,product,units,unit_price; units a non-negative integer, unit_price a non-negative decimal"},
+        {"id": "CR4", "decision": "Output format and fields", "reference": "one JSON object on stdout with rows (valid rows), revenue, by_region, by_product"},
+        {"id": "CR5", "decision": "Rounding or precision of money values", "reference": "revenue and per-region revenue rounded to 2 decimals"},
+        {"id": "CR6", "decision": "What happens to an invalid row (wrong column count, non-numeric or negative value) and how it is reported", "reference": "skipped and reported on stderr as FILE:LINE: <reason>, the header being line 1"},
+        {"id": "CR7", "decision": "Exit status when some rows were invalid", "reference": "exit code 2 when any row was skipped, otherwise 0"},
+        {"id": "CR8", "decision": "Behaviour when a file cannot be read", "reference": "error on stderr without a traceback, nothing on stdout, exit 1"},
+        {"id": "CR9", "decision": "Empty input: a file with only a header", "reference": "contributes nothing"},
+        {"id": "CR10", "decision": "Test framework and command", "reference": "unittest tests that run with `python3 -m unittest`"}
+      ]
+    },
+    {
+      "id": "seat-reservations",
+      "kind": "greenfield stateful HTTP service",
+      "context": "The repository is empty.",
+      "vague": [
+        "Build a small HTTP service in Python where organisers create events with a number of seats and people reserve seats for them.",
+        "Include tests."
+      ],
+      "ground_truth": [
+        {"id": "SR1", "decision": "Third-party dependencies allowed or not", "reference": "Python 3 standard library only"},
+        {"id": "SR2", "decision": "How the service is configured to listen (port)", "reference": "server.py listens on the port in the PORT environment variable"},
+        {"id": "SR3", "decision": "Persistence: where data lives and whether it survives a restart", "reference": "SQLite file named by the DATA_FILE environment variable; reservations survive a restart"},
+        {"id": "SR4", "decision": "Create-event contract, including a duplicate id", "reference": "POST /events {id, capacity>0} answers 201; 409 if the id exists"},
+        {"id": "SR5", "decision": "Reserve contract and its success response", "reference": "POST /events/<id>/reservations {seats>0} answers 201 with reserved total and remaining"},
+        {"id": "SR6", "decision": "What happens when not enough seats remain", "reference": "409 with an error JSON; nothing reserved"},
+        {"id": "SR7", "decision": "Error responses for an unknown event and for invalid input", "reference": "404 for an unknown event, 400 for invalid input"},
+        {"id": "SR8", "decision": "Read contract for an event's availability", "reference": "GET /events/<id> returns id, capacity, reserved, remaining"},
+        {"id": "SR9", "decision": "Concurrent reservations (overbooking under simultaneous requests)", "reference": "concurrent requests must never reserve more seats than the capacity"},
+        {"id": "SR10", "decision": "Test framework and command", "reference": "unittest tests that run with `python3 -m unittest`"}
+      ]
+    },
+    {
+      "id": "user-listing",
+      "kind": "brownfield feature on an existing service",
+      "context": "The repository exists: an existing Node.js project; the next stage (discovery) will inspect it.",
+      "vague": [
+        "This is an existing Node.js project (README.md describes it): an in-memory user store with an HTTP server in src/server.js.",
+        "Add filtering by name and pagination to the user list endpoint, with tests."
+      ],
+      "ground_truth": [
+        {"id": "UL1", "decision": "Name filter semantics (match kind, case, an empty value)", "reference": "plain-text substring, ignoring case; an empty name keeps every user"},
+        {"id": "UL2", "decision": "Pagination parameters and ordering", "reference": "page and size query parameters, in id order, page 1 holds the first size users"},
+        {"id": "UL3", "decision": "Paginated response shape", "reference": "a JSON object with page, size, total, pages (0 when none matched) and items"},
+        {"id": "UL4", "decision": "Defaults when only one pagination parameter is given", "reference": "size 10 when only page is given; page 1 when only size is given"},
+        {"id": "UL5", "decision": "A page past the last one", "reference": "answers an empty items list, not an error"},
+        {"id": "UL6", "decision": "Validation of page and size and the error response", "reference": "page a whole number >= 1, size a whole number 1..100; otherwise (an empty value included) HTTP 400 with a JSON error"},
+        {"id": "UL7", "decision": "Backward compatibility of the existing endpoint", "reference": "without page and size GET /users still answers a JSON array in id order; other query parameters are ignored; GET /users/:id unchanged"},
+        {"id": "UL8", "decision": "Preservation of existing behaviour and existing tests", "reference": "everything the project already does keeps working; existing tests pass as they are"},
+        {"id": "UL9", "decision": "Test framework, location and command (and no new dependencies)", "reference": "node:test tests under test/, run by `npm test` with the existing ones; no npm dependencies"}
+      ]
+    }
+  ]
+}
