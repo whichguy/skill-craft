@@ -430,5 +430,44 @@ class EpochLaunchAndPredictionTest(unittest.TestCase):
         writer.join()
 
 
+    def test_appends_stay_exclusive_when_two_launches_seal_at_the_same_moment(self):
+        """The review showed the lock around a launch's intent and seal could be removed with no test noticing, because
+        the window between reading the ledger's length and writing the next row is microseconds. Here that window is
+        widened, so unlocked appends collide on one sequence number."""
+        import threading
+        import time
+        real_events = epoch.events
+        both_done = threading.Barrier(2, timeout=20)
+
+        def slow_events(root):
+            rows = real_events(root)
+            time.sleep(0.05)
+            return rows
+
+        def fake(argv):
+            both_done.wait()  # both runs end together, so both seal together
+            output = Path(argv[argv.index("--output") + 1])
+            output.mkdir()
+            (output / "result.json").write_text('{"pass": true}')
+            return 0
+        errors = []
+
+        def launch(arm):
+            try:
+                epoch.launch(self.root, arm + "-hello", self.plugin)
+            except Exception as error:  # noqa: BLE001 - reported below
+                errors.append(error)
+        with mock.patch.object(runner, "main", side_effect=fake), mock.patch.object(epoch, "events", side_effect=slow_events):
+            threads = [threading.Thread(target=launch, args=(arm,)) for arm in ("control", "candidate")]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(120)
+        self.assertEqual(errors, [])
+        rows = real_events(self.root)  # refuses a duplicated or skipped sequence number
+        self.assertEqual([row["sequence"] for row in rows], list(range(1, len(rows) + 1)))
+        self.assertEqual([row["status"] for row in epoch.state(self.root)["attempts"]], ["recorded", "recorded"])
+
+
 if __name__ == "__main__":
     unittest.main()

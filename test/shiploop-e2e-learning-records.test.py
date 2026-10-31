@@ -3,6 +3,7 @@ records, predictions, the A/A spread and the purpose check."""
 from __future__ import annotations
 
 import inspect
+import itertools
 import json
 import re
 import subprocess
@@ -10,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import state_home
 
@@ -321,6 +323,25 @@ class SpreadTest(unittest.TestCase):
             (harness / "deeper.py").write_text("thing = 2\n")
             self.assertNotEqual(spread.scoring_digest({}, harness)["sha256"], before, "an imported module did not")
 
+
+
+    def test_a_large_sample_is_drawn_without_listing_every_split(self):
+        produced = []
+        real = itertools.combinations
+
+        def counting(*args):
+            for item in real(*args):
+                produced.append(1)
+                yield item
+        with mock.patch.object(spread.itertools, "combinations", counting):
+            splits = spread._splits(24, 3, 500)  # 2.7 million ways to deal 24 attempts; listing them took 378 MB
+        self.assertEqual(len(splits), 500)
+        self.assertEqual(len(set(splits)), 500, "a split was drawn twice")
+        self.assertTrue(all(len(left) == 3 == len(right) and not set(left) & set(right) for left, right in splits))
+        self.assertLess(len(produced), 100_000, "the whole space was enumerated")
+
+    def test_a_small_space_is_still_listed_in_full(self):
+        self.assertEqual(len(spread._splits(8, 3, 5000)), 560)
 
 
 class PurposeCheckTest(unittest.TestCase):
