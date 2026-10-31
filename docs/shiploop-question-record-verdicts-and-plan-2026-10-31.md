@@ -75,6 +75,13 @@ It names IN1 (a summary that leaves a request sentence uncited) and the ledger c
 Tests: the Checked-by guard pairs each new phrase with its real refusal; a proof-order route test and a ledger test
 (test/shiploop-callback-contract.test.py). The quick tier passed before the commit.
 
+Shipped 2026-10-31 in skill-craft 2.26.0 / ShipLoop 1.25.0, release commit `441b1b3b`. The first cut (`b4c63c94`, over
+`5919c0d5`) went stale when another session's empty learning commit `488ffbd9` reached main; the re-cut over it has the
+same tree (`90b21df7`), and `release-push.py` re-ran the three checks (plugin views, marketplace packages, release
+boundary) before its non-forced push. CI had passed on the source tree (runs 41221108457 on `5919c0d5`, 41226634137 on
+`488ffbd9`). Hosts refreshed the same day: Claude and Grok 2.25.2 to 2.26.0, Codex 2.26.0 (a Claude session loads it on
+restart); Cursor updates through its app and was not refreshed here.
+
 ## 3. Live A/B on the Codex harness
 
 `run.py --host codex --model gpt-6.1-terra --effort high --source checkout`, all tools, hooks on; ticket-assignment and
