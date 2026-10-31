@@ -799,6 +799,49 @@ class ThroughMainTest(HARNESS.PrintedCase):
                 self.assertNotIn("delta", json.loads((out / "result.json").read_text()))
 
 
+class ThirdPassPacketTest(unittest.TestCase):
+    """What the first packet of a third pass tells its model about the files the second pass left (render_pass3_intake.py).
+
+    A characterization of the engine as published in 1.26.0, not a requirement: it pins what a third pass is shown today, so that a
+    change to what the stages write or to how the packet lists a file (the plan's D2 and D3) shows up as a deliberate edit here and
+    the committed listings in docs/experiments/multipass-20261031/ are regenerated with it.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        spec = importlib.util.spec_from_file_location("render_pass3_intake", EVIDENCE / "render_pass3_intake.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        cls.rendered = {prefix: module.render(prefix) for prefix in ("bf-codex-r2", "hooks-after")}
+
+    def test_the_committed_listings_are_what_the_engine_prints_now(self) -> None:
+        for prefix, text in self.rendered.items():
+            self.assertEqual(text, (EVIDENCE / f"pass3-intake-{prefix}.txt").read_text(), prefix)
+
+    def test_the_live_decision_the_second_pass_appended_is_listed_under_superseded(self) -> None:
+        listing = self.rendered["bf-codex-r2"]
+        self.assertIn("  ## Superseded\n  ### Bulk and escalation boundary checks: AD-3 Bulk assignment and escalation (implemented)\n", listing)
+        self.assertIn("  ## Decisions: AD-1 Existing store and outbox · AD-2 Filter intersection and CLI\n", listing)  # AD-3 is not here
+
+    def test_environment_md_is_listed_with_its_stage_reports_and_a_named_section_twice(self) -> None:
+        listing = self.rendered["bf-codex-r2"]
+        self.assertEqual(listing.count("  ## Commands\n"), 2)
+        for report in ("Prepared environment", "Returned result", "Operational observations"):
+            self.assertIn("  ## " + report + "\n", listing)
+
+    def test_the_spec_is_still_titled_for_the_first_feature_while_it_lists_the_second(self) -> None:
+        listing = self.rendered["bf-codex-r2"]
+        self.assertIn("  # Ticket assignment specification\n", listing)
+        self.assertIn("R-6 Bulk reassignment · R-7 Urgent escalation", listing)
+
+    def test_the_inherited_learnings_are_the_last_commit_messages_with_the_lessons(self) -> None:
+        for listing in self.rendered.values():
+            self.assertIn("Inherited learnings: the last 3 commit messages", listing)
+            self.assertIn("The second pass's lesson.", listing)  # the newest lessons commit, quoted in full
+            self.assertIn("Open for the next run", listing)
+            self.assertIn("in <work>.", listing)
+
+
 class EngineNamesTest(unittest.TestCase):
     """The names delta reads from the engine and the harness: a rename there fails here, not silently as a null."""
 

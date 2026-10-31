@@ -94,6 +94,20 @@ Pass 1 for comparison: stray headings added to `environment.md` 5, 6, 4 and 3; `
   stage's packet shows of the file.
 - Status of the cause: firm for the attribution (Git history), interim for the reading of the duty texts that name no heading.
 
+### The third pass's first packet (firm for what it lists; interim for the cap)
+
+- [render_pass3_intake.py](experiments/multipass-20261031/render_pass3_intake.py) builds a three-commit repository from a saved pair's second-pass
+  files and starts a real run on it with `shiploop init` and the `ticket-comments` prompt. No model is called. The four listings are committed
+  ([pass3-intake-*.txt](experiments/multipass-20261031/)); `ThirdPassPacketTest` pins two of them to the engine as published (1.26.0).
+- For `bf-codex-r2` the model is shown: `spec.md` titled "Ticket assignment specification" and listing R-1 to R-7; `environment.md` as 22
+  headings under its title (`## Commands` twice, "Prepared environment", "Returned result", "Operational observations", and a dated
+  "Bulk reassignment and escalation discovery (2026-10-29)" with six subsections); `architecture.md` with `AD-3` under `## Superseded`. The
+  inherited learnings (the last three commit messages, the newest lessons commit in full) are quoted correctly: that half of inheritance works.
+- The listing prints at most 40 headings of a file and then "N more headings" (`_CONTENTS_LINES` in `shiploop_navigator.py`), in file order, so
+  the sections appended last are the ones cut. `environment.md` listed 12 to 16 headings after pass 1 and 16 to 27 after pass 2 (+4 to +11 a
+  pass). At those rates the fastest-growing pair is first cut in the packet of the fifth pass and the slowest not before the ninth.
+  Arithmetic from the observed growth, not seen on a run.
+
 ### F3. Provenance and titles are run-relative (firm)
 
 R-1 to R-5 were kept byte for byte and R-6 and R-7 were numbered correctly in all four runs (no collision, no change to an
