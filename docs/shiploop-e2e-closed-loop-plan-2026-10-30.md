@@ -104,6 +104,18 @@ comparison that promotes is one registered epoch".
 | 4 | Stage 4: the padding overlay must be dropped or left undecided | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | step 1 |
 | 5 | Stage 5: the first cycle takes the S-13 slip | `skills/shiploop/scripts/shiploop_primary.py` (its `ticket-escalation` comment); `iterate.py --qualify` | steps 1 to 4 |
 
+**Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
+want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement
+later. Consequences, so they are not rediscovered:
+- No `calibration.json` exists, so D1 (attempts per arm and tolerance) has no measured basis. The noise figure stays
+  unknown; the only hint is user-listing's turns on Terra, about ±13% across three mixed builds.
+- `iterate.py --qualify` and `cycle.py` refuse to start without `--calibration` (`cycle.load_calibration`). Qualified
+  cycles therefore cannot run as built. A later change must either accept an explicit, recorded tolerance and attempt
+  count in place of a measurement, or the loop moves to step slices (`experiment.py`). That is a decision for the owner.
+- The loop's live parts (the stage 4 pilot, stage 5 cycles) all need Codex Terra runs on the owner's computer; skipping
+  stage 3 does not remove that need. As of this date the owner's computer (BigDog) lists `skill-craft` in Remote
+  Control but does not offer it to cloud sessions, so a cloud session cannot launch live runs there.
+
 ## Stage 1: SPEC amendments
 
 Done in 2b4c675. One commit, `docs(e2e-spec): ...`, before any code, so the harness is judged against the amended spec:
