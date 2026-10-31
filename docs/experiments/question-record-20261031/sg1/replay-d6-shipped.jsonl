@@ -1,0 +1,183 @@
+{"run": "2026-10-18/battleship-1", "item": "W1", "base": "3b99a61fb257", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "2026-10-18/battleship-1", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "2026-10-30/shiploop-serve-hello-fc0832", "item": "W1", "base": "e761ae9616b0", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261003/hello", "item": "W1", "base": "ac9c11390634", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261003/seat-reservations", "item": "W1", "base": "7e66fad0c4fd", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261003/v1161-battleship-luna", "item": "W1", "base": "ea64a4474beb", "refusal": "", "implement_outcomes": ["done", "done", "revise"], "send_backs": []}
+{"run": "20261003/v1161-battleship-luna", "item": "W1", "base": "ea64a4474beb", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261003/v1161-hello", "item": "W1", "base": "03b5fcbb898a", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261004/v1180-hello-sonnet", "item": "W1", "base": "2703ad189aab", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261004/v1190-hello-sonnet", "item": "W1", "base": "8a91494e6556", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261004/v1190-hello-sonnet-2", "item": "W1", "base": "e2ae39cc0d8a", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261004/v1190-hello-sonnet-2", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261004/v1200-hello-sonnet", "item": "W1", "base": "b786d81f46d0", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261005/v1210-battleship-grok-medium", "item": "W1", "base": "f41ca4a0dff5", "refusal": "", "implement_outcomes": [], "send_backs": []}
+{"run": "20261005/v1210-battleship-luna-xhigh", "item": "W1", "base": "8d818eab14c7", "refusal": "", "implement_outcomes": [], "send_backs": []}
+{"run": "20261005/v1210-battleship-luna-xhigh", "item": "W1", "base": "8d818eab14c7", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261006/gas-battleship-audit", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261006/gas-battleship-audit", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261006/v1220-battleship-grok-medium-none", "item": "W1", "base": "0c6d3bf7acca", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261006/v1220-battleship-grok-medium-none", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261006/v1220-battleship-sonnet", "item": "W1", "base": "945dfe017964", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261006/v1220-battleship-sonnet", "item": "W1", "base": "945dfe017964", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261007/v1230-battleship-grok-none", "item": "W1", "base": "7665caef4392", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261007/v1230-battleship-grok-none", "item": "W2", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261007/v1230-battleship-grok-none", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261007/v1230-battleship-sonnet", "item": "W1", "base": "66e19277349b", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261008/r1-battleship-grok-none", "item": "W1", "base": "17309e678231", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261008/r1-battleship-sonnet", "item": "W1", "base": "93653d87431c", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261008/r1-checkers-sonnet", "item": "W1", "base": "0051b56e89df", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261008/r2-battleship-grok-none", "item": "W1", "base": "99ffd824f4ff", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261008/r2-battleship-grok-none", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261008/r2-battleship-sonnet", "item": "W1", "base": "0146d0bbaa2f", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261008/r2-checkers-sonnet", "item": "W1", "base": "e4ee22adcbf1", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261008/r3-battleship-grok-none", "item": "W1", "base": "44aeb839c5d0", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261008/r3-battleship-sonnet", "item": "W1", "base": "de119233ef0b", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261008/r3-checkers-sonnet", "item": "W1", "base": "ae7d287656eb", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261009/s6-after-spec", "item": "W1", "base": "2425f12ae32d", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261009/s6-inside-implement", "item": "W1", "base": "04c61d70c563", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261009/s6-inside-implement-k2", "item": "W1", "base": "8a7213554f59", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261009/s6-inside-implement-mtime", "item": "W1", "base": "378fc58ce3bf", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261009/s6-inside-implement-write", "item": "W1", "base": "3f21aaafb0d5", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261009/s6-inside-test-strategy", "item": "W1", "base": "8cb9472021a9", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261009/s6-inside-test-strategy", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261009/s6-inside-test-strategy-2", "item": "W1", "base": "397a568e8ea6", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261010/battleship-1", "item": "W1", "base": "78ccdd5d489b", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261010/checkers-1", "item": "W1", "base": "c9f532ef01b7", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261010/checkers-1270-sonnet", "item": "W1", "base": "3362820baca7", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261010/checkers-8stage-88d412e9", "item": "W1", "base": "f6297739d06a", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261010/checkers-sections-1ac83089", "item": "W1", "base": "e0a28482d479", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261010/hello-1270-claude-2", "item": "W1", "base": "58d149f42506", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261010/hello-8stage-13d278dd", "item": "W1", "base": "540cae22ec05", "refusal": "", "implement_outcomes": ["revise"], "send_backs": []}
+{"run": "20261010/hello-8stage-13d278dd", "item": "W1", "base": "540cae22ec05", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261010/hello-rel1270-ref-r1", "item": "W1", "base": "4cf1046dac34", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261010/hello-rel1270-ref-r2", "item": "W1", "base": "7d3fa03a46e9", "refusal": "", "implement_outcomes": [], "send_backs": []}
+{"run": "20261010/hello-rel1270-ref-r2", "item": "W1", "base": "7d3fa03a46e9", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261010/hello-rel1270-ref-r3", "item": "W1", "base": "24f75cc19e09", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261010/hello-sections-1ac83089", "item": "W1", "base": "0139a21612dd", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261010/hello-sections-r2-1ac83089", "item": "W1", "base": "4b19f7c2bf80", "refusal": "", "implement_outcomes": ["revise"], "send_backs": []}
+{"run": "20261010/hello-sections-r2-1ac83089", "item": "W1", "base": "4b19f7c2bf80", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261010/hello-sections-r3-1ac83089", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["revise"], "send_backs": []}
+{"run": "20261010/hello-sections-r3-1ac83089", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261010/hello-sections-r4-1ac83089", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261010/pc1i-checkers-sonnet", "item": "W1", "base": "4ab8b08c5415", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261011/battleship-probe-28191c5b", "item": "W1", "base": "91e7270eacc5", "refusal": "", "implement_outcomes": [], "send_backs": []}
+{"run": "20261011/battleship-probe-28191c5b", "item": "W1", "base": "91e7270eacc5", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261011/battleship-scoring-probe-28191c5b", "item": "W1", "base": "a9e2c7b3d7de", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261011/slice-clear-implement-28191c5b", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261011/slice-clear-test-inside-28191c5b", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261011/slice-clear-verify-28191c5b", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261011/slice-fixbug-8e1253de", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261016/battleship-e2eaudit-4dd3b4b4", "item": "W1", "base": "c5f52cc59dd5", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261017/bs-sf-int-b7c77f", "item": "W1", "base": "2449835d6336", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261017/bs-sf-int-b7c77f", "item": "W1", "base": "2449835d6336", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261017/round0-claude-main", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261017/salesforce-chess-int-802e29", "item": "W1", "base": "0296255950fc", "refusal": "", "implement_outcomes": ["revise"], "send_backs": []}
+{"run": "20261017/salesforce-chess-int-802e29", "item": "W1", "base": "0296255950fc", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261018/bs-release-update-436528", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261019/chess-sf-full-05fe25b", "item": "W1", "base": "0ab0725d7c2e", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261019/chess-sf-full-05fe25b", "item": "W1", "base": "0ab0725d7c2e", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261019/chess-sf-full-05fe25b", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261019/chess-sf-full-05fe25b", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261019/chess-sf-full-05fe25b", "item": "W4", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261020/chess-sf-full-9e52e8", "item": "W1", "base": "a6044d16fda0", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261020/chess-sf-full-9e52e8", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261020/chess-sf-full-9e52e8", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261020/chess-sf-full-9e52e8", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261024/chess-sf-full-12a23d", "item": "W1", "base": "8ee1e157c8ab", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "send-back"], "send_backs": ["C28 says b2b4 b7b5 b4b5 a7a6 b5b6 a6a5 b6b7 a5a4 b7a8q returns Qnbqkbnr/2pppppp/8/8/p7/8/P1PPPPPP/RNBQKBNR b KQk - 0 5. After the first two plies the pawns stand on b4 and b5 (rnbqkbnr/p1pppppp/8/1p6/1P6/8/P1PPPPPP/RNBQKBNR w KQkq b6 0 2) and b4b5 is not a legal move. That FEN is what a straight cap"]}
+{"run": "20261024/chess-sf-full-12a23d", "item": "W1", "base": "8ee1e157c8ab", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261024/chess-sf-full-12a23d", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["send-back"], "send_backs": ["C6 says scripts/SLChessS7.apex passes when applyMove(startFen(), e2e5) throws AuraHandledException and that type is caught. Anonymous Apex quiddity is ANONYMOUS. Throwing AuraHandledException there becomes an uncatchable System.LimitException, so the proof cannot exit 0 if the controller always thro"]}
+{"run": "20261024/chess-sf-full-12a23d", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261024/chess-sf-full-12a23d", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261024/chess-sf-full-ed3292", "item": "W1", "base": "f3d20aa95d6a", "refusal": "", "implement_outcomes": ["blocked"], "send_backs": []}
+{"run": "20261024/gate-290-b60ed7-claude-csv-report", "item": "W1", "base": "0923f8944d32", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261024/gate-290-b60ed7-codex-hello", "item": "W1", "base": "67faf26c9e23", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261025/gate-2132-f7ba78-grok-hello", "item": "W1", "base": "82f75506d2fe", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261026/ds-flash-978478-battleship", "item": "W1", "base": "63e313c8fad6", "refusal": "step S1's Proof runs test/game.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/game.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["W1's step plan gives both steps a Proof that cannot pass this stage: S1's `node --test test/game.test.js`, and S2's 598-character `node -e` scan, which reads `test/game.test.js` as well as `lib/game.js`. `test/game.test.js` is written by the `test` stage, which runs after `implement`, and this stage"]}
+{"run": "20261026/ds-flash-978478-battleship", "item": "W1", "base": "63e313c8fad6", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261026/ds-flash-978478-battleship", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261026/ds-flash-978478-battleship", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261026/live-sonnet-battleship-01b9b3", "item": "W1", "base": "5449b0603718", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261026/live-sonnet-hello-b01d1c", "item": "W1", "base": "e5e7aa268f25", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261026/pilot-ollama-dsflash-993a9d-hello", "item": "W1", "base": "1342ebe008a9", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261027/v2170-ds-battleship-759a03", "item": "W1", "base": "75aacf359f48", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261027/v2170-ds-battleship-759a03", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261027/v2170-ds-battleship-759a03", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261027/v2170-sonnet-battleship-491d9a", "item": "W1", "base": "f13c08154c72", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261027/v2180-sonnet-battleship-36036c", "item": "W1", "base": "2ee1ef70a9d3", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261028/bc-before-1-3e8c03", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/bc-before-2-740b8b", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/bc-before-3-1cc0c2", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pa-ds-battleship-4ed4e3", "item": "W1", "base": "f911c802c6ac", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261028/pa-ds-battleship-4ed4e3", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261028/pa-ds-battleship-4ed4e3", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pa-ds-battleship-4ed4e3", "item": "W4", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pa-ds-battleship-4ed4e3", "item": "W4", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-generic-1-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-generic-1-232e69.seed-defect", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["blocked"], "send_backs": []}
+{"run": "20261028/pb-hook-generic-2-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-generic-3-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-owed-1-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261028/pb-hook-owed-1-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-owed-2-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-owed-2-232e69.seed-defect-cut", "item": "W1", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261028/pb-hook-owed-3-232e69", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261028/pb-hook-owed-3-232e69.owner-defect", "item": "W1", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261029/bc-b-1-ddde3c", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/bc-bf-1-05cbe0", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/bc-final-1-73d523", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/bc-final-2-fe3324", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/bc-final-3-3e986d", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/pilot-terra-ask-agent-32f436", "item": "W1", "base": "aeb9ca7e8580", "refusal": "step S1's Proof runs test/records.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/records.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261029/pilot-terra-ask-agent-OLD-32f436", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/pilot-terra-inline-32f436", "item": "W1", "base": "cf1862cd6a7d", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261029/round-se-sigkill-1-708d75", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/round-se-sigterm-1-e35e7d", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/round-se-sigterm-2-b14d8c", "item": "W1", "base": "", "refusal": null, "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261030/hello-terra-2243-0c81bf", "item": "W1", "base": "bc9e1e31b16b", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261030/p0-terra-ask-agent-55bfcd", "item": "W1", "base": "6c2c7a543b0c", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261030/p0-terra-ask-agent-55bfcd", "item": "W1", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261030/p0-terra-ask-agent-55bfcd", "item": "W1", "base": "f6c1f6be3e00", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261030/p0-terra-inline-3071d4", "item": "W1", "base": "91e8a6066a31", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261028/bf-ds-ticket-assignment-09c33b", "item": "W1", "base": "37afc419b00e", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261028/bf-ds-ticket-assignment-09c33b", "item": "W2", "base": "", "refusal": null, "implement_outcomes": [], "send_backs": []}
+{"run": "20261028/bf-ds-ticket-assignment-09c33b", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261028/bf-ds-ticket-assignment-09c33b", "item": "W3", "base": "", "refusal": null, "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261028/bf-ds-ticket-escalation-09c33b", "item": "W1", "base": "cb57a9341678", "refusal": "", "implement_outcomes": ["done", "done", "done", "done", "done", "done", "done", "done"], "send_backs": []}
+{"run": "20261028/bf-ds-user-listing-09c33b", "item": "W1", "base": "6643d62d17f0", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261028/bf-ds-user-listing-09c33b", "item": "W2", "base": "", "refusal": null, "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261029/bf-codex-r1-ticket-assignment", "item": "W1", "base": "59cd7e2bc6b8", "refusal": "step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/assignment.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["S1 proof cannot run: test/assignment.test.js is absent and test creation is forbidden at implement and scheduled later. Proof exited 1; lint passed. Compatible S1 changes remain. Replace step proofs with meaningful executable checks available before test authoring, retain planned focused and full-su"]}
+{"run": "20261029/bf-codex-r1-ticket-assignment", "item": "W1", "base": "59cd7e2bc6b8", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261029/bf-codex-r1-ticket-escalation", "item": "W1", "base": "a6804d7ff32c", "refusal": "step S1's Proof runs test/bulk-escalation.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/bulk-escalation.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["C1 proof requires test/bulk-escalation.test.js, absent at item base, while implement explicitly forbids writing tests and test stage follows implementation. The same conflict affects S2 and S3. Compatible S1 code is present and syntax lint passed, but its proof failed because the test is absent. Rep"]}
+{"run": "20261029/bf-codex-r1-ticket-escalation", "item": "W1", "base": "a6804d7ff32c", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261029/bf-codex-r1-user-listing", "item": "W1", "base": "16d7fa889614", "refusal": "", "implement_outcomes": ["send-back"], "send_backs": ["TC-1 and TC-2 incorrectly state AL matches IDs 1 and 3; only Alan matches. Correct expected IDs/counts or use a different filter. The step proof npm test currently has only baseline cases because the test stage follows implementation; it cannot prove C1\u2013C3. Revise the plan to provide an executable p"]}
+{"run": "20261029/bf-codex-r1-user-listing", "item": "W1", "base": "16d7fa889614", "refusal": "", "implement_outcomes": ["send-back"], "send_backs": ["C1\u2013C3 still demand node --test test/user-listing.test.js at implementation, but test stage writes that file later. Revise their confirmation to the existing equivalent scratch HTTP proof for this stage, retaining the focused permanent suite and all requested cases at test. Scratch proof and npm test"]}
+{"run": "20261029/bf-codex-r1-user-listing", "item": "W1", "base": "16d7fa889614", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/bf-codex-r2-ticket-assignment", "item": "W1", "base": "f2385ea0b857", "refusal": "step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/assignment.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["S1 proof requires test/assignment.test.js, which does not exist and is scheduled to be written only at the later test stage; implement explicitly forbids writing tests. The command exits nonzero on the missing file (see action notes). S2-S4 use the same unavailable file. Revise the step plan to use "]}
+{"run": "20261029/bf-codex-r2-ticket-assignment", "item": "W1", "base": "f2385ea0b857", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261029/bf-codex-r2-ticket-escalation", "item": "W1", "base": "c774354259e1", "refusal": "", "implement_outcomes": ["done", "send-back"], "send_backs": ["S2 proof's fs.rmSync force:1 fails with ERR_INVALID_ARG_TYPE after its assertions; use force:true in the planned proof. S2 implementation is uncommitted, lint passed, and no later step started. Return to step-plan to correct the check."]}
+{"run": "20261029/bf-codex-r2-ticket-escalation", "item": "W1", "base": "c774354259e1", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261029/bf-codex-r2-user-listing", "item": "W1", "base": "80ad9e739903", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261029/hooks-after-ticket-assignment", "item": "W1", "base": "68726c03b8c7", "refusal": "step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/assignment.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["The planned proof requires test/assignment.test.js, which does not exist; test-spec writes no code and implement forbids tests until its later test stage. Proof exits 1 as shown in run/notes/proof-missing.txt. Replan with proof executable within the implement stage before test authoring."]}
+{"run": "20261029/hooks-after-ticket-assignment", "item": "W1", "base": "68726c03b8c7", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261029/hooks-after-ticket-escalation", "item": "W1", "base": "bf2e2642bae6", "refusal": "step S1's Proof runs test/reassignment-escalation.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/reassignment-escalation.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": [], "send_backs": []}
+{"run": "20261029/hooks-after-ticket-escalation", "item": "W1", "base": "bf2e2642bae6", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261029/hooks-after-user-listing", "item": "W1", "base": "bf827b32fdbc", "refusal": "step S1's Proof runs test/list-pagination-helper.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/list-pagination-helper.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["C1 helper was changed to use ceiling, but its planned proof exits 1 because test/list-pagination-helper.test.js is absent and the implement stage forbids creating tests. The test stage occurs later. Revise the step proof to run a meaningful existing or inline assertion and retain durable tests for t"]}
+{"run": "20261029/hooks-after-user-listing", "item": "W1", "base": "bf827b32fdbc", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261029/hooks-before-ticket-assignment", "item": "W1", "base": "1a85ad43f260", "refusal": "step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or a recorded command), keep test/assignment.test.js in the focused command for the test stage, then run the same callback again.", "implement_outcomes": ["send-back"], "send_backs": ["S1 proof node --test --test-name-pattern=TC_1 test/assignment.test.js fails because the file is absent; implement forbids writing tests and test stage creates them later. All four proofs share this issue. Replan to use self-contained executable proofs available at implementation; preserve new tests "]}
+{"run": "20261029/hooks-before-ticket-assignment", "item": "W1", "base": "1a85ad43f260", "refusal": "", "implement_outcomes": ["done", "done", "done", "done"], "send_backs": []}
+{"run": "20261029/hooks-before-ticket-escalation", "item": "W1", "base": "8ee04f1ff883", "refusal": "", "implement_outcomes": ["done", "done", "done"], "send_backs": []}
+{"run": "20261029/hooks-before-user-listing", "item": "W1", "base": "4465c5816ae2", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "20261029/hooks-after-user-listing", "item": "W1", "base": "2eae6998d413", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "20261028/pc-ds-hello-note-b45e87", "item": "W1", "base": "00f5d71013ac", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1/control-hello", "item": "W1", "base": "23ae79d16059", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1/control-hello", "item": "W1", "base": "23ae79d16059", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1/control-seat-reservations", "item": "W1", "base": "b1bd9728450f", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1/treatment-hello", "item": "W1", "base": "90d7ddba07cb", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1/treatment-seat-reservations", "item": "W1", "base": "033fe9dc11d6", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "effort-eeff1-r1/control-hello", "item": "W1", "base": "d3712a18ab65", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1-r1/treatment-hello", "item": "W1", "base": "4dfb565ed87b", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"run": "effort-eeff1-r1b/control-hello", "item": "W1", "base": "7aa919319fc3", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "effort-eeff1-r1b/treatment-hello", "item": "W1", "base": "b369450b76b6", "refusal": "", "implement_outcomes": ["done"], "send_backs": []}
+{"run": "e2e-runs/terra-high-user-listing", "item": "W1", "base": "7404c3c8550b", "refusal": "", "implement_outcomes": ["done", "done"], "send_backs": []}
+{"summary": {"runs": 142, "plans": 182, "unjudged": 62, "refused": 9}}

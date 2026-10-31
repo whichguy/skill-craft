@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified from the supplied excerpt\",\n  \"evidence_refs\": [],\n  \"summary\": \"Classification: unresolved. Exit assessment: unknown. Continuation assessment: blocked. The exercise prohibits running the Until Loop and reading the complete item context, requirements, test decisions, and guides. No receipt or callback was produced. Evidence: the supplied work-item context explicitly says it is an excerpt. Handoff: provide the complete required materials and loop instructions or permit the prescribed commands before planning can be verified.\",\n  \"awaiting\": {\n    \"reason\": \"The complete context and Until Loop instructions are unavailable within the exercise constraints.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20721,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 294,
+  "reasoning_output_tokens": 139
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"The packet lacks the contents needed to verify a step plan\",\n  \"summary\": \"The packet names R-1\u2013R-6 and AD-1 but does not quote their requirements or decision, the test decisions and commands, or the existing interfaces and CLI path. A complete plan would require guessing those contracts and claiming checks that cannot be established from the supplied text.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the contents of the referenced knowledge files, earlier stage results, and relevant repository interfaces, or permit access to them.\"\n  },\n  \"evidence_refs\": [\n    \"/exercise/.shiploop-runs/work-20261029-220311-ed9820/worktree/docs/shiploop/spec.md\",\n    \"/exercise/.shiploop-runs/work-20261029-220311-ed9820/worktree/docs/shiploop/environment.md\",\n    \"/exercise/.shiploop-runs/work-20261029-220311-ed9820/worktree/docs/shiploop/architecture.md\"\n  ]\n}\n```",
+ "usage": {
+  "input_tokens": 19940,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 755,
+  "reasoning_output_tokens": 516
+ }
+}

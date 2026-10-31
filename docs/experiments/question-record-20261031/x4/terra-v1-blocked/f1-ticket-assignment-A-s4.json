@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified in the tool-free exercise\",\n  \"evidence_refs\": [],\n  \"summary\": \"The exercise prohibits running the required Until Loop and callback, and the packet does not include the full requirements, test decisions, or guide sections needed to produce a verified plan. The loop receipt cannot be reported complete. Restore access to those materials and execution, or provide a revised stage contract that can be completed from the quoted packet.\",\n  \"awaiting\": {\n    \"owner\": \"user\",\n    \"action\": \"Provide an executable environment or a revised, self-contained stage contract.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20851,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 203,
+  "reasoning_output_tokens": 56
+ }
+}

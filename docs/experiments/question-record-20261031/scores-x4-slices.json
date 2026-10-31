@@ -1,0 +1,60 @@
+{
+  "rows": [
+    {
+      "slice": "A-s1",
+      "arm": "A",
+      "sample": 1,
+      "parsed": true,
+      "fault": false,
+      "flags": [],
+      "judged": 1,
+      "unjudged": 1,
+      "steps": 2,
+      "proofs": [
+        "node -e \"const assert=require('node:assert/strict');const {TicketStore}=require('./src/store');const {manualClock}=require('./src/clock');const s=new TicketStore({clock:manualClock()});const t=s.create({title:'Issue',priority:'normal',requester:'person'},'actor');assert.equal(t.assignee,null);assert.equal(s.assign(t.id,'agent','actor').assignee,'agent');assert.equal(s.dueNotifications().at(-1).to,'agent');assert.ok(require('./src/templates').render(s.dueNotifications().at(-1)).body.includes(t.id));const p=require('./src/persistence');assert.equal(p.fromDocument(p.toDocument(s.snapshot(),new Date()),Error).tickets[0].assignee,'agent')\"",
+        "node -e \"const {withService,ticketBody}=require('./test/helpers');const a=require('assert');withService({},async(api)=>{const t=(await api.post('/tickets',ticketBody())).body;a.strictEqual(t.assignee,null);const p=await api.put('/tickets/'+t.id+'/assignee',{assignee:'check.agent'});a.ok(p.status>=200&&p.status<300,'assign '+p.status);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');a.strictEqual((await api.put('/tickets/'+t.id+'/assignee',{assignee:'x'.repeat(65)})).status,400);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');const u=await api.put('/tickets/'+t.id+'/assignee',{assignee:null});a.ok(u.status>=200&&u.status<300,'unassign '+u.status);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,null)}).then(()=>process.exit(0),e=>{console.error(e);process.exit(1)})\" && rg -F 'PUT /tickets/:id/assignee' src/tickets/validate.js"
+      ],
+      "refusals": [],
+      "active_minutes": null
+    },
+    {
+      "slice": "Q-s1",
+      "arm": "Q",
+      "sample": 1,
+      "parsed": true,
+      "fault": false,
+      "flags": [],
+      "judged": 0,
+      "unjudged": 2,
+      "steps": 2,
+      "proofs": [
+        "node /Users/dadleet/e2e-runs-x4/20261031/Q-s1/.shiploop-runs/seed/run/scratch/store-proof.js",
+        "node -e \"const {withService,ticketBody}=require('./test/helpers');const a=require('assert');withService({},async(api)=>{const t=(await api.post('/tickets',ticketBody())).body;a.strictEqual(t.assignee,null);const p=await api.put('/tickets/'+t.id+'/assignee',{assignee:'check.agent'});a.ok(p.status>=200&&p.status<300);a.strictEqual((await api.get('/tickets/'+t.id)).body.assignee,'check.agent');a.strictEqual((await api.put('/tickets/'+t.id+'/assignee',{assignee:'x'.repeat(65)})).status,400);a.strictEqual((await api.put('/tickets/'+t.id+'/assignee',{assignee:null})).body.assignee,null)}).then(()=>process.exit(0),e=>{console.error(e);process.exit(1)})\""
+      ],
+      "refusals": [
+        [
+          "complete",
+          "a test command's criteria must be a nonempty list of distinct criterion IDs"
+        ]
+      ],
+      "active_minutes": null
+    }
+  ],
+  "arms": {
+    "A": {
+      "n": 1,
+      "parsed": 1,
+      "faults": 0,
+      "fault_rate": 0.0,
+      "refusals": 0.0
+    },
+    "Q": {
+      "n": 1,
+      "parsed": 1,
+      "faults": 0,
+      "fault_rate": 0.0,
+      "refusals": 1.0
+    }
+  },
+  "p_one_sided_fewer_faults": 1.0
+}

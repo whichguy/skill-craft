@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified in the exercise's no-tools environment\",\n  \"summary\": \"The required Until Loop cannot be started or inspected, and the referenced requirements, prior results, guides, and repository cannot be reopened from the excerpts provided. No receipt or callback was produced. Classification: unresolved; exit_assessment: unknown; continuation_assessment: blocked. Evidence: the packet states that tools and callbacks are unavailable. Handoff: provide the loop instructions and relevant file contents, or enable the required tool access.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the required loop instructions and referenced contents, or enable tool access.\"\n  },\n  \"evidence_refs\": []\n}\n```",
+ "usage": {
+  "input_tokens": 20850,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 245,
+  "reasoning_output_tokens": 76
+ }
+}

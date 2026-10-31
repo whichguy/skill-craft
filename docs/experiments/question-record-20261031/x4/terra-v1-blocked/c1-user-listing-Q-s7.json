@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be completed from the excerpt\",\n  \"evidence_refs\": [],\n  \"summary\": \"The complete work-item context, requirement details, test decisions and loop contract are not included in the packet. The exercise prohibits tools, so the Until Loop cannot be started or verified and its receipt cannot be produced. A person must provide the missing contents and a way to satisfy the loop before the plan can be completed.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the complete referenced context and loop instructions, and enable the required loop and callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20722,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 241,
+  "reasoning_output_tokens": 94
+ }
+}

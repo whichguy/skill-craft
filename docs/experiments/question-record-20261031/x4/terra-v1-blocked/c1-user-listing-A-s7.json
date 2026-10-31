@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning is blocked by unavailable required context and execution\",\n  \"summary\": \"The packet omits the full work-item context, requirement details, test decisions, and guide sections needed to produce a reliable plan. The exercise also prohibits starting the Until Loop or verifying its receipt, so its exit conditions cannot be assessed. No callback was run.\",\n  \"awaiting\": {\n    \"from\": \"user\",\n    \"answer\": \"Provide the omitted context and a way to satisfy the required loop and verification, or authorize a plan that does not claim those checks were completed.\"\n  },\n  \"evidence_refs\": []\n}\n```",
+ "usage": {
+  "input_tokens": 20690,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 226,
+  "reasoning_output_tokens": 77
+ }
+}

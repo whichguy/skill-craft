@@ -13,7 +13,7 @@ Each call writes OUT (an envelope with ``text``, the answer, and the runner's fa
 (``rc``, ``seconds``, ``subject``).  A job whose OUT exists with exit 0 and a non-empty text is skipped, so a rerun resumes.
 A failed call is retried once.  Progress lines go to stdout: ``DONE``, ``SKIP``, ``FAIL`` (for a monitor).
 
-Usage: run.py JOBS_FILE [JOBS_FILE ...] [--limit codex=6,opus=4]
+Usage: run.py JOBS_FILE [JOBS_FILE ...] [--limit=codex=6,opus=4]
 """
 import json
 import os

@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified in the tool-free exercise\",\n  \"evidence_refs\": [],\n  \"summary\": \"The packet provides section headings rather than the contents needed to recheck the requirements, test decisions, and guides. The exercise also prohibits starting the required Until Loop, checking its receipt, and submitting the callback. No exit condition has been verified.\",\n  \"awaiting\": {\n    \"who\": \"User\",\n    \"what\": \"Provide the missing referenced contents and an execution environment that can run the Until Loop and callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 21092,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 222,
+  "reasoning_output_tokens": 87
+ }
+}

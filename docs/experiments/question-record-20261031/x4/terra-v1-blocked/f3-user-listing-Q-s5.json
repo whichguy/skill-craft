@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"The step plan could not be verified.\",\n  \"summary\": \"The exercise prohibits tools, so the required Until Loop, file checks, and callback could not run. The packet provides section titles rather than the requirement and test-decision contents needed to produce a reliable plan.\",\n  \"evidence_refs\": [],\n  \"classification\": \"unresolved\",\n  \"exit_assessment\": \"unknown\",\n  \"continuation_assessment\": \"blocked\",\n  \"evidence\": \"No loop receipt or verification result was available in the supplied packet.\",\n  \"handoff\": \"Provide the referenced contents and a way to run the required loop and callback, or revise those requirements.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Resolve the conflict between the no-tools constraint and the required loop, file checks, and callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20766,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 308,
+  "reasoning_output_tokens": 109
+ }
+}

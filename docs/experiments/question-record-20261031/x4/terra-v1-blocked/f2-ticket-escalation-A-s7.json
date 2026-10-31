@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Step planning cannot be verified from the supplied packet\",\n  \"summary\": \"The exercise prohibits tools, so the Until Loop cannot be started, its contract and receipt cannot be read, and the callback cannot be run. The packet lists the knowledge files and earlier results but does not include their contents, so the required criteria, commands, expectations, and plan cannot be verified. The required awaiting shape is also in an unavailable reference.\",\n  \"evidence_refs\": [],\n  \"awaiting\": {\n    \"who\": \"exercise host\",\n    \"what\": \"Provide the missing referenced contents and loop instructions, or enable the required tools and callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 21093,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 241,
+  "reasoning_output_tokens": 84
+ }
+}

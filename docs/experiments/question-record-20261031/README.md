@@ -80,6 +80,18 @@ Rules (pre-registered):
 4. Significance: exact one-sided permutation test (the harness's `decide` rule since D5, a9e398e9) over per-run
    values; a difference is a gain only with p < 0.05. Paired arms (A, D) are also reported with a sign-flip test.
 
+## X2b (intake catalog → spec), added 2026-10-31 after X2 was scored and before any X2b call
+
+X2 showed that spec on Terra high carries about 0.79 of the decisions whatever intake A or C hands it, and X1-T that
+intake B (catalog + ledger) surfaces 0.91 against A's 0.49. Does B's ledger reach the spec? Arms, on Terra 6.1 high:
+**A→spec** (X2's arm A outputs, re-judged) and **B→spec** (the shipped spec duty, intake B's result quoted by value, no
+added duty line). 4 cases x 4 samples. Judge: Opus, X2's judge text, one call per case and sample pair holding the A and
+B outputs of that pair (four outputs), shuffled with the seed `x2b-<subject>-<case>-<pair>`.
+
+Rule: the intake catalog is adopted (D2 reversed for this subject) only if B→spec beats A→spec by 5 points or more on
+`carried` or on `spec_pinned` with exact one-sided permutation p < 0.05, and B's agreement is no more than 2 points
+below A's. Otherwise the intake gain does not reach the spec and the catalog is not adopted.
+
 ## X4 (step-plan): does a Proof-input question cut proof-order faults?
 
 Isolated replay with a script grader, no judge. Packets are step-plan packets archived by saved runs (the DeepSeek
@@ -102,6 +114,23 @@ proposal §5 before any replay. Held-out corpus for any refinement: the saved ru
 Rule for a refinement found on the first corpus: it counts only if, on the held-out corpus, it flags no step whose
 Proof passed at implement.
 
-## Results
+## Results (2026-10-31; journal E5–E9)
 
-(appended after the runs)
+Every subject call parsed; every judge call returned JSON; 0 judge quotes were missing from their outputs.
+
+| Experiment | Arms (n per arm) | Result | Rule |
+|---|---|---|---|
+| X1-T, Terra high | A, B, C (16) | recall 0.493 / 0.907 / 0.657; agreement 0.83 / 0.77 / 0.67; B vs A p < 0.0001, C vs A p 0.003 | D2 does not hold; intake wording reopens (`scores-intake-terra.json`) |
+| X1-T, Terra xhigh (control, added after X1-T) | A, B, C (16) | recall 0.513 / 0.981 / 0.681; agreement 0.74 / 0.69 / 0.69 | the same (`scores-intake-terra-xhigh.json`) |
+| X2, Terra high | A, D, C (16) | acceptance 0.635 / 0.687 / 0.650; carried 0.789 / 0.808 / 0.807; agreement 0.65 / 0.65 / 0.62 | phase 1 not adopted; duty line not adopted (D +5, paired p 0.008, below the 10-point bar); prose does not carry 0.95 (`scores-spec-terra.json`) |
+| X2b, Terra high | A, B (16) | carried 0.776 / 0.897 (+0.120, p 0.013, paired 0.001); pinned 0.650 / 0.717; agreement 0.65 / 0.65 | intake catalog adopted (`scores-spec-x2b-terra.json`) |
+| X4, Terra high | A, Q | v1 no-tool packets: 64 of 64 `blocked` (`x4/terra-v1-blocked/`, `scores-x4-terra-v1-blocked.json`); v2 without the harness lines (`x4/terra-v2-blocked/`, one call): still blocked (packets do not quote the knowledge files); step slices on the Codex harness (`x4/score_slices.py`, `scores-x4-slices.json`): 1 of 1 clean in each arm, both copying the case's seeded proof | closed: no isolated design measures it; D6 is the fix |
+| SG1 | — | `sg1/`: proposal corpus 2 flags (1 true, 1 a contract breach); held-out 8 flags in 5 plans; 9 of 12 implement send-backs are proof-order; the shipped rule refuses 9 of 182 plans (7 before that send-back, 1 the breach, 1 with no implement after) | the post-hoc refinement is rejected (misses `bf-codex-r1-ticket-escalation`); D6 built with the original rules plus an earlier-step exemption |
+
+Reproduce: `python3 jobs_intake.py`, then `QR_WORK=<scratch> python3 run.py jobs-intake.tsv`; `python3 judge_intake.py
+terra` and `run.py jobs-judge-intake-terra.tsv`; `python3 score_intake.py terra` (and `terra-xhigh`); `python3
+build_spec.py terra` (X2) or `build_spec.py terra B` (X2b), `run.py jobs-spec-terra*.tsv`, `python3 judge_spec.py terra`
+(X2) or `judge_spec.py terra A,B spec-x2b`, `run.py jobs-judge-spec*.tsv`, `python3 score_spec.py terra` or `score_spec.py
+terra spec-x2b`; SG1: `sg1/refined.py`, `sg1/replay_d6.py`; X4: `x4/build.py`, `x4/score.py`, `x4/score_slices.py`.
+The judge prompts, spec prompts, Codex event streams and stderr are not committed (`.gitignore`): the builders write the
+prompts deterministically from committed inputs, and each envelope keeps the call's token usage.

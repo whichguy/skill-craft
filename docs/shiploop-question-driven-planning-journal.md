@@ -98,6 +98,121 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   3. §2.1's Checked-by row pointed at "finding F6"; the finding is F11.
 - Status: firm (each correction is a direct reading of the cited source).
 
+### E5 — 2026-10-31: SG1's replay on the saved runs, and the proof-order refusal (D6) it supports
+
+- Question: SG1 (`docs/shiploop-sdlc-gates-proposal-2026-10-30.md` §5) asks whether a static check at step-plan
+  catches a step whose Proof cannot run when its implement completes. Its verdict "needs the owner's full saved runs
+  (~/e2e-runs), which this container does not have"; this machine has them. X4 (§9.2) waits on it.
+- Method: the SG1 tool unchanged (`docs/experiments/sdlc-gates-20261030/sg1_proof_order.py`, self-test 12 cases pass)
+  on its corpus `~/e2e-runs/2026*/*`, read-only; then on a held-out corpus (the saved runs outside that glob); then a
+  classification of every implement send-back in both corpora by its accepted summary; then the SHIPPED rule
+  (`shiploop_item_scope.proof_order_refusal`) replayed on every accepted step plan at its base commit
+  (`sg1/replay_d6.py`).
+- Result:
+  - Proposal corpus: 111 runs, 141 step plans, 42 steps judged, 60 unjudged, 2 flags. Bar item 1 met (DeepSeek
+    battleship W1 of 2026-10-26 flagged, rule A, `test/game.test.js`, then a send-back). Bar item 3 missed on its
+    letter: `20261029/pilot-terra-ask-agent-32f436` W1 S1 is flagged (rule A, `test/records.test.js`, git mode) although
+    its implement was done. Its implement summary says "Proof passed all three cases": implement wrote the tests the
+    Proof ran, against its own duty ("Write no tests"). Bar item 2 is not assessable (no chess plan in the corpus has
+    a judged step with an S4).
+  - A post-hoc refinement (exempt a test path the step itself declares) separated the two flags but fails the
+    held-out corpus: it drops `bf-codex-r1-ticket-escalation` W1, whose send-back reads "C1 proof requires
+    test/bulk-escalation.test.js, absent at item base, while implement explicitly forbids writing tests". Rejected.
+  - Every implement send-back in the saved runs: 12. Nine are this fault (8 on Codex Terra 6.1 xhigh, all in the
+    2026-10-29 brownfield rounds; 1 on DeepSeek flash); the other three are a chess oracle, an Apex exception type and
+    a proof-command typo (`fs.rmSync` force:1). The prompt rule has been in the step-plan duty since 12151c49
+    (2026-10-17: "It needs no later step, unwritten test or release artifact"), so the prompt alone does not stop it.
+  - The shipped rule (rule A with an earlier-step exemption, rule B, paths outside the repository skipped) on 182
+    plans in 142 runs (62 without a base to judge): 9 refused. Seven of those went on to exactly this send-back, one
+    passed only by the contract breach above, and one had no implement after it. It refuses no plan whose implement
+    passed by the rules. The first version refused a Proof that ran `../run/scratch/proofs/W1-S1.test.js` (a script in
+    the run's scratch folder; `20261028/bf-ds-ticket-escalation-09c33b`); `command_paths` now skips paths that leave
+    the repository. It misses two of the nine faults: `bf-codex-r1-user-listing` W1, whose Proofs (`npm test`, a scratch
+    script) name no test path; the second send-back there was about criteria that demanded the test file.
+  - Live, 2026-10-31: the baseline arm of the A/B (unchanged ShipLoop, Codex Terra 6.1 high, all tools) hit the fault
+    on user-listing within four minutes: "S1 proof invokes test/user-listing.test.js before the test stage creates it;
+    implement forbids writing tests" (`~/e2e-runs-qr/20261031/A-user-listing-s1`).
+- Decision: build D6 as the owner approved it on 2026-10-30 ("If SG1 meets its bar, add the step-plan refusal"). The
+  bar's item 3 is missed only by a plan whose Proof could pass solely by implement breaking its duty, which the
+  refusal is right to stop; recorded here so the owner can veto.
+- Status: firm (replay of every saved plan, two corpora, plus one live reproduction).
+- Evidence: `docs/experiments/question-record-20261031/sg1/` (`replay-e2e-runs.jsonl`, `heldout-original.jsonl`,
+  `heldout-refined.jsonl`, `implement-sendbacks.jsonl`, `replay-d6-shipped.jsonl`, `refined.py`, `replay_d6.py`).
+
+### E6 — 2026-10-31: X1 on Codex Terra 6.1 high (X1-T), the subject the owner put in focus
+
+- Question: does X1's verdict (no catalog; the shipped intake already surfaces most of what a vague request leaves
+  open) hold on the subject the owner put in focus ("Focus using Terra 6.1 high for now")?
+- Method: X1's prompts unchanged (`d47d69d4` duty), 4 cases x arms A, B, C x 4 samples = 48 `codex exec` calls
+  (`gpt-6.1-terra`, `model_reasoning_effort=high`, throwaway CODEX_HOME linking only auth.json, read-only, no tools,
+  from an empty directory outside any repository: X1's design, kept for comparability with its Sonnet results). Judge:
+  Opus, X1's judge text, two calls per case; all 8 returned JSON, 0 unverified quotes. Pre-registered in ddd371ea.
+- Result (n = 16 per arm): recall A 0.493, B 0.907, C 0.657; B vs A +0.414 (exact one-sided p < 0.0001), C vs A
+  +0.164 (p 0.003), B vs C +0.250 (p < 0.0001). Committed defaults matching the full request: A 25 of 30 (0.83), B 93
+  of 121 (0.77), C 55 of 82 (0.67). Output 1,932 / 7,692 / 3,859 characters; 9.7 / 20.5 / 12.8 s. Judged noise 2.9 /
+  4.8 / 1.9 items. Terra high's shipped intake is terse: Sonnet's was 0.932 at 7,214 characters.
+- Rules: D2 ("no catalog") does not hold on Terra (B beats C by 25 points); the intake wording reopens (C - A = +16).
+- Status: firm for Terra high in the no-tool exercise; whether the gain reaches later stages is E9's question.
+
+### E7 — 2026-10-31: X2, does a numbered record become requirements better than prose? (Terra high)
+
+- Method: the shipped spec duty (main 3ae78af7) as a no-tool exercise in the packet's frame, discovery and research
+  fixed per case; arms A (intake A's prose), D (the same plus one duty line: every open question and default becomes a
+  marked acceptance line and a `## Open questions` entry) and C (intake C's ledger quoted by value plus the same line
+  for Q-rows); 48 calls on Terra high, A and D paired on the same intakes. Judge: Opus, six outputs a call; 0
+  unverified quotes. Pre-registered in ddd371ea.
+- Result (n = 16 per arm): acceptance A 0.635, D 0.687, C 0.650; pinned 0.649 / 0.687 / 0.657; carried 0.789 / 0.808 /
+  0.807; agreement 0.65 / 0.65 / 0.62; flagged as a default 0.79 / 0.92 / 0.89. C vs A acceptance +0.015 (p 0.44); D vs
+  A +0.052 (p 0.28 unpaired, 0.008 paired). Spec carries about 0.8 of the decisions whatever intake hands it: A's
+  terse intake (0.49) loses little by spec. What spec drops is mostly technology and structure (dependencies, port and
+  entry, page identity, the rules module, test framework), which ShipLoop routes to test-strategy and plan (spec duty
+  item 3: a technology choice is an AD-<n>). Conflicting defaults are interface contracts no stage can know from a
+  vague request (output format, error codes, response shapes).
+- Rules: phase 1 (the record) not adopted; the duty line alone not adopted (+5, below the pre-registered 10); prose
+  does not carry 0.95 (A 0.79), but the record carries no more (C 0.81).
+- Status: firm for Terra high in the no-tool exercise (n = 16 per arm). D1, D3, D4 and D6 of the proposal lose their
+  basis on this subject; Sonnet and DeepSeek flash are not run.
+
+### E8 — 2026-10-31: X4, the Proof-input question, has no isolated test that can measure it on Terra
+
+- Method 1 (pre-registered): archived step-plan packets of the Terra runs that hit the fault, today's duty (A) or plus
+  the Proof-input sentence (Q), no tools. Terra answered `blocked` in 64 of 64 calls ("cannot be verified in the
+  exercise's no-tools environment"); with the loop and callback lines removed it still blocked: the packet lists the
+  knowledge files by outline and does not quote them, so a step plan cannot be written from it alone.
+- Method 2 (the owner: "we would use codex harness with terra high", "It should have all tools available"): step
+  slices on the Codex harness (`slice.py --case tickets-assign --seed-at step-plan --stop-after step-plan --host codex
+  --effort high`, Q by overlay). Both smoke slices (A 94 s; Q one refusal) planned clean proofs, and both copied the
+  `node -e` proof the case's own seed records carry, so the slice cannot show the fault either.
+- Decision: X4 closed without a prompt change. The step-plan duty already states the rule (since 12151c49); the
+  measured fix is D6's refusal (E5), and its refusals per run in the live A/B are the measure a prompt sentence would
+  have to lower.
+- Status: firm that neither isolated design measures it; exploratory otherwise.
+
+### E9 — 2026-10-31: effort is not the lever at intake; the catalog's gain reaches the spec (X1-T at xhigh, X2b)
+
+- Question 1 (the owner, after X1-T: "If Terra high is too ineffective, bump it up in thinking levels if needed", then
+  "My preference is to improve shiploop to handle this, but if it doesn't change then increase the thinking level"):
+  does raising Terra's effort do what the catalog does?
+- Method 1: X1-T's 48 calls again at `model_reasoning_effort=xhigh`, the harness's Codex default; judged the same way
+  (8 Opus calls, 0 unverified quotes). Added after X1-T was scored, as a control; the same rules.
+- Result 1 (n = 16 per arm): recall A 0.513, B 0.981, C 0.681 (high: 0.493, 0.907, 0.657). xhigh reasons about four
+  times as much (A 268 reasoning tokens against 59) and writes the same terse intake (2,019 characters against 1,932).
+  B vs A +0.467, C vs A +0.167 (both p < 0.002). Effort moves the shipped intake by 2 points; the prompt moves it by 41.
+- Question 2 (X2b, pre-registered in the README before any X2b call): does intake B's ledger reach the spec, where X2
+  showed C's did not?
+- Method 2: the shipped spec duty fed intake B's result (B→spec) against X2's A→spec outputs, re-judged in the same
+  calls (Opus, four outputs a call, 8 calls, 0 unverified quotes); 16 Terra-high calls.
+- Result 2 (n = 16 per arm): carried A 0.776, B 0.897 (+0.120, exact one-sided p 0.013, paired sign-flip p 0.001);
+  pinned 0.650 against 0.717 (+0.067, p 0.23, paired 0.02); acceptance 0.643 against 0.665 (ns); agreement 0.65 both;
+  spec length and time unchanged (12,826 against 12,722 characters; 32.6 against 33.3 s). A's re-judged carriage
+  (0.776) is within 1.3 points of its X2 judging (0.789). The gain sits where spec dropped decisions: battleship
+  acceptance 0.25 to 0.39, with dependencies, the rules module and the test framework now carried.
+- Rule: met (carried +12 points, p < 0.05, agreement held). The intake catalog is adopted for this subject, reversing
+  D2 of 2026-10-30, which rested on Sonnet (X1: catalog +7 points at the ceiling, more conflicting guesses).
+- Decision: build intake duty 9 and its template exactly as tested (X1's arm B text, byte for byte), with the ledger
+  optional and checked only for its shape, as measured; all 32 Terra arm-B outputs pass that shape check.
+- Status: firm for Terra 6.1 (high and xhigh) in the no-tool exercise; the live A/B is its tools-on check.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -116,3 +231,8 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F10 | Plan and step-plan packet heads are at their print bound; a quoted record belongs in the packet file | firm | E1 |
 | F11 | Intake's Checked-by line omits IN1 | firm (small) | E1 |
 | F12 | `Basis: S<k>` (brownfield D2) would be unresolvable in a later run: no durable request text | firm (design) | E1 |
+| F13 | 9 of the 12 implement send-backs in the saved runs are a Proof that needs a test the test stage writes later (8 on Codex Terra xhigh); the prompt rule (since 2026-10-17) does not stop it; the shipped refusal catches 7 of the 9 and refuses no plan that passed by the rules | firm | E5 |
+| F14 | On Codex Terra 6.1 the shipped intake surfaces about half of what a vague request leaves open (0.49 high, 0.51 xhigh); effort barely moves it, the catalog ledger does (0.91, 0.98) | firm (no-tool exercise) | E6, E9 |
+| F15 | A numbered record quoted into spec carries no more than prose (C 0.81, A 0.79 on Terra high): F2's harm is not the format at the intake→spec hand-off | firm (no-tool exercise) | E7 |
+| F16 | The catalog ledger's gain reaches the spec: carried 0.78 → 0.90 (p 0.013), agreement unchanged | firm (no-tool exercise) | E9 |
+| F17 | Neither isolated design measures a step-plan prompt sentence on Terra: no-tool packets block (64/64), and the step case's seed carries a clean proof | firm | E8 |

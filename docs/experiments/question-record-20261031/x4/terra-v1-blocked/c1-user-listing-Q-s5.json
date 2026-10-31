@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Step planning cannot be verified from the provided excerpt\",\n  \"evidence_refs\": [],\n  \"summary\": \"Classification: unresolved. Exit assessment: unknown; the Until Loop was not started and no receipt was verified. Continuation assessment: blocked. The packet omits the full item context, requirement details, test decisions, and guide contents needed to produce a reliable plan. Evidence: the work item context is explicitly marked as an excerpt. Handoff: provide the missing contents and a completed loop receipt, or permit access to the files and commands.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the missing packet contents and verified loop result, or allow the required file and command access.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20723,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 267,
+  "reasoning_output_tokens": 92
+ }
+}

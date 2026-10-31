@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning is blocked by the exercise\u2019s no-tools constraint\",\n  \"evidence_refs\": [],\n  \"summary\": \"The required Until Loop could not be started, its exit conditions could not be checked, and the callback could not be submitted. The packet provides section names but not the contents needed to recheck the requirements, test decisions, commands, and existing files. A person must run the loop and provide its instructions and the missing contents, or enable the required tools. No receipt is claimed.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the loop instructions and the referenced planning contents, or enable the required tools.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 21092,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 235,
+  "reasoning_output_tokens": 73
+ }
+}

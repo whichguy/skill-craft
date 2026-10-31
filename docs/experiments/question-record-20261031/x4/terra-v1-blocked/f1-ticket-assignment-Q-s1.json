@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning could not be verified in the no-tools exercise\",\n  \"evidence_refs\": [],\n  \"summary\": \"The Until Loop, required file checks, and callback cannot run under the exercise's no-tools constraint. The packet provides headings rather than the contents needed to verify requirements and decisions, so a completed plan or satisfied receipt cannot be claimed.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the required file contents and loop instructions by value, or permit the required tools and callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20884,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 211,
+  "reasoning_output_tokens": 76
+ }
+}

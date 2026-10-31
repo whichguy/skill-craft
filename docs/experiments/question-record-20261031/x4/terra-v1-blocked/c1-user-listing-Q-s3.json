@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified from the supplied excerpt\",\n  \"summary\": \"The exercise prohibits tools, so the required Until Loop, file reads, checks, and callback cannot run. The complete item context, requirements, test decisions, and loop contract are not included by value. A reliable plan and satisfied exit assessment cannot be established.\",\n  \"classification\": \"unresolved\",\n  \"exit_assessment\": \"unknown\",\n  \"continuation_assessment\": \"blocked\",\n  \"evidence\": \"The packet marks the work item context as an excerpt and supplies only headings for the knowledge files. No loop receipt or callback result was provided.\",\n  \"handoff\": \"Provide the complete required context and loop instructions, or permit the prescribed file reads and commands.\",\n  \"evidence_refs\": [],\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the missing packet contents and loop instructions, or authorize the required tool use.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20722,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 337,
+  "reasoning_output_tokens": 117
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning requires information and execution unavailable in this exercise\",\n  \"evidence_refs\": [],\n  \"summary\": \"The packet gives only section headings for the knowledge files and omits the prior stage results, guide contents, and Until Loop contract. The exercise also prohibits running the loop or callback, so its receipt cannot be confirmed. A person must supply the missing contents and an execution route before the plan can be verified or submitted.\",\n  \"awaiting\": {\n    \"owner\": \"user\",\n    \"request\": \"Provide the missing referenced contents and permit execution of the Until Loop and callback, or provide their verified results.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 21125,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 223,
+  "reasoning_output_tokens": 70
+ }
+}

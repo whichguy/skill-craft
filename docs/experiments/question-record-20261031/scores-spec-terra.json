@@ -1,0 +1,4413 @@
+{
+  "subject": "terra",
+  "runs": [
+    {
+      "case": "battleship",
+      "arm": "D",
+      "sample": 2,
+      "label": "O1",
+      "judge": "spec-terra-battleship-p12",
+      "acceptance": 0.2222,
+      "spec_pinned": 0.2222,
+      "carried": 0.6667,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 2,
+      "pinned_n": 2,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 15755,
+      "spec_chars": 14676,
+      "seconds": 39.2,
+      "output_tokens": 3214,
+      "decisions": {
+        "BS1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 1,
+      "label": "O2",
+      "judge": "spec-terra-battleship-p12",
+      "acceptance": 0.2222,
+      "spec_pinned": 0.3333,
+      "carried": 0.4444,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 3,
+      "pinned_n": 3,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 17769,
+      "spec_chars": 16617,
+      "seconds": 44.9,
+      "output_tokens": 3659,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 2,
+      "label": "O3",
+      "judge": "spec-terra-battleship-p12",
+      "acceptance": 0.2222,
+      "spec_pinned": 0.2222,
+      "carried": 0.5556,
+      "agree_yes": 2,
+      "agree_no": 0,
+      "flagged": 2,
+      "pinned_n": 2,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14152,
+      "spec_chars": 12917,
+      "seconds": 39.7,
+      "output_tokens": 2852,
+      "decisions": {
+        "BS1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 2,
+      "label": "O4",
+      "judge": "spec-terra-battleship-p12",
+      "acceptance": 0.2222,
+      "spec_pinned": 0.2222,
+      "carried": 0.6667,
+      "agree_yes": 2,
+      "agree_no": 0,
+      "flagged": 2,
+      "pinned_n": 2,
+      "requirements": 5,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 17467,
+      "spec_chars": 16238,
+      "seconds": 45.0,
+      "output_tokens": 3599,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 1,
+      "label": "O5",
+      "judge": "spec-terra-battleship-p12",
+      "acceptance": 0.2222,
+      "spec_pinned": 0.2222,
+      "carried": 0.6667,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 2,
+      "pinned_n": 2,
+      "requirements": 4,
+      "scope_additions": 1,
+      "scope_examples": [
+        "R-1 adds manual player ship placement on a setup screen (starting cell and orientation)"
+      ],
+      "chars": 16817,
+      "spec_chars": 15463,
+      "seconds": 44.0,
+      "output_tokens": 3544,
+      "decisions": {
+        "BS1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "D",
+      "sample": 1,
+      "label": "O6",
+      "judge": "spec-terra-battleship-p12",
+      "acceptance": 0.3333,
+      "spec_pinned": 0.3333,
+      "carried": 0.6667,
+      "agree_yes": 4,
+      "agree_no": 0,
+      "flagged": 3,
+      "pinned_n": 3,
+      "requirements": 6,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 22234,
+      "spec_chars": 20544,
+      "seconds": 59.1,
+      "output_tokens": 4824,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "D",
+      "sample": 3,
+      "label": "O1",
+      "judge": "spec-terra-battleship-p34",
+      "acceptance": 0.3333,
+      "spec_pinned": 0.3333,
+      "carried": 0.5556,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 3,
+      "pinned_n": 3,
+      "requirements": 4,
+      "scope_additions": 1,
+      "scope_examples": [
+        "games kept private to each browser session, with session expiry and revocation",
+        "documented session-state quota and close-detection contract"
+      ],
+      "chars": 18469,
+      "spec_chars": 17143,
+      "seconds": 46.0,
+      "output_tokens": 3667,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 3,
+      "label": "O2",
+      "judge": "spec-terra-battleship-p34",
+      "acceptance": 0.4444,
+      "spec_pinned": 0.4444,
+      "carried": 0.4444,
+      "agree_yes": 4,
+      "agree_no": 0,
+      "flagged": 4,
+      "pinned_n": 4,
+      "requirements": 4,
+      "scope_additions": 1,
+      "scope_examples": [
+        "games kept separate per browser page and held only in memory until the page closes",
+        "computer shot selection barred from seeing unhit player positions"
+      ],
+      "chars": 16636,
+      "spec_chars": 15439,
+      "seconds": 39.8,
+      "output_tokens": 3394,
+      "decisions": {
+        "BS1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 4,
+      "label": "O3",
+      "judge": "spec-terra-battleship-p34",
+      "acceptance": 0.3333,
+      "spec_pinned": 0.3333,
+      "carried": 0.5556,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 3,
+      "pinned_n": 3,
+      "requirements": 5,
+      "scope_additions": 2,
+      "scope_examples": [
+        "manual placement of the player's fleet before play",
+        "games kept separate per browser session, with session expiry"
+      ],
+      "chars": 17117,
+      "spec_chars": 15925,
+      "seconds": 42.0,
+      "output_tokens": 3608,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 4,
+      "label": "O4",
+      "judge": "spec-terra-battleship-p34",
+      "acceptance": 0.3333,
+      "spec_pinned": 0.3333,
+      "carried": 0.3333,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 3,
+      "pinned_n": 3,
+      "requirements": 3,
+      "scope_additions": 1,
+      "scope_examples": [
+        "games kept separate per session, with session identifiers kept out of logs"
+      ],
+      "chars": 12221,
+      "spec_chars": 11086,
+      "seconds": 30.9,
+      "output_tokens": 2513,
+      "decisions": {
+        "BS1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "D",
+      "sample": 4,
+      "label": "O5",
+      "judge": "spec-terra-battleship-p34",
+      "acceptance": 0.3333,
+      "spec_pinned": 0.3333,
+      "carried": 0.3333,
+      "agree_yes": 3,
+      "agree_no": 0,
+      "flagged": 3,
+      "pinned_n": 3,
+      "requirements": 4,
+      "scope_additions": 2,
+      "scope_examples": [
+        "confirmation step before a new game replaces the current one",
+        "anonymous session control keeping games separate, with recovery after a lost response"
+      ],
+      "chars": 15463,
+      "spec_chars": 14327,
+      "seconds": 40.7,
+      "output_tokens": 3222,
+      "decisions": {
+        "BS1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 3,
+      "label": "O6",
+      "judge": "spec-terra-battleship-p34",
+      "acceptance": 0.2222,
+      "spec_pinned": 0.2222,
+      "carried": 0.6667,
+      "agree_yes": 2,
+      "agree_no": 0,
+      "flagged": 2,
+      "pinned_n": 2,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 16641,
+      "spec_chars": 15344,
+      "seconds": 38.6,
+      "output_tokens": 3361,
+      "decisions": {
+        "BS1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS2": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS3": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS6": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "BS8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "BS9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 2,
+      "label": "O1",
+      "judge": "spec-terra-csv-report-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 5,
+      "agree_no": 2,
+      "flagged": 6,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12364,
+      "spec_chars": 11212,
+      "seconds": 31.4,
+      "output_tokens": 2817,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "D",
+      "sample": 1,
+      "label": "O2",
+      "judge": "spec-terra-csv-report-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 3,
+      "agree_no": 4,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 15272,
+      "spec_chars": 14161,
+      "seconds": 39.1,
+      "output_tokens": 3457,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "D",
+      "sample": 2,
+      "label": "O3",
+      "judge": "spec-terra-csv-report-p12",
+      "acceptance": 0.9,
+      "spec_pinned": 0.9,
+      "carried": 0.9,
+      "agree_yes": 5,
+      "agree_no": 4,
+      "flagged": 9,
+      "pinned_n": 9,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14429,
+      "spec_chars": 13324,
+      "seconds": 38.4,
+      "output_tokens": 3211,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 1,
+      "label": "O4",
+      "judge": "spec-terra-csv-report-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 3,
+      "agree_no": 4,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 10765,
+      "spec_chars": 9647,
+      "seconds": 27.3,
+      "output_tokens": 2255,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 2,
+      "label": "O5",
+      "judge": "spec-terra-csv-report-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 2,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11096,
+      "spec_chars": 9974,
+      "seconds": 30.0,
+      "output_tokens": 2373,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 1,
+      "label": "O6",
+      "judge": "spec-terra-csv-report-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 5,
+      "agree_no": 2,
+      "flagged": 6,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 10392,
+      "spec_chars": 9396,
+      "seconds": 28.9,
+      "output_tokens": 2328,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "D",
+      "sample": 4,
+      "label": "O1",
+      "judge": "spec-terra-csv-report-p34",
+      "acceptance": 0.8,
+      "spec_pinned": 0.8,
+      "carried": 0.8,
+      "agree_yes": 4,
+      "agree_no": 4,
+      "flagged": 7,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 13914,
+      "spec_chars": 12824,
+      "seconds": 35.1,
+      "output_tokens": 2990,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 4,
+      "label": "O2",
+      "judge": "spec-terra-csv-report-p34",
+      "acceptance": 0.8,
+      "spec_pinned": 0.8,
+      "carried": 0.9,
+      "agree_yes": 4,
+      "agree_no": 4,
+      "flagged": 8,
+      "pinned_n": 8,
+      "requirements": 2,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11145,
+      "spec_chars": 9970,
+      "seconds": 27.2,
+      "output_tokens": 2323,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 3,
+      "label": "O3",
+      "judge": "spec-terra-csv-report-p34",
+      "acceptance": 0.8,
+      "spec_pinned": 0.8,
+      "carried": 0.9,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 8,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12199,
+      "spec_chars": 11076,
+      "seconds": 33.2,
+      "output_tokens": 2596,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "D",
+      "sample": 3,
+      "label": "O4",
+      "judge": "spec-terra-csv-report-p34",
+      "acceptance": 0.8,
+      "spec_pinned": 0.8,
+      "carried": 0.8,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 8,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 16177,
+      "spec_chars": 14912,
+      "seconds": 40.6,
+      "output_tokens": 3500,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 3,
+      "label": "O5",
+      "judge": "spec-terra-csv-report-p34",
+      "acceptance": 0.8,
+      "spec_pinned": 0.8,
+      "carried": 0.8,
+      "agree_yes": 3,
+      "agree_no": 5,
+      "flagged": 8,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11918,
+      "spec_chars": 10883,
+      "seconds": 29.8,
+      "output_tokens": 2637,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 4,
+      "label": "O6",
+      "judge": "spec-terra-csv-report-p34",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 3,
+      "agree_no": 4,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 5,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12449,
+      "spec_chars": 11364,
+      "seconds": 32.3,
+      "output_tokens": 2687,
+      "decisions": {
+        "CR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR5": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "CR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "CR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "CR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "D",
+      "sample": 1,
+      "label": "O1",
+      "judge": "spec-terra-seat-reservations-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.8,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12797,
+      "spec_chars": 11885,
+      "seconds": 32.6,
+      "output_tokens": 2735,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 1,
+      "label": "O2",
+      "judge": "spec-terra-seat-reservations-p12",
+      "acceptance": 0.6,
+      "spec_pinned": 0.7,
+      "carried": 0.8,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 4,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12816,
+      "spec_chars": 11758,
+      "seconds": 31.4,
+      "output_tokens": 2749,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 2,
+      "label": "O3",
+      "judge": "spec-terra-seat-reservations-p12",
+      "acceptance": 0.6,
+      "spec_pinned": 0.6,
+      "carried": 0.8,
+      "agree_yes": 3,
+      "agree_no": 3,
+      "flagged": 6,
+      "pinned_n": 6,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 15480,
+      "spec_chars": 14437,
+      "seconds": 36.8,
+      "output_tokens": 3148,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 2,
+      "label": "O4",
+      "judge": "spec-terra-seat-reservations-p12",
+      "acceptance": 0.6,
+      "spec_pinned": 0.6,
+      "carried": 0.7,
+      "agree_yes": 3,
+      "agree_no": 3,
+      "flagged": 3,
+      "pinned_n": 6,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11424,
+      "spec_chars": 10261,
+      "seconds": 31.8,
+      "output_tokens": 2450,
+      "decisions": {
+        "SR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 1,
+      "label": "O5",
+      "judge": "spec-terra-seat-reservations-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 3,
+      "agree_no": 4,
+      "flagged": 4,
+      "pinned_n": 7,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14814,
+      "spec_chars": 13491,
+      "seconds": 35.4,
+      "output_tokens": 3129,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "D",
+      "sample": 2,
+      "label": "O6",
+      "judge": "spec-terra-seat-reservations-p12",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.8,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14380,
+      "spec_chars": 13135,
+      "seconds": 33.4,
+      "output_tokens": 2962,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 3,
+      "label": "O1",
+      "judge": "spec-terra-seat-reservations-p34",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.7,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 2,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11582,
+      "spec_chars": 10399,
+      "seconds": 29.1,
+      "output_tokens": 2413,
+      "decisions": {
+        "SR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR10": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 3,
+      "label": "O2",
+      "judge": "spec-terra-seat-reservations-p34",
+      "acceptance": 0.6,
+      "spec_pinned": 0.6,
+      "carried": 0.8,
+      "agree_yes": 3,
+      "agree_no": 3,
+      "flagged": 6,
+      "pinned_n": 6,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12289,
+      "spec_chars": 11325,
+      "seconds": 29.3,
+      "output_tokens": 2711,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 4,
+      "label": "O3",
+      "judge": "spec-terra-seat-reservations-p34",
+      "acceptance": 0.6,
+      "spec_pinned": 0.6,
+      "carried": 0.6,
+      "agree_yes": 4,
+      "agree_no": 2,
+      "flagged": 6,
+      "pinned_n": 6,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12104,
+      "spec_chars": 10962,
+      "seconds": 31.4,
+      "output_tokens": 2518,
+      "decisions": {
+        "SR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 4,
+      "label": "O4",
+      "judge": "spec-terra-seat-reservations-p34",
+      "acceptance": 0.6,
+      "spec_pinned": 0.6,
+      "carried": 0.8,
+      "agree_yes": 3,
+      "agree_no": 3,
+      "flagged": 6,
+      "pinned_n": 6,
+      "requirements": 3,
+      "scope_additions": 1,
+      "scope_examples": [
+        "required event `name` field on event creation"
+      ],
+      "chars": 11834,
+      "spec_chars": 10873,
+      "seconds": 28.8,
+      "output_tokens": 2641,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "D",
+      "sample": 3,
+      "label": "O5",
+      "judge": "spec-terra-seat-reservations-p34",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.9,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14245,
+      "spec_chars": 13377,
+      "seconds": 36.0,
+      "output_tokens": 3164,
+      "decisions": {
+        "SR1": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "D",
+      "sample": 4,
+      "label": "O6",
+      "judge": "spec-terra-seat-reservations-p34",
+      "acceptance": 0.7,
+      "spec_pinned": 0.7,
+      "carried": 0.8,
+      "agree_yes": 4,
+      "agree_no": 3,
+      "flagged": 4,
+      "pinned_n": 7,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14372,
+      "spec_chars": 13098,
+      "seconds": 36.2,
+      "output_tokens": 3050,
+      "decisions": {
+        "SR1": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR2": {
+          "carried": false,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        },
+        "SR3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "SR6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "SR8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "SR9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "SR10": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 1,
+      "label": "O1",
+      "judge": "spec-terra-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 7,
+      "agree_no": 2,
+      "flagged": 5,
+      "pinned_n": 9,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12879,
+      "spec_chars": 11382,
+      "seconds": 38.0,
+      "output_tokens": 2772,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 2,
+      "label": "O2",
+      "judge": "spec-terra-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 7,
+      "agree_no": 2,
+      "flagged": 5,
+      "pinned_n": 9,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12486,
+      "spec_chars": 11315,
+      "seconds": 35.1,
+      "output_tokens": 2873,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "D",
+      "sample": 2,
+      "label": "O3",
+      "judge": "spec-terra-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 7,
+      "agree_no": 2,
+      "flagged": 9,
+      "pinned_n": 9,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 16032,
+      "spec_chars": 14955,
+      "seconds": 41.1,
+      "output_tokens": 3623,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 1,
+      "label": "O4",
+      "judge": "spec-terra-user-listing-p12",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 6,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12844,
+      "spec_chars": 11717,
+      "seconds": 33.3,
+      "output_tokens": 2924,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 2,
+      "label": "O5",
+      "judge": "spec-terra-user-listing-p12",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 8,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12422,
+      "spec_chars": 11356,
+      "seconds": 29.5,
+      "output_tokens": 2727,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "D",
+      "sample": 1,
+      "label": "O6",
+      "judge": "spec-terra-user-listing-p12",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 3,
+      "flagged": 8,
+      "pinned_n": 9,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14868,
+      "spec_chars": 13667,
+      "seconds": 39.8,
+      "output_tokens": 3473,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 4,
+      "label": "O1",
+      "judge": "spec-terra-user-listing-p34",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 3,
+      "flagged": 8,
+      "pinned_n": 9,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 14263,
+      "spec_chars": 12983,
+      "seconds": 39.0,
+      "output_tokens": 3263,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 3,
+      "label": "O2",
+      "judge": "spec-terra-user-listing-p34",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 12061,
+      "spec_chars": 10694,
+      "seconds": 33.5,
+      "output_tokens": 2689,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "D",
+      "sample": 4,
+      "label": "O3",
+      "judge": "spec-terra-user-listing-p34",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 8,
+      "requirements": 2,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11248,
+      "spec_chars": 10339,
+      "seconds": 31.0,
+      "output_tokens": 2683,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 4,
+      "label": "O4",
+      "judge": "spec-terra-user-listing-p34",
+      "acceptance": 0.7778,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 5,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 8,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 13171,
+      "spec_chars": 12026,
+      "seconds": 31.5,
+      "output_tokens": 2826,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": false,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 3,
+      "label": "O5",
+      "judge": "spec-terra-user-listing-p34",
+      "acceptance": 1.0,
+      "spec_pinned": 1.0,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 3,
+      "flagged": 7,
+      "pinned_n": 9,
+      "requirements": 4,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 16559,
+      "spec_chars": 15541,
+      "seconds": 44.7,
+      "output_tokens": 3783,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": false
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        }
+      }
+    },
+    {
+      "case": "user-listing",
+      "arm": "D",
+      "sample": 3,
+      "label": "O6",
+      "judge": "spec-terra-user-listing-p34",
+      "acceptance": 0.8889,
+      "spec_pinned": 0.8889,
+      "carried": 1.0,
+      "agree_yes": 6,
+      "agree_no": 2,
+      "flagged": 6,
+      "pinned_n": 8,
+      "requirements": 3,
+      "scope_additions": 0,
+      "scope_examples": [],
+      "chars": 11452,
+      "spec_chars": 10276,
+      "seconds": 28.9,
+      "output_tokens": 2524,
+      "decisions": {
+        "UL1": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL2": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL3": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL4": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "no",
+          "flagged": true
+        },
+        "UL5": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL6": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL7": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": true
+        },
+        "UL8": {
+          "carried": true,
+          "pinned": true,
+          "acceptance": true,
+          "matches": "yes",
+          "flagged": false
+        },
+        "UL9": {
+          "carried": true,
+          "pinned": false,
+          "acceptance": false,
+          "matches": "na",
+          "flagged": false
+        }
+      }
+    }
+  ],
+  "unverified_quotes": [],
+  "arms": {
+    "A": {
+      "n": 16,
+      "acceptance": 0.6354125,
+      "spec_pinned": 0.64860625,
+      "carried": 0.78889375,
+      "agreement": 0.65,
+      "agree_yes": 65,
+      "agree_no": 35,
+      "flagged_share": 0.7878787878787878,
+      "requirements": 3.1875,
+      "scope_additions": 0.125,
+      "chars": 12722.4375,
+      "seconds": 33.29375,
+      "output_tokens": 2694.1875
+    },
+    "D": {
+      "n": 16,
+      "acceptance": 0.68749375,
+      "spec_pinned": 0.68749375,
+      "carried": 0.80764375,
+      "agreement": 0.6542056074766355,
+      "agree_yes": 70,
+      "agree_no": 37,
+      "flagged_share": 0.9238095238095239,
+      "requirements": 3.5,
+      "scope_additions": 0.1875,
+      "chars": 15069.1875,
+      "seconds": 38.575,
+      "output_tokens": 3268.6875
+    },
+    "C": {
+      "n": 16,
+      "acceptance": 0.64999375,
+      "spec_pinned": 0.6569375,
+      "carried": 0.8069437500000001,
+      "agreement": 0.62,
+      "agree_yes": 62,
+      "agree_no": 38,
+      "flagged_share": 0.89,
+      "requirements": 3.6875,
+      "scope_additions": 0.25,
+      "chars": 14163.5625,
+      "seconds": 35.68125,
+      "output_tokens": 3065.9375
+    }
+  },
+  "tests": {
+    "C vs A acceptance": {
+      "diff": 0.01458124999999999,
+      "p_one_sided": 0.43544246053344043
+    },
+    "C vs A spec_pinned": {
+      "diff": 0.008331249999999901,
+      "p_one_sided": 0.461847035136182
+    },
+    "C vs A carried": {
+      "diff": 0.01805000000000012,
+      "p_one_sided": 0.402544609715183
+    },
+    "D vs A acceptance": {
+      "diff": 0.05208124999999997,
+      "p_one_sided": 0.28178260149195683,
+      "p_paired": 0.0078125
+    },
+    "D vs A spec_pinned": {
+      "diff": 0.038887499999999964,
+      "p_one_sided": 0.3325856163765383,
+      "p_paired": 0.03125
+    },
+    "D vs A carried": {
+      "diff": 0.018750000000000044,
+      "p_one_sided": 0.3996386040808951,
+      "p_paired": 0.2734375
+    },
+    "C vs D acceptance": {
+      "diff": -0.03749999999999998,
+      "p_one_sided": 0.6714169913278988
+    },
+    "C vs D spec_pinned": {
+      "diff": -0.030556250000000063,
+      "p_one_sided": 0.6444271855217236
+    },
+    "C vs D carried": {
+      "diff": -0.0006999999999999229,
+      "p_one_sided": 0.5130402108110698
+    }
+  },
+  "rules": {
+    "1 phase 1 adopted (C - A >= 0.10 acceptance, p < 0.05, agreement held)": false,
+    "2 duty line adopted instead (D - A >= 0.10, p < 0.05, agreement held, C - D < 0.05)": false,
+    "3 prose carries (A carried >= 0.95)": false
+  }
+}

@@ -1,6 +1,9 @@
 ---
 Execute: ask
-Status: proposal, awaiting the owner's decisions in §10. Nothing in ShipLoop is changed by this document. Pilot X1 (§9.1) ran; X2–X5 are proposed.
+Status: decided by experiment on 2026-10-31 (docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md): on Codex
+  Terra 6.1, X2 rejected the question record (D1, and with it D3, D4, D6); X1-T and X2b reversed D2 (the intake
+  catalog ledger is built); D11 is built; SG1's replay supported the SDLC gates proposal's D6 (built); X4 closed. D5
+  stays the owner's. This document is kept as written; §9 and §10 carry dated outcome notes.
 Opened: 2026-10-30
 Consumer: the owner, who decides §10 before anything is built or run; later, a session that builds an accepted decision reads §2–§4 for where each change lands and §9 for the experiment that must pass first.
 Journal: docs/shiploop-question-driven-planning-journal.md
@@ -506,6 +509,12 @@ Status: exploratory. Not tested: a weaker subject, downstream use, real reposito
 
 ### 9.2 Proposed next
 
+Outcome, 2026-10-31 (journal E5–E9; evidence `docs/experiments/question-record-20261031/`): X2 ran on Codex Terra
+6.1 high and rejected the record (C − A +1.5 points of explicit acceptance lines, p 0.44); X2b, added after it,
+showed the intake catalog's ledger reaching the spec (+12 points carried, p 0.013); X3 became X1-T on the subject the
+owner put in focus (the shipped intake at 0.49 recall, the catalog at 0.91); X4 has no isolated design that measures
+it on Terra; X5 lost its basis with D1. The table below is kept as proposed.
+
 | # | Question | Design | Cost | Pre-registered rule |
 |---|---|---|---|---|
 | X2 | Does a numbered record handed to spec become requirements better than prose? | X1's four vague cases; intake arm A or C, then the shipped spec duty with the record quoted by value (C) or the prose summary (A); score the share of the 38 decisions that become explicit acceptance lines, and default agreement; Sonnet now, DeepSeek flash when its limit resets | about 24 subject and 4 judge calls per subject (about 1 h) | adopt phase 1 if C beats A by 10 points or more on both subjects with no fall in default agreement |
@@ -514,6 +523,10 @@ Status: exploratory. Not tested: a weaker subject, downstream use, real reposito
 | X5 | Does the record plus the research frontier loop pay in live runs? | E2E A/B on three cases (one vague variant), four samples per arm, decided by the D5 permutation rule | about 24 live runs | fewer missing-content fixes in the spec and plan reviews and fewer planning-caused send-backs; planning window within the runs' spread; hidden checks unchanged |
 
 ## 10. Decisions for the owner
+
+Outcome, 2026-10-31: D1 rejected by X2; D2 reversed for Codex Terra by X1-T and X2b (catalog built); D3, D4 and D6
+closed with D1; D5 unchanged (a limit, the owner's); D7–D9 deferred; D10 done; D11 built. The table is kept as
+recommended on 2026-10-30.
 
 | # | Decision | Recommendation |
 |---|---|---|

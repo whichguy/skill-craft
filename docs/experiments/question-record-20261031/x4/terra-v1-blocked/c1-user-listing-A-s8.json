@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be completed from the excerpt\",\n  \"evidence_refs\": [],\n  \"summary\": \"The item context is truncated, and the packet provides only headings for the requirements and test decisions. The exercise prohibits opening those files or running the Until Loop, so its exit conditions and receipt cannot be verified. No callback was run.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the complete item context, requirement and test-decision contents, and the Until Loop instructions and completed receipt, or authorize access to the required tools.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20690,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 232,
+  "reasoning_output_tokens": 89
+ }
+}

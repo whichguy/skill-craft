@@ -1,0 +1,178 @@
+{
+  "spec-x2b-terra-battleship-p12": {
+    "O1": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/terra/battleship-B-s2.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/terra/battleship-A-s2.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/terra/battleship-A-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/terra/battleship-B-s1.json"
+    }
+  },
+  "spec-x2b-terra-battleship-p34": {
+    "O1": {
+      "arm": "A",
+      "sample": 4,
+      "file": "spec/terra/battleship-A-s4.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 3,
+      "file": "spec/terra/battleship-A-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 3,
+      "file": "spec/terra/battleship-B-s3.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 4,
+      "file": "spec/terra/battleship-B-s4.json"
+    }
+  },
+  "spec-x2b-terra-csv-report-p12": {
+    "O1": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/terra/csv-report-B-s1.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/terra/csv-report-A-s1.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/terra/csv-report-B-s2.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/terra/csv-report-A-s2.json"
+    }
+  },
+  "spec-x2b-terra-csv-report-p34": {
+    "O1": {
+      "arm": "B",
+      "sample": 4,
+      "file": "spec/terra/csv-report-B-s4.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 3,
+      "file": "spec/terra/csv-report-A-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 3,
+      "file": "spec/terra/csv-report-B-s3.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 4,
+      "file": "spec/terra/csv-report-A-s4.json"
+    }
+  },
+  "spec-x2b-terra-seat-reservations-p12": {
+    "O1": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/terra/seat-reservations-A-s2.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/terra/seat-reservations-B-s2.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/terra/seat-reservations-B-s1.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/terra/seat-reservations-A-s1.json"
+    }
+  },
+  "spec-x2b-terra-seat-reservations-p34": {
+    "O1": {
+      "arm": "B",
+      "sample": 3,
+      "file": "spec/terra/seat-reservations-B-s3.json"
+    },
+    "O2": {
+      "arm": "A",
+      "sample": 4,
+      "file": "spec/terra/seat-reservations-A-s4.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 3,
+      "file": "spec/terra/seat-reservations-A-s3.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 4,
+      "file": "spec/terra/seat-reservations-B-s4.json"
+    }
+  },
+  "spec-x2b-terra-user-listing-p12": {
+    "O1": {
+      "arm": "A",
+      "sample": 2,
+      "file": "spec/terra/user-listing-A-s2.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 2,
+      "file": "spec/terra/user-listing-B-s2.json"
+    },
+    "O3": {
+      "arm": "A",
+      "sample": 1,
+      "file": "spec/terra/user-listing-A-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "spec/terra/user-listing-B-s1.json"
+    }
+  },
+  "spec-x2b-terra-user-listing-p34": {
+    "O1": {
+      "arm": "A",
+      "sample": 4,
+      "file": "spec/terra/user-listing-A-s4.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 3,
+      "file": "spec/terra/user-listing-B-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 4,
+      "file": "spec/terra/user-listing-B-s4.json"
+    },
+    "O4": {
+      "arm": "A",
+      "sample": 3,
+      "file": "spec/terra/user-listing-A-s3.json"
+    }
+  }
+}

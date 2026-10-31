@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "xhigh",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"evidence_refs\": [\n    \"Original request S1\",\n    \"Original request S2\",\n    \"Exercise instructions\"\n  ],\n  \"headline\": \"Intake mapped the requested CLI and tests, with defaults for details discovery must resolve.\",\n  \"outcome\": \"done\",\n  \"summary\": \"S1 \u2014 Fact: deliver a Python command-line tool in the repository that reads sales CSV files and prints total revenue, revenue by region, and units by product; its result is usable in the caller's terminal when the tool is run. Open question: what CSV schema, revenue calculation, and error behavior are expected? Discovery answers this by first seeking representative sales files or existing conventions; until resolved, it blocks implementation. Recorded defaults if discovery finds no evidence: header columns region, product, revenue, and units; revenue is supplied per record; invalid input fails with an error. Source hints are representative sales files and any relevant conventions or owner; none is identified or verified in the request. Fact: the repository is empty and this unattended intake implements nothing; no deployment target is named. The isolated checkout remains at its snapshot until the final return. S2 \u2014 Fact: add tests for the requested tool; they become visible in the returned repository and usable when run after implementation. Open question: which test framework is available? Discovery first checks the project environment; this blocks the choice of test runner, with Python's standard-library unittest recorded as the default if no convention is found.\"\n}\n```",
+ "usage": {
+  "input_tokens": 14746,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 781,
+  "reasoning_output_tokens": 469
+ }
+}

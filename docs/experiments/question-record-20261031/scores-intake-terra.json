@@ -1,0 +1,2071 @@
+{
+  "subject": "terra",
+  "runs": [
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 1,
+      "label": "O1",
+      "judge": "intake-terra-battleship-p12",
+      "recall": 1.0,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 1,
+      "agreement": 0.8571428571428571,
+      "items_total": 11,
+      "noise": 3,
+      "noise_examples": [
+        "Q2 existing behavior to preserve in a stated-empty repository",
+        "Q9 delivery location and deployment access with no target",
+        "Q10 generic usability/accessibility quality bounds"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 2,
+        "research": 0,
+        "experiment": 1,
+        "default": 8,
+        "person": 0
+      },
+      "chars": 7719,
+      "seconds": 22.8,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 2,
+      "label": "O2",
+      "judge": "intake-terra-battleship-p12",
+      "recall": 0.5556,
+      "covered": [
+        "BS2",
+        "BS4",
+        "BS5",
+        "BS7",
+        "BS9"
+      ],
+      "missed": [
+        "BS1",
+        "BS3",
+        "BS6",
+        "BS8"
+      ],
+      "default_yes": 2,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 3,
+      "noise": 0,
+      "noise_examples": [],
+      "questions": 3,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 2,
+        "person": 0
+      },
+      "chars": 3578,
+      "seconds": 14.0,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 2,
+      "label": "O3",
+      "judge": "intake-terra-battleship-p12",
+      "recall": 0.3333,
+      "covered": [
+        "BS2",
+        "BS5",
+        "BS9"
+      ],
+      "missed": [
+        "BS1",
+        "BS3",
+        "BS4",
+        "BS6",
+        "BS7",
+        "BS8"
+      ],
+      "default_yes": 0,
+      "default_no": 0,
+      "agreement": null,
+      "items_total": 6,
+      "noise": 2,
+      "noise_examples": [
+        "local target becoming visible in the isolated checkout at final return",
+        "no separate deployment target or release specified"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1988,
+      "seconds": 9.7,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 1,
+      "label": "O4",
+      "judge": "intake-terra-battleship-p12",
+      "recall": 0.4444,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS4",
+        "BS5"
+      ],
+      "missed": [
+        "BS3",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "default_yes": 3,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 4,
+      "noise": 0,
+      "noise_examples": [],
+      "questions": 4,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 3911,
+      "seconds": 13.4,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 2,
+      "label": "O5",
+      "judge": "intake-terra-battleship-p12",
+      "recall": 1.0,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 1,
+      "agreement": 0.8571428571428571,
+      "items_total": 11,
+      "noise": 2,
+      "noise_examples": [
+        "Q9 delivery target and deployment access",
+        "Q10 usability, accessibility, security and performance bounds"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 1,
+        "default": 7,
+        "person": 0
+      },
+      "chars": 8461,
+      "seconds": 24.3,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 1,
+      "label": "O6",
+      "judge": "intake-terra-battleship-p12",
+      "recall": 0.2222,
+      "covered": [
+        "BS5",
+        "BS9"
+      ],
+      "missed": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS4",
+        "BS6",
+        "BS7",
+        "BS8"
+      ],
+      "default_yes": 0,
+      "default_no": 0,
+      "agreement": null,
+      "items_total": 6,
+      "noise": 3,
+      "noise_examples": [
+        "'small' as a term for discovery to resolve",
+        "no deployed target or release authority specified",
+        "risk that exercise facts leave runtime capabilities unverified"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2049,
+      "seconds": 11.4,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 3,
+      "label": "O1",
+      "judge": "intake-terra-battleship-p34",
+      "recall": 0.4444,
+      "covered": [
+        "BS4",
+        "BS5",
+        "BS7",
+        "BS9"
+      ],
+      "missed": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS6",
+        "BS8"
+      ],
+      "default_yes": 4,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 8,
+      "noise": 2,
+      "noise_examples": [
+        "visibility of the isolated run's source at final return",
+        "discovery leads: no team, channel or owner is named"
+      ],
+      "questions": 4,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 3885,
+      "seconds": 13.2,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "C",
+      "sample": 4,
+      "label": "O2",
+      "judge": "intake-terra-battleship-p34",
+      "recall": 0.5556,
+      "covered": [
+        "BS1",
+        "BS4",
+        "BS5",
+        "BS7",
+        "BS9"
+      ],
+      "missed": [
+        "BS2",
+        "BS3",
+        "BS6",
+        "BS8"
+      ],
+      "default_yes": 3,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 6,
+      "noise": 2,
+      "noise_examples": [
+        "discovery leads: no team, channel, internal site or owner is named",
+        "isolated checkout stays at its snapshot until final return"
+      ],
+      "questions": 4,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 1,
+        "person": 0
+      },
+      "chars": 3925,
+      "seconds": 12.2,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 3,
+      "label": "O3",
+      "judge": "intake-terra-battleship-p34",
+      "recall": 0.3333,
+      "covered": [
+        "BS4",
+        "BS5",
+        "BS9"
+      ],
+      "missed": [
+        "BS1",
+        "BS2",
+        "BS3",
+        "BS6",
+        "BS7",
+        "BS8"
+      ],
+      "default_yes": 2,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 9,
+      "noise": 4,
+      "noise_examples": [
+        "risk: rules must be understandable enough to complete a game",
+        "a person-only decision remains open but blocks only if nothing can proceed",
+        "visibility of the isolated checkout at final return"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2159,
+      "seconds": 9.5,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "A",
+      "sample": 4,
+      "label": "O4",
+      "judge": "intake-terra-battleship-p34",
+      "recall": 0.5556,
+      "covered": [
+        "BS1",
+        "BS4",
+        "BS5",
+        "BS7",
+        "BS9"
+      ],
+      "missed": [
+        "BS2",
+        "BS3",
+        "BS6",
+        "BS8"
+      ],
+      "default_yes": 3,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 10,
+      "noise": 3,
+      "noise_examples": [
+        "source hints: team, channels, internal sites, private repositories, owners",
+        "sensitive locators belong only in an authorized private store",
+        "visibility of isolated-run work at final return"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2536,
+      "seconds": 11.3,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 3,
+      "label": "O5",
+      "judge": "intake-terra-battleship-p34",
+      "recall": 0.8889,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [
+        "BS3"
+      ],
+      "default_yes": 7,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 14,
+      "noise": 4,
+      "noise_examples": [
+        "Q2: behavior to preserve or a prior run to recover in a stated-empty repository",
+        "a discovered sensitive locator belongs only in an authorized private store",
+        "isolated source checkout stays at its snapshot until final return"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 5,
+        "research": 0,
+        "experiment": 1,
+        "default": 5,
+        "person": 0
+      },
+      "chars": 7431,
+      "seconds": 22.1,
+      "parsed": true
+    },
+    {
+      "case": "battleship",
+      "arm": "B",
+      "sample": 4,
+      "label": "O6",
+      "judge": "intake-terra-battleship-p34",
+      "recall": 0.8889,
+      "covered": [
+        "BS1",
+        "BS2",
+        "BS4",
+        "BS5",
+        "BS6",
+        "BS7",
+        "BS8",
+        "BS9"
+      ],
+      "missed": [
+        "BS3"
+      ],
+      "default_yes": 7,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 14,
+      "noise": 3,
+      "noise_examples": [
+        "discovery leads: no team, workspace, channel or owner is identified",
+        "any sensitive locator belongs only in an authorized private store",
+        "isolated checkout stays at its snapshot until final return"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 5,
+        "research": 0,
+        "experiment": 0,
+        "default": 6,
+        "person": 0
+      },
+      "chars": 7862,
+      "seconds": 20.2,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 1,
+      "label": "O1",
+      "judge": "intake-terra-csv-report-p12",
+      "recall": 0.7,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR10"
+      ],
+      "missed": [
+        "CR1",
+        "CR5",
+        "CR9"
+      ],
+      "default_yes": 6,
+      "default_no": 1,
+      "agreement": 0.8571428571428571,
+      "items_total": 4,
+      "noise": 1,
+      "noise_examples": [
+        "Assumption of a noninteractive run with no actor identification, shared state or persistent session"
+      ],
+      "questions": 3,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 3080,
+      "seconds": 10.2,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 2,
+      "label": "O2",
+      "judge": "intake-terra-csv-report-p12",
+      "recall": 0.6,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR6",
+        "CR8",
+        "CR10"
+      ],
+      "missed": [
+        "CR1",
+        "CR5",
+        "CR7",
+        "CR9"
+      ],
+      "default_yes": 0,
+      "default_no": 0,
+      "agreement": null,
+      "items_total": 4,
+      "noise": 2,
+      "noise_examples": [
+        "Assumption: no deployed target or release is requested",
+        "Assumption: no interactive multi-user or shared-session behavior"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1710,
+      "seconds": 8.7,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 1,
+      "label": "O3",
+      "judge": "intake-terra-csv-report-p12",
+      "recall": 1.0,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [],
+      "default_yes": 8,
+      "default_no": 2,
+      "agreement": 0.8,
+      "items_total": 10,
+      "noise": 4,
+      "noise_examples": [
+        "Q2: only the requested summary and tests are in scope",
+        "Q5: persistent/shared state and access controls",
+        "Q9: deliver source and tests in the run's checkout"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 4,
+        "research": 0,
+        "experiment": 0,
+        "default": 6,
+        "person": 0
+      },
+      "chars": 7166,
+      "seconds": 19.9,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 1,
+      "label": "O4",
+      "judge": "intake-terra-csv-report-p12",
+      "recall": 0.3,
+      "covered": [
+        "CR3",
+        "CR6",
+        "CR8"
+      ],
+      "missed": [
+        "CR1",
+        "CR2",
+        "CR4",
+        "CR5",
+        "CR7",
+        "CR9",
+        "CR10"
+      ],
+      "default_yes": 1,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 4,
+      "noise": 2,
+      "noise_examples": [
+        "Assumption: non-interactive CLI with no shared state or hidden information",
+        "Assumption: a Python-compatible test approach (settles nothing)"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1777,
+      "seconds": 8.8,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 2,
+      "label": "O5",
+      "judge": "intake-terra-csv-report-p12",
+      "recall": 0.9,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR6",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [
+        "CR5"
+      ],
+      "default_yes": 8,
+      "default_no": 1,
+      "agreement": 0.8888888888888888,
+      "items_total": 10,
+      "noise": 5,
+      "noise_examples": [
+        "Q1: who runs the tool and reads its summary from standard output",
+        "Q5: no shared or persistent state between invocations",
+        "Q9: deliver source and tests in the repository"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 9,
+        "person": 0
+      },
+      "chars": 6900,
+      "seconds": 19.3,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 2,
+      "label": "O6",
+      "judge": "intake-terra-csv-report-p12",
+      "recall": 0.7,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8"
+      ],
+      "missed": [
+        "CR1",
+        "CR9",
+        "CR10"
+      ],
+      "default_yes": 6,
+      "default_no": 1,
+      "agreement": 0.8571428571428571,
+      "items_total": 4,
+      "noise": 1,
+      "noise_examples": [
+        "Risk assumption that an unstated CSV contract could differ from the defaults, with no action attached"
+      ],
+      "questions": 3,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 3060,
+      "seconds": 11.4,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 4,
+      "label": "O1",
+      "judge": "intake-terra-csv-report-p34",
+      "recall": 0.5,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR5",
+        "CR6",
+        "CR9"
+      ],
+      "missed": [
+        "CR1",
+        "CR4",
+        "CR7",
+        "CR8",
+        "CR10"
+      ],
+      "default_yes": 0,
+      "default_no": 0,
+      "agreement": null,
+      "items_total": 7,
+      "noise": 5,
+      "noise_examples": [
+        "Assumption that delivery is to the source checkout snapshot",
+        "Interaction defaults ruling out runtime identity, shared state and saved sessions",
+        "Source hints noting no team, channels, internal sites or owners are named"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2075,
+      "seconds": 9.6,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 4,
+      "label": "O2",
+      "judge": "intake-terra-csv-report-p34",
+      "recall": 0.9,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [
+        "CR8"
+      ],
+      "default_yes": 5,
+      "default_no": 4,
+      "agreement": 0.5555555555555556,
+      "items_total": 10,
+      "noise": 5,
+      "noise_examples": [
+        "Q1: who invokes the tool and how success is recognized",
+        "Q2: existing behaviors to preserve in a stated-empty repository",
+        "Q8: delivery target and release access"
+      ],
+      "questions": 9,
+      "routes": {
+        "inspect": 3,
+        "research": 3,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 6588,
+      "seconds": 16.4,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "A",
+      "sample": 3,
+      "label": "O3",
+      "judge": "intake-terra-csv-report-p34",
+      "recall": 0.4,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR6"
+      ],
+      "missed": [
+        "CR1",
+        "CR5",
+        "CR7",
+        "CR8",
+        "CR9",
+        "CR10"
+      ],
+      "default_yes": 0,
+      "default_no": 0,
+      "agreement": null,
+      "items_total": 5,
+      "noise": 3,
+      "noise_examples": [
+        "Assumption of a noninteractive local command with no shared state or deployed target",
+        "Source hints listing project documentation and workspace conventions",
+        "Boundary that the isolated checkout stays at its snapshot until final return"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1477,
+      "seconds": 8.9,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 4,
+      "label": "O4",
+      "judge": "intake-terra-csv-report-p34",
+      "recall": 0.7,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8"
+      ],
+      "missed": [
+        "CR1",
+        "CR9",
+        "CR10"
+      ],
+      "default_yes": 4,
+      "default_no": 2,
+      "agreement": 0.6666666666666666,
+      "items_total": 7,
+      "noise": 4,
+      "noise_examples": [
+        "Boundary that intake implements nothing and adds no product scope",
+        "Discovery source hints noting no team, channel or owner is named",
+        "Assumption of no multi-person product, identity or persistent shared state"
+      ],
+      "questions": 3,
+      "routes": {
+        "inspect": 0,
+        "research": 2,
+        "experiment": 0,
+        "default": 1,
+        "person": 0
+      },
+      "chars": 3073,
+      "seconds": 10.5,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "B",
+      "sample": 3,
+      "label": "O5",
+      "judge": "intake-terra-csv-report-p34",
+      "recall": 0.9,
+      "covered": [
+        "CR1",
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR9",
+        "CR10"
+      ],
+      "missed": [
+        "CR8"
+      ],
+      "default_yes": 4,
+      "default_no": 4,
+      "agreement": 0.5,
+      "items_total": 12,
+      "noise": 7,
+      "noise_examples": [
+        "Q5: persistence, privacy or concurrency requirements",
+        "Q10: performance, security or output-usability bounds",
+        "Q9: named delivery target or installation mechanism"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 5,
+        "research": 6,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 8295,
+      "seconds": 21.2,
+      "parsed": true
+    },
+    {
+      "case": "csv-report",
+      "arm": "C",
+      "sample": 3,
+      "label": "O6",
+      "judge": "intake-terra-csv-report-p34",
+      "recall": 0.7,
+      "covered": [
+        "CR2",
+        "CR3",
+        "CR4",
+        "CR5",
+        "CR6",
+        "CR7",
+        "CR8"
+      ],
+      "missed": [
+        "CR1",
+        "CR9",
+        "CR10"
+      ],
+      "default_yes": 3,
+      "default_no": 3,
+      "agreement": 0.5,
+      "items_total": 7,
+      "noise": 4,
+      "noise_examples": [
+        "Boundary that this stage is intake only with no implementation authorized",
+        "Discovery leads noting no team, channel, owner or prior run is named",
+        "Generic risk that assumed schema and error behavior may differ"
+      ],
+      "questions": 3,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 3163,
+      "seconds": 10.4,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 1,
+      "label": "O1",
+      "judge": "intake-terra-seat-reservations-p12",
+      "recall": 0.9,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR8"
+      ],
+      "default_yes": 5,
+      "default_no": 1,
+      "agreement": 0.8333333333333334,
+      "items_total": 11,
+      "noise": 4,
+      "noise_examples": [
+        "Q2: existing behaviour to preserve in an empty repository",
+        "Q10: generic performance/security/accessibility bounds",
+        "Q9: deployment target beyond the checkout"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 11,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 9311,
+      "seconds": 23.6,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 2,
+      "label": "O2",
+      "judge": "intake-terra-seat-reservations-p12",
+      "recall": 0.5,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR9"
+      ],
+      "missed": [
+        "SR2",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR10"
+      ],
+      "default_yes": 1,
+      "default_no": 2,
+      "agreement": 0.3333333333333333,
+      "items_total": 5,
+      "noise": 0,
+      "noise_examples": [],
+      "questions": 5,
+      "routes": {
+        "inspect": 1,
+        "research": 0,
+        "experiment": 0,
+        "default": 4,
+        "person": 0
+      },
+      "chars": 4203,
+      "seconds": 13.7,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 2,
+      "label": "O3",
+      "judge": "intake-terra-seat-reservations-p12",
+      "recall": 0.8,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR2",
+        "SR8"
+      ],
+      "default_yes": 6,
+      "default_no": 1,
+      "agreement": 0.8571428571428571,
+      "items_total": 11,
+      "noise": 4,
+      "noise_examples": [
+        "Q7: generic HTTP/logic module separation",
+        "Q10: generic performance/security bounds",
+        "Q11: generic early-check prioritisation"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 8,
+        "person": 0
+      },
+      "chars": 7950,
+      "seconds": 20.2,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 1,
+      "label": "O4",
+      "judge": "intake-terra-seat-reservations-p12",
+      "recall": 0.6,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR5",
+        "SR6",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR2",
+        "SR4",
+        "SR7",
+        "SR8"
+      ],
+      "default_yes": 2,
+      "default_no": 2,
+      "agreement": 0.5,
+      "items_total": 5,
+      "noise": 1,
+      "noise_examples": [
+        "Q1: delivery target / release constraints"
+      ],
+      "questions": 5,
+      "routes": {
+        "inspect": 4,
+        "research": 0,
+        "experiment": 0,
+        "default": 1,
+        "person": 0
+      },
+      "chars": 4657,
+      "seconds": 14.1,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 1,
+      "label": "O5",
+      "judge": "intake-terra-seat-reservations-p12",
+      "recall": 0.5,
+      "covered": [
+        "SR3",
+        "SR5",
+        "SR6",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR1",
+        "SR2",
+        "SR4",
+        "SR7",
+        "SR8"
+      ],
+      "default_yes": 3,
+      "default_no": 1,
+      "agreement": 0.75,
+      "items_total": 8,
+      "noise": 3,
+      "noise_examples": [
+        "source checkout as delivery target / snapshot until final return",
+        "discovery of owners and meanings of organiser, event, seat, reservation",
+        "person-only decisions remain open"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1943,
+      "seconds": 9.6,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 2,
+      "label": "O6",
+      "judge": "intake-terra-seat-reservations-p12",
+      "recall": 0.5,
+      "covered": [
+        "SR3",
+        "SR6",
+        "SR7",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR1",
+        "SR2",
+        "SR4",
+        "SR5",
+        "SR8"
+      ],
+      "default_yes": 3,
+      "default_no": 1,
+      "agreement": 0.75,
+      "items_total": 9,
+      "noise": 3,
+      "noise_examples": [
+        "isolated checkout stays at snapshot; no deployment target",
+        "repository empty / run limited to requested scope",
+        "applicable project or workspace conventions discovery"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2383,
+      "seconds": 11.8,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 4,
+      "label": "O1",
+      "judge": "intake-terra-seat-reservations-p34",
+      "recall": 0.4,
+      "covered": [
+        "SR3",
+        "SR5",
+        "SR6",
+        "SR9"
+      ],
+      "missed": [
+        "SR1",
+        "SR2",
+        "SR4",
+        "SR7",
+        "SR8",
+        "SR10"
+      ],
+      "default_yes": 3,
+      "default_no": 1,
+      "agreement": 0.75,
+      "items_total": 10,
+      "noise": 4,
+      "noise_examples": [
+        "what information is hidden from whom",
+        "source hints / sensitive locators only in an authorized private store",
+        "no deployment is assumed"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2111,
+      "seconds": 9.5,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 4,
+      "label": "O2",
+      "judge": "intake-terra-seat-reservations-p34",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 6,
+      "default_no": 4,
+      "agreement": 0.6,
+      "items_total": 12,
+      "noise": 4,
+      "noise_examples": [
+        "Q7 separation of HTTP handling from rules",
+        "Q9 release target or access",
+        "Q10 security, performance, or accessibility bounds"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 4,
+        "research": 0,
+        "experiment": 0,
+        "default": 7,
+        "person": 0
+      },
+      "chars": 7381,
+      "seconds": 20.3,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "A",
+      "sample": 3,
+      "label": "O3",
+      "judge": "intake-terra-seat-reservations-p34",
+      "recall": 0.8,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR2",
+        "SR7"
+      ],
+      "default_yes": 4,
+      "default_no": 2,
+      "agreement": 0.6666666666666666,
+      "items_total": 14,
+      "noise": 2,
+      "noise_examples": [
+        "machine-facing HTTP API without a separate user interface or external integrations",
+        "discovery source hints / no sensitive locator in KNOWLEDGE/"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2284,
+      "seconds": 12.0,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 3,
+      "label": "O4",
+      "judge": "intake-terra-seat-reservations-p34",
+      "recall": 0.7,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR2",
+        "SR7",
+        "SR8"
+      ],
+      "default_yes": 3,
+      "default_no": 2,
+      "agreement": 0.6,
+      "items_total": 8,
+      "noise": 2,
+      "noise_examples": [
+        "Q1 deployment target / where the service becomes usable",
+        "team or workspace guidance, channels, internal sites as unverified leads; sensitive locators"
+      ],
+      "questions": 6,
+      "routes": {
+        "inspect": 3,
+        "research": 3,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 5896,
+      "seconds": 15.2,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "C",
+      "sample": 4,
+      "label": "O5",
+      "judge": "intake-terra-seat-reservations-p34",
+      "recall": 0.8,
+      "covered": [
+        "SR1",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [
+        "SR2",
+        "SR8"
+      ],
+      "default_yes": 2,
+      "default_no": 2,
+      "agreement": 0.5,
+      "items_total": 10,
+      "noise": 4,
+      "noise_examples": [
+        "Q5 what information must be hidden from other callers",
+        "clarify ambiguous terms such as organiser, person, reservation",
+        "sensitive locator only in an authorized private store"
+      ],
+      "questions": 6,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 3,
+        "person": 0
+      },
+      "chars": 4978,
+      "seconds": 14.8,
+      "parsed": true
+    },
+    {
+      "case": "seat-reservations",
+      "arm": "B",
+      "sample": 3,
+      "label": "O6",
+      "judge": "intake-terra-seat-reservations-p34",
+      "recall": 1.0,
+      "covered": [
+        "SR1",
+        "SR2",
+        "SR3",
+        "SR4",
+        "SR5",
+        "SR6",
+        "SR7",
+        "SR8",
+        "SR9",
+        "SR10"
+      ],
+      "missed": [],
+      "default_yes": 7,
+      "default_no": 3,
+      "agreement": 0.7,
+      "items_total": 12,
+      "noise": 4,
+      "noise_examples": [
+        "Q7 separation between HTTP handling, rules and storage",
+        "Q9 delivery target beyond the source checkout",
+        "Q10 security, performance, or other quality bounds"
+      ],
+      "questions": 11,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 1,
+        "default": 7,
+        "person": 0
+      },
+      "chars": 8071,
+      "seconds": 20.2,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 2,
+      "label": "O1",
+      "judge": "intake-terra-user-listing-p12",
+      "recall": 0.4444,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL7",
+        "UL9"
+      ],
+      "missed": [
+        "UL3",
+        "UL4",
+        "UL5",
+        "UL6",
+        "UL8"
+      ],
+      "default_yes": 2,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 9,
+      "noise": 2,
+      "noise_examples": [
+        "no deployment is requested",
+        "source checkout remains at its snapshot until the final return"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1335,
+      "seconds": 7.8,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 1,
+      "label": "O2",
+      "judge": "intake-terra-user-listing-p12",
+      "recall": 0.6667,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL6",
+        "UL7",
+        "UL9"
+      ],
+      "missed": [
+        "UL4",
+        "UL5",
+        "UL8"
+      ],
+      "default_yes": 1,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 10,
+      "noise": 6,
+      "noise_examples": [
+        "no team, channel, internal site, private repository, owner, or other source locator was supplied",
+        "no persistent or shared session state",
+        "no individual actors or hidden per-user state"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 2326,
+      "seconds": 8.6,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 1,
+      "label": "O3",
+      "judge": "intake-terra-user-listing-p12",
+      "recall": 0.8889,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL5",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL4"
+      ],
+      "default_yes": 3,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 15,
+      "noise": 6,
+      "noise_examples": [
+        "store sharing across concurrent requests and server restarts",
+        "delivery process beyond returning project changes",
+        "sensitive locator never in committed KNOWLEDGE/"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 10,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 7666,
+      "seconds": 18.8,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 1,
+      "label": "O4",
+      "judge": "intake-terra-user-listing-p12",
+      "recall": 0.7778,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL6",
+        "UL7",
+        "UL9"
+      ],
+      "missed": [
+        "UL5",
+        "UL8"
+      ],
+      "default_yes": 3,
+      "default_no": 4,
+      "agreement": 0.42857142857142855,
+      "items_total": 9,
+      "noise": 2,
+      "noise_examples": [
+        "no interactive multi-person state is requested",
+        "source checkout remains at its snapshot until final return"
+      ],
+      "questions": 4,
+      "routes": {
+        "inspect": 4,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 3578,
+      "seconds": 13.2,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 2,
+      "label": "O5",
+      "judge": "intake-terra-user-listing-p12",
+      "recall": 0.8889,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL5",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL4"
+      ],
+      "default_yes": 5,
+      "default_no": 2,
+      "agreement": 0.7142857142857143,
+      "items_total": 17,
+      "noise": 9,
+      "noise_examples": [
+        "runtime identity, visibility, or session behavior",
+        "sensitive locator belongs only in an authorized private store",
+        "No earlier run is identified"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 10,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 8052,
+      "seconds": 19.4,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 2,
+      "label": "O6",
+      "judge": "intake-terra-user-listing-p12",
+      "recall": 0.8889,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL5"
+      ],
+      "default_yes": 4,
+      "default_no": 4,
+      "agreement": 0.5,
+      "items_total": 10,
+      "noise": 3,
+      "noise_examples": [
+        "no new interactive interface or shared state is requested",
+        "no team, channel, internal site, private repository, owner, or sensitive locator was supplied",
+        "isolated run's source checkout stays at its snapshot"
+      ],
+      "questions": 4,
+      "routes": {
+        "inspect": 4,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 3717,
+      "seconds": 14.0,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 3,
+      "label": "O1",
+      "judge": "intake-terra-user-listing-p34",
+      "recall": 0.7778,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL4",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL3",
+        "UL5"
+      ],
+      "default_yes": 5,
+      "default_no": 2,
+      "agreement": 0.7142857142857143,
+      "items_total": 5,
+      "noise": 2,
+      "noise_examples": [
+        "retain existing runtime identity, visibility, and state lifetime",
+        "source outcome visible at final return; deployment a separate release"
+      ],
+      "questions": 3,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 3563,
+      "seconds": 13.1,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 4,
+      "label": "O2",
+      "judge": "intake-terra-user-listing-p34",
+      "recall": 0.8889,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL4",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL5"
+      ],
+      "default_yes": 2,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 9,
+      "noise": 1,
+      "noise_examples": [
+        "result visible in isolated run's checkout at final return; no deployment requested"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1217,
+      "seconds": 9.1,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 4,
+      "label": "O3",
+      "judge": "intake-terra-user-listing-p34",
+      "recall": 0.7778,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL4",
+        "UL5"
+      ],
+      "default_yes": 5,
+      "default_no": 2,
+      "agreement": 0.7142857142857143,
+      "items_total": 12,
+      "noise": 6,
+      "noise_examples": [
+        "Q5 shared state, identity, concurrency, restart",
+        "Q7 module seams for isolation",
+        "Q9 delivery target or access requirement"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 10,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 7288,
+      "seconds": 18.4,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 3,
+      "label": "O4",
+      "judge": "intake-terra-user-listing-p34",
+      "recall": 0.4444,
+      "covered": [
+        "UL3",
+        "UL6",
+        "UL7",
+        "UL9"
+      ],
+      "missed": [
+        "UL1",
+        "UL2",
+        "UL4",
+        "UL5",
+        "UL8"
+      ],
+      "default_yes": 1,
+      "default_no": 0,
+      "agreement": 1.0,
+      "items_total": 11,
+      "noise": 2,
+      "noise_examples": [
+        "actor identification, hidden state and interaction lifetime out of scope",
+        "visible at final return; no deployment target named"
+      ],
+      "questions": 0,
+      "routes": {
+        "inspect": 0,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 1541,
+      "seconds": 8.6,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "C",
+      "sample": 4,
+      "label": "O5",
+      "judge": "intake-terra-user-listing-p34",
+      "recall": 0.6667,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL6",
+        "UL7",
+        "UL9"
+      ],
+      "missed": [
+        "UL4",
+        "UL5",
+        "UL8"
+      ],
+      "default_yes": 4,
+      "default_no": 2,
+      "agreement": 0.6666666666666666,
+      "items_total": 6,
+      "noise": 3,
+      "noise_examples": [
+        "sensitive locator only in private store, never in KNOWLEDGE/",
+        "no multi-person interaction, visibility controls or sessions",
+        "visible at final return; deployed only after release"
+      ],
+      "questions": 3,
+      "routes": {
+        "inspect": 3,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 3474,
+      "seconds": 11.8,
+      "parsed": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 3,
+      "label": "O6",
+      "judge": "intake-terra-user-listing-p34",
+      "recall": 0.7778,
+      "covered": [
+        "UL1",
+        "UL2",
+        "UL3",
+        "UL6",
+        "UL7",
+        "UL8",
+        "UL9"
+      ],
+      "missed": [
+        "UL4",
+        "UL5"
+      ],
+      "default_yes": 5,
+      "default_no": 2,
+      "agreement": 0.7142857142857143,
+      "items_total": 13,
+      "noise": 7,
+      "noise_examples": [
+        "Q5 store lifetime across requests and restarts",
+        "Q9 repository workflow and delivery steps",
+        "sensitive locator only in authorized private store"
+      ],
+      "questions": 10,
+      "routes": {
+        "inspect": 10,
+        "research": 0,
+        "experiment": 0,
+        "default": 0,
+        "person": 0
+      },
+      "chars": 6934,
+      "seconds": 20.3,
+      "parsed": true
+    }
+  ],
+  "unverified_quotes": [],
+  "arms": {
+    "A": {
+      "n": 16,
+      "recall": 0.49305,
+      "covered": 75,
+      "decisions": 152,
+      "default_yes": 25,
+      "default_no": 5,
+      "agreement": 0.8333333333333334,
+      "items": 8.1875,
+      "noise": 2.9375,
+      "chars": 1931.9375,
+      "seconds": 9.68125,
+      "questions": 0.0
+    },
+    "B": {
+      "n": 16,
+      "recall": 0.90695,
+      "covered": 138,
+      "decisions": 152,
+      "default_yes": 93,
+      "default_no": 28,
+      "agreement": 0.768595041322314,
+      "items": 12.1875,
+      "noise": 4.8125,
+      "chars": 7692.1875,
+      "seconds": 20.4625,
+      "questions": 10.5
+    },
+    "C": {
+      "n": 16,
+      "recall": 0.65695,
+      "covered": 100,
+      "decisions": 152,
+      "default_yes": 55,
+      "default_no": 27,
+      "agreement": 0.6707317073170732,
+      "items": 6.3125,
+      "noise": 1.9375,
+      "chars": 3858.8125,
+      "seconds": 12.825,
+      "questions": 3.9375
+    }
+  },
+  "tests": {
+    "B vs A": {
+      "diff": 0.41390000000000005,
+      "p_one_sided": 5.989215519075576e-08
+    },
+    "C vs A": {
+      "diff": 0.16390000000000005,
+      "p_one_sided": 0.0032867949659778455
+    },
+    "B vs C": {
+      "diff": 0.25,
+      "p_one_sided": 2.3790494978550208e-07
+    }
+  },
+  "rules": {
+    "D2 stands": false,
+    "intake wording reopens (C - A >= 0.15)": true
+  }
+}

@@ -1,0 +1,6 @@
+# Kept out of the evidence (README.md "Reproduce"): Codex event streams and stderr of each call (their token usage is
+# copied into the envelope), and the prompts the builders write deterministically from committed inputs.
+*.events.jsonl
+*.err
+judge/*.md
+spec/prompts/

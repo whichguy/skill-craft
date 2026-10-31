@@ -1,0 +1,514 @@
+{
+  "subject": "terra",
+  "rows": [
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "A",
+      "file": "c1-user-listing-A-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "c1-user-listing",
+      "role": "control",
+      "arm": "Q",
+      "file": "c1-user-listing-Q-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "A",
+      "file": "f1-ticket-assignment-A-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "f1-ticket-assignment",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f1-ticket-assignment-Q-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "A",
+      "file": "f2-ticket-escalation-A-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "f2-ticket-escalation",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f2-ticket-escalation-Q-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "A",
+      "file": "f3-user-listing-A-s8.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s1.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s2.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s3.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s4.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s5.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s6.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s7.json",
+      "parsed": false
+    },
+    {
+      "packet": "f3-user-listing",
+      "role": "fault",
+      "arm": "Q",
+      "file": "f3-user-listing-Q-s8.json",
+      "parsed": false
+    }
+  ],
+  "arms": {
+    "A": {
+      "n": 32,
+      "parsed": 0,
+      "fault_rate": null,
+      "unparseable_share": 1.0
+    },
+    "Q": {
+      "n": 32,
+      "parsed": 0,
+      "fault_rate": null,
+      "unparseable_share": 1.0
+    }
+  },
+  "packets": {
+    "c1-user-listing": {
+      "A": {
+        "faults": 0,
+        "parsed": 0
+      },
+      "Q": {
+        "faults": 0,
+        "parsed": 0
+      }
+    },
+    "f1-ticket-assignment": {
+      "A": {
+        "faults": 0,
+        "parsed": 0
+      },
+      "Q": {
+        "faults": 0,
+        "parsed": 0
+      }
+    },
+    "f2-ticket-escalation": {
+      "A": {
+        "faults": 0,
+        "parsed": 0
+      },
+      "Q": {
+        "faults": 0,
+        "parsed": 0
+      }
+    },
+    "f3-user-listing": {
+      "A": {
+        "faults": 0,
+        "parsed": 0
+      },
+      "Q": {
+        "faults": 0,
+        "parsed": 0
+      }
+    }
+  },
+  "rule": {
+    "p_one_sided_fewer_faults": null,
+    "A_has_faults": false,
+    "Q adopted": false
+  }
+}

@@ -1,0 +1,24 @@
+{
+ "run": "/Users/dadleet/e2e-runs-brownfield/20261029/hooks-after-user-listing",
+ "role": "fault",
+ "packet": "/Users/dadleet/e2e-runs-brownfield/20261029/hooks-after-user-listing/.shiploop-runs/work-20261030-000632-137142/run/packets/sent/b0c790bc30d3efe4.md",
+ "action": "nav-438333c34d1c4d17bf86e568f4a67203",
+ "base": "bf827b32fdbc637beb91962b7aa21a83505cdc63",
+ "base_files": [
+  ".gitignore",
+  "README.md",
+  "docs/shiploop/architecture.md",
+  "docs/shiploop/environment.md",
+  "docs/shiploop/spec.md",
+  "package.json",
+  "src/paginate.js",
+  "src/server.js",
+  "src/strings.js",
+  "src/users.js",
+  "test/paginate.test.js",
+  "test/server.test.js",
+  "test/strings.test.js",
+  "test/users.test.js"
+ ],
+ "original_guidance_chars": 8220
+}

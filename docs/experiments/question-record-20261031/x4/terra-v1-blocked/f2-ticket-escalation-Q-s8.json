@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"headline\": \"Planning is blocked by unavailable loop output and source records\",\n  \"outcome\": \"blocked\",\n  \"summary\": \"The exercise prohibits tools and callbacks, so the Until Loop cannot be started or verified. The packet also omits the contents of the required prior results, knowledge files, and guides. A compliant plan and satisfied receipt cannot be established from the supplied text.\",\n  \"awaiting\": {\n    \"who\": \"User\",\n    \"what\": \"Provide the Until Loop instructions and receipt, the referenced planning records and relevant knowledge and guide sections, or authorize access to them and execution of the loop.\"\n  },\n  \"evidence_refs\": []\n}\n```",
+ "usage": {
+  "input_tokens": 21127,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 218,
+  "reasoning_output_tokens": 68
+ }
+}

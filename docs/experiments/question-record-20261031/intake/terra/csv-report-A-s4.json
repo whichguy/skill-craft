@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"evidence_refs\": [\"Original request, S1\u2013S2\"],\n  \"headline\": \"Intake mapped the sales-summary CLI and tests, with CSV details left for discovery.\",\n  \"outcome\": \"done\",\n  \"summary\": \"S1 \u2014 Outcome: a Python command-line tool reads sales-record CSV files and prints total revenue, revenue per region, and units per product. Fact: the request names the command line as the entry point and the terminal as the summary destination; the intended consumer is the person running the tool. Assumption: delivery is to the source checkout, since no deployed target is named; an isolated run\u2019s checkout remains at its snapshot until final return, when the outcome becomes visible there. Boundary: this intake implements nothing and grants no authority beyond the requested tool and its tests. Open question: discovery must establish the CSV columns, revenue calculation, accepted file arguments, and expected handling of malformed or empty data from available evidence; these block a definitive input contract and edge-case behavior. If evidence does not resolve them, record defaults before implementation. Interaction defaults: the invoking user supplies files locally; no runtime identity, shared state, persistence across invocations, or hidden per-user state is assumed. These defaults rule out multi-user coordination and saved sessions; discovery should first check whether the runtime provides any relevant facilities. Risk: unspecified CSV conventions and monetary precision could produce incorrect totals. Source hints: the request names no team, workspace, channels, internal sites or documents, private repositories, or owners; \u2018sales records\u2019 and \u2018revenue\u2019 are ambiguous terms for discovery. Sensitive locators, if discovered, belong only in an authorized private store, never in committed KNOWLEDGE/. S2 \u2014 Outcome: add tests for the tool; discovery must first establish the input contract and expected calculations, which block definitive test cases. Assumption: tests run locally in the source checkout and become visible there at final return.\"\n}\n```",
+ "usage": {
+  "input_tokens": 14748,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 464,
+  "reasoning_output_tokens": 60
+ }
+}

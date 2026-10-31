@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning is blocked by unavailable execution and source evidence\",\n  \"evidence_refs\": [],\n  \"summary\": \"The exercise prohibits tools and callbacks, so the Until Loop cannot be started, its receipt cannot be verified, and the referenced requirement, test-strategy, and environment contents cannot be rechecked. A complete plan and satisfied exit assessment cannot be established from the quoted packet alone.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the missing referenced contents and a completed Until Loop receipt, or allow tool execution and the callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 21092,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 211,
+  "reasoning_output_tokens": 68
+ }
+}

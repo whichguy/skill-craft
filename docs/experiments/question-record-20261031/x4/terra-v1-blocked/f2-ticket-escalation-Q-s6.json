@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"The step plan cannot be verified from the supplied packet\",\n  \"evidence_refs\": [],\n  \"summary\": \"The exercise prohibits tools and callbacks, so the required Until Loop cannot start, its receipt cannot be checked, and the referenced requirement details, test decisions, guides, and existing files cannot be revalidated. A complete plan or satisfied exit assessment cannot be claimed from the quoted material alone.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the missing referenced contents and an authorized way to run the Until Loop and callback, or revise the exercise requirements.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 21123,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 258,
+  "reasoning_output_tokens": 109
+ }
+}

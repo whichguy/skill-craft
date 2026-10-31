@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified from the supplied packet\",\n  \"summary\": \"The exercise prohibits running the required Until Loop and callback or opening the referenced files. The packet includes only headings for the knowledge files, so the requirements, test decisions and existing interfaces cannot be rechecked. No receipt or completed plan is claimed.\",\n  \"evidence_refs\": [],\n  \"awaiting\": {\n    \"who\": \"User or exercise host\",\n    \"what\": \"Provide the referenced file contents and a completed loop receipt, or permit the required file reads and commands.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20852,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 227,
+  "reasoning_output_tokens": 88
+ }
+}

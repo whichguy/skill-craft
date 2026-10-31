@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Step plan cannot be verified from the supplied excerpt\",\n  \"summary\": \"The exercise prohibits tools, so the Until Loop cannot be started, its receipt cannot be verified, the complete work-item context and referenced guidance cannot be read, and the callback cannot be submitted. The supplied excerpt does not contain enough detail to produce a verified plan.\",\n  \"classification\": \"unresolved\",\n  \"exit_assessment\": \"unknown\",\n  \"continuation_assessment\": \"blocked\",\n  \"evidence\": \"The packet states that the work-item context is an excerpt and requires the Until Loop receipt to report completion.\",\n  \"handoff\": \"Provide the complete referenced context and loop instructions, or run the stage in an environment with the required tools.\",\n  \"evidence_refs\": [],\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the missing context and loop instructions or enable the required execution environment.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20720,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 320,
+  "reasoning_output_tokens": 104
+ }
+}

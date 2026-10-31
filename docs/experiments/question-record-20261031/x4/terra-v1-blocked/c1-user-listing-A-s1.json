@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified from the excerpt\",\n  \"evidence_refs\": [],\n  \"summary\": \"The complete item context, requirement details, test decisions, and loop contract are not included in the packet. The exercise prohibits reading them or running the Until Loop, so its receipt and exit conditions cannot be verified. No callback was run.\",\n  \"awaiting\": {\n    \"answer\": \"Provide the complete quoted context and required planning records, and clarify how to handle the loop requirement under the no-tools constraint.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20689,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 211,
+  "reasoning_output_tokens": 80
+ }
+}

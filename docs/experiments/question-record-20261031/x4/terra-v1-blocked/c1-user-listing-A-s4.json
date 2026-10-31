@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning could not be verified from the supplied excerpt\",\n  \"summary\": \"The exercise prohibits tools, so the Until Loop cannot be started, its receipt cannot be verified, and the complete item context and referenced requirements cannot be read. No callback was run. A complete plan would require those materials and the loop's instructions.\",\n  \"awaiting\": {\n    \"who\": \"exercise operator\",\n    \"what\": \"Provide the complete item context, referenced planning materials, and Until Loop instructions and receipt, or enable the required tool execution.\"\n  },\n  \"classification\": \"unresolved\",\n  \"exit_assessment\": \"unknown\",\n  \"continuation_assessment\": \"blocked\",\n  \"evidence\": \"The supplied item context is explicitly marked as an excerpt; the loop contract and receipt contents are not supplied.\",\n  \"handoff\": \"Resume step-plan after the missing materials and execution capability are available.\",\n  \"evidence_refs\": []\n}\n```",
+ "usage": {
+  "input_tokens": 20687,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 311,
+  "reasoning_output_tokens": 95
+ }
+}

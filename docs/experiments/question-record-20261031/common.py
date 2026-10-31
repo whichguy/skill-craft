@@ -10,7 +10,9 @@ CASES = json.loads((X1 / "cases.json").read_text())["cases"]
 CASE = {case["id"]: case for case in CASES}
 
 # slug -> the SUBJECT run.py understands
-SUBJECTS = {"terra": "codex:gpt-6.1-terra:high"}  # the owner, 2026-10-31: "Focus using Terra 6.1 high for now"
+# The owner, 2026-10-31: "Focus using Terra 6.1 high for now"; then "If Terra high is too ineffective, bump it up in
+# thinking levels if needed" (after X1-T showed the shipped intake surfacing 49% at high): xhigh, the harness's Codex default.
+SUBJECTS = {"terra": "codex:gpt-6.1-terra:high", "terra-xhigh": "codex:gpt-6.1-terra:xhigh"}
 SAMPLES = (1, 2, 3, 4)
 
 

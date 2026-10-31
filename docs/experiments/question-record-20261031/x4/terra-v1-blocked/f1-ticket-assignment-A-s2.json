@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Planning cannot be verified from the supplied packet\",\n  \"summary\": \"The exercise prohibits tools, so the Until Loop cannot be started, its exit conditions and receipt cannot be checked, and the callback cannot be run. The packet supplies headings rather than the contents of the requirements, architecture, environment, guides and prior results needed for a defensible plan. A person must provide those contents and the loop instructions and receipt, or permit the required tool access.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the missing referenced contents and loop results, or permit the required tool access.\"\n  },\n  \"evidence_refs\": [],\n  \"classification\": \"unresolved\",\n  \"exit_assessment\": \"unknown\",\n  \"continuation_assessment\": \"blocked\",\n  \"evidence\": \"The packet states that the Until Loop must run and its receipt must report completion; neither can be verified under the exercise's no-tools constraint.\",\n  \"handoff\": \"Resume step-plan with the referenced materials and the required loop and callback available.\"\n}\n```",
+ "usage": {
+  "input_tokens": 20849,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 323,
+  "reasoning_output_tokens": 81
+ }
+}

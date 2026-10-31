@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"outcome\": \"blocked\",\n  \"headline\": \"Step planning cannot be verified in the exercise environment\",\n  \"summary\": \"The exercise prohibits running the Until Loop or reading the referenced files. The packet includes only headings for the requirements and environment, so their exact conditions, the existing test decisions, and the required proof commands cannot be established. No receipt or callback was produced.\",\n  \"evidence_refs\": [],\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the referenced file contents and loop instructions, or permit the required tools and callback.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20769,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 193,
+  "reasoning_output_tokens": 57
+ }
+}

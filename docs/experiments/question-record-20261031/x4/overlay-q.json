@@ -1,0 +1,12 @@
+{
+  "about": "X4 arm Q (docs/experiments/question-record-20261031/README.md, X4): the step-plan duty's proof bullet gains the pre-registered Proof-input sentence. Prompt only. Written against main ddd371ea (skills/ equal to 3ae78af7).",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "step-plan",
+      "old": "one proof script. None runs now: change the step boundary.",
+      "new": "one proof script. None runs now: change the step boundary. For each step's Proof, name what it reads and\n     which earlier step or the item base provides it; a test file the test stage writes later is not provided."
+    }
+  ]
+}

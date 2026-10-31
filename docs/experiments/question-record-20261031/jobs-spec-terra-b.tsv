@@ -1,0 +1,16 @@
+codex:gpt-6.1-terra:high	spec/prompts/terra-battleship-B-s1.md	spec/terra/battleship-B-s1.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-battleship-B-s2.md	spec/terra/battleship-B-s2.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-battleship-B-s3.md	spec/terra/battleship-B-s3.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-battleship-B-s4.md	spec/terra/battleship-B-s4.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-csv-report-B-s1.md	spec/terra/csv-report-B-s1.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-csv-report-B-s2.md	spec/terra/csv-report-B-s2.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-csv-report-B-s3.md	spec/terra/csv-report-B-s3.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-csv-report-B-s4.md	spec/terra/csv-report-B-s4.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-seat-reservations-B-s1.md	spec/terra/seat-reservations-B-s1.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-seat-reservations-B-s2.md	spec/terra/seat-reservations-B-s2.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-seat-reservations-B-s3.md	spec/terra/seat-reservations-B-s3.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-seat-reservations-B-s4.md	spec/terra/seat-reservations-B-s4.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-user-listing-B-s1.md	spec/terra/user-listing-B-s1.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-user-listing-B-s2.md	spec/terra/user-listing-B-s2.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-user-listing-B-s3.md	spec/terra/user-listing-B-s3.json
+codex:gpt-6.1-terra:high	spec/prompts/terra-user-listing-B-s4.md	spec/terra/user-listing-B-s4.json

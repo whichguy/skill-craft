@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "high",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"headline\": \"Planning blocked by unavailable loop and source records\",\n  \"outcome\": \"blocked\",\n  \"evidence_refs\": [],\n  \"summary\": \"The exercise prohibits tools, so the required Until Loop cannot be started or verified, and the referenced requirements, prior results, and repository files cannot be read. Their contents are necessary to produce and validate the plan. No callback was run.\",\n  \"awaiting\": {\n    \"who\": \"user\",\n    \"what\": \"Provide the complete referenced records and Until Loop instructions and receipt, or permit the required tool calls.\"\n  }\n}\n```",
+ "usage": {
+  "input_tokens": 20881,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 190,
+  "reasoning_output_tokens": 56
+ }
+}
