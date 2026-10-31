@@ -240,6 +240,66 @@ comparison is graded in one call.
 arm cannot separate differences of a few points of recall; a shorter answer may carry less for the next stage (the spec),
 which nothing here measures.
 
+## QB4: what an attended intake sends to a person (exploratory; registered before its first call; no judge)
+
+**Why.** QB2's frame is unattended, so its outputs contain no person routes (0 of 340 item grades). The owner's other half of the
+question is: when something conflicts or is ambiguous, derive the answer from the environment or ask the person. QB4 gives arms Bp
+and Qp a person who can answer one short batch of questions, with a rule to route an item to that person only when the repository
+and the skills cannot settle it and two readings lead to different work, and then reads which rows go to the person.
+
+**Setup.** QB2's prompts with two sentences changed (the frame sentence and the RULES bullet; `qb4.py` asserts nothing else
+differs), the same request, workspace, tools and subject (Terra xhigh), 4 outputs per arm, 8 calls (`jobs-qb4.tsv`). No judge: the
+person-routed rows (`route` person in the ledger, `basis` person in the bank) are read directly and classified by hand against QB2's
+items into those a decision settles (J5 OldTracker, C1 right away against batch, O1 the bulk contract, N1 the performance bound, the
+missing cap of J4, the missing window of R2) and those the repository, the skills list or general knowledge settles (a wasted ask).
+
+**Predictions** (to be scored against, not rules): at least 2 of 3 person-routed rows concern items a decision settles; fewer than 1
+wasted ask per output; Qp sends more rows to the person than Bp, since its bank puts a question on every K12 and K13 item.
+
+**Cannot settle:** 4 outputs per arm; the classification is by hand; the rule text in the frame is mine; a real person's answers
+are not simulated, so what happens after the question is not shown.
+
 ## Results
 
-(appended after the runs)
+### QB2 (exploratory; 20 outputs, 340 item grades, 0 unverified judge quotes; `scores-qb2.json`, `qb2/judge/`)
+
+Per arm, 5 outputs each (`python3 qb2.py score`). "Right" is the judge's correct = yes; "silent" is an assertion made without
+evidence or a flag; "commands" are shell commands the model ran.
+
+| Arm | covered | right | partial | wrong | silent per output | person per output | output tokens | uncached input | commands | items | noise |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| B (as shipped) | 1.00 | 0.56 | 0.44 | 0 | 1.60 | 0 | 3,676 | 29,688 | 7.6 | 15.4 | 2.6 |
+| Bp (B + K12, K13, look-up line) | 1.00 | 0.73 | 0.27 | 0 | 0.40 | 0 | 4,122 | 32,830 | 9.8 | 16.6 | 3.0 |
+| Qp (bank of 27 questions + line) | 1.00 | 0.74 | 0.26 | 0 | 0.00 | 0 | 4,298 | 33,228 | 11.0 | 17.6 | 3.8 |
+| Sp (the same as statements) | 1.00 | 0.80 | 0.20 | 0 | 0.00 | 0 | 4,331 | 34,989 | 13.6 | 18.0 | 3.8 |
+
+Share of each group's items answered right (B, Bp, Qp, Sp): installed skills 0.33, 0.93, 0.73, 0.93; slang 0.90, 0.90, 0.80, 1.00;
+the unknown name OldTracker 0.00, 0.40, 0.80, 0.60; references 0.33, 0.33, 0.40, 0.33; conflicts 1.00 in every arm; constraints 0.80,
+0.80, 0.87, 0.87; open decisions 0.20, 0.50, 0.60, 0.80. Route mix over 85 item grades per arm (environment, knowledge, default,
+person, silent): B 22, 16, 39, 0, 8; Bp 36, 10, 37, 0, 2; Qp 43, 10, 32, 0, 0; Sp 45, 10, 30, 0, 0.
+
+Exploratory exact one-sided permutation tests on each output's share of 17 items right (5 against 5): Bp over B +0.164, p 0.004
+(every Bp output above every B output); Qp over B +0.174, p 0.012; Sp over B +0.230, p 0.004; Sp over Bp +0.066, p 0.024; Qp over Bp
++0.010, p 0.496; Sp over Qp +0.056, p 0.115. Silent assertions, B against Qp: 1.6 against 0.0, p 0.024; B against Bp: p 0.111.
+
+Predictions, scored: **P1 false** (the conflict items, the filter drift included, and the false "usual window" were right in all
+five outputs of every arm, B too). **P2 holds for Bp and Sp, not for B** (until-loop right in 2 of 5 outputs, back-chain 1 of 5,
+ralph-style 2 of 5) **or Qp** (ralph-style 1 of 5). **P3 false** (Qp and Sp write more than Bp, 4,298 and 4,331 against 4,122
+output tokens). **P4 true but empty** (no arm sent anything to a person; the frame is unattended, so QB2 cannot show when an
+intake should ask). **P5 true** (9.8, 11.0 and 13.6 commands against 7.6).
+
+Reactions worth reading, from the judge's verified quotes. Given the same list of installed skills, B understood "until loop"
+from general knowledge ("an until loop whose exit requires green tests and evidence against a running server", graded partial)
+and tied it to nothing; Bp, Qp and Sp tied it to the host's skill (graded right, route environment). For OldTracker, B and Bp
+called it context, not scope, without saying that nothing defines it (graded silent and partial); Qp wrote that its identity
+does not change this work; Sp wrote that it and the timing terms are not defined in the repository. All four arms pointed to the
+existing resolved-ticket template and outbox for "the same kind of heads-up", and none said that no template exists for closed
+tickets (R1 right in 0 of 20 outputs) or that the outbox key suppresses an identical notification only while it is still pending
+(R3, 1 of 20); none connected "snappy" to the data file being saved on every change (N1 partial in every arm). What the files
+show about the cost of the requested change was missed by every wording.
+
+Limits: one request, one repository, one judge, five outputs per arm; coverage is at its ceiling, so only correctness separates
+the arms; intake read the repository, which the real stage leaves to discovery; the person route and the web search were not
+exercisable; the judge's expected-handling text was written by the session that built the arms.
+
+(QB1 and QB3 results are appended below when their judge calls return.)
