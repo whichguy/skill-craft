@@ -54,6 +54,22 @@ running settles.
   p < 0.05 over the 16 + 16 outputs, mean M2 in B is at most A's + 0.5, and B has at most one more invalid ledger than A.
   Otherwise the candidate keeps the shipped route text.
 
+### XR result (scores-routing.json; 32 of 32 outputs parsed, 8 judge calls, every question id classed)
+
+| Arm | RUNTIME questions per output | of them routed `experiment` (M1) | share routed | NOT_RUNTIME routed `experiment` (M2) | questions per output | invalid ledgers |
+|---|---|---|---|---|---|---|
+| A (shipped) | 2.56 | 0.25 | 10% | 0.25 | 11.75 | 0 |
+| B (route sentence) | 3.19 | 1.06 | 33% | 0.00 | 12.0 | 0 |
+
+- The rise in M1 is 0.81 per output, exact one-sided p = 0.0035; M2 falls by 0.25; no invalid ledger. The rule asks for a rise
+  of at least 1.0: **not met**, so the candidate keeps the shipped route text. The sentence works in the direction meant and
+  over-routes nothing, but two-thirds of the questions the judge calls RUNTIME still take `inspect`.
+- Per case, M1 A -> B: ticket-assignment 0 -> 0.75, ticket-escalation 0 -> 1.5, ticket-import 0.75 -> 2.0, user-listing
+  0.25 -> 0.
+- Seen on the way: on ticket-import the shipped intake already raises the deciding facts (request-size limits, per-ticket
+  storage I/O against the 10-second bound, atomicity) in every sample, and routes the timing question to `experiment` in all
+  four arm-A samples; concurrency and restart questions mostly take `inspect`.
+
 ## XI. A case whose deciding facts only running settles, and a futility-gated live A/B (pre-registered)
 
 - Case `ticket-import` on fixtures/node-tickets, unchanged (pin 5652a97375d0). Request: ticket-import-prompt.txt
