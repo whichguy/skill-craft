@@ -1,4 +1,4 @@
-# node-tickets (fixture, digest in cases.json): facts the `ticket-assignment` and `ticket-escalation` requests depend on
+# node-tickets (fixture, digest in cases.json): facts the `ticket-assignment`, `ticket-escalation` and `ticket-import` requests depend on
 
 Hand-compiled from the fixture on 2026-10-28; never shown to a subject. The fixture is
 `test/shiploop_e2e/fixtures/node-tickets`; the requests are the `ticket-assignment` prompt and its follow-on
@@ -65,3 +65,23 @@ the template for a decision.
 | `0008-json-data-file.md` | Accepted | the whole state in one JSON file; record functions name every field; older files keep loading | LA7, LA8, LB4 |
 | `README.md` | (index) | the list of records and their status | none: the index |
 | `template.md` | (template) | the shape of a record | none: a template, not a decision |
+
+## The `ticket-import` request (added 2026-10-31)
+
+XI of `docs/experiments/experiment-route-20261031/README.md`: a request on the same base whose deciding facts only running
+settles. Each LC fact is something it depends on and does not name; the checks are in
+`test/shiploop_e2e/checks/ticket_import_accept.py`, calibrated with `test/fixtures/quality/reference_ticket_import.py`. Its six
+pass-to-pass checks are ticket-assignment's, rows above.
+
+| ID | Fact | Evidence (file, symbol) | Why it matters | Checks |
+|---|---|---|---|---|
+| LC1 | A request body over `MAX_BODY_BYTES` (65536 by default) is refused, for every route through `createApp`'s `body`; the base's config test pins that default, so raising it for every route fails the base's own tests. A 5000-ticket body is about 450 KB. | `README.md` "Configuration"; `src/config.js` `DEFAULTS`; `src/http.js` `readJson`; `src/app.js` `createApp`; `test/config.test.js` | the import needs a body limit of its own | `import-5000-in-time` |
+| LC2 | With `DATA_FILE` set, every change rewrites the whole state file (`TicketStore.save` after `create`), so 5000 tickets created one at a time take about 20 s on the grading machine against 10 ms for one save; the base's test helpers run memory-only, where no save happens. | `docs/operations.md` "The data file"; `docs/decisions/0008-json-data-file.md`; `src/store.js` `create`, `save`; `test/helpers.js` `TEST_SETTINGS` | "answered within 10 seconds" holds only with one save per import | `import-5000-in-time` |
+| LC3 | A create appends a history entry with the request's actor and enqueues the requester's notification in the same store change; an import refused for an invalid item must leave neither. | `docs/decisions/0006-notification-outbox.md`, `0007-append-only-audit-log.md`; `src/store.js` `create` | "or none when any item is invalid", "recorded ... notified just as when one ticket is created" | `import-all-or-none`, `import-audited`, `import-notifies` |
+| LC4 | The state survives a restart only through the data file, and numbers continue from it. | `CHANGELOG.md` 1.3.0; `src/persistence.js` | imported tickets must be saved | `import-persists` |
+
+| Sentence | Checks |
+|---|---|
+| import: items are what `POST /tickets` takes, at most 5000, created in the given order; 201 with `{created, ids}` | `import-creates-in-order`, `import-validates-like-create` |
+| import: all or none; 400 naming the first invalid item by its index (0 for the first) | `import-all-or-none` |
+| import: 5000 tickets answered within 10 seconds | `import-5000-in-time` |

@@ -1,0 +1,393 @@
+{
+  "rows": [
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 2,
+      "questions": 12,
+      "R": 3,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 1,
+      "questions": 12,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 2,
+      "questions": 10,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 1,
+      "questions": 10,
+      "R": 4,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 4,
+      "questions": 11,
+      "R": 4,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 4,
+      "questions": 12,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "B",
+      "sample": 3,
+      "questions": 10,
+      "R": 3,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "user-listing",
+      "arm": "A",
+      "sample": 3,
+      "questions": 12,
+      "R": 1,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "A",
+      "sample": 1,
+      "questions": 11,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "B",
+      "sample": 2,
+      "questions": 13,
+      "R": 3,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "A",
+      "sample": 2,
+      "questions": 12,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "B",
+      "sample": 1,
+      "questions": 11,
+      "R": 2,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "B",
+      "sample": 4,
+      "questions": 14,
+      "R": 3,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "A",
+      "sample": 3,
+      "questions": 14,
+      "R": 2,
+      "M1": 0,
+      "M2": 1,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "A",
+      "sample": 4,
+      "questions": 12,
+      "R": 1,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-assignment",
+      "arm": "B",
+      "sample": 3,
+      "questions": 13,
+      "R": 3,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "B",
+      "sample": 2,
+      "questions": 11,
+      "R": 2,
+      "M1": 2,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "A",
+      "sample": 2,
+      "questions": 11,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "A",
+      "sample": 1,
+      "questions": 11,
+      "R": 2,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "B",
+      "sample": 1,
+      "questions": 12,
+      "R": 2,
+      "M1": 2,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "A",
+      "sample": 4,
+      "questions": 13,
+      "R": 3,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "B",
+      "sample": 4,
+      "questions": 12,
+      "R": 4,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "A",
+      "sample": 3,
+      "questions": 13,
+      "R": 5,
+      "M1": 0,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-escalation",
+      "arm": "B",
+      "sample": 3,
+      "questions": 15,
+      "R": 4,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "A",
+      "sample": 1,
+      "questions": 12,
+      "R": 4,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "B",
+      "sample": 2,
+      "questions": 11,
+      "R": 3,
+      "M1": 1,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "A",
+      "sample": 2,
+      "questions": 11,
+      "R": 3,
+      "M1": 1,
+      "M2": 1,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "B",
+      "sample": 1,
+      "questions": 12,
+      "R": 4,
+      "M1": 2,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "A",
+      "sample": 3,
+      "questions": 11,
+      "R": 2,
+      "M1": 1,
+      "M2": 1,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "A",
+      "sample": 4,
+      "questions": 12,
+      "R": 4,
+      "M1": 0,
+      "M2": 1,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "B",
+      "sample": 4,
+      "questions": 12,
+      "R": 5,
+      "M1": 3,
+      "M2": 0,
+      "valid": true
+    },
+    {
+      "case": "ticket-import",
+      "arm": "B",
+      "sample": 3,
+      "questions": 12,
+      "R": 4,
+      "M1": 2,
+      "M2": 0,
+      "valid": true
+    }
+  ],
+  "arms": {
+    "A": {
+      "outputs": 16,
+      "M1": 0.25,
+      "M2": 0.25,
+      "R": 2.5625,
+      "questions": 11.75,
+      "runtime_share_routed": 0.0975609756097561,
+      "invalid": 0
+    },
+    "B": {
+      "outputs": 16,
+      "M1": 1.0625,
+      "M2": 0.0,
+      "R": 3.1875,
+      "questions": 12.0,
+      "runtime_share_routed": 0.3333333333333333,
+      "invalid": 0
+    }
+  },
+  "cases": {
+    "ticket-assignment": {
+      "A": {
+        "M1": 0.0,
+        "R": 1.75
+      },
+      "B": {
+        "M1": 0.75,
+        "R": 2.75
+      }
+    },
+    "ticket-escalation": {
+      "A": {
+        "M1": 0.0,
+        "R": 3.0
+      },
+      "B": {
+        "M1": 1.5,
+        "R": 3.0
+      }
+    },
+    "ticket-import": {
+      "A": {
+        "M1": 0.75,
+        "R": 3.25
+      },
+      "B": {
+        "M1": 2.0,
+        "R": 4.0
+      }
+    },
+    "user-listing": {
+      "A": {
+        "M1": 0.25,
+        "R": 2.25
+      },
+      "B": {
+        "M1": 0.0,
+        "R": 3.0
+      }
+    }
+  },
+  "rule": {
+    "M1_rise": 0.8125,
+    "p_one_sided": 0.0034674513337558726,
+    "M2_B_minus_A": -0.25,
+    "invalid_B_minus_A": 0,
+    "moves_routing": false
+  }
+}

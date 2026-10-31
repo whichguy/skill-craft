@@ -257,6 +257,36 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   lifts what spec carries by 12 points (E9).
 - Status: interim (n = 8 per arm, one judge).
 
+### E12 — 2026-10-31: do runs miss runtime facts or break existing behaviour? (the saved corpus, no model run)
+
+- Question: the owner asked whether planning should plan and run experiments, or add extended tests on the existing code,
+  to clarify conditions, state and behaviour, and whether as a prompt or a script-enforced step. Before building either:
+  do the saved runs miss the runtime facts such a step would establish?
+- Method (docs/experiments/experiment-route-20261031/corpus/): run node-tickets' 36 documented claims against the base, and
+  probe every saved completed product of its cases outside the run (filters that combine, the assignee across a SIGTERM
+  restart, escalation at most once across SIGTERM and SIGKILL restarts, the 36 claims diffed against the base); read the
+  harness's held-out acceptance (result.json `quality.acceptance`) of every saved brownfield run.
+- Result: the base has one drift (filters OR where docs/api.md says they combine). Filters combine in 17 of 18 completed
+  products, the assignee survives a restart in 17 of 17, escalation stays at most once in 5 of 5, and 0 of 17 products
+  break a documented claim or change any of 7 undocumented behaviours. Held-out acceptance: 26 of 26 completed brownfield
+  runs pass every check (ticket-assignment 10 x 18, ticket-escalation 5 x 14, user-listing 11 x 11), latent facts
+  included, DeepSeek flash and Codex Terra.
+- Reading: on the cases we have, runs already find runtime facts and keep behaviour; a required experiment step or
+  characterization tests would bind nothing there. Characterization tests stay on hold, now with evidence.
+- Status: firm for these cases (two Node bases); not a claim about larger or less documented systems.
+
+### E13 — 2026-10-31: XR, does one sentence move runtime questions to the `experiment` route? (Terra high, no tools)
+
+- Method (pre-registered in 593b4b44, README "XR"): X1's intake exercise with the shipped duty (A) or one added sentence on
+  the `experiment` route (B); four brownfield requests, 4 samples each, 32 calls; Opus classed every question RUNTIME or
+  NOT_RUNTIME, blind to arm and route.
+- Result: RUNTIME questions routed `experiment` per output 0.25 (10%) -> 1.06 (33%), p = 0.0035; NOT_RUNTIME so routed
+  0.25 -> 0; no invalid ledger. The rule asked for +1.0: missed (+0.81), so the shipped route text stays.
+- Reading: the sentence shifts what intake proposes and over-routes nothing, but two-thirds of RUNTIME questions still take
+  `inspect`; on ticket-import the shipped intake already names the deciding facts and routes the timing question to
+  `experiment` in all four samples.
+- Status: firm (no-tool exercise, one judge).
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -281,3 +311,5 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F16 | The catalog ledger's gain reaches the spec: carried 0.78 → 0.90 (p 0.013), agreement unchanged | firm (no-tool exercise) | E9 |
 | F17 | Neither isolated design measures a step-plan prompt sentence on Terra: no-tool packets block (64/64), and the step case's seed carries a clean proof | firm | E8 |
 | F18 | Live on Terra high the refusal moves the proof-order fault from a send-back to one step-plan refusal (0 of 6 runs with the send-back against 4 of 6, p 0.03), with every hidden check kept; the ledger is written without a gate | firm (proof order), interim (time) | E10 |
+| F19 | On the brownfield cases we have, runs already find runtime facts and keep existing behaviour: 26 of 26 completed runs pass every held-out check, 0 of 17 products break a probed behaviour; a plan-time experiment step has nothing to bind there | firm (two Node bases) | E12 |
+| F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |

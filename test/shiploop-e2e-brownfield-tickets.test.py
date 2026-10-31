@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """The medium brownfield case pair: `ticket-assignment` on fixtures/node-tickets and its follow-on `ticket-escalation` (D7 of
-docs/shiploop-brownfield-baseline-design-2026-10-28.md, "a medium brownfield case with a follow-on run"). No model is called.
+docs/shiploop-brownfield-baseline-design-2026-10-28.md, "a medium brownfield case with a follow-on run"), and `ticket-import`
+on the same base, whose deciding facts only running settles (XI of docs/experiments/experiment-route-20261031/README.md). No
+model is called.
 
 SPEC "A brownfield case" asks each case's calibration: the base fails every fail-to-pass check and passes every pass-to-pass
 check and the pristine suite; the reference passes every check and the pristine suite; each targeted defect fails exactly the
 checks its defect reads; an independently written alternative passes everything. The follow-on starts from the first run's
 delivery, so its base is the first case's reference. These tests grade every variant of
-test/fixtures/quality/reference_ticket_assignment.py and reference_ticket_escalation.py with:
+test/fixtures/quality/reference_ticket_assignment.py, reference_ticket_escalation.py and reference_ticket_import.py with:
 
-* the held-out acceptance (checks/ticket_assignment_accept.py, checks/ticket_escalation_accept.py) through
+* the held-out acceptance (checks/ticket_assignment_accept.py, checks/ticket_escalation_accept.py,
+  checks/ticket_import_accept.py) through
   ``quality.acceptance``, as a run's quality phase calls it, the delivered copy (``quality.Product``) included;
 * the base's pristine tests (checks/base_tests.py pristine node-tickets).
 
@@ -57,6 +60,7 @@ import brownfield  # noqa: E402
 import quality  # noqa: E402
 import reference_ticket_assignment as first  # noqa: E402
 import reference_ticket_escalation as second  # noqa: E402
+import reference_ticket_import as third  # noqa: E402
 import scorecard  # noqa: E402
 
 CASES = json.loads(run.CASES.read_text())
@@ -138,7 +142,27 @@ ESCALATION = Case("ticket-escalation", second, {
     "outbox-enqueue-renamed": set(),
 }, pristine={"outbox-enqueue-renamed"})
 
-PAIR = (ASSIGNMENT, ESCALATION)
+IMPORT = Case("ticket-import", third, {
+    "save-per-ticket": {"import-5000-in-time"},
+    "default-body-limit": {"import-5000-in-time"},
+    "global-limit-raised": set(),
+    "partial-import": {"import-all-or-none"},
+    # The index is read by both checks that refuse an import.
+    "one-based-index": {"import-all-or-none", "import-validates-like-create"},
+    "silent-import": {"import-notifies"},
+    "unaudited-import": {"import-audited"},
+    "unsaved-import": {"import-persists"},
+    "loose-items": {"import-validates-like-create"},
+    "default-priority-low": {"import-creates-in-order"},
+    "update-rejects-resolved": {"ticket-lifecycle-unchanged"},
+    "default-limit-changed": {"listing-unchanged"},
+    "resolved-template-replaced": {"notifications-unchanged"},
+    "audit-not-saved": {"restart-keeps-state"},
+    "raw-column-moved": {"cli-raw-columns"},
+    "old-data-refused": {"old-data-loads"},
+}, pristine={"global-limit-raised", "default-limit-changed", "resolved-template-replaced", "audit-not-saved", "old-data-refused"})
+
+GRADED_CASES = (ASSIGNMENT, ESCALATION, IMPORT)
 
 needs_node = unittest.skipUnless(shutil.which("node"), "the deliveries are Node: this class needs node on PATH")
 needs_lsof = unittest.skipUnless(shutil.which("node") and shutil.which("lsof"),
@@ -170,12 +194,12 @@ def suite_wanted(case: Case, variant: str) -> bool:
 
 def agrees(case: Case, variant: str, kind: str, result) -> bool:
     """Whether a graded result is the one the variant declares: its failed held-out checks, its pristine verdict, or its own
-    suite's (which only the first case's base fails: it adds no test)."""
+    suite's (which only a base case's base fails: it adds no test)."""
     if kind == "accepted":
         return bool(result.get("observed")) and {row["id"] for row in result["checks"] if not row["pass"]} == case.expected[variant]
     if kind == "pristine":
         return (result.returncode != 0) == (variant in case.pristine)
-    return (result.returncode != 0) == (case is ASSIGNMENT and variant == "base")
+    return (result.returncode != 0) == (case is not ESCALATION and variant == "base")
 
 
 @functools.cache
@@ -191,7 +215,7 @@ def graded() -> dict:
     reset connection ("socket hang up") about once in two hundred runs, never twice in a row, and never in a run alone."""
     tmp = Path(tempfile.mkdtemp(prefix="brownfield-tickets-"))
     unittest.addModuleCleanup(shutil.rmtree, tmp, True)
-    jobs = sorted(((case, variant) for case in PAIR for variant in case.builder.VARIANTS),
+    jobs = sorted(((case, variant) for case in GRADED_CASES for variant in case.builder.VARIANTS),
                   key=lambda job: (job[1] != "base", job[0] is not ESCALATION))
     groups: set = set()
 
@@ -214,7 +238,7 @@ def graded() -> dict:
                                           base_tests(deliveries[run_[0][0].name, run_[0][1]], run_[1])), runs))
     results = {"accepted": accepted, "pristine": {key[1:]: done for key, done in ran.items() if key[0] == "pristine"},
                "suite": {key[1:]: done for key, done in ran.items() if key[0] == "suite"}}
-    by_name = {case.name: case for case in PAIR}
+    by_name = {case.name: case for case in GRADED_CASES}
     regraded = []
     for kind, graded_kind in results.items():
         for (name, variant), result in list(graded_kind.items()):
@@ -229,7 +253,7 @@ class CaseDeclarationTest(unittest.TestCase):
     """The catalog entries: the pin, the follow-on, the grades and the held-out files."""
 
     def test_the_declared_ids_are_exactly_each_modules_checks_with_a_grade_and_a_source_and_the_existing_behaviour_first(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             with self.subTest(case=case.name):
                 self.assertEqual(case.ids, list(quality.load_checks(case.block["module"], quality.HERE / "checks").CHECKS))
                 for item in case.block["checks"]:
@@ -256,31 +280,32 @@ class CaseDeclarationTest(unittest.TestCase):
 
     def test_the_acceptance_modules_and_the_references_are_held_out(self):
         held = boundary.held_out_files(CASES)
-        markers = quality.held_out_markers([case.block for case in PAIR])
+        markers = quality.held_out_markers([case.block for case in GRADED_CASES])
         for path in ("test/shiploop_e2e/checks/ticket_assignment_accept.py", "test/shiploop_e2e/checks/ticket_escalation_accept.py",
-                     "test/fixtures/quality/reference_ticket_assignment.py", "test/fixtures/quality/reference_ticket_escalation.py"):
+                     "test/shiploop_e2e/checks/ticket_import_accept.py", "test/fixtures/quality/reference_ticket_assignment.py",
+                     "test/fixtures/quality/reference_ticket_escalation.py", "test/fixtures/quality/reference_ticket_import.py"):
             with self.subTest(path=path):
                 self.assertIn(path, held)
                 self.assertIn(Path(path).stem, markers)
 
     def test_the_prompts_name_none_of_the_latent_facts(self):
         # What the base keeps in its documents and code, which the requests depend on and leave unnamed.
-        for case in PAIR:
+        for case in GRADED_CASES:
             prompt = case.entry["prompt"].lower()
             for word in ("audit", "outbox", "envelope", "409", "cursor", "data_file", "--raw", "weekly", "worker_interval",
-                         "x-actor", "decision"):
+                         "x-actor", "decision", "max_body", "65536", "rewrit", "data file"):
                 with self.subTest(case=case.name, word=word):
                     self.assertNotIn(word, prompt)
 
     def test_the_style_is_left_out_of_breadth_by_name(self):
         breadth = json.loads(run.SUITES.read_text())["breadth"]
         self.assertNotIn("brownfield", breadth["styles"])
-        for case in PAIR:
+        for case in GRADED_CASES:
             self.assertEqual(case.entry["style"], "brownfield")
         self.assertIn("ticket-assignment", breadth["not_covered"]["brownfield"])
 
     def test_the_scorecard_requires_both_cases_acceptance(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             with self.subTest(case=case.name):
                 self.assertTrue(scorecard.requires_acceptance(case.name))
                 unmeasured: dict = {}
@@ -316,7 +341,7 @@ class BaseFixtureTest(unittest.TestCase):
 
     def test_the_ground_truth_names_every_check_and_every_decision_record(self):
         table = GROUND_TRUTH.read_text()
-        for case in PAIR:
+        for case in GRADED_CASES:
             for ident in case.ids:
                 with self.subTest(check=ident):
                     self.assertIn(f"`{ident}`", table)
@@ -342,7 +367,7 @@ class CalibrationTest(unittest.TestCase):
         return {row["id"]: row["note"] for row in self.graded["accepted"][case.name, variant].get("checks", []) if not row["pass"]}
 
     def test_each_base_fails_every_fail_to_pass_check_and_passes_the_pass_to_pass_ones_and_its_pristine_tests(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             with self.subTest(case=case.name):
                 self.assertEqual(self.failed(case, "base"), case.fail_to_pass, self.notes(case, "base"))
                 pristine = self.graded["pristine"][case.name, "base"]
@@ -350,7 +375,7 @@ class CalibrationTest(unittest.TestCase):
                 self.assertIn("117 of 117 tests", pristine.stdout)
 
     def test_the_references_and_the_alternatives_pass_every_check_and_the_pristine_tests(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             for variant in ("reference", "alternative"):
                 with self.subTest(case=case.name, variant=variant):
                     self.assertEqual(self.failed(case, variant), set(), self.notes(case, variant))
@@ -362,7 +387,7 @@ class CalibrationTest(unittest.TestCase):
         self.assertLessEqual(len(self.graded["regraded"]), 4, self.graded["regraded"])
 
     def test_each_variant_fails_exactly_the_checks_its_defect_reads(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             self.assertEqual(set(case.expected), set(case.builder.VARIANTS))
             for variant, expected in case.expected.items():
                 with self.subTest(case=case.name, variant=variant):
@@ -372,7 +397,7 @@ class CalibrationTest(unittest.TestCase):
         self.assertEqual(set(), self.graded["groups"], "every server the checks started was ended")
 
     def test_every_check_is_failed_by_some_defect_and_every_defect_by_some_check(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             with self.subTest(case=case.name):
                 defects = list(case.builder.DEFECTS)
                 caught = set().union(*(case.expected[variant] for variant in defects))
@@ -382,13 +407,13 @@ class CalibrationTest(unittest.TestCase):
 
     def test_the_pass_to_pass_checks_see_what_the_bases_own_tests_do_not(self):
         # A regression of existing behaviour the base's tests leave untested: only a held-out pass-to-pass check sees it.
-        for case in PAIR:
+        for case in GRADED_CASES:
             with self.subTest(case=case.name):
                 self.assertTrue(case.expected["update-rejects-resolved"] <= case.pass_to_pass)
                 self.assertNotIn("update-rejects-resolved", case.pristine)
 
     def test_the_defects_that_edit_the_bases_tests_pass_their_own_suite_and_fail_the_pristine_one(self):
-        for case in PAIR:
+        for case in GRADED_CASES:
             for variant, test_file in case.builder.EDITS_BASE_TESTS.items():
                 with self.subTest(case=case.name, variant=variant):
                     delivery = self.graded["deliveries"][case.name, variant]
@@ -408,9 +433,10 @@ class CalibrationTest(unittest.TestCase):
         self.assertNotIn(line, (self.graded["deliveries"][ASSIGNMENT.name, "reference"] / "src/tickets/query.js").read_text())
 
     def test_the_suite_check_asks_for_new_tests_beside_the_bases(self):
-        self.assertIn("no more than the base's 117", self.graded["suite"][ASSIGNMENT.name, "base"].stdout)
+        for case in (ASSIGNMENT, IMPORT):
+            self.assertIn("no more than the base's 117", self.graded["suite"][case.name, "base"].stdout)
         self.assertEqual(self.graded["suite"][ESCALATION.name, "base"].returncode, 0, "the first run added tests of its own")
-        for case in PAIR:
+        for case in GRADED_CASES:
             for variant in ("reference", "alternative"):
                 with self.subTest(case=case.name, variant=variant):
                     own = self.graded["suite"][case.name, variant]
@@ -418,7 +444,7 @@ class CalibrationTest(unittest.TestCase):
 
     def test_an_edit_that_no_longer_applies_fails_the_build(self):
         with tempfile.TemporaryDirectory() as tmp:
-            for builder in (first, second):
+            for builder in (first, second, third):
                 with self.subTest(builder=builder.__name__), \
                         mock.patch.dict(builder.DEFECTS, {"stale": [("src/server.js", "no such text", "x")]}), \
                         mock.patch.object(builder, "VARIANTS", (*builder.VARIANTS, "stale")):

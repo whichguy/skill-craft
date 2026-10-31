@@ -1,0 +1,7 @@
+{"run": "~/e2e-runs-brownfield-interrupted/20261029/hooks-before-ticket-escalation-attempt1-paused-at-step-plan/work", "result": {"first":0,"afterTerm":0,"afterKill":0}}
+{"run": "~/e2e-runs-brownfield-interrupted/20261029/hooks-before-ticket-escalation/work", "result": {"first":0,"afterTerm":0,"afterKill":0}}
+{"run": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b/work", "result": {"first":1,"afterTerm":1,"afterKill":1}}
+{"run": "~/e2e-runs-brownfield/20261029/bf-codex-r1-ticket-escalation/work", "result": {"first":1,"afterTerm":1,"afterKill":1}}
+{"run": "~/e2e-runs-brownfield/20261029/bf-codex-r2-ticket-escalation/work", "result": {"first":1,"afterTerm":1,"afterKill":1}}
+{"run": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/work", "result": {"first":1,"afterTerm":1,"afterKill":1}}
+{"run": "~/e2e-runs-brownfield/20261029/hooks-before-ticket-escalation/work", "result": {"first":1,"afterTerm":1,"afterKill":1}}

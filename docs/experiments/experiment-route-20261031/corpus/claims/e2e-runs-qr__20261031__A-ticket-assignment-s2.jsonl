@@ -1,0 +1,37 @@
+{"claim":"every response is application/json; charset=utf-8","ok":true,"expected":"application/json; charset=utf-8","observed":"application/json; charset=utf-8"}
+{"claim":"POST answers 201, status open, priority defaults to normal","ok":true,"expected":"201 / normal / open","observed":"201 / normal / open"}
+{"claim":"ids are T- and four digits, in order","ok":true,"expected":"T-0001,T-0002,T-0003","observed":"T-0001,T-0002,T-0003"}
+{"claim":"a ticket has exactly id,title,priority,requester,status,created,updated","ok":false,"expected":"created,id,priority,requester,status,title,updated","observed":"assignee,created,id,priority,requester,status,title,updated"}
+{"claim":"times are ISO 8601 UTC with milliseconds","ok":true,"expected":"2025-09-01T08:15:00.000Z form","observed":"2026-10-31T19:48:51.459Z"}
+{"claim":"filters combine (AND): ?status=open&priority=urgent lists only open urgent tickets","ok":true,"expected":"T-0001","observed":"T-0001"}
+{"claim":"a filter value that is not a status is 400 invalid in the envelope","ok":true,"expected":"400 invalid","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"status must be one of open, in_progress, resolved, closed\"}}"}
+{"claim":"(undocumented) an unknown query parameter","ok":true,"expected":"not stated","observed":"200 items=3"}
+{"claim":"unknown body fields are refused (400 invalid)","ok":true,"expected":"400 invalid","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"unknown field: severity\"}}"}
+{"claim":"no such route is 404 not_found in the envelope","ok":true,"expected":"404 not_found","observed":"404 {\"error\":{\"code\":\"not_found\",\"message\":\"no route for GET /nowhere\"}}"}
+{"claim":"a body that is not JSON is 400 invalid","ok":true,"expected":"400 invalid","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"request body is not valid JSON\"}}"}
+{"claim":"a title over 200 characters is 400","ok":true,"expected":"400","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"title must be at most 200 characters\"}}"}
+{"claim":"a title of exactly 200 characters is accepted","ok":true,"expected":"201","observed":"201"}
+{"claim":"a multi-line title is refused","ok":true,"expected":"400","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"title must be a single line of text\"}}"}
+{"claim":"a requester over 64 characters is 400","ok":true,"expected":"400","observed":"400"}
+{"claim":"(undocumented) surrounding spaces in a title","ok":true,"expected":"not stated","observed":"\"Padded title\""}
+{"claim":"(undocumented) a blank title","ok":true,"expected":"not stated","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"title must not be empty\"}}"}
+{"claim":"without X-Actor the actor is system","ok":true,"expected":"system","observed":"system"}
+{"claim":"an X-Actor over 64 characters is refused","ok":true,"expected":"400","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"X-Actor must be at most 64 characters\"}}"}
+{"claim":"(undocumented) a blank X-Actor","ok":true,"expected":"not stated","observed":"200 actor=\"system\""}
+{"claim":"PATCH with the same values changes nothing: no audit entry, updated stays","ok":true,"expected":"updated 2026-10-31T19:48:51.459Z, 1 entries","observed":"updated 2026-10-31T19:48:51.459Z, 1 entries"}
+{"claim":"(undocumented) an empty PATCH body","ok":true,"expected":"not stated","observed":"400 {\"error\":{\"code\":\"invalid\",\"message\":\"nothing to change: give a title or a priority\"}}"}
+{"claim":"open -> resolved is 409 conflict","ok":true,"expected":"409 conflict","observed":"409"}
+{"claim":"open->in_progress->resolved->open (reopen)->...->closed all allowed","ok":true,"expected":"all 200","observed":"in_progress:200 resolved:200 open:200 in_progress:200 resolved:200 closed:200"}
+{"claim":"a closed ticket cannot change (409)","ok":true,"expected":"409","observed":"409"}
+{"claim":"(undocumented) a transition to the status it already has","ok":true,"expected":"not stated","observed":"409 {\"code\":\"conflict\",\"message\":\"ticket T-0002 cannot go from open to open: it can go to in_progress\"}"}
+{"claim":"audit is oldest first with increasing seq","ok":true,"expected":"increasing","observed":"8,9,10,11,12,13,14"}
+{"claim":"creating notifies the requester (ticket.created sent)","ok":true,"expected":"ticket.created in sent","observed":"ticket.created,ticket.resolved"}
+{"claim":"(operations) resolved, reopened and resolved again within seconds sends one resolved notification","ok":true,"expected":"1","observed":"1 (worker 50 ms)"}
+{"claim":"NOTIFY_FILE gets one JSON line per sent notification","ok":true,"expected":"7","observed":"7"}
+{"claim":"limit defaults to 20 and next is a cursor","ok":true,"expected":"20 + cursor","observed":"20 + string"}
+{"claim":"(undocumented) a cursor reused with different filters","ok":true,"expected":"not stated","observed":"200 items=0"}
+{"claim":"a cursor the service did not issue is invalid","ok":true,"expected":"400","observed":"400"}
+{"claim":"after a SIGTERM restart, state is kept and numbers continue","ok":true,"expected":"T-0029","observed":"T-0029"}
+{"claim":"the data file holds a change at once (survives SIGKILL)","ok":true,"expected":"present","observed":"present"}
+{"claim":"WORKER_INTERVAL_MS=0 keeps notifications pending","ok":true,"expected":"pending","observed":"[\"T-0029\",\"T-0030\",\"T-0031\"]"}
+{"summary":"36 claims, 1 drift","drift":["a ticket has exactly id,title,priority,requester,status,created,updated"],"work":"/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/probe-tickets-A4olco"}

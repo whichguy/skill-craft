@@ -1,0 +1,3 @@
+# Kept out of the evidence: Codex event streams and stderr of each call (their token usage is copied into the envelope).
+*.events.jsonl
+*.err
