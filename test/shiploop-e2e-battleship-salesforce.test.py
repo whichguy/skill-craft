@@ -59,6 +59,34 @@ BASE_TYPES = {kind: list(names) for kind, names in fk.BASELINE_TYPES.items()}
 REF_CLASSES = ["SLBattleController", "SLBattleEngine", "SLBattleEngineTest", "SLBattleGameTest"]
 
 
+def assert_cleanup_scope(test: unittest.TestCase, record: dict, prefix: str) -> None:
+    scope = record["scope"]
+    expected_compares = ({spec[0] for spec in bs.sfc.WATCHED} | set(bs.sfc.OWN_TYPES)) - set(bs.REMOVABLE)
+    test.assertEqual(scope["kind"], "declared-cleanup-policy")
+    test.assertEqual(scope["policy"], "shared-org-tracked")
+    test.assertSetEqual(set(scope["removes"]), set(bs.REMOVABLE))
+    test.assertSetEqual(set(scope["unassigns"]), {"PermissionSetAssignment"})
+    test.assertSetEqual(set(scope["compares_only"]), expected_compares)
+    test.assertIn("CustomObject", scope["compares_only"])
+    ownership = scope["ownership_assumption"]
+    test.assertEqual(ownership, {
+        "kind": "reserved_namespace", "prefix": prefix, "case_sensitive": True,
+        "removal_requires_absent_from_before_json": True,
+        "removal_prefix_by_type": {kind: bs.sfc.removal_prefix(kind, prefix) for kind in bs.REMOVABLE},
+    })
+    for item in record["removed"]:
+        test.assertIn(item["type"], ownership["removal_prefix_by_type"])
+        test.assertTrue(item["name"].startswith(ownership["removal_prefix_by_type"][item["type"]]), item)
+    test.assertEqual(scope["assignment_baseline"], {
+        "source": "before.json.permset_assignments", "identity": "PermissionSetAssignment.Id",
+        "baseline_ids_preserved": True, "new_ids_removed": True,
+    })
+    test.assertSetEqual(set(scope["not_observed"]), {
+        "arbitrary_apex_dml_business_records", "fields_on_baseline_objects_or_metadata_contents",
+        "metadata_outside_watched_types", "jobs", "late_finishing_deployments",
+    })
+
+
 # --------------------------------------------------------------------------------------------------------------- MIRROR
 # The reference engine (SLBattleEngine.cls), line for line in Python: a Park-Miller generator, the fleet in order, one shot at a time.
 # `bug` names a broken variant; the oracle must fail each on its own marker.
@@ -863,6 +891,9 @@ class TestCleanup(FakeOrg):
         record = json.loads((self.platform / "cleanup.json").read_text())
         self.assertTrue(record["verified"])
         self.assertEqual(record["unassigned"], [{"permission_set": "SLBattle_Access", "assignments": 1}])
+        assert_cleanup_scope(self, record, "SLBattle")
+        self.assertIsInstance(record["covered"], dict)
+        self.assertIsInstance(record["not_covered"], dict)
         self.assertEqual(sorted(r["name"] for r in record["removed"]),
                          sorted(["SLBattle_Access", "SLBattle", "SLBattle_Board", "slBattleBoard", *REF_CLASSES]))
         self.assertIn("unassigned 1", proc.stdout)
@@ -938,6 +969,45 @@ class TestCleanup(FakeOrg):
         self.assertEqual(proc.returncode, 0, self.out(proc))
         self.assertIn("unassigned 0; removed nothing", proc.stdout)
         self.assertEqual([c for c in self.calls() if c["argv"][:3] == ["data", "delete", "record"] or "destructive" in c], [])
+
+    def test_a_prefixed_custom_object_alone_fails_cleanup_and_is_not_deleted(self) -> None:
+        baseline, own = "OwnerShared_Baseline__c", "SLBattle_New__c"
+        self.add(CustomObject=[baseline])
+        self.deployed_and_assigned()
+        self.add(CustomObject=[own])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1, self.out(proc))
+        state = self.state()
+        self.assertTrue({baseline, own} <= set(state["types"]["CustomObject"]))
+        for call in (entry for entry in self.calls() if "destructive" in entry):
+            self.assertNotIn("CustomObject", call["destructive"])
+            self.assertNotIn(own, json.dumps(call["destructive"]))
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertFalse(record["verified"])
+        self.assertIsInstance(record["removed"], list)
+        self.assertIsInstance(record["refused"], list)
+        self.assertNotIn("CustomObject", {item["type"] for item in record["removed"] + record["refused"]})
+        self.assertEqual(record["extra"]["CustomObject"], [own])
+        self.assertIn("CustomObject", record["covered"])
+        self.assertIsInstance(record["not_covered"], dict)
+        assert_cleanup_scope(self, record, "SLBattle")
+
+    def test_a_foreign_prefixed_custom_object_alone_is_left_alone_and_does_not_fail_cleanup(self) -> None:
+        baseline, foreign = "OwnerShared_Baseline__c", "SLChess_Kept__c"
+        self.add(CustomObject=[baseline])
+        self.deployed_and_assigned()
+        self.add(CustomObject=[foreign])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("not this case's: left alone: CustomObject %s" % foreign, proc.stdout)
+        self.assertTrue({baseline, foreign} <= set(self.state()["types"]["CustomObject"]))
+        for call in (entry for entry in self.calls() if "destructive" in entry):
+            self.assertNotIn("CustomObject", call["destructive"])
+            self.assertNotIn(foreign, json.dumps(call["destructive"]))
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertTrue(record["verified"])
+        self.assertEqual(record["extra"]["CustomObject"], [foreign])
+        assert_cleanup_scope(self, record, "SLBattle")
 
 
 class TestSelftest(FakeOrg):
@@ -1088,6 +1158,7 @@ class TestUpdateMode(FakeOrg):
         self.assertEqual(sorted(record["updated"]), ["ApexClass", "LightningComponentBundle"])
         self.assertEqual(record["modified"], {})
         self.assertEqual(len(record["baseline_kept"]), 8)
+        assert_cleanup_scope(self, record, "SLBattle")
         self.assertIn("update mode: 8 baseline item(s) kept; deployed over in place (not restorable):", proc.stdout)
 
     def test_a_baseline_assignment_stays_and_a_cleanup_with_nothing_added_removes_nothing(self) -> None:

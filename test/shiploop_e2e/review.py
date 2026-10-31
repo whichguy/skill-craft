@@ -153,9 +153,10 @@ def reviewer_prompt(run_dir: Path, skill_root: Path | dict, prior_learnings: str
     source = skill_root if isinstance(skill_root, dict) else {"roots": [skill_root], "basis": "given by the caller",
                                                               "reason": None}
     prior = (f"""
-Learnings recorded by earlier iterations (the last three commit messages). Build on them:
+Git learning context from earlier iterations. Recent messages are not a complete history review. Build on accepted decisions:
 check whether this run confirms, contradicts or moves past them, and do not re-report a
-finding that was already applied unless this run shows it did not work.
+finding that was already applied unless this run shows it did not work. A quoted candidate proposal is not an applied fix:
+follow its explicit disposition and the measured evidence, including DROP, rejection and unknown outcomes.
 
 {prior_learnings.strip()}
 """ if prior_learnings.strip() else "")
@@ -213,10 +214,56 @@ End your reply with exactly one ```json fenced block matching:
 """
 
 
-def last_commit_messages(repo: Path, count: int = 3) -> str:
-    """The last `count` full commit messages: the learnings the next step builds on."""
-    return subprocess.run(["git", "-C", str(repo), "log", f"-{count}", "--format=commit %h%n%B"],
-                          check=True, capture_output=True, text=True).stdout
+def last_commit_messages(repo: Path, count: int = 3, *, record_id: str | None = None) -> str:
+    """Recent full messages, substantive anchors and older messages for a selected lesson, including empty commits.
+
+    Read messages only: historical diffs can expose withheld acceptance checks. Relevant history beyond a record's exact
+    identity still needs the constructor's review; recent commits alone are never labelled complete.
+    """
+    def git(*args: str) -> str:
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
+
+    recent = git("log", f"-{count}", "--format=%H").split()
+    messages = git("log", f"-{count}", "--format=commit %H%n%B")
+    context = ("Git messages can quote UNADOPTED proposals. Read each explicit disposition: a candidate author's claims "
+               "are not proof of adoption or a verified improvement.\n\n"
+               "Recent commit messages (not complete history):\n\n" + messages)
+    seen = set(recent)
+    # Terminal notes must not displace the last comparison or the source decision. Read messages, never old patches.
+    subjects = [line.split("\x00", 1) for line in git("log", "--format=%H%x00%s").splitlines()]
+    comparison = next((sha for sha, subject in subjects if subject.startswith("test(e2e): qualified cycle for ")), None)
+    if comparison is None:
+        comparison = next((sha for sha, subject in subjects
+                           if subject.startswith("test(shiploop): record E2E iteration ")), None)
+    if comparison and comparison not in seen:
+        context += "\nLatest compared-cycle or run-learning message:\n\n" + git(
+            "show", "--no-patch", "--format=commit %H%n%B", comparison)
+        seen.add(comparison)
+    for sha in git("log", "--format=%H", "--", "skills/shiploop/").split():
+        message = git("show", "--no-patch", "--format=commit %H%n%B", sha)
+        if re.search(r"^Skill-Craft-Release:", message, re.MULTILINE):
+            continue  # a generated version bump is not the underlying source decision
+        if sha not in seen:
+            context += "\nLatest ShipLoop source decision message:\n\n" + message
+            seen.add(sha)
+        break
+    if not record_id:
+        return context
+    related = git("log", "--fixed-strings", f"--grep={record_id}", "--format=%H",
+                  "HEAD", "--glob=refs/shiploop-loop/*").split()
+    exact_record = re.compile(r"(?<![A-Za-z0-9_-])" + re.escape(record_id) + r"(?![A-Za-z0-9_-])")
+    older = []
+    for sha in related:
+        if sha in seen:
+            continue
+        seen.add(sha)
+        message = git("show", "--no-patch", "--format=commit %H%n%B", sha)
+        if exact_record.search(message):
+            older.append(message)
+    if older:
+        context += (f"\nOlder messages matching learning record {record_id}. Private refs can include unadopted candidates; "
+                    "read their decisions before reusing their proposals:\n\n" + "\n".join(older))
+    return context
 
 
 def render_markdown(review: dict) -> str:

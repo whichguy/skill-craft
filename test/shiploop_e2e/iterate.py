@@ -76,8 +76,9 @@ def new_worktree(name: str) -> tuple[Path, str]:
 
 def improver_prompt(worktree: Path, findings: list[dict], base: str, prior_learnings: str = "") -> str:
     prior = (f"""
-Learnings from the last three commits in this worktree (build on them; do not undo an
-earlier improvement unless the findings below show it failed):
+Git learning context in this worktree (build on accepted decisions; do not undo an earlier improvement unless the
+findings below show it failed). Follow each explicit disposition: quoted unadopted proposals and candidate author claims
+are not proof of an applied or verified fix.
 
 {prior_learnings.strip()}
 """ if prior_learnings.strip() else "")
@@ -190,7 +191,7 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
     checks = result["checks"]
     driver = result["host"] + (f" {result['effort']}" if result.get("effort") else "")
     lines = [f"test(shiploop): record E2E iteration {index} learnings ({args.case}, {driver})", "",
-             f"Iteration {index} ran ShipLoop built from {sha[:8]} with {result['host']} "
+             f"Iteration {index} ran ShipLoop built from {sha} with {result['host']} "
              f"{result['model']} (effort {result.get('effort')}) from an empty directory on the "
              f"{args.case} case.", "",
              "Outcome", "",
@@ -373,7 +374,7 @@ def main(argv: list[str] | None = None) -> int:
         sha = git(worktree, "rev-parse", "HEAD")
         tested_source = runner.tree_digest(worktree / "skills" / "shiploop")
         prior_learnings = reviewer.last_commit_messages(worktree)
-        prior = git(worktree, "log", "-3", "--format=%h").split()
+        prior = git(worktree, "log", "-3", "--format=%H").split()
         subprocess.run([sys.executable, "-B", str(worktree / "scripts/build-packages.py"), str(stage / "build")],
                        check=True, stdout=subprocess.DEVNULL)
         run_args = ["--case", args.case, "--host", args.host, "--output", str(stage / "run"),

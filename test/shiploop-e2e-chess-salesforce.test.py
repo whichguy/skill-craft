@@ -16,7 +16,6 @@ from __future__ import annotations
 import html
 import importlib.util
 import json
-import os
 import re
 import shlex
 import shutil
@@ -47,6 +46,30 @@ spec.loader.exec_module(fk)
 BASE_APEX = list(fk.BASELINE_APEX)
 BASE_LWC = list(fk.BASELINE_LWC)
 BASE_TYPES = {kind: list(names) for kind, names in fk.BASELINE_TYPES.items()}
+
+
+def assert_cleanup_scope(test: unittest.TestCase, record: dict, prefix: str) -> None:
+    scope = record["scope"]
+    expected_compares = ({spec[0] for spec in cs.WATCHED} | set(cs.OWN_TYPES)) - set(cs.REMOVABLE)
+    test.assertEqual(scope["kind"], "declared-cleanup-policy")
+    test.assertEqual(scope["policy"], "shared-org-tracked")
+    test.assertSetEqual(set(scope["removes"]), set(cs.REMOVABLE))
+    test.assertEqual(scope["unassigns"], [])
+    test.assertSetEqual(set(scope["compares_only"]), expected_compares)
+    test.assertIn("CustomObject", scope["compares_only"])
+    ownership = scope["ownership_assumption"]
+    test.assertEqual(ownership, {
+        "kind": "reserved_namespace", "prefix": prefix, "case_sensitive": True,
+        "removal_requires_absent_from_before_json": True,
+        "removal_prefix_by_type": {kind: cs.removal_prefix(kind, prefix) for kind in cs.REMOVABLE},
+    })
+    for item in record["removed"]:
+        test.assertIn(item["type"], ownership["removal_prefix_by_type"])
+        test.assertTrue(item["name"].startswith(ownership["removal_prefix_by_type"][item["type"]]), item)
+    test.assertSetEqual(set(scope["not_observed"]), {
+        "arbitrary_apex_dml_business_records", "fields_on_baseline_objects_or_metadata_contents",
+        "metadata_outside_watched_types", "jobs", "late_finishing_deployments",
+    })
 
 
 # ------------------------------------------------------------------------------------------------------------ REFERENCE
@@ -753,6 +776,7 @@ class TestCleanup(FakeOrg):
         self.assertEqual(state["types"], BASE_TYPES)
         record = json.loads((self.platform / "cleanup.json").read_text())
         self.assertTrue(record["verified"])
+        assert_cleanup_scope(self, record, "SLChess")
         self.assertEqual(sorted(r["name"] for r in record["removed"]),
                          ["SLChess", "SLChessController", "SLChessEngine", "SLChessEngineTest", "SLChess_Board", "slChessBoard"])
 
@@ -854,6 +878,10 @@ class TestCleanup(FakeOrg):
         self.deployed_like_a_model()
         proc = self.run_check(*self.CLEAN)
         self.assertEqual(proc.returncode, 0, self.out(proc))
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        assert_cleanup_scope(self, record, "SLChess")
+        self.assertIsInstance(record["covered"], dict)
+        self.assertIsInstance(record["not_covered"], dict)
         removes = "removes when new and prefixed (SLChess*, slChess* for bundles): CustomApplication, CustomTab, FlexiPage, LightningComponentBundle, ApexClass"
         self.assertIn(removes, proc.stdout)
         self.assertIn("only compares, never removes: ApexTrigger, ApexPage, ApexComponent, AuraDefinitionBundle, StaticResource, CustomObject, "
@@ -874,6 +902,45 @@ class TestCleanup(FakeOrg):
         self.assertNotIn("SLChessPieces", json.dumps(call["destructive"]))
         record = json.loads((self.platform / "cleanup.json").read_text())
         self.assertEqual((record["verified"], record["extra"]), (False, {"StaticResource": ["SLChessPieces"]}))
+
+    def test_a_prefixed_custom_object_alone_fails_cleanup_and_is_not_deleted(self) -> None:
+        baseline, own = "OwnerShared_Baseline__c", "SLChess_New__c"
+        self.add(CustomObject=[baseline])
+        self.deployed_like_a_model()
+        self.add(CustomObject=[own])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 1, self.out(proc))
+        state = self.state()
+        self.assertTrue({baseline, own} <= set(state["types"]["CustomObject"]))
+        (call,) = self.deploys(destructive=True)
+        self.assertNotIn("CustomObject", self.destroyed(call))
+        self.assertNotIn(own, json.dumps(call["destructive"]))
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertFalse(record["verified"])
+        self.assertIsInstance(record["removed"], list)
+        self.assertIsInstance(record["refused"], list)
+        self.assertNotIn("CustomObject", {item["type"] for item in record["removed"] + record["refused"]})
+        self.assertEqual(record["extra"]["CustomObject"], [own])
+        self.assertIn("CustomObject", record["covered"])
+        self.assertIsInstance(record["not_covered"], dict)
+        assert_cleanup_scope(self, record, "SLChess")
+
+    def test_a_foreign_prefixed_custom_object_alone_is_left_alone_and_does_not_fail_cleanup(self) -> None:
+        baseline, foreign = "OwnerShared_Baseline__c", "SLBattle_Kept__c"
+        self.add(CustomObject=[baseline])
+        self.deployed_like_a_model()
+        self.add(CustomObject=[foreign])
+        proc = self.run_check(*self.CLEAN)
+        self.assertEqual(proc.returncode, 0, self.out(proc))
+        self.assertIn("not this case's: left alone: CustomObject %s" % foreign, proc.stdout)
+        self.assertTrue({baseline, foreign} <= set(self.state()["types"]["CustomObject"]))
+        (call,) = self.deploys(destructive=True)
+        self.assertNotIn("CustomObject", self.destroyed(call))
+        self.assertNotIn(foreign, json.dumps(call["destructive"]))
+        record = json.loads((self.platform / "cleanup.json").read_text())
+        self.assertTrue(record["verified"])
+        self.assertEqual(record["extra"]["CustomObject"], [foreign])
+        assert_cleanup_scope(self, record, "SLChess")
 
     def test_a_cleanup_whose_org_also_holds_another_cases_kept_items_succeeds_and_notes_them_as_left_alone(self) -> None:
         """Live run F9/F10 (2026-10-19): org `de` also held another case's kept app (prefix SLBattle) and an unrelated platform

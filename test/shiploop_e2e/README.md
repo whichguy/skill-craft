@@ -1487,8 +1487,14 @@ The rules:
 
 Cleanup is the default: its command verifies the case's covered state against the before snapshot. This is a scoped check,
 not a whole-system reset. The shared-org Salesforce helpers currently compare covered metadata names and limited permission
-state; they do not establish that every record, custom field or deployed source byte was restored. Full schema-and-data
-reset remains unverified until a suitable target and reset mechanism are provided.
+state; they do not establish that every record, custom field or deployed source byte was restored. The owner selected
+the shared `de` org with guarantees limited to tracked test-owned state. Cleanup targets only owned new metadata and
+tracked permission assignments; covered baseline names and Apex/LWC dates are compared to detect damage to other apps.
+Custom-object names are compared, never deleted. Arbitrary business records (including test-created records), fields on
+baseline objects and deployed source bytes remain outside the current reset proof. A receipt's `verified: true` applies
+only to its recorded checks. Broader restoration remains unverified where coverage is absent. A detected owned
+leftover the helper cannot safely remove fails cleanup and blocks reuse; broader cleanup needs corresponding ownership
+and verification coverage.
 
 Campaigns queue attempts sharing a declared platform kind and org. The next launch needs the earlier run's sealed result
 to show cleanup ran and succeeded without keeping the platform. Otherwise it stays unlaunched with a reason, while other

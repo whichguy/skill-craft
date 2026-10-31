@@ -1288,6 +1288,114 @@ class BoundaryTest(unittest.TestCase):
 
 
 class LearningsTest(unittest.TestCase):
+    def history_repo(self, directory):
+        repo = Path(directory) / "history"
+        repo.mkdir()
+
+        def git(*args, message=None):
+            return subprocess.run(["git", "-C", str(repo), *args], input=message, check=True,
+                                  capture_output=True, text=True).stdout.strip()
+
+        git("init", "-q", "-b", "main")
+        git("config", "user.name", "test")
+        git("config", "user.email", "test@example.invalid")
+        return repo, git
+
+    def test_history_preserves_full_commit_identity_and_empty_learning_bodies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, git = self.history_repo(tmp)
+            messages = ["first lesson\n\nMeasured failure: keep the accepted gate.\n",
+                        "second lesson\n\nNo code retained; the candidate increased cost.\n",
+                        "third lesson\n\nPrior evidence remains unknown.\n"]
+            commits = []
+            for message in messages:
+                git("commit", "-q", "--allow-empty", "-F", "-", message=message)
+                commits.append(git("rev-parse", "HEAD"))
+
+            history = review.last_commit_messages(repo)
+
+            for sha, message in zip(commits, messages):
+                self.assertIn("commit " + sha + "\n", history)
+                self.assertIn(message.strip(), history)
+
+    def test_candidate_reads_older_record_learning_including_private_candidate_refs(self):
+        import cycle
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, git = self.history_repo(tmp)
+            record_id = "LR-history-fixture"
+            git("commit", "-q", "--allow-empty", "-m",
+                f"unrelated ancient material\n\nLearning-Record: {record_id}-other")
+            base = git("rev-parse", "HEAD")
+            old = "older retained rejection: avoid the failed catalog lookup"
+            git("commit", "-q", "--allow-empty", "-F", "-", message=f"{old}\n\nLearning-Record: {record_id}\n")
+            old_sha = git("rev-parse", "HEAD")
+            for number in range(4):
+                git("commit", "-q", "--allow-empty", "-m", f"later unrelated {number}")
+            private = "unadopted candidate rationale: retain its negative learning"
+            private_sha = git("commit-tree", base + "^{tree}", "-p", base,
+                              message=f"{private}\n\nLearning-Record: {record_id}\n")
+            git("update-ref", f"refs/shiploop-loop/fixture/{record_id}", private_sha)
+
+            history = review.last_commit_messages(repo, record_id=record_id)
+
+            self.assertIn("commit " + old_sha + "\n", history)
+            self.assertIn("commit " + private_sha + "\n", history)
+            self.assertIn(old, history)
+            self.assertIn(private, history)
+            self.assertNotIn("unrelated ancient material", history)
+            self.assertIn("not complete", history.lower())
+            record = {"record": record_id, "title": "Preserve prior decisions", "anchor": ["S-1"],
+                      "files": [], "proposal": "Use the recorded learning", "next_experiment": "A neutral check"}
+            prompt = cycle.one_record_prompt(repo, record, git("rev-parse", "HEAD"), ["hello"],
+                                             {"tolerance": 0.1, "attempts": 1})
+            self.assertIn(old, prompt)
+            self.assertIn(private, prompt)
+
+    def test_substantive_source_and_comparison_history_outlast_terminal_notes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, git = self.history_repo(tmp)
+            git("commit", "-q", "--allow-empty", "-m", "unrelated base")
+            source = repo / "skills" / "shiploop" / "scripts" / "engine.py"
+            source.parent.mkdir(parents=True)
+            source.write_text("accepted = True\n")
+            git("add", "skills/shiploop/scripts/engine.py")
+            git("commit", "-q", "-m", "fix(shiploop): retain source constraint\n\nKeep the accepted source-scope lesson.")
+            source_sha = git("rev-parse", "HEAD")
+            (repo / "skills" / "shiploop" / "SKILL.md").write_text("version: 2\n")
+            git("add", "skills/shiploop/SKILL.md")
+            git("commit", "-q", "-m", "release: version metadata\n\nSkill-Craft-Release: shiploop@2")
+            git("commit", "-q", "--allow-empty", "-m",
+                "test(e2e): qualified cycle for LR-context: PROMOTE, prediction confirmed\n\n"
+                "Substantive measured learning remains applicable.")
+            comparison_sha = git("rev-parse", "HEAD")
+            for number in range(3):
+                git("commit", "-q", "--allow-empty", "-m",
+                    f"test(e2e): retain cycle outcome for LR-terminal-{number}: NO_CANDIDATE\n\n"
+                    "No comparison was completed.")
+
+            history = review.last_commit_messages(repo)
+
+            for sha in (source_sha, comparison_sha):
+                self.assertIn("commit " + sha + "\n", history)
+            prompt = review.reviewer_prompt(Path("/r"), repo / "skills" / "shiploop", history)
+            self.assertIn("Keep the accepted source-scope lesson.", prompt)
+            self.assertIn("Substantive measured learning remains applicable.", prompt)
+
+    def test_default_history_marks_quoted_rejected_candidates_as_unadopted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, git = self.history_repo(tmp)
+            git("commit", "-q", "--allow-empty", "-m",
+                "test(e2e): qualified cycle for LR-rejected: DROP\n\n"
+                "Candidate author claimed: fix the archived defect.\n\nDecision DROP: candidate not adopted.")
+
+            history = review.last_commit_messages(repo)
+
+            self.assertIn("Candidate author claimed: fix the archived defect.", history)
+            self.assertIn("Decision DROP", history)
+            self.assertIn("unadopted", history.lower())
+            self.assertIn("explicit disposition", history.lower())
+
     RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
               "shiploop": {"status": "active", "stage": "regression", "report_html": False},

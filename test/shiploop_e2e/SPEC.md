@@ -24,8 +24,25 @@ Each iteration: run a case on exactly what the marketplace publishes, measure,
 review against this spec, fix ShipLoop generically, release and refresh the
 marketplace install (see the harness rules), rerun,
 record what was learned (one commit per run; before the next run or change,
-read the open learning records and the last three commit messages), and update
+read the open learning records and the full relevant Git commit messages), and update
 the Run Review page with the run's data.
+
+**History before changes (owner decision, 2026-10-30).** Before each subsequent change and commit, inspect the full
+messages of relevant earlier commits, including empty learning-only commits. Recent messages and the harness's source,
+comparison and record-linked anchors are starting context, not a complete history review. Search older history for the affected behavior, paths and
+referenced decisions. Carry forward measured wins, rejected approaches, contrary evidence and unresolved questions;
+explain with new evidence or an explicit owner decision any departure from an earlier decision.
+
+Every completed unit of work gets a very verbose learning commit: what was learned, the baseline and candidate,
+measurements and checks actually observed, the decision, contrary evidence, unknowns and evidence locations. Reference
+the full Git hashes and contents that materially influenced it. Keep generic ShipLoop gains, E2E apparatus gains and
+learning without an adopted code change distinct. Verified changes merge directly to `main`, preserving their messages;
+do not create PRs or squash the learning history. A local promotion, a main merge, a release and a subsequent run of the
+published build are separate recorded milestones.
+
+Reviews examine the available evidence about the skill contract/format, scripts, returned prompts/templates and the
+handoffs among them. They assess conformance, unexpected expectations, optimisations and material discoveries against
+the generic development mission. An interaction that was not exercised remains unobserved; no finding quota applies.
 
 ## Design clauses
 
@@ -57,7 +74,7 @@ follow a separate evaluator experiment. Semantic judgment cannot manufacture a p
 
 **Learning records and predictions (amended 2026-10-30; docs/shiploop-e2e-closed-loop-plan-2026-10-30.md, owner
 decision D2).** The learning records live in `test/shiploop_e2e/learning-records.jsonl`, appended only by the harness. They
-are read alongside the last three commit messages, never in their place. Until that file exists, the commit messages are
+are read alongside the Git history above, never in its place. Until that file exists, the commit messages are
 the only record read. A candidate change carries one prediction, registered before its first attempt runs: the measure
 it is expected to move, on which case, in which direction and by at least how much. "No worse" alone is not a
 prediction. The prediction's verdict (confirmed, refuted, no effect or unknown) is recorded beside the promotion decision
@@ -806,11 +823,18 @@ test data, custom schema, deployed artifacts and permissions, not only the local
 failed, incomplete or deliberately skipped cleanup is not a clean finish; a kept app must not silently become the next
 attempt's baseline. Preserve the failed attempt and its evidence rather than consuming another attempt on a dirty target.
 
-State ownership and coverage must be explicit. Cleanup must preserve unrelated state in a shared system. A prefix and a
-metadata-name comparison do not establish that all records, fields or deployed bytes were reset. Uncovered state remains
-unverified; a full-system reset requires a target and reset mechanism that can actually establish it. The current shared-org
-Salesforce helpers do not establish a full schema-and-data reset. That requirement remains unmet until its target strategy
-and coverage are verified; do not describe the dispatch barrier alone as complete state isolation.
+**Shared Salesforce scope (owner decision, 2026-10-30).** Keep the shared `de` org, preserve its other apps, and limit
+cleanup guarantees to tracked test-owned state. Ownership and coverage must be explicit. The desired boundary includes
+the tracked test's schema, deployed artifacts, data and permissions; coverage of each is still required before claiming
+it was restored. This does not authorise deleting unrelated state or clearing the whole org.
+
+The current helpers check covered metadata names, baseline Apex/LWC modification dates and limited permission-set
+assignment state. Custom-object names are compared only; these helpers do not delete custom schema. A prefix and metadata-name
+comparison do not establish restoration of arbitrary records, fields on baseline objects or deployed source bytes.
+Those remain unverified, including test-created business records. A cleanup receipt's `verified: true` covers only its
+recorded checks; it is not proof that unobserved state was reset or every other app was restored byte for byte. The broader
+reset requirement remains unmet wherever coverage is missing. A detected test-owned leftover that the helper cannot safely remove keeps cleanup unsuccessful
+and blocks the next same-target attempt. The dispatch barrier does not expand cleanup coverage or prove a whole-org reset.
 
 Fresh local files or browser data also do not establish a fresh deployed variant for an inner baseline or mutation check.
 Record which executable target was exercised, and leave unavailable discrimination unmeasured. This requirement changes

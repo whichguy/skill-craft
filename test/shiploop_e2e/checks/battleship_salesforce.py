@@ -527,7 +527,9 @@ def assignment_ids(org: str, permset: str) -> list[str]:
 
 def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
     sfc.check_prefix(prefix)
-    record = {"removed": [], "unassigned": [], "refused": [], "verified": False}
+    record = {"scope": sfc.cleanup_scope(prefix, removable=REMOVABLE, unassigns=("PermissionSetAssignment",),
+                                         assignment_baseline=True),
+              "removed": [], "unassigned": [], "refused": [], "verified": False}
     out = directory / "cleanup.json"
 
     def finish(ok: bool, message: str, **extra) -> tuple[bool, str]:

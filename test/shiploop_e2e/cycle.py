@@ -40,11 +40,14 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import math
+import os
 import secrets
 import subprocess
 import sys
 import tempfile
 import time
+import traceback
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -63,8 +66,45 @@ JOURNAL = Path("test", "shiploop_e2e", "LEARNINGS.md")  # relative to the worktr
 NON_PROMOTE_STOP = 2  # cycles in a row without PROMOTE before the loop stops (D3 proposal)
 
 
+class RegistrationRefused(ValueError):
+    """A registration was refused before any product attempt could run."""
+
+
 def _git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
+
+
+def candidate_source(worktree: Path, tip: str, candidate: str) -> dict[str, str]:
+    """Keep the full candidate commit message and a stat summary, never its historical patch."""
+    message = _git(worktree, "show", "-s", "--format=%B", candidate)
+    diff_stat = _git(worktree, "diff", "--stat", f"{tip}..{candidate}") or "(no file changes)"
+    return {"message": message, "diff_stat": diff_stat}
+
+
+def candidate_source_lines(source: dict[str, str], tip: str, candidate: str, decision: str) -> list[str]:
+    """Make the status of the quoted candidate message clear at the point where it is shown."""
+    if decision == "PROMOTE":
+        label = f"**Promoted candidate source — disposition: {decision} (full commit message; no historical diff).**"
+    else:
+        label = f"**UNADOPTED PROPOSAL — actual disposition: {decision} (full commit message; no historical diff).**"
+    return [label, "", source["message"], "", f"**Candidate diff stat (`{tip}..{candidate}`).**", "",
+            source["diff_stat"], ""]
+
+
+def _durable_write(path: Path, contents: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("wb") as handle:
+        handle.write(contents)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _interruption_artifact_dir(worktree: Path, stage: Path) -> Path:
+    root, requested = worktree.resolve(), stage.resolve()
+    if requested == root or root in requested.parents:
+        return Path(tempfile.mkdtemp(prefix="shiploop-cycle-interrupted-"))
+    requested.mkdir(parents=True, exist_ok=True)
+    return requested
 
 
 def load_calibration(path: Path, cases: list[str]) -> dict:
@@ -191,16 +231,19 @@ def qualify_built(root: Path, record: str, prediction_file: Path, control_plugin
                   candidate_ref: str | None = None) -> dict:
     """Steps 3 to 7's measured part: register, run, review, decide, and the prediction's verdict."""
     import run as runner
-    control, candidate = runner.tree_digest(control_plugin), runner.tree_digest(candidate_plugin)
-    if not control or not candidate:
-        raise ValueError("a plugin tree cannot be digested")
-    if control == candidate:
-        raise ValueError("the candidate's build is the control's: there is nothing to compare")
-    template = root.parent / f"{root.name}-registration.json"
-    template.write_text(json.dumps(registration_template(cases, control, candidate, driver, calibration["attempts"],
-                                                         calibration["tolerance"], calibration["metric"],
-                                                         getattr(args, "budget", None)), indent=2) + "\n")
-    epoch.initialise(root, template, prediction_file)
+    try:
+        control, candidate = runner.tree_digest(control_plugin), runner.tree_digest(candidate_plugin)
+        if not control or not candidate:
+            raise ValueError("a plugin tree cannot be digested")
+        if control == candidate:
+            raise ValueError("the candidate's build is the control's: there is nothing to compare")
+        template = root.parent / f"{root.name}-registration.json"
+        template.write_text(json.dumps(registration_template(cases, control, candidate, driver, calibration["attempts"],
+                                                             calibration["tolerance"], calibration["metric"],
+                                                             getattr(args, "budget", None)), indent=2) + "\n")
+        epoch.initialise(root, template, prediction_file)
+    except ValueError as error:
+        raise RegistrationRefused(str(error)) from error
     predicted = epoch.state(root)["prediction"]
     learning_records.append("predicted", record, ledger, prediction=predicted, candidate=candidate_ref or candidate,
                             epoch=str(root))
@@ -251,7 +294,8 @@ def one_record_prompt(worktree: Path, record: dict, base: str, cases: list[str],
     finding = {"title": record["title"], "proposal": record.get("proposal"), "files": record.get("files"),
                "mission_anchor": record.get("anchor"), "materiality": "material",
                "next_experiment": record.get("next_experiment"), "implementation_eligible": True}
-    return iterate.improver_prompt(worktree, [finding], base, reviewer.last_commit_messages(worktree)) + f"""
+    return iterate.improver_prompt(worktree, [finding], base,
+                                   reviewer.last_commit_messages(worktree, record_id=record["record"])) + f"""
 This candidate applies exactly one learning record, {record['record']}, and nothing else: no refactor, rename or fix
 of anything the record does not need. Make one commit. Its message's final paragraph carries the trailer
 `Learning-Record: {record['record']}` on its own line beside Co-Authored-By.
@@ -292,6 +336,9 @@ def entry(record: dict, result: dict, setup: dict) -> str:
                          f"{row.get('change', row.get('unknown'))} | {row['direction']} | "
                          f"{'held' if row['held'] else 'broken' if row['held'] is False else 'unknown'} |")
         lines.append("")
+    source = setup.get("candidate_source")
+    if source:
+        lines += candidate_source_lines(source, setup["tip"], setup["candidate"], result["decision"])
     lines += [f"**What it shows.** Decision {result['decision']}: {'; '.join(result.get('reasons') or []) or 'no reasons given'}.",
               f"Prediction {judged.get('verdict', 'not judged')}; the record is now "
               f"{(result.get('outcome') or {}).get('outcome', 'unchanged')}"
@@ -302,12 +349,88 @@ def entry(record: dict, result: dict, setup: dict) -> str:
     return "\n".join(line for line in lines if line is not None) + "\n"
 
 
+def terminal_entry(record: dict | None, decision: str, reason: str, tip: str, candidate: str | None,
+                   calibration: dict | None, cases: list[str], note: str,
+                   observed_summary: str | None = None, candidate_details: dict | None = None,
+                   interrupted: bool = False) -> str:
+    """Retain a terminal outcome with cycle or exploration evidence kept distinct."""
+    day = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+    record_id = record.get("record") if record else None
+    title = record.get("title") if record else None
+    anchor = learning_records._anchor_text(record.get("anchor")) if record else None
+    if record_id:
+        heading = f"## Cycle outcome: {record_id} — {decision} ({day})"
+        question = (f"**Question.** {title or '(untitled)'} ({anchor}). Why was the cycle interrupted?"
+                    if interrupted else
+                    f"**Question.** {title or '(untitled)'} ({anchor}). Why did this cycle end before a product comparison?")
+    else:
+        heading = f"## Invalid review from exploration: {decision} ({day})"
+        question = "**Question.** Did this exploration produce a discovery-qualified review?"
+    calibration_sha = (calibration or {}).get("sha256") or "not used"
+    candidate_sha = candidate or "none; no candidate commit was available"
+    calibration_details = (f"{calibration['attempts']} attempts per arm, tolerance {calibration['tolerance']} "
+                           f"on {calibration['metric']} (report SHA256 `{calibration_sha}`)"
+                           if calibration else "not used; no product comparison was registered")
+    if observed_summary is None:
+        observed_summary = ("unknown: exploration result.json was missing or malformed" if record is None else
+                            "not applicable: the cycle ended before product runs")
+    lines = [
+        heading, "", question, "",
+        f"**Setup.** Loop tip commit `{tip}`; candidate commit `{candidate_sha}`; "
+        f"calibration: {calibration_details}; cases: {', '.join(cases) or 'none'}.", "",
+    ]
+    if candidate_details:
+        lines += candidate_source_lines(candidate_details, tip, candidate, decision)
+    evidence_heading = "**Observed epoch evidence.** " if interrupted else "**Observed exploration-run measurements.** "
+    comparison = (f"**Product comparison.** Interrupted with outcome unknown/incomplete: {reason}."
+                  if interrupted else f"**Product comparison.** Improvement remains unmeasured: {reason}.")
+    lines += [evidence_heading + observed_summary, comparison,
+        f"**What it shows.** Decision {decision}: {reason}.", note, "",
+    ]
+    return "\n".join(lines)
+
+
+def exploration_run_summary(path: Path) -> str:
+    """Report only values present in a readable run receipt; missing or malformed fields stay explicitly unknown."""
+    try:
+        result = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return "unknown: result.json was missing or malformed"
+    if not isinstance(result, dict):
+        return "unknown: result.json was not an object"
+    process = result.get("process") if isinstance(result.get("process"), dict) else {}
+    cli = result.get("cli") if isinstance(result.get("cli"), dict) else {}
+    details = []
+    turns = cli.get("num_turns")
+    details.append(f"{turns} turns" if isinstance(turns, int) and not isinstance(turns, bool) and turns >= 0
+                   else "turns unknown")
+    elapsed = process.get("elapsed_seconds")
+    details.append(f"host elapsed {elapsed:g} seconds"
+                   if isinstance(elapsed, (int, float)) and not isinstance(elapsed, bool)
+                   and math.isfinite(elapsed) and elapsed >= 0 else "host elapsed unknown")
+    checks = result.get("checks")
+    if isinstance(checks, list) and all(isinstance(check, dict) and type(check.get("pass")) is bool for check in checks):
+        details.append(f"{sum(check['pass'] for check in checks)}/{len(checks)} checks passed")
+    elif isinstance(checks, list):
+        details.append(f"{len(checks)} checks; pass results unknown")
+    else:
+        details.append("checks unknown")
+    cost = cli.get("cost_usd", "missing")
+    if cost is None:
+        details.append("cost unknown (reported cost_usd is null)")
+    elif isinstance(cost, (int, float)) and not isinstance(cost, bool) and math.isfinite(cost) and cost >= 0:
+        details.append(f"cost_usd {cost:g}")
+    else:
+        details.append("cost unknown (cost_usd missing or invalid)")
+    return "; ".join(details)
+
+
 def apply_decision(worktree: Path, loop: str, record: str, tip: str, candidate: str, decision: str) -> str:
     """PROMOTE keeps the candidate as the tip; anything else keeps it as a ref and resets the worktree to the tip.
 
     The learning records appended during the cycle are not committed yet: they are carried across the reset."""
     if decision == "PROMOTE":
-        return f"The loop tip advanced to {candidate[:8]}."
+        return f"The loop tip advanced to {candidate}."
     ref = f"refs/shiploop-loop/{loop}/{record}"
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
     kept = ledger.read_bytes() if ledger.is_file() else None
@@ -315,19 +438,36 @@ def apply_decision(worktree: Path, loop: str, record: str, tip: str, candidate: 
     _git(worktree, "reset", "-q", "--hard", tip)
     if kept is not None:
         ledger.write_bytes(kept)
-    return f"The candidate is kept as {ref}; the loop tip stays at {tip[:8]}."
+    return f"The candidate is kept as {ref} at {candidate}; the loop tip stays at {tip}."
 
 
-def commit_entry(worktree: Path, text: str, record: str, decision: str, verdict: str, stage: Path) -> str:
+def commit_entry(worktree: Path, text: str, record: str | None, decision: str, verdict: str, stage: Path,
+                 terminal: bool = False) -> str:
     journal = worktree / JOURNAL
     with journal.open("a") as out:
         out.write("\n" + text)
-    message = (f"test(e2e): qualified cycle for {record}: {decision}, prediction {verdict}\n\n{text}\n"
-               "Co-Authored-By: ShipLoop E2E harness <shiploop-e2e@example.invalid>\n")
+    if record and terminal:
+        subject = f"test(e2e): retain cycle outcome for {record}: {decision}, product measurement {verdict}"
+    elif record:
+        subject = f"test(e2e): qualified cycle for {record}: {decision}, prediction {verdict}"
+    else:
+        subject = f"test(e2e): retain invalid review from exploration: {decision}, measurement {verdict}"
+    message = f"{subject}\n\n{text}\nCo-Authored-By: ShipLoop E2E harness <shiploop-e2e@example.invalid>\n"
     (stage / "learnings-commit.txt").write_text(message)
     _git(worktree, "add", JOURNAL.as_posix(), f"test/shiploop_e2e/{learning_records.LEDGER.name}")
     _git(worktree, "commit", "-q", "-F", str(stage / "learnings-commit.txt"))
-    return _git(worktree, "rev-parse", "--short", "HEAD")
+    return _git(worktree, "rev-parse", "HEAD")
+
+
+def commit_terminal_learning(worktree: Path, stage: Path, record_id: str | None, record: dict | None,
+                             decision: str, reason: str, tip: str, candidate: str | None,
+                             calibration: dict | None, cases: list[str], note: str,
+                             observed_summary: str | None = None,
+                             candidate_details: dict | None = None, measurement: str = "unmeasured",
+                             interrupted: bool = False) -> str:
+    text = terminal_entry(record, decision, reason, tip, candidate, calibration, cases, note,
+                          observed_summary, candidate_details, interrupted)
+    return commit_entry(worktree, text, record_id, decision, measurement, stage, terminal=True)
 
 
 def build(worktree: Path, out: Path) -> Path:
@@ -336,7 +476,129 @@ def build(worktree: Path, out: Path) -> Path:
     return out / "plugins" / "skill-craft"
 
 
+def _write_recovery_note(path: Path, text: str) -> bool:
+    try:
+        with path.open("ab") as handle:
+            handle.write(("\n" + text + "\n").encode("utf-8", errors="replace"))
+            handle.flush()
+            os.fsync(handle.fileno())
+    except OSError:
+        return False
+    return True
+
+
+def retain_interrupted_cycle(worktree: Path, loop: str, record_id: str, stage: Path, record: dict,
+                              tip: str, calibration: dict, cases: list[str], ledger_before: bytes,
+                              error: BaseException) -> None:
+    """Keep an interrupted cycle's ledger bytes and candidate before restoring the accepted loop tip."""
+    ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
+    current_ledger = ledger.read_bytes() if ledger.is_file() else b""
+    head = _git(worktree, "rev-parse", "HEAD")
+    status = _git(worktree, "status", "--porcelain", "--untracked-files=all")
+    epoch_root = stage / "epoch"
+    if head == tip and current_ledger == ledger_before and not status and not epoch_root.exists():
+        return
+
+    artifacts = _interruption_artifact_dir(worktree, stage)
+    backup = artifacts / f"interrupted-ledger-{record_id}.jsonl"
+    failure_note = artifacts / f"interrupted-exception-{record_id}.txt"
+    _durable_write(backup, current_ledger)
+    original_traceback = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    _durable_write(failure_note,
+                   (f"Cycle {record_id} interrupted before a complete outcome was retained.\n"
+                    f"Exception: {type(error).__name__}: {error}\n"
+                    f"Original traceback:\n{original_traceback}\n"
+                    f"Ledger bytes before recovery: {backup}\n").encode("utf-8", errors="replace"))
+
+    ledger_is_valid = True
+    if not current_ledger.startswith(ledger_before):
+        ledger_is_valid = False
+        _write_recovery_note(failure_note,
+                             "Current ledger bytes no longer extend the accepted history; raw bytes were preserved "
+                             "externally and the accepted ledger will be restored before deferral.")
+    try:
+        if ledger_is_valid:
+            learning_records.rows(backup)
+    except (OSError, ValueError) as ledger_error:
+        ledger_is_valid = False
+        _write_recovery_note(failure_note,
+                             f"Raw ledger bytes were preserved externally but not restored into the active ledger: "
+                             f"{type(ledger_error).__name__}: {ledger_error}")
+
+    candidate = head if head != tip else None
+    ref = f"refs/shiploop-loop/{loop}/{record_id}"
+    if candidate is None:
+        try:
+            candidate = _git(worktree, "rev-parse", "--verify", ref)
+        except subprocess.CalledProcessError:
+            pass
+    failure_reason = f"{type(error).__name__}: {str(error)[:800]}"
+    if candidate and candidate != tip:
+        note = apply_decision(worktree, loop, record_id, tip, candidate, "INTERRUPTED")
+    else:
+        _git(worktree, "reset", "-q", "--hard", tip)
+        note = f"No candidate commit was retained; the loop tip stays at {tip}."
+    if ledger_is_valid:
+        _durable_write(ledger, current_ledger)
+    else:
+        _durable_write(ledger, ledger_before)
+
+    learning_records.append("deferred", record_id, ledger,
+                            reason=f"Cycle interrupted before its outcome was retained: {failure_reason}")
+    evidence = (f"unknown/incomplete; do not infer a product outcome from partial runs. "
+                f"Inspect epoch artifacts and any retained result receipts at {epoch_root}; "
+                f"the full cycle stage remains at {stage}.")
+    details = (f"Cycle interrupted by {failure_reason}; no promotion or rejection outcome was retained. "
+               f"The ledger snapshot is preserved at {backup}; the original exception is recorded at {failure_note}. "
+               f"Product evidence is unknown/incomplete; inspect {epoch_root}. {note}")
+    commit_terminal_learning(worktree, stage, record_id, record, "INTERRUPTED", failure_reason, tip,
+                             candidate, calibration, cases, details, evidence,
+                             measurement="unknown/incomplete", interrupted=True)
+
+
 def qualify(worktree: Path, loop: str, record_id: str, stage: Path, args, calibration: dict) -> dict:
+    """Run a qualified cycle only from a clean loop tip; preserve and journal interrupted mutations before re-raising."""
+    ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
+    dirty = _git(worktree, "status", "--porcelain", "--untracked-files=all")
+    if dirty:
+        raise ValueError("qualify requires a clean worktree; refusing to reset existing changes")
+    if stage.exists():
+        raise FileExistsError(f"cycle stage already exists; preserving prior evidence at {stage}")
+    tip = _git(worktree, "rev-parse", "HEAD")
+    ledger_before = ledger.read_bytes()
+    record = learning_records.improver_view(record_id, ledger)
+    cases = [args.case] + ([args.generality_case] if args.generality_case else [])
+    try:
+        result = _qualify_impl(worktree, loop, record_id, stage, args, calibration)
+    except BaseException as error:
+        try:
+            retain_interrupted_cycle(worktree, loop, record_id, stage, record, tip, calibration, cases,
+                                     ledger_before, error)
+        except BaseException as recovery_error:
+            # Never replace the original failure: keep both diagnostics beside the external ledger backup when possible.
+            note_written = False
+            try:
+                artifacts = _interruption_artifact_dir(worktree, stage)
+                failure_note = artifacts / f"interrupted-exception-{record_id}.txt"
+                note_written = _write_recovery_note(
+                    failure_note,
+                    f"Original exception: {type(error).__name__}: {error}\n"
+                    f"Original traceback:\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}\n"
+                    f"Recovery wrapper failed; recovery is incomplete: "
+                    f"{type(recovery_error).__name__}: {recovery_error}")
+            except BaseException:
+                pass
+            if not note_written:
+                print(f"cycle: interrupted recovery incomplete ({type(recovery_error).__name__}: {recovery_error}); "
+                      f"original exception remains: {type(error).__name__}: {error}", file=sys.stderr)
+        raise
+    # Learning is already committed when the operation returns. Export errors must not reset a completed outcome.
+    # Candidate-controlled commit messages never decide whether recovery runs.
+    (stage / "cycle-result.json").write_text(json.dumps({"contract": CONTRACT, **result}, indent=2, default=str) + "\n")
+    return result
+
+
+def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, calibration: dict) -> dict:
     """One improver cycle in the worktree (HEAD is the loop tip); see the module docstring."""
     import iterate
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
@@ -349,10 +611,23 @@ def qualify(worktree: Path, loop: str, record_id: str, stage: Path, args, calibr
     change = iterate.improve(worktree, [], stage / "improve", args, prompt=prompt)
     crossed = iterate.boundary_crossing(change)
     if crossed or change["out_of_scope"] or change["uncommitted"] or not change["commits"]:
+        head = _git(worktree, "rev-parse", "HEAD")
+        candidate_sha = head if change["commits"] and head != tip else None
         _git(worktree, "reset", "-q", "--hard", tip)
         why = crossed or ("out of scope or uncommitted work" if change["commits"] else "the improver committed nothing")
-        learning_records.append("rejected_at_purpose", record_id, ledger, reason=f"no usable candidate: {why}")
-        return {"decision": "NO_CANDIDATE", "reasons": [why], "stop": bool(crossed)}
+        reason = f"No usable candidate: {why}"
+        learning_records.append("rejected_at_purpose", record_id, ledger, reason=reason)
+        if candidate_sha:
+            note = (f"Committed candidate {candidate_sha} was not adopted; the loop tip remains at {tip}. "
+                    f"Improve artifacts remain at {stage / 'improve'}.")
+        else:
+            note = (f"No candidate commit was available; the loop tip remains at {tip}. "
+                    f"Improve artifacts remain at {stage / 'improve'}.")
+        result = {"decision": "NO_CANDIDATE", "reasons": [why], "stop": bool(crossed), "tip_note": note}
+        result["learnings_commit"] = commit_terminal_learning(
+            worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha, calibration, cases,
+            note)
+        return result
     reviewed, verdict = None, None
     predicted = (change["report"] or {}).get("prediction")
     for attempt in (1, 2):
@@ -372,38 +647,53 @@ def qualify(worktree: Path, loop: str, record_id: str, stage: Path, args, calibr
     candidate_sha = _git(worktree, "rev-parse", "HEAD")
     if verdict["result"] != "passed":
         note = apply_decision(worktree, loop, record_id, tip, candidate_sha, "REJECTED")
-        learning_records.append("rejected_at_purpose", record_id, ledger, reason="; ".join(verdict["reasons"])[:500])
-        return {"decision": "REJECTED_AT_PURPOSE", "reasons": verdict["reasons"], "tip_note": note}
+        reason = "Purpose review rejected the candidate: " + "; ".join(verdict["reasons"])
+        learning_records.append("rejected_at_purpose", record_id, ledger, reason=reason[:500])
+        result = {"decision": "REJECTED_AT_PURPOSE", "reasons": verdict["reasons"], "tip_note": note}
+        result["learnings_commit"] = commit_terminal_learning(
+            worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha,
+            calibration, cases, note, candidate_details=candidate_source(worktree, tip, candidate_sha))
+        return result
     prediction_file = stage / "prediction.json"
     prediction_file.write_text(json.dumps(predicted, indent=2) + "\n")
     try:
         roles = roles_for(predicted, args.case, args.generality_case)
     except (KeyError, TypeError, ValueError) as error:
         note = apply_decision(worktree, loop, record_id, tip, candidate_sha, "REJECTED")
-        learning_records.append("rejected_at_purpose", record_id, ledger, reason=f"no usable prediction: {error}")
-        return {"decision": "NO_PREDICTION", "reasons": [str(error)], "tip_note": note}
+        reason = f"No usable prediction: {error}"
+        learning_records.append("rejected_at_purpose", record_id, ledger, reason=reason)
+        result = {"decision": "NO_PREDICTION", "reasons": [str(error)], "tip_note": note}
+        result["learnings_commit"] = commit_terminal_learning(
+            worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha,
+            calibration, cases, note, candidate_details=candidate_source(worktree, tip, candidate_sha))
+        return result
     candidate_plugin = build(worktree, stage / "candidate-build")
     driver = hosts.resolve_role("subject", {"host": args.host, "model": args.model, "effort": args.effort})
     driver = {key: driver[key] for key in ("host", "model", "effort")}
     try:
         result = qualify_built(stage / "epoch", record_id, prediction_file, control_plugin, candidate_plugin, roles,
                                driver, calibration, args, ledger, candidate_sha)
-    except ValueError as error:
+    except RegistrationRefused as error:
         note = apply_decision(worktree, loop, record_id, tip, candidate_sha, "REFUSED")
-        learning_records.append("rejected_at_purpose", record_id, ledger, reason=f"registration refused: {error}")
-        return {"decision": "REFUSED", "reasons": [str(error)], "tip_note": note}
+        reason = f"Registration refused: {error}"
+        learning_records.append("rejected_at_purpose", record_id, ledger, reason=reason)
+        result = {"decision": "REFUSED", "reasons": [str(error)], "tip_note": note}
+        result["learnings_commit"] = commit_terminal_learning(
+            worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha,
+            calibration, cases, note, candidate_details=candidate_source(worktree, tip, candidate_sha))
+        return result
     note = apply_decision(worktree, loop, record_id, tip, candidate_sha,
                           result["decision"] if result["decision"] == "PROMOTE" else "KEEP_AS_REF")
-    setup = {"cases": list(roles), "roles": roles, "tip": tip[:8], "candidate": candidate_sha[:8],
+    setup = {"cases": list(roles), "roles": roles, "tip": tip, "candidate": candidate_sha,
              "control_build": result["control_build"], "candidate_build": result["candidate_build"],
+             "candidate_source": candidate_source(worktree, tip, candidate_sha),
              "driver": f"{driver['host']} {driver['model']} {driver['effort']}", "attempts": calibration["attempts"],
              "tolerance": calibration["tolerance"], "metric": calibration["metric"],
-             "calibration": calibration["sha256"][:12], "epoch": str(stage / "epoch"), "tip_note": note}
+             "calibration": calibration["sha256"], "epoch": str(stage / "epoch"), "tip_note": note}
     result["tip_note"] = note
     result["learnings_commit"] = commit_entry(worktree, entry({"record": record_id, **record}, result, setup), record_id,
                                               result["decision"], (result.get("verdict") or {}).get("verdict", "not judged"),
                                               stage)
-    (stage / "cycle-result.json").write_text(json.dumps({"contract": CONTRACT, **result}, indent=2, default=str) + "\n")
     return result
 
 
@@ -413,6 +703,8 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
     import judge
     import review as reviewer
     import run as runner
+    stage.mkdir(parents=True, exist_ok=True)
+    tip = _git(worktree, "rev-parse", "HEAD")
     plugin = build(worktree, stage / "build")
     runner.main(["--case", args.case, "--host", args.host, "--output", str(stage / "run"), "--plugin-dir", str(plugin),
                  "--permission-mode", args.permission_mode,
@@ -423,6 +715,14 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
                               prior_learnings=reviewer.last_commit_messages(worktree),
                               records=learning_records.reviewer_view(ledger))
     if not (verdict.get("validity") or {}).get("discovery_qualified"):
+        validity = verdict.get("validity") if isinstance(verdict.get("validity"), dict) else {}
+        status = validity.get("status") or "unknown"
+        detail = validity.get("reason") or "the review did not qualify a discovery"
+        reason = f"Review validity {status}: {detail}; no discovery-qualified learning record was admitted"
+        note = f"No learning record was admitted; exploration artifacts remain at {stage / 'run'}."
+        commit_terminal_learning(worktree, stage, None, None, "INVALID_REVIEW", reason, tip, None,
+                                 None, [args.case], note,
+                                 exploration_run_summary(stage / "run" / "result.json"))
         return []
     judged = judge.judge(stage / "run", verdict, **iterate.role_profile(args, "judge"))
     routes = judge.admitted(verdict, judged)
@@ -525,7 +825,7 @@ def main(argv: list[str] | None = None) -> int:
              "candidate_build": result.get("candidate_build"),
              "driver": f"{driver['host']} {driver['model']} {driver['effort']}", "attempts": calibration["attempts"],
              "tolerance": calibration["tolerance"], "metric": calibration["metric"],
-             "calibration": calibration["sha256"][:12], "epoch": str(out / "epoch"),
+             "calibration": calibration["sha256"], "epoch": str(out / "epoch"),
              "tip_note": "A hand-built candidate: nothing on a loop branch moved."}
     (out / "entry.md").write_text(entry({"record": args.record, **record}, result, setup))
     (out / "cycle-result.json").write_text(json.dumps({"contract": CONTRACT, **result}, indent=2, default=str) + "\n")

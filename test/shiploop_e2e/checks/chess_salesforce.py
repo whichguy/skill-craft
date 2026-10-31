@@ -234,6 +234,41 @@ UNSUPPORTED_RE = re.compile(r"not supported|INVALID_TYPE")  # the CLI's answer f
 NOT_QUERYABLE = "type was not queryable at the snapshot"
 
 
+def cleanup_scope(prefix: str, *, removable: tuple[str, ...] = REMOVABLE,
+                  unassigns: tuple[str, ...] = (), assignment_baseline: bool = False) -> dict[str, object]:
+    """Describe the declared cleanup policy; this is not evidence that its namespace is actually exclusive."""
+    removable_types = set(removable)
+    scope: dict[str, object] = {
+        "kind": "declared-cleanup-policy",
+        "policy": "shared-org-tracked",
+        "removes": list(removable),
+        "unassigns": list(unassigns),
+        "compares_only": sorted(({spec[0] for spec in WATCHED} | set(OWN_TYPES)) - removable_types),
+        "ownership_assumption": {
+            "kind": "reserved_namespace",
+            "prefix": prefix,
+            "case_sensitive": True,
+            "removal_requires_absent_from_before_json": True,
+            "removal_prefix_by_type": {kind: removal_prefix(kind, prefix) for kind in removable},
+        },
+        "not_observed": [
+            "arbitrary_apex_dml_business_records",
+            "fields_on_baseline_objects_or_metadata_contents",
+            "metadata_outside_watched_types",
+            "jobs",
+            "late_finishing_deployments",
+        ],
+    }
+    if assignment_baseline:
+        scope["assignment_baseline"] = {
+            "source": "before.json.permset_assignments",
+            "identity": "PermissionSetAssignment.Id",
+            "baseline_ids_preserved": True,
+            "new_ids_removed": True,
+        }
+    return scope
+
+
 def watched_names(org: str, spec: tuple, like_prefix: str | None = None) -> list[str]:
     kind, field, tooling, base = spec
     where = [c for c in (base, "%s LIKE '%s%%'" % (field, like_prefix) if like_prefix else "") if c]
@@ -435,7 +470,7 @@ def removal_prefix(kind: str, prefix: str) -> str:
 
 def do_cleanup(org: str, prefix: str, directory: Path) -> tuple[bool, str]:
     check_prefix(prefix)
-    record = {"removed": [], "refused": [], "verified": False}
+    record = {"scope": cleanup_scope(prefix), "removed": [], "refused": [], "verified": False}
     out = directory / "cleanup.json"
 
     def finish(ok: bool, message: str, **extra) -> tuple[bool, str]:

@@ -4530,3 +4530,65 @@ The measured benefit is preventing unsafe dispatch in the hermetic fixtures. No 
 token savings or dollar savings was measured. Same-org execution is deliberately serialized. Declared aliases are not
 canonical org identity, and older harness versions do not take the new org-wide lease. This change does not broaden
 deletion, qualify incomplete reset coverage, alter historical verdicts or adopt the unqualified ShipLoop product candidate.
+
+## Retain history and interrupted learning; verify scoped Salesforce cleanup (2026-10-31 UTC)
+
+**Question.** Does the repository E2E loop retain the evidence needed to learn from rejected and interrupted work, and
+does its shared-org cleanup describe what it actually checks? The owner resolved the earlier target question: keep
+shared `de`, preserve other apps, and limit guarantees to tracked test-owned state. Before further edits and commits,
+read full relevant Git messages, including negative learning; every completed unit gets a verbose learning commit.
+
+**Setup.** Accepted parent `0adf74c38474a67b4768524f3eb9599227f861ab`; final tested source fingerprint
+`f5330cfcb04223d0d730e1dca085f218f38f5d08cbcb8f454e8add5e3dd9236f` (6,359 files). The full messages of that parent,
+`d23af4dd88c8d3e9f0bc4faf6264268235e745c5`, `f0c244253e3ff050ef55409ea2e632d89de1a46f`, and
+`d8f25be586d363d8b25f31744ed439a9c86b436b` informed the work: preserve the quota failure, use owned cleanup, keep the
+dispatch barrier's limited claim, and repair the existing append-only ledger rather than add another controller.
+The accepted document-scope lesson in `5e899bb71b90099dcaa68b92ae7c562e03af758d` must survive newer terminal notes.
+
+**Result.** Fail-first fixtures reproduced missing full/older history, lost terminal/interrupted learning and incomplete
+ownership-prefix declarations. An independent review found that a candidate-controlled commit subject could impersonate
+completion. A real-Git experiment failed with candidate `x = 2` retained instead of accepted `x = 1`; after removing message
+inference and exporting results outside the operation's recovery boundary, the same experiment passed.
+
+| Final check | Observed result |
+|---|---|
+| Qualified cycle regressions | 24/24 passed; 8.55 seconds |
+| Main E2E module | 491/491 passed; 170.71 seconds; no skips |
+| Chess cleanup/selftest fixtures | 46/46 passed; 45.70 seconds |
+| Battleship cleanup/selftest/update fixtures | 23/23 passed; 28.98 seconds |
+| Ruff F/E9 on nine changed Python files; whitespace | Passed |
+
+Total: 584 distinct regression tests. The separate one-test adversarial replay covers duplicate behavior and is not
+added to that total. Source identity was unchanged throughout. Earlier setup errors, failed assertions and an incorrect
+expected test count remain in the evidence; they were not reclassified as runtime defects or silently removed.
+
+One prospective live Salesforce apparatus selftest used a new prefix `SLHist2a143e` after the owned retained deployment
+was cleaned. It passed in 94.068813 seconds, exit 0: preflight, snapshot, deploy, one Apex test, permission assignment,
+access query, anonymous execution (`expected=2 got=2`), and cleanup. Seven owned metadata items and one permission
+assignment were removed; covered baseline names and all 32 Apex/LWC dates were preserved. `extra`, `missing`, `modified`,
+`unverified` and `not_covered` were empty. The actual receipt records per-type removal prefixes and shared-org-tracked
+coverage. Model calls and UI checks: zero. This was not a full ShipLoop/game run.
+
+The earlier 52-second app-quota failure remains a failure in `d23af4dd88c8d3e9f0bc4faf6264268235e745c5`. The intervening
+73.593-second cleanup is retained in `0adf74c38474a67b4768524f3eb9599227f861ab`: only our seven `SLBtlFull654` components
+and one assignment were removed, and the original baseline was preserved. Fresh prefixes do not free finite capacity;
+history changed the next action. Neither operation rewrote the old full-UI campaign or its UNDECIDED adoption result.
+
+**What it shows.** The measured win is apparatus reliability: substantive messages remain available; rejected proposals
+are labeled unadopted; known terminal paths commit learning; interrupted cycles preserve ledger bytes before resetting,
+retain candidates privately, commit an honest incomplete outcome and propagate the original error. Dirty starts and prior
+stages are protected. Own unsupported schema fails cleanup; foreign schema is left alone and reported informationally.
+Cleanup policy is distinct from observations. Arbitrary business records, schema restoration, fields, source bytes,
+jobs and late deployments remain outside the current reset proof. Unconfirmed Git/storage failures require reconciliation.
+
+At the same parent, history context grew from 14,878 to 18,473 bytes (+3,595, 24.16%); one collection took 0.0109 versus
+0.1070 seconds. This is not a latency benchmark; model tokens, dollars, discovery-rate equivalence and generic product
+quality effects remain unmeasured. New qualification inputs require a new prospective comparison/calibration; old scores
+and registrations stay frozen. The repository controller still needs coordinator-owned main/release/next-published-build
+delivery. The packaged audit skill has a separate harness; these internal changes reach repository operators and CI.
+
+Evidence root: `~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/`. Retain `adversarial-followup-green-02`,
+`candidate-subject-red-01` and `candidate-subject-red-02`, `history-first-adversarial` (review and dispositions),
+`history-context-measurement`, `retained-battleship-cleanup-01`, and `shared-scope-live-01` / `shared-scope-live-02` with
+their separate execution logs. This append follows the measured source; no scorer, floor, case, model default, ShipLoop
+loop or marketplace skill source was changed, and no new generic ShipLoop product candidate is adopted by this repair.
