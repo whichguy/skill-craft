@@ -92,6 +92,15 @@ running settles.
   output, or left open with the item that settles it), run 3 more A and 6 B, interleaved. Adopt iff B's pass rate beats
   A's with an exact one-sided permutation p < 0.05 (6 vs 6), no B run fails a pass-to-pass check A passes, and the probe
   commands appear in the host event stream of at least 4 of the 6 B runs. Secondary: minutes, send-backs.
+- Amendment, 2026-10-31 13:45, after A s1 and before any arm-B work: A s1 delivered nothing. ShipLoop paused at
+  step-plan: its plan had recorded "Persisted 5000-ticket response can meet 10 seconds" as an open assumption due at W1
+  (reason "Candidate does not exist"), the step-plan gate asked for an expectation checked on the unchanged base, and the
+  model judged that impossible and stopped. Intake had routed Q2 ("What limits and costs affect a 5000-ticket
+  request?") to `experiment`; nothing probed it. No acceptance was observed, so A s1 is a non-pass; the pre-registration
+  named neither this nor a run that delivers nothing. Read as written in spirit: the futility stop needs three passes,
+  which can no longer happen, so Stage 2 opens, with the candidate as registered (the shipped route text, since XR did
+  not adopt the sentence; a research duty and a research gate for each intake question routed `experiment`). The
+  adoption rule is unchanged. A run that delivers nothing counts as a non-pass in either arm.
 - The live hold: other sessions record an owner hold on new live E2E cycles (d9fefb11, 488ffbd9, 8975a5bc). The owner's
   go for this live work came in this session ("Do all", to a plan naming a live A/B of 6 runs per side); the runs are
   confined to this gated design.
